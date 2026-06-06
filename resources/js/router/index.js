@@ -363,6 +363,13 @@ const routes = [
                 component: () => import('@/views/health-score/Index.vue'),
                 meta: { title: '客户健康度', icon: 'Monitor' },
             },
+            // ── 批量操作工具 (M2-08) ──
+            {
+                path: 'batch',
+                name: 'Batch',
+                component: () => import('@/views/batch/Index.vue'),
+                meta: { title: '批量操作', icon: 'List' },
+            },
             // ── 计费管理 ──
             {
                 path: 'billing/retention',

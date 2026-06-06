@@ -56,6 +56,7 @@ use App\Http\Controllers\Api\MerkleChainController;
 use App\Http\Controllers\Api\UsageMeterController;
 use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\HealthScoreController;
+use App\Http\Controllers\Api\BatchController;
 
 /*
 
@@ -598,6 +599,15 @@ Route::middleware(['auth:sanctum', 'apm'])->group(function () {
     Route::get('/health-score/customer/{customerId}/trend', [HealthScoreController::class, 'trend'])->whereNumber('customerId');
     Route::get('/health-score/list', [HealthScoreController::class, 'list']);
     Route::get('/health-score/churn-list', [HealthScoreController::class, 'churnList']);
+
+    // ── 批量操作工具 (M2-08) ──
+    Route::get('/batch/operation-types', [BatchController::class, 'operationTypes']);
+    Route::post('/batch/preview', [BatchController::class, 'preview']);
+    Route::post('/batch/execute', [BatchController::class, 'execute']);
+    Route::get('/batch/jobs', [BatchController::class, 'index']);
+    Route::get('/batch/jobs/{id}', [BatchController::class, 'show'])->whereNumber('id');
+    Route::post('/batch/jobs/{id}/undo', [BatchController::class, 'undo'])->whereNumber('id');
+    Route::post('/batch/jobs/{id}/export', [BatchController::class, 'export'])->whereNumber('id');
 
     // Tax Calculator
     Route::get('/tax/countries', [TaxController::class, 'countries']);

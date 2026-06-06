@@ -191,7 +191,7 @@ import {
     MagicStick, EditPen, Connection, Reading,
     Bell, Link, Promotion, Refresh,
     TrendCharts, Message, Timer, ChatDotSquare,
-    WarnTriangleFilled, DataBoard,
+    WarnTriangleFilled, DataBoard, List,
 } from '@element-plus/icons-vue';
 
 const route = useRoute();
@@ -288,6 +288,7 @@ const menuGroups = [
     {
         label: '运营分析', icon: 'DataBoard',
         items: [
+            { path: '/batch', title: '批量操作', icon: List },
             { path: '/health-score', title: '客户健康度', icon: DataBoard },
         ],
     },
