@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class WebhookEndpoint extends Model
 {
     use BelongsToTenant;
+    use \Illuminate\Database\Eloquent\Factories\HasFactory;
     protected $fillable = [
         'tenant_id',
         'name',

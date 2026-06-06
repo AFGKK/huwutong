@@ -24,7 +24,7 @@ class TicketController extends Controller
         $this->authorize('viewAny', Ticket::class);
 
         $query = Ticket::with([
-            'customer:id,name',
+            'customer.user:id,name',
             'user:id,name',
             'category:id,name',
             'assignee:id,name',
@@ -101,7 +101,7 @@ class TicketController extends Controller
         $this->authorize('view', $ticket);
 
         $ticket->load([
-            'customer:id,name,email',
+            'customer.user:id,name,email',
             'user:id,name',
             'category:id,name',
             'assignee:id,name',

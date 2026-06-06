@@ -99,6 +99,16 @@ class User extends Authenticatable
         return $this->hasMany(\App\Models\EmailVerification::class);
     }
 
+    public function tickets()
+    {
+        return $this->hasMany(Ticket::class);
+    }
+
+    public function assignedTickets()
+    {
+        return $this->hasMany(Ticket::class, 'assigned_to');
+    }
+
     public function deletionRequest()
     {
         return $this->hasOne(\App\Models\AccountDeletionRequest::class)

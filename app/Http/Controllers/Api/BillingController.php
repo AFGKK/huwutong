@@ -25,7 +25,7 @@ class BillingController extends Controller
     {
         $this->authorize('viewAny', Subscription::class);
 
-        $query = Subscription::with(['customer:id,name', 'product:id,name']);
+        $query = Subscription::with(['customer.user:id,name', 'product:id,name']);
 
         // 筛选
         if ($request->filled('status')) {
@@ -107,7 +107,7 @@ class BillingController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => '订阅创建成功',
-                'data' => $subscription->load(['customer:id,name', 'product:id,name']),
+                'data' => $subscription->load(['customer.user:id,name', 'product:id,name']),
             ], 201);
         } catch (\Throwable $e) {
             return response()->json([
@@ -125,7 +125,7 @@ class BillingController extends Controller
         $this->authorize('view', $subscription);
 
         $subscription->load([
-            'customer:id,name,email',
+            'customer.user:id,name,email',
             'product:id,name',
             'invoices' => fn($q) => $q->latest()->limit(10),
         ]);
@@ -244,7 +244,7 @@ class BillingController extends Controller
     {
         $this->authorize('viewAny', Invoice::class);
 
-        $query = Invoice::with(['customer:id,name', 'subscription:id,plan']);
+        $query = Invoice::with(['customer.user:id,name', 'subscription:id,plan']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
@@ -272,7 +272,7 @@ class BillingController extends Controller
     {
         $this->authorize('view', $invoice);
 
-        $invoice->load(['customer:id,name', 'subscription:id,plan']);
+        $invoice->load(['customer.user:id,name', 'subscription:id,plan']);
 
         return response()->json([
             'success' => true,

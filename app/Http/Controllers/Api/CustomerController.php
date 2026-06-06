@@ -65,8 +65,8 @@ class CustomerController extends Controller
         $licenseIds = $customer->licenses()->pluck('id');
         $devices = \App\Models\Device::whereIn('license_id', $licenseIds)
             ->where('tenant_id', $request->user()->tenant_id)
-            ->select('id', 'fingerprint', 'hostname', 'platform', 'trust_score', 'last_activated_at', 'license_id')
-            ->orderByDesc('last_activated_at')
+            ->select('id', 'fingerprint', 'platform', 'os_version', 'trust_score', 'last_seen_at', 'license_id')
+            ->orderByDesc('last_seen_at')
             ->get();
 
         return ApiResponse::success([

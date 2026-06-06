@@ -88,7 +88,7 @@ class RetentionController extends Controller
     {
         $this->authorize('viewAny', Subscription::class);
 
-        $escalations = RenewalEscalation::with(['subscription.customer:id,name'])
+        $escalations = RenewalEscalation::with(['subscription.customer.user:id,name'])
             ->where('status', 'pending')
             ->orderBy('created_at', 'desc')
             ->paginate(15);

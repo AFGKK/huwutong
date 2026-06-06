@@ -9,8 +9,10 @@ use App\Http\Requests\Api\RegisterRequest;
 use App\Models\AccountDeletionRequest;
 use App\Models\InviteCode;
 use App\Models\LegalConsent;
+use App\Models\TrustedDevice;
 use App\Models\User;
 use App\Services\AuthService;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -26,6 +28,7 @@ class AuthController extends Controller
 {
     public function __construct(
         protected AuthService $authService,
+        protected NotificationService $notificationService,
     ) {}
 
     // ─── 注册 / 登录 ───
@@ -188,6 +191,36 @@ class AuthController extends Controller
         return ApiResponse::success(null, '已退出登录');
     }
 
+    // ─── Token 刷新 ───
+
+    /**
+     * 刷新当前 Token
+     *
+     * POST /api/token/refresh
+     * 删除当前 token 并颁发新 token，用于前端静默续期
+     */
+    public function refreshToken(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $currentToken = $user->currentAccessToken();
+
+        $this->authService->recordLoginAudit(
+            $user, 'token_refresh', $request->ip(), $request->userAgent(),
+        );
+
+        $currentToken->delete();
+
+        $newToken = $user->createToken(
+            $currentToken->name ?: 'api-token',
+            $currentToken->abilities ?: ['*'],
+        );
+
+        return ApiResponse::success([
+            'token' => $newToken->plainTextToken,
+            'expires_at' => $newToken->accessToken->expires_at,
+        ], 'Token 已刷新');
+    }
+
     // ─── 邮箱验证 ───
 
     /**
@@ -203,12 +236,15 @@ class AuthController extends Controller
 
         $verification = $this->authService->sendEmailVerification($user);
 
-        // TODO: 实际发送邮件通知
-        Log::info('邮箱验证码', [
-            'user_id' => $user->id,
-            'email' => $user->email,
-            'code' => $verification->token,
-        ]);
+        // 发送验证码邮件
+        try {
+            Mail::to($user->email)->send(new \App\Mail\EmailVerification($user, $verification->token));
+        } catch (\Throwable $e) {
+            Log::error('发送邮箱验证码邮件失败', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return ApiResponse::success([
             'expires_at' => $verification->expires_at,
@@ -250,11 +286,15 @@ class AuthController extends Controller
             return ApiResponse::notFound('该邮箱未注册');
         }
 
-        // TODO: 实际发送邮件通知
-        Log::info('密码重置验证码', [
-            'email' => $data['email'],
-            'code' => $token,
-        ]);
+        // 发送密码重置邮件
+        try {
+            Mail::to($data['email'])->send(new \App\Mail\PasswordReset($data['email'], $token));
+        } catch (\Throwable $e) {
+            Log::error('发送密码重置邮件失败', [
+                'email' => $data['email'],
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return ApiResponse::success(null, '验证码已发送到您的邮箱');
     }
@@ -307,11 +347,15 @@ class AuthController extends Controller
         Cache::put($cacheKey, $code, now()->addMinutes(5));
         Cache::put($cacheKey . '_sent', now(), now()->addMinutes(5));
 
-        // TODO: 集成阿里云短信 SDK
-        Log::info('手机验证码', [
-            'phone' => $data['phone'],
-            'code' => $code,
-        ]);
+        // 发送短信验证码
+        try {
+            app(\App\Services\SmsService::class)->sendVerificationCode($data['phone'], $code);
+        } catch (\Throwable $e) {
+            Log::error('发送短信验证码失败', [
+                'phone' => $data['phone'],
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return ApiResponse::success(null, '验证码已发送');
     }
@@ -502,6 +546,48 @@ class AuthController extends Controller
         $device->delete();
 
         return ApiResponse::success(null, '设备信任已取消');
+    }
+
+    /**
+     * 清除所有信任设备
+     */
+    public function clearTrustedDevices(Request $request): JsonResponse
+    {
+        $request->user()->trustedDevices()->delete();
+
+        return ApiResponse::success(null, '已清除所有信任设备');
+    }
+
+    /**
+     * 登录时检测设备状态，新设备触发通知
+     */
+    public function checkDevice(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'device_fingerprint' => 'required|string',
+            'device_name' => 'nullable|string|max:255',
+        ]);
+
+        $user = $request->user();
+        $fingerprint = $data['device_fingerprint'];
+        $isTrusted = $this->authService->isDeviceTrusted($user, $fingerprint);
+
+        if (!$isTrusted) {
+            $this->notificationService->sendNewDeviceNotification(
+                $user,
+                $data['device_name'] ?? '未知设备',
+                $request->ip(),
+                $request->userAgent(),
+            );
+        } else {
+            TrustedDevice::where('user_id', $user->id)
+                ->where('device_fingerprint', $fingerprint)
+                ->update(['last_seen_at' => now()]);
+        }
+
+        return ApiResponse::success([
+            'is_trusted' => $isTrusted,
+        ]);
     }
 
     // ─── 邀请码管理 ───

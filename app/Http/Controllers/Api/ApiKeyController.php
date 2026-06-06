@@ -15,8 +15,6 @@ class ApiKeyController extends Controller
 {
     /**
      * 获取当前用户的 API 密钥列表
-     *
-     * GET /api/api-keys
      */
     public function index(Request $request): JsonResponse
     {
@@ -29,6 +27,12 @@ class ApiKeyController extends Controller
                 'id' => $key->id,
                 'key_id' => $key->key_id,
                 'name' => $key->name,
+                'permissions' => $key->permissions,
+                'allowed_endpoints' => $key->allowed_endpoints,
+                'rate_limit' => $key->rate_limit,
+                'usage_quota' => $key->usage_quota,
+                'usage_count' => $key->usage_count,
+                'allowed_ip' => $key->allowed_ip,
                 'is_active' => $key->is_active,
                 'last_used_at' => $key->last_used_at,
                 'expires_at' => $key->expires_at,
@@ -41,13 +45,17 @@ class ApiKeyController extends Controller
 
     /**
      * 创建新的 API 密钥
-     *
-     * POST /api/api-keys
      */
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:100',
+            'permissions' => 'sometimes|in:read-only,read-write,admin',
+            'allowed_endpoints' => 'sometimes|nullable|array',
+            'allowed_endpoints.*' => 'string',
+            'rate_limit' => 'sometimes|nullable|integer|min:1|max:10000',
+            'usage_quota' => 'sometimes|nullable|integer|min:1',
+            'allowed_ip' => 'sometimes|nullable|ip',
             'expires_at' => 'sometimes|nullable|date|after:today',
         ]);
 
@@ -58,7 +66,7 @@ class ApiKeyController extends Controller
         $tenantId = $request->user()->tenant_id;
 
         // 检查密钥数量限制
-        $maxKeys = 10;
+        $maxKeys = 20;
         $keyCount = ApiKey::where('tenant_id', $tenantId)->count();
         if ($keyCount >= $maxKeys) {
             return ApiResponse::error('MAX_KEYS_REACHED', "最多可创建 {$maxKeys} 个 API 密钥", 422);
@@ -67,14 +75,13 @@ class ApiKeyController extends Controller
         $keyId = 'ak_' . Str::random(32);
         $secret = Str::random(48);
 
-        $key = ApiKey::create([
-            'tenant_id' => $tenantId,
-            'key_id' => $keyId,
-            'name' => $request->input('name'),
-            'secret' => Hash::make($secret),
-            'is_active' => true,
-            'expires_at' => $request->input('expires_at'),
-        ]);
+        $data = $validator->validated();
+        $data['tenant_id'] = $tenantId;
+        $data['key_id'] = $keyId;
+        $data['secret'] = Hash::make($secret);
+        $data['is_active'] = true;
+
+        $key = ApiKey::create($data);
 
         return response()->json([
             'success' => true,
@@ -83,6 +90,11 @@ class ApiKeyController extends Controller
                 'id' => $key->id,
                 'key_id' => $key->key_id,
                 'name' => $key->name,
+                'permissions' => $key->permissions,
+                'allowed_endpoints' => $key->allowed_endpoints,
+                'rate_limit' => $key->rate_limit,
+                'usage_quota' => $key->usage_quota,
+                'allowed_ip' => $key->allowed_ip,
                 'secret' => $secret,
                 'is_active' => $key->is_active,
                 'expires_at' => $key->expires_at,
@@ -93,8 +105,6 @@ class ApiKeyController extends Controller
 
     /**
      * 获取 API 密钥详情
-     *
-     * GET /api/api-keys/{apiKey}
      */
     public function show(Request $request, ApiKey $apiKey): JsonResponse
     {
@@ -104,6 +114,12 @@ class ApiKeyController extends Controller
             'id' => $apiKey->id,
             'key_id' => $apiKey->key_id,
             'name' => $apiKey->name,
+            'permissions' => $apiKey->permissions,
+            'allowed_endpoints' => $apiKey->allowed_endpoints,
+            'rate_limit' => $apiKey->rate_limit,
+            'usage_quota' => $apiKey->usage_quota,
+            'usage_count' => $apiKey->usage_count,
+            'allowed_ip' => $apiKey->allowed_ip,
             'is_active' => $apiKey->is_active,
             'last_used_at' => $apiKey->last_used_at,
             'expires_at' => $apiKey->expires_at,
@@ -113,9 +129,7 @@ class ApiKeyController extends Controller
     }
 
     /**
-     * 更新 API 密钥（名称、过期时间）
-     *
-     * PUT /api/api-keys/{apiKey}
+     * 更新 API 密钥
      */
     public function update(Request $request, ApiKey $apiKey): JsonResponse
     {
@@ -123,7 +137,13 @@ class ApiKeyController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:100',
-            'expires_at' => 'sometimes|nullable|date|after:today',
+            'permissions' => 'sometimes|in:read-only,read-write,admin',
+            'allowed_endpoints' => 'sometimes|nullable|array',
+            'allowed_endpoints.*' => 'string',
+            'rate_limit' => 'sometimes|nullable|integer|min:1|max:10000',
+            'usage_quota' => 'sometimes|nullable|integer|min:1',
+            'allowed_ip' => 'sometimes|nullable|ip',
+            'expires_at' => 'sometimes|nullable|date',
             'is_active' => 'sometimes|boolean',
         ]);
 
@@ -131,34 +151,13 @@ class ApiKeyController extends Controller
             return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
         }
 
-        if ($request->has('name')) {
-            $apiKey->name = $request->input('name');
-        }
-        if ($request->has('expires_at')) {
-            $apiKey->expires_at = $request->input('expires_at');
-        }
-        if ($request->has('is_active')) {
-            $apiKey->is_active = $request->boolean('is_active');
-        }
+        $apiKey->update($validator->validated());
 
-        $apiKey->save();
-
-        return ApiResponse::success([
-            'id' => $apiKey->id,
-            'key_id' => $apiKey->key_id,
-            'name' => $apiKey->name,
-            'is_active' => $apiKey->is_active,
-            'last_used_at' => $apiKey->last_used_at,
-            'expires_at' => $apiKey->expires_at,
-            'created_at' => $apiKey->created_at,
-            'updated_at' => $apiKey->updated_at,
-        ], 'API 密钥已更新');
+        return ApiResponse::success($apiKey->fresh(), 'API 密钥已更新');
     }
 
     /**
      * 删除 API 密钥
-     *
-     * DELETE /api/api-keys/{apiKey}
      */
     public function destroy(Request $request, ApiKey $apiKey): JsonResponse
     {
@@ -170,9 +169,7 @@ class ApiKeyController extends Controller
     }
 
     /**
-     * 重新生成密钥（更换 secret）
-     *
-     * POST /api/api-keys/{apiKey}/regenerate
+     * 重新生成密钥
      */
     public function regenerate(Request $request, ApiKey $apiKey): JsonResponse
     {
