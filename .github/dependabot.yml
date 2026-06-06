@@ -1,0 +1,57 @@
+version: 2
+updates:
+  # PHP Composer dependencies
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "team-lead"
+    labels:
+      - "dependencies"
+      - "php"
+      - "automerge"
+    assignees:
+      - "developer"
+    # 安全更新优先级最高
+    pull-request-branch-name:
+      separator: "-"
+    versioning-strategy: increase
+    ignore:
+      - dependency-name: "laravel/framework"
+        update-types: ["version-update:semver-major"]
+    # 安全更新自动合并（patch 级别）
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+
+  # NPM dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "team-lead"
+    labels:
+      - "dependencies"
+      - "javascript"
+      - "automerge"
+    assignees:
+      - "developer"
+    pull-request-branch-name:
+      separator: "-"
+    versioning-strategy: increase
+    ignore:
+      - dependency-name: "vue"
+        update-types: ["version-update:semver-major"]
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"

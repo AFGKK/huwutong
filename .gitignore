@@ -1,0 +1,27 @@
+/vendor/
+node_modules/
+/public/hot
+/public/build/
+/storage/*.key
+.env
+.env.*.php
+.DS_Store
+Thumbs.db
+*.log
+/.phpunit.result.cache
+/phpunit.xml
+.php_cs
+.php_cs.cache
+docker-compose.override.yml
+Homestead.json
+Homestead.yaml
+/.idea/
+*.swp
+*.swo
+
+# Test output
+/e2e-report/
+test-results/
+coverage/
+vitest.config.*.timestamp-*
+

@@ -1,0 +1,33 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->foreignId('tenant_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('status')->default('active')->after('email')->comment('状态');
+            $table->string('phone')->nullable()->after('email')->unique()->comment('手机号');
+            $table->timestamp('last_login_at')->nullable()->after('remember_token');
+            $table->string('last_login_ip')->nullable()->after('last_login_at');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropForeign(['tenant_id']);
+            $table->dropColumn(['tenant_id', 'status', 'phone', 'last_login_at', 'last_login_ip']);
+        });
+    }
+};

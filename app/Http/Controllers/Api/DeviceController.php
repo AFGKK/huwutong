@@ -1,0 +1,155 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\ApiResponse;
+use App\Http\Controllers\Controller;
+use App\Models\Device;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class DeviceController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $query = Device::with('license.product', 'license.customer.user')
+            ->where('tenant_id', $request->user()->tenant_id);
+
+        // 搜索
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('fingerprint', 'like', "%{$search}%")
+                  ->orWhere('hostname', 'like', "%{$search}%")
+                  ->orWhere('platform', 'like', "%{$search}%");
+            });
+        }
+
+        // 筛选
+        if ($request->filled('filter.platform')) {
+            $query->where('platform', $request->input('filter.platform'));
+        }
+        if ($request->filled('filter.is_blacklisted')) {
+            $query->where('is_blacklisted', $request->boolean('filter.is_blacklisted'));
+        }
+        if ($request->filled('filter.is_virtual')) {
+            $query->where('is_virtual', $request->boolean('filter.is_virtual'));
+        }
+        if ($request->filled('filter.license_id')) {
+            $query->where('license_id', $request->input('filter.license_id'));
+        }
+        if ($request->filled('filter.trust_score_min')) {
+            $query->where('trust_score', '>=', (int) $request->input('filter.trust_score_min'));
+        }
+
+        // 排序
+        $sortField = $request->input('sort', '-last_seen_at');
+        $direction = str_starts_with($sortField, '-') ? 'desc' : 'asc';
+        $field = ltrim($sortField, '-');
+
+        $allowedSorts = ['fingerprint', 'platform', 'trust_score', 'is_blacklisted', 'is_virtual', 'last_seen_at', 'last_activated_at', 'created_at'];
+        if (in_array($field, $allowedSorts)) {
+            $query->orderBy($field, $direction);
+        } else {
+            $query->latest('last_seen_at');
+        }
+
+        $perPage = min((int) $request->input('per_page', 20), 100);
+
+        return ApiResponse::paginated($query->paginate($perPage));
+    }
+
+    public function show(int $id, Request $request): JsonResponse
+    {
+        $device = Device::with('license.product', 'license.customer.user')
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->findOrFail($id);
+
+        return ApiResponse::success($device);
+    }
+
+    /**
+     * 停用设备（软删除或标记）
+     */
+    public function deactivate(int $id, Request $request): JsonResponse
+    {
+        $device = Device::where('tenant_id', $request->user()->tenant_id)
+            ->findOrFail($id);
+
+        // 移除 license 关联并降低信任分
+        $device->update([
+            'license_id' => null,
+            'trust_score' => 0,
+            'is_blacklisted' => $request->boolean('blacklist', false),
+        ]);
+
+        return ApiResponse::success($device->fresh(), '设备已停用');
+    }
+
+    /**
+     * 设备统计
+     */
+    public function stats(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+
+        $total = Device::where('tenant_id', $tenantId)->count();
+        $active = Device::where('tenant_id', $tenantId)->whereNotNull('license_id')->count();
+        $blacklisted = Device::where('tenant_id', $tenantId)->where('is_blacklisted', true)->count();
+        $virtual = Device::where('tenant_id', $tenantId)->where('is_virtual', true)->count();
+
+        // 平台分布
+        $byPlatform = Device::where('tenant_id', $tenantId)
+            ->whereNotNull('platform')
+            ->selectRaw('platform, count(*) as count')
+            ->groupBy('platform')
+            ->orderByDesc('count')
+            ->pluck('count', 'platform');
+
+        // 信任分分布
+        $trustBuckets = [
+            'high' => Device::where('tenant_id', $tenantId)->where('trust_score', '>=', 80)->count(),
+            'medium' => Device::where('tenant_id', $tenantId)->whereBetween('trust_score', [50, 79])->count(),
+            'low' => Device::where('tenant_id', $tenantId)->where('trust_score', '<', 50)->count(),
+        ];
+
+        return ApiResponse::success([
+            'total' => $total,
+            'active' => $active,
+            'inactive' => $total - $active,
+            'blacklisted' => $blacklisted,
+            'virtual' => $virtual,
+            'by_platform' => $byPlatform,
+            'trust_buckets' => $trustBuckets,
+        ]);
+    }
+
+    /**
+     * 批量操作
+     */
+    public function batch(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:devices,id',
+            'action' => 'required|in:deactivate,blacklist,remove_blacklist',
+        ]);
+
+        $tenantId = $request->user()->tenant_id;
+        $count = 0;
+
+        foreach ($validated['ids'] as $id) {
+            $device = Device::where('tenant_id', $tenantId)->find($id);
+            if (!$device) continue;
+
+            match ($validated['action']) {
+                'deactivate' => $device->update(['license_id' => null, 'trust_score' => 0]),
+                'blacklist' => $device->update(['is_blacklisted' => true]),
+                'remove_blacklist' => $device->update(['is_blacklisted' => false]),
+            };
+
+            $count++;
+        }
+
+        return ApiResponse::success(['affected' => $count], "已处理 {$count} 台设备");
+    }
+}
