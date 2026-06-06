@@ -69,9 +69,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onErrorCaptured } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import errorReporter from '@/utils/errorReporter';
+import { ElMessage } from 'element-plus';
 import {
     UserFilled, ArrowDown, Setting, SwitchButton,
     Fold, Expand, Key,
@@ -84,6 +86,13 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const sidebarCollapsed = ref(false);
+
+// 错误边界
+onErrorCaptured((err, instance, info) => {
+    errorReporter.vueError(err, instance, info);
+    ElMessage.error({ message: '页面部分组件加载异常，已自动恢复', duration: 3000 });
+    return false;
+});
 
 const menuItems = [
     { path: '/portal', title: '我的仪表盘', icon: Odometer },

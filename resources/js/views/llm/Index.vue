@@ -132,6 +132,87 @@
                 </div>
             </el-tab-pane>
 
+            <!-- 自动降级管理 -->
+            <el-tab-pane label="自动降级管理" name="fallback">
+                <div class="fallback-panel">
+                    <el-row :gutter="16">
+                        <el-col :span="12">
+                            <el-card shadow="never" class="section-card">
+                                <template #header>
+                                    <div class="card-header">
+                                        <span>降级状态</span>
+                                        <el-tag v-if="fallbackStatus?.fallback_active" type="warning">降级中</el-tag>
+                                        <el-tag v-else type="success">正常</el-tag>
+                                    </div>
+                                </template>
+                                <el-descriptions :column="1" border v-if="fallbackStatus">
+                                    <el-descriptions-item label="降级策略">
+                                        <el-tag size="small">{{ fallbackStatus.fallback_strategy || '无' }}</el-tag>
+                                    </el-descriptions-item>
+                                    <el-descriptions-item label="活跃降级 Provider">
+                                        {{ fallbackStatus.fallback_provider || '-' }}
+                                    </el-descriptions-item>
+                                    <el-descriptions-item label="连续失败次数（当前）">
+                                        <el-tag :type="(fallbackStatus.consecutive_failures || 0) > 3 ? 'danger' : 'info'" size="small">
+                                            {{ fallbackStatus.consecutive_failures || 0 }}
+                                        </el-tag>
+                                    </el-descriptions-item>
+                                    <el-descriptions-item label="降级触发时间">
+                                        {{ fallbackStatus.fallback_triggered_at || '-' }}
+                                    </el-descriptions-item>
+                                    <el-descriptions-item label="总计降级次数">
+                                        {{ fallbackStatus.total_fallbacks || 0 }}
+                                    </el-descriptions-item>
+                                    <el-descriptions-item label="上次降级原因">
+                                        {{ fallbackStatus.last_fallback_reason || '-' }}
+                                    </el-descriptions-item>
+                                </el-descriptions>
+                                <div v-else class="empty-data">
+                                    <el-skeleton :rows="4" animated />
+                                </div>
+                            </el-card>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-card shadow="never" class="section-card">
+                                <template #header><span>Provider 健康度</span></template>
+                                <el-table :data="fallbackStatus?.provider_health || []" size="small" v-if="(fallbackStatus?.provider_health?.length || 0) > 0">
+                                    <el-table-column label="Provider" prop="provider_name" />
+                                    <el-table-column label="健康状态" width="100">
+                                        <template #default="{ row }">
+                                            <el-tag :type="row.healthy ? 'success' : 'danger'" size="small">
+                                                {{ row.healthy ? '健康' : '异常' }}
+                                            </el-tag>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="最近成功" width="160" prop="last_success_at">
+                                        <template #default="{ row }">{{ row.last_success_at || '-' }}</template>
+                                    </el-table-column>
+                                    <el-table-column label="失败率" width="100">
+                                        <template #default="{ row }">
+                                            {{ row.failure_rate ? (row.failure_rate * 100).toFixed(1) + '%' : '0%' }}
+                                        </template>
+                                    </el-table-column>
+                                </el-table>
+                                <el-empty v-else-if="!loadingFallback" description="暂无 Provider 健康数据" />
+                                <el-skeleton v-else :rows="3" animated />
+                            </el-card>
+                        </el-col>
+                    </el-row>
+                    <el-card shadow="never" class="section-card">
+                        <template #header><span>操作</span></template>
+                        <div class="action-bar">
+                            <el-button type="warning" @click="handleResetFallback" :loading="resettingFallback">
+                                <el-icon style="margin-right:4px"><Refresh /></el-icon>重置降级状态
+                            </el-button>
+                            <el-button @click="loadFallbackStatus" :loading="loadingFallback" style="margin-left: 8px;">
+                                刷新状态
+                            </el-button>
+                            <span class="tip-text">重置后系统将重新尝试使用主 Provider</span>
+                        </div>
+                    </el-card>
+                </div>
+            </el-tab-pane>
+
             <!-- Token 统计 -->
             <el-tab-pane label="Token 用量统计" name="stats">
                 <el-row :gutter="16" class="stats-row">
@@ -212,6 +293,8 @@ import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { ChatLineSquare } from '@element-plus/icons-vue';
 import llmApi from '@/api/llm';
+import llmFallbackApi from '@/api/llmFallback';
+import { Refresh } from '@element-plus/icons-vue';
 
 const activeTab = ref('providers');
 const loadingProviders = ref(false);
@@ -436,10 +519,45 @@ async function loadLogs() {
     }
 }
 
+// ── Fallback 管理 ──
+const fallbackStatus = ref(null);
+const loadingFallback = ref(false);
+const resettingFallback = ref(false);
+
+async function loadFallbackStatus() {
+    loadingFallback.value = true;
+    try {
+        const { data: res } = await llmFallbackApi.status();
+        if (res.success) fallbackStatus.value = res.data;
+    } catch {
+        // ignore
+    } finally {
+        loadingFallback.value = false;
+    }
+}
+
+async function handleResetFallback() {
+    resettingFallback.value = true;
+    try {
+        const { data: res } = await llmFallbackApi.reset();
+        if (res.success) {
+            ElMessage.success('降级状态已重置');
+            await loadFallbackStatus();
+        } else {
+            ElMessage.warning(res.message || '重置失败');
+        }
+    } catch {
+        ElMessage.error('重置请求失败');
+    } finally {
+        resettingFallback.value = false;
+    }
+}
+
 onMounted(() => {
     loadProviders();
     loadStats();
     loadLogs();
+    loadFallbackStatus();
 });
 </script>
 
@@ -583,4 +701,25 @@ onMounted(() => {
     flex-shrink: 0;
 }
 :deep(.el-card__body) { padding: 16px; }
+
+/* Fallback panel */
+.fallback-panel { }
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.action-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.tip-text {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    margin-left: 8px;
+}
+.empty-data {
+    padding: 20px 0;
+}
 </style>

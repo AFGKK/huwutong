@@ -11,28 +11,119 @@ const apiClient = axios.create({
     },
 });
 
-// 请求拦截器
+// ─── Token 刷新状态 ───
+let isRefreshing = false;
+let failedQueue = [];
+
+function processQueue(error, token = null) {
+    failedQueue.forEach(({ resolve, reject }) => {
+        if (error) {
+            reject(error);
+        } else {
+            resolve(token);
+        }
+    });
+    failedQueue = [];
+}
+
+// 强制登出
+function forceLogout(message = '登录已过期，请重新登录') {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    // 避免重复跳转
+    if (router.currentRoute?.value?.name !== 'Login') {
+        router.push('/login');
+    }
+    ElMessage.error(message);
+}
+
+// 尝试静默刷新 Token
+async function tryRefreshToken() {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return null;
+
+    try {
+        const { data: res } = await axios.post('/api/token/refresh', {}, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.success && res.data?.token) {
+            localStorage.setItem('auth_token', res.data.token);
+            return res.data.token;
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+// ─── 请求拦截器 ───
 apiClient.interceptors.request.use((config) => {
     const token = localStorage.getItem('auth_token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+    // 模拟登录令牌
+    const impersonateToken = localStorage.getItem('impersonate_token');
+    if (impersonateToken) {
+        config.headers['X-Impersonate-Token'] = impersonateToken;
+    }
+    // 标记这是重试请求（用于拦截器中区分）
+    config._retryCount = config._retryCount || 0;
     return config;
 });
 
-// 响应拦截器
+// ─── 响应拦截器 ───
 apiClient.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
         const status = error.response?.status;
         const data = error.response?.data;
+        const originalRequest = error.config;
 
-        if (status === 401) {
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user');
-            router.push('/login');
-            ElMessage.error('登录已过期，请重新登录');
-        } else if (status === 403) {
+        // 401 — 尝试静默刷新
+        if (status === 401 && !originalRequest._retry) {
+            // 防止刷新 Token 本身也触发刷新
+            if (originalRequest.url?.includes('/token/refresh')) {
+                forceLogout('登录已过期，请重新登录');
+                return Promise.reject(error);
+            }
+
+            if (isRefreshing) {
+                // 已在刷新中，排队等待
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                }).then((newToken) => {
+                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                    return apiClient(originalRequest);
+                });
+            }
+
+            isRefreshing = true;
+            originalRequest._retry = true;
+
+            try {
+                const newToken = await tryRefreshToken();
+                if (newToken) {
+                    processQueue(null, newToken);
+                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                    return apiClient(originalRequest);
+                }
+
+                // 刷新失败
+                processQueue(error);
+                forceLogout('登录已过期，请重新登录');
+                return Promise.reject(error);
+            } catch {
+                processQueue(error);
+                forceLogout('登录已过期，请重新登录');
+                return Promise.reject(error);
+            } finally {
+                isRefreshing = false;
+            }
+        }
+
+        // 其他状态
+        if (status === 403) {
             const msg = data?.message || '没有权限执行此操作';
             ElMessage.error(msg);
         } else if (status === 429) {

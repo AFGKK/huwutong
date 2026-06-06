@@ -122,6 +122,12 @@ const routes = [
                 meta: { title: '邮件追踪', icon: 'TrendCharts' },
             },
             {
+                path: 'webhook-endpoints',
+                name: 'WebhookEndpoints',
+                component: () => import('@/views/webhook/Endpoints.vue'),
+                meta: { title: 'Webhook 端点', icon: 'Link' },
+            },
+            {
                 path: 'webhook-replay',
                 name: 'WebhookReplay',
                 component: () => import('@/views/webhook/Index.vue'),
@@ -138,6 +144,30 @@ const routes = [
                 name: 'MfaSettings',
                 component: () => import('@/views/mfa/Index.vue'),
                 meta: { title: 'MFA 设置', icon: 'Lock' },
+            },
+            {
+                path: 'cors-configs',
+                name: 'CorsConfigs',
+                component: () => import('@/views/cors/Index.vue'),
+                meta: { title: 'CORS 配置', icon: 'Connection' },
+            },
+            {
+                path: 'csp-configs',
+                name: 'CspConfigs',
+                component: () => import('@/views/csp/Index.vue'),
+                meta: { title: 'CSP 安全策略', icon: 'Shield' },
+            },
+            {
+                path: 'maintenance',
+                name: 'MaintenanceMode',
+                component: () => import('@/views/maintenance/Index.vue'),
+                meta: { title: '维护模式', icon: 'WarnTriangleFilled' },
+            },
+            {
+                path: 'apm',
+                name: 'ApmMonitor',
+                component: () => import('@/views/apm/Index.vue'),
+                meta: { title: 'APM 监控', icon: 'DataAnalysis' },
             },
             {
                 path: 'webhook-events',
@@ -224,6 +254,41 @@ const routes = [
                 component: () => import('@/views/sessions/Index.vue'),
                 meta: { title: '活跃会话', icon: 'Monitor' },
             },
+            // ── 信任设备管理 ──
+            {
+                path: 'device-trust',
+                name: 'DeviceTrust',
+                component: () => import('@/views/device-trust/Index.vue'),
+                meta: { title: '信任设备', icon: 'Monitor' },
+            },
+            // ── 密码策略 ──
+            {
+                path: 'password-policy',
+                name: 'PasswordPolicy',
+                component: () => import('@/views/password-policy/Index.vue'),
+                meta: { title: '密码策略', icon: 'Lock' },
+            },
+            // ── 邀请码管理 ──
+            {
+                path: 'invite-codes',
+                name: 'InviteCodes',
+                component: () => import('@/views/invite-codes/Index.vue'),
+                meta: { title: '邀请码管理', icon: 'Key' },
+            },
+            // ── 隐私协议管理 ──
+            {
+                path: 'legal-consents',
+                name: 'LegalConsents',
+                component: () => import('@/views/legal-consent/Index.vue'),
+                meta: { title: '协议管理', icon: 'Document' },
+            },
+            // ── 账号注销审核 ──
+            {
+                path: 'account-deletions',
+                name: 'AccountDeletions',
+                component: () => import('@/views/account-deletion/Index.vue'),
+                meta: { title: '注销审核', icon: 'Delete' },
+            },
             {
                 path: 'account/binding',
                 name: 'AccountBinding',
@@ -249,6 +314,34 @@ const routes = [
                 component: () => import('@/views/feature-flags/Index.vue'),
                 meta: { title: '功能开关', icon: 'Switch' },
             },
+            // ── 系统公告 ──
+            {
+                path: 'announce-banners',
+                name: 'AnnounceBanners',
+                component: () => import('@/views/announce-banners/Index.vue'),
+                meta: { title: '系统公告', icon: 'Bell' },
+            },
+            // ── Cookie Consent ──
+            {
+                path: 'cookie-consent',
+                name: 'CookieConsent',
+                component: () => import('@/views/cookie-consent/Index.vue'),
+                meta: { title: 'Cookie 管理', icon: 'SetUp' },
+            },
+            // ── 断路器监控 ──
+            {
+                path: 'circuit-breaker',
+                name: 'CircuitBreaker',
+                component: () => import('@/views/circuit-breaker/Index.vue'),
+                meta: { title: '断路器监控', icon: 'Monitor' },
+            },
+            // ── 模拟登录 ──
+            {
+                path: 'impersonate',
+                name: 'Impersonate',
+                component: () => import('@/views/impersonate/Index.vue'),
+                meta: { title: '模拟登录', icon: 'Key' },
+            },
             // ── 计费管理 ──
             {
                 path: 'billing/retention',
@@ -262,6 +355,13 @@ const routes = [
                 name: 'Diagnostic',
                 component: () => import('@/views/diagnostic/Index.vue'),
                 meta: { title: 'AI 错误诊断', icon: 'MagicStick' },
+            },
+            // ── RAG 知识库索引管理 ──
+            {
+                path: 'rag',
+                name: 'RagAdmin',
+                component: () => import('@/views/rag/Index.vue'),
+                meta: { title: 'RAG 知识库管理', icon: 'Reading' },
             },
             // ── SSO ──
             {
@@ -304,6 +404,13 @@ const routes = [
                 name: 'AuditLogs',
                 component: () => import('@/views/audit-logs/Index.vue'),
                 meta: { title: '审计日志', icon: 'Document' },
+            },
+            // ── Merkle 审计链验证 ──
+            {
+                path: 'merkle-chain',
+                name: 'MerkleChain',
+                component: () => import('@/views/merkle-chain/Index.vue'),
+                meta: { title: 'Merkle 验证链', icon: 'Connection' },
             },
             // ── 试用管理 ──
             {

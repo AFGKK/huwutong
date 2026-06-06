@@ -13,4 +13,7 @@ export default {
     register(data) {
         return apiClient.post('/register', data);
     },
+    refreshToken() {
+        return apiClient.post('/token/refresh');
+    },
 };

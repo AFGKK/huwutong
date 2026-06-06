@@ -56,7 +56,7 @@
         <!-- 密钥列表 -->
         <el-card shadow="never">
             <el-table :data="keys" v-loading="loading" stripe>
-                <el-table-column label="名称" min-width="160">
+                <el-table-column label="名称" min-width="140">
                     <template #default="{ row }">
                         <div class="key-name">
                             <span class="name-text">{{ row.name }}</span>
@@ -64,7 +64,7 @@
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column label="Key ID" min-width="200">
+                <el-table-column label="Key ID" min-width="180">
                     <template #default="{ row }">
                         <div class="key-id-cell">
                             <code class="key-id-text">{{ row.key_id }}</code>
@@ -74,12 +74,38 @@
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column label="最近使用" width="170">
+                <el-table-column label="权限" width="100">
+                    <template #default="{ row }">
+                        <el-tag :type="permType(row.permissions)" size="small">
+                            {{ permLabel(row.permissions) }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column label="限流" width="80">
+                    <template #default="{ row }">
+                        {{ row.rate_limit ? row.rate_limit + '/m' : '—' }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="配额" width="100">
+                    <template #default="{ row }">
+                        <span v-if="row.usage_quota">
+                            {{ row.usage_count }}/{{ row.usage_quota }}
+                        </span>
+                        <span v-else class="text-muted">不限</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="绑定 IP" width="120">
+                    <template #default="{ row }">
+                        <code v-if="row.allowed_ip" class="ip-text">{{ row.allowed_ip }}</code>
+                        <span v-else class="text-muted">不限</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="最近使用" width="150">
                     <template #default="{ row }">
                         {{ row.last_used_at ? formatTime(row.last_used_at) : '从未使用' }}
                     </template>
                 </el-table-column>
-                <el-table-column label="过期时间" width="170">
+                <el-table-column label="过期时间" width="150">
                     <template #default="{ row }">
                         <span v-if="row.expires_at" :class="isExpired(row.expires_at) ? 'text-danger' : ''">
                             {{ formatTime(row.expires_at) }}
@@ -88,12 +114,7 @@
                         <span v-else class="text-muted">永不过期</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="创建时间" width="170">
-                    <template #default="{ row }">
-                        {{ formatTime(row.created_at) }}
-                    </template>
-                </el-table-column>
-                <el-table-column label="状态" width="90">
+                <el-table-column label="状态" width="80">
                     <template #default="{ row }">
                         <el-switch
                             :model-value="row.is_active"
@@ -123,10 +144,37 @@
         </el-card>
 
         <!-- 创建密钥 Dialog -->
-        <el-dialog v-model="showCreate" title="创建 API 密钥" width="480px" :close-on-click-modal="false" @close="resetForm">
-            <el-form :model="createForm" ref="createFormRef" :rules="createRules" label-width="100px">
+        <el-dialog v-model="showCreate" title="创建 API 密钥" width="580px" :close-on-click-modal="false" @close="resetForm">
+            <el-form :model="createForm" ref="createFormRef" :rules="createRules" label-width="120px">
                 <el-form-item label="密钥名称" prop="name">
                     <el-input v-model="createForm.name" placeholder="如：生产环境、测试环境" maxlength="100" show-word-limit />
+                </el-form-item>
+                <el-form-item label="权限级别" prop="permissions">
+                    <el-select v-model="createForm.permissions" style="width: 100%">
+                        <el-option value="read-only" label="只读 — 仅可调用 GET 请求" />
+                        <el-option value="read-write" label="读写 — 可调用所有 API" />
+                        <el-option value="admin" label="管理员 — 完全控制" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="端点白名单">
+                    <el-select v-model="createForm.allowed_endpoints" multiple filterable allow-create default-first-option
+                        placeholder="留空则允许全部端点" style="width: 100%">
+                        <el-option value="api/license/*" label="api/license/*" />
+                        <el-option value="api/licenses/*" label="api/licenses/*" />
+                        <el-option value="api/devices/*" label="api/devices/*" />
+                        <el-option value="api/customers/*" label="api/customers/*" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="速率限制">
+                    <el-input-number v-model="createForm.rate_limit" :min="1" :max="10000" placeholder="每分钟请求数" style="width: 200px" />
+                    <span style="margin-left: 8px; color: #909399; font-size: 12px;">次/分钟，留空不限</span>
+                </el-form-item>
+                <el-form-item label="总请求配额">
+                    <el-input-number v-model="createForm.usage_quota" :min="1" :max="99999999" style="width: 200px" />
+                    <span style="margin-left: 8px; color: #909399; font-size: 12px;">总请求数上限，留空不限</span>
+                </el-form-item>
+                <el-form-item label="绑定 IP">
+                    <el-input v-model="createForm.allowed_ip" placeholder="如 192.168.1.100，留空则不限制 IP" style="width: 300px" />
                 </el-form-item>
                 <el-form-item label="过期时间" prop="expires_at">
                     <el-date-picker
@@ -147,7 +195,7 @@
         </el-dialog>
 
         <!-- 创建成功 - 显示密钥 Dialog -->
-        <el-dialog v-model="showSecret" title="密钥创建成功" width="500px" :close-on-click-modal="false">
+        <el-dialog v-model="showSecret" title="密钥创建成功" width="550px" :close-on-click-modal="false">
             <el-alert
                 title="请立即复制并安全保存此密钥"
                 type="warning"
@@ -171,6 +219,7 @@
                 </div>
                 <div class="secret-info mt-3">
                     <div>名称: {{ newKeyData.name }}</div>
+                    <div>权限: {{ permLabel(newKeyData.permissions) }}</div>
                     <div v-if="newKeyData.expires_at">过期: {{ formatTime(newKeyData.expires_at) }}</div>
                     <div>创建时间: {{ formatTime(newKeyData.created_at) }}</div>
                 </div>
@@ -181,12 +230,37 @@
         </el-dialog>
 
         <!-- 编辑密钥 Dialog -->
-        <el-dialog v-model="showEditDialog" title="编辑密钥" width="480px">
-            <el-form :model="editForm" ref="editFormRef" :rules="editRules" label-width="100px">
-                <el-form-item label="密钥名称" prop="name">
+        <el-dialog v-model="showEditDialog" title="编辑密钥" width="580px">
+            <el-form :model="editForm" ref="editFormRef" label-width="120px">
+                <el-form-item label="密钥名称">
                     <el-input v-model="editForm.name" maxlength="100" show-word-limit />
                 </el-form-item>
-                <el-form-item label="过期时间" prop="expires_at">
+                <el-form-item label="权限级别">
+                    <el-select v-model="editForm.permissions" style="width: 100%">
+                        <el-option value="read-only" label="只读 — 仅可调用 GET 请求" />
+                        <el-option value="read-write" label="读写 — 可调用所有 API" />
+                        <el-option value="admin" label="管理员 — 完全控制" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="端点白名单">
+                    <el-select v-model="editForm.allowed_endpoints" multiple filterable allow-create default-first-option
+                        placeholder="留空则允许全部" style="width: 100%">
+                        <el-option value="api/license/*" label="api/license/*" />
+                        <el-option value="api/licenses/*" label="api/licenses/*" />
+                        <el-option value="api/devices/*" label="api/devices/*" />
+                        <el-option value="api/customers/*" label="api/customers/*" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="速率限制">
+                    <el-input-number v-model="editForm.rate_limit" :min="1" :max="10000" style="width: 200px" />
+                </el-form-item>
+                <el-form-item label="总请求配额">
+                    <el-input-number v-model="editForm.usage_quota" :min="1" :max="99999999" style="width: 200px" />
+                </el-form-item>
+                <el-form-item label="绑定 IP">
+                    <el-input v-model="editForm.allowed_ip" placeholder="如 192.168.1.100" style="width: 300px" />
+                </el-form-item>
+                <el-form-item label="过期时间">
                     <el-date-picker
                         v-model="editForm.expires_at"
                         type="datetime"
@@ -219,7 +293,7 @@ const showCreate = ref(false);
 const showSecret = ref(false);
 const showSecretText = ref(false);
 const showEditDialog = ref(false);
-const maxKeys = 10;
+const maxKeys = 20;
 
 const keys = ref([]);
 const newKeyData = ref({});
@@ -230,6 +304,11 @@ const editFormRef = ref(null);
 
 const createForm = ref({
     name: '',
+    permissions: 'read-write',
+    allowed_endpoints: null,
+    rate_limit: null,
+    usage_quota: null,
+    allowed_ip: '',
     expires_at: null,
 });
 
@@ -237,11 +316,22 @@ const createRules = {
     name: [{ required: true, message: '请输入密钥名称', trigger: 'blur' }],
 };
 
-const editRules = {
-    name: [{ required: true, message: '请输入密钥名称', trigger: 'blur' }],
+const activeCount = computed(() => keys.value.filter(k => k.is_active).length);
+
+const permLabels = {
+    'read-only': '只读',
+    'read-write': '读写',
+    'admin': '管理员',
 };
 
-const activeCount = computed(() => keys.value.filter(k => k.is_active).length);
+const permTypes = {
+    'read-only': 'info',
+    'read-write': 'warning',
+    'admin': 'danger',
+};
+
+function permLabel(v) { return permLabels[v] || v; }
+function permType(v) { return permTypes[v] || 'info'; }
 
 function formatTime(time) {
     if (!time) return '—';
@@ -254,7 +344,15 @@ function isExpired(date) {
 }
 
 function resetForm() {
-    createForm.value = { name: '', expires_at: null };
+    createForm.value = {
+        name: '',
+        permissions: 'read-write',
+        allowed_endpoints: null,
+        rate_limit: null,
+        usage_quota: null,
+        allowed_ip: '',
+        expires_at: null,
+    };
     createFormRef.value?.resetFields();
 }
 
@@ -267,7 +365,6 @@ function copyText(text) {
     navigator.clipboard.writeText(text).then(() => {
         ElMessage.success('已复制到剪贴板');
     }).catch(() => {
-        // fallback
         const ta = document.createElement('textarea');
         ta.value = text;
         document.body.appendChild(ta);
@@ -282,6 +379,11 @@ function showEdit(row) {
     currentEditKey.value = row;
     editForm.value = {
         name: row.name,
+        permissions: row.permissions || 'read-write',
+        allowed_endpoints: row.allowed_endpoints || null,
+        rate_limit: row.rate_limit ?? null,
+        usage_quota: row.usage_quota ?? null,
+        allowed_ip: row.allowed_ip || '',
         expires_at: row.expires_at,
     };
     showEditDialog.value = true;
@@ -307,7 +409,11 @@ async function handleCreate() {
 
     creating.value = true;
     try {
-        const { data: res } = await apiKeyApi.create(createForm.value);
+        const payload = { ...createForm.value };
+        payload.allowed_ip = payload.allowed_ip || null;
+        if (!payload.allowed_endpoints?.length) payload.allowed_endpoints = null;
+
+        const { data: res } = await apiKeyApi.create(payload);
         if (res.success) {
             newKeyData.value = res.data;
             showSecret.value = true;
@@ -325,15 +431,13 @@ async function handleCreate() {
 }
 
 async function handleUpdate() {
-    const valid = await editFormRef.value?.validate().catch(() => false);
-    if (!valid) return;
-
     updating.value = true;
     try {
-        const { data: res } = await apiKeyApi.update(currentEditKey.value.id, {
-            name: editForm.value.name,
-            expires_at: editForm.value.expires_at || null,
-        });
+        const payload = { ...editForm.value };
+        payload.allowed_ip = payload.allowed_ip || null;
+        if (!payload.allowed_endpoints?.length) payload.allowed_endpoints = null;
+
+        const { data: res } = await apiKeyApi.update(currentEditKey.value.id, payload);
         if (res.success) {
             ElMessage.success('密钥已更新');
             showEditDialog.value = false;
@@ -372,6 +476,7 @@ async function handleRegenerate(row) {
                 key_id: res.data.key_id,
                 secret: res.data.secret,
                 name: row.name,
+                permissions: row.permissions,
                 created_at: new Date().toISOString(),
             };
             showSecret.value = true;
@@ -406,95 +511,27 @@ onMounted(() => {
 
 <style scoped>
 .api-keys-page { padding: 20px; }
-
-.page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-}
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .header-left h2 { margin: 0; font-size: 20px; }
-.header-subtitle {
-    font-size: 13px;
-    color: var(--el-text-color-secondary);
-    margin-left: 12px;
-}
-
+.header-subtitle { font-size: 13px; color: var(--el-text-color-secondary); margin-left: 12px; }
 .mb-4 { margin-bottom: 16px; }
 .mt-3 { margin-top: 12px; }
-
-.stat-item {
-    text-align: center;
-    padding: 8px 0;
-}
-.stat-label {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    margin-bottom: 6px;
-}
-.stat-value {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--el-text-color-primary);
-}
+.stat-item { text-align: center; padding: 8px 0; }
+.stat-label { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 6px; }
+.stat-value { font-size: 28px; font-weight: 700; color: var(--el-text-color-primary); }
 .text-success { color: var(--el-color-success); }
 .text-danger { color: var(--el-color-danger); }
 .text-muted { color: var(--el-text-color-placeholder); }
-
-.key-name {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.name-text {
-    font-weight: 500;
-}
-
-.key-id-cell {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-.key-id-text {
-    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-    font-size: 12px;
-    color: var(--el-text-color-regular);
-    user-select: all;
-}
-
-/* Secret Dialog */
-.secret-display {
-    margin-top: 16px;
-}
-.secret-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--el-text-color-secondary);
-    margin-bottom: 6px;
-}
-.secret-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--el-color-info-light-9);
-    padding: 8px 12px;
-    border-radius: 6px;
-}
-.secret-text {
-    flex: 1;
-    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-    font-size: 13px;
-    word-break: break-all;
-    user-select: all;
-}
-.secret-value {
-    letter-spacing: 1px;
-}
-.secret-info {
-    font-size: 13px;
-    color: var(--el-text-color-secondary);
-    line-height: 1.8;
-}
-
+.key-name { display: flex; align-items: center; gap: 8px; }
+.name-text { font-weight: 500; }
+.key-id-cell { display: flex; align-items: center; gap: 4px; }
+.key-id-text { font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; font-size: 12px; color: var(--el-text-color-regular); user-select: all; }
+.ip-text { font-family: monospace; font-size: 12px; }
+.secret-display { margin-top: 16px; }
+.secret-label { font-size: 13px; font-weight: 600; color: var(--el-text-color-secondary); margin-bottom: 6px; }
+.secret-row { display: flex; align-items: center; gap: 6px; background: var(--el-color-info-light-9); padding: 8px 12px; border-radius: 6px; }
+.secret-text { flex: 1; font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; font-size: 13px; word-break: break-all; user-select: all; }
+.secret-value { letter-spacing: 1px; }
+.secret-info { font-size: 13px; color: var(--el-text-color-secondary); line-height: 1.8; }
 :deep(.el-card__body) { padding: 16px; }
 </style>

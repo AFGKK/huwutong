@@ -130,7 +130,10 @@
                             </span>
                             <template #dropdown>
                                 <el-dropdown-menu>
-                                    <el-dropdown-item command="mfa">
+                                    <el-dropdown-item v-if="isImpersonating" command="stop-impersonate" divided>
+                                        <el-icon color="#e6a23c"><WarnTriangleFilled /></el-icon>退出模拟模式
+                                    </el-dropdown-item>
+                                    <el-dropdown-item v-else command="mfa">
                                         <el-icon><Lock /></el-icon>MFA 设置
                                     </el-dropdown-item>
                                     <el-dropdown-item divided command="logout">
@@ -142,6 +145,20 @@
                     </div>
                 </el-header>
 
+                <!-- 系统公告横幅 -->
+                <AnnounceBanner />
+
+                <!-- 模拟模式提示横幅 -->
+                <div v-if="isImpersonating" class="impersonate-banner">
+                    <el-icon><WarnTriangleFilled /></el-icon>
+                    <span>
+                        模拟模式 — 你正以 <strong>{{ impersonateTarget }}</strong> 身份操作
+                    </span>
+                    <el-button size="small" type="warning" plain @click="handleStopImpersonate">
+                        退出模拟
+                    </el-button>
+                </div>
+
                 <!-- 内容区域 -->
                 <el-main class="app-main">
                     <router-view />
@@ -149,16 +166,23 @@
             </el-container>
         </el-container>
         <LiveChat />
+        <CookieConsent />
     </div>
 </template>
 
 <script setup>
 import LiveChat from '@/components/LiveChat.vue';
-import { ref, computed } from 'vue';
+import { ref, computed, onErrorCaptured } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
 import NotificationBell from '@/components/NotificationBell.vue';
+import AnnounceBanner from '@/components/AnnounceBanner.vue';
+import CookieConsent from '@/components/CookieConsent.vue';
+import errorReporter from '@/utils/errorReporter';
+import { getImpersonateSession, stopImpersonate } from '@/api/impersonate';
+import { ElMessage } from 'element-plus';
+import { markRaw } from 'vue';
 import {
     Fold, Expand, ArrowDown, SwitchButton,
     Key, Lock, UserFilled, OfficeBuilding,
@@ -167,6 +191,7 @@ import {
     MagicStick, EditPen, Connection, Reading,
     Bell, Link, Promotion, Refresh,
     TrendCharts, Message, Timer, ChatDotSquare,
+    WarnTriangleFilled,
 } from '@element-plus/icons-vue';
 
 const route = useRoute();
@@ -175,10 +200,67 @@ const authStore = useAuthStore();
 const appStore = useAppStore();
 const sidebarStore = appStore;
 
+// 错误边界 — 捕获子组件渲染错误
+const error = ref(null);
+onErrorCaptured((err, instance, info) => {
+    errorReporter.vueError(err, instance, info);
+
+    // 轻度错误只通知，不崩溃
+    error.value = err?.message || '组件渲染异常';
+    ElMessage.error({
+        message: '页面部分组件加载异常，已自动恢复',
+        duration: 3000,
+    });
+
+    // 返回 false 阻止错误向上传播（不会导致整个应用崩溃）
+    return false;
+});
+
 const currentTenantId = computed({
     get: () => authStore.activeTenantId,
     set: (val) => handleTenantSwitch(val),
 });
+
+// 模拟登录状态
+const impersonateToken = ref(localStorage.getItem('impersonate_token') || '');
+const impersonateTarget = ref(localStorage.getItem('impersonate_target') || '');
+const isImpersonating = computed(() => !!impersonateToken.value);
+
+// 启动时检查模拟会话是否仍然有效
+(async function checkImpersonateSession() {
+    if (!impersonateToken.value) return;
+    try {
+        const res = await getImpersonateSession();
+        // 确保 token 通过请求头发送（需要 apiClient 拦截器支持）
+        // 如果 session 返回 false，则清除本地存储
+        if (!res.data?.data?.is_impersonating) {
+            clearImpersonateState();
+        }
+    } catch {
+        clearImpersonateState();
+    }
+})();
+
+function clearImpersonateState() {
+    impersonateToken.value = '';
+    impersonateTarget.value = '';
+    localStorage.removeItem('impersonate_token');
+    localStorage.removeItem('impersonate_target');
+}
+
+async function handleStopImpersonate() {
+    if (!impersonateToken.value) return;
+    try {
+        await stopImpersonate(impersonateToken.value);
+        clearImpersonateState();
+        ElMessage.success('已退出模拟模式');
+        // 刷新页面恢复原始身份
+        window.location.reload();
+    } catch (e) {
+        clearImpersonateState();
+        ElMessage.error('退出模拟失败');
+    }
+}
 
 const menuGroups = [
     {
@@ -223,9 +305,15 @@ const menuGroups = [
             { path: '/settings', title: '系统设置', icon: Setting },
             { path: '/pages', title: '页面管理', icon: Document },
             { path: '/feature-flags', title: '功能开关', icon: SwitchButton },
+            { path: '/announce-banners', title: '系统公告', icon: Bell },
+            { path: '/cookie-consent', title: 'Cookie 管理', icon: Bell },
             { path: '/sso', title: '单点登录', icon: Link },
             { path: '/sessions', title: '活跃会话', icon: Monitor },
+            { path: '/device-trust', title: '信任设备', icon: Monitor },
+            { path: '/password-policy', title: '密码策略', icon: Lock },
             { path: '/invite-codes', title: '邀请码管理', icon: Key },
+            { path: '/legal-consents', title: '协议管理', icon: Document },
+            { path: '/account-deletions', title: '注销审核', icon: Delete },
             { path: '/mfa', title: 'MFA 设置', icon: Lock },
             { path: '/domains', title: '自定义域名', icon: Link },
             { path: '/account/binding', title: '账号绑定', icon: Link },
@@ -237,6 +325,8 @@ const menuGroups = [
         label: '安全与监控', icon: 'Lock',
         items: [
             { path: '/audit-logs', title: '审计日志', icon: Document },
+            { path: '/merkle-chain', title: 'Merkle 验证链', icon: Connection },
+            { path: '/webhook-endpoints', title: 'Webhook 端点', icon: Link },
             { path: '/webhook-events', title: 'Webhook 事件', icon: Promotion },
             { path: '/webhook-replay', title: 'Webhook 回放', icon: Refresh },
             { path: '/health', title: '系统健康', icon: Monitor },
@@ -244,12 +334,15 @@ const menuGroups = [
             { path: '/account/login-history', title: '登录历史', icon: TrendCharts },
             { path: '/email-tracking', title: '邮件追踪', icon: TrendCharts },
             { path: '/email-templates', title: '邮件模板', icon: Message },
+            { path: '/circuit-breaker', title: '断路器监控', icon: Monitor },
+            { path: '/impersonate', title: '模拟登录', icon: Key },
         ],
     },
     {
         label: 'AI 与基础设施', icon: 'Connection',
         items: [
             { path: '/llm', title: '大模型管理', icon: Connection },
+            { path: '/rag', title: 'RAG 知识库管理', icon: Reading },
             { path: '/openfeature', title: 'OpenFeature 标志', icon: SwitchButton },
             { path: '/global-resources', title: '全局资源白名单', icon: Key },
         ],
@@ -272,6 +365,8 @@ function handleCommand(command) {
         router.push('/login');
     } else if (command === 'mfa') {
         router.push('/mfa');
+    } else if (command === 'stop-impersonate') {
+        handleStopImpersonate();
     }
 }
 </script>
@@ -364,6 +459,22 @@ function handleCommand(command) {
 
 .mr-4 {
     margin-right: 16px;
+}
+
+.impersonate-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: #fdf6ec;
+    border-bottom: 1px solid #e6a23c;
+    color: #e6a23c;
+    font-size: 14px;
+}
+
+.impersonate-banner strong {
+    font-weight: 600;
 }
 
 .ml-1 {
