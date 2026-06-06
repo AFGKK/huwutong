@@ -304,6 +304,7 @@ const menuGroups = [
             { path: '/playground', title: 'API Playground', icon: Monitor },
             { path: '/sandbox', title: '开发者沙箱', icon: EditPen },
             { path: '/staging', title: 'Staging 环境', icon: Connection },
+            { path: '/api-versions', title: 'API 版本管理', icon: Connection },
             { path: '/knowledge-base', title: '帮助中心', icon: Reading },
         ],
     },

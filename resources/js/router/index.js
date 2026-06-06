@@ -461,6 +461,13 @@ const routes = [
                 component: () => import('@/views/offline/Index.vue'),
                 meta: { title: '离线 License', icon: 'Connection' },
             },
+            // ── API 版本管理 (M2-33) ──
+            {
+                path: 'api-versions',
+                name: 'ApiVersions',
+                component: () => import('@/views/api-versions/Index.vue'),
+                meta: { title: 'API 版本管理', icon: 'Connection' },
+            },
             // ── 订阅详情 ──
             {
                 path: 'billing/:id',

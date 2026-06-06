@@ -41,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'apm' => \App\Http\Middleware\ApmMiddleware::class,
             'api-key' => \App\Http\Middleware\ApiKeyAuthMiddleware::class,
             'impersonate' => \App\Http\Middleware\ImpersonateMiddleware::class,
+            'api-version' => \App\Http\Middleware\ApiVersionMiddleware::class,
         ]);
 
         // 应用层中间件统一注册（按 M0-11 ADR：这些由应用层处理，网关层不应重复）
@@ -48,6 +49,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SetTenantContext::class,
             \App\Http\Middleware\SecurityHeadersMiddleware::class, // CORS/CSP/安全头 — 应用层统一处理
             \App\Http\Middleware\ImpersonateMiddleware::class, // 模拟登录 — 在所有认证路由之前检查
+        ]);
+
+        $middleware->api(append: [
+            \App\Http\Middleware\ApiVersionMiddleware::class, // API 版本管理 — 在路由处理之后添加版本响应头
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

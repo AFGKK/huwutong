@@ -58,6 +58,7 @@ use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\HealthScoreController;
 use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\SlaTierController;
+use App\Http\Controllers\Api\ApiVersionController;
 
 /*
 
@@ -731,5 +732,32 @@ Route::get('/announce-banners/active', [AnnounceBannerController::class, 'active
 Route::get('/cookie-consent/config', [CookieConsentController::class, 'config']);
 Route::post('/cookie-consent/consent', [CookieConsentController::class, 'consent']);
 
-// Legal Consent 公开接口
-Route::get('/legal-consents/current', [LegalConsentController::class, 'current']);
+// ── API 版本管理 (M2-33) ──
+
+Route::get('/api-version', [ApiVersionController::class, 'defaultInfo']);
+
+Route::middleware(['auth:sanctum', 'ability:admin,super-admin'])->prefix('api-versions')->group(function () {
+    Route::get('/', [ApiVersionController::class, 'index']);
+    Route::post('/', [ApiVersionController::class, 'store']);
+    Route::get('/{version}', [ApiVersionController::class, 'show']);
+    Route::put('/{version}', [ApiVersionController::class, 'update']);
+    Route::delete('/{version}', [ApiVersionController::class, 'destroy']);
+
+    // 版本生命周期管理
+    Route::post('/{version}/deprecate', [ApiVersionController::class, 'deprecate']);
+    Route::post('/{version}/sunset', [ApiVersionController::class, 'sunset']);
+    Route::post('/{version}/retire', [ApiVersionController::class, 'retire']);
+
+    // 版本路由管理
+    Route::get('/{version}/routes', [ApiVersionController::class, 'routes']);
+    Route::post('/{version}/routes', [ApiVersionController::class, 'registerRoute']);
+    Route::post('/{version}/routes/import', [ApiVersionController::class, 'importRoutes']);
+    Route::delete('/{version}/routes/{routeId}', [ApiVersionController::class, 'deleteRoute'])->whereNumber('routeId');
+
+    // 版本分析
+    Route::get('/{version}/call-stats', [ApiVersionController::class, 'callStats']);
+    Route::get('/{version}/impact-analysis', [ApiVersionController::class, 'impactAnalysis']);
+
+    // 全局趋势
+    Route::get('/usage-trend', [ApiVersionController::class, 'usageTrend']);
+});

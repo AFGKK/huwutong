@@ -83,3 +83,11 @@ Schedule::command('hwt:calculate-health-scores')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/scheduler-health-score.log'));
+
+// ── API 版本生命周期管理 ──
+// 每天凌晨检查过期的废弃版本，自动进入 sunset/retire 流程
+Schedule::command('hwt:process-expired-api-versions')
+    ->dailyAt('07:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-api-versions.log'));
