@@ -191,7 +191,7 @@ import {
     MagicStick, EditPen, Connection, Reading,
     Bell, Link, Promotion, Refresh,
     TrendCharts, Message, Timer, ChatDotSquare,
-    WarnTriangleFilled,
+    WarnTriangleFilled, DataBoard,
 } from '@element-plus/icons-vue';
 
 const route = useRoute();
@@ -278,6 +278,7 @@ const menuGroups = [
         label: '计费与订阅', icon: 'Coin',
         items: [
             { path: '/billing', title: '订阅计费', icon: Coin },
+            { path: '/usage-meter', title: '用量计量', icon: DataBoard },
             { path: '/billing/retention', title: '续费流水线', icon: Connection },
             { path: '/tax', title: '税务管理', icon: Document },
             { path: '/license-files', title: 'License 文件分发', icon: Upload },

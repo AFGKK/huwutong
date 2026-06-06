@@ -342,6 +342,13 @@ const routes = [
                 component: () => import('@/views/impersonate/Index.vue'),
                 meta: { title: '模拟登录', icon: 'Key' },
             },
+            // ── 用量计量系统 (M2-10) ──
+            {
+                path: 'usage-meter',
+                name: 'UsageMeter',
+                component: () => import('@/views/usage-meter/Index.vue'),
+                meta: { title: '用量计量', icon: 'DataBoard' },
+            },
             // ── 计费管理 ──
             {
                 path: 'billing/retention',

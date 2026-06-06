@@ -53,6 +53,7 @@ use App\Http\Controllers\Api\PasswordPolicyController;
 use App\Http\Controllers\Api\LegalConsentController;
 use App\Http\Controllers\Api\AccountDeletionAdminController;
 use App\Http\Controllers\Api\MerkleChainController;
+use App\Http\Controllers\Api\UsageMeterController;
 
 /*
 
@@ -554,6 +555,18 @@ Route::middleware(['auth:sanctum', 'apm'])->group(function () {
     // LLM Fallback management
     Route::get('/llm/fallback/status', [LlmFallbackController::class, 'status']);
     Route::post('/llm/fallback/reset', [LlmFallbackController::class, 'reset']);
+
+    // ── 用量计量系统 (M2-10) ──
+    Route::get('/usage/metrics', [UsageMeterController::class, 'metrics']);
+    Route::post('/usage/record', [UsageMeterController::class, 'record']);
+    Route::post('/usage/record-batch', [UsageMeterController::class, 'recordBatch']);
+    Route::post('/usage/check-quota', [UsageMeterController::class, 'checkQuota']);
+    Route::get('/usage/stats', [UsageMeterController::class, 'stats']);
+    Route::get('/usage/current', [UsageMeterController::class, 'currentUsage']);
+    Route::get('/usage/overview', [UsageMeterController::class, 'overview']);
+    Route::get('/usage/quotas', [UsageMeterController::class, 'quotas']);
+    Route::post('/usage/quotas', [UsageMeterController::class, 'upsertQuota']);
+    Route::delete('/usage/quotas/{id}', [UsageMeterController::class, 'deleteQuota'])->whereNumber('id');
 
     // Tax Calculator
     Route::get('/tax/countries', [TaxController::class, 'countries']);
