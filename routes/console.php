@@ -91,3 +91,10 @@ Schedule::command('hwt:process-expired-api-versions')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/scheduler-api-versions.log'));
+
+// ── SDK 版本分布日快照 ──
+Schedule::command('hwt:snapshot-sdk-versions')
+    ->dailyAt('08:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-telemetry.log'));

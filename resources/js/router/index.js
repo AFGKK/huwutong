@@ -468,6 +468,13 @@ const routes = [
                 component: () => import('@/views/api-versions/Index.vue'),
                 meta: { title: 'API 版本管理', icon: 'Connection' },
             },
+            // ── SDK Telemetry 心跳上报 (M2-32) ──
+            {
+                path: 'telemetry',
+                name: 'Telemetry',
+                component: () => import('@/views/telemetry/Index.vue'),
+                meta: { title: 'SDK Telemetry', icon: 'DataAnalysis' },
+            },
             // ── 订阅详情 ──
             {
                 path: 'billing/:id',

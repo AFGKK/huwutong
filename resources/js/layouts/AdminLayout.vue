@@ -302,6 +302,7 @@ const menuGroups = [
             { path: '/api-keys', title: 'API 密钥管理', icon: Key },
             { path: '/updates', title: '更新包分发', icon: Upload },
             { path: '/playground', title: 'API Playground', icon: Monitor },
+            { path: '/telemetry', title: 'SDK Telemetry', icon: Monitor },
             { path: '/sandbox', title: '开发者沙箱', icon: EditPen },
             { path: '/staging', title: 'Staging 环境', icon: Connection },
             { path: '/api-versions', title: 'API 版本管理', icon: Connection },

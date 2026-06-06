@@ -58,6 +58,7 @@ use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\HealthScoreController;
 use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\SlaTierController;
+use App\Http\Controllers\Api\TelemetryController;
 use App\Http\Controllers\Api\ApiVersionController;
 
 /*
@@ -112,6 +113,11 @@ Route::middleware(['nonce', 'signature', 'idempotent', 'body-limit:activate'])->
 Route::post('/license/check-feature', [FeatureFlagController::class, 'checkFeature']);
 Route::post('/license/check-features', [FeatureFlagController::class, 'checkFeatures']);
 Route::post('/license/features', [FeatureFlagController::class, 'licenseFeatures']);
+
+// ── SDK Telemetry 心跳/事件上报 (M2-32) ──
+// SDK 端调用，通过 license_key + fingerprint 验证身份
+Route::post('/telemetry/heartbeat', [TelemetryController::class, 'heartbeat']);
+Route::post('/telemetry/events', [TelemetryController::class, 'reportEvents']);
 
 // OpenFeature Provider (public - OTel/flagd integration)
 Route::prefix('openfeature')->group(function () {
@@ -760,4 +766,14 @@ Route::middleware(['auth:sanctum', 'ability:admin,super-admin'])->prefix('api-ve
 
     // 全局趋势
     Route::get('/usage-trend', [ApiVersionController::class, 'usageTrend']);
+});
+
+// ── SDK Telemetry 管理 (M2-32) ──
+Route::middleware(['auth:sanctum', 'ability:admin,super-admin'])->prefix('telemetry')->group(function () {
+    Route::get('/dashboard', [TelemetryController::class, 'dashboard']);
+    Route::get('/heartbeats', [TelemetryController::class, 'heartbeats']);
+    Route::get('/versions', [TelemetryController::class, 'versions']);
+    Route::get('/events', [TelemetryController::class, 'events']);
+    Route::get('/unhealthy', [TelemetryController::class, 'unhealthy']);
+    Route::get('/trend', [TelemetryController::class, 'trend']);
 });
