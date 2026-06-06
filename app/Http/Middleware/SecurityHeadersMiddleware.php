@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\CorsManagerService;
+use App\Services\CspManagerService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,12 +15,21 @@ use Symfony\Component\HttpFoundation\Response;
  * 网关层不再设置这些响应头，避免冲突和重复。
  *
  * 职责：
- * - CORS 跨域头
- * - CSP 内容安全策略
+ * - CORS 跨域头（通过 CorsManagerService 从数据库读取配置）
+ * - CSP 内容安全策略（通过 CspManagerService 从数据库读取配置）
  * - HSTS/HPKP 等安全头
  */
 class SecurityHeadersMiddleware
 {
+    protected CorsManagerService $corsManager;
+    protected CspManagerService $cspManager;
+
+    public function __construct(CorsManagerService $corsManager, CspManagerService $cspManager)
+    {
+        $this->corsManager = $corsManager;
+        $this->cspManager = $cspManager;
+    }
+
     /**
      * 处理请求
      */
@@ -30,28 +41,17 @@ class SecurityHeadersMiddleware
             return $response;
         }
 
-        // ─── CORS 头（应用层统一处理） ───
-        $origin = $request->header('Origin', '*');
-        $allowedOrigins = config('cors.allowed_origins', ['*']);
-
-        if (in_array('*', $allowedOrigins) || in_array($origin, $allowedOrigins)) {
-            $response->headers->set('Access-Control-Allow-Origin', $origin);
-        }
-        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-Api-Key, X-License-Key, X-Tenant-Id, X-Idempotency-Key, X-Nonce, X-Signature');
-        $response->headers->set('Access-Control-Expose-Headers', 'X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-Request-Id');
-        $response->headers->set('Access-Control-Allow-Credentials', 'true');
-        $response->headers->set('Access-Control-Max-Age', '86400');
-
-        // ─── 安全头 ───
-        // HSTS (仅 HTTPS)
-        if ($request->isSecure()) {
-            $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+        // ─── CORS 头（通过 CorsManagerService 从数据库读取） ───
+        $corsHeaders = $this->corsManager->buildHeaders($request);
+        foreach ($corsHeaders as $key => $value) {
+            $response->headers->set($key, $value);
         }
 
-        // CSP 内容安全策略
-        $csp = config('security.csp_policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' *; frame-ancestors 'none'; base-uri 'self'");
-        $response->headers->set('Content-Security-Policy', $csp);
+        // ─── CSP（通过 CspManagerService 从数据库读取） ───
+        $cspHeaders = $this->cspManager->buildHeaders($request);
+        foreach ($cspHeaders as $key => $value) {
+            $response->headers->set($key, $value);
+        }
 
         // X-Frame-Options — 禁止 iframe 嵌套（防点击劫持）
         $response->headers->set('X-Frame-Options', 'DENY');

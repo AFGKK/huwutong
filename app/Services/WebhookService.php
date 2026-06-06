@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\DispatchWebhookJob;
 use App\Models\EventDelivery;
 use App\Models\WebhookEndpoint;
 use App\Models\WebhookEvent;
@@ -69,7 +70,7 @@ class WebhookService
      */
     public function dispatch(int $tenantId, string $eventType, array $payload, array $context = []): int
     {
-        // 1. 查找订阅了该事件的端点（租户隔离）
+        // 查找订阅了该事件的端点（租户隔离）
         $endpoints = WebhookEndpoint::where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->where('is_paused', false)
@@ -83,27 +84,9 @@ class WebhookService
             return 0;
         }
 
-        // 2. 为每个端点创建事件记录
-        foreach ($endpoints as $endpoint) {
-            $event = WebhookEvent::create([
-                'tenant_id' => $tenantId,
-                'webhook_endpoint_id' => $endpoint->id,
-                'event_type' => $eventType,
-                'payload' => $this->buildPayload($tenantId, $eventType, $payload, $endpoint),
-                'status' => 'pending',
-            ]);
-
-            // 3. 尝试派发（同步派发，失败入队列重试）
-            try {
-                $this->sendToEndpoint($event, $endpoint);
-            } catch (\Throwable $e) {
-                Log::warning('Webhook 首次派发失败，入队列重试', [
-                    'event_id' => $event->id,
-                    'endpoint_id' => $endpoint->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
+        // 异步分发——通过队列处理所有端点调用
+        DispatchWebhookJob::dispatch($tenantId, $eventType, $payload, $context)
+            ->onQueue('webhooks');
 
         return $endpoints->count();
     }
@@ -113,7 +96,7 @@ class WebhookService
      *
      * 确保 payload 中的数据不包含其他租户的信息
      */
-    protected function buildPayload(int $tenantId, string $eventType, array $payload, WebhookEndpoint $endpoint): array
+    public function buildPayload(int $tenantId, string $eventType, array $payload, WebhookEndpoint $endpoint): array
     {
         // 校验端点归属租户
         if ($endpoint->tenant_id !== $tenantId) {
@@ -388,6 +371,66 @@ class WebhookService
 
         if (! $pause) {
             Cache::forget('webhook_fail:' . $endpoint->id);
+        }
+    }
+
+    /**
+     * 测试端点连通性
+     *
+     * 发送一个 Webhook 测试事件到端点，验证连接正常。
+     * 不将测试事件存入事件队列。
+     *
+     * @param WebhookEndpoint $endpoint
+     * @return array{success: bool, status_code: int|null, latency_ms: int, error: string|null}
+     */
+    public function testEndpoint(WebhookEndpoint $endpoint): array
+    {
+        $start = microtime(true);
+
+        $payload = [
+            'event' => 'test.ping',
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'created_at' => now()->toIso8601String(),
+            'data' => [
+                'type' => 'ping',
+                'message' => 'This is a test webhook from HWT License System',
+            ],
+        ];
+
+        $headers = [
+            'Content-Type' => 'application/json',
+            'User-Agent' => 'HWT-Webhook/1.0 (Test)',
+            'X-Webhook-Id' => $payload['id'],
+            'X-Webhook-Event' => 'test.ping',
+            'X-Webhook-Timestamp' => (string) time(),
+        ];
+
+        if ($endpoint->secret) {
+            $headers['X-Webhook-Signature'] = $this->signPayload($payload, $endpoint->secret);
+        }
+
+        try {
+            $response = Http::timeout(self::HTTP_TIMEOUT)
+                ->withHeaders($headers)
+                ->post($endpoint->url, $payload);
+
+            $latency = (int) ((microtime(true) - $start) * 1000);
+
+            return [
+                'success' => $response->successful(),
+                'status_code' => $response->status(),
+                'latency_ms' => $latency,
+                'error' => $response->successful() ? null : 'HTTP ' . $response->status(),
+            ];
+        } catch (\Throwable $e) {
+            $latency = (int) ((microtime(true) - $start) * 1000);
+
+            return [
+                'success' => false,
+                'status_code' => null,
+                'latency_ms' => $latency,
+                'error' => $e->getMessage(),
+            ];
         }
     }
 }

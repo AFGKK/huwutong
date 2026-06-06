@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Mail\RenewalEscalationNotification;
 use App\Models\Invoice;
 use App\Models\RenewalAttempt;
 use App\Models\RenewalEscalation;
 use App\Models\Subscription;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 /**
@@ -240,13 +242,20 @@ class RenewalPipelineService
             ),
         ]);
 
-        // TODO: 实际发送通知给管理员
-        Log::warning('RenewalPipeline: escalated to human', [
-            'escalation_id' => $escalation->id,
-            'subscription_id' => $subscription->id,
-            'attempt_number' => $attemptNumber,
-            'reason' => $reason,
-        ]);
+        // 发送通知给管理员
+        try {
+            $adminEmails = config('mail.admin_address', []);
+            if (! empty($adminEmails)) {
+                Mail::to($adminEmails)->send(
+                    new RenewalEscalationNotification($escalation, $subscription)
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('发送续费升级通知邮件失败', [
+                'escalation_id' => $escalation->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -262,7 +271,19 @@ class RenewalPipelineService
 
         foreach ($pending as $escalation) {
             // 发送通知邮件给管理员
-            // TODO: 集成邮件服务发送通知
+            try {
+                $subscription = $escalation->subscription;
+                if ($subscription) {
+                    Mail::to(config('mail.admin_address', []))->send(
+                        new RenewalEscalationNotification($escalation, $subscription)
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::error('processEscalations: 发送升级通知失败', [
+                    'escalation_id' => $escalation->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             $escalation->update([
                 'status' => 'sent',

@@ -285,6 +285,16 @@ class CircuitBreakerService
     }
 
     /**
+     * 重置指定服务的熔断状态
+     */
+    public function resetService(string $service): void
+    {
+        $this->setState($service, self::STATE_CLOSED);
+        $this->resetFailureCount($service);
+        $this->resetHalfOpenCount($service);
+    }
+
+    /**
      * 获取所有服务的熔断状态（用于健康检查和监控）
      */
     public function getAllStates(): array

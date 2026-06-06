@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
+use App\Contracts\PaymentGateway;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\License;
 use App\Models\Product;
 use App\Models\Subscription;
-use App\Services\LicenseService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -23,6 +23,7 @@ class BillingService
 {
     public function __construct(
         protected LicenseService $licenseService,
+        protected PaymentManager $paymentManager,
     ) {}
 
     /**
@@ -349,24 +350,40 @@ class BillingService
     }
 
     /**
-     * 处理支付（模拟，后续对接真实网关）
+     * 处理支付
+     *
+     * 通过 PaymentManager 调用已配置的真实支付网关。
+     * 开发环境默认使用 MockPaymentGateway。
      */
     public function processPayment(Invoice $invoice): array
     {
-        // TODO: M2-06 支付集成后替换为真实支付网关调用
-        // 模拟支付成功
-        $success = true;
+        $paymentResult = $this->paymentManager->charge($invoice);
 
-        if ($success) {
+        if ($paymentResult['success']) {
             $invoice->update([
                 'status' => 'paid',
                 'paid_at' => now(),
             ]);
 
-            return ['success' => true, 'transaction_id' => 'mock_txn_' . Str::random(16)];
+            Log::info('Billing: payment processed', [
+                'invoice_id' => $invoice->id,
+                'gateway' => $this->paymentManager->gatewayName(),
+                'transaction_id' => $paymentResult['transaction_id'] ?? null,
+            ]);
+
+            return [
+                'success' => true,
+                'transaction_id' => $paymentResult['transaction_id'] ?? null,
+                'redirect_url' => $paymentResult['redirect_url'] ?? null,
+            ];
         }
 
-        return ['success' => false, 'error' => 'payment_declined'];
+        Log::warning('Billing: payment failed', [
+            'invoice_id' => $invoice->id,
+            'error' => $paymentResult['error'] ?? 'unknown',
+        ]);
+
+        return ['success' => false, 'error' => $paymentResult['error'] ?? 'payment_declined'];
     }
 
     /**

@@ -88,6 +88,30 @@ class NotificationService
     }
 
     /**
+     * 发送新设备登录通知
+     */
+    public function sendNewDeviceNotification(
+        User $user,
+        string $deviceName,
+        ?string $ip,
+        ?string $userAgent,
+    ): void {
+        $this->send(
+            $user->id,
+            'new_device',
+            '新设备登录提醒',
+            "你的账号刚刚在「{$deviceName}」设备上登录（IP: {$ip}），如果不是你本人的操作，请立即修改密码。",
+            [
+                'device_name' => $deviceName,
+                'ip' => $ip,
+                'user_agent' => $userAgent,
+                'login_time' => now()->toDateTimeString(),
+            ],
+            $user->tenant_id,
+        );
+    }
+
+    /**
      * 发送 License 过期提醒
      */
     public function sendExpiryWarning(int $userId, string $licenseKey, int $daysRemaining): void

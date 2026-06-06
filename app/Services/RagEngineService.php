@@ -243,7 +243,7 @@ class RagEngineService
     protected function generateSimpleEmbedding(string $text): array
     {
         // 分词（按空格和中英文分割）
-        $words = preg_split('/[\s,，。！？、；：""''（）()\[\]【】]+/u', $text);
+        $words = preg_split('/[\s,，。！？、；：()\[\]]+/u', $text);
         $words = array_filter($words, fn($w) => mb_strlen($w) >= 2);
 
         // 统计词频
@@ -304,7 +304,7 @@ class RagEngineService
         $boost = 1.0;
 
         // 标题匹配提升
-        $queryWords = preg_split('/[\s,，。！？、；：""''（）()\[\]【】]+/u', $query);
+        $queryWords = preg_split('/[\s,，。！？、；：()\[\]]+/u', $query);
         foreach ($queryWords as $word) {
             if (mb_strlen($word) >= 2 && mb_stripos($doc->title, $word) !== false) {
                 $boost += 0.15;
@@ -332,7 +332,7 @@ class RagEngineService
         if (empty($results)) return $results;
 
         // 关键词精确匹配加权重排
-        $queryWords = preg_split('/[\s,，。！？、；：""''（）()\[\]【】]+/u', $query);
+        $queryWords = preg_split('/[\s,，。！？、；：()\[\]]+/u', $query);
 
         foreach ($results as &$result) {
             $exactMatchBonus = 0;
