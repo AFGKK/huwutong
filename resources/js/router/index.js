@@ -370,6 +370,13 @@ const routes = [
                 component: () => import('@/views/batch/Index.vue'),
                 meta: { title: '批量操作', icon: 'List' },
             },
+            // ── 客户分级 SLA (M2-31) ──
+            {
+                path: 'sla',
+                name: 'SlaTier',
+                component: () => import('@/views/sla/Index.vue'),
+                meta: { title: 'SLA 等级', icon: 'Odometer' },
+            },
             // ── 计费管理 ──
             {
                 path: 'billing/retention',

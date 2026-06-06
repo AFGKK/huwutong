@@ -57,6 +57,7 @@ use App\Http\Controllers\Api\UsageMeterController;
 use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\HealthScoreController;
 use App\Http\Controllers\Api\BatchController;
+use App\Http\Controllers\Api\SlaTierController;
 
 /*
 
@@ -608,6 +609,18 @@ Route::middleware(['auth:sanctum', 'apm'])->group(function () {
     Route::get('/batch/jobs/{id}', [BatchController::class, 'show'])->whereNumber('id');
     Route::post('/batch/jobs/{id}/undo', [BatchController::class, 'undo'])->whereNumber('id');
     Route::post('/batch/jobs/{id}/export', [BatchController::class, 'export'])->whereNumber('id');
+
+    // ── 客户分级 SLA (M2-31) ──
+    Route::post('/sla/initialize', [SlaTierController::class, 'initialize']);
+    Route::get('/sla/tiers', [SlaTierController::class, 'tiers']);
+    Route::post('/sla/tiers', [SlaTierController::class, 'upsertTier']);
+    Route::put('/sla/tiers/{id}', [SlaTierController::class, 'upsertTier'])->whereNumber('id');
+    Route::delete('/sla/tiers/{id}', [SlaTierController::class, 'deleteTier'])->whereNumber('id');
+    Route::get('/sla/customer/{customerId}/tier', [SlaTierController::class, 'customerTier'])->whereNumber('customerId');
+    Route::post('/sla/assign', [SlaTierController::class, 'assignTier']);
+    Route::delete('/sla/customer/{customerId}/tier', [SlaTierController::class, 'resetTier'])->whereNumber('customerId');
+    Route::get('/sla/audit-log', [SlaTierController::class, 'auditLog']);
+    Route::post('/sla/process-expired', [SlaTierController::class, 'processExpired']);
 
     // Tax Calculator
     Route::get('/tax/countries', [TaxController::class, 'countries']);
