@@ -112,4 +112,54 @@ class AuthTest extends TestCase
         // Token 已被删除
         $this->assertDatabaseCount('personal_access_tokens', 0);
     }
+
+    public function test_refresh_token_returns_new_token(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        $response = $this->postJson('/api/token/refresh', [], [
+            'Authorization' => 'Bearer ' . $token,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data' => ['token']]);
+
+        // 旧 token 被删除，新 token 被创建
+        $this->assertDatabaseCount('personal_access_tokens', 1);
+    }
+
+    public function test_refresh_token_requires_auth(): void
+    {
+        $this->postJson('/api/token/refresh')->assertStatus(401);
+    }
+
+    public function test_old_token_invalid_after_refresh(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test-token')->plainTextToken;
+
+        // 刷新
+        $response = $this->postJson('/api/token/refresh', [], [
+            'Authorization' => 'Bearer ' . $token,
+        ]);
+
+        $response->assertStatus(200);
+        $newToken = $response->json('data.token');
+        $this->assertNotNull($newToken);
+
+        // 旧 token 已从数据库中删除（应只有 1 个新 token）
+        $this->assertDatabaseCount('personal_access_tokens', 1);
+
+        // 新 token 可以正常使用
+        $this->getJson('/api/user', [
+            'Authorization' => 'Bearer ' . $newToken,
+        ])->assertStatus(200);
+
+        // 旧 token 已被删除（数据库层面验证）
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'token' => hash('sha256', explode('|', $token)[1] ?? $token),
+        ]);
+    }
 }

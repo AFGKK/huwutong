@@ -18,6 +18,8 @@ use Database\Factories\TenantFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class EventBusTest extends TestCase
@@ -190,6 +192,8 @@ class EventBusTest extends TestCase
 
     public function test_send_expiry_reminders_sends_7_days(): void
     {
+        Queue::fake();
+
         // 7 天后过期的 License
         License::factory()->create([
             'tenant_id' => $this->tenant->id,
@@ -200,13 +204,13 @@ class EventBusTest extends TestCase
         $this->artisan('hwt:send-expiry-reminders', ['--level' => '7_days'])
             ->assertSuccessful();
 
-        $this->assertDatabaseHas('notifications', [
-            'type' => 'expiry_warning',
-        ]);
+        Queue::assertPushed(\App\Jobs\SendLicenseExpiryReminderJob::class);
     }
 
     public function test_send_expiry_reminders_skips_wrong_day(): void
     {
+        Queue::fake();
+
         // clear any licenses from setup that might interfere
         License::query()->delete();
 
@@ -220,6 +224,6 @@ class EventBusTest extends TestCase
         $this->artisan('hwt:send-expiry-reminders', ['--level' => '7_days'])
             ->assertSuccessful();
 
-        $this->assertDatabaseCount('notifications', 0);
+        Queue::assertNotPushed(\App\Jobs\SendLicenseExpiryReminderJob::class);
     }
 }

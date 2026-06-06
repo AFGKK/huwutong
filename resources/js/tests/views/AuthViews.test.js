@@ -2,21 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 
-// 模拟 @element-plus/icons-vue
-vi.mock('@element-plus/icons-vue', () => ({
-    UserFilled: { name: 'UserFilled', render: () => {} },
-    Lock: { name: 'Lock', render: () => {} },
-    SwitchButton: { name: 'SwitchButton', render: () => {} },
-    Key: { name: 'Key', render: () => {} },
-    ArrowDown: { name: 'ArrowDown', render: () => {} },
-    Fold: { name: 'Fold', render: () => {} },
-    Expand: { name: 'Expand', render: () => {} },
-    OfficeBuilding: { name: 'OfficeBuilding', render: () => {} },
-    CircleCheck: { name: 'CircleCheck', render: () => {} },
-    Setting: { name: 'Setting', render: () => {} },
-    Bell: { name: 'Bell', render: () => {} },
-}));
-
 // 模拟通知 API
 vi.mock('@/api/notification', () => ({
     default: {
