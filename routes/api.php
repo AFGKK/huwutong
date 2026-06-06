@@ -42,7 +42,17 @@ use App\Http\Controllers\Api\TaxController;
 use App\Http\Controllers\Api\TenantRouterController;
 use App\Http\Controllers\Api\TrialController;
 use App\Http\Controllers\Api\UpdatePackageController;
+use App\Http\Controllers\Api\WebhookEndpointController;
 use App\Http\Controllers\Api\WebhookReplayController;
+use App\Http\Controllers\Api\AnnounceBannerController;
+use App\Http\Controllers\Api\CookieConsentController;
+use App\Http\Controllers\Api\CircuitBreakerController;
+use App\Http\Controllers\Api\ImpersonateController;
+use App\Http\Controllers\Api\DeviceTrustController;
+use App\Http\Controllers\Api\PasswordPolicyController;
+use App\Http\Controllers\Api\LegalConsentController;
+use App\Http\Controllers\Api\AccountDeletionAdminController;
+use App\Http\Controllers\Api\MerkleChainController;
 
 /*
 
@@ -78,8 +88,14 @@ Route::post('/mfa/check-required', [MfaController::class, 'checkRequired']);
 // SSO
 Route::post('/sso/callback', [SSOController::class, 'callback'])->name('sso.login');
 
+// CSP 违规报告（公开端点，浏览器可直接 POST）
+Route::post('/csp-violations/report', [CspViolationController::class, 'report']);
+
+// 维护模式检查（公开端点）
+Route::get('/maintenance/status', [MaintenanceModeController::class, 'status']);
+
 // License activation and validation (public - SDK calls)
-Route::middleware(['nonce', 'signature', 'idempotent'])->group(function () {
+Route::middleware(['nonce', 'signature', 'idempotent', 'body-limit:activate'])->group(function () {
     Route::post('/license/activate', [ActivateController::class, 'activate'])
         ->middleware('throttle:30,1');
     Route::post('/license/validate', [ActivateController::class, 'validate'])
@@ -145,9 +161,10 @@ Route::get('/license-file/crl', [LicenseFileCdnController::class, 'crl']);
 
 // ─── 受保护 API（需认证） ───
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'apm'])->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/token/refresh', [AuthController::class, 'refreshToken']);
 
     // Email verification
     Route::post('/email/verify/send', [AuthController::class, 'sendEmailVerification']);
@@ -155,6 +172,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Password management
     Route::post('/password/change', [AuthController::class, 'changePassword']);
+
+    // ─── 以下路由应用数据脱敏中间件 ───
+    Route::middleware('mask')->group(function () {
 
     // Session management
     Route::get('/sessions', [AuthController::class, 'sessions']);
@@ -164,6 +184,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/devices/trust', [AuthController::class, 'trustDevice']);
     Route::get('/devices/trusted', [AuthController::class, 'trustedDevices']);
     Route::delete('/devices/trusted/{deviceId}', [AuthController::class, 'removeTrustedDevice'])->whereNumber('deviceId');
+    Route::delete('/devices/trusted', [AuthController::class, 'clearTrustedDevices']);
+    Route::post('/devices/check', [AuthController::class, 'checkDevice']);
+
+    // Password policy & account lock management
+    Route::get('/password-policy/config', [PasswordPolicyController::class, 'getConfig']);
+    Route::put('/password-policy/config', [PasswordPolicyController::class, 'updateConfig']);
+    Route::get('/password-policy/locked-accounts', [PasswordPolicyController::class, 'lockedAccounts']);
+    Route::post('/password-policy/unlock', [PasswordPolicyController::class, 'unlockAccount']);
+
+    // Legal consent management (admin)
+    Route::get('/legal-consents', [LegalConsentController::class, 'index']);
+    Route::post('/legal-consents', [LegalConsentController::class, 'store']);
+    Route::get('/legal-consents/{legalConsent}', [LegalConsentController::class, 'show'])->whereNumber('legalConsent');
+    Route::put('/legal-consents/{legalConsent}', [LegalConsentController::class, 'update'])->whereNumber('legalConsent');
+    Route::post('/legal-consents/{legalConsent}/publish', [LegalConsentController::class, 'publish'])->whereNumber('legalConsent');
+    Route::get('/legal-consents/logs', [LegalConsentController::class, 'consentLogs']);
 
     // Invite codes (admin)
     Route::get('/invite-codes', [AuthController::class, 'inviteCodesList']);
@@ -177,6 +213,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/account/deletion', [AuthController::class, 'requestDeletion']);
     Route::post('/account/deletion/cancel', [AuthController::class, 'cancelDeletion']);
     Route::get('/account/deletion/status', [AuthController::class, 'deletionStatus']);
+
+    // Account deletion admin
+    Route::get('/account/deletions/pending', [AccountDeletionAdminController::class, 'pending']);
+    Route::get('/account/deletions/history', [AccountDeletionAdminController::class, 'history']);
+    Route::post('/account/deletions/approve', [AccountDeletionAdminController::class, 'approve']);
+    Route::post('/account/deletions/reject', [AccountDeletionAdminController::class, 'reject']);
+    Route::get('/account/deletions/stats', [AccountDeletionAdminController::class, 'stats']);
+
+    // ── Merkle 审计链验证 ──
+    Route::get('/merkle/stats', [MerkleChainController::class, 'stats']);
+    Route::get('/merkle/verify', [MerkleChainController::class, 'verify']);
+    Route::get('/merkle/verify/{logId}', [MerkleChainController::class, 'verify']);
+    Route::post('/merkle/anchor', [MerkleChainController::class, 'anchor']);
+    Route::get('/merkle/anchors', [MerkleChainController::class, 'anchors']);
+    Route::post('/merkle/backfill', [MerkleChainController::class, 'backfill']);
 
     // OAuth binding
     Route::get('/oauth/providers', [AuthController::class, 'boundProviders']);
@@ -278,6 +329,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/audit-logs', [AuditLogController::class, 'index']);
     Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
     Route::get('/audit-logs/{id}', [AuditLogController::class, 'show']);
+
+    // Webhook endpoints management
+    Route::get('/webhook-endpoints/event-types', [WebhookEndpointController::class, 'eventTypes']);
+    Route::get('/webhook-endpoints', [WebhookEndpointController::class, 'index']);
+    Route::post('/webhook-endpoints', [WebhookEndpointController::class, 'store']);
+    Route::get('/webhook-endpoints/{endpoint}', [WebhookEndpointController::class, 'show'])->whereNumber('endpoint');
+    Route::put('/webhook-endpoints/{endpoint}', [WebhookEndpointController::class, 'update'])->whereNumber('endpoint');
+    Route::delete('/webhook-endpoints/{endpoint}', [WebhookEndpointController::class, 'destroy'])->whereNumber('endpoint');
+    Route::post('/webhook-endpoints/{endpoint}/toggle-pause', [WebhookEndpointController::class, 'togglePause'])->whereNumber('endpoint');
+    Route::post('/webhook-endpoints/{endpoint}/test', [WebhookEndpointController::class, 'test'])->whereNumber('endpoint');
 
     // Webhook replay
     Route::prefix('webhook-replay')->group(function () {
@@ -508,6 +569,67 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/tax/certificates/{certificate}', [TaxController::class, 'approveCertificate']);
     Route::delete('/tax/certificates/{certificate}', [TaxController::class, 'destroyCertificate']);
 
+    // CORS 跨域配置管理
+    Route::get('/cors-configs', [CorsConfigController::class, 'index']);
+    Route::post('/cors-configs', [CorsConfigController::class, 'store']);
+    Route::get('/cors-configs/{corsConfig}', [CorsConfigController::class, 'show'])->whereNumber('corsConfig');
+    Route::put('/cors-configs/{corsConfig}', [CorsConfigController::class, 'update'])->whereNumber('corsConfig');
+    Route::delete('/cors-configs/{corsConfig}', [CorsConfigController::class, 'destroy'])->whereNumber('corsConfig');
+    Route::post('/cors-configs/test', [CorsConfigController::class, 'test']);
+
+    // CSP 配置管理
+    Route::get('/csp-configs', [CspConfigController::class, 'index']);
+    Route::post('/csp-configs', [CspConfigController::class, 'store']);
+    Route::get('/csp-configs/{cspConfig}', [CspConfigController::class, 'show'])->whereNumber('cspConfig');
+    Route::put('/csp-configs/{cspConfig}', [CspConfigController::class, 'update'])->whereNumber('cspConfig');
+    Route::delete('/csp-configs/{cspConfig}', [CspConfigController::class, 'destroy'])->whereNumber('cspConfig');
+    Route::post('/csp-configs/preview', [CspConfigController::class, 'preview']);
+
+    // 维护模式管理
+    Route::get('/maintenance/history', [MaintenanceModeController::class, 'history']);
+    Route::post('/maintenance/enable', [MaintenanceModeController::class, 'enable']);
+    Route::post('/maintenance/disable', [MaintenanceModeController::class, 'disable']);
+    Route::put('/maintenance/configs/{maintenanceConfig}', [MaintenanceModeController::class, 'update'])->whereNumber('maintenanceConfig');
+
+    // APM 应用性能监控
+    Route::get('/apm/overview', [ApmController::class, 'overview']);
+    Route::get('/apm/slow-requests', [ApmController::class, 'slowRequests']);
+    Route::get('/apm/slowest-routes', [ApmController::class, 'slowestRoutes']);
+    Route::get('/apm/records/{id}', [ApmController::class, 'show'])->whereNumber('id');
+    Route::post('/apm/prune', [ApmController::class, 'prune']);
+    Route::get('/apm/otel-status', [ApmController::class, 'otelStatus']);
+    Route::get('/apm/config', [ApmController::class, 'config']);
+
+    // CSP 违规报告
+    Route::get('/csp-violations', [CspViolationController::class, 'index']);
+    Route::get('/csp-violations/{cspViolation}', [CspViolationController::class, 'show'])->whereNumber('cspViolation');
+    Route::get('/csp-violations/stats', [CspViolationController::class, 'stats']);
+
+    // 系统公告横幅
+    Route::get('/announce-banners', [AnnounceBannerController::class, 'index']);
+    Route::post('/announce-banners', [AnnounceBannerController::class, 'store']);
+    Route::get('/announce-banners/{announceBanner}', [AnnounceBannerController::class, 'show'])->whereNumber('announceBanner');
+    Route::put('/announce-banners/{announceBanner}', [AnnounceBannerController::class, 'update'])->whereNumber('announceBanner');
+    Route::delete('/announce-banners/{announceBanner}', [AnnounceBannerController::class, 'destroy'])->whereNumber('announceBanner');
+
+    // Cookie Consent 管理
+    Route::get('/cookie-consent/admin-config', [CookieConsentController::class, 'showConfig']);
+    Route::put('/cookie-consent/admin-config', [CookieConsentController::class, 'updateConfig']);
+    Route::get('/cookie-consent/logs', [CookieConsentController::class, 'logs']);
+    Route::get('/cookie-consent/stats', [CookieConsentController::class, 'stats']);
+
+    // 断路器监控面板
+    Route::get('/circuit-breaker/status', [CircuitBreakerController::class, 'index']);
+    Route::post('/circuit-breaker/reset', [CircuitBreakerController::class, 'reset']);
+    Route::get('/circuit-breaker/logs', [CircuitBreakerController::class, 'logs']);
+
+    // 模拟登录管理（仅超管可用）
+    Route::post('/impersonate/start', [ImpersonateController::class, 'start'])->middleware('ability:super-admin');
+    Route::post('/impersonate/stop', [ImpersonateController::class, 'stop'])->middleware('ability:super-admin');
+    Route::get('/impersonate/session', [ImpersonateController::class, 'session']);
+    Route::get('/impersonate/history', [ImpersonateController::class, 'history'])->middleware('ability:super-admin');
+    Route::get('/impersonate/candidates', [ImpersonateController::class, 'candidates'])->middleware('ability:super-admin');
+
     // Global Resource Whitelist
             Route::get('/global-resources/config', [GlobalResourceController::class, 'config']);
             Route::get('/global-resources/check-write', [GlobalResourceController::class, 'checkWrite']);
@@ -528,7 +650,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updates/{updatePackage}/deprecate', [UpdatePackageController::class, 'deprecate'])->whereNumber('updatePackage');
     Route::delete('/updates/{updatePackage}', [UpdatePackageController::class, 'destroy'])->whereNumber('updatePackage');
     Route::get('/updates/{updatePackage}/stats', [UpdatePackageController::class, 'downloadStats'])->whereNumber('updatePackage');
+
+    }); // end api.masked
 });
 
 // Update download (public route)
 Route::get('/updates/{updatePackage}/download', [UpdatePackageController::class, 'download'])->whereNumber('updatePackage');
+
+// 公告横幅（公开接口，未登录也能获取）
+Route::get('/announce-banners/active', [AnnounceBannerController::class, 'active']);
+
+// Cookie Consent（公开接口）
+Route::get('/cookie-consent/config', [CookieConsentController::class, 'config']);
+Route::post('/cookie-consent/consent', [CookieConsentController::class, 'consent']);
+
+// Legal Consent 公开接口
+Route::get('/legal-consents/current', [LegalConsentController::class, 'current']);

@@ -2,20 +2,77 @@
 
 use Illuminate\Support\Facades\Schedule;
 
-// Trial 过期检查（每日 02:00）
-Schedule::command('hwt:check-trials')->dailyAt('02:00');
+// ─── 所有定时任务统一注册在此文件 ───
+// Laravel 11 使用 routes/console.php 作为调度的标准方式
+// 服务器 cron 需添加: * * * * * cd /path/to/project && php artisan schedule:run >> /dev/null 2>&1
 
-// License 过期提醒（每日 08:00 发送 7/3/1 天前提醒）
-Schedule::command('hwt:send-expiry-reminders')->dailyAt('08:00');
+// ── License 自动过期 ──
+// 每小时检查一次过期 License（及时清理）
+Schedule::command('hwt:auto-expire-licenses')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-license.log'));
 
-// License 自动过期（每日 00:30）
-Schedule::command('hwt:auto-expire-licenses')->dailyAt('00:30');
+// ── 发送过期提醒 ──
+// 每天早 9 点发送 7 天、3 天、1 天前的提醒
+Schedule::command('hwt:send-expiry-reminders', ['--level' => '7_days'])
+    ->dailyAt('09:00')
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-license.log'));
 
-// 订阅自动续费处理（每日 03:00）
-Schedule::command('billing:process-renewals')->dailyAt('03:00');
+Schedule::command('hwt:send-expiry-reminders', ['--level' => '3_days'])
+    ->dailyAt('09:05')
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-license.log'));
 
-// 订阅宽限期处理（每日 04:00）
-Schedule::command('billing:process-grace-period')->dailyAt('04:00');
+Schedule::command('hwt:send-expiry-reminders', ['--level' => '1_day'])
+    ->dailyAt('09:10')
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-license.log'));
 
-// 续费失败重试（每日 10:00 和 14:00）
-Schedule::command('billing:process-retries')->twiceDaily(10, 14);
+// ── 试用期检查 ──
+// 每小时检查过期试用
+Schedule::command('hwt:check-trials')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-trial.log'));
+
+// ── 订阅计费 ──
+// 每天凌晨 2 点处理到期续费
+Schedule::command('billing:process-renewals')
+    ->dailyAt('02:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-billing.log'));
+
+// 每天凌晨 3 点重试失败续费
+Schedule::command('billing:process-retries')
+    ->dailyAt('03:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-billing.log'));
+
+// 每天凌晨 4 点处理宽限期到期的订阅
+Schedule::command('billing:process-grace-period')
+    ->dailyAt('04:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-billing.log'));
+
+// ── SSL 证书检查 ──
+// 每天凌晨 5 点检查并自动续期
+Schedule::command('ssl:check', ['--renew' => true])
+    ->dailyAt('05:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-ssl.log'));
+
+// ── 依赖安全扫描 ──
+// 每周日凌晨 6 点扫描
+Schedule::command('deps:scan')
+    ->weeklyOn(0, '06:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-deps.log'));
