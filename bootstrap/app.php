@@ -35,12 +35,19 @@ return Application::configure(basePath: dirname(__DIR__))
             'global-resource' => \App\Http\Middleware\GlobalResourceWhitelist::class,
             'global-resource.write' => \App\Http\Middleware\GlobalResourceWriteProtection::class,
             'security-headers' => \App\Http\Middleware\SecurityHeadersMiddleware::class,
+            'mask' => \App\Http\Middleware\DataMaskingMiddleware::class,
+            'body-limit' => \App\Http\Middleware\BodySizeLimiter::class,
+            'maintenance' => \App\Http\Middleware\MaintenanceMiddleware::class,
+            'apm' => \App\Http\Middleware\ApmMiddleware::class,
+            'api-key' => \App\Http\Middleware\ApiKeyAuthMiddleware::class,
+            'impersonate' => \App\Http\Middleware\ImpersonateMiddleware::class,
         ]);
 
         // 应用层中间件统一注册（按 M0-11 ADR：这些由应用层处理，网关层不应重复）
         $middleware->api(prepend: [
             \App\Http\Middleware\SetTenantContext::class,
             \App\Http\Middleware\SecurityHeadersMiddleware::class, // CORS/CSP/安全头 — 应用层统一处理
+            \App\Http\Middleware\ImpersonateMiddleware::class, // 模拟登录 — 在所有认证路由之前检查
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

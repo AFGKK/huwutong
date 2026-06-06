@@ -1,66 +1,127 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 互物通 (88.huwutong.com) — License 管理系统
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+企业级软件许可证管理平台，支持 License 全生命周期管理、订阅计费、设备绑定、工单系统、AI 知识库（RAG）等功能。
 
-## About Laravel
+## 技术栈
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+| 层级 | 技术 |
+|------|------|
+| **后端** | Laravel 11 + PHP 8.2+ |
+| **前端** | Vue 3 (Composition API) + Element Plus + Pinia + Vite |
+| **数据库** | MySQL 8.4 |
+| **缓存/队列** | Redis |
+| **测试** | PHPUnit 10 (后端), Vitest (前端), Playwright (E2E) |
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 快速开始（Docker Sail）
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```bash
+# 1. 克隆项目
+git clone <repo-url> && cd 88.huwutong.com
 
-## Learning Laravel
+# 2. 复制环境变量
+cp .env.example .env
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+# 3. 启动 Docker 容器
+./vendor/bin/sail up -d
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+# 4. 安装 PHP 依赖
+./vendor/bin/sail composer install
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# 5. 安装 Node 依赖 & 构建
+./vendor/bin/sail npm install
+./vendor/bin/sail npm run build
 
-## Laravel Sponsors
+# 6. 生成密钥 & 运行迁移
+./vendor/bin/sail artisan key:generate
+./vendor/bin/sail artisan migrate --seed
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# 7. 访问 http://localhost
+```
 
-### Premium Partners
+### 可用的 Docker 服务
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+| 服务 | 容器名 | 主机端口 |
+|------|--------|----------|
+| **应用** | laravel.test | 80 |
+| **MySQL** | mysql | 3306 |
+| **Redis** | redis | 6379 |
+| **Mailpit** (SMTP + Web UI) | mailpit | 1025 / 8025 |
 
-## Contributing
+### Sail 常用命令
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+./vendor/bin/sail up -d            # 后台启动所有容器
+./vendor/bin/sail stop             # 停止容器
+./vendor/bin/sail down             # 停止并删除容器
+./vendor/bin/sail artisan ...      # 运行 Artisan 命令
+./vendor/bin/sail npm run dev      # 启动 Vite 开发服务器
+./vendor/bin/sail composer ...     # 运行 Composer
+./vendor/bin/sail test             # 运行 PHPUnit 测试
+./vendor/bin/sail npm test         # 运行 Vitest 前端测试
+```
 
-## Code of Conduct
+## 本地开发（无 Docker）
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 环境要求
 
-## Security Vulnerabilities
+- PHP 8.2+
+- Composer 2.x
+- Node.js 20+
+- MySQL 8.0+ / MariaDB
+- Redis 7+
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 安装步骤
 
-## License
+```bash
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+npm run dev
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+> **注意**：本地开发时，需要将 `.env` 中的 `DB_HOST` 改为 `127.0.0.1`，`REDIS_HOST` 改为 `127.0.0.1`，`MAIL_HOST` 改为 `127.0.0.1`。
+
+## 运行测试
+
+```bash
+# 后端测试
+composer test                 # 全部 PHPUnit 测试
+composer test:feature         # 仅 Feature 测试
+
+# 前端测试
+npm test                      # Vitest 单元测试
+npm run test:e2e              # Playwright E2E 测试
+
+# 在 Docker 中运行
+./vendor/bin/sail test
+./vendor/bin/sail npm test
+```
+
+## 项目结构
+
+```
+app/
+├── Http/Controllers/Api/     # API 控制器（43 个）
+├── Models/                    # Eloquent 模型
+├── Services/                  # 业务逻辑层
+├── Policies/                  # 授权策略
+└── Console/Kernel.php         # 定时任务
+database/
+├── factories/                 # 模型工厂
+├── migrations/                # 数据库迁移
+└── seeders/                   # 数据填充
+resources/js/
+├── views/                     # Vue 页面组件
+├── api/                       # API 客户端模块
+├── stores/                    # Pinia 状态管理
+└── tests/                     # Vitest 前端测试
+tests/
+├── Feature/Api/               # API 集成测试
+└── Unit/                      # 单元测试
+```
+
+## 许可证
+
+本项目基于 MIT 许可证发布。

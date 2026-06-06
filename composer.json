@@ -10,6 +10,8 @@
         "laravel/sanctum": "^4.0",
         "laravel/telescope": "^5.20",
         "laravel/tinker": "^2.9",
+        "open-telemetry/exporter-otlp": "*",
+        "open-telemetry/sdk": "*",
         "spatie/laravel-permission": "^6.25"
     },
     "require-dev": {
@@ -38,6 +40,8 @@
         }
     },
     "scripts": {
+        "test": "@php vendor/bin/phpunit",
+        "test:feature": "@php vendor/bin/phpunit tests/Feature",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
