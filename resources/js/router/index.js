@@ -356,6 +356,13 @@ const routes = [
                 component: () => import('@/views/currency/Index.vue'),
                 meta: { title: '多币种定价', icon: 'Coin' },
             },
+            // ── 客户健康度评分 (M2-29) ──
+            {
+                path: 'health-score',
+                name: 'HealthScore',
+                component: () => import('@/views/health-score/Index.vue'),
+                meta: { title: '客户健康度', icon: 'Monitor' },
+            },
             // ── 计费管理 ──
             {
                 path: 'billing/retention',

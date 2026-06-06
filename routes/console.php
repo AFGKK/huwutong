@@ -76,3 +76,10 @@ Schedule::command('deps:scan')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/scheduler-deps.log'));
+
+// ── 客户健康度评分 ──
+Schedule::command('hwt:calculate-health-scores')
+    ->dailyAt('06:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-health-score.log'));

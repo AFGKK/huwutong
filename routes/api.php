@@ -55,6 +55,7 @@ use App\Http\Controllers\Api\AccountDeletionAdminController;
 use App\Http\Controllers\Api\MerkleChainController;
 use App\Http\Controllers\Api\UsageMeterController;
 use App\Http\Controllers\Api\CurrencyController;
+use App\Http\Controllers\Api\HealthScoreController;
 
 /*
 
@@ -588,6 +589,15 @@ Route::middleware(['auth:sanctum', 'apm'])->group(function () {
     Route::get('/currency/customer-preference', [CurrencyController::class, 'customerPreference']);
     Route::put('/currency/customer-preference', [CurrencyController::class, 'updateCustomerPreference']);
     Route::get('/currency/subscription-display/{subscriptionId}', [CurrencyController::class, 'subscriptionDisplayAmount'])->whereNumber('subscriptionId');
+
+    // ── 客户健康度评分 (M2-29) ──
+    Route::get('/health-score/dashboard', [HealthScoreController::class, 'dashboard']);
+    Route::post('/health-score/calculate', [HealthScoreController::class, 'calculate']);
+    Route::post('/health-score/calculate-all', [HealthScoreController::class, 'calculateAll']);
+    Route::get('/health-score/customer/{customerId}', [HealthScoreController::class, 'show'])->whereNumber('customerId');
+    Route::get('/health-score/customer/{customerId}/trend', [HealthScoreController::class, 'trend'])->whereNumber('customerId');
+    Route::get('/health-score/list', [HealthScoreController::class, 'list']);
+    Route::get('/health-score/churn-list', [HealthScoreController::class, 'churnList']);
 
     // Tax Calculator
     Route::get('/tax/countries', [TaxController::class, 'countries']);

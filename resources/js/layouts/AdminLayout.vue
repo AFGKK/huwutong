@@ -286,6 +286,12 @@ const menuGroups = [
         ],
     },
     {
+        label: '运营分析', icon: 'DataBoard',
+        items: [
+            { path: '/health-score', title: '客户健康度', icon: DataBoard },
+        ],
+    },
+    {
         label: '开发者生态', icon: 'MagicStick',
         items: [
             { path: '/wizard', title: 'AI 集成向导', icon: MagicStick },
