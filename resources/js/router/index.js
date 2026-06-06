@@ -349,6 +349,13 @@ const routes = [
                 component: () => import('@/views/usage-meter/Index.vue'),
                 meta: { title: '用量计量', icon: 'DataBoard' },
             },
+            // ── 多币种定价 / 汇率管理 (M2-30) ──
+            {
+                path: 'currency',
+                name: 'Currency',
+                component: () => import('@/views/currency/Index.vue'),
+                meta: { title: '多币种定价', icon: 'Coin' },
+            },
             // ── 计费管理 ──
             {
                 path: 'billing/retention',

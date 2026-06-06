@@ -54,6 +54,7 @@ use App\Http\Controllers\Api\LegalConsentController;
 use App\Http\Controllers\Api\AccountDeletionAdminController;
 use App\Http\Controllers\Api\MerkleChainController;
 use App\Http\Controllers\Api\UsageMeterController;
+use App\Http\Controllers\Api\CurrencyController;
 
 /*
 
@@ -567,6 +568,26 @@ Route::middleware(['auth:sanctum', 'apm'])->group(function () {
     Route::get('/usage/quotas', [UsageMeterController::class, 'quotas']);
     Route::post('/usage/quotas', [UsageMeterController::class, 'upsertQuota']);
     Route::delete('/usage/quotas/{id}', [UsageMeterController::class, 'deleteQuota'])->whereNumber('id');
+
+    // ── 多币种定价系统 (M2-30) ──
+    Route::get('/currencies', [CurrencyController::class, 'currencies']);
+    Route::get('/currency/rates', [CurrencyController::class, 'rates']);
+    Route::post('/currency/rates', [CurrencyController::class, 'setRate']);
+    Route::delete('/currency/rates/{id}', [CurrencyController::class, 'deleteRate'])->whereNumber('id');
+    Route::post('/currency/convert', [CurrencyController::class, 'convert']);
+    Route::post('/currency/batch-convert', [CurrencyController::class, 'batchConvert']);
+    Route::post('/currency/sync-rates', [CurrencyController::class, 'syncRates']);
+
+    // ── 定价计划 (多币种) ──
+    Route::get('/currency/pricing-plans', [CurrencyController::class, 'pricingPlans']);
+    Route::post('/currency/pricing-plans', [CurrencyController::class, 'createPricingPlan']);
+    Route::put('/currency/pricing-plans/{id}', [CurrencyController::class, 'updatePricingPlan'])->whereNumber('id');
+    Route::delete('/currency/pricing-plans/{id}', [CurrencyController::class, 'deletePricingPlan'])->whereNumber('id');
+
+    // ── 客户货币偏好 ──
+    Route::get('/currency/customer-preference', [CurrencyController::class, 'customerPreference']);
+    Route::put('/currency/customer-preference', [CurrencyController::class, 'updateCustomerPreference']);
+    Route::get('/currency/subscription-display/{subscriptionId}', [CurrencyController::class, 'subscriptionDisplayAmount'])->whereNumber('subscriptionId');
 
     // Tax Calculator
     Route::get('/tax/countries', [TaxController::class, 'countries']);
