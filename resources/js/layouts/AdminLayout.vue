@@ -191,7 +191,7 @@ import {
     MagicStick, EditPen, Connection, Reading,
     Bell, Link, Promotion, Refresh,
     TrendCharts, Message, Timer, ChatDotSquare,
-    WarnTriangleFilled, DataBoard, List, Odometer,
+    WarnTriangleFilled, DataBoard, List, Odometer, WarningFilled,
 } from '@element-plus/icons-vue';
 
 const route = useRoute();
@@ -303,6 +303,7 @@ const menuGroups = [
             { path: '/updates', title: '更新包分发', icon: Upload },
             { path: '/playground', title: 'API Playground', icon: Monitor },
             { path: '/telemetry', title: 'SDK Telemetry', icon: Monitor },
+            { path: '/error-codes', title: '错误码参考', icon: WarningFilled },
             { path: '/sandbox', title: '开发者沙箱', icon: EditPen },
             { path: '/staging', title: 'Staging 环境', icon: Connection },
             { path: '/api-versions', title: 'API 版本管理', icon: Connection },

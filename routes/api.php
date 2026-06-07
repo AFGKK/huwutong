@@ -60,6 +60,7 @@ use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\SlaTierController;
 use App\Http\Controllers\Api\TelemetryController;
 use App\Http\Controllers\Api\ApiVersionController;
+use App\Http\Controllers\Api\ErrorCodeController;
 
 /*
 
@@ -776,4 +777,19 @@ Route::middleware(['auth:sanctum', 'ability:admin,super-admin'])->prefix('teleme
     Route::get('/events', [TelemetryController::class, 'events']);
     Route::get('/unhealthy', [TelemetryController::class, 'unhealthy']);
     Route::get('/trend', [TelemetryController::class, 'trend']);
+});
+
+// ── SDK 错误码标准化文档 (M2-34) ──
+
+// 公开端点 — SDK 可查询错误码定义
+Route::get('/error-codes', [ErrorCodeController::class, 'index']);
+Route::get('/error-codes/by-domain', [ErrorCodeController::class, 'byDomain']);
+Route::get('/error-codes/search', [ErrorCodeController::class, 'search']);
+Route::get('/error-codes/{code}', [ErrorCodeController::class, 'show']);
+
+// 受保护端点 — 管理后台使用
+Route::middleware(['auth:sanctum', 'ability:admin,super-admin'])->prefix('error-codes')->group(function () {
+    Route::get('/stats', [ErrorCodeController::class, 'stats']);
+    // 支持 locale 参数 + grouped 参数
+    Route::get('/reference', [ErrorCodeController::class, 'index']);
 });

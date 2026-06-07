@@ -475,6 +475,13 @@ const routes = [
                 component: () => import('@/views/telemetry/Index.vue'),
                 meta: { title: 'SDK Telemetry', icon: 'DataAnalysis' },
             },
+            // ── SDK 错误码参考手册 (M2-34) ──
+            {
+                path: 'error-codes',
+                name: 'ErrorCodes',
+                component: () => import('@/views/error-codes/Index.vue'),
+                meta: { title: '错误码参考', icon: 'WarningFilled' },
+            },
             // ── 订阅详情 ──
             {
                 path: 'billing/:id',

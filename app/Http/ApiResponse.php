@@ -2,6 +2,8 @@
 
 namespace App\Http;
 
+use App\Enums\ErrorCode;
+use App\Services\ErrorCodeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -49,20 +51,36 @@ class ApiResponse
     /**
      * 错误响应
      *
-     * @param string      $code    错误码（如 LICENSE_EXPIRED）
-     * @param string      $message 错误描述
-     * @param int         $status  HTTP 状态码
-     * @param array       $details 错误详情（字段级验证错误等）
+     * @param ErrorCode|string $code    标准化错误码或字符串
+     * @param string|null      $message 错误描述（null 时自动从多语言获取）
+     * @param int              $status  HTTP 状态码
+     * @param array            $details 错误详情（字段级验证错误等）
+     * @param array            $replace 消息占位符替换参数
      */
     public static function error(
-        string $code = 'UNKNOWN_ERROR',
-        string $message = '请求失败',
+        ErrorCode|string $code = 'UNKNOWN_ERROR',
+        ?string $message = null,
         int    $status = 400,
         array  $details = [],
+        array  $replace = [],
     ): JsonResponse {
+        // 解析错误码
+        $errorCode = $code instanceof ErrorCode ? $code : ErrorCode::tryFrom($code);
+
+        // 自动获取消息（优先传入的 message，其次自动翻译）
+        if ($message === null && $errorCode !== null) {
+            /** @var ErrorCodeService $svc */
+            $svc = app(ErrorCodeService::class);
+            $message = $svc->message($errorCode, $replace);
+        }
+
+        $message ??= '请求失败';
+
         $error = [
-            'code' => $code,
+            'code' => $errorCode?->value ?? (string) $code,
             'message' => $message,
+            'retry_safe' => $errorCode?->isRetrySafe() ?? false,
+            'domain' => $errorCode?->domain() ?? 'UNKNOWN',
         ];
 
         if (! empty($details)) {
@@ -76,35 +94,58 @@ class ApiResponse
     }
 
     /**
+     * 使用标准化错误码响应
+     *
+     * @param ErrorCode          $code     标准化错误码枚举
+     * @param array              $replace  消息占位符
+     * @param array              $details  额外详情
+     * @param int|null           $status   HTTP 状态码（默认使用枚举定义）
+     */
+    public static function errorCode(
+        ErrorCode $code,
+        array $replace = [],
+        array $details = [],
+        ?int $status = null,
+    ): JsonResponse {
+        return static::error(
+            $code,
+            null,
+            $status ?? $code->httpStatus(),
+            $details,
+            $replace,
+        );
+    }
+
+    /**
      * 验证错误响应（422）
      */
-    public static function validationError(string $message = '验证失败', array $details = []): JsonResponse
+    public static function validationError(?string $message = null, array $details = []): JsonResponse
     {
-        return static::error('VALIDATION_ERROR', $message, 422, $details);
+        return static::errorCode(ErrorCode::VALIDATION_ERROR, [], $details, 422);
     }
 
     /**
      * 未授权响应（401）
      */
-    public static function unauthorized(string $message = '未授权访问'): JsonResponse
+    public static function unauthorized(?string $message = null): JsonResponse
     {
-        return static::error('UNAUTHORIZED', $message, 401);
+        return static::errorCode(ErrorCode::UNAUTHORIZED, message: $message ?: null);
     }
 
     /**
      * 禁止访问（403）
      */
-    public static function forbidden(string $message = '权限不足'): JsonResponse
+    public static function forbidden(?string $message = null): JsonResponse
     {
-        return static::error('FORBIDDEN', $message, 403);
+        return static::errorCode(ErrorCode::FORBIDDEN, message: $message ?: null);
     }
 
     /**
      * 未找到响应（404）
      */
-    public static function notFound(string $message = '资源不存在'): JsonResponse
+    public static function notFound(?string $message = null): JsonResponse
     {
-        return static::error('NOT_FOUND', $message, 404);
+        return static::errorCode(ErrorCode::NOT_FOUND, message: $message ?: null);
     }
 
     /**

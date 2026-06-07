@@ -1,6 +1,9 @@
 <?php
 
+use App\Enums\ErrorCode;
+use App\Exceptions\SdkException;
 use App\Http\ApiResponse;
+use App\Services\ErrorCodeService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
@@ -8,6 +11,8 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -56,24 +61,88 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        /** @var ErrorCodeService $errorCodeService */
+        $errorCodeService = app(ErrorCodeService::class);
+
+        // M2-34: SdkException → 自动使用 ErrorCode 枚举渲染
+        $exceptions->render(function (SdkException $e, Request $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $e->render($request);
+            }
+        });
+
         // 404 → 统一格式
         $exceptions->render(function (ModelNotFoundException $e, Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
-                return ApiResponse::notFound('资源不存在');
+                return ApiResponse::error(
+                    ErrorCode::NOT_FOUND->value,
+                    $errorCodeService->message(ErrorCode::NOT_FOUND),
+                    404
+                );
+            }
+        });
+
+        // Symfony 404
+        $exceptions->render(function (NotFoundHttpException $e, Request $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return ApiResponse::error(
+                    ErrorCode::NOT_FOUND->value,
+                    $errorCodeService->message(ErrorCode::NOT_FOUND),
+                    404
+                );
             }
         });
 
         // 验证错误 → 统一格式
         $exceptions->render(function (ValidationException $e, Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
-                return ApiResponse::validationError('验证失败', $e->errors());
+                return ApiResponse::validationError(
+                    $errorCodeService->message(ErrorCode::VALIDATION_ERROR),
+                    $e->errors()
+                );
             }
         });
 
         // 认证错误 → 统一格式
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
-                return ApiResponse::unauthorized($e->getMessage() ?: '未授权访问');
+                return ApiResponse::error(
+                    ErrorCode::UNAUTHORIZED->value,
+                    $e->getMessage() ?: $errorCodeService->message(ErrorCode::UNAUTHORIZED),
+                    401
+                );
+            }
+        });
+
+        // HttpException 兜底（如 403/429 等）
+        $exceptions->render(function (HttpException $e, Request $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                $statusCode = $e->getStatusCode();
+                $code = match ($statusCode) {
+                    403 => ErrorCode::FORBIDDEN,
+                    404 => ErrorCode::NOT_FOUND,
+                    429 => ErrorCode::RATE_LIMITED,
+                    default => ErrorCode::SYS_INTERNAL_ERROR,
+                };
+
+                return ApiResponse::error(
+                    $code->value,
+                    $e->getMessage() ?: $errorCodeService->message($code),
+                    $statusCode
+                );
+            }
+        });
+
+        // 全局兜底 — 捕获未处理异常
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                $message = config('app.debug') ? $e->getMessage() : $errorCodeService->message(ErrorCode::SYS_INTERNAL_ERROR);
+
+                return ApiResponse::error(
+                    ErrorCode::SYS_INTERNAL_ERROR->value,
+                    $message,
+                    500
+                );
             }
         });
     })->create();
