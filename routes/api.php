@@ -537,13 +537,19 @@ Route::middleware(['auth:sanctum', 'apm'])->group(function () {
     Route::put('/staging/{staging}', [StagingController::class, 'update']);
     Route::get('/staging/{staging}/licenses', [StagingController::class, 'licenses']);
 
-    // API 密钥管理
+    // API 密钥管理 (M2-28: 密钥分级管理)
+    Route::get('/api-keys/config/tiers', [ApiKeyController::class, 'tierConfig']);
+    Route::get('/api-keys/stats/overview', [ApiKeyController::class, 'myUsageOverview']);
+    Route::get('/api-keys/audit-logs/all', [ApiKeyController::class, 'allAuditLogs']);
     Route::get('/api-keys', [ApiKeyController::class, 'index']);
     Route::post('/api-keys', [ApiKeyController::class, 'store']);
     Route::get('/api-keys/{apiKey}', [ApiKeyController::class, 'show'])->whereNumber('apiKey');
     Route::put('/api-keys/{apiKey}', [ApiKeyController::class, 'update'])->whereNumber('apiKey');
     Route::delete('/api-keys/{apiKey}', [ApiKeyController::class, 'destroy'])->whereNumber('apiKey');
     Route::post('/api-keys/{apiKey}/regenerate', [ApiKeyController::class, 'regenerate'])->whereNumber('apiKey');
+    Route::post('/api-keys/{apiKey}/toggle', [ApiKeyController::class, 'toggleActive'])->whereNumber('apiKey');
+    Route::get('/api-keys/{apiKey}/audit-logs', [ApiKeyController::class, 'auditLogs'])->whereNumber('apiKey');
+    Route::get('/api-keys/{apiKey}/usage-stats', [ApiKeyController::class, 'usageStats'])->whereNumber('apiKey');
 
     // License File CDN (management)
     Route::get('/license-files', [LicenseFileCdnController::class, 'index']);
