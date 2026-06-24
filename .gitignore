@@ -2,6 +2,7 @@
 node_modules/
 /public/hot
 /public/build/
+/public/storage
 /storage/*.key
 .env
 .env.*.php
@@ -20,9 +21,33 @@ Homestead.yaml
 *.swp
 *.swo
 
+# Redis dump
+/dump.rdb
+
+# Flutter mobile app build artifacts
+mobile/.dart_tool/
+mobile/.packages
+mobile/.pub-cache/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/local.properties
+mobile/*.iml
+mobile/pubspec.lock
+
 # Test output
 /e2e-report/
 test-results/
 coverage/
 vitest.config.*.timestamp-*
 
+# Code quality cache
+.phpstan_cache
+.php_cs.cache
+/.phpunit.result.cache
+storage/framework/cache/phpstan/
+rector.php
