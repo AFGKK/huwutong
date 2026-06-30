@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\License;
+use App\Models\OfflineActivation;
 use App\Models\OfflineCertificate;
 use App\Models\OfflineCrlEntry;
 use App\Models\OfflineVerification as OfflineVerificationModel;
@@ -84,6 +85,18 @@ class OfflineVerifier
                 ]);
             }
 
+            // 4b. M2-01 检查离线文件有效期（自生成日起30天）
+            $offlineExpiresAt = isset($payload['offline_expires_at'])
+                ? Carbon::parse($payload['offline_expires_at'])
+                : null;
+            if ($offlineExpiresAt && $offlineExpiresAt->isPast()) {
+                return OfflineVerificationResult::expired('离线 License 文件已过期，请重新生成', [
+                    'expires_at' => $expiresAt?->toIso8601String(),
+                    'offline_expires_at' => $offlineExpiresAt->toIso8601String(),
+                    'offline_message' => '离线文件有效期 ' . config('offline.expiration_days', 30) . ' 天，请重新生成',
+                ]);
+            }
+
             // 5. 防时间回滚
             $antiRollback = $this->checkAntiRollback($payload['lic_key'], $payload);
             if (! $antiRollback['passed']) {
@@ -106,6 +119,8 @@ class OfflineVerifier
                     'algorithm' => $algorithm,
                     'key_version' => $payload['kid'] ?? null,
                     'public_key' => $publicKey,
+                    'offline_expires_at' => $offlineExpiresAt?->toIso8601String(),
+                    'offline_remaining_days' => $offlineExpiresAt ? now()->diffInDays($offlineExpiresAt, false) : null,
                 ],
             );
         } catch (\Throwable $e) {
@@ -324,6 +339,8 @@ class OfflineVerifier
 
     /**
      * 记录验证结果
+     *
+     * M2-01 增强：额外记录离线激活审计记录（offline_activations）
      */
     protected function recordVerification(string $licenseKey, string $result, ?string $clientIp): void
     {
@@ -336,6 +353,17 @@ class OfflineVerifier
                 'result' => $result,
                 'client_ip' => $clientIp,
             ]);
+
+            // M2-01: 记录离线激活审计
+            if ($result === 'valid') {
+                OfflineActivation::create([
+                    'license_id' => $license?->id,
+                    'license_key' => $licenseKey,
+                    'client_ip' => $clientIp,
+                    'result' => 'valid',
+                    'expires_at' => now()->addDays((int) config('offline.expiration_days', 30)),
+                ]);
+            }
 
             // 更新 CRL 缓存（如果有新的吊销，确保缓存失效）
             Cache::forget('crl_check:' . $licenseKey);

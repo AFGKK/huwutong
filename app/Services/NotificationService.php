@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\NotificationBroadcast;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
@@ -9,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 class NotificationService
 {
     /**
-     * 发送通知给用户
+     * 发送通知给用户（支持实时广播）
      *
      * @param array|int $userIds 用户ID或ID数组
      * @param string $type 通知类型
@@ -48,9 +49,18 @@ class NotificationService
                     }
                 }
 
-                Notification::create($data);
+                $notification = Notification::create($data);
+
+                // 实时广播到用户
+                if (config('broadcasting.default') !== 'null') {
+                    try {
+                        NotificationBroadcast::dispatch($notification, $userId);
+                    } catch (\Exception $e) {
+                        Log::warning("通知广播失败 (用户 {$userId}): {$e->getMessage()}");
+                    }
+                }
             } catch (\Exception $e) {
-                Log::error("Failed to send notification to user {$userId}: {$e->getMessage()}");
+                Log::error("发送通知给用户 {$userId} 失败: {$e->getMessage()}");
             }
         }
     }
@@ -72,7 +82,7 @@ class NotificationService
 
         foreach ($userIds as $userId) {
             try {
-                Notification::create([
+                $notification = Notification::create([
                     'tenant_id' => $tenantId,
                     'user_id' => $userId,
                     'type' => $type,
@@ -81,8 +91,16 @@ class NotificationService
                     'payload' => $payload,
                     'is_read' => false,
                 ]);
+
+                if (config('broadcasting.default') !== 'null') {
+                    try {
+                        NotificationBroadcast::dispatch($notification, $userId);
+                    } catch (\Exception $e) {
+                        Log::warning("租户通知广播失败 (用户 {$userId}): {$e->getMessage()}");
+                    }
+                }
             } catch (\Exception $e) {
-                Log::error("Failed to send tenant notification: {$e->getMessage()}");
+                Log::error("发送租户通知失败: {$e->getMessage()}");
             }
         }
     }

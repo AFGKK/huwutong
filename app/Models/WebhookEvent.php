@@ -10,7 +10,8 @@ class WebhookEvent extends Model
 {
     protected $fillable = [
         'tenant_id', 'webhook_endpoint_id', 'event_type', 'payload', 'status',
-        'attempts', 'next_retry_at',
+        'attempts', 'next_retry_at', 'is_simulated', 'description',
+        'status_code', 'response_body',
     ];
 
     protected function casts(): array
@@ -19,6 +20,7 @@ class WebhookEvent extends Model
             'payload' => 'array',
             'next_retry_at' => 'datetime',
             'attempts' => 'integer',
+            'is_simulated' => 'boolean',
         ];
     }
 
@@ -27,7 +29,7 @@ class WebhookEvent extends Model
         return $this->belongsTo(Tenant::class);
     }
 
-    public function webhookEndpoint(): BelongsTo
+    public function endpoint(): BelongsTo
     {
         return $this->belongsTo(WebhookEndpoint::class, 'webhook_endpoint_id');
     }

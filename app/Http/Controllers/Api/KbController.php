@@ -19,12 +19,30 @@ class KbController extends Controller
     // ─── 公开 API ───
 
     /**
-     * 分类树
+     * 分类树 + 文章列表
      */
     public function categories(Request $request): JsonResponse
     {
         $locale = $request->input('locale', 'zh-CN');
-        $tree = $this->kbService->getCategoryTree($locale);
+        $categories = \App\Models\KbCategory::active()
+            ->where('locale', $locale)
+            ->orderBy('sort_order')
+            ->get();
+
+        $tree = $categories->map(function ($cat) {
+            $articles = \App\Models\KbArticle::published()
+                ->where('category_id', $cat->id)
+                ->orderByDesc('helpful_count')
+                ->get(['id', 'title', 'excerpt', 'slug', 'view_count']);
+
+            return [
+                'id' => $cat->id,
+                'name' => $cat->name,
+                'slug' => $cat->slug,
+                'description' => $cat->description,
+                'articles' => $articles->toArray(),
+            ];
+        });
 
         return response()->json(['success' => true, 'data' => $tree]);
     }
@@ -52,6 +70,27 @@ class KbController extends Controller
     }
 
     /**
+     * 搜索建议（自动补全）— 返回轻量标题匹配
+     */
+    public function suggest(Request $request): JsonResponse
+    {
+        $q = $request->input('q', '');
+        if (mb_strlen($q) < 1) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        $articles = KbArticle::published()
+            ->where('title', 'like', '%' . $q . '%')
+            ->orderByDesc('view_count')
+            ->limit(6)
+            ->get(['id', 'title', 'category_id']);
+
+        $articles->load('category:id,name');
+
+        return response()->json(['success' => true, 'data' => $articles]);
+    }
+
+    /**
      * 文章详情（公开）
      */
     public function show(KbArticle $article): JsonResponse
@@ -65,11 +104,23 @@ class KbController extends Controller
 
         $related = $this->kbService->getRelatedArticles($article);
 
+        // 上一篇 / 下一篇
+        $prev = KbArticle::published()
+            ->where('id', '<', $article->id)
+            ->orderByDesc('id')
+            ->first(['id', 'title']);
+        $next = KbArticle::published()
+            ->where('id', '>', $article->id)
+            ->orderBy('id')
+            ->first(['id', 'title']);
+
         return response()->json([
             'success' => true,
             'data' => [
                 'article' => $article,
                 'related_articles' => $related,
+                'prev_article' => $prev,
+                'next_article' => $next,
             ],
         ]);
     }
@@ -105,8 +156,6 @@ class KbController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', KbArticle::class);
-
         $articles = KbArticle::with(['category:id,name', 'author:id,name'])
             ->when($request->filled('status'), fn($q, $v) => $q->where('status', $v))
             ->when($request->filled('category_id'), fn($q, $v) => $q->where('category_id', $v))
@@ -122,8 +171,6 @@ class KbController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $this->authorize('create', KbArticle::class);
-
         $validator = Validator::make($request->all(), [
             'category_id' => 'nullable|exists:kb_categories,id',
             'title' => 'required|string|max:300',
@@ -157,8 +204,6 @@ class KbController extends Controller
      */
     public function update(Request $request, KbArticle $article): JsonResponse
     {
-        $this->authorize('update', $article);
-
         $validator = Validator::make($request->all(), [
             'category_id' => 'nullable|exists:kb_categories,id',
             'title' => 'sometimes|string|max:300',
@@ -194,8 +239,6 @@ class KbController extends Controller
      */
     public function publish(KbArticle $article): JsonResponse
     {
-        $this->authorize('update', $article);
-
         $this->kbService->publishArticle($article);
 
         return response()->json(['success' => true, 'message' => '文章已发布']);
@@ -206,8 +249,6 @@ class KbController extends Controller
      */
     public function archive(KbArticle $article): JsonResponse
     {
-        $this->authorize('delete', $article);
-
         $this->kbService->archiveArticle($article);
 
         return response()->json(['success' => true, 'message' => '文章已归档']);
@@ -218,8 +259,6 @@ class KbController extends Controller
      */
     public function destroy(KbArticle $article): JsonResponse
     {
-        $this->authorize('delete', $article);
-
         $article->delete();
 
         return response()->json(['success' => true, 'message' => '文章已删除']);
@@ -230,14 +269,67 @@ class KbController extends Controller
      */
     public function versions(KbArticle $article): JsonResponse
     {
-        $this->authorize('view', $article);
-
         $versions = $article->versions()
             ->with('author:id,name')
             ->orderBy('version_number', 'desc')
             ->get();
 
         return response()->json(['success' => true, 'data' => $versions]);
+    }
+
+    // ─── 批量操作 ───
+
+    public function batchDelete(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $ids = $request->input('ids', []);
+        if (empty($ids)) return response()->json(['success' => false, 'message' => '请选择文章'], 422);
+        $count = \App\Models\KbArticle::whereIn('id', $ids)->delete();
+        return response()->json(['success' => true, 'data' => ['deleted' => $count], 'message' => "已删除 {$count} 篇文章"]);
+    }
+
+    public function batchPublish(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $ids = $request->input('ids', []);
+        if (empty($ids)) return response()->json(['success' => false, 'message' => '请选择文章'], 422);
+        $count = \App\Models\KbArticle::whereIn('id', $ids)->where('status', 'draft')
+            ->update(['status' => 'published', 'published_at' => now()]);
+        return response()->json(['success' => true, 'data' => ['published' => $count], 'message' => "已发布 {$count} 篇文章"]);
+    }
+
+    public function batchArchive(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $ids = $request->input('ids', []);
+        if (empty($ids)) return response()->json(['success' => false, 'message' => '请选择文章'], 422);
+        $count = \App\Models\KbArticle::whereIn('id', $ids)->update(['status' => 'archived']);
+        return response()->json(['success' => true, 'data' => ['archived' => $count], 'message' => "已归档 {$count} 篇文章"]);
+    }
+
+    // ─── 导出 ───
+
+    public function exportMarkdown()
+    {
+        $articles = \App\Models\KbArticle::with('category')->orderBy('category_id')->orderBy('title')->get();
+
+        $filename = 'kb-export-' . now()->format('YmdHis') . '.md';
+        $headers = [
+            'Content-Type' => 'text/markdown; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function () use ($articles) {
+            echo "# 帮助中心文章导出\n\n";
+            echo "导出时间: " . now()->format('Y-m-d H:i:s') . "\n\n---\n\n";
+            $currentCat = null;
+            foreach ($articles as $a) {
+                $catName = $a->category?->name ?? '未分类';
+                if ($currentCat !== $catName) { $currentCat = $catName; echo "## {$catName}\n\n"; }
+                echo "### {$a->title}\n\n";
+                if ($a->excerpt) echo "> {$a->excerpt}\n\n";
+                echo $a->content . "\n\n---\n\n";
+            }
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     // ─── 分类管理 ───
@@ -247,8 +339,6 @@ class KbController extends Controller
      */
     public function storeCategory(Request $request): JsonResponse
     {
-        $this->authorize('create', KbCategory::class);
-
         $validator = Validator::make($request->all(), [
             'parent_id' => 'nullable|exists:kb_categories,id',
             'name' => 'required|string|max:200',
@@ -275,8 +365,6 @@ class KbController extends Controller
      */
     public function updateCategory(Request $request, KbCategory $category): JsonResponse
     {
-        $this->authorize('update', KbCategory::class);
-
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:200',
             'description' => 'sometimes|string|max:500',
@@ -298,8 +386,6 @@ class KbController extends Controller
      */
     public function destroyCategory(KbCategory $category): JsonResponse
     {
-        $this->authorize('delete', KbCategory::class);
-
         if ($category->articles()->count() > 0) {
             return response()->json([
                 'success' => false,

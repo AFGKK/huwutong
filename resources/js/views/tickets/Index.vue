@@ -55,13 +55,42 @@
                         <el-icon><Search /></el-icon> 搜索
                     </el-button>
                     <el-button @click="resetFilters">重置</el-button>
+                    <el-button @click="handleExport" :loading="exporting">
+                        <el-icon><Download /></el-icon> 导出CSV
+                    </el-button>
                 </el-form-item>
             </el-form>
+            <div class="filter-bar-footer">
+                <SavedSearchBar
+                    page="tickets"
+                    :current-filters="filters"
+                    @apply="applySavedFilters"
+                />
+            </div>
+        </el-card>
+
+        <!-- 批量操作栏 -->
+        <el-card v-if="selectedIds.length > 0" shadow="never" class="mb-4">
+            <div style="display:flex;align-items:center;gap:12px;font-size:13px">
+                <span>已选择 <strong>{{ selectedIds.length }}</strong> 项</span>
+                <el-button size="small" @click="clearSelection">取消选择</el-button>
+                <el-button size="small" type="success" @click="handleBatchClose" :loading="batchLoading">
+                    <el-icon><CircleCheck /></el-icon> 批量关闭
+                </el-button>
+                <el-button size="small" type="primary" @click="showBatchAssign = true" :loading="batchLoading">
+                    <el-icon><UserFilled /></el-icon> 批量分配
+                </el-button>
+                <el-button size="small" type="danger" @click="handleBatchDelete" :loading="batchLoading">
+                    <el-icon><Delete /></el-icon> 批量删除
+                </el-button>
+            </div>
         </el-card>
 
         <!-- 工单列表 -->
         <el-card shadow="never">
-            <el-table :data="tickets" v-loading="loading" stripe>
+            <el-table ref="tableRef" :data="tickets" v-loading="loading" stripe
+                @selection-change="onSelectionChange">
+                <el-table-column type="selection" width="45" />
                 <el-table-column prop="id" label="#" width="60" />
                 <el-table-column label="客户" min-width="140">
                     <template #default="{ row }">
@@ -78,8 +107,8 @@
                 </el-table-column>
                 <el-table-column label="标题" min-width="220">
                     <template #default="{ row }">
-                        <el-link type="primary" :underline="false" @click="$router.push(`/tickets/${row.id}`)">
-                            {{ row.title }}
+                        <el-link type="primary" :underline="'never'" @click="$router.push(`/tickets/${row.id}`)">
+                            {{ row.subject || row.title }}
                         </el-link>
                     </template>
                 </el-table-column>
@@ -175,14 +204,33 @@
                 <el-button type="primary" @click="confirmAssign" :loading="assigning">确认分配</el-button>
             </template>
         </el-dialog>
+
+        <!-- 批量分配对话框 -->
+        <el-dialog v-model="showBatchAssign" title="批量分配工单" width="400px">
+            <el-form label-position="top">
+                <el-form-item label="选择处理人">
+                    <el-select v-model="batchAssignUserId" placeholder="选择客服人员" filterable style="width: 100%">
+                        <el-option v-for="u in staffUsers" :key="u.id" :label="u.name" :value="u.id">
+                            <span>{{ u.name }}</span>
+                            <span class="text-muted" style="float: right; font-size: 12px;">{{ u.email }}</span>
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="showBatchAssign = false">取消</el-button>
+                <el-button type="primary" @click="confirmBatchAssign" :loading="batchLoading">确认分配</el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import ticketApi from '@/api/ticket';
+import SavedSearchBar from '@/components/SavedSearchBar.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Search } from '@element-plus/icons-vue';
+import { Search, CircleCheck, UserFilled, Delete, Download } from '@element-plus/icons-vue';
 
 const loading = ref(false);
 const tickets = ref([]);
@@ -196,6 +244,81 @@ const showAssignDialog = ref(false);
 const assigning = ref(false);
 const assignUserId = ref(null);
 const assignTicketId = ref(null);
+
+// ─── 批量操作 ───
+const selectedIds = ref([]);
+const tableRef = ref(null);
+const batchLoading = ref(false);
+const showBatchAssign = ref(false);
+const batchAssignUserId = ref(null);
+const exporting = ref(false);
+
+function onSelectionChange(rows) {
+    selectedIds.value = rows.map(r => r.id);
+}
+
+function clearSelection() {
+    tableRef.value?.clearSelection();
+    selectedIds.value = [];
+}
+
+async function handleBatchClose() {
+    if (selectedIds.value.length === 0) return;
+    try {
+        await ElMessageBox.confirm(`确定关闭 ${selectedIds.value.length} 个工单？`, '批量关闭');
+        batchLoading.value = true;
+        const { data: res } = await ticketApi.batchClose(selectedIds.value);
+        ElMessage.success(res?.message || '关闭成功');
+        clearSelection();
+        fetchTickets();
+    } catch { /* cancelled */ }
+    finally { batchLoading.value = false; }
+}
+
+async function confirmBatchAssign() {
+    if (!batchAssignUserId.value) { ElMessage.warning('请选择处理人'); return; }
+    batchLoading.value = true;
+    try {
+        const { data: res } = await ticketApi.batchAssign(selectedIds.value, batchAssignUserId.value);
+        ElMessage.success(res?.message || '分配成功');
+        showBatchAssign.value = false;
+        clearSelection();
+        fetchTickets();
+    } catch { ElMessage.error('分配失败'); }
+    finally { batchLoading.value = false; }
+}
+
+async function handleBatchDelete() {
+    if (selectedIds.value.length === 0) return;
+    try {
+        await ElMessageBox.confirm(`确定删除 ${selectedIds.value.length} 个工单？此操作不可恢复。`, '批量删除', { type: 'warning' });
+        batchLoading.value = true;
+        const { data: res } = await ticketApi.batchDelete(selectedIds.value);
+        ElMessage.success(res?.message || '删除成功');
+        clearSelection();
+        fetchTickets();
+    } catch { /* cancelled */ }
+    finally { batchLoading.value = false; }
+}
+
+async function handleExport() {
+    exporting.value = true;
+    try {
+        const params = {};
+        if (filters.status) params.status = filters.status;
+        if (filters.priority) params.priority = filters.priority;
+        const res = await ticketApi.exportCsv(params);
+        const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'tickets-export-' + new Date().toISOString().slice(0, 10) + '.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+        ElMessage.success('导出成功');
+    } catch { ElMessage.error('导出失败'); }
+    finally { exporting.value = false; }
+}
 
 const statCards = reactive([
     { key: 'open', label: '待处理', value: '0', color: '#f56c6c' },
@@ -222,7 +345,7 @@ const STATUS_MAP = {
 
 const PRIORITY_MAP = {
     low: { type: 'info', label: '低' },
-    normal: { type: '', label: '普通' },
+    medium: { type: '', label: '普通' },
     high: { type: 'warning', label: '高' },
     urgent: { type: 'danger', label: '紧急' },
 };
@@ -309,6 +432,16 @@ function resetFilters() {
     filters.status = '';
     filters.priority = '';
     filters.category_id = '';
+    doSearch();
+}
+
+// 应用保存的搜索
+function applySavedFilters(savedFilters) {
+    for (const [key, value] of Object.entries(savedFilters)) {
+        if (key in filters) {
+            filters[key] = value;
+        }
+    }
     doSearch();
 }
 
@@ -419,4 +552,11 @@ onMounted(() => {
 }
 
 .text-muted { color: #909399; }
+.filter-bar-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid var(--el-border-color-extra-light);
+    margin-top: 8px;
+}
 </style>

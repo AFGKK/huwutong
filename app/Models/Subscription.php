@@ -23,9 +23,10 @@ class Subscription extends Model
         'starts_at', 'ends_at', 'trial_ends_at',
         'grace_days', 'grace_ends_at',
         'auto_renew', 'canceled_at', 'cancellation_reason',
-        'payment_info', 'metadata',
+        'payment_info', 'metadata', 'gateway_subscription_id',
         'last_billed_at', 'next_billing_at',
         'billing_cycles_completed', 'total_paid', 'pricing_plan_slug',
+        'metered_config',
     ];
 
     protected function casts(): array
@@ -45,6 +46,7 @@ class Subscription extends Model
             'total_paid' => 'decimal:2',
             'billing_cycles_completed' => 'integer',
             'grace_days' => 'integer',
+            'metered_config' => 'array',
         ];
     }
 
@@ -66,6 +68,16 @@ class Subscription extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    public function lineItems(): HasMany
+    {
+        return $this->hasManyThrough(InvoiceLineItem::class, Invoice::class);
+    }
+
+    public function pricingPlan(): BelongsTo
+    {
+        return $this->belongsTo(PricingPlan::class, 'pricing_plan_slug', 'slug');
     }
 
     /**

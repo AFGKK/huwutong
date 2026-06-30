@@ -1,0 +1,95 @@
+{
+    "name": "HWT License - Dev Container",
+    "image": "mcr.microsoft.com/devcontainers/php:8.3",
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "20",
+            "nodeGypDependencies": true
+        },
+        "ghcr.io/devcontainers/features/php:1": {
+            "version": "8.3",
+            "extensions": "mbstring,pdo_mysql,bcmath,redis,sodium,xml,json,zip,gd"
+        },
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "configureZshAsDefaultShell": true
+        }
+    },
+
+    "forwardPorts": [8000, 5173, 3306, 6379, 8080, 1025, 8025],
+
+    "portsAttributes": {
+        "8000": { "label": "Laravel (artisan serve)", "onAutoForward": "notify" },
+        "5173": { "label": "Vite HMR", "onAutoForward": "notify" },
+        "3306": { "label": "MySQL", "onAutoForward": "silent" },
+        "6379": { "label": "Redis", "onAutoForward": "silent" },
+        "8080": { "label": "Reverb WebSocket", "onAutoForward": "notify" }
+    },
+
+    "containerEnv": {
+        "APP_ENV": "local",
+        "APP_DEBUG": "true",
+        "DB_CONNECTION": "mysql",
+        "DB_HOST": "localhost",
+        "DB_PORT": "3306",
+        "DB_DATABASE": "huwutong",
+        "DB_USERNAME": "root",
+        "DB_PASSWORD": "root",
+        "REDIS_HOST": "localhost",
+        "REDIS_PORT": "6379",
+        "CACHE_DRIVER": "redis",
+        "SESSION_DRIVER": "redis",
+        "QUEUE_CONNECTION": "redis",
+        "MAIL_MAILER": "smtp",
+        "MAIL_HOST": "localhost",
+        "MAIL_PORT": "1025",
+        "MAIL_FROM_ADDRESS": "noreply@huwutong.local",
+        "MAIL_FROM_NAME": "HWT License Dev"
+    },
+
+    "postCreateCommand": ".devcontainer/post-create.sh",
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "bmewburn.vscode-intelephense-client",
+                "laravel.vscode-laravel",
+                "onecentlin.laravel-blade",
+                "amiralizadeh9480.laravel-extra-intellisense",
+                "ryannaddy.laravel-artisan",
+                "mikestead.dotenv",
+                "editorconfig.editorconfig",
+                "github.vscode-github-actions",
+                "yzhang.markdown-all-in-one",
+                "vue.volar",
+                "bradlc.vscode-tailwindcss",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "ms-azuretools.vscode-docker",
+                "redhat.vscode-yaml",
+                "neilbrayfield.php-docblocker",
+                "christian-kohler.path-intellisense",
+                "streetsidesoftware.code-spell-checker"
+            ],
+            "settings": {
+                "intelephense.files.maxSize": 5000000,
+                "intelephense.files.associations": ["*.php", "*.phtml"],
+                "laravel.autoOpenServiceProvider": true,
+                "editor.formatOnSave": true,
+                "editor.defaultFormatter": "esbenp.prettier-vscode",
+                "[php]": {
+                    "editor.defaultFormatter": "bmewburn.vscode-intelephense-client"
+                },
+                "[vue]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                },
+                "files.associations": {
+                    "*.php": "php"
+                },
+                "php.suggest.basic": false
+            }
+        }
+    },
+
+    "remoteUser": "vscode"
+}

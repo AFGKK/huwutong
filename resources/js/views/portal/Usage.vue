@@ -49,21 +49,8 @@
                         </div>
                     </template>
                     <div class="chart-container" v-loading="loadingApi">
-                        <div v-if="apiDailyData.length" class="bar-chart">
-                            <div
-                                v-for="(day, idx) in apiDailyData"
-                                :key="idx"
-                                class="bar-item"
-                                :title="`${day.date}: ${day.count} 次调用`"
-                            >
-                                <div
-                                    class="bar"
-                                    :style="{ height: barHeight(day.count, maxApiCount) + '%' }"
-                                />
-                                <div class="bar-label">{{ formatDayLabel(day.date) }}</div>
-                            </div>
-                        </div>
-                        <el-empty v-else description="暂无调用数据" :image-size="60" />
+                        <div ref="apiChartRef" style="width:100%;height:260px;"></div>
+                        <el-empty v-if="!apiDailyData.length" description="暂无调用数据" :image-size="60" style="display:none" />
                     </div>
                 </el-card>
 
@@ -96,28 +83,38 @@
 
             <!-- 右侧：设备 & 功能 -->
             <el-col :span="12">
-                <!-- 活跃设备趋势 -->
+                <!-- 设备活跃趋势 -->
                 <el-card class="mb-4">
                     <template #header>
-                        <span>活跃设备数</span>
+                        <div class="card-header">
+                            <span>设备活跃趋势</span>
+                            <el-radio-group v-model="deviceChartRange" size="small" @change="fetchDeviceTrend">
+                                <el-radio-button value="7d">7天</el-radio-button>
+                                <el-radio-button value="30d">30天</el-radio-button>
+                            </el-radio-group>
+                        </div>
                     </template>
-                    <div class="device-metrics">
+                    <div class="device-metrics" style="margin-bottom:12px;">
                         <div class="metric-row">
-                            <span class="metric-label">当前在线设备</span>
-                            <span class="metric-value" style="color: #67c23a">{{ deviceMetrics.active }}</span>
+                            <span class="metric-label">当前在线</span>
+                            <span class="metric-value" style="color:#67c23a">{{ deviceMetrics.active }}</span>
                         </div>
                         <div class="metric-row">
-                            <span class="metric-label">本月新增设备</span>
-                            <span class="metric-value" style="color: #409eff">{{ deviceMetrics.new_this_month }}</span>
+                            <span class="metric-label">本月新增</span>
+                            <span class="metric-value" style="color:#409eff">{{ deviceMetrics.new_this_month }}</span>
                         </div>
                         <div class="metric-row">
                             <span class="metric-label">设备总数</span>
                             <span class="metric-value">{{ deviceMetrics.total }}</span>
                         </div>
                         <div class="metric-row">
-                            <span class="metric-label">设备激活成功率</span>
-                            <span class="metric-value" style="color: #67c23a">{{ deviceMetrics.activation_success_rate }}%</span>
+                            <span class="metric-label">激活成功率</span>
+                            <span class="metric-value" style="color:#67c23a">{{ deviceMetrics.activation_success_rate }}%</span>
                         </div>
+                    </div>
+                    <div class="chart-container" v-loading="loadingDevice">
+                        <div ref="deviceChartRef" style="width:100%;height:220px;"></div>
+                        <el-empty v-if="!deviceTrendData.length" description="暂无设备活跃数据" :image-size="60" style="display:none" />
                     </div>
                 </el-card>
 
@@ -172,23 +169,32 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, markRaw, onMounted, nextTick, watch } from 'vue';
 import apiClient from '@/api/client';
 import deviceApi from '@/api/device';
 import licenseApi from '@/api/license';
 import { ElMessage } from 'element-plus';
+import * as echarts from 'echarts';
 import {
     Odometer, Monitor, Connection, TrendCharts,
 } from '@element-plus/icons-vue';
 
 const loadingApi = ref(false);
+const loadingDevice = ref(false);
 const selectedPeriod = ref('month');
 const apiChartRange = ref('7d');
+const deviceChartRange = ref('7d');
 const apiDailyData = ref([]);
+const deviceTrendData = ref([]);
 const maxApiCount = ref(1);
 const endpointStats = ref([]);
 const featureUsage = ref([]);
 const quotaData = ref([]);
+
+const apiChartRef = ref(null);
+const deviceChartRef = ref(null);
+let apiChartInstance = null;
+let deviceChartInstance = null;
 
 const deviceMetrics = reactive({
     active: 0,
@@ -198,10 +204,10 @@ const deviceMetrics = reactive({
 });
 
 const overviewCards = reactive([
-    { label: 'API 调用次数', value: '0', icon: Odometer, color: '#409eff', trend: undefined },
-    { label: '活跃设备', value: '0', icon: Monitor, color: '#67c23a', trend: undefined },
-    { label: '本月新增设备', value: '0', icon: Connection, color: '#e6a23c', trend: undefined },
-    { label: '配额使用率', value: '0%', icon: TrendCharts, color: '#f56c6c', trend: undefined },
+    { label: 'API 调用次数', value: '0', icon: markRaw(Odometer), color: '#409eff', trend: undefined },
+    { label: '活跃设备', value: '0', icon: markRaw(Monitor), color: '#67c23a', trend: undefined },
+    { label: '本月新增设备', value: '0', icon: markRaw(Connection), color: '#e6a23c', trend: undefined },
+    { label: '配额使用率', value: '0%', icon: markRaw(TrendCharts), color: '#f56c6c', trend: undefined },
 ]);
 
 const featureColors = ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#909399', '#b37feb'];
@@ -209,17 +215,6 @@ const featureColors = ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#909399', '#
 function methodType(method) {
     const map = { GET: 'success', POST: 'primary', PUT: 'warning', DELETE: 'danger', PATCH: 'info' };
     return map[method] || 'info';
-}
-
-function barHeight(count, max) {
-    if (!max) return 0;
-    return Math.max((count / max) * 100, 3);
-}
-
-function formatDayLabel(dateStr) {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : dateStr;
 }
 
 function calcEndpointPercent(count) {
@@ -241,11 +236,74 @@ async function fetchApiUsage() {
         });
         apiDailyData.value = res.data?.daily || [];
         maxApiCount.value = Math.max(...apiDailyData.value.map(d => d.count), 1);
+        await nextTick();
+        renderApiChart();
     } catch {
         apiDailyData.value = [];
     } finally {
         loadingApi.value = false;
     }
+}
+
+async function fetchDeviceTrend() {
+    loadingDevice.value = true;
+    try {
+        const days = deviceChartRange.value === '7d' ? 7 : 30;
+        const { data: res } = await apiClient.get('/usage/device-trend', {
+            params: { days },
+        });
+        deviceTrendData.value = res.data?.daily || [];
+        await nextTick();
+        renderDeviceChart();
+    } catch {
+        deviceTrendData.value = [];
+    } finally {
+        loadingDevice.value = false;
+    }
+}
+
+function renderApiChart() {
+    if (!apiChartRef.value) return;
+    if (!apiChartInstance) {
+        apiChartInstance = echarts.init(apiChartRef.value);
+    }
+    const days = apiDailyData.value.map(d => d.date?.slice(5) || '');
+    const counts = apiDailyData.value.map(d => d.count);
+    apiChartInstance.setOption({
+        tooltip: { trigger: 'axis', backgroundColor: 'rgba(255,255,255,0.95)', borderWidth: 0 },
+        grid: { left: 50, right: 16, top: 20, bottom: 28 },
+        xAxis: { type: 'category', data: days, axisLabel: { fontSize: 11, color: '#909399' }, axisLine: { show: false }, axisTick: { show: false } },
+        yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }, axisLabel: { fontSize: 11, color: '#909399' } },
+        series: [{
+            type: 'line', data: counts, smooth: true,
+            lineStyle: { width: 2.5, color: '#409eff' },
+            areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(64,158,255,0.3)' }, { offset: 1, color: 'rgba(64,158,255,0.02)' }]) },
+            symbol: 'circle', symbolSize: 5, itemStyle: { color: '#409eff' },
+        }],
+    });
+    apiChartInstance.resize();
+}
+
+function renderDeviceChart() {
+    if (!deviceChartRef.value) return;
+    if (!deviceChartInstance) {
+        deviceChartInstance = echarts.init(deviceChartRef.value);
+    }
+    const days = deviceTrendData.value.map(d => d.date?.slice(5) || '');
+    const activeCounts = deviceTrendData.value.map(d => d.active || 0);
+    const newCounts = deviceTrendData.value.map(d => d.new_devices || 0);
+    deviceChartInstance.setOption({
+        tooltip: { trigger: 'axis', backgroundColor: 'rgba(255,255,255,0.95)', borderWidth: 0 },
+        legend: { data: ['活跃设备', '新增设备'], bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 11, color: '#909399' } },
+        grid: { left: 50, right: 16, top: 20, bottom: 40 },
+        xAxis: { type: 'category', data: days, axisLabel: { fontSize: 11, color: '#909399' }, axisLine: { show: false }, axisTick: { show: false } },
+        yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }, axisLabel: { fontSize: 11, color: '#909399' } },
+        series: [
+            { name: '活跃设备', type: 'line', data: activeCounts, smooth: true, lineStyle: { width: 2, color: '#67c23a' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(103,194,58,0.25)' }, { offset: 1, color: 'rgba(103,194,58,0.02)' }]) }, symbol: 'circle', symbolSize: 4, itemStyle: { color: '#67c23a' } },
+            { name: '新增设备', type: 'line', data: newCounts, smooth: true, lineStyle: { width: 2, color: '#409eff', type: 'dashed' }, symbol: 'diamond', symbolSize: 4, itemStyle: { color: '#409eff' } },
+        ],
+    });
+    deviceChartInstance.resize();
 }
 
 async function fetchEndpointStats() {
@@ -323,6 +381,7 @@ async function fetchAll() {
     await Promise.all([
         fetchDeviceMetrics(),
         fetchApiUsage(),
+        fetchDeviceTrend(),
         fetchEndpointStats(),
         fetchFeatureUsage(),
         fetchQuotaUsage(),
@@ -331,6 +390,16 @@ async function fetchAll() {
 }
 
 onMounted(fetchAll);
+
+// 窗口缩放时重绘图表
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+        apiChartInstance?.resize();
+        deviceChartInstance?.resize();
+    }, 200);
+});
 </script>
 
 <style scoped>
@@ -396,39 +465,8 @@ onMounted(fetchAll);
     align-items: flex-end;
 }
 
-.bar-chart {
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-    width: 100%;
-    height: 100%;
-    padding-bottom: 24px;
-}
-
-.bar-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 100%;
-    justify-content: flex-end;
-}
-
-.bar {
-    width: 100%;
-    max-width: 32px;
-    background: linear-gradient(to top, #409eff, #79bbff);
-    border-radius: 4px 4px 0 0;
-    min-height: 3px;
-    transition: height 0.3s;
-}
-
-.bar-label {
-    font-size: 10px;
-    color: #909399;
-    margin-top: 4px;
-    transform: rotate(-30deg);
-    white-space: nowrap;
+.chart-container {
+    min-height: 260px;
 }
 
 .endpoint-list {

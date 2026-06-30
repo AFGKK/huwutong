@@ -1,0 +1,19 @@
+# 磁盘满载模拟
+# 验证磁盘满时的系统降级
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: disk-full
+  namespace: chaos-engineering
+spec:
+  mode: one
+  duration: "60s"
+  selector:
+    namespaces:
+      - "default"
+    labelSelectors:
+      "app": "api"
+  stressors:
+    cpu:
+      workers: 1
+      load: 80

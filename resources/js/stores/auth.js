@@ -14,6 +14,7 @@ export const useAuthStore = defineStore('auth', {
         isLoggedIn: (state) => !!state.token,
         userName: (state) => state.user?.name || '',
         userEmail: (state) => state.user?.email || '',
+        avatarUrl: (state) => state.user?.avatar_url || '',
         userRoles: (state) => state.user?.roles || [],
         isAdmin: (state) => {
             const roles = state.user?.roles || [];
@@ -60,6 +61,16 @@ export const useAuthStore = defineStore('auth', {
             this.token = null;
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
+        },
+
+        setUser(userData) {
+            this.user = { ...this.user, ...userData };
+            localStorage.setItem('user', JSON.stringify(this.user));
+        },
+
+        hasRole(role) {
+            if (!this.user?.roles) return false;
+            return this.user.roles.some(r => r.name === role || r === role);
         },
 
         async fetchUser() {

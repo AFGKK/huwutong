@@ -13,6 +13,8 @@ use App\Models\TrustedDevice;
 use App\Models\User;
 use App\Services\AuthService;
 use App\Services\NotificationService;
+use App\Services\StoreAffiliateService;
+use App\Services\TokenIntrospectionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -29,6 +31,8 @@ class AuthController extends Controller
     public function __construct(
         protected AuthService $authService,
         protected NotificationService $notificationService,
+        protected TokenIntrospectionService $tokenIntrospection,
+        protected StoreAffiliateService $storeAffiliateService,
     ) {}
 
     // ─── 注册 / 登录 ───
@@ -48,7 +52,7 @@ class AuthController extends Controller
         // 检查密码强度
         $passwordError = $this->authService->validatePasswordStrength($request->password);
         if ($passwordError) {
-            return ApiResponse::validationError($passwordError);
+            return ApiResponse::validationError($passwordError, ['password' => [$passwordError]]);
         }
 
         $user = User::create([
@@ -63,10 +67,19 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth-token', ['*'])->plainTextToken;
 
+        // 记录 Token 版本
+        $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
+        $user->tokens()->latest()->first()?->update(['token_version' => $version]);
+
         $this->authService->recordLoginAudit(
             $user, 'register', $request->ip(), $request->userAgent(),
             'email', true,
         );
+
+        // 如果有推广码，自动建立联盟推广关系链
+        if ($inviteCode) {
+            $this->storeAffiliateService->autoBuildAgentRelationshipOnRegistration($user, $inviteCode);
+        }
 
         return ApiResponse::created([
             'user' => $this->formatUser($user),
@@ -118,7 +131,11 @@ class AuthController extends Controller
 
         // 检查账号状态
         if ($user->status !== 'active') {
-            return ApiResponse::error('ACCOUNT_DISABLED', '账号已被禁用', 403);
+            $msg = '账号已被禁用';
+            if ($user->banned_at) {
+                $msg = '账号已被封禁。如有疑问，请提交账号申诉';
+            }
+            return ApiResponse::error('ACCOUNT_DISABLED', $msg, 403);
         }
 
         // 清除失败记录
@@ -128,6 +145,10 @@ class AuthController extends Controller
         $passwordExpiring = $this->authService->isPasswordExpiringSoon($user);
 
         $token = $user->createToken('auth-token', ['*'])->plainTextToken;
+
+        // 记录 Token 版本
+        $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
+        $user->tokens()->latest()->first()?->update(['token_version' => $version]);
 
         $user->update([
             'last_login_at' => now(),
@@ -186,9 +207,16 @@ class AuthController extends Controller
             $user, 'logout', $request->ip(), $request->userAgent(),
         );
 
-        $request->user()->currentAccessToken()->delete();
+        $token = $user->currentAccessToken();
+        if ($token) {
+            $this->tokenIntrospection->revokeToken(
+                (string) $token->getKey(),
+                'user_logout',
+                $user->id,
+            );
+        }
 
-        return ApiResponse::success(null, '已退出登录');
+        return response()->json(['success' => true, 'message' => '已退出登录']);
     }
 
     // ─── Token 刷新 ───
@@ -208,17 +236,32 @@ class AuthController extends Controller
             $user, 'token_refresh', $request->ip(), $request->userAgent(),
         );
 
-        $currentToken->delete();
+        // 吊销旧 Token
+        if ($currentToken) {
+            $this->tokenIntrospection->revokeToken(
+                (string) $currentToken->getKey(),
+                'token_refresh',
+                $user->id,
+            );
+        }
 
         $newToken = $user->createToken(
-            $currentToken->name ?: 'api-token',
-            $currentToken->abilities ?: ['*'],
+            $currentToken ? $currentToken->name : 'api-token',
+            $currentToken ? ($currentToken->abilities ?: ['*']) : ['*'],
         );
 
-        return ApiResponse::success([
-            'token' => $newToken->plainTextToken,
-            'expires_at' => $newToken->accessToken->expires_at,
-        ], 'Token 已刷新');
+        // 设置新 Token 版本
+        $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
+        $user->tokens()->latest()->first()?->update(['token_version' => $version]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'token' => $newToken->plainTextToken,
+                'expires_at' => $newToken->accessToken->expires_at,
+            ],
+            'message' => 'Token 已刷新',
+        ]);
     }
 
     // ─── 邮箱验证 ───
@@ -405,6 +448,10 @@ class AuthController extends Controller
 
         $token = $user->createToken('phone-token', ['*'])->plainTextToken;
 
+        // 记录 Token 版本
+        $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
+        $user->tokens()->latest()->first()?->update(['token_version' => $version]);
+
         $this->authService->recordLoginAudit(
             $user, 'login', $request->ip(), $request->userAgent(),
             'phone', true,
@@ -455,6 +502,9 @@ class AuthController extends Controller
         // 吊销所有其他 token（强制重新登录）
         $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
 
+        // 递增 Token 版本，使其他设备的 Token 失效
+        $this->tokenIntrospection->bumpUserVersion($user->id);
+
         return ApiResponse::success(null, '密码修改成功');
     }
 
@@ -493,13 +543,139 @@ class AuthController extends Controller
         $user = $request->user();
         $token = $user->tokens()->findOrFail($tokenId);
 
-        if ($token->id === $user->currentAccessToken()->id) {
+        if ((string) $token->id === (string) $user->currentAccessToken()->id) {
             return ApiResponse::error('CANNOT_REVOKE_CURRENT', '不能吊销当前会话', 422);
         }
 
-        $token->delete();
+        $this->tokenIntrospection->revokeToken(
+            (string) $token->id,
+            'user_revoke_session',
+            $user->id,
+        );
 
         return ApiResponse::success(null, '会话已吊销');
+    }
+
+    // ─── Admin Session 管理 ───
+
+    /**
+     * Admin 会话仪表盘
+     */
+    public function adminSessionDashboard(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $users = \App\Models\User::where('tenant_id', $tenantId)->pluck('id');
+
+        $totalTokens = \Laravel\Sanctum\PersonalAccessToken::whereIn('tokenable_id', $users)
+            ->where('tokenable_type', \App\Models\User::class)
+            ->count();
+
+        $activeTokens = \Laravel\Sanctum\PersonalAccessToken::whereIn('tokenable_id', $users)
+            ->where('tokenable_type', \App\Models\User::class)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->count();
+
+        return ApiResponse::success([
+            'total_sessions' => $totalTokens,
+            'active_sessions' => $activeTokens,
+            'tenant_users' => $users->count(),
+        ]);
+    }
+
+    /**
+     * Admin 会话列表
+     */
+    public function adminSessions(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $users = \App\Models\User::where('tenant_id', $tenantId)->pluck('id');
+
+        $query = \Laravel\Sanctum\PersonalAccessToken::whereIn('tokenable_id', $users)
+            ->where('tokenable_type', \App\Models\User::class)
+            ->with('tokenable:id,name,email');
+
+        if ($request->filled('user_id')) {
+            $query->where('tokenable_id', $request->user_id);
+        }
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%{$s}%")
+                  ->orWhereHas('tokenable', fn($uq) => $uq->where('name', 'like', "%{$s}%")
+                      ->orWhere('email', 'like', "%{$s}%"));
+            });
+        }
+
+        $perPage = min((int) $request->get('per_page', 20), 100);
+        return ApiResponse::paginated($query->orderByDesc('id')->paginate($perPage));
+    }
+
+    /**
+     * Admin 会话详情
+     */
+    public function adminSessionDetail(int $tokenId, Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $users = \App\Models\User::where('tenant_id', $tenantId)->pluck('id');
+
+        $token = \Laravel\Sanctum\PersonalAccessToken::whereIn('tokenable_id', $users)
+            ->where('tokenable_type', \App\Models\User::class)
+            ->with('tokenable:id,name,email')
+            ->findOrFail($tokenId);
+
+        return ApiResponse::success($token);
+    }
+
+    /**
+     * Admin 踢出指定会话
+     */
+    public function adminTerminateSession(int $tokenId, Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $users = \App\Models\User::where('tenant_id', $tenantId)->pluck('id');
+
+        $token = \Laravel\Sanctum\PersonalAccessToken::whereIn('tokenable_id', $users)
+            ->where('tokenable_type', \App\Models\User::class)
+            ->findOrFail($tokenId);
+
+        $token->delete();
+
+        return ApiResponse::success(null, '会话已强制终止');
+    }
+
+    /**
+     * Admin 批量踢出会话
+     */
+    public function adminBatchTerminate(Request $request): JsonResponse
+    {
+        $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+
+        $tenantId = $request->user()->tenant_id;
+        $users = \App\Models\User::where('tenant_id', $tenantId)->pluck('id');
+
+        $count = \Laravel\Sanctum\PersonalAccessToken::whereIn('tokenable_id', $users)
+            ->where('tokenable_type', \App\Models\User::class)
+            ->whereIn('id', $request->ids)
+            ->delete();
+
+        return ApiResponse::success(null, "已强制终止 {$count} 个会话");
+    }
+
+    /**
+     * Admin 踢出用户所有会话
+     */
+    public function adminTerminateUserSessions(int $userId, Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $targetUser = \App\Models\User::where('tenant_id', $tenantId)->findOrFail($userId);
+
+        $count = \Laravel\Sanctum\PersonalAccessToken::where('tokenable_id', $targetUser->id)
+            ->where('tokenable_type', \App\Models\User::class)
+            ->delete();
+
+        return ApiResponse::success(null, "已强制终止用户 {$targetUser->name} 的 {$count} 个会话");
     }
 
     // ─── 设备信任 ───
@@ -753,7 +929,7 @@ class AuthController extends Controller
     public function bindOAuth(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'provider' => 'required|string|in:wechat,google,github,qq,apple',
+            'provider' => 'required|string|in:wechat,google,github,qq,apple,alipay',
             'provider_id' => 'required|string',
             'name' => 'nullable|string|max:255',
             'email' => 'nullable|email',
@@ -811,7 +987,6 @@ class AuthController extends Controller
             'created_at' => $p->created_at,
         ]);
 
-        // 同时返回支持的登录方式状态
         $hasPassword = ! empty($user->password);
         $hasPhone = ! empty($user->phone);
 
@@ -823,12 +998,44 @@ class AuthController extends Controller
     }
 
     /**
+     * 获取可用的 OAuth 登录提供商列表（公开）
+     */
+    public function availableOauthProviders(): JsonResponse
+    {
+        $settings = \App\Models\SiteSetting::where('group', 'oauth')
+            ->where('key', 'like', '%_enabled')
+            ->get()
+            ->keyBy('key');
+
+        $config = config('oauth.providers', []);
+        $available = [];
+
+        foreach ($config as $key => $cfg) {
+            $dbKey = "oauth_{$key}_enabled";
+            $enabled = isset($settings[$dbKey])
+                ? $settings[$dbKey]->value === '1'
+                : ($cfg['enabled'] ?? false);
+
+            if ($enabled) {
+                $available[] = [
+                    'provider' => $key,
+                    'name' => $cfg['name'] ?? $key,
+                    'icon' => $cfg['icon'] ?? null,
+                    'color' => $cfg['color'] ?? null,
+                ];
+            }
+        }
+
+        return ApiResponse::success($available);
+    }
+
+    /**
      * OAuth 登录回调
      */
     public function oauthLogin(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'provider' => 'required|string|in:wechat,google,github,qq,apple',
+            'provider' => 'required|string|in:wechat,google,github,qq,apple,alipay',
             'provider_id' => 'required|string',
             'email' => 'nullable|email',
             'name' => 'nullable|string|max:255',
@@ -855,6 +1062,10 @@ class AuthController extends Controller
         ]);
 
         $token = $user->createToken("{$data['provider']}-token", ['*'])->plainTextToken;
+
+        // 记录 Token 版本
+        $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
+        $user->tokens()->latest()->first()?->update(['token_version' => $version]);
 
         $this->authService->recordLoginAudit(
             $user, 'login', $request->ip(), $request->userAgent(),
@@ -901,5 +1112,504 @@ class AuthController extends Controller
         $data['phone_verified'] = $user->phone_verified_at !== null;
 
         return $data;
+    }
+
+    /**
+     * 发送魔法链接（无密码登录）
+     */
+    public function sendMagicLink(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => 'required|email',
+            'redirect_url' => 'nullable|url',
+        ]);
+
+        $email = $data['email'];
+
+        // 无论邮箱是否存在，都返回成功（防止枚举）
+        $user = User::where('email', $email)->first();
+
+        // 生成令牌
+        $token = \Str::random(64);
+        \App\Models\MagicLinkToken::create([
+            'email' => $email,
+            'token' => hash('sha256', $token),
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        // 如果用户存在，发送邮件
+        if ($user) {
+            $loginUrl = url('/auth/magic-link/verify?token=' . $token . '&email=' . urlencode($email));
+            if (!empty($data['redirect_url'])) {
+                $loginUrl .= '&redirect=' . urlencode($data['redirect_url']);
+            }
+
+            \Illuminate\Support\Facades\Mail::to($email)->queue(new \App\Mail\MagicLink(
+                $email,
+                $token,
+                $loginUrl,
+            ));
+        }
+
+        return ApiResponse::success(null, '登录链接已发送到您的邮箱');
+    }
+
+    /**
+     * 验证魔法链接并登录
+     */
+    public function verifyMagicLink(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => 'required|email',
+            'token' => 'required|string',
+        ]);
+
+        $hashedToken = hash('sha256', $data['token']);
+
+        $record = \App\Models\MagicLinkToken::where('email', $data['email'])
+            ->where('token', $hashedToken)
+            ->valid()
+            ->first();
+
+        if (!$record) {
+            return ApiResponse::error('INVALID_TOKEN', '登录链接无效或已过期', 400);
+        }
+
+        // 标记已使用
+        $record->update(['used' => true, 'used_at' => now()]);
+
+        $user = User::where('email', $data['email'])->first();
+
+        if (!$user || $user->status !== 'active') {
+            return ApiResponse::error('ACCOUNT_DISABLED', '账号不存在或已被禁用', 403);
+        }
+
+        $user->update([
+            'last_login_at' => now(),
+            'last_login_ip' => $request->ip(),
+        ]);
+
+        $token = $user->createToken('magic-link-token', ['*'])->plainTextToken;
+
+        $this->authService->recordLoginAudit(
+            $user, 'magic_link_login', $request->ip(), $request->userAgent(),
+            'magic_link', true,
+        );
+
+        return ApiResponse::success([
+            'user' => $this->formatUser($user),
+            'token' => $token,
+        ], '登录成功');
+    }
+
+    /**
+     * 创建扫码登录会话（PC端）
+     */
+    public function createQrSession(Request $request): JsonResponse
+    {
+        $sessionId = \Str::random(40);
+
+        $session = \App\Models\QrLoginSession::create([
+            'session_id' => $sessionId,
+            'status' => 'pending',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        return ApiResponse::success([
+            'session_id' => $session->session_id,
+            'expires_at' => $session->expires_at,
+        ], '扫码会话已创建');
+    }
+
+    /**
+     * 查询扫码会话状态（PC端轮询）
+     */
+    public function pollQrSession(string $sessionId, Request $request): JsonResponse
+    {
+        $session = \App\Models\QrLoginSession::where('session_id', $sessionId)->first();
+
+        if (!$session) {
+            return ApiResponse::error('SESSION_NOT_FOUND', '会话不存在', 404);
+        }
+
+        if ($session->status === 'expired' || $session->expires_at < now()) {
+            $session->update(['status' => 'expired']);
+            return ApiResponse::error('SESSION_EXPIRED', '二维码已过期，请刷新', 410);
+        }
+
+        if ($session->status === 'confirmed' && $session->user_id) {
+            $user = \App\Models\User::find($session->user_id);
+            if (!$user || $user->status !== 'active') {
+                return ApiResponse::error('ACCOUNT_DISABLED', '账号已被禁用', 403);
+            }
+
+            $token = $user->createToken('qr-login-token', ['*'])->plainTextToken;
+
+            $this->authService->recordLoginAudit(
+                $user, 'qr_login', $request->ip(), $request->userAgent(),
+                'qr_code', true,
+            );
+
+            return ApiResponse::success([
+                'user' => $this->formatUser($user),
+                'token' => $token,
+            ], '扫码登录成功');
+        }
+
+        return ApiResponse::success([
+            'status' => $session->status,
+        ]);
+    }
+
+    /**
+     * 手机端确认扫码（需认证）
+     */
+    public function confirmQrSession(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'session_id' => 'required|string',
+        ]);
+
+        $session = \App\Models\QrLoginSession::where('session_id', $data['session_id'])
+            ->pending()
+            ->first();
+
+        if (!$session) {
+            return ApiResponse::error('SESSION_INVALID', '二维码无效或已过期', 400);
+        }
+
+        $user = $request->user();
+
+        $session->update([
+            'status' => 'confirmed',
+            'user_id' => $user->id,
+            'confirmed_at' => now(),
+            'confirmed_token' => \Str::random(64),
+        ]);
+
+        return ApiResponse::success(null, '扫码确认成功');
+    }
+
+    /**
+     * Passkey/WebAuthn — 注册挑战（获取创建凭据的参数）
+     */
+    public function webauthnRegisterOptions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $challenge = \Str::random(32);
+
+        // 存储挑战
+        \App\Models\WebauthnChallenge::create([
+            'challenge' => hash('sha256', $challenge),
+            'type' => 'registration',
+            'user_id' => $user->id,
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        // 获取用户已注册的凭据ID列表（排除重复）
+        $excludeCredentials = \App\Models\WebauthnCredential::where('user_id', $user->id)
+            ->where('is_active', true)
+            ->pluck('credential_id')
+            ->map(fn($id) => ['id' => base64_encode($id), 'type' => 'public-key'])
+            ->toArray();
+
+        return ApiResponse::success([
+            'challenge' => base64_encode($challenge),
+            'rp' => [
+                'name' => config('app.name', 'HWT License'),
+                'id' => parse_url(config('app.url'), PHP_URL_HOST),
+            ],
+            'user' => [
+                'id' => base64_encode((string) $user->id),
+                'name' => $user->email,
+                'displayName' => $user->name,
+            ],
+            'pubKeyCredParams' => [
+                ['type' => 'public-key', 'alg' => -7],  // ES256
+                ['type' => 'public-key', 'alg' => -257], // RS256
+            ],
+            'timeout' => 300000,
+            'attestation' => 'none',
+            'excludeCredentials' => $excludeCredentials,
+        ]);
+    }
+
+    /**
+     * Passkey/WebAuthn — 验证注册并保存凭据
+     */
+    public function webauthnRegisterVerify(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'id' => 'required|string',
+            'rawId' => 'required|string',
+            'response' => 'required|array',
+            'response.clientDataJSON' => 'required|string',
+            'response.attestationObject' => 'required|string',
+            'response.transports' => 'nullable|array',
+            'device_name' => 'nullable|string|max:255',
+        ]);
+
+        $user = $request->user();
+
+        // 验证挑战
+        $clientData = json_decode(base64_decode($data['response']['clientDataJSON']), true);
+        if (!$clientData || !isset($clientData['challenge'])) {
+            return ApiResponse::error('INVALID_CLIENT_DATA', '客户端数据无效', 400);
+        }
+
+        $receivedChallenge = base64_decode($clientData['challenge']);
+        $hashedChallenge = hash('sha256', $receivedChallenge);
+
+        $storedChallenge = \App\Models\WebauthnChallenge::where('challenge', $hashedChallenge)
+            ->where('type', 'registration')
+            ->where('user_id', $user->id)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$storedChallenge) {
+            return ApiResponse::error('INVALID_CHALLENGE', '挑战无效或已过期', 400);
+        }
+
+        // 删除已使用的挑战
+        $storedChallenge->delete();
+
+        // 检查凭据是否已注册
+        $existing = \App\Models\WebauthnCredential::where('credential_id', $data['id'])->first();
+        if ($existing) {
+            return ApiResponse::error('CREDENTIAL_EXISTS', '该凭据已注册', 409);
+        }
+
+        // 保存凭据
+        $credential = \App\Models\WebauthnCredential::create([
+            'user_id' => $user->id,
+            'credential_id' => $data['id'],
+            'public_key' => $data['response']['attestationObject'], // 前端应传公钥信息
+            'type' => 'public-key',
+            'transport' => json_encode($data['response']['transports'] ?? []),
+            'device_name' => $data['device_name'] ?? null,
+        ]);
+
+        return ApiResponse::success([
+            'credential_id' => $credential->id,
+        ], 'Passkey 注册成功');
+    }
+
+    /**
+     * Passkey/WebAuthn — 认证挑战（获取登录参数）
+     */
+    public function webauthnLoginOptions(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => 'nullable|email',
+        ]);
+
+        $challenge = \Str::random(32);
+
+        \App\Models\WebauthnChallenge::create([
+            'challenge' => hash('sha256', $challenge),
+            'type' => 'authentication',
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        $allowCredentials = [];
+        if (!empty($data['email'])) {
+            $user = \App\Models\User::where('email', $data['email'])->first();
+            if ($user) {
+                $allowCredentials = \App\Models\WebauthnCredential::where('user_id', $user->id)
+                    ->where('is_active', true)
+                    ->get()
+                    ->map(fn($c) => [
+                        'id' => base64_encode($c->credential_id),
+                        'type' => 'public-key',
+                        'transports' => json_decode($c->transport ?? '[]') ?: ['internal'],
+                    ])
+                    ->toArray();
+            }
+        }
+
+        return ApiResponse::success([
+            'challenge' => base64_encode($challenge),
+            'timeout' => 300000,
+            'rpId' => parse_url(config('app.url'), PHP_URL_HOST),
+            'allowCredentials' => $allowCredentials,
+            'userVerification' => 'preferred',
+        ]);
+    }
+
+    /**
+     * Passkey/WebAuthn — 验证认证断言并登录
+     */
+    public function webauthnLoginVerify(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'id' => 'required|string',
+            'rawId' => 'required|string',
+            'response' => 'required|array',
+            'response.clientDataJSON' => 'required|string',
+            'response.authenticatorData' => 'required|string',
+            'response.signature' => 'required|string',
+            'response.userHandle' => 'nullable|string',
+        ]);
+
+        // 验证挑战
+        $clientData = json_decode(base64_decode($data['response']['clientDataJSON']), true);
+        if (!$clientData || !isset($clientData['challenge'])) {
+            return ApiResponse::error('INVALID_CLIENT_DATA', '客户端数据无效', 400);
+        }
+
+        $receivedChallenge = base64_decode($clientData['challenge']);
+        $hashedChallenge = hash('sha256', $receivedChallenge);
+
+        $storedChallenge = \App\Models\WebauthnChallenge::where('challenge', $hashedChallenge)
+            ->where('type', 'authentication')
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$storedChallenge) {
+            return ApiResponse::error('INVALID_CHALLENGE', '挑战无效或已过期', 400);
+        }
+
+        $storedChallenge->delete();
+
+        // 查找凭据
+        $credential = \App\Models\WebauthnCredential::where('credential_id', $data['id'])
+            ->where('is_active', true)
+            ->first();
+
+        if (!$credential) {
+            return ApiResponse::error('CREDENTIAL_NOT_FOUND', '凭据未找到', 404);
+        }
+
+        $user = $credential->user;
+        if (!$user || $user->status !== 'active') {
+            return ApiResponse::error('ACCOUNT_DISABLED', '账号已被禁用', 403);
+        }
+
+        // 更新计数器
+        $credential->update([
+            'counter' => $credential->counter + 1,
+            'last_used_at' => now(),
+        ]);
+
+        $user->update([
+            'last_login_at' => now(),
+            'last_login_ip' => $request->ip(),
+        ]);
+
+        $token = $user->createToken('passkey-token', ['*'])->plainTextToken;
+
+        $this->authService->recordLoginAudit(
+            $user, 'passkey_login', $request->ip(), $request->userAgent(),
+            'passkey', true,
+        );
+
+        return ApiResponse::success([
+            'user' => $this->formatUser($user),
+            'token' => $token,
+        ], '登录成功');
+    }
+
+    /**
+     * 获取用户的Passkey凭据列表
+     */
+    public function webauthnCredentials(Request $request): JsonResponse
+    {
+        $credentials = \App\Models\WebauthnCredential::where('user_id', $request->user()->id)
+            ->where('is_active', true)
+            ->get(['id', 'device_name', 'counter', 'last_used_at', 'created_at']);
+
+        return ApiResponse::success($credentials);
+    }
+
+    /**
+     * 删除Passkey凭据
+     */
+    public function webauthnDeleteCredential(int $credentialId, Request $request): JsonResponse
+    {
+        $credential = \App\Models\WebauthnCredential::where('id', $credentialId)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (!$credential) {
+            return ApiResponse::error('NOT_FOUND', '凭据未找到', 404);
+        }
+
+        $credential->update(['is_active' => false]);
+
+        return ApiResponse::success(null, 'Passkey 已删除');
+    }
+
+    // ─── 头像管理 ───
+
+    /**
+     * 上传/更新头像
+     */
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,gif,webp|max:2048',
+        ]);
+
+        $user = $request->user();
+        $file = $request->file('avatar');
+
+        // 删除旧头像
+        if ($user->avatar && !str_starts_with($user->avatar, 'http')) {
+            $oldPath = public_path('storage/' . $user->avatar);
+            if (file_exists($oldPath)) {
+                @unlink($oldPath);
+            }
+        }
+
+        $path = $file->store('avatars/' . $user->id, 'public');
+
+        if (!$path) {
+            return ApiResponse::error('头像上传失败', 500);
+        }
+
+        $user->update(['avatar' => $path]);
+
+        return ApiResponse::success([
+            'avatar' => $user->avatar,
+            'avatar_url' => $user->avatar_url,
+        ], '头像更新成功');
+    }
+
+    /**
+     * 删除头像（恢复默认）
+     */
+    public function deleteAvatar(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->avatar && !str_starts_with($user->avatar, 'http')) {
+            $oldPath = public_path('storage/' . $user->avatar);
+            if (file_exists($oldPath)) {
+                @unlink($oldPath);
+            }
+        }
+
+        $user->update(['avatar' => null]);
+
+        return ApiResponse::success([
+            'avatar_url' => $user->avatar_url,
+        ], '头像已恢复默认');
+    }
+
+    /**
+     * 更新个人资料（名称 + 头像可选）
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:100',
+            'phone' => 'sometimes|nullable|string|max:20',
+        ]);
+
+        $request->user()->update($validated);
+
+        return ApiResponse::success($request->user()->only(['id', 'name', 'email', 'phone', 'avatar', 'avatar_url']), '资料已更新');
     }
 }

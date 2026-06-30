@@ -3,9 +3,12 @@
 namespace App\Services;
 
 use App\Contracts\PaymentGateway;
+use App\Models\Coupon;
+use App\Models\CouponRedemption;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\License;
+use App\Models\PricingPlan;
 use App\Models\Product;
 use App\Models\Subscription;
 use Carbon\Carbon;
@@ -17,6 +20,7 @@ use Illuminate\Support\Str;
  * 订阅计费核心服务
  *
  * 管理订阅全生命周期：创建 → 激活 → 计费 → 续费 → 宽限期 → 停用 → 恢复
+ * 支持定价方案（PricingPlan）、优惠券（Coupon）、自动续费流水线。
  * 支付成功自动调用 License 服务激活/延期
  */
 class BillingService
@@ -24,23 +28,36 @@ class BillingService
     public function __construct(
         protected LicenseService $licenseService,
         protected PaymentManager $paymentManager,
+        protected CommissionEngineService $commissionEngine,
+        protected PrepaidBalanceService $prepaidBalanceService,
     ) {}
 
     /**
-     * 创建新订阅
+     * 使用定价方案创建新订阅
+     *
+     * @param PricingPlan|string $plan  PricingPlan 实例或 slug
      */
     public function createSubscription(
         Customer $customer,
         Product $product,
-        string $plan,
-        float $price,
+        PricingPlan|string $plan,
         string $billingPeriod = 'monthly',
         array $options = []
     ): Subscription {
-        return DB::transaction(function () use ($customer, $product, $plan, $price, $billingPeriod, $options) {
+        // 解析定价方案
+        $pricingPlan = is_string($plan)
+            ? PricingPlan::where('slug', $plan)->where('is_active', true)->firstOrFail()
+            : $plan;
+
+        $price = $pricingPlan->getPrice($billingPeriod);
+        if ($price <= 0 && empty($options['force_zero'])) {
+            throw new \InvalidArgumentException("Pricing plan {$pricingPlan->slug} has no price for {$billingPeriod}");
+        }
+
+        return DB::transaction(function () use ($customer, $product, $pricingPlan, $price, $billingPeriod, $options) {
             $tenantId = $customer->tenant_id;
             $startsAt = $options['starts_at'] ?? now();
-            $trialDays = $options['trial_days'] ?? 0;
+            $trialDays = $options['trial_days'] ?? $pricingPlan->trial_days;
 
             $endsAt = match ($billingPeriod) {
                 'monthly' => $startsAt->copy()->addMonth(),
@@ -55,9 +72,9 @@ class BillingService
                 'customer_id' => $customer->id,
                 'product_id' => $product->id,
                 'status' => $trialDays > 0 ? 'active' : 'active',
-                'plan' => $plan,
+                'plan' => $pricingPlan->slug,
                 'price' => $price,
-                'currency' => $options['currency'] ?? 'CNY',
+                'currency' => $pricingPlan->currency,
                 'billing_period' => $billingPeriod,
                 'starts_at' => $startsAt,
                 'ends_at' => $endsAt,
@@ -65,13 +82,19 @@ class BillingService
                 'grace_days' => $options['grace_days'] ?? 7,
                 'auto_renew' => $options['auto_renew'] ?? true,
                 'next_billing_at' => $endsAt,
-                'pricing_plan_slug' => $options['pricing_plan_slug'] ?? null,
+                'pricing_plan_slug' => $pricingPlan->slug,
                 'metadata' => $options['metadata'] ?? [],
             ]);
 
+            // 处理优惠券
+            if (!empty($options['coupon_code'])) {
+                $this->applyCouponToSubscription($subscription, $options['coupon_code']);
+            }
+
             // 创建第一张账单（试用期不需要）
             if ($trialDays === 0) {
-                $this->createInvoice($subscription, 'subscription_create');
+                $invoice = $this->createInvoice($subscription, 'subscription_create');
+                $this->applyCouponToInvoice($invoice, $subscription);
             }
 
             // 关联对应的 License 激活
@@ -83,13 +106,156 @@ class BillingService
                 'subscription_id' => $subscription->id,
                 'customer_id' => $customer->id,
                 'product_id' => $product->id,
-                'plan' => $plan,
+                'plan' => $pricingPlan->slug,
                 'price' => $price,
                 'billing_period' => $billingPeriod,
+                'coupon' => $options['coupon_code'] ?? null,
             ]);
 
             return $subscription;
         });
+    }
+
+    /**
+     * 对订阅应用优惠券
+     */
+    public function applyCouponToSubscription(Subscription $subscription, string $couponCode): ?array
+    {
+        $coupon = Coupon::where('code', $couponCode)->first();
+
+        if (!$coupon) {
+            throw new \RuntimeException("优惠券 {$couponCode} 不存在");
+        }
+
+        if (!$coupon->isValid(
+            amount: (float) $subscription->price,
+            plan: $subscription->plan,
+            productId: $subscription->product_id
+        )) {
+            throw new \RuntimeException("优惠券 {$couponCode} 已失效");
+        }
+
+        if (isset($subscription->customer_id) && $coupon->hasReachedUserLimit((int) $subscription->customer_id)) {
+            throw new \RuntimeException("您已超过该优惠券的使用次数限制");
+        }
+
+        $originalAmount = (float) $subscription->price;
+        $discountAmount = $coupon->calculateDiscount($originalAmount);
+        $finalAmount = round(max(0, $originalAmount - $discountAmount), 2);
+
+        // 如果是免费试用类型，设置试用天数
+        if ($coupon->type === 'free_trial' && !$subscription->trial_ends_at) {
+            $trialDays = $coupon->value > 0 ? (int) $coupon->value : 30;
+            $subscription->update([
+                'trial_ends_at' => now()->addDays($trialDays),
+            ]);
+        }
+
+        // 记录优惠金额到 metadata
+        $subscription->update([
+            'metadata' => array_merge($subscription->metadata ?? [], [
+                'coupon_code' => $couponCode,
+                'coupon_id' => $coupon->id,
+                'coupon_discount' => $discountAmount,
+                'coupon_original_price' => $originalAmount,
+                'coupon_final_price' => $finalAmount,
+                'coupon_applied_at' => now()->toIso8601String(),
+            ]),
+        ]);
+
+        // 记录使用
+        $redemption = CouponRedemption::create([
+            'coupon_id' => $coupon->id,
+            'subscription_id' => $subscription->id,
+            'customer_id' => $subscription->customer_id,
+            'discount_amount' => $discountAmount,
+            'currency' => $subscription->currency,
+            'original_amount' => $originalAmount,
+            'final_amount' => $finalAmount,
+        ]);
+
+        $coupon->recordRedemption($redemption);
+
+        return [
+            'coupon' => $coupon,
+            'discount_amount' => $discountAmount,
+            'original_amount' => $originalAmount,
+            'final_amount' => $finalAmount,
+        ];
+    }
+
+    /**
+     * 对账单应用优惠券折扣
+     */
+    protected function applyCouponToInvoice(Invoice $invoice, Subscription $subscription): void
+    {
+        $meta = $subscription->metadata ?? [];
+        $couponDiscount = $meta['coupon_discount'] ?? 0;
+        $couponCode = $meta['coupon_code'] ?? null;
+        $couponId = $meta['coupon_id'] ?? null;
+        $originalPrice = $meta['coupon_original_price'] ?? $invoice->amount;
+
+        if ($couponDiscount > 0) {
+            $finalAmount = round(max(0, (float) $originalPrice - (float) $couponDiscount), 2);
+            $invoice->update([
+                'amount' => $finalAmount,
+                'subtotal' => $originalPrice,
+                'discount_amount' => $couponDiscount,
+                'coupon_code' => $couponCode,
+                'coupon_id' => $couponId,
+            ]);
+
+            // 关联使用记录
+            CouponRedemption::where('subscription_id', $subscription->id)
+                ->whereNull('invoice_id')
+                ->latest()
+                ->first()
+                ?->update(['invoice_id' => $invoice->id]);
+        }
+    }
+
+    /**
+     * 校验并计算优惠券折扣（不下单，用于预览）
+     */
+    public function previewCoupon(string $couponCode, float $amount, ?string $plan = null, ?int $productId = null): array
+    {
+        $coupon = Coupon::where('code', $couponCode)->first();
+
+        if (!$coupon) {
+            return ['valid' => false, 'error' => '优惠券不存在'];
+        }
+
+        if (!$coupon->isValid(amount: $amount, plan: $plan, productId: $productId)) {
+            return ['valid' => false, 'error' => '优惠券已失效或不适用于当前订单'];
+        }
+
+        $discount = $coupon->calculateDiscount($amount);
+        $finalAmount = round(max(0, $amount - $discount), 2);
+
+        return [
+            'valid' => true,
+            'coupon' => [
+                'id' => $coupon->id,
+                'code' => $coupon->code,
+                'name' => $coupon->name,
+                'type' => $coupon->type,
+                'value' => (float) $coupon->value,
+            ],
+            'original_amount' => $amount,
+            'discount_amount' => $discount,
+            'final_amount' => $finalAmount,
+        ];
+    }
+
+    /**
+     * 获取公开定价方案列表
+     */
+    public function getPublicPlans(): array
+    {
+        return PricingPlan::active()->public()->ordered()->get()
+            ->map(fn (PricingPlan $p) => $p->toSummary())
+            ->values()
+            ->toArray();
     }
 
     /**
@@ -331,32 +497,77 @@ class BillingService
 
     /**
      * 创建账单
+     *
+     * 支持优惠券折扣：如果订阅有已应用的优惠券，自动计算折扣金额。
      */
     public function createInvoice(Subscription $subscription, string $reason, ?float $amount = null): Invoice
     {
         $invoiceNo = 'INV-' . strtoupper(Str::random(12));
+        $baseAmount = $amount ?? $subscription->price;
+        $meta = $subscription->metadata ?? [];
+
+        // 检查订阅有没有关联的优惠券
+        $discountAmount = 0;
+        $couponCode = null;
+        $couponId = null;
+        $subtotal = $baseAmount;
+
+        if (!empty($meta['coupon_code']) && $reason !== 'upgrade') {
+            $couponCode = $meta['coupon_code'];
+            $couponId = $meta['coupon_id'] ?? null;
+            $discountAmount = $meta['coupon_discount'] ?? 0;
+        }
+
+        $finalAmount = round(max(0, $baseAmount - $discountAmount), 2);
 
         return Invoice::create([
             'tenant_id' => $subscription->tenant_id,
             'customer_id' => $subscription->customer_id,
             'subscription_id' => $subscription->id,
             'invoice_no' => $invoiceNo,
-            'amount' => $amount ?? $subscription->price,
+            'amount' => $finalAmount,
+            'subtotal' => $subtotal,
+            'discount_amount' => $discountAmount,
+            'coupon_code' => $couponCode,
+            'coupon_id' => $couponId,
             'currency' => $subscription->currency,
             'status' => 'pending',
             'billing_reason' => $reason,
             'due_at' => now()->addDays(7),
+            'paid' => $finalAmount <= 0,
         ]);
     }
 
     /**
-     * 处理支付
+     * 处理支付（M3-56 增强：支持余额优先支付）
      *
-     * 通过 PaymentManager 调用已配置的真实支付网关。
-     * 开发环境默认使用 MockPaymentGateway。
+     * 优先级：预付余额 → 信用额度 → 支付网关
      */
     public function processPayment(Invoice $invoice): array
     {
+        // M3-56: 如果客户有足够余额，先用余额支付
+        $customer = $invoice->customer;
+        if ($customer && $customer->billing_method === 'prepaid') {
+            $balanceResult = $this->prepaidBalanceService->payInvoiceWithBalance($invoice);
+            if ($balanceResult['success']) {
+                Log::info('Billing: payment processed via prepaid balance', [
+                    'invoice_id' => $invoice->id,
+                    'method' => $balanceResult['method'],
+                ]);
+                return [
+                    'success' => true,
+                    'transaction_id' => 'prepaid_' . $invoice->id,
+                    'method' => $balanceResult['method'],
+                ];
+            }
+
+            // 余额不足时，回退到网关支付
+            Log::info('Billing: insufficient balance, falling back to gateway', [
+                'invoice_id' => $invoice->id,
+                'balance_error' => $balanceResult['error'] ?? 'unknown',
+            ]);
+        }
+
         $paymentResult = $this->paymentManager->charge($invoice);
 
         if ($paymentResult['success']) {
@@ -395,6 +606,7 @@ class BillingService
             $invoice->update([
                 'status' => 'paid',
                 'paid_at' => now(),
+                'gateway_charge_id' => $transactionId,
                 'metadata' => array_merge($invoice->metadata ?? [], [
                     'transaction_id' => $transactionId,
                 ]),
@@ -410,8 +622,82 @@ class BillingService
                 $this->activateLicensesForSubscription($invoice->subscription);
             }
 
+            // 结算佣金
+            $this->commissionEngine->settleInvoice($invoice);
+
             return true;
         });
+    }
+
+    /**
+     * 标记发票已支付（Webhook 用，支持支付渠道信息）
+     */
+    public function markInvoicePaid(Invoice $invoice, array $paymentInfo): bool
+    {
+        return DB::transaction(function () use ($invoice, $paymentInfo) {
+            $invoice->update([
+                'status' => 'paid',
+                'paid_at' => now(),
+                'gateway_charge_id' => $paymentInfo['transaction_id'] ?? $invoice->gateway_charge_id,
+                'metadata' => array_merge($invoice->metadata ?? [], [
+                    'charge_id' => $paymentInfo['charge_id'] ?? $paymentInfo['transaction_id'],
+                    'payment_method' => $paymentInfo['payment_method'] ?? 'unknown',
+                    'paid_via' => 'webhook',
+                ]),
+            ]);
+
+            // 激活订阅关联 License
+            if ($invoice->subscription) {
+                if ($invoice->billing_reason === 'subscription_renew') {
+                    $this->processRenewal($invoice->subscription);
+                } elseif ($invoice->billing_reason === 'subscription_create' || $invoice->billing_reason === 'subscription_update') {
+                    $this->activateLicensesForSubscription($invoice->subscription);
+                }
+            }
+
+            // 结算佣金
+            $this->commissionEngine->settleInvoice($invoice);
+
+            return true;
+        });
+    }
+
+    /**
+     * 标记发票已退款
+     */
+    public function markInvoiceRefunded(Invoice $invoice, array $refundInfo): bool
+    {
+        return DB::transaction(function () use ($invoice, $refundInfo) {
+            $invoice->update([
+                'status' => 'refunded',
+                'gateway_refund_id' => $refundInfo['refund_id'] ?? $invoice->gateway_refund_id,
+                'metadata' => array_merge($invoice->metadata ?? [], [
+                    'refund_id' => $refundInfo['refund_id'],
+                    'refunded_at' => now()->toIso8601String(),
+                ]),
+            ]);
+
+            // ⭐ M2-127b 退款时处理佣金回拨
+            try {
+                $this->commissionEngine->refundSettlement($invoice);
+            } catch (\Throwable $e) {
+                Log::warning('退款佣金回拨失败', [
+                    'invoice_id' => $invoice->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            return true;
+        });
+    }
+
+    /**
+     * 续期订阅（Webhook 触发）
+     */
+    public function renewSubscription(Subscription $subscription): bool
+    {
+        $this->processRenewal($subscription);
+        return true;
     }
 
     /**
@@ -464,6 +750,24 @@ class BillingService
 
         $totalMrr = round((float) $monthlyMrr + ((float) $annualMrr / 12), 2);
 
+        // 定价方案统计
+        $planDistribution = Subscription::whereIn('status', ['active', 'grace'])
+            ->selectRaw('plan, count(*) as count')
+            ->groupBy('plan')
+            ->pluck('count', 'plan')
+            ->toArray();
+
+        // 近期收入
+        $recentRevenue = Invoice::where('status', 'paid')
+            ->where('paid_at', '>=', $now->copy()->startOfMonth())
+            ->sum('amount');
+
+        // 优惠券使用统计
+        $couponUsage = CouponRedemption::where('created_at', '>=', $now->copy()->subDays(30))
+            ->count();
+        $couponSavings = CouponRedemption::where('created_at', '>=', $now->copy()->subDays(30))
+            ->sum('discount_amount');
+
         return [
             'total' => $total,
             'active' => $active,
@@ -471,6 +775,12 @@ class BillingService
             'expiring_soon_7d' => $expiringSoon,
             'mrr' => $totalMrr,
             'estimated_arr' => round($totalMrr * 12, 2),
+            'plan_distribution' => $planDistribution,
+            'recent_revenue' => (float) $recentRevenue,
+            'coupon_usage_30d' => $couponUsage,
+            'coupon_savings_30d' => (float) $couponSavings,
+            'total_plans' => PricingPlan::active()->count(),
+            'active_coupons' => Coupon::active()->count(),
         ];
     }
 }

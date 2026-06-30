@@ -1,0 +1,14 @@
+{
+    "name": "huwutong-sdk",
+    "version": "1.0.0",
+    "description": "HWT License 官方 Node.js SDK - License 激活/验证/设备管理",
+    "main": "src/index.js",
+    "scripts": {
+        "test": "jest"
+    },
+    "dependencies": {
+        "axios": "^1.6.0"
+    },
+    "license": "MIT",
+    "author": "Huwutong Team <dev@huwutong.com>"
+}

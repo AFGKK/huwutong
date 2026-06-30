@@ -1,0 +1,251 @@
+=== Tag Balance ===
+[OK] <a>: open=32, close=32
+[OK] <body>: open=1, close=1
+[OK] <button>: open=50, close=50
+[MISMATCH] <div>: open=273, close=276
+[OK] <form>: open=2, close=2
+[OK] <h1>: open=1, close=1
+[OK] <h2>: open=4, close=4
+[MISMATCH] <h3>: open=10, close=8
+[OK] <h4>: open=1, close=1
+[OK] <head>: open=1, close=1
+[MISMATCH] <hr>: open=1, close=0
+[OK] <html>: open=1, close=1
+[MISMATCH] <img>: open=21, close=0
+[MISMATCH] <input>: open=18, close=0
+[OK] <label>: open=5, close=5
+[OK] <li>: open=1, close=1
+[MISMATCH] <link>: open=1, close=0
+[MISMATCH] <meta>: open=8, close=0
+[OK] <nav>: open=1, close=1
+[MISMATCH] <p>: open=22, close=21
+[MISMATCH] <path>: open=70, close=0
+[MISMATCH] <script>: open=6, close=5
+[OK] <section>: open=7, close=7
+[MISMATCH] <span>: open=147, close=145
+[OK] <style>: open=1, close=1
+[OK] <svg>: open=60, close=60
+[OK] <table>: open=2, close=2
+[OK] <tbody>: open=2, close=2
+[OK] <td>: open=6, close=6
+[OK] <textarea>: open=1, close=1
+[OK] <th>: open=4, close=4
+[OK] <thead>: open=1, close=1
+[OK] <title>: open=1, close=1
+[OK] <tr>: open=3, close=3
+[OK] <ul>: open=1, close=1
+
+=== File stats ===
+Total length: 185412 chars
+Total lines (\n): 19687
+
+=== Checking <div> balance ===
+
+Extra closing </div> tags:
+  Line 9649: (</div>`)
+  Line 11257: (document.getElementById('chat-<input><div class="w-8 h-8 rou)
+  Line 12641: (if (ans) window.location.href = ans;<div class="w-8 h-8 roun)
+
+Unclosed <div> tags:
+
+=== Last 200 chars (hex for non-ASCII) ===
+  pos 185212: ' '
+  pos 185213: ' '
+  pos 185214: ' '
+  pos 185215: ' '
+  pos 185216: ' '
+  pos 185217: ' '
+  pos 185218: ' '
+  pos 185219: ' '
+  pos 185220: 'i'
+  pos 185221: 'f'
+  pos 185222: ' '
+  pos 185223: '('
+  pos 185224: '!'
+  pos 185225: 's'
+  pos 185226: 't'
+  pos 185227: 'r'
+  pos 185228: ')'
+  pos 185229: ' '
+  pos 185230: 'r'
+  pos 185231: 'e'
+  pos 185232: 't'
+  pos 185233: 'u'
+  pos 185234: 'r'
+  pos 185235: 'n'
+  pos 185236: ' '
+  pos 185237: "'"
+  pos 185238: "'"
+  pos 185239: ';'
+  pos 185240: U+000A ('\n')
+  pos 185241: U+000A ('\n')
+  pos 185242: U+000A ('\n')
+  pos 185243: U+000A ('\n')
+  pos 185244: U+000A ('\n')
+  pos 185245: U+000A ('\n')
+  pos 185246: U+000A ('\n')
+  pos 185247: U+000A ('\n')
+  pos 185248: ' '
+  pos 185249: ' '
+  pos 185250: ' '
+  pos 185251: ' '
+  pos 185252: ' '
+  pos 185253: ' '
+  pos 185254: ' '
+  pos 185255: ' '
+  pos 185256: 'r'
+  pos 185257: 'e'
+  pos 185258: 't'
+  pos 185259: 'u'
+  pos 185260: 'r'
+  pos 185261: 'n'
+  pos 185262: ' '
+  pos 185263: 'S'
+  pos 185264: 't'
+  pos 185265: 'r'
+  pos 185266: 'i'
+  pos 185267: 'n'
+  pos 185268: 'g'
+  pos 185269: '('
+  pos 185270: 's'
+  pos 185271: 't'
+  pos 185272: 'r'
+  pos 185273: ')'
+  pos 185274: '.'
+  pos 185275: 'r'
+  pos 185276: 'e'
+  pos 185277: 'p'
+  pos 185278: 'l'
+  pos 185279: 'a'
+  pos 185280: 'c'
+  pos 185281: 'e'
+  pos 185282: '('
+  pos 185283: '/'
+  pos 185284: '&'
+  pos 185285: '/'
+  pos 185286: 'g'
+  pos 185287: ','
+  pos 185288: "'"
+  pos 185289: '&'
+  pos 185290: 'a'
+  pos 185291: 'm'
+  pos 185292: 'p'
+  pos 185293: ';'
+  pos 185294: "'"
+  pos 185295: ')'
+  pos 185296: '.'
+  pos 185297: 'r'
+  pos 185298: 'e'
+  pos 185299: 'p'
+  pos 185300: 'l'
+  pos 185301: 'a'
+  pos 185302: 'c'
+  pos 185303: 'e'
+  pos 185304: '('
+  pos 185305: '/'
+  pos 185306: '<'
+  pos 185307: '/'
+  pos 185308: 'g'
+  pos 185309: ','
+  pos 185310: "'"
+  pos 185311: '&'
+  pos 185312: 'l'
+  pos 185313: 't'
+  pos 185314: ';'
+  pos 185315: "'"
+  pos 185316: ')'
+  pos 185317: '.'
+  pos 185318: 'r'
+  pos 185319: 'e'
+  pos 185320: 'p'
+  pos 185321: 'l'
+  pos 185322: 'a'
+  pos 185323: 'c'
+  pos 185324: 'e'
+  pos 185325: '('
+  pos 185326: '/'
+  pos 185327: '>'
+  pos 185328: '/'
+  pos 185329: 'g'
+  pos 185330: ','
+  pos 185331: "'"
+  pos 185332: '&'
+  pos 185333: 'g'
+  pos 185334: 't'
+  pos 185335: ';'
+  pos 185336: "'"
+  pos 185337: ')'
+  pos 185338: '.'
+  pos 185339: 'r'
+  pos 185340: 'e'
+  pos 185341: 'p'
+  pos 185342: 'l'
+  pos 185343: 'a'
+  pos 185344: 'c'
+  pos 185345: 'e'
+  pos 185346: '('
+  pos 185347: '/'
+  pos 185348: '"'
+  pos 185349: '/'
+  pos 185350: 'g'
+  pos 185351: ','
+  pos 185352: "'"
+  pos 185353: '&'
+  pos 185354: 'q'
+  pos 185355: 'u'
+  pos 185356: 'o'
+  pos 185357: 't'
+  pos 185358: ';'
+  pos 185359: "'"
+  pos 185360: ')'
+  pos 185361: ';'
+  pos 185362: U+000A ('\n')
+  pos 185363: U+000A ('\n')
+  pos 185364: U+000A ('\n')
+  pos 185365: U+000A ('\n')
+  pos 185366: U+000A ('\n')
+  pos 185367: U+000A ('\n')
+  pos 185368: U+000A ('\n')
+  pos 185369: U+000A ('\n')
+  pos 185370: ' '
+  pos 185371: ' '
+  pos 185372: ' '
+  pos 185373: ' '
+  pos 185374: '}'
+  pos 185375: U+000A ('\n')
+  pos 185376: U+000A ('\n')
+  pos 185377: U+000A ('\n')
+  pos 185378: U+000A ('\n')
+  pos 185379: U+000A ('\n')
+  pos 185380: U+000A ('\n')
+  pos 185381: U+000A ('\n')
+  pos 185382: U+000A ('\n')
+  pos 185383: '<'
+  pos 185384: '/'
+  pos 185385: 'b'
+  pos 185386: 'o'
+  pos 185387: 'd'
+  pos 185388: 'y'
+  pos 185389: '>'
+  pos 185390: U+000A ('\n')
+  pos 185391: U+000A ('\n')
+  pos 185392: U+000A ('\n')
+  pos 185393: U+000A ('\n')
+  pos 185394: U+000A ('\n')
+  pos 185395: U+000A ('\n')
+  pos 185396: U+000A ('\n')
+  pos 185397: U+000A ('\n')
+  pos 185398: '<'
+  pos 185399: '/'
+  pos 185400: 'h'
+  pos 185401: 't'
+  pos 185402: 'm'
+  pos 185403: 'l'
+  pos 185404: '>'
+  pos 185405: U+000A ('\n')
+  pos 185406: U+000A ('\n')
+  pos 185407: U+000A ('\n')
+  pos 185408: U+000A ('\n')
+  pos 185409: U+000A ('\n')
+  pos 185410: U+000A ('\n')
+  pos 185411: U+000A ('\n')

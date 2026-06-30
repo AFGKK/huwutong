@@ -40,7 +40,6 @@ return new class extends Migration
             $table->bigInteger('bytes_served')->default(0);
             $table->timestamp('downloaded_at')->useCurrent();
             $table->index('downloaded_at');
-            $table->index('license_file_record_id');
         });
 
         // 公钥版本管理表（对接 M2-135）

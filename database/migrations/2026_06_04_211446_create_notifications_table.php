@@ -20,8 +20,6 @@ return new class extends Migration
             $table->boolean('is_read')->default(false);
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
-
-            $table->index('tenant_id');
             $table->index('customer_id');
             $table->index('user_id');
             $table->index('is_read');

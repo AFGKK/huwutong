@@ -1,0 +1,430 @@
+{
+  "name": "HWT License",
+  "description": "Manage software licenses, customers, and products with HWT License. Automate license creation, activation, renewal, and more.",
+  "version": "1.0.0",
+  "platformVersion": "1.0.0",
+  "app": {
+    "name": "HWT License",
+    "url": "https://huwutong.com",
+    "description": "Enterprise-grade software license management platform",
+    "logoUrl": "https://huwutong.com/logo.png",
+    "screenshots": []
+  },
+  "auth": {
+    "type": "apikey",
+    "fields": [
+      {
+        "key": "api_key",
+        "label": "API Key",
+        "helpText": "在 HWT License 管理后台 → API 密钥 → 创建新密钥",
+        "required": true,
+        "inputFormat": "password"
+      },
+      {
+        "key": "base_url",
+        "label": "API Base URL",
+        "helpText": "您的 HWT License 实例地址，如 https://demo.huwutong.com",
+        "required": true,
+        "default": "https://demo.huwutong.com"
+      }
+    ],
+    "connectionLabel": "{{bundle.authData.base_url}}",
+    "test": {
+      "url": "{{bundle.authData.base_url}}/api/webhook-endpoints",
+      "headers": {
+        "Authorization": "Bearer {{bundle.authData.api_key}}",
+        "Content-Type": "application/json"
+      },
+      "method": "GET",
+      "params": {}
+    }
+  },
+  "triggers": [
+    {
+      "key": "new_license",
+      "name": "New License Created",
+      "description": "Triggers when a new license is created.",
+      "type": "polling",
+      "noun": "License",
+      "operation": {
+        "perform": {
+          "url": "{{bundle.authData.base_url}}/api/zapier/triggers/new_license",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.api_key}}",
+            "Content-Type": "application/json"
+          },
+          "method": "GET",
+          "params": {
+            "offset": "{{bundle.meta.offset}}",
+            "limit": "50"
+          }
+        },
+        "sample": {
+          "id": 1,
+          "license_key": "DEMO-ENT-A1B2C3D4",
+          "type": "enterprise",
+          "status": "active",
+          "product_name": "HWT Enterprise",
+          "customer_name": "Acme Corp",
+          "seats": 50,
+          "expires_at": "2027-06-01T00:00:00Z",
+          "created_at": "2026-01-15T10:30:00Z"
+        },
+        "outputFields": [
+          {"key": "id", "label": "License ID", "type": "integer"},
+          {"key": "license_key", "label": "License Key", "type": "string"},
+          {"key": "type", "label": "License Type", "type": "string"},
+          {"key": "status", "label": "Status", "type": "string"},
+          {"key": "product_name", "label": "Product Name", "type": "string"},
+          {"key": "customer_name", "label": "Customer Name", "type": "string"},
+          {"key": "seats", "label": "Seats", "type": "integer"},
+          {"key": "expires_at", "label": "Expires At", "type": "datetime"},
+          {"key": "created_at", "label": "Created At", "type": "datetime"}
+        ]
+      }
+    },
+    {
+      "key": "license_expiring_soon",
+      "name": "License Expiring Soon",
+      "description": "Triggers when a license is about to expire within 30 days.",
+      "type": "polling",
+      "noun": "License",
+      "operation": {
+        "perform": {
+          "url": "{{bundle.authData.base_url}}/api/zapier/triggers/expiring_licenses",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.api_key}}",
+            "Content-Type": "application/json"
+          },
+          "method": "GET",
+          "params": {
+            "offset": "{{bundle.meta.offset}}",
+            "limit": "50"
+          }
+        },
+        "sample": {
+          "id": 5,
+          "license_key": "DEMO-STD-I9J0K1L2",
+          "customer_name": "DataFlow Ltd",
+          "expires_at": "2026-12-20T00:00:00Z",
+          "days_until_expiry": 14
+        },
+        "outputFields": [
+          {"key": "id", "label": "License ID", "type": "integer"},
+          {"key": "license_key", "label": "License Key", "type": "string"},
+          {"key": "customer_name", "label": "Customer Name", "type": "string"},
+          {"key": "expires_at", "label": "Expires At", "type": "datetime"},
+          {"key": "days_until_expiry", "label": "Days Until Expiry", "type": "integer"}
+        ]
+      }
+    },
+    {
+      "key": "new_customer",
+      "name": "New Customer Created",
+      "description": "Triggers when a new customer is added.",
+      "type": "polling",
+      "noun": "Customer",
+      "operation": {
+        "perform": {
+          "url": "{{bundle.authData.base_url}}/api/zapier/triggers/new_customer",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.api_key}}",
+            "Content-Type": "application/json"
+          },
+          "method": "GET",
+          "params": {
+            "offset": "{{bundle.meta.offset}}",
+            "limit": "50"
+          }
+        },
+        "sample": {
+          "id": 1,
+          "name": "Acme Corp",
+          "email": "contact@acme.com",
+          "plan": "enterprise",
+          "created_at": "2026-01-10T08:00:00Z"
+        },
+        "outputFields": [
+          {"key": "id", "label": "Customer ID", "type": "integer"},
+          {"key": "name", "label": "Customer Name", "type": "string"},
+          {"key": "email", "label": "Email", "type": "string"},
+          {"key": "plan", "label": "Plan", "type": "string"},
+          {"key": "created_at", "label": "Created At", "type": "datetime"}
+        ]
+      }
+    },
+    {
+      "key": "license_activated",
+      "name": "License Activated",
+      "description": "Triggers when a license is activated on a device.",
+      "type": "polling",
+      "noun": "Activation",
+      "operation": {
+        "perform": {
+          "url": "{{bundle.authData.base_url}}/api/zapier/triggers/license_activated",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.api_key}}",
+            "Content-Type": "application/json"
+          },
+          "method": "GET",
+          "params": {
+            "offset": "{{bundle.meta.offset}}",
+            "limit": "50"
+          }
+        },
+        "sample": {
+          "id": 1,
+          "license_key": "DEMO-ENT-A1B2C3D4",
+          "device_fingerprint": "a1:b2:c3:d4:e5:f6",
+          "platform": "Windows",
+          "activated_at": "2026-06-13T10:00:00Z"
+        },
+        "outputFields": [
+          {"key": "id", "label": "Activation ID", "type": "integer"},
+          {"key": "license_key", "label": "License Key", "type": "string"},
+          {"key": "device_fingerprint", "label": "Device Fingerprint", "type": "string"},
+          {"key": "platform", "label": "Platform", "type": "string"},
+          {"key": "activated_at", "label": "Activated At", "type": "datetime"}
+        ]
+      }
+    }
+  ],
+  "creates": [
+    {
+      "key": "create_license",
+      "name": "Create License",
+      "description": "Creates a new license in HWT License.",
+      "noun": "License",
+      "operation": {
+        "perform": {
+          "url": "{{bundle.authData.base_url}}/api/zapier/actions/create_license",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.api_key}}",
+            "Content-Type": "application/json"
+          },
+          "method": "POST",
+          "body": {
+            "product_id": "{{bundle.inputData.product_id}}",
+            "type": "{{bundle.inputData.type}}",
+            "customer_id": "{{bundle.inputData.customer_id}}",
+            "seats": "{{bundle.inputData.seats}}",
+            "expires_in_days": "{{bundle.inputData.expires_in_days}}"
+          }
+        },
+        "inputFields": [
+          {
+            "key": "product_id",
+            "label": "Product",
+            "type": "integer",
+            "required": true,
+            "dynamic": "product_list.id.name",
+            "helpText": "选择产品"
+          },
+          {
+            "key": "type",
+            "label": "License Type",
+            "type": "string",
+            "required": true,
+            "choices": {
+              "enterprise": "Enterprise",
+              "professional": "Professional",
+              "standard": "Standard",
+              "trial": "Trial"
+            },
+            "helpText": "License 类型"
+          },
+          {
+            "key": "customer_id",
+            "label": "Customer",
+            "type": "integer",
+            "required": true,
+            "dynamic": "customer_list.id.name",
+            "helpText": "选择客户"
+          },
+          {
+            "key": "seats",
+            "label": "Seats",
+            "type": "integer",
+            "required": true,
+            "default": "1",
+            "helpText": "授权席位数量"
+          },
+          {
+            "key": "expires_in_days",
+            "label": "Valid For (Days)",
+            "type": "integer",
+            "required": false,
+            "default": "365",
+            "helpText": "有效期天数"
+          }
+        ],
+        "sample": {
+          "id": 100,
+          "license_key": "HWT-ENT-XXXXXXXX",
+          "status": "active",
+          "created_at": "2026-06-13T12:00:00Z"
+        },
+        "outputFields": [
+          {"key": "id", "label": "License ID", "type": "integer"},
+          {"key": "license_key", "label": "License Key", "type": "string"},
+          {"key": "status", "label": "Status", "type": "string"},
+          {"key": "created_at", "label": "Created At", "type": "datetime"}
+        ]
+      }
+    },
+    {
+      "key": "suspend_license",
+      "name": "Suspend License",
+      "description": "Suspends an active license.",
+      "noun": "License",
+      "operation": {
+        "perform": {
+          "url": "{{bundle.authData.base_url}}/api/zapier/actions/suspend_license",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.api_key}}",
+            "Content-Type": "application/json"
+          },
+          "method": "POST",
+          "body": {
+            "license_key": "{{bundle.inputData.license_key}}",
+            "reason": "{{bundle.inputData.reason}}"
+          }
+        },
+        "inputFields": [
+          {
+            "key": "license_key",
+            "label": "License Key",
+            "type": "string",
+            "required": true,
+            "helpText": "要挂起的 License Key"
+          },
+          {
+            "key": "reason",
+            "label": "Reason",
+            "type": "string",
+            "required": false,
+            "helpText": "挂起原因"
+          }
+        ],
+        "sample": {
+          "success": true,
+          "license_key": "HWT-ENT-XXXXXXXX",
+          "status": "suspended"
+        }
+      }
+    },
+    {
+      "key": "send_notification",
+      "name": "Send Notification",
+      "description": "Sends a notification to a customer.",
+      "noun": "Notification",
+      "operation": {
+        "perform": {
+          "url": "{{bundle.authData.base_url}}/api/zapier/actions/send_notification",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.api_key}}",
+            "Content-Type": "application/json"
+          },
+          "method": "POST",
+          "body": {
+            "customer_id": "{{bundle.inputData.customer_id}}",
+            "subject": "{{bundle.inputData.subject}}",
+            "message": "{{bundle.inputData.message}}",
+            "channel": "{{bundle.inputData.channel}}"
+          }
+        },
+        "inputFields": [
+          {
+            "key": "customer_id",
+            "label": "Customer",
+            "type": "integer",
+            "required": true,
+            "dynamic": "customer_list.id.name"
+          },
+          {
+            "key": "subject",
+            "label": "Subject",
+            "type": "string",
+            "required": true
+          },
+          {
+            "key": "message",
+            "label": "Message",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "channel",
+            "label": "Channel",
+            "type": "string",
+            "required": true,
+            "choices": {"email": "Email", "sms": "SMS", "in_app": "In-App"}
+          }
+        ]
+      }
+    }
+  ],
+  "searches": [
+    {
+      "key": "find_license",
+      "name": "Find License",
+      "description": "Finds a license by key or customer.",
+      "noun": "License",
+      "operation": {
+        "perform": {
+          "url": "{{bundle.authData.base_url}}/api/zapier/searches/find_license",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.api_key}}",
+            "Content-Type": "application/json"
+          },
+          "method": "POST",
+          "body": {
+            "query": "{{bundle.inputData.query}}"
+          }
+        },
+        "inputFields": [
+          {
+            "key": "query",
+            "label": "License Key or Customer Name",
+            "type": "string",
+            "required": true,
+            "helpText": "输入 License Key 或客户名称搜索"
+          }
+        ],
+        "sample": {
+          "id": 1,
+          "license_key": "DEMO-ENT-A1B2C3D4",
+          "status": "active",
+          "customer_name": "Acme Corp"
+        }
+      }
+    }
+  ],
+  "resources": {
+    "product_list": {
+      "key": "product_list",
+      "noun": "Product",
+      "list": {
+        "url": "{{bundle.authData.base_url}}/api/zapier/resources/products",
+        "headers": {
+          "Authorization": "Bearer {{bundle.authData.api_key}}"
+        },
+        "method": "GET"
+      }
+    },
+    "customer_list": {
+      "key": "customer_list",
+      "noun": "Customer",
+      "list": {
+        "url": "{{bundle.authData.base_url}}/api/zapier/resources/customers",
+        "headers": {
+          "Authorization": "Bearer {{bundle.authData.api_key}}"
+        },
+        "method": "GET"
+      }
+    }
+  },
+  "legacy": false,
+  "subscribedTriggers": [],
+  "version": "1.0.0"
+}

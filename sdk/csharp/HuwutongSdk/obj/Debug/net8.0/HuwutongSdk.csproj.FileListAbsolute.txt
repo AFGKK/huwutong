@@ -1,0 +1,11 @@
+D:\phpEnv\www\88.huwutong.com\sdk\csharp\HuwutongSdk\bin\Debug\net8.0\HuwutongSdk.deps.json
+D:\phpEnv\www\88.huwutong.com\sdk\csharp\HuwutongSdk\bin\Debug\net8.0\HuwutongSdk.dll
+D:\phpEnv\www\88.huwutong.com\sdk\csharp\HuwutongSdk\bin\Debug\net8.0\HuwutongSdk.pdb
+D:\phpEnv\www\88.huwutong.com\sdk\csharp\HuwutongSdk\obj\Debug\net8.0\HuwutongSdk.GeneratedMSBuildEditorConfig.editorconfig
+D:\phpEnv\www\88.huwutong.com\sdk\csharp\HuwutongSdk\obj\Debug\net8.0\HuwutongSdk.AssemblyInfoInputs.cache
+D:\phpEnv\www\88.huwutong.com\sdk\csharp\HuwutongSdk\obj\Debug\net8.0\HuwutongSdk.AssemblyInfo.cs
+D:\phpEnv\www\88.huwutong.com\sdk\csharp\HuwutongSdk\obj\Debug\net8.0\HuwutongSdk.csproj.CoreCompileInputs.cache
+D:\phpEnv\www\88.huwutong.com\sdk\csharp\HuwutongSdk\obj\Debug\net8.0\HuwutongSdk.dll
+D:\phpEnv\www\88.huwutong.com\sdk\csharp\HuwutongSdk\obj\Debug\net8.0\refint\HuwutongSdk.dll
+D:\phpEnv\www\88.huwutong.com\sdk\csharp\HuwutongSdk\obj\Debug\net8.0\HuwutongSdk.pdb
+D:\phpEnv\www\88.huwutong.com\sdk\csharp\HuwutongSdk\obj\Debug\net8.0\ref\HuwutongSdk.dll

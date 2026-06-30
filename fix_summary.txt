@@ -1,0 +1,21 @@
+Total changes: 20
+  - CTA heading: fixed
+  - CTA heading suffix: fixed
+  - CTA description: fixed
+  - 选择适合您的方★ -> 选择适合您的方案
+  - /★★ -> /月
+  - 加入★★★★? -> 加入购物车
+  - 立即★★★ -> 立即购买
+  - ★€¥ -> 省¥
+  - 功能特★€ -> 功能特性
+  - 仅剩 {{ $sku->stock }} -> 仅剩 {{ $sku->stock }}
+  - ★★ά★★ -> 在线体验
+  - JS: 初★化 -> 初始化
+  - JS: ★查关注状★ -> 检查关注状态
+  - JS: 显示★★★★★★★€ -> 显示加载状态
+  - JS: ★★ѿ★ʼ -> 免费
+  - JS: ★★★请求已提★ -> 您的请求已提交
+  - JS: ★€已关★? -> 已关注
+  - Toast: fixed
+  - Toast: fixed
+  - Toast: fixed

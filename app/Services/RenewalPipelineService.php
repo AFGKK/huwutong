@@ -3,10 +3,14 @@
 namespace App\Services;
 
 use App\Mail\RenewalEscalationNotification;
+use App\Models\Coupon;
 use App\Models\Invoice;
 use App\Models\RenewalAttempt;
+use App\Models\RenewalConfig;
 use App\Models\RenewalEscalation;
 use App\Models\Subscription;
+use App\Models\User;
+use App\Workflows\WorkflowEngine;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -42,7 +46,73 @@ class RenewalPipelineService
 
     public function __construct(
         protected BillingService $billingService,
-    ) {}
+        protected WorkflowEngine $workflowEngine,
+        protected MultiChannelNotifier $notifier,
+        protected ?RenewalConfig $config = null,
+    ) {
+        $this->config = $config ?? RenewalConfig::getActive();
+    }
+
+    /**
+     * 获取实际配置值
+     */
+    protected function cfg(string $key, mixed $default = null): mixed
+    {
+        if ($this->config) {
+            $getter = 'get' . Str::studly($key);
+            if (method_exists($this->config, $getter)) {
+                return $this->config->{$getter}();
+            }
+            return $this->config->{$key} ?? $default;
+        }
+        return $default;
+    }
+
+    /**
+     * 获取最大重试次数
+     */
+    protected function getMaxAttempts(): int
+    {
+        return $this->config?->max_attempts ?? self::MAX_ATTEMPTS;
+    }
+
+    /**
+     * 创建工作流驱动的续费流程
+     *
+     * 替代传统的 cron 轮询方式，使用 WorkflowEngine 进行编排。
+     * 也支持从现有 BillingService 的 processRenewal 调用。
+     */
+    public function startWorkflowRenewal(Subscription $subscription): ?\App\Models\WorkflowInstance
+    {
+        try {
+            $instance = $this->workflowEngine->start(
+                'renewal_pipeline',
+                $subscription,
+                [
+                    'subscription_id' => $subscription->id,
+                    'customer_id' => $subscription->customer_id,
+                    'amount' => $subscription->price,
+                    'currency' => $subscription->currency ?? 'cny',
+                    'previous_next_billing' => $subscription->next_billing_at?->toIso8601String(),
+                ]
+            );
+
+            Log::info('RenewalPipeline: workflow started', [
+                'subscription_id' => $subscription->id,
+                'workflow_instance_id' => $instance->id,
+            ]);
+
+            return $instance;
+        } catch (\Throwable $e) {
+            Log::error('RenewalPipeline: failed to start workflow', [
+                'subscription_id' => $subscription->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            // 降级到传统流程
+            return null;
+        }
+    }
 
     /**
      * 处理续费失败（由 BillingService 在 payment failed 时调用）
@@ -59,10 +129,11 @@ class RenewalPipelineService
                 ->count();
 
             $attemptNumber = $attemptCount + 1;
+            $maxAttempts = $this->getMaxAttempts();
 
             // 计算下次重试时间
-            $nextRetryAt = $this->calculateNextRetry($attemptNumber);
-            $retryPlan = $this->buildRetryPlan($attemptNumber);
+            $nextRetryAt = $this->calculateNextRetry($attemptNumber, $maxAttempts);
+            $retryPlan = $this->buildRetryPlan($attemptNumber, $maxAttempts);
 
             // 记录本次失败
             $attempt = RenewalAttempt::create([
@@ -76,7 +147,7 @@ class RenewalPipelineService
                 'failure_reason' => $failureReason,
                 'failure_detail' => $failureDetail,
                 'retry_plan' => $retryPlan,
-                'escalated' => $attemptNumber >= self::ESCALATE_AFTER_ATTEMPT,
+                'escalated' => $attemptNumber >= ($this->cfg('escalate_after_attempt') ?? self::ESCALATE_AFTER_ATTEMPT),
                 'attempted_at' => now(),
                 'next_retry_at' => $nextRetryAt,
             ]);
@@ -88,11 +159,86 @@ class RenewalPipelineService
                 'next_retry_at' => $nextRetryAt?->toIso8601String(),
             ]);
 
+            // 发送多渠道通知给客户
+            $this->notifyCustomerRenewalFailed($subscription, $attemptNumber, $failureReason);
+
             // 执行对应策略
-            $this->executeFailureStrategy($subscription, $attemptNumber, $failureReason);
+            $this->executeFailureStrategy($subscription, $attemptNumber, $failureReason, $maxAttempts);
+
+            // 尝试生成挽留优惠券
+            if ($this->config?->retention_coupon_enabled && $attemptNumber >= 2) {
+                $this->generateRetentionCoupon($subscription, $attemptNumber);
+            }
 
             return $attempt;
         });
+    }
+
+    /**
+     * 发送续费失败通知给客户（多渠道）
+     */
+    protected function notifyCustomerRenewalFailed(Subscription $subscription, int $attemptNumber, string $reason): void
+    {
+        $user = $subscription->customer?->user;
+        if (! $user) return;
+
+        $this->notifier->sendRenewalFailed(
+            $user,
+            $subscription->plan ?? 'N/A',
+            $subscription->price ?? 0,
+            $attemptNumber,
+            $reason,
+        );
+    }
+
+    /**
+     * 生成挽留优惠券
+     */
+    protected function generateRetentionCoupon(Subscription $subscription, int $attemptNumber): ?Coupon
+    {
+        $config = $this->config;
+        if (! $config?->retention_coupon_enabled) return null;
+
+        $discountPercent = $config->retention_coupon_discount_percent ?? 10;
+        $validDays = $config->retention_coupon_valid_days ?? 30;
+        $maxDiscount = $config->retention_coupon_max_discount;
+
+        $code = 'RETENTION-' . strtoupper(Str::random(8)) . '-' . $subscription->id;
+
+        try {
+            $coupon = Coupon::create([
+                'code' => $code,
+                'type' => 'percentage',
+                'value' => $discountPercent,
+                'max_discount_amount' => $maxDiscount,
+                'max_uses' => $config->retention_coupon_max_uses ?? 1,
+                'max_uses_per_user' => 1,
+                'starts_at' => now(),
+                'ends_at' => now()->addDays($validDays),
+                'description' => "续费挽留优惠券 — 订阅 #{$subscription->id} 第 {$attemptNumber} 次失败后自动生成",
+                'is_active' => true,
+                'metadata' => [
+                    'generated_by' => 'renewal_pipeline',
+                    'subscription_id' => $subscription->id,
+                    'attempt_number' => $attemptNumber,
+                    'customer_id' => $subscription->customer_id,
+                ],
+            ]);
+
+            Log::info('RenewalPipeline: retention coupon generated', [
+                'coupon_id' => $coupon->id,
+                'code' => $code,
+                'subscription_id' => $subscription->id,
+            ]);
+
+            return $coupon;
+        } catch (\Throwable $e) {
+            Log::error('RenewalPipeline: failed to generate retention coupon', [
+                'error' => $e->getMessage(),
+                'subscription_id' => $subscription->id,
+            ]);
+            return null;
+        }
     }
 
     /**
@@ -101,6 +247,8 @@ class RenewalPipelineService
     public function processRetries(): array
     {
         $stats = ['attempted' => 0, 'succeeded' => 0, 'failed' => 0, 'escalated' => 0];
+        $maxAttempts = $this->getMaxAttempts();
+        $escalateAfter = $this->cfg('escalate_after_attempt') ?? self::ESCALATE_AFTER_ATTEMPT;
 
         $pendingAttempts = RenewalAttempt::where('status', 'failed')
             ->where('escalated', false)
@@ -134,18 +282,18 @@ class RenewalPipelineService
                 } else {
                     // 记录新的失败
                     $newAttemptCount = RenewalAttempt::where('subscription_id', $attempt->subscription_id)->count();
-                    $nextRetry = $this->calculateNextRetry($newAttemptCount + 1);
+                    $nextRetry = $this->calculateNextRetry($newAttemptCount + 1, $maxAttempts);
 
                     $attempt->update([
                         'attempted_at' => now(),
                         'next_retry_at' => $nextRetry,
                         'failure_reason' => $result['error'] ?? 'retry_failed',
-                        'retry_plan' => $this->buildRetryPlan($newAttemptCount + 1),
-                        'escalated' => ($newAttemptCount + 1) >= self::ESCALATE_AFTER_ATTEMPT,
+                        'retry_plan' => $this->buildRetryPlan($newAttemptCount + 1, $maxAttempts),
+                        'escalated' => ($newAttemptCount + 1) >= $escalateAfter,
                     ]);
 
                     // 执行降级或升级
-                    $this->executeFailureStrategy($attempt->subscription, $newAttemptCount + 1, $result['error'] ?? 'retry_failed');
+                    $this->executeFailureStrategy($attempt->subscription, $newAttemptCount + 1, $result['error'] ?? 'retry_failed', $maxAttempts);
 
                     $stats['failed']++;
                 }
@@ -172,21 +320,36 @@ class RenewalPipelineService
     protected function executeFailureStrategy(
         Subscription $subscription,
         int $attemptNumber,
-        string $failureReason
+        string $failureReason,
+        ?int $maxAttempts = null,
     ): void {
-        // 第3次失败 → 降级套餐
-        if ($attemptNumber === self::DOWNGRADE_AFTER_ATTEMPT) {
+        $maxAttempts = $maxAttempts ?? $this->getMaxAttempts();
+        $downgradeAfter = $this->cfg('downgrade_after_attempt') ?? self::DOWNGRADE_AFTER_ATTEMPT;
+        $escalateAfter = $this->cfg('escalate_after_attempt') ?? self::ESCALATE_AFTER_ATTEMPT;
+
+        // 第N次失败 → 降级套餐
+        if ($attemptNumber === $downgradeAfter) {
             $this->downgradePlan($subscription, $failureReason);
         }
 
-        // 第4次失败 → 人工介入
-        if ($attemptNumber >= self::ESCALATE_AFTER_ATTEMPT) {
+        // 第N次失败 → 人工介入
+        if ($attemptNumber >= $escalateAfter) {
             $this->escalateToHuman($subscription, $attemptNumber, $failureReason);
         }
 
         // 超过最大重试 → 进入宽限期最终阶段
-        if ($attemptNumber >= self::MAX_ATTEMPTS) {
+        if ($attemptNumber >= $maxAttempts) {
             $subscription->enterGracePeriod();
+
+            // 发送紧急通知给客户
+            $user = $subscription->customer?->user;
+            if ($user) {
+                $this->notifier->sendRenewalEscalated(
+                    $user,
+                    $subscription->plan ?? 'N/A',
+                    $attemptNumber,
+                );
+            }
         }
     }
 
@@ -223,7 +386,7 @@ class RenewalPipelineService
     }
 
     /**
-     * 升级到人工处理
+     * 升级到人工处理（管理员 + 多渠道通知客户）
      */
     protected function escalateToHuman(Subscription $subscription, int $attemptNumber, string $reason): void
     {
@@ -255,6 +418,16 @@ class RenewalPipelineService
                 'escalation_id' => $escalation->id,
                 'error' => $e->getMessage(),
             ]);
+        }
+
+        // 多渠道通知客户
+        $user = $subscription->customer?->user;
+        if ($user) {
+            $this->notifier->sendRenewalEscalated(
+                $user,
+                $subscription->plan ?? 'N/A',
+                $attemptNumber,
+            );
         }
     }
 
@@ -329,34 +502,42 @@ class RenewalPipelineService
     }
 
     /**
-     * 计算下次重试时间
+     * 计算下次重试时间（支持配置驱动）
      */
-    protected function calculateNextRetry(int $attemptNumber): ?\Carbon\Carbon
+    protected function calculateNextRetry(int $attemptNumber, ?int $maxAttempts = null): ?\Carbon\Carbon
     {
-        if ($attemptNumber >= self::MAX_ATTEMPTS) {
-            return null; // 不再重试
+        $maxAttempts = $maxAttempts ?? $this->getMaxAttempts();
+
+        if ($attemptNumber >= $maxAttempts) {
+            return null;
         }
 
-        $interval = self::RETRY_INTERVALS[$attemptNumber] ?? self::RETRY_INTERVALS[3];
+        $intervals = $this->cfg('retry_intervals_days') ?? self::RETRY_INTERVALS;
+        $days = $intervals[$attemptNumber] ?? ($intervals[count($intervals)] ?? 7);
 
-        return now()->addSeconds($interval);
+        return now()->addDays((int) $days);
     }
 
     /**
-     * 构建重试计划（用于保存快照）
+     * 构建重试计划
      */
-    protected function buildRetryPlan(int $currentAttempt): array
+    protected function buildRetryPlan(int $currentAttempt, ?int $maxAttempts = null): array
     {
+        $maxAttempts = $maxAttempts ?? $this->getMaxAttempts();
+        $downgradeAfter = $this->cfg('downgrade_after_attempt') ?? self::DOWNGRADE_AFTER_ATTEMPT;
+        $escalateAfter = $this->cfg('escalate_after_attempt') ?? self::ESCALATE_AFTER_ATTEMPT;
+        $intervals = $this->cfg('retry_intervals_days') ?? self::RETRY_INTERVALS;
+
         $plan = [];
-        for ($i = $currentAttempt + 1; $i <= self::MAX_ATTEMPTS; $i++) {
-            $interval = self::RETRY_INTERVALS[$i] ?? self::RETRY_INTERVALS[3];
+        for ($i = $currentAttempt + 1; $i <= $maxAttempts; $i++) {
+            $days = $intervals[$i] ?? ($intervals[count($intervals)] ?? 7);
             $plan[] = [
                 'attempt' => $i,
-                'retry_in_seconds' => $interval,
-                'retry_at' => now()->addSeconds($interval)->toIso8601String(),
+                'retry_in_days' => (int) $days,
+                'retry_at' => now()->addDays((int) $days)->toIso8601String(),
                 'action' => match (true) {
-                    $i === self::DOWNGRADE_AFTER_ATTEMPT => 'downgrade',
-                    $i >= self::ESCALATE_AFTER_ATTEMPT => 'escalate',
+                    $i === $downgradeAfter => 'downgrade',
+                    $i >= $escalateAfter => 'escalate',
                     default => 'retry',
                 },
             ];
@@ -437,5 +618,63 @@ class RenewalPipelineService
             'resolved_at' => now(),
             'resolution_note' => $resolutionNote,
         ]);
+    }
+
+    /**
+     * 获取配置列表
+     */
+    public function getConfigs(): array
+    {
+        return RenewalConfig::orderBy('is_active', 'desc')
+            ->orderBy('name')
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * 获取指定配置
+     */
+    public function getConfig(int $id): ?RenewalConfig
+    {
+        return RenewalConfig::find($id);
+    }
+
+    /**
+     * 保存配置
+     */
+    public function saveConfig(array $data, ?int $id = null): RenewalConfig
+    {
+        if ($id) {
+            $config = RenewalConfig::findOrFail($id);
+            $config->update($data);
+        } else {
+            $config = RenewalConfig::create($data);
+        }
+        return $config->fresh();
+    }
+
+    /**
+     * 切换配置激活状态
+     */
+    public function toggleConfigActive(int $id): bool
+    {
+        $config = RenewalConfig::findOrFail($id);
+
+        if ($config->is_active) {
+            return $config->update(['is_active' => false]);
+        }
+
+        // 激活时，先把其他配置设为非激活
+        RenewalConfig::where('is_active', true)->update(['is_active' => false]);
+
+        return $config->update(['is_active' => true]);
+    }
+
+    /**
+     * 删除配置
+     */
+    public function deleteConfig(int $id): bool
+    {
+        return RenewalConfig::destroy($id) > 0;
     }
 }

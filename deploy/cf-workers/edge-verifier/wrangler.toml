@@ -1,0 +1,36 @@
+name = "hwt-edge-verifier"
+main = "src/index.js"
+compatibility_date = "2025-12-01"
+
+# ─── 环境变量 ───
+[vars]
+ENVIRONMENT = "production"
+EDGE_CACHE_TTL = "300"          # 边缘缓存 5 分钟
+FALLBACK_TIMEOUT = "2000"        # 回源超时 2s
+MAX_TOKEN_AGE_SECONDS = "3600"   # Token 最大有效期 1h
+RATE_LIMIT_PER_MINUTE = "1000"   # 每节点每分钟最大请求数
+
+# ─── KV 命名空间 ───
+[[kv_namespaces]]
+binding = "HWT_CACHE"
+id = ""
+preview_id = ""
+
+# ─── 路由 ───
+routes = [
+  { pattern = "*.example.com/api/edge/verify", zone_id = "" },
+  { pattern = "*.example.com/api/edge/token", zone_id = "" },
+]
+
+# ─── 回源配置 ───
+[services]
+[services.origin]
+binding = "ORIGIN_SERVER"
+# 在生产环境通过环境变量设置 ORIGIN_URL
+
+# ─── 自动回滚 ───
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[env.staging]
+vars = { ENVIRONMENT = "staging", ORIGIN_URL = "https://staging-api.example.com" }

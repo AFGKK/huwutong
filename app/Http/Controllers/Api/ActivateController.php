@@ -11,7 +11,9 @@ use App\Models\LicenseActivation;
 use App\Services\DeviceLimiter;
 use App\Services\FingerprintMatcher;
 use App\Services\FingerprintService;
+use App\Services\HoneypotService;
 use App\Services\LicenseService;
+use App\Services\TimeRestrictionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +25,8 @@ class ActivateController extends Controller
         protected FingerprintService  $fingerprintService,
         protected FingerprintMatcher  $fingerprintMatcher,
         protected DeviceLimiter       $deviceLimiter,
+        protected TimeRestrictionService $timeRestriction,
+        protected HoneypotService     $honeypotService,
     ) {}
 
     /**
@@ -49,7 +53,26 @@ class ActivateController extends Controller
         // 查找 License
         $license = License::where('license_key', $data['license_key'])->first();
 
+        // M2-03 蜜罐检测：如果 License 不存在，检查是否为蜜罐密钥
         if (! $license) {
+            $honeypot = $this->honeypotService->detect($data['license_key']);
+            if ($honeypot) {
+                $this->honeypotService->handleTrigger($honeypot, $request->ip(), [
+                    'fingerprint' => $data['fingerprint'],
+                    'platform' => $data['platform'] ?? null,
+                    'metadata' => $data['metadata'] ?? [],
+                ]);
+
+                // 返回伪造的成功响应，让攻击者以为激活成功
+                return ApiResponse::success([
+                    'activated' => true,
+                    'license_key' => $data['license_key'],
+                    'message' => '激活成功',
+                    'expires_at' => now()->addYear()->toIso8601String(),
+                    'device_id' => 'hny-' . substr(md5($data['fingerprint']), 0, 12),
+                ]);
+            }
+
             return ApiResponse::error('LICENSE_NOT_FOUND', 'License Key 不存在', 404);
         }
 
@@ -62,6 +85,17 @@ class ActivateController extends Controller
         // 过期检查
         if ($license->expires_at && $license->expires_at->isPast()) {
             return ApiResponse::error('LICENSE_EXPIRED', 'License 已过期', 422);
+        }
+
+        // M3-77 时段限制检查
+        $timeCheck = $this->timeRestriction->check($license, $request->ip());
+        if (! $timeCheck['allowed']) {
+            return ApiResponse::error(
+                'LICENSE_TIME_RESTRICTED',
+                $timeCheck['reason'],
+                403,
+                ['time_restriction' => $timeCheck]
+            );
         }
 
         // 先将 License 从 pending 转为 active
@@ -168,7 +202,25 @@ class ActivateController extends Controller
 
         $license = License::where('license_key', $data['license_key'])->first();
 
+        // M2-03 蜜罐检测
         if (! $license) {
+            $honeypot = $this->honeypotService->detect($data['license_key']);
+            if ($honeypot) {
+                $this->honeypotService->handleTrigger($honeypot, $request->ip(), [
+                    'action' => 'validate',
+                    'fingerprint' => $data['fingerprint'] ?? null,
+                ]);
+
+                // 返回伪造的有效响应
+                return ApiResponse::success([
+                    'valid' => true,
+                    'license_key' => $data['license_key'],
+                    'status' => 'active',
+                    'expires_at' => now()->addYear()->toIso8601String(),
+                    'max_devices' => 999,
+                ]);
+            }
+
             return ApiResponse::error('LICENSE_NOT_FOUND', 'License Key 不存在', 404);
         }
 

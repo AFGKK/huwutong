@@ -76,6 +76,7 @@ enum ErrorCode: string
     case LICENSE_GRACE_PERIOD = 'LICENSE_GRACE_PERIOD';
     case LICENSE_IN_MAINTENANCE = 'LICENSE_IN_MAINTENANCE';
     case LICENSE_ALREADY_ACTIVATED = 'LICENSE_ALREADY_ACTIVATED';
+    case LICENSE_TIME_RESTRICTED = 'LICENSE_TIME_RESTRICTED';
 
     // ─── 激活 / 离线 ────────────────────────────────────────────
     case ACT_SIGNATURE_INVALID = 'ACT_SIGNATURE_INVALID';
@@ -326,6 +327,7 @@ enum ErrorCode: string
             self::ACT_SIGNATURE_INVALID,
             self::ACT_CERTIFICATE_EXPIRED,
             self::LICENSE_IN_MAINTENANCE,
+            self::LICENSE_TIME_RESTRICTED,
             self::WEBHOOK_SIGNATURE_MISMATCH,
             self::DEVICE_REGION_BLOCKED,
             self::DOMAIN_NOT_CONNECTED,

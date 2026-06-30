@@ -1,8 +1,8 @@
 import apiClient from './client';
 
 export default {
-    list() {
-        return apiClient.get('/domains');
+    list(params = {}) {
+        return apiClient.get('/domains', { params });
     },
     create(data) {
         return apiClient.post('/domains', data);

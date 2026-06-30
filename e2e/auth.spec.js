@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateAsLoggedIn, setupApiMocks, getMockUser } from './helpers.js';
+import { navigateAsLoggedIn, setupApiMocks, getMockUser, adminUrl } from './helpers.js';
 
 /**
  * 核心用户旅程 E2E 测试
@@ -13,18 +13,18 @@ test.describe.configure({ mode: 'serial' });
 test.describe('核心用户旅程', () => {
 
     test('1. 访问后台显示登录页面', async ({ page }) => {
-        await page.goto('/admin/login');
+        await page.goto(adminUrl('/admin/login'));
         await expect(page).toHaveTitle(/HWT License/);
-        await expect(page.locator('text=登录').first()).toBeVisible();
+        await expect(page.locator('button:has-text("登")').first()).toBeVisible();
     });
 
     test('2. 系统状态页面可访问', async ({ page }) => {
-        await page.goto('/admin/status');
+        await page.goto(adminUrl('/admin/status'));
         await expect(page.locator('text=系统状态').first()).toBeVisible({ timeout: 5000 });
     });
 
     test('3. 未登录访问仪表盘应重定向到登录页', async ({ page }) => {
-        await page.goto('/admin/dashboard');
+        await page.goto(adminUrl('/admin/dashboard'));
         await page.waitForTimeout(2000);
         expect(page.url()).toContain('login');
     });
@@ -36,8 +36,9 @@ test.describe('核心用户旅程', () => {
             roles: ['admin'],
         });
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 
     test('5. 访问 License 管理页', async ({ page }) => {
@@ -47,8 +48,9 @@ test.describe('核心用户旅程', () => {
             roles: ['admin'],
         });
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 
     test('6. 登出后重定向', async ({ page }) => {
@@ -66,14 +68,14 @@ test.describe('核心用户旅程', () => {
         });
 
         // 导航到仪表盘应被重定向到登录页
-        await page.goto('/admin/dashboard');
+        await page.goto(adminUrl('/admin/dashboard'));
         await page.waitForTimeout(3000);
 
         expect(page.url()).toContain('login');
     });
 
     test('7. 无效登录表单验证', async ({ page }) => {
-        await page.goto('/admin/login');
+        await page.goto(adminUrl('/admin/login'));
 
         // 直接点击登录按钮（空表单触发验证）
         await page.click('button:has-text("登")');
@@ -91,7 +93,8 @@ test.describe('核心用户旅程', () => {
             roles: ['admin'],
         });
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 });

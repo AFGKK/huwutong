@@ -54,5 +54,77 @@ return [
     | 5. 幂等性保证 (IdempotencyMiddleware)
     | 6. 防暴力破解 (BruteForceMiddleware)
     |
+    | [安全事件响应 SOP (M3-25)]
+    | 通报→止损→取证→修复→复盘
     */
+
+    /*
+    |--------------------------------------------------------------------------
+    | 安全事件响应 SOP 配置 (M3-25)
+    |--------------------------------------------------------------------------
+    */
+    'incident_response' => [
+        'enabled' => true,
+        'tiers' => [
+            'critical' => [
+                'label' => '严重 (P0)',
+                'response_time' => 15,      // 15分钟响应
+                'escalation_minutes' => 30,
+                'notify_channels' => ['sms', 'phone', 'email', 'slack'],
+                'auto_execute_sop' => true,
+            ],
+            'high' => [
+                'label' => '高危 (P1)',
+                'response_time' => 30,       // 30分钟响应
+                'escalation_minutes' => 60,
+                'notify_channels' => ['phone', 'email', 'slack'],
+                'auto_execute_sop' => true,
+            ],
+            'medium' => [
+                'label' => '中危 (P2)',
+                'response_time' => 60,       // 60分钟响应
+                'escalation_minutes' => 120,
+                'notify_channels' => ['email', 'slack'],
+                'auto_execute_sop' => false,
+            ],
+            'low' => [
+                'label' => '低危 (P3)',
+                'response_time' => 120,      // 120分钟响应
+                'escalation_minutes' => 240,
+                'notify_channels' => ['email'],
+                'auto_execute_sop' => false,
+            ],
+        ],
+
+        // SOP 5阶段流程
+        'phases' => [
+            'notify' => '通报: 通知安全团队和相关方',
+            'contain' => '止损: 立即隔离受影响系统',
+            'investigate' => '取证: 收集日志和证据',
+            'remediate' => '修复: 应用补丁和恢复服务',
+            'review' => '复盘: 事后分析和改进',
+        ],
+
+        // 预定义的SOP步骤动作类型
+        'action_types' => [
+            'log_event' => ['label' => '记录事件', 'auto' => true],
+            'notify_admin' => ['label' => '通知管理员', 'auto' => true],
+            'notify_user' => ['label' => '通知用户', 'auto' => false],
+            'block_ip' => ['label' => '封禁IP', 'auto' => true],
+            'terminate_sessions' => ['label' => '终止会话', 'auto' => true],
+            'disable_account' => ['label' => '禁用账号', 'auto' => false],
+            'require_mfa' => ['label' => '强制MFA', 'auto' => true],
+            'send_alert_email' => ['label' => '发送告警邮件', 'auto' => true],
+            'create_ticket' => ['label' => '创建工单', 'auto' => true],
+            'custom_webhook' => ['label' => '自定义Webhook', 'auto' => false],
+        ],
+
+        // 通报联系人
+        'contacts' => [
+            'security_team_email' => env('SECURITY_TEAM_EMAIL', 'security@huwutong.com'),
+            'security_team_phone' => env('SECURITY_TEAM_PHONE'),
+            'slack_webhook' => env('SECURITY_SLACK_WEBHOOK'),
+            'pagerduty_key' => env('PAGERDUTY_API_KEY'),
+        ],
+    ],
 ];

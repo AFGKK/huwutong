@@ -127,6 +127,27 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'seatpool' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/seatpool.log'),
+            'level' => 'info',
+            'days' => 30,
+        ],
+
+        'crl' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/crl.log'),
+            'level' => 'info',
+            'days' => 90,
+        ],
+
+        'secret-scan' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/secret-scan.log'),
+            'level' => 'info',
+            'days' => 90,
+        ],
+
     ],
 
 ];

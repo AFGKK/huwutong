@@ -22,7 +22,6 @@ class DataMaskingService
         'mobile' => 'maskPhone',
         'ip' => 'maskIp',
         'ip_address' => 'maskIp',
-        'name' => 'maskName',
         'real_name' => 'maskName',
         'contact_name' => 'maskName',
         'id_card' => 'maskIdCard',
@@ -98,7 +97,7 @@ class DataMaskingService
     protected function resolveLevel(string $role): string
     {
         return match ($role) {
-            'super_admin', 'admin' => 'admin',
+            'super-admin', 'admin' => 'admin',
             'operator', 'support', 'agent' => 'operator',
             default => 'customer',
         };

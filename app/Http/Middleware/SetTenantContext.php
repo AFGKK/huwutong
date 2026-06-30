@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Tenant;
 use Closure;
 use Illuminate\Http\Request;
+use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\Response;
 
 class SetTenantContext
@@ -15,9 +16,17 @@ class SetTenantContext
             // 优先使用用户记住的租户（多租户切换），其次是绑定的 tenant_id
             $tenantId = $user->remember_tenant_id ?? $user->tenant_id;
 
-            // 如果有租户头信息，允许临时切换租户上下文（超级管理员）
-            if ($user->hasRole('super-admin') && $request->header('X-Tenant-Id')) {
-                $tenantId = $request->header('X-Tenant-Id');
+            // 先设置 Spatie team ID，否则后面 hasRole 查询会因 team 作用域查不到角色
+            if ($tenantId) {
+                app(PermissionRegistrar::class)->setPermissionsTeamId($tenantId);
+            }
+
+            // 超级管理员可通过 X-Tenant-Id 头临时切换租户上下文
+            if ($tenantId && $request->header('X-Tenant-Id')) {
+                if ($user->hasRole('super-admin')) {
+                    $tenantId = $request->header('X-Tenant-Id');
+                    app(PermissionRegistrar::class)->setPermissionsTeamId($tenantId);
+                }
             }
 
             if ($tenantId) {

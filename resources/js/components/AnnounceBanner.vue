@@ -12,7 +12,7 @@
                     v-if="banner.link_url"
                     :href="banner.link_url"
                     type="primary"
-                    :underline="false"
+                    :underline="'never'"
                     class="announce-banner__link"
                     target="_blank"
                 >

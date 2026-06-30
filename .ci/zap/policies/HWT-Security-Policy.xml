@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  OWASP ZAP 策略配置文件
+  M2-112: 自动化渗透测试
+
+  基于 OWASP Top 10 (2021) 的安全检测策略
+  阈值: HIGH=严格 / MEDIUM=标准 / LOW=宽松
+-->
+<policy>
+    <policyName>HWT Security Policy</policyName>
+    <description>互物通企业授权管理系统安全扫描策略 - OWASP Top 10 2021</description>
+
+    <!-- A01:2021-Broken Access Control -->
+    <scanner id="0" name="Directory Browsing" threshold="MEDIUM" strength="MEDIUM"/>
+    <scanner id="40012" name="Cross Site Scripting (Reflected)" threshold="MEDIUM" strength="HIGH"/>
+    <scanner id="40014" name="Cross Site Scripting (Persistent)" threshold="MEDIUM" strength="HIGH"/>
+    <scanner id="40018" name="Cross Site Scripting (DOM)" threshold="MEDIUM" strength="MEDIUM"/>
+
+    <!-- A02:2021-Cryptographic Failures -->
+    <scanner id="10095" name="Backup File Disclosure" threshold="HIGH" strength="MEDIUM"/>
+    <scanner id="10105" name="Weak Authentication Method" threshold="HIGH" strength="MEDIUM"/>
+    <scanner id="10057" name="Weak Password Policy" threshold="MEDIUM" strength="MEDIUM"/>
+
+    <!-- A03:2021-Injection -->
+    <scanner id="40018" name="SQL Injection" threshold="HIGH" strength="HIGH"/>
+    <scanner id="40019" name="SQL Injection (Boolean Based)" threshold="HIGH" strength="HIGH"/>
+    <scanner id="40020" name="SQL Injection (Time Based)" threshold="HIGH" strength="HIGH"/>
+    <scanner id="90018" name="SQL Injection (SQLmap)" threshold="HIGH" strength="MEDIUM"/>
+    <scanner id="40022" name="NoSQL Injection" threshold="MEDIUM" strength="MEDIUM"/>
+    <scanner id="90019" name="Server Side Code Injection" threshold="HIGH" strength="HIGH"/>
+    <scanner id="90020" name="Remote Code Execution" threshold="HIGH" strength="HIGH"/>
+    <scanner id="90021" name="Path Traversal" threshold="HIGH" strength="HIGH"/>
+    <scanner id="90022" name="LDAP Injection" threshold="MEDIUM" strength="MEDIUM"/>
+    <scanner id="90023" name="XPath Injection" threshold="MEDIUM" strength="MEDIUM"/>
+    <scanner id="90024" name="Command Injection" threshold="HIGH" strength="HIGH"/>
+
+    <!-- A04:2021-Insecure Design -->
+    <scanner id="100000" name="Information Disclosure" threshold="MEDIUM" strength="MEDIUM"/>
+    <scanner id="10049" name="Non-Storable Content Cache" threshold="MEDIUM" strength="MEDIUM"/>
+
+    <!-- A05:2021-Security Misconfiguration -->
+    <scanner id="10038" name="Content Security Policy (CSP)" threshold="MEDIUM" strength="MEDIUM"/>
+    <scanner id="10044" name="Cookie Security" threshold="HIGH" strength="MEDIUM"/>
+    <scanner id="10021" name="X-Content-Type-Options" threshold="HIGH" strength="MEDIUM"/>
+    <scanner id="10020" name="X-Frame-Options" threshold="HIGH" strength="MEDIUM"/>
+    <scanner id="10045" name="HTTP Parameter Pollution" threshold="MEDIUM" strength="MEDIUM"/>
+    <scanner id="40025" name="Proxy Disclosure" threshold="MEDIUM" strength="MEDIUM"/>
+
+    <!-- A06:2021-Vulnerable and Outdated Components -->
+    <scanner id="10051" name="Server Leaks Version Information" threshold="HIGH" strength="MEDIUM"/>
+    <scanner id="10052" name="X-Powered-By Header" threshold="HIGH" strength="MEDIUM"/>
+
+    <!-- A07:2021-Identification and Authentication Failures -->
+    <scanner id="10110" name="Dangerous JS Functions" threshold="MEDIUM" strength="MEDIUM"/>
+    <scanner id="10111" name="Authentication Bypass" threshold="HIGH" strength="HIGH"/>
+    <scanner id="40013" name="Session ID in URL" threshold="HIGH" strength="MEDIUM"/>
+    <scanner id="10054" name="Cookie without Secure Flag" threshold="HIGH" strength="MEDIUM"/>
+    <scanner id="10055" name="Cookie without HttpOnly Flag" threshold="HIGH" strength="MEDIUM"/>
+    <scanner id="40003" name="CSRF Token not checked" threshold="HIGH" strength="MEDIUM"/>
+
+    <!-- A08:2021-Software and Data Integrity Failures -->
+    <scanner id="90033" name="JWT None Algorithm" threshold="HIGH" strength="MEDIUM"/>
+    <scanner id="90034" name="JWT Weak HMAC Key" threshold="HIGH" strength="MEDIUM"/>
+    <scanner id="90035" name="JWT Empty Secret" threshold="HIGH" strength="MEDIUM"/>
+
+    <!-- A09:2021-Security Logging and Monitoring Failures -->
+    <scanner id="10023" name="Information Disclosure - Debug" threshold="MEDIUM" strength="MEDIUM"/>
+    <scanner id="10024" name="Information Disclosure - Sensitive" threshold="HIGH" strength="MEDIUM"/>
+
+    <!-- A10:2021-Server-Side Request Forgery -->
+    <scanner id="10025" name="Server Side Request Forgery" threshold="HIGH" strength="HIGH"/>
+
+    <!-- API 专属安全检测 -->
+    <scanner id="90036" name="GraphQL Introspection" threshold="MEDIUM" strength="MEDIUM"/>
+    <scanner id="90037" name="API Endpoint Excessive Data" threshold="MEDIUM" strength="MEDIUM"/>
+    <scanner id="90038" name="API Rate Limiting" threshold="MEDIUM" strength="MEDIUM"/>
+</policy>

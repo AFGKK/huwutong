@@ -1,0 +1,27 @@
+{
+  "title": "互物通 — 数据库与队列",
+  "uid": "huwutong-database-queue",
+  "description": "MySQL / Redis / Horizon 队列",
+  "tags": ["huwutong", "database", "queue"],
+  "timezone": "Asia/Shanghai",
+  "editable": true,
+  "panels": [
+    {"title": "MySQL 连接数", "type": "graph", "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+      "targets": [{"expr": "mysql_global_status_threads_connected", "legendFormat": "连接数"}],
+      "datasource": "Prometheus"},
+    {"title": "MySQL 慢查询", "type": "graph", "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
+      "targets": [{"expr": "rate(mysql_global_status_slow_queries[5m])", "legendFormat": "慢查询/秒"}],
+      "datasource": "Prometheus"},
+    {"title": "Redis 内存", "type": "graph", "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+      "targets": [{"expr": "redis_memory_used_bytes", "legendFormat": "已用"}, {"expr": "redis_memory_max_bytes", "legendFormat": "上限"}],
+      "datasource": "Prometheus"},
+    {"title": "Horizon 队列状态", "type": "graph", "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "horizon_total_jobs", "legendFormat": "总任务"},
+        {"expr": "horizon_failed_jobs_total", "legendFormat": "失败"}
+      ], "datasource": "Prometheus"},
+    {"title": "队列处理速率", "type": "graph", "gridPos": {"x": 8, "y": 8, "w": 8, "h": 8},
+      "targets": [{"expr": "rate(horizon_processed_jobs_total[5m])", "legendFormat": "处理速率"}],
+      "datasource": "Prometheus"}
+  ]
+}

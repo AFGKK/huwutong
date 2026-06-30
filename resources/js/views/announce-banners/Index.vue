@@ -248,7 +248,7 @@ async function fetchBanners() {
     loading.value = true;
     try {
         const res = await getAnnounceBanners();
-        banners.value = res.data || [];
+        banners.value = res.data?.data || res.data || [];
     } catch (e) {
         ElMessage.error('获取公告列表失败');
     } finally {
@@ -289,6 +289,12 @@ async function handleSave() {
     try {
         const data = { ...form.value };
         delete data._id;
+        // 清理空字符串可选字段，避免后端验证失败
+        if (!data.link_url) data.link_url = null;
+        if (!data.link_text) data.link_text = null;
+        if (!data.content) data.content = null;
+        if (!data.starts_at) data.starts_at = null;
+        if (!data.ends_at) data.ends_at = null;
 
         if (isEditing.value) {
             await updateAnnounceBanner(form.value._id, data);
@@ -300,7 +306,8 @@ async function handleSave() {
         dialogVisible.value = false;
         await fetchBanners();
     } catch (e) {
-        ElMessage.error(isEditing.value ? '更新失败' : '创建失败');
+        const msg = e?.response?.data?.message || e?.response?.data?.error?.message || (isEditing.value ? '更新失败' : '创建失败');
+        ElMessage.error(msg);
     } finally {
         saving.value = false;
     }

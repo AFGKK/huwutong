@@ -49,7 +49,7 @@ return [
     |
     */
 
-    'expiration' => null,
+    'expiration' => env('SANCTUM_TOKEN_EXPIRATION', 1440), // 默认 24 小时
 
     /*
     |--------------------------------------------------------------------------

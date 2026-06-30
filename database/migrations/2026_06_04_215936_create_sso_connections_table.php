@@ -20,7 +20,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['sso_provider_id', 'external_id']);
-            $table->index('user_id');
         });
     }
 

@@ -1,0 +1,122 @@
+# ============================================================
+# Istio 可观测性配置
+# M3-68: 监控、追踪、日志
+# ============================================================
+
+# ─── 遥测配置: 指标收集 ───
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: hwt-metrics
+  namespace: huwutong
+spec:
+  selector:
+    matchLabels:
+      app: hwt-api
+  metrics:
+    - providers:
+        - name: prometheus
+      overrides:
+        # 禁用请求体大小（性能优化）
+        - match:
+            metric: REQUEST_BODY_SIZE
+            mode: CLIENT_AND_SERVER
+          disabled: true
+        - match:
+            metric: RESPONSE_BODY_SIZE
+            mode: CLIENT_AND_SERVER
+          disabled: true
+    # 自定义指标
+    - overrides:
+        - match:
+            metric: GRPC_REQUEST_MESSAGES
+            mode: CLIENT
+          disabled: true
+        - match:
+            metric: GRPC_RESPONSE_MESSAGES
+            mode: CLIENT
+          disabled: true
+
+---
+# ─── 访问日志配置 ───
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: hwt-access-log
+  namespace: huwutong
+spec:
+  selector:
+    matchLabels:
+      app: hwt-api
+  accessLogging:
+    - providers:
+        - name: envoy
+      filter:
+        # 只记录 4xx 和 5xx 的错误日志
+        expression: |
+          response.code >= 400 || response.code == 0
+
+---
+# ─── 调用链追踪 ───
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: hwt-tracing
+  namespace: huwutong
+spec:
+  selector:
+    matchLabels:
+      app: hwt-api
+  tracing:
+    - providers:
+        - name: zipkin  # 兼容 Jaeger/Tempo
+      randomSamplingPercentage: 10.0  # 10% 采样率
+      customTags:
+        "tenant_id":
+          header:
+            name: x-tenant-id
+            defaultValue: "unknown"
+        "api_version":
+          header:
+            name: x-api-version
+            defaultValue: "v1"
+
+---
+# ─── Istio 监控面板标记 ───
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hwt-istio-monitoring
+  namespace: huwutong
+data:
+  service-graph.md: |
+    # HWT License 服务拓扑
+
+    ## 服务依赖关系
+    ```
+    [Ingress Gateway] → [hwt-api] → [hwt-mysql]
+                                   → [hwt-redis-master]
+                                   → [hwt-redis-sentinel]
+                                   → [hwt-reverb]
+    [Ingress Gateway] → [hwt-admin]  (SPA)
+    [Ingress Gateway] → [hwt-portal] (SPA)
+    [Ingress Gateway] → [hwt-reverb] (WebSocket)
+    ```
+
+    ## 服务端口
+    | 服务 | 端口 | 协议 |
+    |------|:----:|:----:|
+    | hwt-api | 80 | HTTP |
+    | hwt-admin | 80 | HTTP |
+    | hwt-portal | 80 | HTTP |
+    | hwt-reverb | 8080 | HTTP/WS |
+    | hwt-mysql | 3306 | TCP |
+    | hwt-redis-master | 6379 | TCP |
+    | hwt-redis-sentinel | 26379 | TCP |
+
+    ## 关键指标
+    - 请求总量: istio_requests_total
+    - 请求延迟: istio_request_duration_milliseconds
+    - 请求大小: istio_request_bytes
+    - 响应大小: istio_response_bytes
+    - TCP 连接: istio_tcp_connections_opened_total

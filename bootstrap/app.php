@@ -10,6 +10,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -19,10 +20,18 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
+        then: function () {
+            Route::middleware('api')
+                ->prefix('api')
+                ->group(base_path('routes/portal.php'));
+        },
     )
     ->withProviders([
         \App\Providers\EventServiceProvider::class,
+        \App\Providers\TelescopeServiceProvider::class,
+        Illuminate\Broadcasting\BroadcastServiceProvider::class,
     ])
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
@@ -31,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => \App\Http\Middleware\SetTenantContext::class,
             'idempotent' => \App\Http\Middleware\IdempotencyMiddleware::class,
             'nonce' => \App\Http\Middleware\NonceMiddleware::class,
+            'smart-contract' => \App\Http\Middleware\SmartContractMiddleware::class,
             'signature' => \App\Http\Middleware\SignatureMiddleware::class,
             'ratelimit' => \App\Http\Middleware\RateLimitMiddleware::class,
             'throttle.enhanced' => \App\Http\Middleware\EnhancedThrottleMiddleware::class,
@@ -47,17 +57,32 @@ return Application::configure(basePath: dirname(__DIR__))
             'api-key' => \App\Http\Middleware\ApiKeyAuthMiddleware::class,
             'impersonate' => \App\Http\Middleware\ImpersonateMiddleware::class,
             'api-version' => \App\Http\Middleware\ApiVersionMiddleware::class,
+            'domain-tenant' => \App\Http\Middleware\ResolveDomainTenant::class,
+            'introspect' => \App\Http\Middleware\TokenIntrospectionMiddleware::class,
+            'fine-grained-api-key' => \App\Http\Middleware\FineGrainedApiKeyMiddleware::class,
+            'widget-auth' => \App\Http\Middleware\WidgetAuthMiddleware::class,
+            'waf' => \App\Http\Middleware\WafMiddleware::class,
         ]);
 
         // 应用层中间件统一注册（按 M0-11 ADR：这些由应用层处理，网关层不应重复）
         $middleware->api(prepend: [
-            \App\Http\Middleware\SetTenantContext::class,
+            \App\Http\Middleware\ResolveDomainTenant::class,
             \App\Http\Middleware\SecurityHeadersMiddleware::class, // CORS/CSP/安全头 — 应用层统一处理
             \App\Http\Middleware\ImpersonateMiddleware::class, // 模拟登录 — 在所有认证路由之前检查
         ]);
 
         $middleware->api(append: [
             \App\Http\Middleware\ApiVersionMiddleware::class, // API 版本管理 — 在路由处理之后添加版本响应头
+        ]);
+
+        // Webhook + 广播认证路由排除 CSRF 保护
+        $middleware->validateCsrfTokens(except: [
+            'broadcasting/auth',
+            'api/broadcasting/auth',
+            'api/payment/stripe/webhook',
+            'api/payment/alipay/webhook',
+            'api/payment/paypal/webhook',
+            'api/payment/wechat/webhook',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
@@ -85,9 +110,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Symfony 404
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
+                $svc = app(\App\Services\ErrorCodeService::class);
                 return ApiResponse::error(
                     ErrorCode::NOT_FOUND->value,
-                    $errorCodeService->message(ErrorCode::NOT_FOUND),
+                    $svc->message(ErrorCode::NOT_FOUND),
                     404
                 );
             }
@@ -96,8 +122,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // 验证错误 → 统一格式
         $exceptions->render(function (ValidationException $e, Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
+                $svc = app(\App\Services\ErrorCodeService::class);
                 return ApiResponse::validationError(
-                    $errorCodeService->message(ErrorCode::VALIDATION_ERROR),
+                    $svc->message(ErrorCode::VALIDATION_ERROR),
                     $e->errors()
                 );
             }
@@ -106,9 +133,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // 认证错误 → 统一格式
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
+                $svc = app(\App\Services\ErrorCodeService::class);
                 return ApiResponse::error(
                     ErrorCode::UNAUTHORIZED->value,
-                    $e->getMessage() ?: $errorCodeService->message(ErrorCode::UNAUTHORIZED),
+                    $e->getMessage() ?: $svc->message(ErrorCode::UNAUTHORIZED),
                     401
                 );
             }
@@ -125,16 +153,17 @@ return Application::configure(basePath: dirname(__DIR__))
                     default => ErrorCode::SYS_INTERNAL_ERROR,
                 };
 
+                $svc = app(\App\Services\ErrorCodeService::class);
                 return ApiResponse::error(
                     $code->value,
-                    $e->getMessage() ?: $errorCodeService->message($code),
+                    $e->getMessage() ?: $svc->message($code),
                     $statusCode
                 );
             }
         });
 
         // 全局兜底 — 捕获未处理异常
-        $exceptions->render(function (\Throwable $e, Request $request) {
+        $exceptions->render(function (\Throwable $e, Request $request) use ($errorCodeService) {
             if ($request->expectsJson() || $request->is('api/*')) {
                 $message = config('app.debug') ? $e->getMessage() : $errorCodeService->message(ErrorCode::SYS_INTERNAL_ERROR);
 

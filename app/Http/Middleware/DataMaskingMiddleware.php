@@ -73,7 +73,7 @@ class DataMaskingMiddleware
         }
 
         // 超管
-        if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
+        if ($user->hasRole('super-admin') || $user->hasRole('admin')) {
             return 'admin';
         }
 

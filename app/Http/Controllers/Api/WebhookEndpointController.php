@@ -7,7 +7,7 @@ use App\Models\WebhookEndpoint;
 use App\Services\WebhookService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 
 /**
  * Webhook 端点管理控制器

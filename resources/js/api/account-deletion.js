@@ -2,15 +2,23 @@ import apiClient from '@/api/client'
 
 // 用户侧
 export function requestDeletion(reason = '') {
-  return apiClient.post('/account/deletion', { reason })
+  return apiClient.post('/api/account/deletion', { reason, confirm: true })
 }
 
 export function cancelDeletion() {
-  return apiClient.post('/account/deletion/cancel')
+  return apiClient.post('/api/account/deletion/cancel')
 }
 
 export function getDeletionStatus() {
-  return apiClient.get('/account/deletion/status')
+  return apiClient.get('/api/account/deletion/status')
+}
+
+export function getDeletionCheck() {
+  return apiClient.get('/api/account/deletion/check')
+}
+
+export function getCancellationReasons() {
+  return apiClient.get('/api/account/deletion/reasons')
 }
 
 // 管理侧
@@ -32,4 +40,17 @@ export function rejectDeletion(id, adminNotes = '') {
 
 export function getDeletionStats() {
   return apiClient.get('/account/deletions/stats')
+}
+
+// M3-62 扩展：数据匿名化管理
+export function getDeletionRecords(params = {}) {
+  return apiClient.get('/admin/deletion/records', { params })
+}
+
+export function getDeletionOverview() {
+  return apiClient.get('/admin/deletion/stats')
+}
+
+export function adminAnonymizeUser(data) {
+  return apiClient.post('/admin/deletion/admin/anonymize', data)
 }

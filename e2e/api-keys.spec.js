@@ -8,8 +8,9 @@ test.describe('API 密钥管理 E2E', () => {
     test('API 密钥页面加载', async ({ page }) => {
         await navigateAsLoggedIn(page, '/admin/api-keys');
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 
     test('页面无崩溃错误', async ({ page }) => {

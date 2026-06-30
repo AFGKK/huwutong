@@ -1,7 +1,7 @@
 <template>
     <div class="apm-page">
         <el-tabs v-model="activeTab">
-            <!-- 总览监控 -->
+            <!-- ═══════════════ 性能总览 ═══════════════ -->
             <el-tab-pane label="性能总览" name="overview">
                 <div class="tab-actions">
                     <el-select v-model="period" @change="fetchAll" style="width: 150px">
@@ -150,7 +150,101 @@
                 </el-card>
             </el-tab-pane>
 
-            <!-- OpenTelemetry 配置 -->
+            <!-- ═══════════════ 统一监控仪表盘 ═══════════════ -->
+            <el-tab-pane label="统一监控" name="dashboard">
+                <div class="tab-actions">
+                    <el-select v-model="dashPeriod" @change="fetchDashboard" style="width: 150px">
+                        <el-option :value="1" label="最近 1 小时" />
+                        <el-option :value="6" label="最近 6 小时" />
+                        <el-option :value="24" label="最近 24 小时" />
+                        <el-option :value="72" label="最近 3 天" />
+                        <el-option :value="168" label="最近 7 天" />
+                    </el-select>
+                    <el-button @click="fetchDashboard" :icon="Refresh" circle />
+                    <span style="font-size:12px;color:#909399;margin-left:8px;">
+                        更新于: {{ dashGeneratedAt || '-' }}
+                    </span>
+                </div>
+
+                <!-- 服务健康状态 -->
+                <el-card shadow="never" style="margin-bottom:16px;">
+                    <template #header>
+                        <div class="card-header">
+                            <span>服务健康状态</span>
+                            <el-tag :type="healthOverall ? 'success' : 'danger'" size="small">
+                                {{ healthOverall ? '健康' : '异常' }}
+                            </el-tag>
+                        </div>
+                    </template>
+                    <el-row :gutter="16">
+                        <el-col :span="6" v-for="svc in healthServices" :key="svc.key">
+                            <div class="health-item" :class="{ 'health-ok': svc.status, 'health-fail': !svc.status }">
+                                <span class="health-icon">{{ svc.status ? '✓' : '✗' }}</span>
+                                <span class="health-name">{{ svc.label }}</span>
+                            </div>
+                        </el-col>
+                    </el-row>
+                </el-card>
+
+                <!-- Telescope 聚合指标 -->
+                <el-row :gutter="16" style="margin-bottom:16px;">
+                    <el-col :span="8">
+                        <el-card shadow="never">
+                            <div class="stat-item">
+                                <div class="stat-label">Telescope 异常</div>
+                                <div class="stat-value danger">{{ telescopeStats.exceptions ?? '-' }}</div>
+                            </div>
+                        </el-card>
+                    </el-col>
+                    <el-col :span="8">
+                        <el-card shadow="never">
+                            <div class="stat-item">
+                                <div class="stat-label">失败任务</div>
+                                <div class="stat-value warning">{{ telescopeStats.failed_jobs ?? '-' }}</div>
+                            </div>
+                        </el-card>
+                    </el-col>
+                    <el-col :span="8">
+                        <el-card shadow="never">
+                            <div class="stat-item">
+                                <div class="stat-label">慢查询</div>
+                                <div class="stat-value">{{ telescopeStats.queries ?? '-' }}</div>
+                            </div>
+                        </el-card>
+                    </el-col>
+                </el-row>
+
+                <!-- 请求趋势（按小时） -->
+                <el-card shadow="never" style="margin-bottom:16px;">
+                    <template #header><span>请求趋势（近 24 小时）</span></template>
+                    <div v-loading="dashLoading" class="trend-chart">
+                        <div v-for="(point, idx) in hourlyTrend" :key="idx" class="trend-col" :style="{ height: trendHeight(point) }" :title="`${point.hour}\n请求: ${point.total}\n平均: ${Math.round(point.avg_duration)}ms\n慢请求: ${point.slow_count}`">
+                            <div class="trend-fill" :class="{ 'trend-slow': point.slow_count > 0 }" />
+                        </div>
+                        <el-empty v-if="!hourlyTrend.length" description="暂无趋势数据" />
+                    </div>
+                </el-card>
+
+                <!-- Telescope 最近异常 -->
+                <el-card shadow="never">
+                    <template #header><span>最近异常</span></template>
+                    <el-table :data="recentExceptions" v-loading="dashLoading" stripe size="small">
+                        <el-table-column label="异常消息" min-width="350" show-overflow-tooltip>
+                            <template #default="{ row }">
+                                <span class="text-danger">{{ row.message }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="类名" min-width="250" show-overflow-tooltip prop="class" />
+                        <el-table-column label="位置" width="80">
+                            <template #default="{ row }">{{ row.line }}</template>
+                        </el-table-column>
+                        <el-table-column label="时间" width="160" prop="created_at" />
+                    </el-table>
+                    <el-empty v-if="!recentExceptions.length" description="暂无异常记录" />
+                </el-card>
+            </el-tab-pane>
+
+            <!-- ═══════════════ 追踪集成 ═══════════════ -->
             <el-tab-pane label="追踪集成" name="otel">
                 <el-row :gutter="16">
                     <el-col :span="24">
@@ -193,7 +287,6 @@
                                     </el-descriptions-item>
                                 </el-descriptions>
 
-                                <!-- 配置说明 -->
                                 <el-divider />
                                 <h4>环境变量配置</h4>
                                 <el-table :data="envConfigItems" stripe size="small" border>
@@ -219,6 +312,9 @@
                                 <el-descriptions-item label="慢请求阈值">
                                     {{ apmConfig.slow_threshold_ms }} ms
                                 </el-descriptions-item>
+                                <el-descriptions-item label="DB 慢查询阈值">
+                                    {{ apmConfig.db_slow_threshold_ms }} ms
+                                </el-descriptions-item>
                                 <el-descriptions-item label="采样率">
                                     1/{{ apmConfig.sample_rate }}
                                 </el-descriptions-item>
@@ -241,7 +337,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Refresh } from '@element-plus/icons-vue';
 import {
     getApmOverview,
@@ -250,24 +346,39 @@ import {
     pruneApmData,
     getApmOtelStatus,
     getApmConfig,
+    getApmDashboard,
 } from '@/api/apm';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
+// ─── Tab ───
 const activeTab = ref('overview');
-const loading = ref(false);
-const loadingOtel = ref(false);
-const period = ref(24);
 
+// ─── 性能总览 ───
+const loading = ref(false);
+const period = ref(24);
 const stats = ref({});
 const distribution = ref([]);
 const slowReasons = ref([]);
 const slowRequestsList = ref([]);
 const slowestRoutes = ref([]);
-const otelStatus = ref({});
-const apmConfig = ref(null);
-
 const maxDistCount = ref(1);
 const maxReasonCount = ref(1);
+
+// ─── 统一监控 ───
+const dashLoading = ref(false);
+const dashPeriod = ref(24);
+const dashGeneratedAt = ref(null);
+const healthOverall = ref(false);
+const healthServices = ref([]);
+const telescopeStats = ref({});
+const hourlyTrend = ref([]);
+const recentExceptions = ref([]);
+const maxTrendCount = ref(1);
+
+// ─── OTEL ───
+const loadingOtel = ref(false);
+const otelStatus = ref({});
+const apmConfig = ref(null);
 
 const envConfigItems = [
     { key: 'OTEL_ENABLED', default: 'false', desc: '启用/禁用 OpenTelemetry 追踪' },
@@ -276,6 +387,7 @@ const envConfigItems = [
     { key: 'OTEL_TRACES_SAMPLER_RATIO', default: '0.1', desc: '采样率（0.0~1.0，生产建议 0.1）' },
 ];
 
+// ─── 方法: 性能总览 ───
 async function fetchAll() {
     loading.value = true;
     try {
@@ -302,6 +414,42 @@ async function fetchAll() {
     }
 }
 
+// ─── 方法: 统一监控 ───
+async function fetchDashboard() {
+    dashLoading.value = true;
+    try {
+        const res = await getApmDashboard(dashPeriod.value);
+        const data = res.data || {};
+
+        dashGeneratedAt.value = data.generated_at || null;
+
+        // 服务健康
+        const sh = data.service_health || {};
+        healthOverall.value = sh.overall || false;
+        healthServices.value = [
+            { key: 'database', label: '数据库', status: !!sh.database },
+            { key: 'cache', label: '缓存', status: !!sh.cache },
+            { key: 'redis', label: 'Redis', status: !!sh.redis },
+            { key: 'queue', label: '队列', status: !!sh.queue },
+            { key: 'storage', label: '存储', status: !!sh.storage },
+        ];
+
+        // Telescope
+        const tel = data.telescope || {};
+        telescopeStats.value = tel.stats || {};
+        recentExceptions.value = tel.recent_exceptions || [];
+
+        // 趋势
+        hourlyTrend.value = (data.apm?.hourly_trend || []).slice(-48);
+        maxTrendCount.value = Math.max(1, ...hourlyTrend.value.map(t => t.total));
+    } catch (e) {
+        ElMessage.error('获取监控仪表盘数据失败');
+    } finally {
+        dashLoading.value = false;
+    }
+}
+
+// ─── 方法: OTEL ───
 async function fetchOtelStatus() {
     loadingOtel.value = true;
     try {
@@ -319,12 +467,18 @@ async function fetchOtelStatus() {
     }
 }
 
+// ─── 辅助 ───
 function barWidth(count) {
     return Math.max(2, (count / maxDistCount.value) * 100);
 }
 
 function reasonBarWidth(count) {
     return Math.max(2, (count / maxReasonCount.value) * 100);
+}
+
+function trendHeight(point) {
+    const pct = (point.total / maxTrendCount.value) * 100;
+    return Math.max(4, pct) + '%';
 }
 
 async function handlePrune() {
@@ -349,6 +503,7 @@ async function handlePrune() {
 
 onMounted(() => {
     fetchAll();
+    fetchDashboard();
     fetchOtelStatus();
 });
 </script>
@@ -391,6 +546,14 @@ onMounted(() => {
 }
 
 .stat-value.slow {
+    color: #E6A23C;
+}
+
+.stat-value.danger {
+    color: #F56C6C;
+}
+
+.stat-value.warning {
     color: #E6A23C;
 }
 
@@ -478,5 +641,77 @@ code {
 h4 {
     margin: 0 0 8px;
     font-size: 14px;
+}
+
+/* 趋势图 */
+.trend-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 160px;
+    padding: 8px 0;
+}
+
+.trend-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    cursor: pointer;
+    position: relative;
+}
+
+.trend-fill {
+    width: 100%;
+    background: #409EFF;
+    border-radius: 2px 2px 0 0;
+    min-height: 3px;
+    transition: height 0.3s;
+}
+
+.trend-fill.trend-slow {
+    background: #E6A23C;
+}
+
+.trend-fill:hover {
+    opacity: 0.8;
+}
+
+/* 健康状态 */
+.health-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 6px;
+    background: var(--el-fill-color-light);
+}
+
+.health-ok {
+    border-left: 3px solid #67C23A;
+}
+
+.health-fail {
+    border-left: 3px solid #F56C6C;
+}
+
+.health-icon {
+    font-size: 18px;
+    font-weight: 700;
+    width: 24px;
+    text-align: center;
+}
+
+.health-ok .health-icon {
+    color: #67C23A;
+}
+
+.health-fail .health-icon {
+    color: #F56C6C;
+}
+
+.health-name {
+    font-size: 14px;
+    color: #303133;
 }
 </style>

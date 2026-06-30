@@ -2,17 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * 用量记录
- *
- * 记录每一次可计量的操作，支持按次/按量/按时间窗统计。
- * 是用量计量系统的基础数据单元。
  */
 class UsageRecord extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'tenant_id',
         'license_id',

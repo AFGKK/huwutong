@@ -1,0 +1,30 @@
+# Canonical URI (RFC 9116)
+# 互物通 (HuWuTong) Bug Bounty Vulnerability Disclosure Policy
+
+# Our security team's contact information
+Contact: mailto:security@huwutong.com
+
+# PGP encrypted communication
+Encryption: https://www.huwutong.com/.well-known/pgp-key.asc
+
+# Bug bounty program pages
+Policy: https://www.huwutong.com/security/bug-bounty
+Hiring: https://www.huwutong.com/jobs/security
+
+# Platform integrations
+Acknowledgments: https://hackerone.com/huwutong
+Acknowledgments: https://bugcrowd.com/huwutong
+
+# Disclosure timeline
+# We practice Coordinated Disclosure. After a fix is deployed,
+# we grant permission for public disclosure after 30 days.
+Policy: https://www.huwutong.com/security/disclosure-policy
+
+# Languages
+Preferred-Languages: en, zh-CN
+
+# Canonical URL for this file
+Canonical: https://www.huwutong.com/.well-known/security.txt
+
+# Expiry date (6 months from creation)
+Expires: 2026-12-13T00:00:00.000Z

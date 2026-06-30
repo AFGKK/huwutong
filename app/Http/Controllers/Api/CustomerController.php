@@ -13,7 +13,7 @@ class CustomerController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Customer::with('user')
+        $query = Customer::with('user', 'tags')
             ->where('tenant_id', $request->user()->tenant_id);
 
         // 搜索
@@ -55,7 +55,7 @@ class CustomerController extends Controller
 
     public function show(int $id, Request $request): JsonResponse
     {
-        $customer = Customer::with('user', 'licenses')
+        $customer = Customer::with('user', 'licenses', 'tags')
             ->where('tenant_id', $request->user()->tenant_id)
             ->findOrFail($id);
 

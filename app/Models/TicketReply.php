@@ -13,6 +13,8 @@ class TicketReply extends Model
 
     protected $table = 'ticket_replies';
 
+    protected $appends = ['is_admin'];
+
     protected function casts(): array
     {
         return [
@@ -29,5 +31,10 @@ class TicketReply extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function getIsAdminAttribute(): bool
+    {
+        return $this->user?->hasRole('admin') || $this->user?->hasRole('super-admin');
     }
 }

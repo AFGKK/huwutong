@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\ApiResponse;
+use App\Http\Controllers\Controller;
 use App\Models\MfaDevice;
 use App\Models\MfaRecoveryAudit;
 use App\Models\User;
 use App\Services\MfaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 
 /**
  * MFA 控制器

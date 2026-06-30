@@ -1,0 +1,163 @@
+syntax = "proto3";
+
+package huwutong.billing;
+
+import "common.proto";
+
+option php_namespace = "App\\Services\\Grpc\\Proto\\Billing";
+option php_metadata_namespace = "App\\Services\\Grpc\\Proto\\Billing\\GPBMetadata";
+
+// ─── 计费服务 ───
+// 订阅、发票、支付、用量计费
+
+service BillingService {
+    // 创建订阅
+    rpc CreateSubscription(CreateSubscriptionRequest) returns (SubscriptionResponse);
+
+    // 获取订阅
+    rpc GetSubscription(GetSubscriptionRequest) returns (SubscriptionDetail);
+
+    // 取消订阅
+    rpc CancelSubscription(CancelSubscriptionRequest) returns (SubscriptionResponse);
+
+    // 获取发票
+    rpc GetInvoice(GetInvoiceRequest) returns (InvoiceDetail);
+
+    // 列表发票
+    rpc ListInvoices(ListInvoicesRequest) returns (ListInvoicesResponse);
+
+    // 记录用量
+    rpc RecordUsage(RecordUsageRequest) returns (UsageResponse);
+
+    // 查询用量
+    rpc GetUsage(GetUsageRequest) returns (UsageSummary);
+
+    // 检查配额
+    rpc CheckQuota(CheckQuotaRequest) returns (QuotaResponse);
+}
+
+message CreateSubscriptionRequest {
+    huwutong.common.TenantContext tenant = 1;
+    int64 customer_id = 2;
+    int64 product_id = 3;
+    string plan_type = 4;
+    string billing_cycle = 5;
+    int64 amount = 6;
+    string currency = 7;
+    string payment_method = 8;
+    int64 trial_days = 9;
+    map<string, string> metadata = 10;
+}
+
+message SubscriptionResponse {
+    huwutong.common.ApiResponse api = 1;
+    SubscriptionDetail subscription = 2;
+}
+
+message GetSubscriptionRequest {
+    int64 subscription_id = 1;
+    string external_id = 2;
+}
+
+message SubscriptionDetail {
+    int64 id = 1;
+    int64 customer_id = 2;
+    int64 product_id = 3;
+    string plan_type = 4;
+    string billing_cycle = 5;
+    string status = 6;
+    int64 amount = 7;
+    string currency = 8;
+    int64 current_period_start = 9;
+    int64 current_period_end = 10;
+    int64 trial_ends_at = 11;
+    int64 created_at = 12;
+    int64 updated_at = 13;
+}
+
+message CancelSubscriptionRequest {
+    huwutong.common.TenantContext tenant = 1;
+    int64 subscription_id = 2;
+    string reason = 3;
+    bool at_period_end = 4;
+}
+
+message GetInvoiceRequest {
+    int64 invoice_id = 1;
+    string invoice_number = 2;
+}
+
+message InvoiceDetail {
+    int64 id = 1;
+    string invoice_number = 2;
+    int64 subscription_id = 3;
+    int64 customer_id = 4;
+    int64 amount = 5;
+    int64 amount_paid = 6;
+    int64 tax_amount = 7;
+    string currency = 8;
+    string status = 9;
+    string billing_reason = 10;
+    int64 due_date = 11;
+    int64 paid_at = 12;
+    int64 created_at = 13;
+}
+
+message ListInvoicesRequest {
+    huwutong.common.TenantContext tenant = 1;
+    int64 customer_id = 2;
+    string status = 3;
+    huwutong.common.Pagination pagination = 4;
+}
+
+message ListInvoicesResponse {
+    huwutong.common.ApiResponse api = 1;
+    repeated InvoiceDetail invoices = 2;
+    huwutong.common.Pagination pagination = 3;
+}
+
+message RecordUsageRequest {
+    huwutong.common.TenantContext tenant = 1;
+    int64 subscription_id = 2;
+    string metric_key = 3;
+    double quantity = 4;
+    int64 recorded_at = 5;
+    map<string, string> properties = 6;
+}
+
+message UsageResponse {
+    huwutong.common.ApiResponse api = 1;
+    double current_total = 2;
+    double remaining_quota = 3;
+}
+
+message GetUsageRequest {
+    huwutong.common.TenantContext tenant = 1;
+    int64 subscription_id = 2;
+    string metric_key = 3;
+    int64 from_time = 4;
+    int64 to_time = 5;
+}
+
+message UsageSummary {
+    huwutong.common.ApiResponse api = 1;
+    double total = 2;
+    string metric_key = 3;
+    string period = 4;
+    int64 record_count = 5;
+}
+
+message CheckQuotaRequest {
+    huwutong.common.TenantContext tenant = 1;
+    int64 subscription_id = 2;
+    string metric_key = 3;
+    double requested_amount = 4;
+}
+
+message QuotaResponse {
+    huwutong.common.ApiResponse api = 1;
+    bool is_allowed = 2;
+    double remaining = 3;
+    double limit = 4;
+    int64 resets_at = 5;
+}

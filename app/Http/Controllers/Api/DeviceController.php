@@ -5,11 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Device;
+use App\Services\DeviceLifecycleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DeviceController extends Controller
 {
+    public function __construct(
+        protected DeviceLifecycleService $lifecycleService,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $query = Device::with('license.product', 'license.customer.user')
@@ -40,13 +45,17 @@ class DeviceController extends Controller
         if ($request->filled('filter.trust_score_min')) {
             $query->where('trust_score', '>=', (int) $request->input('filter.trust_score_min'));
         }
+        if ($request->filled('filter.lifecycle_stage')) {
+            $query->where('lifecycle_stage', $request->input('filter.lifecycle_stage'));
+        }
 
         // 排序
         $sortField = $request->input('sort', '-last_seen_at');
         $direction = str_starts_with($sortField, '-') ? 'desc' : 'asc';
         $field = ltrim($sortField, '-');
 
-        $allowedSorts = ['fingerprint', 'platform', 'trust_score', 'is_blacklisted', 'is_virtual', 'last_seen_at', 'last_activated_at', 'created_at'];
+        $allowedSorts = ['fingerprint', 'platform', 'trust_score', 'is_blacklisted', 'is_virtual',
+            'last_seen_at', 'last_activated_at', 'created_at', 'lifecycle_stage', 'days_active'];
         if (in_array($field, $allowedSorts)) {
             $query->orderBy($field, $direction);
         } else {
@@ -151,5 +160,116 @@ class DeviceController extends Controller
         }
 
         return ApiResponse::success(['affected' => $count], "已处理 {$count} 台设备");
+    }
+
+    // ═══════════════ 生命周期画像 (M3-24) ═══════════════
+
+    /**
+     * 获取设备画像
+     */
+    public function profile(int $id, Request $request): JsonResponse
+    {
+        $device = Device::where('tenant_id', $request->user()->tenant_id)->findOrFail($id);
+
+        return ApiResponse::success(
+            $this->lifecycleService->getProfile($device)
+        );
+    }
+
+    /**
+     * 获取设备画像统计（租户级）
+     */
+    public function profileStats(Request $request): JsonResponse
+    {
+        return ApiResponse::success(
+            $this->lifecycleService->getProfileStats($request->user()->tenant_id)
+        );
+    }
+
+    /**
+     * 调整设备信任分
+     */
+    public function adjustTrustScore(int $id, Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'delta' => 'required|integer|min:-100|max:100',
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $device = Device::where('tenant_id', $request->user()->tenant_id)->findOrFail($id);
+
+        $event = $this->lifecycleService->adjustTrustScore(
+            $device,
+            $data['delta'],
+            $data['reason'],
+            [],
+            'admin',
+            $request->user()->id,
+        );
+
+        return ApiResponse::success([
+            'event' => $event,
+            'new_trust_score' => $device->fresh()->trust_score,
+            'new_stage' => $device->fresh()->lifecycle_stage,
+        ], '信任分已调整');
+    }
+
+    /**
+     * 标记可疑设备
+     */
+    public function markSuspicious(int $id, Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $device = Device::where('tenant_id', $request->user()->tenant_id)->findOrFail($id);
+
+        $event = $this->lifecycleService->markSuspicious($device, $data['reason'], $request->user()->id);
+
+        return ApiResponse::success($event->load('device'), '设备已标记为可疑');
+    }
+
+    /**
+     * 废弃设备
+     */
+    public function retire(int $id, Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $device = Device::where('tenant_id', $request->user()->tenant_id)->findOrFail($id);
+
+        $event = $this->lifecycleService->retireDevice($device, $data['reason'], $request->user()->id);
+
+        return ApiResponse::success($event->load('device'), '设备已废弃');
+    }
+
+    /**
+     * 获取设备生命周期时间线
+     */
+    public function timeline(int $id, Request $request): JsonResponse
+    {
+        $device = Device::where('tenant_id', $request->user()->tenant_id)->findOrFail($id);
+
+        return ApiResponse::success(
+            $this->lifecycleService->buildTimeline($device)
+        );
+    }
+
+    /**
+     * 获取生命周期事件历史
+     */
+    public function lifecycleEvents(int $id, Request $request): JsonResponse
+    {
+        $device = Device::where('tenant_id', $request->user()->tenant_id)->findOrFail($id);
+
+        $events = $device->lifecycleEvents()
+            ->with('user:id,name')
+            ->orderByDesc('created_at')
+            ->paginate(min((int) $request->get('per_page', 20), 100));
+
+        return ApiResponse::paginated($events);
     }
 }

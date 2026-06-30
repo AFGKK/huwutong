@@ -14,6 +14,11 @@ class RagConversation extends Model
 
     protected $table = 'rag_conversations';
 
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
     public function messages(): HasMany
     {
         return $this->hasMany(RagMessage::class, 'conversation_id');

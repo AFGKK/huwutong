@@ -1,0 +1,5 @@
+
+   INFO  Running migrations.  
+
+  2026_06_22_220000_add_views_count_to_blog_posts ...................................................... 218.09ms DONE
+

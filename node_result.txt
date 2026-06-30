@@ -1,0 +1,10 @@
+NODE: SYNTAX ERROR:
+d:\phpEnv\www\88.huwutong.com\script6_simulated.js:2108
+            setTimeout(() => document.getElementById('chat-<input>name }}';
+                                                     ^^^^^^^^^^^^^^^^^^^^^
+
+SyntaxError: missing ) after argument list
+    at checkSyntax (node:internal/main/check_syntax:72:5)
+
+Node.js v24.16.0
+

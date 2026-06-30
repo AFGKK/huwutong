@@ -6,6 +6,9 @@ test.describe('Webhook 端点管理 E2E', () => {
     test('页面加载正常', async ({ page }) => {
         await navigateAsLoggedIn(page, '/admin/webhook-endpoints');
 
+        // 等待 loading 消失
+        await page.waitForSelector('h2', { timeout: 15000 });
+
         const heading = page.locator('h2').first();
         await expect(heading).toBeVisible({ timeout: 5000 });
     });

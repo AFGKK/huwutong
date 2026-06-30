@@ -1,14 +1,51 @@
 includes:
     - ./vendor/larastan/larastan/extension.neon
+    - ./vendor/phpstan/phpstan-strict-rules/rules.neon
 
 parameters:
-    level: 5
+    level: 6
     paths:
         - app/
         - config/
         - routes/
+        - tests/
     tmpDir: storage/framework/cache/phpstan
+
     excludePaths:
         - ./*/*/FileToReplace.php
-    checkMissingIterableValueType: false
-    checkGenericClassInNonGenericObjectType: false
+        - vendor/
+        - storage/
+        - resources/
+        - database/migrations/*_create_telescope_*.php
+
+    checkMissingIterableValueType: true
+    checkGenericClassInNonGenericObjectType: true
+    checkUninitializedProperties: true
+    checkTooWideReturnType: true
+    checkExplicitMixedMissingReturn: false
+    checkFunctionNameCase: true
+    checkInternalClassCase: true
+    checkBenevolentUnionTypes: true
+
+    ignoreErrors:
+        - '#Call to an undefined method .*::factory\(\)#'
+        - '#Call to an undefined method .*::create\(\)#'
+        - '#Call to an undefined method .*::where\(\)#'
+        - '#Call to an undefined method .*::find\(\)#'
+        - '#Call to an undefined static method .*::route\(\)#'
+        - '#Call to an undefined static method .*::dispatch\(\)#'
+        - '#Access to an undefined property .*::\$[a-zA-Z_]+\.'
+        - '#Function mix not found#'
+        - '#Function auth not found#'
+        - '#Function dispatch not found#'
+        - '#Method .*::assert[[:upper:]][a-zA-Z]+ not found#'
+
+    databaseMigrationsPath:
+        - database/migrations/
+
+    featureFlags:
+        strictRules:
+            noSwitchWithoutContinue: true
+            noBooleanInBooleanComparison: true
+            noDeadLoops: true
+            noErrorCatch: false

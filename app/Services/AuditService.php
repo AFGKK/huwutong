@@ -212,4 +212,58 @@ class AuditService
             payload: $payload,
         );
     }
+
+    /**
+     * 通用模型变更审计
+     *
+     * 记录 Eloquent 模型中指定字段的变更历史。
+     *
+     * @param Model|null $model    变更的模型实例
+     * @param array      $original 变更前的原始值
+     * @param array      $changes  变更后的新值
+     * @param array      $context  附加上下文（tenant_id, user_id 等）
+     */
+    public function modelChanged(
+        ?Model $model,
+        array  $original,
+        array  $changes,
+        array  $context = [],
+    ): ?Log {
+        // 只记录有实际变更的字段
+        $diffs = [];
+        foreach ($changes as $field => $newValue) {
+            if (array_key_exists($field, $original) && $original[$field] !== $newValue) {
+                $diffs[$field] = [
+                    'old' => $original[$field],
+                    'new' => $newValue,
+                ];
+            }
+        }
+
+        if (empty($diffs)) {
+            return null;
+        }
+
+        $modelName = $model ? class_basename($model) : 'Unknown';
+        $modelId = $model?->getKey();
+        $changedFields = implode(', ', array_keys($diffs));
+
+        return $this->log(
+            action: $context['action'] ?? strtolower($modelName) . '.updated',
+            description: sprintf('%s [%s] 字段变更: %s', $modelName, $modelId, $changedFields),
+            tenantId: $context['tenant_id'] ?? null,
+            userId: $context['user_id'] ?? null,
+            licenseId: $context['license_id'] ?? null,
+            customerId: $context['customer_id'] ?? null,
+            deviceId: $context['device_id'] ?? null,
+            productId: $context['product_id'] ?? null,
+            type: $context['type'] ?? 'audit',
+            payload: [
+                'model' => $modelName,
+                'model_id' => $modelId,
+                'diffs' => $diffs,
+                'original' => $original,
+            ],
+        );
+    }
 }

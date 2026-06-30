@@ -1,0 +1,123 @@
+# ============================================================
+# Istio 流量管理 - 限流、重试、故障注入
+# M3-68: 保障 API 稳定性
+# ============================================================
+
+# ─── 全局限流 (EnvoyFilter) ───
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: hwt-global-rate-limit
+  namespace: huwutong
+spec:
+  workloadSelector:
+    labels:
+      app: hwt-api
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+              subFilter:
+                name: envoy.filters.http.router
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.ratelimit
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
+            domain: hwt-api
+            rate_limit_service:
+              transport_api_version: V3
+              grpc_service:
+                envoy_grpc:
+                  cluster_name: rate_limit_cluster
+              timeout: 0.5s
+
+---
+# ─── 金丝雀发布配置 ───
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: hwt-canary-dashboard
+  namespace: huwutong
+spec:
+  hosts:
+    - admin.huwutong.com
+  gateways:
+    - hwt-public-gateway
+  http:
+    # 基于 Header 的灰度路由
+    - match:
+        - headers:
+            x-canary:
+              exact: "enabled"
+      route:
+        - destination:
+            host: hwt-admin
+            port:
+              number: 80
+            subset: canary
+    - route:
+        - destination:
+            host: hwt-admin
+            port:
+              number: 80
+            subset: stable
+
+---
+# ─── 故障注入 (混沌测试用) ───
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: hwt-api-chaos
+  namespace: huwutong
+spec:
+  hosts:
+    - hwt-api
+  http:
+    - fault:
+        abort:
+          percentage:
+            value: 0.1  # 0.1% 请求返回 500
+          httpStatus: 500
+        delay:
+          percentage:
+            value: 0.5  # 0.5% 请求延迟 3 秒
+          fixedDelay: 3s
+      match:
+        - uri:
+            prefix: /api
+      route:
+        - destination:
+            host: hwt-api
+            port:
+              number: 80
+
+---
+# ─── 头部操作 ───
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: hwt-api-headers
+  namespace: huwutong
+spec:
+  hosts:
+    - hwt-api
+  http:
+    - match:
+        - uri:
+            prefix: /api
+      headers:
+        request:
+          set:
+            X-Forwarded-Proto: https
+            X-Istio-Service-Mesh: "true"
+      route:
+        - destination:
+            host: hwt-api
+            port:
+              number: 80

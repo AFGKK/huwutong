@@ -1,0 +1,158 @@
+# ─── gRPC 服务 Docker Compose ───
+# M1.3-28 gRPC 服务间通信实现
+# 用法: docker compose -f deploy/grpc/docker-compose.yml up -d
+
+version: '3.8'
+
+services:
+  # gRPC License 服务（独立的 PHP gRPC 服务）
+  grpc-license:
+    image: ${REGISTRY:-huwutong}/grpc-license:${TAG:-latest}
+    build:
+      context: ../../
+      dockerfile: deploy/grpc/Dockerfile
+      args:
+        SERVICE: license
+    container_name: huwutong-grpc-license
+    environment:
+      GRPC_SERVICE: license
+      GRPC_PORT: 50052
+      APP_ENV: ${APP_ENV:-production}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE:-huwutong}
+      DB_USERNAME: ${DB_USERNAME:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    ports:
+      - "50052:50052"
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - huwutong-grpc
+    restart: unless-stopped
+
+  # gRPC Device 服务
+  grpc-device:
+    image: ${REGISTRY:-huwutong}/grpc-device:${TAG:-latest}
+    build:
+      context: ../../
+      dockerfile: deploy/grpc/Dockerfile
+      args:
+        SERVICE: device
+    container_name: huwutong-grpc-device
+    environment:
+      GRPC_SERVICE: device
+      GRPC_PORT: 50053
+      APP_ENV: ${APP_ENV:-production}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE:-huwutong}
+      DB_USERNAME: ${DB_USERNAME:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+    ports:
+      - "50053:50053"
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - huwutong-grpc
+    restart: unless-stopped
+
+  # gRPC Billing 服务
+  grpc-billing:
+    image: ${REGISTRY:-huwutong}/grpc-billing:${TAG:-latest}
+    build:
+      context: ../../
+      dockerfile: deploy/grpc/Dockerfile
+      args:
+        SERVICE: billing
+    container_name: huwutong-grpc-billing
+    environment:
+      GRPC_SERVICE: billing
+      GRPC_PORT: 50054
+      APP_ENV: ${APP_ENV:-production}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE:-huwutong}
+      DB_USERNAME: ${DB_USERNAME:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+    ports:
+      - "50054:50054"
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - huwutong-grpc
+    restart: unless-stopped
+
+  # gRPC Notification 服务
+  grpc-notification:
+    image: ${REGISTRY:-huwutong}/grpc-notification:${TAG:-latest}
+    build:
+      context: ../../
+      dockerfile: deploy/grpc/Dockerfile
+      args:
+        SERVICE: notification
+    container_name: huwutong-grpc-notification
+    environment:
+      GRPC_SERVICE: notification
+      GRPC_PORT: 50055
+      APP_ENV: ${APP_ENV:-production}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE:-huwutong}
+      DB_USERNAME: ${DB_USERNAME:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+    ports:
+      - "50055:50055"
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - huwutong-grpc
+    restart: unless-stopped
+
+  # MySQL（共享）
+  mysql:
+    image: mysql:8.0
+    container_name: huwutong-grpc-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_DATABASE:-huwutong}
+    ports:
+      - "3307:3306"
+    volumes:
+      - grpc-mysql-data:/var/lib/mysql
+    networks:
+      - huwutong-grpc
+
+  # Redis（共享）
+  redis:
+    image: redis:7-alpine
+    container_name: huwutong-grpc-redis
+    ports:
+      - "6380:6379"
+    networks:
+      - huwutong-grpc
+
+  # gRPC 反射/健康检查服务
+  grpc-health:
+    image: grpc/health:latest
+    container_name: huwutong-grpc-health
+    ports:
+      - "50056:50056"
+    networks:
+      - huwutong-grpc
+
+networks:
+  huwutong-grpc:
+    driver: bridge
+
+volumes:
+  grpc-mysql-data:

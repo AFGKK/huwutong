@@ -228,20 +228,11 @@ async function loadProducts() {
 
 async function loadProductAssignments() {
     try {
-        const { data: res } = await apiClient.get('/openfeature/manage/flags');
-        const openFeatureFlags = res.data || [];
-        // 提取产品关联关系
-        const assignments = [];
-        for (const ff of featureFlags.value) {
-            for (const of of openFeatureFlags) {
-                // 这里简化处理，实际可能需要单独 API
-            }
-        }
-        // 使用后端返回的 assignments 或者独立 API
-        // feature-flag 关联存储在 product_feature_flag 表
-        // 暂时使用简化方式
+        // 从 product_feature_flag 表加载关联数据
+        const { data: res } = await apiClient.get('/feature-flags/assignments');
+        productAssignments.value = res.data || [];
     } catch {
-        // ignore
+        productAssignments.value = [];
     }
 }
 

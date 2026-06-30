@@ -3,19 +3,20 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TaxRate extends Model
 {
     protected $fillable = [
-        'country_code', 'region_code', 'name', 'rate',
-        'type', 'category', 'description', 'is_eu',
-        'is_active', 'effective_from', 'effective_until',
+        'country_code', 'region_code', 'name', 'rate', 'type',
+        'category', 'description', 'is_eu', 'is_active',
+        'effective_from', 'effective_until',
     ];
 
     protected function casts(): array
     {
         return [
-            'rate' => 'float',
+            'rate' => 'decimal:4',
             'is_eu' => 'boolean',
             'is_active' => 'boolean',
             'effective_from' => 'datetime',
@@ -23,26 +24,40 @@ class TaxRate extends Model
         ];
     }
 
-    /**
-     * 查找指定国家的适用税率
-     */
-    public static function findRate(string $countryCode, ?string $regionCode = null, string $type = 'vat'): ?self
+    public function scopeActive($query)
     {
-        $query = static::where('country_code', strtoupper($countryCode))
-            ->where('is_active', true)
+        return $query->where('is_active', true)
             ->where(function ($q) {
-                $q->whereNull('effective_until')
-                  ->orWhere('effective_until', '>', now());
+                $q->whereNull('effective_from')->orWhere('effective_from', '<=', now());
+            })
+            ->where(function ($q) {
+                $q->whereNull('effective_until')->orWhere('effective_until', '>=', now());
             });
+    }
 
-        // 优先找 region 精确匹配
+    public function scopeForCountry($query, string $countryCode)
+    {
+        return $query->where('country_code', strtoupper($countryCode));
+    }
+
+    public function scopeForRegion($query, ?string $regionCode)
+    {
         if ($regionCode) {
-            $region = $query->clone()->where('region_code', strtoupper($regionCode))->first();
-            if ($region) return $region;
+            return $query->where('region_code', $regionCode);
         }
+        return $query->whereNull('region_code');
+    }
 
-        // 回退到国家级别
-        return $query->whereNull('region_code')->first();
+    /**
+     * 查找适用税率（修复 TaxCalculatorService 的调用）
+     */
+    public static function findRate(string $countryCode, ?string $regionCode = null): ?self
+    {
+        return self::active()
+            ->forCountry($countryCode)
+            ->forRegion($regionCode)
+            ->orderByDesc('region_code') // 优先精确匹配区域
+            ->first();
     }
 
     /**
@@ -50,6 +65,15 @@ class TaxRate extends Model
      */
     public static function getEuCountries(): array
     {
-        return static::where('is_eu', true)->distinct()->pluck('country_code')->toArray();
+        return self::where('is_eu', true)
+            ->whereNull('region_code')
+            ->distinct()
+            ->pluck('country_code')
+            ->toArray();
+    }
+
+    public function taxLines()
+    {
+        return $this->hasMany(InvoiceTaxLine::class);
     }
 }

@@ -81,6 +81,13 @@
                     <el-button @click="resetFilters">重置</el-button>
                 </el-form-item>
             </el-form>
+            <div class="filter-bar-footer">
+                <SavedSearchBar
+                    page="customers"
+                    :current-filters="filters"
+                    @apply="applySavedFilters"
+                />
+            </div>
         </el-card>
 
         <!-- 表格 -->
@@ -93,18 +100,24 @@
                 @sort-change="handleSortChange"
             >
                 <el-table-column type="selection" width="40" />
-                <el-table-column label="客户" min-width="200">
+                <el-table-column label="客户" min-width="220">
                     <template #default="{ row }">
-                        <div class="customer-info">
-                            <div class="customer-name">
-                                <el-link type="primary" @click="$router.push(`/customers/${row.id}`)">
-                                    {{ row.user?.name || '未关联用户' }}
-                                </el-link>
-                            </div>
-                            <div class="customer-contact" v-if="row.user?.email || row.user?.phone">
-                                {{ row.user?.email }}
-                                <template v-if="row.user?.email && row.user?.phone"> · </template>
-                                {{ row.user?.phone }}
+                        <div class="customer-info" style="display: flex; align-items: center; gap: 10px;">
+                            <el-avatar :size="32" :src="row.user?.avatar_url" shape="square">
+                                <span class="avatar-initial">{{ (row.user?.name || '?').charAt(0).toUpperCase() }}</span>
+                                <template #error>{{ (row.user?.name || '?').charAt(0).toUpperCase() }}</template>
+                            </el-avatar>
+                            <div>
+                                <div class="customer-name">
+                                    <el-link type="primary" @click="$router.push(`/customers/${row.id}`)">
+                                        {{ row.user?.name || '未关联用户' }}
+                                    </el-link>
+                                </div>
+                                <div class="customer-contact" v-if="row.user?.email || row.user?.phone">
+                                    {{ row.user?.email }}
+                                    <template v-if="row.user?.email && row.user?.phone"> · </template>
+                                    {{ row.user?.phone }}
+                                </div>
                             </div>
                         </div>
                     </template>
@@ -247,6 +260,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus, ArrowDown } from '@element-plus/icons-vue';
 import customerApi from '@/api/customer';
+import SavedSearchBar from '@/components/SavedSearchBar.vue';
 
 const router = useRouter();
 
@@ -348,6 +362,16 @@ function resetFilters() {
     filters.type = '';
     filters.level = '';
     filters.status = '';
+    doSearch();
+}
+
+// 应用保存的搜索
+function applySavedFilters(savedFilters) {
+    for (const [key, value] of Object.entries(savedFilters)) {
+        if (key in filters) {
+            filters[key] = value;
+        }
+    }
     doSearch();
 }
 
@@ -543,5 +567,12 @@ onMounted(() => {
 
 :deep(.el-form--inline .el-form-item) {
     margin-bottom: 0;
+}
+.filter-bar-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid var(--el-border-color-extra-light);
+    margin-top: 8px;
 }
 </style>

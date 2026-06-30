@@ -17,4 +17,15 @@ class LicenseStatusChanged
         public string  $newStatus,
         public ?string $reason = null,
     ) {}
+
+    /**
+     * 兼容旧的 previousStatus 属性名
+     */
+    public function __get(string $name): mixed
+    {
+        return match ($name) {
+            'previousStatus' => $this->oldStatus,
+            default => throw new \RuntimeException("Property {$name} does not exist."),
+        };
+    }
 }

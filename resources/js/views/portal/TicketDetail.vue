@@ -21,7 +21,7 @@
                         </div>
                         <div class="ticket-id">#{{ ticket.id }}</div>
                     </div>
-                    <h3 class="ticket-title">{{ ticket.title }}</h3>
+                    <h3 class="ticket-title">{{ ticket.subject || ticket.title }}</h3>
                     <div class="ticket-description">{{ ticket.description }}</div>
                     <div class="ticket-footer">
                         <span class="ticket-author">{{ ticket.customer?.name || ticket.user?.name || '您' }}</span>
@@ -39,7 +39,12 @@
                         <div v-for="reply in replies" :key="reply.id" class="reply-item">
                             <div class="reply-header">
                                 <div class="reply-author">
-                                    <el-avatar :size="28" :icon="reply.is_admin ? 'UserFilled' : 'User'" />
+                                    <el-avatar :size="28" :src="reply.user?.avatar_url || reply.admin?.avatar_url">
+                                        <span class="avatar-initial">{{ (reply.user?.name || reply.admin?.name || '?').charAt(0).toUpperCase() }}</span>
+                                        <template #error>
+                                            <span class="avatar-initial">{{ (reply.user?.name || reply.admin?.name || '?').charAt(0).toUpperCase() }}</span>
+                                        </template>
+                                    </el-avatar>
                                     <span class="reply-name">
                                         {{ reply.user?.name || reply.admin?.name || '客服' }}
                                         <el-tag v-if="reply.is_admin" size="small" type="primary" class="staff-tag">客服</el-tag>
@@ -47,7 +52,7 @@
                                 </div>
                                 <span class="reply-time">{{ reply.created_at }}</span>
                             </div>
-                            <div class="reply-body">{{ reply.body || reply.message }}</div>
+                            <div class="reply-body">{{ reply.content || reply.body || reply.message }}</div>
                         </div>
                     </div>
                     <el-empty v-else description="暂无回复，请耐心等待" :image-size="60" />
@@ -160,11 +165,12 @@ const satisfactionRating = ref(0);
 const rated = ref(false);
 
 const canReply = computed(() => {
-    return ['open', 'in_progress'].includes(ticket.value.status);
+    return ['open', 'replied', 'in_progress'].includes(ticket.value.status);
 });
 
 const STATUS_MAP = {
     open: { type: 'danger', label: '待处理' },
+    replied: { type: 'warning', label: '已回复' },
     in_progress: { type: 'primary', label: '处理中' },
     resolved: { type: 'success', label: '已解决' },
     closed: { type: 'info', label: '已关闭' },
@@ -172,7 +178,7 @@ const STATUS_MAP = {
 
 const PRIORITY_MAP = {
     low: { type: 'info', label: '低' },
-    normal: { type: '', label: '普通' },
+    medium: { type: '', label: '普通' },
     high: { type: 'warning', label: '高' },
     urgent: { type: 'danger', label: '紧急' },
 };
@@ -189,7 +195,7 @@ async function fetchDetail() {
     try {
         const { data: res } = await ticketApi.show(id);
         ticket.value = res.data || {};
-        replies.value = res.data?.replies || [];
+        replies.value = res.data?.public_replies || res.data?.publicReplies || res.data?.replies || [];
 
         // Check if already rated
         if (res.data?.satisfaction_rating) {
@@ -207,7 +213,7 @@ async function handleReply() {
     if (!replyBody.value.trim()) return;
     replying.value = true;
     try {
-        await ticketApi.reply(ticket.value.id, { body: replyBody.value });
+        await ticketApi.reply(ticket.value.id, { content: replyBody.value });
         ElMessage.success('回复已发送');
         replyBody.value = '';
         await fetchDetail();

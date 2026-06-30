@@ -7,6 +7,7 @@ import router from './router';
 import App from './App.vue';
 import './bootstrap';
 import errorReporter from './utils/errorReporter';
+import './pwa/register-sw'; // PWA Service Worker 注册
 
 const app = createApp(App);
 
@@ -18,6 +19,9 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 app.use(createPinia());
 app.use(router);
 app.use(ElementPlus, { size: 'default' });
+
+// 轻量 i18n — 未配置翻译时直接返回 key 本身
+app.config.globalProperties.$t = (key) => key;
 
 // 全局错误处理器
 app.config.errorHandler = (err, instance, info) => {

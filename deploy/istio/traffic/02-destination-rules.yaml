@@ -1,0 +1,101 @@
+# ============================================================
+# DestinationRule - 目标规则
+# M3-68: 熔断、负载均衡、连接池、子集定义
+# ============================================================
+
+# ─── Laravel API (stable + canary 子集) ───
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: hwt-api
+  namespace: huwutong
+spec:
+  host: hwt-api
+  trafficPolicy:
+    # 连接池设置
+    connectionPool:
+      tcp:
+        maxConnections: 200
+        connectTimeout: 5s
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 200
+        maxRequestsPerConnection: 0
+        maxRetries: 3
+    # 熔断设置
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 60s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+    # 负载均衡
+    loadBalancer:
+      consistentHash:
+        httpHeaderName: x-tenant-id  # 按租户 ID 哈希保持会话亲和性
+  subsets:
+    - name: stable
+      labels:
+        version: stable
+      trafficPolicy:
+        connectionPool:
+          http:
+            http1MaxPendingRequests: 200
+    - name: canary
+      labels:
+        version: canary
+      trafficPolicy:
+        connectionPool:
+          http:
+            http1MaxPendingRequests: 50
+
+---
+# ─── Reverb WebSocket ───
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: hwt-reverb
+  namespace: huwutong
+spec:
+  host: hwt-reverb
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 5000
+        connectTimeout: 10s
+    loadBalancer:
+      simple: ROUND_ROBIN
+
+---
+# ─── Redis ───
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: hwt-redis
+  namespace: huwutong
+spec:
+  host: hwt-redis-master
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 200
+        connectTimeout: 3s
+    loadBalancer:
+      simple: ROUND_ROBIN
+
+---
+# ─── MySQL ───
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: hwt-mysql
+  namespace: huwutong
+spec:
+  host: hwt-mysql
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 5s
+    loadBalancer:
+      simple: ROUND_ROBIN

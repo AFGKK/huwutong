@@ -1,0 +1,46 @@
+=== Tag Balance After Fix ===
+[OK] <a>: open=32, close=32
+[OK] <body>: open=1, close=1
+[OK] <button>: open=50, close=50
+[MISMATCH] <div>: open=273, close=277
+[OK] <form>: open=2, close=2
+[OK] <h1>: open=1, close=1
+[OK] <h2>: open=4, close=4
+[OK] <h3>: open=10, close=10
+[OK] <h4>: open=1, close=1
+[OK] <head>: open=1, close=1
+[MISMATCH] <hr>: open=1, close=0
+[OK] <html>: open=1, close=1
+[MISMATCH] <img>: open=21, close=0
+[MISMATCH] <input>: open=18, close=0
+[OK] <label>: open=5, close=5
+[OK] <li>: open=1, close=1
+[MISMATCH] <link>: open=1, close=0
+[MISMATCH] <meta>: open=8, close=0
+[OK] <nav>: open=1, close=1
+[OK] <p>: open=22, close=22
+[MISMATCH] <path>: open=70, close=0
+[OK] <script>: open=6, close=6
+[OK] <section>: open=7, close=7
+[OK] <span>: open=147, close=147
+[OK] <style>: open=1, close=1
+[OK] <svg>: open=60, close=60
+[OK] <table>: open=2, close=2
+[OK] <tbody>: open=2, close=2
+[OK] <td>: open=6, close=6
+[OK] <textarea>: open=1, close=1
+[OK] <th>: open=4, close=4
+[OK] <thead>: open=1, close=1
+[OK] <title>: open=1, close=1
+[OK] <tr>: open=3, close=3
+[OK] <ul>: open=1, close=1
+
+<script> opens: 6
+<script> closes: 6
+
+=== Remaining corruption ===
+★ chars: 476
+€ chars: 97
+?h3>: 0
+?p>: 0
+?span>: 0

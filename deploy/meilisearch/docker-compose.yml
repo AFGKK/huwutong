@@ -1,0 +1,26 @@
+# ===================================================
+# Meilisearch 搜索引擎 — 独立部署
+# 使用方式: docker compose -f deploy/meilisearch/docker-compose.yml up -d
+# ===================================================
+
+services:
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: meilisearch
+    restart: unless-stopped
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: "${MEILISEARCH_API_KEY:-huwutong-dev-master-key}"
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_ENV: "development"
+    volumes:
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  meilisearch_data:

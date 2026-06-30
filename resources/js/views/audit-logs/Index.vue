@@ -10,10 +10,16 @@
                     <el-icon><Refresh /></el-icon>
                     刷新
                 </el-button>
-                <el-button @click="exportLogs" :disabled="logs.length === 0">
+                <el-dropdown @command="handleExport" split-button type="primary">
                     <el-icon><Download /></el-icon>
                     导出
-                </el-button>
+                    <template #dropdown>
+                        <el-dropdown-menu>
+                            <el-dropdown-item command="csv">导出 CSV</el-dropdown-item>
+                            <el-dropdown-item command="json">导出 JSON</el-dropdown-item>
+                        </el-dropdown-menu>
+                    </template>
+                </el-dropdown>
             </div>
         </div>
 
@@ -60,8 +66,23 @@
                 </el-form-item>
                 <el-form-item label="日志类型">
                     <el-select v-model="filters.type" clearable placeholder="全部" style="width: 140px" @change="search">
-                        <el-option v-for="(count, type) in stats.by_type" :key="type" :label="typeLabel(type)" :value="type" />
+                        <el-option value="audit" label="审计" />
+                        <el-option value="security" label="安全" />
+                        <el-option value="error" label="错误" />
+                        <el-option value="system" label="系统" />
                     </el-select>
+                </el-form-item>
+                <el-form-item label="动作前缀">
+                    <el-select v-model="filters.action_prefix" clearable placeholder="全部" style="width: 160px" @change="search">
+                        <el-option label="License 相关" value="license." />
+                        <el-option label="设备相关" value="device." />
+                        <el-option label="用户相关" value="user." />
+                        <el-option label="客户相关" value="customer." />
+                        <el-option label="安全事件" value="security." />
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="关联 ID">
+                    <el-input v-model="filters.license_id" placeholder="License ID" clearable style="width: 120px" @change="search" />
                 </el-form-item>
                 <el-form-item label="开始日期">
                     <el-date-picker v-model="filters.date_from" type="date" placeholder="开始日期" value-format="YYYY-MM-DD" @change="search" />
@@ -123,7 +144,7 @@
                             <span v-if="row.customer" class="related-link" @click="$router.push('/customers/' + row.customer_id)">
                                 客户 #{{ row.customer_id }}
                             </span>
-                            <span v-if="!row.license && !row.customer" class="text-muted">—</span>
+                            <span v-if="!row.license && !row.customer && !row.device" class="text-muted">—</span>
                         </div>
                     </template>
                 </el-table-column>
@@ -144,7 +165,7 @@
                     v-model:current-page="page"
                     v-model:page-size="perPage"
                     :total="total"
-                    :page-sizes="[15, 30, 50, 100]"
+                    :page-sizes="[20, 50, 100]"
                     layout="total, sizes, prev, pager, next"
                     @current-change="fetchLogs"
                     @size-change="fetchLogs"
@@ -153,7 +174,7 @@
         </el-card>
 
         <!-- 详情 Dialog -->
-        <el-dialog v-model="showDetailDialog" title="日志详情" width="640px">
+        <el-dialog v-model="showDetailDialog" title="日志详情" width="700px">
             <div v-if="detailLog">
                 <el-descriptions :column="2" border>
                     <el-descriptions-item label="时间">{{ formatTime(detailLog.created_at) }}</el-descriptions-item>
@@ -166,15 +187,10 @@
                     <el-descriptions-item label="操作者">{{ detailLog.user?.name || detailLog.user?.email || '系统' }}</el-descriptions-item>
                     <el-descriptions-item label="IP 地址"><code>{{ detailLog.ip_address || '—' }}</code></el-descriptions-item>
                     <el-descriptions-item label="User Agent" :content-style="{ 'word-break': 'break-all' }">{{ detailLog.user_agent || '—' }}</el-descriptions-item>
-                    <el-descriptions-item label="License" :span="2">
-                        {{ detailLog.license?.license_key || '—' }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="客户" :span="2">
-                        {{ detailLog.customer?.name || '—' }}
-                    </el-descriptions-item>
-                    <el-descriptions-item label="设备" :span="2">
-                        {{ detailLog.device?.fingerprint || detailLog.device?.name || '—' }}
-                    </el-descriptions-item>
+                    <el-descriptions-item label="License ID" :span="1">{{ detailLog.license_id || '—' }}</el-descriptions-item>
+                    <el-descriptions-item label="客户 ID" :span="1">{{ detailLog.customer_id || '—' }}</el-descriptions-item>
+                    <el-descriptions-item label="设备 ID" :span="1">{{ detailLog.device_id || '—' }}</el-descriptions-item>
+                    <el-descriptions-item label="产品 ID" :span="1">{{ detailLog.product_id || '—' }}</el-descriptions-item>
                 </el-descriptions>
 
                 <div class="detail-section">
@@ -182,9 +198,43 @@
                     <p>{{ detailLog.description }}</p>
                 </div>
 
-                <div v-if="detailLog.payload" class="detail-section">
-                    <h4>请求载荷</h4>
-                    <pre class="payload-json">{{ JSON.stringify(detailLog.payload, null, 2) }}</pre>
+                <div v-if="detailLog.payload && Object.keys(detailLog.payload).length" class="detail-section">
+                    <h4>请求载荷（Payload）
+                        <el-tag size="small" type="info" style="margin-left:8px;">
+                            {{ Object.keys(detailLog.payload).length }} 字段
+                        </el-tag>
+                    </h4>
+                    <!-- 当 payload 中有 diffs 字段时，使用对比展示 -->
+                    <template v-if="detailLog.payload.diffs">
+                        <el-table :data="diffRows" stripe size="small" border>
+                            <el-table-column prop="field" label="字段" width="160" />
+                            <el-table-column label="原值" min-width="150">
+                                <template #default="{ row }">
+                                    <span class="diff-old">{{ row.old !== undefined ? row.old : '—' }}</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="新值" min-width="150">
+                                <template #default="{ row }">
+                                    <span class="diff-new">{{ row.new !== undefined ? row.new : '—' }}</span>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </template>
+                    <!-- 普通 payload 展示 -->
+                    <pre v-else class="payload-json">{{ JSON.stringify(detailLog.payload, null, 2) }}</pre>
+                </div>
+
+                <!-- Merkle 哈希信息 -->
+                <div v-if="detailLog.merkle_hash" class="detail-section merkle-section">
+                    <h4>Merkle 链信息</h4>
+                    <el-descriptions :column="1" border size="small">
+                        <el-descriptions-item label="当前哈希">
+                            <code class="merkle-hash">{{ detailLog.merkle_hash }}</code>
+                        </el-descriptions-item>
+                        <el-descriptions-item v-if="detailLog.merkle_parent_id" label="上级哈希">
+                            <code class="merkle-hash">{{ detailLog.merkle_parent_id }}</code>
+                        </el-descriptions-item>
+                    </el-descriptions>
                 </div>
             </div>
         </el-dialog>
@@ -192,7 +242,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Refresh, Download, UserFilled } from '@element-plus/icons-vue';
 import auditLogApi from '@/api/auditLog';
@@ -202,7 +252,7 @@ const showDetailDialog = ref(false);
 const detailLog = ref(null);
 const logs = ref([]);
 const page = ref(1);
-const perPage = ref(15);
+const perPage = ref(20);
 const total = ref(0);
 
 const stats = reactive({
@@ -212,9 +262,21 @@ const stats = reactive({
 const filters = reactive({
     action: '',
     type: '',
+    action_prefix: '',
+    license_id: '',
     date_from: '',
     date_to: '',
     search: '',
+});
+
+// 将 diffs 对象转为表格行
+const diffRows = computed(() => {
+    if (!detailLog.value?.payload?.diffs) return [];
+    return Object.entries(detailLog.value.payload.diffs).map(([field, vals]) => ({
+        field,
+        old: vals.old,
+        new: vals.new,
+    }));
 });
 
 function actionLabel(action) {
@@ -228,35 +290,44 @@ function actionLabel(action) {
         'license.refunded': '退款 License',
         'license.updated': '更新 License',
         'license.status_changed': '状态变更',
+        'license.renewed': '续费',
         'customer.created': '创建客户',
         'customer.updated': '更新客户',
+        'device.activated': '设备激活',
+        'device.deactivated': '设备解绑',
         'user.login': '用户登录',
         'user.logout': '用户登出',
         'user.login_failed': '登录失败',
+        'user.created': '创建用户',
+        'user.password_changed': '修改密码',
         'subscription.created': '创建订阅',
         'subscription.canceled': '取消订阅',
         'subscription.renewed': '续费订阅',
+        'api_key.created': '创建 API 密钥',
+        'api_key.revoked': '吊销 API 密钥',
+        'security.mfa_enabled': '启用 MFA',
+        'security.mfa_disabled': '禁用 MFA',
     };
     return map[action] || action;
 }
 
 function actionTag(action) {
     if (!action) return 'info';
-    const positive = ['created', 'activated', 'published', 'login', 'renewed'];
-    const negative = ['revoked', 'suspended', 'expired', 'refunded', 'failed', 'canceled', 'deleted'];
+    const positive = ['created', 'activated', 'published', 'login', 'renewed', 'restored'];
+    const negative = ['revoked', 'suspended', 'expired', 'refunded', 'failed', 'canceled', 'deleted', 'login_failed'];
     if (positive.some(p => action.includes(p))) return 'success';
     if (negative.some(n => action.includes(n))) return 'danger';
-    if (action.includes('updated')) return 'warning';
+    if (action.includes('updated') || action.includes('changed')) return 'warning';
     return 'info';
 }
 
 function typeLabel(type) {
-    const map = { audit: '审计', security: '安全', system: '系统', billing: '计费' };
+    const map = { audit: '审计', security: '安全', error: '错误', system: '系统', billing: '计费' };
     return map[type] || type;
 }
 
 function typeTag(type) {
-    const map = { audit: 'primary', security: 'danger', system: 'info', billing: 'warning' };
+    const map = { audit: 'primary', security: 'danger', error: 'danger', system: 'info', billing: 'warning' };
     return map[type] || 'info';
 }
 
@@ -274,6 +345,15 @@ async function loadStats() {
     } catch { /* ignore */ }
 }
 
+function buildFilterParams() {
+    const filter = {};
+    if (filters.action) filter.action = filters.action;
+    if (filters.type) filter.type = filters.type;
+    if (filters.action_prefix) filter.action_prefix = filters.action_prefix;
+    if (filters.license_id) filter.license_id = filters.license_id;
+    return filter;
+}
+
 async function fetchLogs() {
     loading.value = true;
     try {
@@ -281,11 +361,9 @@ async function fetchLogs() {
             page: page.value,
             per_page: perPage.value,
             sort: '-created_at',
+            filter: buildFilterParams(),
         };
-        const filter = {};
-        if (filters.action) filter.action = filters.action;
-        if (filters.type) filter.type = filters.type;
-        if (Object.keys(filter).length) params.filter = filter;
+        if (Object.keys(params.filter).length === 0) delete params.filter;
         if (filters.date_from) params.date_from = filters.date_from;
         if (filters.date_to) params.date_to = filters.date_to;
         if (filters.search) params.search = filters.search;
@@ -310,6 +388,8 @@ function search() {
 function resetFilters() {
     filters.action = '';
     filters.type = '';
+    filters.action_prefix = '';
+    filters.license_id = '';
     filters.date_from = '';
     filters.date_to = '';
     filters.search = '';
@@ -330,25 +410,25 @@ async function showDetail(row) {
     }
 }
 
-function exportLogs() {
-    const headers = ['时间', '操作', '类型', '描述', '操作者', 'IP地址'];
-    const rows = logs.value.map(l => [
-        formatTime(l.created_at),
-        actionLabel(l.action),
-        typeLabel(l.type),
-        l.description,
-        l.user?.name || '系统',
-        l.ip_address || '',
-    ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    ElMessage.success('日志已导出');
+function handleExport(format) {
+    // 使用服务端导出端点，传递当前筛选条件
+    const params = new URLSearchParams();
+    params.set('format', format);
+
+    const filter = buildFilterParams();
+    if (Object.keys(filter).length) {
+        for (const [k, v] of Object.entries(filter)) {
+            params.set('filter[' + k + ']', v);
+        }
+    }
+    if (filters.date_from) params.set('date_from', filters.date_from);
+    if (filters.date_to) params.set('date_to', filters.date_to);
+    if (filters.search) params.set('search', filters.search);
+
+    const url = '/api/audit-logs/export?' + params.toString();
+    window.open(url, '_blank');
+
+    ElMessage.success('正在导出，请稍候...');
 }
 
 function loadAll() {
@@ -473,6 +553,23 @@ onMounted(() => {
     max-height: 300px;
     overflow: auto;
     white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.diff-old {
+    color: #F56C6C;
+    text-decoration: line-through;
+}
+.diff-new {
+    color: #67C23A;
+    font-weight: 600;
+}
+
+.merkle-section {
+    margin-top: 20px;
+}
+.merkle-hash {
+    font-size: 11px;
     word-break: break-all;
 }
 

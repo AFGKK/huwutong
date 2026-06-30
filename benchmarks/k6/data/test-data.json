@@ -1,0 +1,19 @@
+{
+    "licenses": [
+        { "key": "BENCH-HWT-000001", "product_id": 1 },
+        { "key": "BENCH-HWT-000002", "product_id": 1 },
+        { "key": "BENCH-HWT-000003", "product_id": 2 },
+        { "key": "BENCH-HWT-000004", "product_id": 2 },
+        { "key": "BENCH-HWT-000005", "product_id": 1 }
+    ],
+    "customers": [
+        { "id": 1, "name": "Bench Customer A" },
+        { "id": 2, "name": "Bench Customer B" },
+        { "id": 3, "name": "Bench Customer C" }
+    ],
+    "devices": [
+        "bench-fp-a1b2c3d4",
+        "bench-fp-e5f6g7h8",
+        "bench-fp-i9j0k1l2"
+    ]
+}

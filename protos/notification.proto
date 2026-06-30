@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+package huwutong.notification;
+
+import "common.proto";
+
+option php_namespace = "App\\Services\\Grpc\\Proto\\Notification";
+option php_metadata_namespace = "App\\Services\\Grpc\\Proto\\Notification\\GPBMetadata";
+
+// ─── 通知服务 ───
+// 站内信、邮件、IM、Webhook 推送
+
+service NotificationService {
+    // 发送通知
+    rpc Send(SendRequest) returns (SendResponse);
+
+    // 批量发送
+    rpc SendBatch(SendBatchRequest) returns (SendBatchResponse);
+
+    // 获取通知历史
+    rpc GetHistory(GetHistoryRequest) returns (NotificationList);
+
+    // 标记已读
+    rpc MarkAsRead(MarkReadRequest) returns (huwutong.common.ApiResponse);
+
+    // 获取未读数量
+    rpc GetUnreadCount(UnreadCountRequest) returns (UnreadCountResponse);
+
+    // 推送 Webhook
+    rpc PushWebhook(WebhookRequest) returns (huwutong.common.ApiResponse);
+
+    // 发送邮件
+    rpc SendEmail(EmailRequest) returns (huwutong.common.ApiResponse);
+}
+
+message SendRequest {
+    huwutong.common.TenantContext tenant = 1;
+    repeated int64 user_ids = 2;
+    string type = 3;
+    string title = 4;
+    string body = 5;
+    string channel = 6;
+    map<string, string> data = 7;
+    string priority = 8;
+}
+
+message SendResponse {
+    huwutong.common.ApiResponse api = 1;
+    int64 notification_id = 2;
+    int32 recipient_count = 3;
+}
+
+message SendBatchRequest {
+    huwutong.common.TenantContext tenant = 1;
+    repeated SendRequest notifications = 2;
+}
+
+message SendBatchResponse {
+    huwutong.common.ApiResponse api = 1;
+    int32 total_sent = 2;
+    int32 failed = 3;
+    repeated string errors = 4;
+}
+
+message GetHistoryRequest {
+    huwutong.common.TenantContext tenant = 1;
+    int64 user_id = 2;
+    string type = 3;
+    bool unread_only = 4;
+    huwutong.common.Pagination pagination = 5;
+}
+
+message NotificationItem {
+    int64 id = 1;
+    int64 user_id = 2;
+    string type = 3;
+    string title = 4;
+    string body = 5;
+    bool is_read = 6;
+    int64 read_at = 7;
+    int64 created_at = 8;
+    map<string, string> data = 9;
+}
+
+message NotificationList {
+    huwutong.common.ApiResponse api = 1;
+    repeated NotificationItem notifications = 2;
+    huwutong.common.Pagination pagination = 3;
+}
+
+message MarkReadRequest {
+    huwutong.common.TenantContext tenant = 1;
+    int64 user_id = 2;
+    repeated int64 notification_ids = 3;
+    bool mark_all = 4;
+}
+
+message UnreadCountRequest {
+    huwutong.common.TenantContext tenant = 1;
+    int64 user_id = 2;
+}
+
+message UnreadCountResponse {
+    huwutong.common.ApiResponse api = 1;
+    int32 count = 2;
+}
+
+message WebhookRequest {
+    huwutong.common.TenantContext tenant = 1;
+    string event_type = 2;
+    string payload_json = 3;
+    string target_url = 4;
+    map<string, string> headers = 5;
+    int64 timeout_seconds = 6;
+}
+
+message EmailRequest {
+    huwutong.common.TenantContext tenant = 1;
+    repeated string to = 2;
+    repeated string cc = 3;
+    string subject = 4;
+    string body_html = 5;
+    string body_text = 6;
+    string template_name = 7;
+    map<string, string> template_data = 8;
+    repeated string attachments = 9;
+}

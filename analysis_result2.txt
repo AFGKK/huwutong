@@ -1,0 +1,66 @@
+=== Last 30 non-blank lines ===
+L19449: }
+L19457: });
+L19465: }
+L19473: // QR codes - ★★̬★★Ⱦ★★★★★★ʾͼƬ
+L19481: const qrList = document.getElementById('demo-qr-list');
+L19489: qrList.innerHTML = '';
+L19497: if (data.demo_images && data.demo_images.length > 0) {
+L19505: document.getElementById('demo-qr-section').classList.remove('hidden');
+L19513: data.demo_images.forEach(function(img) {
+L19521: if (!img.url) return;
+L19529: const div = document.createElement('div');
+L19537: div.className = 'text-center';
+L19545: div.innerHTML =
+L19553: '<p class="text-sm text-gray-500 mb-2">' + escHtml(img.label || '★★ά★★') + '</p>' +
+L19561: '<img src="' + escHtml(img.url) + '" alt="' + escHtml(img.label || '★★ά★★') + '" class="w-32 h-32 rounded-lg border bord
+L19569: qrList.appendChild(div);
+L19577: });
+L19585: if (qrList.children.length === 0) {
+L19593: document.getElementById('demo-qr-section').classList.add('hidden');
+L19601: }
+L19609: } else {
+L19617: document.getElementById('demo-qr-section').classList.add('hidden');
+L19625: }
+L19633: }
+L19641: function escHtml(str) {
+L19649: if (!str) return '';
+L19657: return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+L19665: }
+L19673: </body>
+L19681: </html>
+
+
+=== All <h3> and </h3> tags ===
+L3641: <h3 class="text-lg font-semibold text-gray-900 mb-4">功能特★€?h3>
+L3753: <h3 class="text-lg font-semibold text-gray-900 mb-4">包含模块</h3>
+L3857: <h3 class="text-lg font-semibold text-gray-900 mb-4">详细描述</h3>
+L4313: <h3 class="text-lg font-semibold mb-4">发表评价</h3>
+L4793: <h3 class="text-lg font-bold text-gray-900 mt-2">{{ $plan->name }}</h3>
+L5161: <h3 class="text-lg font-bold text-gray-900 mt-2">{{ $sku->name }}</h3>
+L5881: <h3 class="font-semibold text-gray-900 group-hover:text-primary-600 transition line-clamp-1">{{ $rp->name }}</h3>
+L16305: <h3 class="text-lg font-bold text-gray-900">分享给好★?h3>
+L16625: <h3 class="text-lg font-bold text-gray-900">到货通知</h3>
+L17177: <h3 class="text-lg font-bold text-gray-900">商品展示</h3>
+
+
+=== All <script> and </script> tags ===
+L113: <script>
+L185: </script>
+L353: <script type="application/ld+json">
+L713: </script>
+L2825: <script>
+L3153: </script>
+L4529: <script>
+L4641: </script>
+L6481: <script>
+L16265: </script>
+L18769: <script>
+
+
+=== All <p> tags analysis ===
+
+Extra </p> tags:
+
+Unclosed <p> tags:
+  L16561: <p class="text-xs text-gray-400 mt-2">或★制链接手动分★?p>

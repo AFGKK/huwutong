@@ -54,7 +54,8 @@ class ApmMiddleware
         $response = $next($request);
 
         // 记录性能数据
-        $duration = (microtime(true) - LARAVEL_START) * 1000;
+        $startTime = defined('LARAVEL_START') ? LARAVEL_START : $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
+        $duration = (microtime(true) - $startTime) * 1000;
 
         $metrics = [
             'duration_ms' => $duration,

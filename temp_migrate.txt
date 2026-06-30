@@ -1,0 +1,26 @@
+
+   INFO  Running migrations.  
+
+  2026_06_22_211141_create_blog_comments_table ........................................................... 4.88ms FAIL
+
+   Illuminate\Database\QueryException 
+
+  SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'blog_comments' already exists (Connection: mysql, SQL: create table `blog_comments` (`id` bigint unsigned not null auto_increment primary key, `blog_id` bigint unsigned not null, `user_id` bigint unsigned not null, `parent_id` bigint unsigned null, `content` text not null, `image` varchar(255) null, `likes_count` int not null default '0', `is_pinned` tinyint(1) not null default '0', `created_at` timestamp null, `updated_at` timestamp null) default character set utf8mb4 collate 'utf8mb4_0900_ai_ci')
+
+  at vendor\laravel\framework\src\Illuminate\Database\Connection.php:825
+    821▕                     $this->getName(), $query, $this->prepareBindings($bindings), $e
+    822▕                 );
+    823▕             }
+    824▕ 
+  ➜ 825▕             throw new QueryException(
+    826▕                 $this->getName(), $query, $this->prepareBindings($bindings), $e
+    827▕             );
+    828▕         }
+    829▕     }
+
+  1   vendor\laravel\framework\src\Illuminate\Database\Connection.php:571
+      PDOException::("SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'blog_comments' already exists")
+
+  2   vendor\laravel\framework\src\Illuminate\Database\Connection.php:571
+      PDOStatement::execute()
+

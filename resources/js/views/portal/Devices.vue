@@ -56,7 +56,7 @@
                         <el-link
                             v-if="row.license"
                             type="primary"
-                            :underline="false"
+                            :underline="'never'"
                             @click="$router.push(`/portal/licenses/${row.license_id}`)"
                         >
                             <code class="small-text">{{ row.license?.license_key || row.license_key }}</code>

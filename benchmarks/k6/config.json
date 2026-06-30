@@ -1,0 +1,31 @@
+{
+    "base_url": "http://localhost:8000/api",
+    "stages": {
+        "smoke": {
+            "vus": 1,
+            "duration": "10s",
+            "description": "烟雾测试 — 验证 API 基本可用"
+        },
+        "load": {
+            "max_vus": 100,
+            "duration": "3m",
+            "description": "负载测试 — 模拟正常峰值"
+        },
+        "stress": {
+            "max_vus": 500,
+            "duration": "10m",
+            "description": "压力测试 — 寻找系统极限"
+        },
+        "spike": {
+            "peak_vus": 500,
+            "description": "突发测试 — 模拟秒杀流量"
+        }
+    },
+    "thresholds": {
+        "p95_activate": 3000,
+        "p95_validate": 500,
+        "p95_list": 1000,
+        "max_error_rate": 0.05,
+        "target_qps": 5000
+    }
+}

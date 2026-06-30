@@ -1,0 +1,22 @@
+# 网络延迟注入实验
+# 验证高延迟网络下的系统行为
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-latency
+  namespace: chaos-engineering
+spec:
+  action: delay
+  mode: all
+  duration: "60s"
+  selector:
+    namespaces:
+      - "default"
+    labelSelectors:
+      "app": "api"
+  delay:
+    latency: "2000ms"
+    jitter: "500ms"
+    correlation: "50"
+  scheduler:
+    cron: "@every 12h"

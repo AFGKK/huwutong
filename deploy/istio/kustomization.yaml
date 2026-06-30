@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: huwutong
+
+resources:
+  - 01-service-accounts.yaml
+  - 02-sidecar-injection.yaml
+  - gateway/01-ingress-gateway.yaml
+  - traffic/01-virtual-services.yaml
+  - traffic/02-destination-rules.yaml
+  - traffic/03-traffic-management.yaml
+  - security/01-mtls-authz.yaml
+  - observability/01-telemetry.yaml
+
+# ─── 配置映射: 环境变量 ───
+configMapGenerator:
+  - name: hwt-istio-config
+    literals:
+      - HSM_ENABLED=false
+      - ISTIO_MESH_ENABLED=true
+      - TRACING_SAMPLING_RATE=0.1

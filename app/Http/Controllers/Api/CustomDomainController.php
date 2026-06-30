@@ -29,9 +29,22 @@ class CustomDomainController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $domains = $request->user()->tenant->customDomains()
-            ->with('sslCertificate', 'domainRoute')
-            ->latest()
+        $query = $request->user()->tenant->customDomains()
+            ->with('sslCertificate', 'domainRoute');
+
+        // 搜索
+        if ($search = $request->input('search')) {
+            $query->where('domain', 'like', "%{$search}%");
+        }
+        // 状态过滤
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
+        }
+        if ($request->boolean('verified_only')) {
+            $query->where('verified', true);
+        }
+
+        $domains = $query->latest()
             ->get()
             ->map(fn($d) => $this->cnameService->getDomainStatus($d));
 

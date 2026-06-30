@@ -1,0 +1,45 @@
+import client from './client';
+
+export default {
+    stats() { return client.get('/open-platform/stats'); },
+    metadata() { return client.get('/open-platform/metadata'); },
+    developers(params = {}) { return client.get('/open-platform/developers', { params }); },
+    verifyDeveloper(id, data) { return client.post(`/open-platform/developers/${id}/verify`, data); },
+    apps(params = {}) { return client.get('/open-platform/apps', { params }); },
+    pendingApps(params = {}) { return client.get('/open-platform/apps/pending', { params }); },
+    showApp(id) { return client.get(`/open-platform/apps/${id}`); },
+    reviewApp(id, data) { return client.post(`/open-platform/apps/${id}/review`, data); },
+    installations(params = {}) { return client.get('/open-platform/installations', { params }); },
+    registerDeveloper(data) { return client.post('/open-platform/developer/register', data); },
+    myDeveloper() { return client.get('/open-platform/developer/me'); },
+    myApps(params = {}) { return client.get('/open-platform/my/apps', { params }); },
+    createApp(data) { return client.post('/open-platform/my/apps', data); },
+    updateApp(id, data) { return client.put(`/open-platform/my/apps/${id}`, data); },
+    submitApp(id) { return client.post(`/open-platform/my/apps/${id}/submit`); },
+    addVersion(id, data) { return client.post(`/open-platform/my/apps/${id}/versions`, data); },
+    marketplace(params = {}) { return client.get('/open-platform/marketplace', { params }); },
+    installApp(id, data = {}) { return client.post(`/open-platform/marketplace/${id}/install`, data); },
+    myInstallations(params = {}) { return client.get('/open-platform/my/installations', { params }); },
+    rankings(params = {}) { return client.get('/open-platform/rankings', { params }); },
+    downloadTrend(params = {}) { return client.get('/open-platform/download-trend', { params }); },
+    appDownloadTrend(id, params = {}) { return client.get(`/open-platform/apps/${id}/download-trend`, { params }); },
+    checkUpdate(id, data) { return client.post(`/open-platform/apps/${id}/check-update`, data); },
+    summary() { return client.get('/open-platform/summary'); },
+    uploadPackage(formData) { return client.post('/open-platform/upload/package', formData, { headers: { 'Content-Type': 'multipart/form-data' } }); },
+    uploadScreenshot(formData) { return client.post('/open-platform/upload/screenshot', formData, { headers: { 'Content-Type': 'multipart/form-data' } }); },
+
+    // ── 开发者收益 ──
+    initEarnings() { return client.post('/open-platform/earnings/init'); },
+    myEarnings() { return client.get('/open-platform/earnings/my'); },
+    myWithdrawals(params = {}) { return client.get('/open-platform/earnings/withdrawals', { params }); },
+    requestWithdrawal(data) { return client.post('/open-platform/earnings/withdraw', data); },
+    updateTaxInfo(data) { return client.put('/open-platform/earnings/tax-info', data); },
+    developerEarnings(id) { return client.get(`/open-platform/earnings/developers/${id}`); },
+    financialDashboard(params = {}) { return client.get('/open-platform/earnings/financial-dashboard', { params }); },
+    uninstallApp(id) { return client.delete(`/open-platform/marketplace/${id}`); },
+
+    // ── 应用下架与风控 ──
+    suspendApp(id, data) { return client.post(`/open-platform/apps/${id}/suspend`, data); },
+    unsuspendApp(id) { return client.post(`/open-platform/apps/${id}/unsuspend`); },
+    forceUpdate(id, data) { return client.post(`/open-platform/apps/${id}/force-update`, data); },
+};

@@ -1,0 +1,65 @@
+{
+  "title": "互物通 — 应用总览",
+  "uid": "huwutong-app-overview",
+  "description": "HuWuTong License 管理系统应用层监控",
+  "tags": ["huwutong", "laravel", "app"],
+  "timezone": "Asia/Shanghai",
+  "editable": true,
+  "panels": [
+    {
+      "title": "HTTP 请求速率",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+      "targets": [{"expr": "rate(http_requests_total[5m])", "legendFormat": "{{status}}"}],
+      "datasource": "Prometheus"
+    },
+    {
+      "title": "P95/P99 响应时间",
+      "type": "graph",
+      "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "P95"},
+        {"expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "P99"}
+      ],
+      "datasource": "Prometheus"
+    },
+    {
+      "title": "HTTP 错误率",
+      "type": "graph",
+      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+      "targets": [{"expr": "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m]) * 100", "legendFormat": "5xx%"}],
+      "datasource": "Prometheus"
+    },
+    {
+      "title": "License 验证",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "rate(license_validation_total[5m])", "legendFormat": "验证次数"},
+        {"expr": "rate(license_validation_failures_total[5m])", "legendFormat": "失败次数"}
+      ],
+      "datasource": "Prometheus"
+    },
+    {
+      "title": "活跃 License",
+      "type": "stat",
+      "gridPos": {"x": 8, "y": 8, "w": 4, "h": 8},
+      "targets": [{"expr": "license_active_count", "legendFormat": "活跃"}],
+      "datasource": "Prometheus"
+    },
+    {
+      "title": "今日激活",
+      "type": "stat",
+      "gridPos": {"x": 12, "y": 8, "w": 4, "h": 8},
+      "targets": [{"expr": "increase(license_activations_total[24h])", "legendFormat": "激活"}],
+      "datasource": "Prometheus"
+    },
+    {
+      "title": "API 路由响应时间 Top 10",
+      "type": "table",
+      "gridPos": {"x": 16, "y": 8, "w": 8, "h": 8},
+      "targets": [{"expr": "topk(10, http_request_duration_seconds_sum / http_request_duration_seconds_count)", "legendFormat": "{{route}}"}],
+      "datasource": "Prometheus"
+    }
+  ]
+}

@@ -384,6 +384,17 @@ export async function setupApiMocks(page, options = {}) {
         }
 
         // ── License ──
+        if (url.includes('/api/licenses/stats')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    data: { total: 5, active: 3, expired: 1, expiring_soon: 1, by_status: { active: 3, expired: 1, pending: 1 }, by_type: {} },
+                    message: 'ok',
+                }),
+            });
+        }
         if (url.includes('/api/licenses') && method === 'GET') {
             // 是列表还是详情？
             const match = url.match(/\/api\/licenses\/(\d+)/);
@@ -653,6 +664,15 @@ export async function setupApiMocks(page, options = {}) {
             });
         }
 
+        // ── 广播认证 ──
+        if (url.includes('/api/broadcasting/auth')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ auth: 'mock-auth-signature' }),
+            });
+        }
+
         // ── 其他 API ──
         return await route.fulfill({
             status: 200,
@@ -666,6 +686,15 @@ export async function setupApiMocks(page, options = {}) {
  * 以已登录状态导航到指定页面
  * 先设置 localStorage，再设置 API mock，最后 goto
  */
+const ADMIN_PREFIX = '/build';
+
+export function adminUrl(path) {
+    // 如果已经是 /build/ 开头则不处理
+    if (path.startsWith('/build/') || path.startsWith('/portal/')) return path;
+    // /admin/xxx → /build/xxx
+    return path.replace(/^\/admin/, ADMIN_PREFIX);
+}
+
 export async function navigateAsLoggedIn(page, url, options = {}) {
     const {
         email = 'admin@huwutong.com',
@@ -674,7 +703,7 @@ export async function navigateAsLoggedIn(page, url, options = {}) {
     } = options;
 
     // 先打开登录页让 Vue 初始化
-    await page.goto('/admin/login');
+    await page.goto(adminUrl('/admin/login'));
     await page.waitForTimeout(500);
 
     // 设置 localStorage 模拟登录
@@ -689,6 +718,7 @@ export async function navigateAsLoggedIn(page, url, options = {}) {
     await setupApiMocks(page, { mockUser, ...options });
 
     // 导航到目标页
-    await page.goto(url);
-    await page.waitForTimeout(3000);
+    await page.goto(adminUrl(url));
+    // 等待页面初始化（缩短等待时间，让测试自己判断内容）
+    await page.waitForTimeout(2000);
 }

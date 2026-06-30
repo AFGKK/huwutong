@@ -36,10 +36,10 @@
                     <template #dropdown>
                         <el-dropdown-menu>
                             <el-dropdown-item command="export-csv">导出 CSV</el-dropdown-item>
-                            <el-dropdown-item command="export-json">导出 JSON</el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
                 </el-dropdown>
+                <el-button @click="showImport = true"><el-icon><Upload /></el-icon> 导入</el-button>
                 <el-button @click="showBatchCreate = true"><el-icon><DocumentAdd /></el-icon> 批量创建</el-button>
                 <el-button type="primary" @click="openCreate">
                     <el-icon><Plus /></el-icon> 创建 License
@@ -108,15 +108,43 @@
                     </el-col>
                 </el-row>
             </el-form>
+            <div class="filter-bar-footer">
+                <SavedSearchBar
+                    page="licenses"
+                    :current-filters="filters"
+                    @apply="applySavedFilters"
+                />
+            </div>
         </el-card>
 
         <!-- 批量操作栏 -->
         <div class="batch-bar" v-if="selectedIds.length > 0">
             <span class="selected-info">已选择 {{ selectedIds.length }} 项</span>
-            <el-button size="small" @click="batchAction('suspend')">批量暂停</el-button>
-            <el-button size="small" @click="batchAction('restore')">批量恢复</el-button>
-            <el-button size="small" type="danger" @click="batchAction('revoke')">批量吊销</el-button>
-            <el-button size="small" type="danger" plain @click="batchAction('destroy')">批量删除</el-button>
+
+            <el-dropdown trigger="click" @command="handleBatchActionCmd">
+                <el-button size="small">
+                    状态变更 <el-icon><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                    <el-dropdown-menu>
+                        <el-dropdown-item command="activate">批量激活</el-dropdown-item>
+                        <el-dropdown-item command="deactivate">批量停用</el-dropdown-item>
+                        <el-dropdown-item command="suspend">批量暂停</el-dropdown-item>
+                        <el-dropdown-item command="restore">批量恢复</el-dropdown-item>
+                        <el-dropdown-item command="freeze">批量冻结</el-dropdown-item>
+                        <el-dropdown-item command="revoke" divided>批量吊销</el-dropdown-item>
+                        <el-dropdown-item command="blacklist">批量加入黑名单</el-dropdown-item>
+                        <el-dropdown-item command="refund">批量退款</el-dropdown-item>
+                    </el-dropdown-menu>
+                </template>
+            </el-dropdown>
+
+            <el-button size="small" @click="openBatchEditDialog('renew')">批量续期</el-button>
+            <el-button size="small" @click="openBatchEditDialog('update_seats')">批量改席位</el-button>
+            <el-button size="small" @click="openBatchEditDialog('update_metadata')">批量更新元数据</el-button>
+            <el-button size="small" @click="openBatchEditDialog('add_tags')">批量添加标签</el-button>
+            <el-button size="small" @click="openBatchEditDialog('transfer')" v-if="isSuperAdmin">批量转移租户</el-button>
+            <el-button size="small" type="danger" plain @click="confirmBatchDelete">批量删除</el-button>
             <el-button text size="small" @click="selectedIds = []">取消选择</el-button>
         </div>
 
@@ -134,7 +162,7 @@
                 <el-table-column type="selection" width="40" />
                 <el-table-column prop="license_key" label="License Key" min-width="200" sortable="custom">
                     <template #default="{ row }">
-                        <el-link type="primary" :underline="false" @click="$router.push(`/licenses/${row.id}`)">
+                        <el-link type="primary" :underline="'never'" @click="$router.push(`/licenses/${row.id}`)">
                             <code class="key-text">{{ row.license_key }}</code>
                         </el-link>
                     </template>
@@ -193,6 +221,9 @@
                                     <el-dropdown-item v-if="row.status !== 'refunded'" command="refund" divided>
                                         <el-icon><Money /></el-icon>退款
                                     </el-dropdown-item>
+                                    <el-dropdown-item command="seat-pool" divided>
+                                        <el-icon><Grid /></el-icon>席位池
+                                    </el-dropdown-item>
                                 </el-dropdown-menu>
                             </template>
                         </el-dropdown>
@@ -217,6 +248,27 @@
         <!-- 创建 License 对话框 -->
         <el-dialog v-model="showCreate" title="创建 License" width="560px">
             <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
+                <el-form-item label="选择模板" v-if="licenseTemplates.length > 0">
+                    <el-select
+                        v-model="selectedTemplateId"
+                        placeholder="从模板快速填充（可选）"
+                        filterable
+                        clearable
+                        style="width: 100%"
+                        @change="applyTemplate"
+                    >
+                        <el-option
+                            v-for="t in licenseTemplates"
+                            :key="t.id"
+                            :label="t.name"
+                            :value="t.id"
+                        >
+                            <span>{{ t.name }}</span>
+                            <span class="template-option-desc">{{ t.description || typeLabel(t.type) }}</span>
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+                <el-divider v-if="licenseTemplates.length > 0" />
                 <el-form-item label="产品" prop="product_id">
                     <el-select v-model="createForm.product_id" placeholder="选择产品" filterable style="width: 100%">
                         <el-option v-for="p in products" :key="p.id" :label="p.name" :value="p.id" />
@@ -335,23 +387,163 @@
                 </el-button>
             </template>
         </el-dialog>
+
+        <!-- 导入 License 对话框 -->
+        <el-dialog v-model="showImport" title="导入 License" width="520px">
+            <el-form label-width="100px">
+                <el-form-item label="CSV 文件">
+                    <el-upload
+                        ref="importUploadRef"
+                        :auto-upload="false"
+                        :show-file-list="true"
+                        :limit="1"
+                        :on-change="handleImportFileChange"
+                        accept=".csv,.txt"
+                    >
+                        <el-button type="primary" plain>
+                            <el-icon><Upload /></el-icon> 选择文件
+                        </el-button>
+                        <template #tip>
+                            <div class="el-upload__tip">
+                                <p>支持 .csv / .txt 格式，最大 5MB</p>
+                                <p>必填列：<strong>产品</strong>（产品名称或产品 ID）</p>
+                                <p>可选列：客户、类型（trial/standard/enterprise/development）、座位数、设备限制、过期时间、元数据</p>
+                                <el-button text size="small" type="primary" @click="downloadTemplate">
+                                    下载 CSV 模板
+                                </el-button>
+                            </div>
+                        </template>
+                    </el-upload>
+                </el-form-item>
+                <el-form-item v-if="importResult">
+                    <el-alert
+                        :title="`导入完成：成功 ${importResult.success} 条，失败 ${importResult.failed} 条`"
+                        :type="importResult.failed > 0 ? 'warning' : 'success'"
+                        show-icon
+                    />
+                    <div v-if="importResult.errors?.length" class="import-errors">
+                        <p v-for="(err, i) in importResult.errors" :key="i" class="import-error-item">{{ err }}</p>
+                    </div>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="resetImport">取消</el-button>
+                <el-button type="primary" :loading="importing" :disabled="!importFile" @click="confirmImport">
+                    开始导入
+                </el-button>
+            </template>
+        </el-dialog>
+
+        <!-- 批量操作对话框 -->
+        <el-dialog v-model="showBatchDialog" :title="batchDialogTitle" width="480px">
+            <template v-if="batchActionType">
+                <p class="mb-4">共选择 <strong>{{ selectedIds.length }}</strong> 个 License</p>
+
+                <!-- 续期 -->
+                <el-form v-if="batchActionType === 'renew'" label-width="100px">
+                    <el-form-item label="续期天数">
+                        <el-input-number v-model="batchActionPayload.days" :min="1" :max="3650" :step="30" style="width: 200px" />
+                    </el-form-item>
+                    <el-form-item label="发送通知">
+                        <el-switch v-model="batchActionPayload.notify" />
+                    </el-form-item>
+                </el-form>
+
+                <!-- 改席位 -->
+                <el-form v-if="batchActionType === 'update_seats'" label-width="100px">
+                    <el-form-item label="新席位数量">
+                        <el-input-number v-model="batchActionPayload.seats" :min="1" :max="999999" style="width: 200px" />
+                    </el-form-item>
+                </el-form>
+
+                <!-- 更新元数据 -->
+                <el-form v-if="batchActionType === 'update_metadata'" label-width="100px">
+                    <el-form-item label="元数据(JSON)">
+                        <el-input
+                            v-model="batchActionPayload.metadata_json"
+                            type="textarea"
+                            :rows="6"
+                            placeholder='{"key": "value"}'
+                            style="width: 100%; font-family: monospace;"
+                        />
+                    </el-form-item>
+                </el-form>
+
+                <!-- 添加标签 -->
+                <el-form v-if="batchActionType === 'add_tags'" label-width="100px">
+                    <el-form-item label="标签名称">
+                        <el-select v-model="batchActionPayload.tags" multiple filterable allow-create default-first-option placeholder="输入标签名后回车添加" style="width: 100%">
+                            <el-option v-for="tag in allTags" :key="tag" :label="tag" :value="tag" />
+                        </el-select>
+                    </el-form-item>
+                </el-form>
+
+                <!-- 转移租户 -->
+                <el-form v-if="batchActionType === 'transfer'" label-width="100px">
+                    <el-form-item label="目标租户 ID">
+                        <el-input-number v-model="batchActionPayload.tenant_id" :min="1" style="width: 200px" />
+                    </el-form-item>
+                    <el-alert type="warning" :closable="false" title="仅超级管理员可执行租户转移操作" show-icon />
+                </el-form>
+            </template>
+
+            <template #footer>
+                <el-button @click="showBatchDialog = false">取消</el-button>
+                <el-button type="primary" :loading="batchSubmitting" @click="confirmBatchAction">确认执行</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- 批量操作结果对话框 -->
+        <el-dialog v-model="showBatchResult" title="批量操作结果" width="500px">
+            <template v-if="batchResult">
+                <el-alert
+                    :title="batchResult.message"
+                    :type="batchResult.failed > 0 ? 'warning' : 'success'"
+                    show-icon
+                    :closable="false"
+                />
+                <el-table :data="batchResult.details || []" size="small" stripe class="mt-4" max-height="300">
+                    <el-table-column prop="license_key" label="License Key" width="220" />
+                    <el-table-column label="结果" width="80">
+                        <template #default="{ row }">
+                            <el-tag :type="row.success ? 'success' : 'danger'" size="small">
+                                {{ row.success ? '成功' : '失败' }}
+                            </el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="error" label="错误信息" min-width="150">
+                        <template #default="{ row }">{{ row.error || '-' }}</template>
+                    </el-table-column>
+                </el-table>
+            </template>
+            <template #footer>
+                <el-button @click="showBatchResult = false">关闭</el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useAuthStore } from '@/stores/auth';
 import licenseApi from '@/api/license';
 import productApi from '@/api/product';
 import customerApi from '@/api/customer';
+import SavedSearchBar from '@/components/SavedSearchBar.vue';
 import {
-    Plus, Download, DocumentAdd, ArrowDown,
+    Plus, Download, Upload, DocumentAdd, ArrowDown,
     View, VideoPause, ColdDrink, Refresh, Remove,
     WarningFilled, Money,
 } from '@element-plus/icons-vue';
 
 const router = useRouter();
+const authStore = useAuthStore();
+const isSuperAdmin = computed(() => authStore.user?.roles?.includes('super-admin') || false);
+
+// ─── 可用标签列表（供批量添加标签使用） ───
+const allTags = ref(['active', 'expired', 'vip', 'important', 'pending_renewal']);
 
 // ─── 状态 ───
 const loading = ref(false);
@@ -366,6 +558,11 @@ const selectedIds = ref([]);
 const showCreate = ref(false);
 const showEdit = ref(false);
 const showBatchCreate = ref(false);
+const showImport = ref(false);
+const importing = ref(false);
+const importFile = ref(null);
+const importUploadRef = ref(null);
+const importResult = ref(null);
 const createFormRef = ref(null);
 const editFormRef = ref(null);
 const sortField = ref('');
@@ -405,6 +602,38 @@ const createForm = reactive({
     max_devices: 1,
     seats: 1,
 });
+
+// ─── License 模板 ───
+const licenseTemplates = ref([]);
+const selectedTemplateId = ref(null);
+
+async function fetchLicenseTemplates() {
+    try {
+        const res = await import('@/api/licenseTemplate').then(m => m.default.list({ active_only: true, per_page: 999 }));
+        licenseTemplates.value = res.data?.data || [];
+    } catch {
+        licenseTemplates.value = [];
+    }
+}
+
+function applyTemplate(templateId) {
+    if (!templateId) return;
+    const tpl = licenseTemplates.value.find(t => t.id === templateId);
+    if (!tpl) return;
+    createForm.product_id = tpl.product_id;
+    createForm.type = tpl.type;
+    createForm.seats = tpl.seats;
+    createForm.max_devices = tpl.max_devices;
+    if (tpl.expiry_days !== null && tpl.expiry_days !== undefined) {
+        const d = new Date();
+        d.setDate(d.getDate() + tpl.expiry_days);
+        createForm.expires_at = d.getFullYear() + '-' +
+            String(d.getMonth() + 1).padStart(2, '0') + '-' +
+            String(d.getDate()).padStart(2, '0') + ' 23:59:59';
+    } else {
+        createForm.expires_at = null;
+    }
+}
 
 const createRules = {
     product_id: [{ required: true, message: '请选择产品' }],
@@ -456,7 +685,7 @@ async function fetchData(page) {
         if (sortField.value) params.sort = `${sortOrder.value === 'descending' ? '-' : ''}${sortField.value}`;
 
         const { data: res } = await licenseApi.list(params);
-        licenses.value = res.data?.data || [];
+        licenses.value = res.data || [];
         meta.value = res.meta;
     } catch {
         // ignore
@@ -483,6 +712,16 @@ function resetFilters() {
         license_key: '', status: '', type: '',
         product_id: null, customer_id: null, date_range: null,
     });
+    fetchData(1);
+}
+
+// 应用保存的搜索
+function applySavedFilters(savedFilters) {
+    for (const [key, value] of Object.entries(savedFilters)) {
+        if (key in filters) {
+            filters[key] = value;
+        }
+    }
     fetchData(1);
 }
 
@@ -586,6 +825,60 @@ async function confirmBatchCreate() {
     }
 }
 
+// ─── 导入 ───
+function handleImportFileChange(file) {
+    importFile.value = file.raw;
+    importResult.value = null;
+}
+
+function resetImport() {
+    showImport.value = false;
+    importFile.value = null;
+    importResult.value = null;
+    if (importUploadRef.value) {
+        importUploadRef.value.clearFiles();
+    }
+}
+
+async function confirmImport() {
+    if (!importFile.value) return;
+
+    importing.value = true;
+    importResult.value = null;
+    try {
+        const formData = new FormData();
+        formData.append('file', importFile.value);
+        const { data: res } = await licenseApi.import(formData);
+        importResult.value = res.data || res;
+        if (importResult.value.failed === 0) {
+            ElMessage.success(`成功导入 ${importResult.value.success} 个 License`);
+            fetchData(1);
+            fetchStats();
+        }
+    } catch (err) {
+        ElMessage.error(err.response?.data?.message || '导入失败');
+    } finally {
+        importing.value = false;
+    }
+}
+
+function downloadTemplate() {
+    // Build a simple CSV template
+    const headers = ['产品', '类型', '客户', '座位数', '设备限制', '过期时间', '元数据'];
+    const example = ['产品名称（必填）', 'standard', '客户名称（选填）', '1', '1', '2026-12-31 23:59:59', '{"key":"value"}'];
+    const BOM = '\uFEFF';
+    const csv = BOM + headers.join(',') + '\n' + example.join(',') + '\n';
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'license-import-template.csv';
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
+}
+
 // ─── 操作 ───
 async function handleAction(cmd, row) {
     const actionLabels = {
@@ -597,6 +890,11 @@ async function handleAction(cmd, row) {
 
     if (cmd === 'detail') {
         router.push(`/licenses/${row.id}`);
+        return;
+    }
+
+    if (cmd === 'seat-pool') {
+        router.push(`/licenses/${row.id}/seat-pool`);
         return;
     }
 
@@ -643,8 +941,8 @@ async function handleAction(cmd, row) {
 async function batchAction(action) {
     if (!selectedIds.value.length) return;
 
-    const actionLabels = { suspend: '暂停', restore: '恢复', revoke: '吊销', destroy: '删除' };
-    const label = actionLabels[action];
+    const actionLabels = { suspend: '暂停', restore: '恢复', revoke: '吊销', activate: '激活', deactivate: '停用', freeze: '冻结', blacklist: '加入黑名单', refund: '退款', delete: '删除' };
+    const label = actionLabels[action] || action;
     const ids = [...selectedIds.value];
 
     try {
@@ -654,36 +952,168 @@ async function batchAction(action) {
             { confirmButtonText: '确认', cancelButtonText: '取消', type: 'warning' },
         );
 
-        let success = 0;
-        let fail = 0;
+        const res = await licenseApi.batchOperation({
+            license_ids: ids,
+            action: action,
+        });
+        const data = res.data?.data || {};
 
-        for (const id of ids) {
-            try {
-                if (action === 'destroy') {
-                    await licenseApi.destroy(id);
-                } else {
-                    const apiMap = { suspend: licenseApi.suspend, restore: licenseApi.restore, revoke: licenseApi.revoke };
-                    await apiMap[action](id);
-                }
-                success++;
-            } catch {
-                fail++;
-            }
-        }
-        ElMessage.success(`批量${label}完成：成功 ${success}，失败 ${fail}`);
+        ElMessage.success(`批量${label}完成：成功 ${data.processed || 0}，失败 ${data.failed || 0}`);
         selectedIds.value = [];
         fetchData();
         fetchStats();
-    } catch {
-        // cancelled
+    } catch (err) {
+        if (err.code !== 'CANCEL') {
+            ElMessage.error(err.response?.data?.message || '批量操作失败');
+        }
+    }
+}
+
+// ─── 新增批量操作对话框 ───
+const showBatchDialog = ref(false);
+const showBatchResult = ref(false);
+const batchActionType = ref('');
+const batchSubmitting = ref(false);
+const batchResult = ref(null);
+const batchActionPayload = reactive({
+    days: 365,
+    notify: true,
+    seats: 1,
+    metadata_json: '',
+    tags: [],
+    tenant_id: null,
+});
+
+const batchDialogTitle = computed(() => {
+    const titles = {
+        renew: '批量续期',
+        update_seats: '批量改席位',
+        update_metadata: '批量更新元数据',
+        add_tags: '批量添加标签',
+        transfer: '批量转移租户',
+    };
+    return titles[batchActionType.value] || '批量操作';
+});
+
+function openBatchEditDialog(type) {
+    batchActionType.value = type;
+    batchActionPayload.days = 365;
+    batchActionPayload.notify = true;
+    batchActionPayload.seats = 1;
+    batchActionPayload.metadata_json = '';
+    batchActionPayload.tags = [];
+    batchActionPayload.tenant_id = null;
+    showBatchDialog.value = true;
+}
+
+async function confirmBatchAction() {
+    batchSubmitting.value = true;
+    try {
+        const ids = [...selectedIds.value];
+        const payload = { license_ids: ids, action: batchActionType.value };
+
+        if (batchActionType.value === 'renew') {
+            payload.payload = { days: batchActionPayload.days, notify: batchActionPayload.notify };
+        } else if (batchActionType.value === 'update_seats') {
+            payload.payload = { seats: batchActionPayload.seats };
+        } else if (batchActionType.value === 'update_metadata') {
+            let metadata = {};
+            try {
+                metadata = JSON.parse(batchActionPayload.metadata_json || '{}');
+            } catch {
+                ElMessage.warning('元数据 JSON 格式无效');
+                batchSubmitting.value = false;
+                return;
+            }
+            payload.payload = { metadata };
+        } else if (batchActionType.value === 'add_tags') {
+            payload.payload = { tags: batchActionPayload.tags };
+        } else if (batchActionType.value === 'transfer') {
+            payload.payload = { tenant_id: batchActionPayload.tenant_id };
+        }
+
+        const res = await licenseApi.batchOperation(payload);
+        batchResult.value = {
+            message: res.data?.message || '操作完成',
+            processed: res.data?.data?.processed || 0,
+            failed: res.data?.data?.failed || 0,
+            details: res.data?.data?.details || [],
+        };
+
+        showBatchDialog.value = false;
+        showBatchResult.value = true;
+        selectedIds.value = [];
+        fetchData();
+        fetchStats();
+    } catch (err) {
+        ElMessage.error(err.response?.data?.message || '批量操作失败');
+    } finally {
+        batchSubmitting.value = false;
+    }
+}
+
+async function confirmBatchDelete() {
+    const ids = [...selectedIds.value];
+    try {
+        await ElMessageBox.confirm(
+            `确定要批量删除选中的 ${ids.length} 个 License 吗？（将移入回收站）`,
+            '批量删除',
+            { confirmButtonText: '确认', cancelButtonText: '取消', type: 'warning' },
+        );
+
+        const res = await licenseApi.batchOperation({ license_ids: ids, action: 'delete' });
+        const data = res.data?.data || {};
+        ElMessage.success(`批量删除完成：成功 ${data.processed || 0}，失败 ${data.failed || 0}`);
+        selectedIds.value = [];
+        fetchData();
+        fetchStats();
+    } catch (err) {
+        if (err.code !== 'CANCEL') {
+            ElMessage.error(err.response?.data?.message || '批量删除失败');
+        }
     }
 }
 
 function handleBulkCmd(cmd) {
     if (cmd === 'export-csv') {
-        ElMessage.success('导出 CSV 任务已提交，完成后将通过邮件通知');
-    } else if (cmd === 'export-json') {
-        ElMessage.success('导出 JSON 任务已提交，完成后将通过邮件通知');
+        // Build current filter params
+        const params = new URLSearchParams();
+        Object.entries(filters).forEach(([k, v]) => {
+            if (v !== '' && v !== null) {
+                if (k === 'date_range' && v) {
+                    params.set('filter[created_from]', v[0]);
+                    params.set('filter[created_to]', v[1]);
+                } else if (k === 'status' || k === 'type') {
+                    params.set(`filter[${k}]`, v);
+                } else {
+                    params.set(k, v);
+                }
+            }
+        });
+        const url = `/api/licenses/export?${params.toString()}`;
+        const token = localStorage.getItem('auth_token');
+        const link = document.createElement('a');
+        link.href = url;
+        if (token) {
+            // Use fetch to include auth header, then download
+            fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+                .then(res => {
+                    if (!res.ok) throw new Error('导出失败');
+                    return res.blob();
+                })
+                .then(blob => {
+                    const blobUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = `licenses-${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    URL.revokeObjectURL(blobUrl);
+                    a.remove();
+                    ElMessage.success('导出成功');
+                })
+                .catch(() => ElMessage.error('导出失败'));
+        }
     }
 }
 
@@ -718,6 +1148,7 @@ onMounted(() => {
     loadOptions();
     fetchStats();
     fetchData(1);
+    fetchLicenseTemplates();
 });
 </script>
 
@@ -784,4 +1215,29 @@ onMounted(() => {
     color: #e6a23c;
     font-weight: 500;
 }
+.filter-bar-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid var(--el-border-color-extra-light);
+    margin-top: 8px;
+}
+.template-option-desc {
+    float: right;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    margin-left: 16px;
+}
+.import-errors {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+.import-error-item {
+    font-size: 12px;
+    color: #f56c6c;
+    margin: 2px 0;
+}
+.mt-4 { margin-top: 16px; }
+.mb-4 { margin-bottom: 16px; }
 </style>

@@ -7,6 +7,8 @@ use App\Models\KbCategory;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class KbApiTest extends TestCase
@@ -21,8 +23,31 @@ class KbApiTest extends TestCase
     {
         parent::setUp();
 
+        // 确保默认 API 版本存在（ApiVersionMiddleware 需要）
+        \App\Models\ApiVersion::create([
+            'version' => 'v1',
+            'base_path' => '/api/v1',
+            'name' => 'v1',
+            'status' => 'active',
+            'is_default' => true,
+        ]);
+
         $this->tenant = Tenant::factory()->create();
         $this->user = User::factory()->create(['tenant_id' => $this->tenant->id]);
+
+        // 确保 super-admin 角色存在并手动分配
+        $role = Role::findOrCreate('super-admin', 'web');
+        \DB::table('model_has_roles')->updateOrInsert(
+            ['role_id' => $role->id, 'model_type' => User::class, 'model_id' => $this->user->id],
+            ['tenant_id' => $this->tenant->id]
+        );
+        // 创建 KB 分类相关权限
+        foreach (['kb-category.view', 'kb-category.create', 'kb-category.update', 'kb-category.delete'] as $perm) {
+            Permission::findOrCreate($perm, 'web');
+        }
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->user->load('roles');
+
         $this->token = $this->user->createToken('test-token', ['*'])->plainTextToken;
     }
 
@@ -152,11 +177,6 @@ class KbApiTest extends TestCase
             'sort_order' => 1,
         ], $this->authHeaders());
 
-        // 没有 KbCategory Policy 时可能返回 403
-        if ($response->status() === 403) {
-            $this->markTestSkipped('需要 KbCategory Policy');
-        }
-
         $response->assertStatus(201);
         $response->assertJsonPath('success', true);
         $this->assertDatabaseHas('kb_categories', ['name' => '常见问题']);
@@ -174,10 +194,6 @@ class KbApiTest extends TestCase
         ]);
 
         $response = $this->deleteJson("/api/kb/categories/{$category->id}", [], $this->authHeaders());
-
-        if ($response->status() === 403) {
-            $this->markTestSkipped('需要 KbCategory Policy');
-        }
 
         $response->assertStatus(422);
         $response->assertJsonPath('message', '该分类下还有文章，无法删除');

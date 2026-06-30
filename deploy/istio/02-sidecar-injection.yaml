@@ -1,0 +1,27 @@
+# ============================================================
+# Istio Sidecar 注入配置
+# M3-68: 自动注入 Istio 边车代理
+# ============================================================
+
+# 命名空间标记（启用自动注入）
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: huwutong
+  labels:
+    istio-injection: enabled  # 启用自动 Sidecar 注入
+    topology.istio.io/network: default
+---
+# Sidecar 全局默认配置
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: hwt-default
+  namespace: huwutong
+spec:
+  outboundTrafficPolicy:
+    mode: ALLOW_ANY  # 允许出站到外网
+  egress:
+    - hosts:
+        - "huwutong/*"
+        - "istio-system/*"

@@ -149,6 +149,8 @@ const supportedProviders = [
     { id: 'google', label: 'Google', icon: ChromeFilled, color: '#4285f4' },
     { id: 'github', label: 'GitHub', icon: ChromeFilled, color: '#24292f' },
     { id: 'apple', label: 'Apple', icon: Apple, color: '#000000' },
+    { id: 'alipay', label: '支付宝', icon: Apple, color: '#1677ff' },
+    { id: 'qq', label: 'QQ', icon: ChatDotSquare, color: '#12b7f5' },
 ];
 
 function getBoundProvider(providerId) {

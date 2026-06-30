@@ -15,6 +15,9 @@
                     <div class="status-label">License Key</div>
                     <code class="license-key">{{ license.license_key }}</code>
                     <el-button text size="small" @click="copyKey">复制</el-button>
+                    <el-button text size="small" type="primary" @click="showQrCode">
+                        📱 扫码激活
+                    </el-button>
                 </div>
                 <div class="status-section">
                     <div class="status-label">类型</div>
@@ -54,6 +57,39 @@
                         <h4 class="section-title">自定义元数据</h4>
                         <pre class="metadata-json">{{ formatJson(license.metadata) }}</pre>
                     </div>
+
+                    <!-- 交付物 -->
+                    <div v-if="deliverables.length > 0" class="mt-4">
+                        <el-divider />
+                        <h4 class="section-title">📦 交付物</h4>
+                        <div class="deliverables-grid">
+                            <div v-for="(d, idx) in deliverables" :key="idx" class="portal-deliverable-card">
+                                <div class="dlv-header">
+                                    <span class="dlv-icon">{{ typeIcon(d.type) }}</span>
+                                    <el-tag size="small" class="dlv-category">{{ categoryLabel(d.category) }}</el-tag>
+                                </div>
+                                <div class="dlv-name">{{ d.name }}</div>
+                                <div v-if="d.description" class="dlv-desc">{{ d.description }}</div>
+
+                                <div v-if="d.type === 'file' && d.file_url" class="dlv-action">
+                                    <el-button size="small" type="primary" @click="openUrl(d.file_url)">
+                                        <el-icon><Download /></el-icon> 下载
+                                    </el-button>
+                                    <span v-if="d.file_size" class="dlv-size">{{ formatFileSize(d.file_size) }}</span>
+                                </div>
+                                <div v-else-if="d.type === 'link' && d.file_url" class="dlv-action">
+                                    <el-button size="small" type="primary" link @click="openUrl(d.file_url)">
+                                        <el-icon><Link /></el-icon> 打开链接
+                                    </el-button>
+                                </div>
+                                <div v-else-if="d.type === 'text' && d.content" class="dlv-action">
+                                    <el-button size="small" type="primary" link @click="copyPortalText(d.content)">
+                                        <el-icon><CopyDocument /></el-icon> 复制内容
+                                    </el-button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </el-card>
             </el-col>
 
@@ -64,7 +100,7 @@
                     <template #header>
                         <div class="card-header">
                             <span>设备使用情况</span>
-                            <el-link type="primary" :underline="false" @click="$router.push('/portal/devices')">管理</el-link>
+                            <el-link type="primary" :underline="'never'" @click="$router.push('/portal/devices')">管理</el-link>
                         </div>
                     </template>
                     <div class="device-usage">
@@ -158,6 +194,23 @@
                 </el-card>
             </el-col>
         </el-row>
+
+        <!-- 📱 扫码激活对话框 -->
+        <el-dialog v-model="qrVisible" title="📱 扫码激活 License" width="380px" top="15vh" :close-on-click-modal="true" @closed="qrDataUrl = ''">
+            <div v-loading="qrLoading" style="text-align:center;padding:16px 0;">
+                <div v-if="qrDataUrl" style="background:#fff;display:inline-block;padding:16px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+                    <img :src="qrDataUrl" style="width:260px;height:260px;display:block" alt="License 二维码" />
+                </div>
+                <div v-if="qrDataUrl" style="margin-top:12px;font-size:13px;color:#606266;">
+                    <p>请使用手机扫码激活此 License</p>
+                    <p style="font-size:11px;color:#909399;margin-top:4px;">License: {{ license.license_key }}</p>
+                </div>
+                <div v-if="qrDataUrl" style="margin-top:16px;display:flex;gap:8px;justify-content:center;">
+                    <el-button size="small" @click="downloadQrCode">⬇️ 下载二维码</el-button>
+                    <el-button size="small" text @click="copyKey">📋 复制 License Key</el-button>
+                </div>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -167,8 +220,10 @@ import { useRoute, useRouter } from 'vue-router';
 import licenseApi from '@/api/license';
 import deviceApi from '@/api/device';
 import billingApi from '@/api/billing';
+import shopApi from '@/api/shop';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Monitor, Refresh, ArrowUp, Money } from '@element-plus/icons-vue';
+import { Monitor, Refresh, ArrowUp, Money, Download, Link, CopyDocument } from '@element-plus/icons-vue';
+import QRCode from 'qrcode';
 
 const route = useRoute();
 const router = useRouter();
@@ -176,6 +231,41 @@ const loading = ref(false);
 const deactivatingId = ref(null);
 const license = ref({});
 const devices = ref([]);
+const deliverables = ref([]);
+
+// QR 码扫码激活
+const qrVisible = ref(false);
+const qrLoading = ref(false);
+const qrDataUrl = ref('');
+
+async function showQrCode() {
+    qrVisible.value = true;
+    qrLoading.value = true;
+    qrDataUrl.value = '';
+    try {
+        // 生成包含 License Key 的激活 URL
+        const activationUrl = `${window.location.origin}/activate?key=${encodeURIComponent(license.value.license_key)}`;
+        qrDataUrl.value = await QRCode.toDataURL(activationUrl, {
+            width: 260,
+            margin: 2,
+            color: { dark: '#1a1a2e', light: '#ffffff' },
+        });
+    } catch (e) {
+        ElMessage.error('二维码生成失败');
+    } finally {
+        qrLoading.value = false;
+    }
+}
+
+function downloadQrCode() {
+    if (!qrDataUrl.value) return;
+    const link = document.createElement('a');
+    link.download = `license-${license.value.license_key?.substring(0, 8) || 'qr'}.png`;
+    link.href = qrDataUrl.value;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 
 const deviceCount = computed(() => devices.value.length);
 const devicePercent = computed(() => {
@@ -210,6 +300,48 @@ function formatJson(data) {
     }
 }
 
+// ─── 交付物辅助 ───
+function typeIcon(type) {
+    const icons = { file: '📦', link: '🔗', text: '📝' };
+    return icons[type] || '📄';
+}
+function categoryLabel(cat) {
+    const labels = {
+        software: '💻 软件',
+        document: '📄 文档',
+        template: '🔧 模板',
+        api: '🌐 API',
+        tutorial: '🎓 教程',
+        other: '其他',
+    };
+    return labels[cat] || cat || '其他';
+}
+function formatFileSize(bytes) {
+    if (!bytes) return '';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = bytes;
+    let uid = 0;
+    while (size >= 1024 && uid < units.length - 1) { size /= 1024; uid++; }
+    return size.toFixed(1) + ' ' + units[uid];
+}
+function openUrl(url) {
+    if (url) window.open(url, '_blank');
+}
+async function copyPortalText(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        ElMessage.success('已复制到剪贴板');
+    } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        ElMessage.success('已复制到剪贴板');
+    }
+}
+
 // ── 自助操作 (M1.4-09) ──
 
 const canRenew = computed(() => {
@@ -227,16 +359,37 @@ const canRefund = computed(() => {
 async function handleRenew() {
     try {
         await ElMessageBox.confirm(
-            '确认续期此 License？续期后将延长有效期限。',
-            '续期确认',
-            { confirmButtonText: '确认续期', cancelButtonText: '取消', type: 'info' }
+            `确认续期此 License（${license.value.license_key}）？将为您创建续费订单并跳转支付。`,
+            '续费确认',
+            { confirmButtonText: '去支付', cancelButtonText: '取消', type: 'info' }
         );
-        await billingApi.manualRenew(license.value.id);
-        ElMessage.success('续期成功，有效期已延长');
-        await fetchDetail();
+        // 通过 quick-buy 创建续费订单
+        const payload = {
+            license_id: license.value.id,
+            product_id: license.value.product_id,
+            billing_cycle: license.value.billing_cycle || 'monthly',
+            type: 'renewal',
+        };
+        const res = await shopApi.quickBuy(payload);
+        const order = res.data?.data || res.data;
+        const orderId = order?.id || order?.order?.id;
+        if (orderId) {
+            ElMessage.success('续费订单已创建，正在跳转支付…');
+            try {
+                const payRes = await shopApi.initiatePayment(orderId, 'alipay');
+                const payData = payRes.data?.data || payRes.data;
+                if (payData?.payment_url) {
+                    window.location.href = payData.payment_url;
+                    return;
+                }
+            } catch {}
+            window.location.href = `/portal/payment-result/${orderId}`;
+        } else {
+            ElMessage.error('创建续费订单失败');
+        }
     } catch (e) {
         if (e !== 'cancel') {
-            ElMessage.error(e.response?.data?.message || '续期失败');
+            ElMessage.error(e.response?.data?.message || '续费失败，请重试');
         }
     }
 }
@@ -295,6 +448,7 @@ async function fetchDetail() {
     try {
         const { data: res } = await licenseApi.show(id);
         license.value = res.data || {};
+        deliverables.value = res.data?.deliverables || [];
 
         // 获取关联的设备
         const { data: devRes } = await deviceApi.list({ license_id: id, per_page: 50 });
@@ -435,4 +589,41 @@ onMounted(fetchDetail);
     font-size: 13px;
     margin: 0;
 }
+
+/* ─── 交付物卡片(门户) ─── */
+.deliverables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+.portal-deliverable-card {
+    background: #fafafa;
+    border: 1px solid #ebeef5;
+    border-radius: 8px;
+    padding: 12px;
+    transition: all 0.2s;
+}
+.portal-deliverable-card:hover {
+    border-color: #409eff;
+    box-shadow: 0 2px 8px rgba(64,158,255,0.1);
+}
+.portal-deliverable-card .dlv-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.portal-deliverable-card .dlv-icon { font-size: 18px; }
+.portal-deliverable-card .dlv-category { font-size: 11px; }
+.portal-deliverable-card .dlv-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+.portal-deliverable-card .dlv-desc { font-size: 12px; color: #909399; margin-bottom: 8px; line-height: 1.4; }
+.portal-deliverable-card .dlv-action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #f0f0f0;
+}
+.portal-deliverable-card .dlv-size { font-size: 11px; color: #909399; }
 </style>

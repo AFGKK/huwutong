@@ -31,4 +31,28 @@ return [
         ],
     ],
 
+    // ─── ACME / Let's Encrypt ───
+    'acme' => [
+        'email' => env('ACME_EMAIL', 'admin@huwutong.com'),
+        'staging' => env('ACME_STAGING', true), // 生产时设为 false
+        'fallback' => env('ACME_FALLBACK', true), // ACME 失败时降级到模拟证书
+    ],
+
+    // ─── 自定义域名 CNAME 目标 ───
+    'cname_target' => env('CNAME_TARGET', 'cname.huwutong.com.'),
+
+    // ─── 语音识别 (ASR) ───
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY', ''),
+    ],
+    'aliyun' => [
+        'asr_app_key' => env('ALIYUN_ASR_APP_KEY', ''),
+        'access_key_id' => env('ALIYUN_ACCESS_KEY_ID', ''),
+        'access_key_secret' => env('ALIYUN_ACCESS_KEY_SECRET', ''),
+    ],
+    'tencent' => [
+        'asr_secret_id' => env('TENCENT_ASR_SECRET_ID', ''),
+        'asr_secret_key' => env('TENCENT_ASR_SECRET_KEY', ''),
+    ],
+
 ];

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\RenewalConfig;
 use App\Models\RenewalEscalation;
 use App\Models\Subscription;
 use App\Services\RenewalPipelineService;
@@ -122,6 +123,108 @@ class RetentionController extends Controller
         return response()->json([
             'success' => $result,
             'message' => $result ? '已处理' : '操作失败',
+        ]);
+    }
+
+    // ── 续费策略配置 ──
+
+    /**
+     * 获取配置列表
+     */
+    public function configs(): JsonResponse
+    {
+        $this->authorize('viewAny', Subscription::class);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->pipelineService->getConfigs(),
+        ]);
+    }
+
+    /**
+     * 获取指定配置
+     */
+    public function getConfig(int $id): JsonResponse
+    {
+        $this->authorize('viewAny', Subscription::class);
+
+        $config = $this->pipelineService->getConfig($id);
+        if (! $config) {
+            return response()->json(['success' => false, 'message' => '配置不存在'], 404);
+        }
+
+        return response()->json(['success' => true, 'data' => $config]);
+    }
+
+    /**
+     * 创建/更新配置
+     */
+    public function saveConfig(Request $request, ?int $id = null): JsonResponse
+    {
+        $this->authorize('update', Subscription::class);
+
+        $rules = [
+            'name' => 'required|string|max:100',
+            'description' => 'nullable|string|max:500',
+            'is_active' => 'boolean',
+            'max_attempts' => 'integer|min:1|max:20',
+            'retry_intervals_days' => 'nullable|array',
+            'retry_intervals_days.*' => 'integer|min:1|max:90',
+            'downgrade_after_attempt' => 'integer|min:1|max:20',
+            'escalate_after_attempt' => 'integer|min:1|max:20',
+            'notification_channels' => 'nullable|array',
+            'notification_channels.*' => 'string|in:database,mail,sms',
+            'reminder_days_before' => 'integer|min:0|max:90',
+            'reminder_schedule' => 'nullable|array',
+            'reminder_schedule.*' => 'integer|min:0|max:365',
+            'retention_coupon_enabled' => 'boolean',
+            'retention_coupon_discount_percent' => 'numeric|min:0|max:100',
+            'retention_coupon_max_uses' => 'integer|min:1|max:100',
+            'retention_coupon_valid_days' => 'integer|min:1|max:365',
+            'retention_coupon_max_discount' => 'nullable|numeric|min:0',
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $config = $this->pipelineService->saveConfig($request->all(), $id);
+
+        return response()->json([
+            'success' => true,
+            'message' => $id ? '配置已更新' : '配置已创建',
+            'data' => $config,
+        ]);
+    }
+
+    /**
+     * 切换配置激活状态
+     */
+    public function toggleConfig(int $id): JsonResponse
+    {
+        $this->authorize('update', Subscription::class);
+
+        $result = $this->pipelineService->toggleConfigActive($id);
+
+        return response()->json([
+            'success' => $result,
+            'message' => $result ? '配置状态已切换' : '操作失败',
+        ]);
+    }
+
+    /**
+     * 删除配置
+     */
+    public function deleteConfig(int $id): JsonResponse
+    {
+        $this->authorize('update', Subscription::class);
+
+        $result = $this->pipelineService->deleteConfig($id);
+
+        return response()->json([
+            'success' => $result,
+            'message' => $result ? '配置已删除' : '操作失败',
         ]);
     }
 }

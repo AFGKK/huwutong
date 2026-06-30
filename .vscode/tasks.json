@@ -1,0 +1,274 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node --max-old-space-size=4096 node_modules/vite/bin/vite.js build",
+			"group": "build"
+		},
+		{
+			"label": "build",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--max-old-space-size=4096",
+				"node_modules/vite/bin/vite.js",
+				"build"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node --max-old-space-size=4096 node_modules/vite/bin/vite.js build",
+			"group": "build"
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node --max-old-space-size=4096 node_modules/vite/bin/vite.js build",
+			"group": "build"
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node --max-old-space-size=4096 node_modules/vite/bin/vite.js build",
+			"group": "build"
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node --max-old-space-size=4096 node_modules/vite/bin/vite.js build",
+			"group": "build"
+		},
+		{
+			"label": "Run env analysis",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\check_env_settings2.php"
+			]
+		},
+		{
+			"label": "Run final env analysis",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\check_env_settings3.php"
+			]
+		},
+		{
+			"label": "Check category columns",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"check_cols2.php"
+			]
+		},
+		{
+			"label": "PHP Syntax Check",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-l",
+				"app/Http/Controllers/Api/AiFriendController.php",
+				"&&",
+				"php",
+				"-l",
+				"app/Services/AiFriendOrchestrator.php",
+				"&&",
+				"php",
+				"-l",
+				"routes/api.php",
+				"&&",
+				"php",
+				"-l",
+				"database/migrations/2026_06_18_000001_create_ai_friend_tables.php"
+			]
+		},
+		{
+			"label": "PHP Syntax Check",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-l",
+				"app/Http/Controllers/Api/AiFriendController.php"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"node_modules/vite/bin/vite.js",
+				"build"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node.exe node_modules/vite/bin/vite.js build"
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node node_modules/vite/bin/vite.js build",
+			"group": "build"
+		},
+		{
+			"label": "Start Laravel",
+			"type": "shell",
+			"command": "php artisan serve --port=8000",
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "serve",
+			"type": "shell",
+			"command": "D:\\phpEnv\\php\\php-8.3\\php.exe artisan serve --port=8000",
+			"isBackground": true,
+			"group": "none"
+		},
+		{
+			"label": "PHP Syntax Check",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-l",
+				"d:\\phpEnv\\www\\88.huwutong.com\\app\\Http\\Controllers\\Api\\OfficialAccountController.php"
+			]
+		},
+		{
+			"label": "PHP Syntax Check BlogController",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-l",
+				"app/Http/Controllers/Api/BlogController.php"
+			]
+		},
+		{
+			"label": "Run page layout migration",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"artisan",
+				"migrate",
+				"--path=database/migrations/2026_06_23_000001_add_page_layout_settings.php"
+			]
+		},
+		{
+			"label": "Run migration",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"artisan",
+				"migrate",
+				"--path=database/migrations/2026_06_23_000001_add_page_layout_settings.php"
+			]
+		},
+		{
+			"label": "Clear view cache",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"artisan",
+				"view:clear"
+			]
+		},
+		{
+			"label": "PHP Syntax Check P3",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-l",
+				"app/Models/PermissionAuditLog.php",
+				"&",
+				"php",
+				"-l",
+				"app/Models/RoleHierarchy.php",
+				"&",
+				"php",
+				"-l",
+				"app/Models/RoleTemplate.php",
+				"&",
+				"php",
+				"-l",
+				"app/Services/PermissionService.php",
+				"&",
+				"php",
+				"-l",
+				"app/Http/Controllers/Api/PermissionController.php",
+				"&",
+				"php",
+				"-l",
+				"database/migrations/2026_06_27_000001_create_permission_audit_logs_table.php"
+			]
+		},
+		{
+			"label": "P3 Run Migration",
+			"type": "shell",
+			"command": "php artisan migrate --path=database/migrations/2026_06_27_000001_create_permission_audit_logs_table.php",
+			"args": []
+		},
+		{
+			"label": "P3 Settlement Migration",
+			"type": "shell",
+			"command": "php artisan migrate --path=database/migrations/2026_06_27_000002_create_settlement_tables.php",
+			"args": []
+		},
+		{
+			"label": "Run settlement migration",
+			"type": "shell",
+			"command": "php artisan migrate --path=database/migrations/2026_06_27_000002_create_settlement_tables.php 2>&1",
+			"args": []
+		},
+		{
+			"label": "Check commission_settlements",
+			"type": "shell",
+			"command": "php artisan tinker --execute='echo Schema::hasTable(\"commission_settlements\") ? \"exists\" : \"missing\";'",
+			"args": []
+		},
+		{
+			"label": "Check settlement tables",
+			"type": "shell",
+			"command": "php check_settlement_tables.php",
+			"args": []
+		},
+		{
+			"label": "Run P3 migrations",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"run_p3_migrations.php"
+			]
+		},
+		{
+			"label": "Check Laravel log",
+			"type": "shell",
+			"command": "php check_log.php"
+		},
+		{
+			"label": "Test dashboard",
+			"type": "shell",
+			"command": "php test_dashboard.php"
+		},
+		{
+			"label": "Refresh autoload",
+			"type": "shell",
+			"command": "composer dump-autoload"
+		},
+		{
+			"label": "Run earnings migration",
+			"type": "shell",
+			"command": "php artisan migrate --path=database/migrations/2026_06_27_000005_add_developer_earnings_fields.php",
+			"group": "build"
+		},
+		{
+			"label": "Run rollout migration",
+			"type": "shell",
+			"command": "php artisan migrate --path=database/migrations/2026_06_27_000006_create_marketplace_rollout_tables.php",
+			"group": "build"
+		}
+	]
+}

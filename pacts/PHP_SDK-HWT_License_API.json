@@ -1,0 +1,60 @@
+{
+    "consumer": {
+        "name": "PHP SDK"
+    },
+    "provider": {
+        "name": "HWT License API"
+    },
+    "metadata": {
+        "pactSpecification": {
+            "version": "3.0.0"
+        },
+        "pact-php": {
+            "version": "1.0.0"
+        }
+    },
+    "interactions": [
+        {
+            "description": "查询客户列表",
+            "providerState": "存在多个客户",
+            "request": {
+                "method": "GET",
+                "path": "/api/customers",
+                "query": "page=1&per_page=15",
+                "headers": {
+                    "Accept": "application/json",
+                    "Authorization": "Bearer $API_TOKEN"
+                },
+                "body": null,
+                "matchingRules": []
+            },
+            "response": {
+                "status": 200,
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "body": {
+                    "success": true,
+                    "data": [
+                        {
+                            "id": 1,
+                            "name": "互物通科技",
+                            "email": "contact@huwutong.com",
+                            "status": "active",
+                            "licenses_count": 5,
+                            "created_at": "2026-01-01T10:00:00+08:00"
+                        }
+                    ],
+                    "meta": {
+                        "current_page": 1,
+                        "last_page": 1,
+                        "per_page": 15,
+                        "total": 1
+                    },
+                    "message": "ok"
+                },
+                "matchingRules": []
+            }
+        }
+    ]
+}

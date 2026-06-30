@@ -11,6 +11,10 @@ use Illuminate\Validation\ValidationException;
 
 class LicenseService
 {
+    public function __construct(
+        protected TimeRestrictionService $timeRestriction,
+    ) {}
+
     /**
      * 安全地变更 License 状态（强制执行转移矩阵校验）
      *
@@ -160,6 +164,15 @@ class LicenseService
         // 检查是否过期
         if ($license->expires_at && $license->expires_at->isPast()) {
             $result['message'] = 'License 已过期';
+            return $result;
+        }
+
+        // M3-77 时段限制检查
+        $timeCheck = $this->timeRestriction->check($license, request()->ip());
+        if (! $timeCheck['allowed']) {
+            $result['message'] = $timeCheck['reason'];
+            $result['error_code'] = 'LICENSE_TIME_RESTRICTED';
+            $result['time_restriction'] = $timeCheck;
             return $result;
         }
 

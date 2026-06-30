@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Services\FeatureFlagService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class FeatureFlagController extends Controller
 {
@@ -131,6 +132,93 @@ class FeatureFlagController extends Controller
     }
 
     // ─── 管理接口（auth:sanctum） ───
+
+    /**
+     * 创建功能开关
+     *
+     * POST /api/feature-flags
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'key' => 'required|string|max:100|unique:feature_flags,key|regex:/^[a-z][a-z0-9_]*$/',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'is_active' => 'boolean',
+        ]);
+
+        $flag = FeatureFlag::create($data);
+
+        return ApiResponse::success($flag, '功能开关创建成功', 201);
+    }
+
+    /**
+     * 更新功能开关
+     *
+     * PUT /api/feature-flags/{id}
+     */
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $flag = FeatureFlag::findOrFail($id);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'is_active' => 'boolean',
+        ]);
+
+        $flag->update($data);
+
+        return ApiResponse::success($flag, '功能开关更新成功');
+    }
+
+    /**
+     * 切换功能开关全局状态
+     *
+     * PATCH /api/feature-flags/{id}
+     */
+    public function toggle(Request $request, int $id): JsonResponse
+    {
+        $flag = FeatureFlag::findOrFail($id);
+        $flag->update(['is_active' => $request->boolean('is_active', !$flag->is_active)]);
+
+        return ApiResponse::success($flag, $flag->is_active ? '功能已启用' : '功能已禁用');
+    }
+
+    /**
+     * 删除功能开关
+     *
+     * DELETE /api/feature-flags/{id}
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $flag = FeatureFlag::findOrFail($id);
+        $flag->products()->detach();
+        $flag->delete();
+
+        return ApiResponse::success(null, '功能开关已删除');
+    }
+
+    /**
+     * 获取所有产品-Flag 关联关系
+     *
+     * GET /api/feature-flags/assignments
+     */
+    public function assignments(): JsonResponse
+    {
+        $assignments = \DB::table('product_feature_flag')
+            ->join('feature_flags', 'product_feature_flag.feature_flag_id', '=', 'feature_flags.id')
+            ->join('products', 'product_feature_flag.product_id', '=', 'products.id')
+            ->select([
+                'product_feature_flag.*',
+                'feature_flags.key as feature_key',
+                'feature_flags.name as feature_name',
+                'products.name as product_name',
+            ])
+            ->get();
+
+        return ApiResponse::success($assignments);
+    }
 
     /**
      * 关联功能到产品

@@ -1,0 +1,177 @@
+Total ★ chars: 476
+Total € chars: 97
+Broken </h3>: 10
+Broken </p>: 26
+Broken </span>: 153
+Broken comment: 307
+<script> opens: 5
+<script> closes: 5
+
+Corrupted lines (166):
+================================================================================
+L  121 [★(1)]: // 暗色模式初★化（防闪烁）
+L  337 [BROKEN_TAG]: $_categoryName = $product->category?->name ?? 'Software';
+L  977 [★(1)|€(1)]: <!-- ─── 导航───★€ -->
+L 1601 [★(1)|€(1)]: <!-- ─── 面包───★€ -->
+L 1729 [★(1)|BROKEN_TAG]: <!-- 左侧：图★?->
+L 1833 [★(4)|€(1)]: <!-- ★★★缩略★€-->
+L 1961 [★(1)|€(1)]: <!-- 右侧：产品信★€-->
+L 1977 [★(1)]: <!-- 标★ -->
+L 2033 [★(3)|€(3)]: <!-- 价格 + 评分 + ★€量栏（电商标准布★€★€-->
+L 2161 [★(1)|€(1)]: ￥面★€
+L 2209 [★(1)]: <span class="text-yellow-400">★</span>
+L 2505 [★(2)]: ★★ʾ
+L 2833 [★(2)]: // 页面加载时★查关注状★?
+L 2937 [★(2)|€(1)]: btn.textContent = '★€已关★?
+L 3113 [★(2)|€(1)]: btn.textContent = '★€已关★?
+L 3169 [★(3)]: <!-- ─── ★★★保障 / 信任徽章 ─── -->
+L 3601 [★(1)]: <!-- Tab 内★ -->
+L 3617 [★(1)|€(1)|BROKEN_TAG]: <!-- 功能特★€?->
+L 3641 [★(1)|€(1)|BROKEN_TAG]: <h3 class="text-lg font-semibold text-gray-900 mb-4">功能特★€?h3>
+L 4097 [★(1)]: <!-- 评分概★ -->
+L 4145 [BROKEN_DIV]: <div id="rating-count" class="text-sm text-gray-400 mt-1">0 条评价div>
+L 4185 [★(1)]: <!-- 评★列表 -->
+L 4241 [★(1)|BROKEN_TAG]: <!-- 写评★?->
+L 4273 [★(1)]: 写评★?
+L 4345 [★(1)]: <span onclick="setRating(1)" class="star text-gray-300 hover:text-yellow-400 tra
+L 4353 [★(1)]: <span onclick="setRating(2)" class="star text-gray-300 hover:text-yellow-400 tra
+L 4361 [★(1)]: <span onclick="setRating(3)" class="star text-gray-300 hover:text-yellow-400 tra
+L 4369 [★(1)]: <span onclick="setRating(4)" class="star text-gray-300 hover:text-yellow-400 tra
+L 4377 [★(1)]: <span onclick="setRating(5)" class="star text-gray-300 hover:text-yellow-400 tra
+L 4417 [★(4)|€(1)]: <textarea id="review-content" rows="4" class="w-full px-4 py-3 border border-gra
+L 4697 [★(1)]: <p class="text-gray-500">选择适合您的方★，立即开始使用{{ $product->name }}</p>
+L 4825 [★(1)|BROKEN_TAG]: <span class="text-gray-500 text-sm">/★?span>
+L 4849 [★(5)]: <p class="text-xs text-green-600 mb-4">★긶 ¥{{ $plan->price_yearly }}★★ʡ {{ round
+L 4961 [★(11)]: {{ $plan->price_monthly == 0 ? '★★ѿ★ʼ' : '★★★★★★★★' }}
+L 5057 [★(4)]: $_cycleLabel = $sku->billing_cycle === 'yearly' ? '/★★' : ($sku->billing_cycle =
+L 5137 [★(1)]: 仅剩 {{ $sku->stock }} ★?
+L 5193 [★(1)|€(1)]: <span class="text-xs text-red-500 ml-1">★€¥{{ $sku->compare_at_price - $sku->pri
+L 5393 [★(4)]: 加入★★★★?
+L 5417 [★(3)]: 立即★★★
+L 5945 [★(4)]: <span class="text-yellow-400 text-xs">{{ str_repeat('★★', min(5, max(0, round($r
+L 6081 [★(2)|€(2)]: <!-- 价格 + ★€★€-->
+L 6121 [★(1)]: <span class="text-[10px] text-gray-400 ml-0.5">★</span>
+L 6369 [★(3)|€(2)]: <!-- JS 动★€★渲★€-->
+L 6425 [★(10)]: <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">׼★★★★ʹ★★{{ $product->
+L 6433 [★(23)]: <p class="text-primary-100 mb-6">★★★ע★ᣬһ★★★★★★ɼ★★ɡ★★★★★★★★ÿ★★★</p>
+L 6577 [★(1)]: return Array.from({length:5}, (_,i) => `<span class="${i < rating ? 'text-yellow
+L 6777 [BROKEN_DIV]: container.innerHTML = '<div class="text-center py-12 text-gray-400"><svg class="
+L 7169 [★(2)|€(2)]: // ─── Token 登录───★€★€
+L 7305 [★(2)|€(1)]: // 桌面★★€
+L 7401 [★(2)|€(1)]: // 移动★★€
+L 7505 [★(5)|€(1)]: // 更新★★★车★★€
+L 7601 [★(3)|€(1)]: // ─── 初★化：收藏状★€? 评★加载 ───
+L 7633 [★(5)|€(2)]: // ─── ★★★车功能─★€★€
+L 7801 [★(6)]: showToast('★★★★★ӵ★购物车');
+L 7817 [★(6)]: showToast(data.message || '★★★★ʧ★★');
+L 7841 [★(13)]: showToast('★★★★★★★★★★★★★');
+L 8217 [★(2)|€(1)]: // ★新消★€
+L 8361 [★(2)|€(2)]: }, 10000); // ★€0秒轮★€
+L 8513 [★(5)|€(1)]: // 首★打开发★€★★迎★
+L 8585 [BROKEN_TAG]: const sellerName = '{{ $product->creator?->name ?? "在线客服" }}';
+L 8593 [★(4)|€(2)]: const welcome = '您好！我★€ + sellerName + '的智能★服助手，很高兴为您服务★€★😊\n\n' +
+L 8601 [★(3)]: '关于 **' + name + '**，您★★★：\n' +
+L 8609 [★(2)]: '💬 直接输入★咨★\n' +
+L 8617 [★(2)|€(1)]: '📋 点击下方「常见问题★€★快速提问\n' +
+L 8625 [★(3)|€(1)]: '📦 点击「发送商品★€★查看商品★情\n' +
+L 8633 [★(3)|€(2)]: '👤 如需人工服务，点击★€★转人工★€;
+L 8793 [★(1)]: const <input><div class="w-8 h-8 rounded-full bg-primary-100 flex items-center j
+L 8913 [★(4)|€(2)]: appendChatMessage({ role: 'assistant', content: '感谢您的咨★，★服将尽快回★您★€€, timestamp: 
+L 8937 [★(1)|€(2)]: appendChatMessage({ role: 'assistant', content: '抱歉，暂时无法响应，请稍后再试★€€, timestamp: 
+L 8969 [★(3)|€(2)]: appendChatMessage({ role: 'assistant', content: '网络异常，★★€查连接后重试★€, timestamp: ne
+L 9049 [★(2)|€(1)]: // 时间分组：★测日期变★€
+L 9145 [★(2)]: else label = (msgDate.getMonth()+1) + '★?+ msgDate.getDate() + '★?
+L 9201 [★(8)|€(1)]: // 已★状★€★：客服回★时将上一条用户消★★★记为已★
+L 9257 [★(1)]: statusEl.textContent = '已★';
+L 9289 [BROKEN_TAG]: const sellerAvatar = '{{ $product->creator?->avatar_url ?? "" }}';
+L 9585 [★(1)]: <span class="text-primary-600 font-bold text-xs">★</span>
+L 9673 [★(1)]: <span class="text-primary-600 font-bold text-xs">★</span>
+L 9841 [★(1)|€(1)]: // 移除加载★€
+L 9921 [★(1)]: <span class="text-primary-600 font-bold text-xs">★</span>
+L10025 [★(1)]: <span class="text-primary-600 font-bold text-xs">★</span>
+L10153 [★(5)|€(1)]: // 同时发★€★消★★★客服 API
+L10193 [★(3)|€(2)]: body: JSON.stringify({ message: '用户发★€★了' + msg + '★€ + fileUrl, session_id: _ch
+L10257 [★(1)]: appendChatMessage({ role: 'user', content: '文件上传失败，★重试', timestamp: new Date().t
+L10801 [★(2)]: // ─── ★★登录制 ───
+L10913 [★(2)|€(2)]: // ★€始录★€
+L11033 [★(1)|€(1)]: // 显示录音状★€?
+L11105 [★(1)|€(1)]: if (_recordingSeconds >= 60) toggleRecording(); // 月镀0★€
+L11129 [★(1)|€(1)]: alert('无法访问麦克风，请确保已授予麦克风权★€);
+L11257 [★(1)]: document.getElementById('chat-<input><div class="w-8 h-8 rounded-full bg-primary
+L11409 [★(1)]: '<span class="text-primary-600 font-bold text-xs">★</span></div>' +
+L11537 [★(4)|€(1)]: body: JSON.stringify({ message: '[★★★消息] ' + duration + '★€, session_id: _chatSe
+L11601 [★(6)|€(1)]: appendChatMessage({ role: 'user', content: '★★★发★€★失★? timestamp: new Date().toI
+L11633 [★(6)|€(1)]: appendChatMessage({ role: 'user', content: '★★★发★€★失★? timestamp: new Date().toI
+L12081 [★(4)|€(1)]: // ★★★输入框并发★€?
+L12161 [★(1)]: <span class="text-primary-600 font-bold text-xs">★</span>
+L12377 [★(5)|€(1)]: // 同时发★€★文字消★★★客服 API
+L12441 [★(1)|€(1)]: body: JSON.stringify({ message: '我想了解这个产品★€ + name + ' - ' + url, session_id: _c
+L12505 [★(9)|€(3)]: else appendChatMessage({ role: 'assistant', content: '感谢您的咨★！这★★★品是 ' + name + '
+L12521 [★(5)|€(2)]: appendChatMessage({ role: 'assistant', content: '感谢您的咨★！我已收到您发★€★的产品信息，★服将尽快为您服务
+L12569 [★(4)|€(2)]: appendChatMessage({ role: 'assistant', content: '已收到您的产品卡片，客服将尽★★★复★€€, timestam
+L12609 [★(6)|€(2)]: // ─── ★★★工★月─★€★€
+L12633 [★(7)|€(1)]: const ans = confirm('您需要登录后才能★★★人工客服。\n★★★前往登录★€);
+L12657 [★(5)|€(1)]: // 发★€★转接消★★★ AI 客服
+L12689 [★(3)|€(2)]: body: JSON.stringify({ message: '【转人工】用户★求转接人工★服，请帮助转接★€€, session_id: _chatSess
+L12729 [★(7)|€(1)]: // 显示★★★★★★★€
+L12785 [★(4)|BROKEN_TAG]: <span>★★★请求已提★?span>
+L12841 [★(1)]: // AI 回★
+L12905 [★(3)|€(1)]: appendChatMessage({ role: 'assistant', content: '已收到您的转人工请求，★服人员将尽快接入。★耐心等待★€, t
+L12977 [★(4)]: // ─── ★触屏滑动★★★ ───
+L13801 [★(4)]: // 切换图片时重★★★★?
+L13849 [★(1)|€(1)]: // ─── 底部预览栏更───★€
+L14393 [★(4)]: showToast('★★★★已复制');
+L14553 [★(1)]: // 过滤掉当前产★?
+L14777 [★(1)]: // 页面加载时保存当前产★?
+L15329 [★(8)]: alert('月★★★★对比' + MAX_COMPARE + ' ★★★★?;
+L15425 [★(1)|€(1)]: // 更新详情页按★€
+L15489 [★(2)]: ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><p
+L15809 [BROKEN_TAG]: document.getElementById('compare-bar-link').<hr>user()?->email ?? '' }}';
+L15969 [★(1)]: msg.textContent = '请至少填写邮箱或手机★?
+L16017 [★(1)|€(1)]: btn.textContent = '提交★€..';
+L16129 [★(1)|€(1)]: msg.textContent = data.message || '订阅成功★€;
+L16169 [★(1)]: msg.textContent = data.message || data.errors?.email?.[0] || '订阅失败，★重试';
+L16209 [★(1)]: msg.textContent = '网络异常，★稍后重试';
+L16305 [★(1)|BROKEN_TAG]: <h3 class="text-lg font-bold text-gray-900">分享给好★?h3>
+L16513 [★(1)|€(1)]: <!-- 对比二维码区★€-->
+L16529 [★(2)]: <p class="text-sm text-gray-500 mb-3">扫描二维码分享★★</p>
+L16561 [★(2)|BROKEN_TAG]: <p class="text-xs text-gray-400 mt-2">或★制链接手动分★?p>
+L16649 [★(3)]: <p class="text-sm text-gray-500 mb-4" id="stock-notify-sku-name">商品缺货中★★信息后补货将第一
+L16681 [★(1)|BROKEN_TAG]: <input id="stock-notify-email" type="email" class="w-full px-4 py-3 border borde
+L16713 [★(1)]: <input id="stock-notify-phone" type="tel" class="w-full px-4 py-3 border border-
+L16785 [★(1)]: <!-- ─── 图片★ ─── -->
+L16817 [★(1)|€(1)]: <!-- 上一★€-->
+L16865 [★(1)|€(1)]: <!-- 下一★€-->
+L16897 [★(3)]: <!-- 触屏滑动★★★ -->
+L16921 [★(3)]: <!-- ─── 预览底部操作栏（移动★★★ ─── -->
+L16985 [★(4)]: ★★★빺★ﳵ
+L17009 [★(8)]: ★★★★★★★★
+L17049 [★(1)|€(1)]: <!-- ─── 产品对比预览───★€ -->
+L17121 [★(3)]: <button onclick="saveCompareList([])" class="shrink-0 text-xs text-gray-400 hove
+L17145 [★(16)]: <!-- ★★★★★★ 商品展示★★★★ ★★★★★★ -->
+L17529 [★(2)|€(2)]: <!-- ─── IM 客服聊天对话案─★€★€ -->
+L17641 [BROKEN_TAG]: <div class="text-sm font-semibold">{{ $product->creator?->name ?? '在线客服' }}</div
+L17785 [★(3)]: <!-- ★★★操作 -->
+L17801 [★(3)|€(2)]: <button onclick="sendProductLink()" class="text-xs text-primary-600 bg-primary-5
+L17817 [★(3)|€(1)]: 发★€★商★?
+L17841 [★(2)]: <button onclick="toggleFaqQuick()" class="text-xs text-green-600 bg-green-50 hov
+L17857 [★(2)]: 常★★
+L17921 [★(1)|€(1)]: 加载★€..
+L17961 [★(3)]: <button onclick="requestHandoff()" class="text-xs text-amber-600 bg-amber-50 hov
+L17977 [★(4)|€(1)]: ★★★★€
+L18209 [★(2)|€(1)]: <span onclick="insertEmoji('★€)" class="w-9 h-9 flex items-center justify-center
+L18217 [★(2)|€(1)]: <span onclick="insertEmoji('★€)" class="w-9 h-9 flex items-center justify-center
+L18233 [★(2)]: <span onclick="insertEmoji('★')" class="w-9 h-9 flex items-center justify-center
+L18249 [★(2)|€(1)]: <span onclick="insertEmoji('★€)" class="w-9 h-9 flex items-center justify-center
+L18257 [★(2)|€(1)]: <span onclick="insertEmoji('★€)" class="w-9 h-9 flex items-center justify-center
+L18361 [€(1)]: <span onclick="insertEmoji('🛡️€)" class="w-9 h-9 flex items-center justify-cente
+L18417 [★(2)]: <span onclick="insertEmoji('★')" class="w-9 h-9 flex items-center justify-center
+L18457 [★(2)]: <span onclick="insertEmoji('★')" class="w-9 h-9 flex items-center justify-center
+L18505 [★(3)]: <button id="voice-record-btn" onclick="toggleRecording()" class="w-9 h-9 rounded
+L18529 [★(3)|€(2)]: <!-- 录音状★€★指★€-->
+L18777 [★(1)|€(1)]: // ─── 预览栏按───★€
+L18873 [★(6)]: alert('★★★★ѡ★񷽰★');
+L18889 [★(12)]: // ★★★★★★ 商品展示 ★★★★★★
+L19473 [★(10)]: // QR codes - ★★̬★★Ⱦ★★★★★★ʾͼƬ
+L19553 [★(4)]: '<p class="text-sm text-gray-500 mb-2">' + escHtml(img.label || '★★ά★★') + '</p>
+L19561 [★(4)]: '<img src="' + escHtml(img.url) + '" alt="' + escHtml(img.label || '★★ά★★') + '"

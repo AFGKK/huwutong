@@ -1,0 +1,23 @@
+# ============================================================
+# 主 Service — 指向当前活跃环境 (blue/green)
+# 切换流量时修改 selector.deployment
+# ============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: hwt-api
+  namespace: huwutong
+  labels:
+    app: hwt-api
+spec:
+  selector:
+    app: hwt-api
+    deployment: blue   # ← 切换时改为 green
+  ports:
+    - port: 80
+      targetPort: 8000
+      name: http
+---
+# 切换脚本 — 通过 patch 快速切换
+#   kubectl patch service hwt-api -p '{"spec":{"selector":{"deployment":"green"}}}'
+#   kubectl patch service hwt-api -p '{"spec":{"selector":{"deployment":"blue"}}}'

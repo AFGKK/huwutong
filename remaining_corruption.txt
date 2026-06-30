@@ -1,0 +1,8 @@
+★ chars remaining: 332
+€ chars remaining: 84
+Lines with corruption: 4
+
+L2505: ★★ʾ
+L16986: ★★★빺★ﳵ
+L17010: 了吗？★★★★
+L17858: 常★★

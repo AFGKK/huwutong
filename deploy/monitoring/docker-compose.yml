@@ -1,0 +1,148 @@
+version: '3.8'
+
+name: huwutong-monitoring
+
+services:
+  # ─── Prometheus ───
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    container_name: hwt-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/rules:/etc/prometheus/rules
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    networks:
+      - huwutong_monitor
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ─── Grafana ───
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: hwt-grafana
+    restart: unless-stopped
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/dashboards/app-overview.json
+      - TZ=Asia/Shanghai
+    ports:
+      - "3000:3000"
+    networks:
+      - huwutong_monitor
+    depends_on:
+      - prometheus
+
+  # ─── Node Exporter ───
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: hwt-node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    networks:
+      - huwutong_monitor
+
+  # ─── cAdvisor (Docker 容器监控) ───
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: hwt-cadvisor
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - huwutong_monitor
+    privileged: true
+
+  # ─── Redis Exporter ───
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.58.0
+    container_name: hwt-redis-exporter
+    restart: unless-stopped
+    environment:
+      - REDIS_ADDR=redis://host.docker.internal:6379
+    ports:
+      - "9121:9121"
+    networks:
+      - huwutong_monitor
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ─── MySQL Exporter ───
+  mysqld-exporter:
+    image: prom/mysqld-exporter:v0.15.1
+    container_name: hwt-mysqld-exporter
+    restart: unless-stopped
+    environment:
+      - DATA_SOURCE_NAME=${MYSQL_EXPORTER_DSN:-exporter:password@(host.docker.internal:3306)/}
+    ports:
+      - "9104:9104"
+    networks:
+      - huwutong_monitor
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ─── PHP-FPM Exporter ───
+  php-fpm-exporter:
+    image: hipages/php-fpm_exporter:latest
+    container_name: hwt-php-fpm-exporter
+    restart: unless-stopped
+    environment:
+      - PHP_FPM_SCRAPE_URI=tcp://host.docker.internal:9000/status
+    ports:
+      - "9253:9253"
+    networks:
+      - huwutong_monitor
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ─── Nginx Exporter ───
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.1.0
+    container_name: hwt-nginx-exporter
+    restart: unless-stopped
+    command:
+      - '-nginx.scrape-uri=http://host.docker.internal/nginx-status'
+    ports:
+      - "9113:9113"
+    networks:
+      - huwutong_monitor
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  huwutong_monitor:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:

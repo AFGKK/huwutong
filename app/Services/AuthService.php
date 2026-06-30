@@ -266,7 +266,15 @@ class AuthService
     public function getLockoutRemainingMinutes(string $email): int
     {
         $key = 'login_lockout:' . $email;
-        $ttl = Cache::get($key) ? Cache::ttl($key) : 0;
+        if (! Cache::get($key)) {
+            return 0;
+        }
+        // 兼容不同 cache driver（FileStore 无 ttl() 方法）
+        try {
+            $ttl = method_exists(Cache::store(), 'ttl') ? Cache::ttl($key) : 300;
+        } catch (\Throwable) {
+            $ttl = 300;
+        }
         return max(0, (int) ceil($ttl / 60));
     }
 

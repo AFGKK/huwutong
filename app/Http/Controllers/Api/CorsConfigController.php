@@ -7,13 +7,16 @@ use App\Http\Controllers\Controller;
 use App\Models\CorsConfig;
 use App\Services\CorsManagerService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class CorsConfigController extends Controller
 {
     public function __construct(
         protected CorsManagerService $corsManager,
-    ) {}
+    ) {
+        $this->authorizeResource(CorsConfig::class, 'corsConfig');
+    }
 
     /**
      * 获取所有 CORS 配置
@@ -57,6 +60,13 @@ class CorsConfigController extends Controller
             ['created_by' => $request->user()?->id],
         ));
 
+        Log::info('CORS 配置已创建', [
+            'user_id' => $request->user()?->id,
+            'cors_config_id' => $config->id,
+            'name' => $config->name,
+            'route_pattern' => $config->route_pattern,
+        ]);
+
         return ApiResponse::created($config, 'CORS 配置已创建');
     }
 
@@ -94,7 +104,16 @@ class CorsConfigController extends Controller
             return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
         }
 
+        $before = $corsConfig->replicate();
         $config = $this->corsManager->update($corsConfig, $validator->validated());
+
+        Log::info('CORS 配置已更新', [
+            'user_id' => $request->user()?->id,
+            'cors_config_id' => $config->id,
+            'name' => $config->name,
+            'before' => $before->toArray(),
+            'after' => $config->fresh()->toArray(),
+        ]);
 
         return ApiResponse::success($config, 'CORS 配置已更新');
     }
@@ -102,8 +121,14 @@ class CorsConfigController extends Controller
     /**
      * 删除 CORS 配置
      */
-    public function destroy(CorsConfig $corsConfig): \Illuminate\Http\JsonResponse
+    public function destroy(Request $request, CorsConfig $corsConfig): \Illuminate\Http\JsonResponse
     {
+        Log::info('CORS 配置已删除', [
+            'user_id' => $request->user()?->id,
+            'cors_config_id' => $corsConfig->id,
+            'name' => $corsConfig->name,
+        ]);
+
         $this->corsManager->delete($corsConfig);
 
         return ApiResponse::success(null, 'CORS 配置已删除');
@@ -123,7 +148,6 @@ class CorsConfigController extends Controller
             return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
         }
 
-        // 模拟一个请求来测试匹配
         $mockRequest = Request::create($request->input('path'), 'OPTIONS');
         $mockRequest->headers->set('Origin', $request->input('origin'));
 

@@ -1,0 +1,19 @@
+
+   Error 
+
+  Class "App\Http\Controllers\Api\Controller" not found
+
+  at app\Http\Controllers\Api\ProductDemoController.php:10
+      6▕ use App\Models\ProductDemo;
+      7▕ use Illuminate\Http\Request;
+      8▕ use Illuminate\Http\JsonResponse;
+      9▕ 
+  ➜  10▕ class ProductDemoController extends Controller
+     11▕ {
+     12▕     public function index(Product $product): JsonResponse
+     13▕     {
+     14▕         try {
+
+  1   vendor\composer\ClassLoader.php:576
+  2   vendor\composer\ClassLoader.php:427
+

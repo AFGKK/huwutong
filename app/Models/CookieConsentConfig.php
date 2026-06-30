@@ -22,6 +22,7 @@ class CookieConsentConfig extends Model
         'consent_lifetime_days',
         'theme',
         'layout',
+        'show_floating_button',
         'additional_css',
     ];
 
@@ -30,6 +31,7 @@ class CookieConsentConfig extends Model
         return [
             'is_active' => 'boolean',
             'categories' => 'array',
+            'show_floating_button' => 'boolean',
             'additional_css' => 'array',
         ];
     }

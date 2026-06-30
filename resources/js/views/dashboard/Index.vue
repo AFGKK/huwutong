@@ -38,13 +38,13 @@
                     <template #header>
                         <div class="card-header">
                             <span>最近 License</span>
-                            <el-link type="primary" :underline="false" @click="$router.push('/licenses')">查看全部</el-link>
+                            <el-link type="primary" :underline="'never'" @click="$router.push('/licenses')">查看全部</el-link>
                         </div>
                     </template>
                     <el-table v-if="recentLicenses.length" :data="recentLicenses" stripe style="width: 100%">
                         <el-table-column prop="license_key" label="License Key" min-width="180">
                             <template #default="{ row }">
-                                <el-link type="primary" :underline="false" @click="$router.push(`/licenses/${row.id}`)">
+                                <el-link type="primary" :underline="'never'" @click="$router.push(`/licenses/${row.id}`)">
                                     <code>{{ row.license_key }}</code>
                                 </el-link>
                             </template>
@@ -147,7 +147,7 @@
                     <el-table v-if="expiringLicenses.length" :data="expiringLicenses" stripe>
                         <el-table-column prop="license_key" label="License" min-width="160">
                             <template #default="{ row }">
-                                <el-link type="primary" :underline="false" @click="$router.push(`/licenses/${row.id}`)">
+                                <el-link type="primary" :underline="'never'" @click="$router.push(`/licenses/${row.id}`)">
                                     <code class="small-text">{{ row.license_key }}</code>
                                 </el-link>
                             </template>
@@ -167,7 +167,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, markRaw, onMounted } from 'vue';
 import licenseApi from '@/api/license';
 import { ElMessage } from 'element-plus';
 import {
@@ -189,10 +189,10 @@ const licenseStats = reactive({
 const customerCount = ref(0);
 
 const statCards = reactive([
-    { label: '全部 License', value: '0', icon: Key, color: '#409eff' },
-    { label: '活跃中', value: '0', icon: Odometer, color: '#67c23a' },
-    { label: '30天内到期', value: '0', icon: Coin, color: '#e6a23c' },
-    { label: '已过期', value: '0', icon: Key, color: '#f56c6c' },
+    { label: '全部 License', value: '0', icon: markRaw(Key), color: '#409eff' },
+    { label: '活跃中', value: '0', icon: markRaw(Odometer), color: '#67c23a' },
+    { label: '30天内到期', value: '0', icon: markRaw(Coin), color: '#e6a23c' },
+    { label: '已过期', value: '0', icon: markRaw(Key), color: '#f56c6c' },
 ]);
 
 const STATUS_MAP = {

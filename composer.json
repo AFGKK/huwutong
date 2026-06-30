@@ -6,12 +6,16 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "jenssegers/agent": "^2.6",
         "laravel/framework": "^11.0",
+        "laravel/reverb": "^1.10",
         "laravel/sanctum": "^4.0",
         "laravel/telescope": "^5.20",
         "laravel/tinker": "^2.9",
         "open-telemetry/exporter-otlp": "*",
         "open-telemetry/sdk": "*",
+        "phpoffice/phpspreadsheet": "^5.8",
+        "pusher/pusher-php-server": "^7.2",
         "spatie/laravel-permission": "^6.25"
     },
     "require-dev": {
@@ -31,7 +35,8 @@
             "Database\\Seeders\\": "database/seeders/"
         },
         "files": [
-            "app/helpers.php"
+            "app/helpers.php",
+            "app/helpers/site-setting.php"
         ]
     },
     "autoload-dev": {
@@ -42,6 +47,30 @@
     "scripts": {
         "test": "@php vendor/bin/phpunit",
         "test:feature": "@php vendor/bin/phpunit tests/Feature",
+        "test:unit": "@php vendor/bin/phpunit tests/Unit",
+
+        "phpstan": "vendor/bin/phpstan analyse --memory-limit=512M",
+        "phpstan:ci": "vendor/bin/phpstan analyse --no-progress --error-format=github --memory-limit=512M",
+        "pint": "vendor/bin/pint",
+        "pint:fix": "vendor/bin/pint",
+        "pint:test": "vendor/bin/pint --test",
+        "rector": "vendor/bin/rector process --dry-run",
+        "rector:fix": "vendor/bin/rector process",
+
+        "quality": [
+            "@pint:test",
+            "@phpstan"
+        ],
+        "quality:fix": [
+            "@pint:fix",
+            "@rector:fix",
+            "@phpstan"
+        ],
+        "quality:ci": [
+            "@pint:test",
+            "@phpstan:ci"
+        ],
+
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
@@ -72,7 +101,8 @@
         "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true,
-            "php-http/discovery": true
+            "php-http/discovery": true,
+            "tbachert/spi": true
         }
     },
     "minimum-stability": "stable",

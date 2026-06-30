@@ -1,0 +1,35 @@
+FROM php:8.3-cli-alpine AS worker
+
+# ── 系统依赖 ──
+RUN apk add --no-cache \
+    curl \
+    git \
+    unzip \
+    linux-headers \
+    oniguruma-dev \
+    libpng-dev \
+    libzip-dev \
+    libxml2-dev \
+    libsodium-dev \
+    && docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    mbstring \
+    bcmath \
+    zip \
+    xml \
+    sodium
+
+# ── Redis 扩展 ──
+RUN pecl install redis && docker-php-ext-enable redis
+
+# ── Composer ──
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www
+COPY . .
+
+RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist \
+    && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
+USER www-data
+CMD ["php", "artisan", "horizon"]

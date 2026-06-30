@@ -24,33 +24,24 @@ use Symfony\Component\HttpFoundation\Response;
 class ApmService
 {
     /**
-     * 慢请求阈值（毫秒）
-     */
-    const SLOW_THRESHOLD_MS = 1000;
-
-    /**
-     * 采样率：1/100，仅在非慢请求时生效
-     * 慢请求全部记录
-     */
-    const SAMPLE_RATE = 100;
-
-    /**
      * 记录请求性能数据
      */
     public function record(Request $request, Response $response, array $metrics = []): ?ApmRequest
     {
+        $slowThreshold = config('apm.slow_threshold_ms', 1000);
+        $sampleRate = config('apm.sample_rate', 100);
         $duration = $metrics['duration_ms'] ?? $this->computeDuration();
-        $isSlow = $duration >= self::SLOW_THRESHOLD_MS;
+        $isSlow = $duration >= $slowThreshold;
 
         // 非慢请求按采样率记录
-        if (! $isSlow && random_int(1, self::SAMPLE_RATE) !== 1) {
+        if (! $isSlow && random_int(1, $sampleRate) !== 1) {
             return null;
         }
 
         $slowReason = null;
         if ($isSlow) {
             $reasons = [];
-            if ($duration >= self::SLOW_THRESHOLD_MS) $reasons[] = "总耗时{$duration}ms";
+            if ($duration >= $slowThreshold) $reasons[] = "总耗时{$duration}ms";
             if (($metrics['db_duration_ms'] ?? 0) > 500) $reasons[] = "DB耗时{$metrics['db_duration_ms']}ms";
             if (($metrics['external_duration_ms'] ?? 0) > 500) $reasons[] = "外部调用耗时{$metrics['external_duration_ms']}ms";
             $slowReason = implode(', ', $reasons);
@@ -178,9 +169,10 @@ class ApmService
     /**
      * 清理超过保留期的旧数据
      */
-    public function prune(int $retentionDays = 7): int
+    public function prune(?int $retentionDays = null): int
     {
-        return ApmRequest::where('created_at', '<', now()->subDays($retentionDays))->delete();
+        $retentionDays = $retentionDays ?? config('apm.retention_days', 7);
+        return ApmRequest::where('created_at', '<', now()->subDays($retentionDays))->limit(config('apm.prune_batch_size', 1000))->delete();
     }
 
     /**

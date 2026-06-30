@@ -1,0 +1,152 @@
+# ============================================================
+# VirtualService - 内部服务路由
+# M3-68: API 路由、金丝雀发布、灰度分流
+# ============================================================
+
+# ─── Laravel API 服务 ───
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: hwt-api
+  namespace: huwutong
+spec:
+  hosts:
+    - api.huwutong.com
+  gateways:
+    - hwt-public-gateway
+  http:
+    # 健康检查直通
+    - match:
+        - uri:
+            prefix: /health
+      route:
+        - destination:
+            host: hwt-api
+            port:
+              number: 80
+    # API 路由 - 金丝雀发布 (权重分流)
+    - match:
+        - uri:
+            prefix: /api
+      route:
+        - destination:
+            host: hwt-api
+            port:
+              number: 80
+            subset: stable
+          weight: 90
+        - destination:
+            host: hwt-api
+            port:
+              number: 80
+            subset: canary
+          weight: 10
+      # 超时与重试策略
+      timeout: 30s
+      retries:
+        attempts: 3
+        perTryTimeout: 10s
+        retryOn: connect-failure,refused-stream,unavailable,5xx
+      # 熔断
+      cors:
+        allowOrigins:
+          - exact: https://admin.huwutong.com
+          - exact: https://portal.huwutong.com
+        allowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+        allowHeaders:
+          - authorization
+          - content-type
+          - x-requested-with
+          - x-xsrf-token
+        maxAge: 86400
+
+---
+# ─── Reverb WebSocket 服务 ───
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: hwt-websocket
+  namespace: huwutong
+spec:
+  hosts:
+    - ws.huwutong.com
+  gateways:
+    - hwt-public-gateway
+  http:
+    - match:
+        - port: 443
+      route:
+        - destination:
+            host: hwt-reverb
+            port:
+              number: 8080
+      timeout: 3600s  # WebSocket 长连接
+
+---
+# ─── Vue 管理后台 SPA ───
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: hwt-admin
+  namespace: huwutong
+spec:
+  hosts:
+    - admin.huwutong.com
+  gateways:
+    - hwt-public-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: hwt-admin
+            port:
+              number: 80
+
+---
+# ─── Vue 客户门户 SPA ───
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: hwt-portal
+  namespace: huwutong
+spec:
+  hosts:
+    - portal.huwutong.com
+  gateways:
+    - hwt-public-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: hwt-portal
+            port:
+              number: 80
+
+---
+# ─── 公开状态页 ───
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: hwt-status
+  namespace: huwutong
+spec:
+  hosts:
+    - status.huwutong.com
+  gateways:
+    - hwt-public-gateway
+  http:
+    - route:
+        - destination:
+            host: hwt-api
+            port:
+              number: 80
+            subset: stable

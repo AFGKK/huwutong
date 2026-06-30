@@ -1,0 +1,37 @@
+# Redis 宕机实验
+# 验证缓存降级到数据库的行为
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: redis-outage
+  namespace: chaos-engineering
+spec:
+  action: pod-kill
+  mode: one
+  duration: "60s"
+  selector:
+    namespaces:
+      - "default"
+    labelSelectors:
+      "app": "redis"
+  scheduler:
+    cron: "@every 24h"
+---
+# 验证熔断器是否正确降级到 DB
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: redis-stress
+  namespace: chaos-engineering
+spec:
+  mode: one
+  duration: "60s"
+  selector:
+    namespaces:
+      - "default"
+    labelSelectors:
+      "app": "redis"
+  stressors:
+    memory:
+      workers: 1
+      size: "1GB"

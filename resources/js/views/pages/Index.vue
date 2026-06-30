@@ -173,7 +173,7 @@ async function loadPages() {
     loading.value = true;
     try {
         const { data: res } = await settingApi.pages({ per_page: 50 });
-        pages.value = res.data?.data || [];
+        pages.value = res.data || [];
     } catch {
         pages.value = [];
     } finally {

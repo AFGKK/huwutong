@@ -1,0 +1,192 @@
+{
+  "name": "HWT License",
+  "version": "1.0.0",
+  "description": "Enterprise-grade software license management platform",
+  "platform": ["cloud"],
+  "connection": {
+    "type": "api_key",
+    "fields": [
+      {
+        "name": "apiKey",
+        "label": "API Key",
+        "type": "password",
+        "required": true,
+        "placeholder": "在 HWT License 后台 → API 密钥 → 创建新密钥"
+      },
+      {
+        "name": "baseUrl",
+        "label": "API Base URL",
+        "type": "text",
+        "required": true,
+        "default": "https://demo.huwutong.com",
+        "placeholder": "https://your-instance.huwutong.com"
+      }
+    ]
+  },
+  "modules": {
+    "triggers": [
+      {
+        "name": "watchLicenses",
+        "label": "Watch Licenses",
+        "description": "Triggers when a new license is created or updated.",
+        "type": "polling",
+        "params": [
+          { "name": "status", "label": "Filter by Status", "type": "select", "options": {"active":"Active","expired":"Expired","suspended":"Suspended"}, "required": false }
+        ],
+        "webhook": {
+          "url": "{{baseUrl}}/api/make/triggers/licenses",
+          "method": "GET",
+          "headers": { "Authorization": "Bearer {{apiKey}}", "Content-Type": "application/json" }
+        },
+        "output": [
+          {"name": "id", "label": "License ID", "type": "number"},
+          {"name": "licenseKey", "label": "License Key", "type": "text"},
+          {"name": "type", "label": "Type", "type": "text"},
+          {"name": "status", "label": "Status", "type": "text"},
+          {"name": "productName", "label": "Product", "type": "text"},
+          {"name": "customerName", "label": "Customer", "type": "text"},
+          {"name": "seats", "label": "Seats", "type": "number"},
+          {"name": "expiresAt", "label": "Expires At", "type": "date"},
+          {"name": "createdAt", "label": "Created At", "type": "date"}
+        ]
+      },
+      {
+        "name": "watchExpiringLicenses",
+        "label": "Watch Expiring Licenses",
+        "description": "Triggers when licenses are about to expire.",
+        "type": "polling",
+        "params": [
+          { "name": "days", "label": "Days Before Expiry", "type": "number", "default": 30, "required": true }
+        ],
+        "webhook": {
+          "url": "{{baseUrl}}/api/make/triggers/expiring-licenses",
+          "method": "GET",
+          "headers": { "Authorization": "Bearer {{apiKey}}", "Content-Type": "application/json" },
+          "query": { "days": "{{days}}" }
+        },
+        "output": [
+          {"name": "id", "label": "License ID", "type": "number"},
+          {"name": "licenseKey", "label": "License Key", "type": "text"},
+          {"name": "customerName", "label": "Customer", "type": "text"},
+          {"name": "expiresAt", "label": "Expires At", "type": "date"},
+          {"name": "daysUntilExpiry", "label": "Days Until Expiry", "type": "number"}
+        ]
+      },
+      {
+        "name": "watchCustomers",
+        "label": "Watch Customers",
+        "description": "Triggers when a new customer is created.",
+        "type": "polling",
+        "webhook": {
+          "url": "{{baseUrl}}/api/make/triggers/customers",
+          "method": "GET",
+          "headers": { "Authorization": "Bearer {{apiKey}}", "Content-Type": "application/json" }
+        },
+        "output": [
+          {"name": "id", "label": "Customer ID", "type": "number"},
+          {"name": "name", "label": "Name", "type": "text"},
+          {"name": "email", "label": "Email", "type": "text"},
+          {"name": "plan", "label": "Plan", "type": "text"}
+        ]
+      }
+    ],
+    "actions": [
+      {
+        "name": "createLicense",
+        "label": "Create License",
+        "description": "Creates a new license.",
+        "params": [
+          {"name": "productId", "label": "Product ID", "type": "number", "required": true},
+          {"name": "type", "label": "License Type", "type": "select", "options": {"enterprise":"Enterprise","professional":"Professional","standard":"Standard","trial":"Trial"}, "required": true},
+          {"name": "customerId", "label": "Customer ID", "type": "number", "required": true},
+          {"name": "seats", "label": "Seats", "type": "number", "default": 1, "required": true},
+          {"name": "expiresInDays", "label": "Valid For (Days)", "type": "number", "default": 365}
+        ],
+        "webhook": {
+          "url": "{{baseUrl}}/api/make/actions/create-license",
+          "method": "POST",
+          "headers": { "Authorization": "Bearer {{apiKey}}", "Content-Type": "application/json" },
+          "body": {
+            "product_id": "{{productId}}",
+            "type": "{{type}}",
+            "customer_id": "{{customerId}}",
+            "seats": "{{seats}}",
+            "expires_in_days": "{{expiresInDays}}"
+          }
+        },
+        "output": [
+          {"name": "id", "label": "License ID", "type": "number"},
+          {"name": "licenseKey", "label": "License Key", "type": "text"},
+          {"name": "status", "label": "Status", "type": "text"}
+        ]
+      },
+      {
+        "name": "suspendLicense",
+        "label": "Suspend License",
+        "description": "Suspends an active license.",
+        "params": [
+          {"name": "licenseKey", "label": "License Key", "type": "text", "required": true},
+          {"name": "reason", "label": "Reason", "type": "text"}
+        ],
+        "webhook": {
+          "url": "{{baseUrl}}/api/make/actions/suspend-license",
+          "method": "POST",
+          "headers": { "Authorization": "Bearer {{apiKey}}", "Content-Type": "application/json" },
+          "body": {"license_key": "{{licenseKey}}", "reason": "{{reason}}"}
+        }
+      },
+      {
+        "name": "sendEmailNotification",
+        "label": "Send Email Notification",
+        "description": "Sends an email notification to a customer.",
+        "params": [
+          {"name": "customerId", "label": "Customer ID", "type": "number", "required": true},
+          {"name": "subject", "label": "Subject", "type": "text", "required": true},
+          {"name": "message", "label": "Message", "type": "text", "required": true}
+        ],
+        "webhook": {
+          "url": "{{baseUrl}}/api/make/actions/send-notification",
+          "method": "POST",
+          "headers": { "Authorization": "Bearer {{apiKey}}", "Content-Type": "application/json" },
+          "body": {"customer_id": "{{customerId}}", "subject": "{{subject}}", "message": "{{message}}", "channel": "email"}
+        }
+      },
+      {
+        "name": "revokeLicense",
+        "label": "Revoke License",
+        "description": "Revokes (deactivates) a license immediately.",
+        "params": [
+          {"name": "licenseKey", "label": "License Key", "type": "text", "required": true}
+        ],
+        "webhook": {
+          "url": "{{baseUrl}}/api/make/actions/revoke-license",
+          "method": "POST",
+          "headers": { "Authorization": "Bearer {{apiKey}}", "Content-Type": "application/json" },
+          "body": {"license_key": "{{licenseKey}}"}
+        }
+      }
+    ],
+    "searches": [
+      {
+        "name": "findLicense",
+        "label": "Find License",
+        "description": "Search for a license by key or customer.",
+        "params": [
+          {"name": "query", "label": "License Key or Customer Name", "type": "text", "required": true}
+        ],
+        "webhook": {
+          "url": "{{baseUrl}}/api/make/searches/find-license",
+          "method": "POST",
+          "headers": { "Authorization": "Bearer {{apiKey}}", "Content-Type": "application/json" },
+          "body": {"query": "{{query}}"}
+        },
+        "output": [
+          {"name": "id", "label": "License ID", "type": "number"},
+          {"name": "licenseKey", "label": "License Key", "type": "text"},
+          {"name": "status", "label": "Status", "type": "text"},
+          {"name": "customerName", "label": "Customer", "type": "text"}
+        ]
+      }
+    ]
+  }
+}

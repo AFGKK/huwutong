@@ -62,9 +62,10 @@
               </template>
             </el-table-column>
             <el-table-column label="状态" width="70"><template #default="{ row }"><el-switch :model-value="row.is_active" :loading="togglingId === row.id" size="small" @change="toggleActive(row)" /></template></el-table-column>
-            <el-table-column label="操作" width="220" fixed="right">
+            <el-table-column label="操作" width="300" fixed="right">
               <template #default="{ row }">
                 <el-button text size="small" @click.stop="showEdit(row)">编辑</el-button>
+                <el-button text size="small" type="primary" @click.stop="showPermissionConfig(row)">端点权限</el-button>
                 <el-button text size="small" type="warning" @click.stop="handleRegenerate(row)">重生成</el-button>
                 <el-popconfirm title="确定要删除此密钥吗？" confirm-button-text="删除" @confirm.stop="handleDelete(row)">
                   <template #reference><el-button text size="small" type="danger" @click.stop>删除</el-button></template>
@@ -87,6 +88,83 @@
         <div class="pagination-wrap"><el-pagination v-model:current-page="auditPage" :page-size="30" :total="auditTotal" layout="prev, pager, next" @current-change="fetchAuditLogs" /></div>
       </el-tab-pane>
     </el-tabs>
+
+    <!-- 端点权限配置对话框 (M2-138) -->
+    <el-dialog v-model="showPermissionDialog" title="端点级细粒度权限配置" width="700px" :close-on-click-modal="false">
+      <el-form v-if="permissionConfigKey" label-position="top">
+        <el-alert title="为每个 SDK 端点单独配置允许的 HTTP 方法。不勾选任何方法=禁止该端点。" type="info" :closable="false" show-icon class="mb-4" />
+
+        <h4 class="section-title">端点权限矩阵</h4>
+        <div class="perm-matrix">
+          <div class="perm-row perm-header">
+            <div class="perm-cell endpoint-name">端点</div>
+            <div class="perm-cell" v-for="m in httpMethods" :key="m">{{ m }}</div>
+            <div class="perm-cell endpoint-desc">说明</div>
+          </div>
+          <div class="perm-row" v-for="ep in sdkEndpoints" :key="ep.endpoint">
+            <div class="perm-cell endpoint-name">
+              <code>{{ ep.endpoint }}</code>
+            </div>
+            <div class="perm-cell" v-for="m in httpMethods" :key="m">
+              <el-checkbox
+                v-model="permForm[ep.endpoint]"
+                :val="m"
+                :checked="permForm[ep.endpoint]?.includes(m)"
+                @change="toggleEndpointMethod(ep.endpoint, m)"
+              />
+            </div>
+            <div class="perm-cell endpoint-desc">{{ ep.description }}</div>
+          </div>
+        </div>
+
+        <el-divider />
+
+        <el-form-item label="允许的 HTTP 方法（全局）">
+          <el-select v-model="permFormGlobalMethods" multiple placeholder="不限制" clearable class="w-full">
+            <el-option v-for="m in httpMethods" :key="m" :label="m" :value="m" />
+          </el-select>
+          <div class="form-tip">设置后所有端点将继承此方法限制</div>
+        </el-form-item>
+
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="绑定 IP（多个用逗号分隔）">
+              <el-input v-model="permFormIps" placeholder="例如: 192.168.1.1,10.0.0.1" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="过期时间（精确到小时）">
+              <el-date-picker
+                v-model="permFormExpiresAt"
+                type="datetime"
+                placeholder="永不过期"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                :disabled-date="d => d <= new Date()"
+                class="w-full"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="总用量配额">
+              <el-input-number v-model="permFormUsageQuota" :min="1" :step="1000" placeholder="不限" class="w-full" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="每日用量配额">
+              <el-input-number v-model="permFormDailyQuota" :min="1" :step="100" placeholder="不限" class="w-full" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="showPermissionDialog = false">取消</el-button>
+        <el-button type="primary" :loading="savingPermission" @click="savePermissionConfig">保存配置</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -95,6 +173,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, CopyDocument, View, Hide } from '@element-plus/icons-vue'
 import apiKeyApi from '@/api/apiKey'
+import fineGrainedApiKeyApi from '@/api/fineGrainedApiKey'
 
 const loading = ref(false)
 const creating = ref(false)
@@ -114,6 +193,19 @@ const editFormRef = ref(null)
 const tierConfig = ref({ tiers: [], permissions: [] })
 const overview = ref({})
 const stats = reactive({ total: 0, active: 0 })
+
+// 细粒度权限状态 (M2-138)
+const showPermissionDialog = ref(false)
+const savingPermission = ref(false)
+const permissionConfigKey = ref(null)
+const sdkEndpoints = ref([])
+const httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
+const permForm = ref({})
+const permFormGlobalMethods = ref([])
+const permFormIps = ref('')
+const permFormExpiresAt = ref(null)
+const permFormUsageQuota = ref(null)
+const permFormDailyQuota = ref(null)
 
 const auditLogs = ref([])
 const auditLoading = ref(false)
@@ -321,6 +413,110 @@ async function toggleActive(row) {
 }
 
 onMounted(() => { fetchAll(); fetchAuditLogs() })
+
+// ── 细粒度权限管理方法 (M2-138) ──────────────────────────
+
+async function showPermissionConfig(row) {
+  permissionConfigKey.value = row
+  showPermissionDialog.value = true
+  permForm.value = {}
+  permFormGlobalMethods.value = []
+  permFormIps.value = ''
+  permFormExpiresAt.value = null
+  permFormUsageQuota.value = null
+  permFormDailyQuota.value = null
+
+  try {
+    // 加载 SDK 端点和当前权限配置
+    const [sdkRes, permRes] = await Promise.all([
+      fineGrainedApiKeyApi.getSdkEndpoints(),
+      fineGrainedApiKeyApi.getKeyPermissions(row.id),
+    ])
+
+    if (sdkRes.data?.success) {
+      sdkEndpoints.value = sdkRes.data.data.endpoints || []
+    }
+
+    if (permRes.data?.success) {
+      const d = permRes.data.data
+      // 初始化端点权限表单
+      const ep = d.endpoint_permissions || []
+      ep.forEach(item => {
+        if (item.allowed && item.allowed_methods?.length) {
+          permForm.value[item.endpoint] = [...item.allowed_methods]
+        } else {
+          permForm.value[item.endpoint] = []
+        }
+      })
+
+      // 全局方法
+      permFormGlobalMethods.value = d.allowed_methods
+        ? d.allowed_methods.split(',').map(m => m.trim())
+        : []
+
+      // IP
+      permFormIps.value = (d.allowed_ips || []).join(', ')
+
+      // 过期
+      permFormExpiresAt.value = d.expiry_status?.expires_at || null
+
+      // 配额
+      const q = d.quota_snapshot || {}
+      permFormUsageQuota.value = q.usage_quota ?? null
+      permFormDailyQuota.value = q.daily_quota ?? null
+    }
+  } catch { ElMessage.error('加载权限配置失败') }
+}
+
+function toggleEndpointMethod(endpoint, method) {
+  if (!permForm.value[endpoint]) {
+    permForm.value[endpoint] = []
+  }
+  const idx = permForm.value[endpoint].indexOf(method)
+  if (idx >= 0) {
+    permForm.value[endpoint].splice(idx, 1)
+  } else {
+    permForm.value[endpoint].push(method)
+  }
+}
+
+async function savePermissionConfig() {
+  if (!permissionConfigKey.value) return
+  savingPermission.value = true
+
+  try {
+    // 构建端点权限数据
+    const endpointPermissions = {}
+    sdkEndpoints.value.forEach(ep => {
+      const methods = permForm.value[ep.endpoint] || []
+      if (methods.length > 0) {
+        endpointPermissions[ep.endpoint] = methods
+      }
+    })
+
+    const payload = {
+      endpoint_permissions: Object.keys(endpointPermissions).length > 0 ? endpointPermissions : null,
+      allowed_methods: permFormGlobalMethods.value.length > 0 ? permFormGlobalMethods.value.join(',') : null,
+      allowed_ips: permFormIps.value
+        ? permFormIps.value.split(/[,\s]+/).filter(Boolean)
+        : null,
+      expires_at: permFormExpiresAt.value || null,
+      usage_quota: permFormUsageQuota.value || null,
+      daily_quota: permFormDailyQuota.value || null,
+    }
+
+    const res = await fineGrainedApiKeyApi.updatePermissions(permissionConfigKey.value.id, payload)
+    if (res.data?.success) {
+      ElMessage.success('端点权限已更新')
+      showPermissionDialog.value = false
+      fetchAll()
+    }
+  } catch (e) {
+    ElMessage.error(e.response?.data?.error?.message || '保存失败')
+  } finally {
+    savingPermission.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -342,4 +538,15 @@ onMounted(() => { fetchAll(); fetchAuditLogs() })
 .ip-text { font-family: monospace; font-size: 12px; }
 .pagination-wrap { margin-top: 16px; display: flex; justify-content: flex-end; }
 :deep(.el-card__body) { padding: 16px; }
+.mb-4 { margin-bottom: 16px; }
+.w-full { width: 100%; }
+.form-tip { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px; }
+.section-title { font-size: 15px; font-weight: 600; margin: 0 0 12px; }
+.perm-matrix { border: 1px solid var(--el-border-color-light); border-radius: 6px; overflow: hidden; margin-bottom: 16px; }
+.perm-row { display: flex; align-items: center; border-bottom: 1px solid var(--el-border-color-light); }
+.perm-row:last-child { border-bottom: none; }
+.perm-header { background: var(--el-fill-color-light); font-weight: 600; font-size: 12px; }
+.perm-cell { flex: 1; padding: 10px 8px; text-align: center; min-width: 60px; }
+.perm-cell.endpoint-name { flex: 0 0 120px; text-align: left; font-weight: 500; }
+.perm-cell.endpoint-desc { flex: 0 0 180px; text-align: left; font-size: 12px; color: var(--el-text-color-secondary); }
 </style>

@@ -45,6 +45,20 @@ const kbApi = {
     deleteCategory(id) {
         return apiClient.delete(`/kb/categories/${id}`);
     },
+    // ─── 批量操作 ───
+    batchDelete(ids) {
+        return apiClient.post('/kb/batch/delete', { ids });
+    },
+    batchPublish(ids) {
+        return apiClient.post('/kb/batch/publish', { ids });
+    },
+    batchArchive(ids) {
+        return apiClient.post('/kb/batch/archive', { ids });
+    },
+    // ─── 导出 ───
+    exportMarkdown() {
+        return apiClient.get('/kb/export/markdown', { responseType: 'blob' });
+    },
 };
 
 export default kbApi;

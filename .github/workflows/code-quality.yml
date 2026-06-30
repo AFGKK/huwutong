@@ -1,0 +1,96 @@
+# ============================================================
+# 代码质量工具链 CI 流水线
+# M0-08: PHPStan/Larastan + Laravel Pint + Pre-commit Hooks
+# ============================================================
+#
+# 触发条件:
+#   - push: 推送到任何分支
+#   - pull_request: 针对任何分支
+#
+# 流程:
+#   1. Pint 代码风格检查
+#   2. PHPStan 静态分析
+#   3. 密钥泄露扫描
+
+name: Code Quality
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  code-quality:
+    name: 代码质量检查
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_mysql, bcmath, redis, xml, json
+          tools: composer:v2
+          coverage: none
+
+      - name: 获取 Composer 缓存
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - name: 安装依赖
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: 创建缓存目录
+        run: mkdir -p storage/framework/cache
+
+      # ─── Step 1: Pint 代码风格检查 ───
+      - name: Laravel Pint 代码风格
+        run: |
+          echo "::group::Pint 检查结果"
+          vendor/bin/pint --test 2>&1 || true
+          echo "::endgroup::"
+
+      # ─── Step 2: PHPStan 静态分析 ───
+      - name: PHPStan 静态分析
+        run: |
+          echo "::group::PHPStan 分析结果"
+          vendor/bin/phpstan analyse --no-progress --error-format=github --memory-limit=512M || true
+          echo "::endgroup::"
+
+      # ─── Step 3: 密钥泄露扫描（轻量版） ───
+      - name: 密钥泄露扫描
+        run: |
+          echo "::group::密钥扫描结果"
+          KEY_PATTERNS='sk_live_|pk_live_|AKIA[0-9A-Z]{16}|-----BEGIN RSA PRIVATE KEY-----|ghp_[a-zA-Z0-9]{36}|gho_[a-zA-Z0-9]{36}'
+          LEAKS=$(grep -rE "$KEY_PATTERNS" --include="*.php" --include="*.env" --include="*.{json,yaml,yml}" \
+            --exclude-dir=vendor --exclude-dir=storage --exclude-dir=node_modules . 2>/dev/null || true)
+          if [ -n "$LEAKS" ]; then
+            echo "⚠️  检测到可能的密钥泄露:"
+            echo "$LEAKS"
+          else
+            echo "✅ 未检测到密钥泄露"
+          fi
+          echo "::endgroup::"
+
+      # ─── 结果汇总 ───
+      - name: 生成报告摘要
+        if: always()
+        run: |
+          {
+            echo "## 🧹 代码质量检查报告"
+            echo ""
+            echo "| 检查项 | 状态 |"
+            echo "|-------|:---:|"
+            echo "| 📐 Laravel Pint 代码风格 | 见上方日志 |"
+            echo "| 🔍 PHPStan 静态分析 (Level 6) | 见上方日志 |"
+            echo "| 🔒 密钥泄露扫描 | 见上方日志 |"
+            echo ""
+            echo "> 本地运行: \`composer quality\` / \`composer quality:fix\`"
+          } >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,19 @@
+# ===================================================
+# 蓝绿部署 — K8s 清单
+# M3-63 BlueGreenDeploy
+# ===================================================
+#
+# 使用方式:
+#   kubectl apply -k deploy/blue-green/
+#
+# 切换流量:
+#   kubectl patch service hwt-api -p '{"spec":{"selector":{"deployment":"green"}}}'
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: huwutong
+
+resources:
+  - blue-deployment.yaml
+  - green-deployment.yaml
+  - service.yaml

@@ -1,0 +1,112 @@
+{
+  "name": "HWT License 管理后台",
+  "short_name": "HWT License",
+  "description": "互物通 HWT License 授权管理系统 - 企业级软件授权管理平台",
+  "start_url": "/build/login",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#1d1e1f",
+  "theme_color": "#409eff",
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "scope": "/build/",
+  "id": "/build/",
+  "icons": [
+    {
+      "src": "/build/assets/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/build/assets/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/build/assets/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/build/assets/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "桌面版仪表盘"
+    },
+    {
+      "src": "/build/assets/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "移动版 License 管理"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "License 管理",
+      "short_name": "License",
+      "description": "查看和管理所有 License",
+      "url": "/build/licenses",
+      "icons": [
+        {
+          "src": "/build/assets/pwa-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "客户管理",
+      "short_name": "客户",
+      "description": "管理客户信息",
+      "url": "/build/customers",
+      "icons": [
+        {
+          "src": "/build/assets/pwa-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "数据看板",
+      "short_name": "看板",
+      "description": "平台运营数据总览",
+      "url": "/build/dashboard",
+      "icons": [
+        {
+          "src": "/build/assets/pwa-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://yourdomain.com/manifest.json"
+    }
+  ],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
+  "launch_handler": {
+    "client_mode": ["focus-existing", "auto"]
+  },
+  "handle_links": "preferred",
+  "serviceworker": {
+    "src": "/sw.js",
+    "scope": "/build/",
+    "update_via_cache": "none"
+  }
+}

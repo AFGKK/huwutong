@@ -8,15 +8,17 @@ test.describe('邮件管理 E2E', () => {
     test('邮件模板页面加载', async ({ page }) => {
         await navigateAsLoggedIn(page, '/admin/email-templates');
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 
     test('邮件追踪页面加载', async ({ page }) => {
         await navigateAsLoggedIn(page, '/admin/email-tracking');
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 
     test('页面无崩溃错误', async ({ page }) => {

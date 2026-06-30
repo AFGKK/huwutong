@@ -17,6 +17,14 @@ export default {
     public() {
         return apiClient.get('/settings/public');
     },
+    uploadImage(key, file) {
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('key', key);
+        return apiClient.post('/settings/upload-image', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
 
     // 页面管理
     pages(params) {

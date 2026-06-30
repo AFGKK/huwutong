@@ -22,6 +22,7 @@ class ApiKey extends Model
         'tier',               // free | standard | enterprise | custom
         'allowed_endpoints',
         'allowed_methods',
+        'endpoint_permissions',
         'rate_limit',
         'usage_quota',
         'usage_count',
@@ -49,6 +50,7 @@ class ApiKey extends Model
             'allowed_referrers' => 'array',
             'tags' => 'array',
             'metadata' => 'array',
+            'endpoint_permissions' => 'array',
             'rate_limit' => 'integer',
             'usage_quota' => 'integer',
             'usage_count' => 'integer',
@@ -162,6 +164,38 @@ class ApiKey extends Model
 
     // ─── HTTP 方法权限 ──────────────────────────────────────
 
+    // 预定义的 SDK 端点元数据
+    const SDK_ENDPOINTS = [
+        [
+            'endpoint' => 'activate',
+            'methods' => ['POST'],
+            'path' => '/api/activate',
+            'description' => '激活 License',
+            'required_permission' => 'read-write',
+        ],
+        [
+            'endpoint' => 'validate',
+            'methods' => ['GET'],
+            'path' => '/api/validate',
+            'description' => '验证 License 有效性',
+            'required_permission' => 'read-only',
+        ],
+        [
+            'endpoint' => 'revoke',
+            'methods' => ['POST'],
+            'path' => '/api/revoke',
+            'description' => '吊销 License',
+            'required_permission' => 'admin',
+        ],
+        [
+            'endpoint' => 'check',
+            'methods' => ['GET'],
+            'path' => '/api/check',
+            'description' => '检查 License 状态',
+            'required_permission' => 'read-only',
+        ],
+    ];
+
     /**
      * 判断是否有权限执行指定 HTTP 方法
      */
@@ -207,6 +241,72 @@ class ApiKey extends Model
         }
 
         return false;
+    }
+
+    /**
+     * 细粒度端点权限检查：验证是否允许以指定 HTTP 方法访问指定端点
+     * 优先检查 endpoint_permissions，其次检查 allowed_endpoints
+     */
+    public function canAccessEndpoint(string $endpoint, string $method): bool
+    {
+        // admin 级别不受端点限制
+        if ($this->permissions === 'admin') {
+            return true;
+        }
+
+        // 检查 endpoint_permissions 细粒度配置
+        if (! empty($this->endpoint_permissions)) {
+            $allowedMethods = $this->endpoint_permissions[$endpoint] ?? [];
+            if (empty($allowedMethods)) {
+                return false; // 此端点未在细粒度权限中允许
+            }
+            return in_array(strtoupper($method), array_map('strtoupper', $allowedMethods));
+        }
+
+        // 回退到 allowed_endpoints 宽泛匹配
+        if (! empty($this->allowed_endpoints)) {
+            foreach ($this->allowed_endpoints as $pattern) {
+                if (str_contains($pattern, $endpoint)) {
+                    // 端点匹配上了，再用方法权限校验
+                    return $this->canMethod($method);
+                }
+            }
+            return false;
+        }
+
+        // 未设置端点限制，默认允许
+        return true;
+    }
+
+    /**
+     * 获取此 Key 允许的端点及方法列表（供 SDK 自适应）
+     */
+    public function getAllowedEndpointsList(): array
+    {
+        if (! empty($this->endpoint_permissions)) {
+            $result = [];
+            foreach ($this->endpoint_permissions as $endpoint => $methods) {
+                $result[] = [
+                    'endpoint' => $endpoint,
+                    'methods' => $methods,
+                ];
+            }
+            return $result;
+        }
+
+        // 从 allowed_endpoints 模式推断
+        if (! empty($this->allowed_endpoints)) {
+            return array_map(fn ($p) => [
+                'endpoint' => $p,
+                'methods' => $this->allowed_methods ?? ['GET'],
+            ], $this->allowed_endpoints);
+        }
+
+        // 未限制，返回所有 SDK 端点
+        return array_map(fn ($ep) => [
+            'endpoint' => $ep['endpoint'],
+            'methods' => $ep['methods'],
+        ], self::SDK_ENDPOINTS);
     }
 
     // ─── 配额检查 ──────────────────────────────────────────

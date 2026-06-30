@@ -13,12 +13,35 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
     protected $fillable = [
-        'name', 'email', 'phone', 'password', 'tenant_id',
+        'name', 'email', 'phone', 'avatar', 'password', 'tenant_id', 'user_type',
         'remember_tenant_id', 'status', 'last_login_at', 'last_login_ip',
         'mfa_secret', 'mfa_enabled', 'mfa_recovery_codes', 'mfa_recovery_used',
         'password_history', 'password_changed_at', 'login_attempts', 'locked_until',
         'phone_verified_at',
+        'onboarding_completed', 'onboarding_skipped_at', 'onboarding_skip_reason', 'preferences',
     ];
+
+    protected $appends = ['avatar_url'];
+
+    public function getAvatarUrlAttribute(): string
+    {
+        if ($this->avatar) {
+            // 如果是完整 URL 直接返回，否则拼接 storage 路径
+            if (str_starts_with($this->avatar, 'http')) {
+                return $this->avatar;
+            }
+            return '/storage/' . $this->avatar;
+        }
+        // 无头像时返回默认头像（基于名字首字母的 SVG URL）
+        return $this->defaultAvatarUrl();
+    }
+
+    public function defaultAvatarUrl(): string
+    {
+        $name = urlencode($this->name ?: '?');
+        // 使用 ui-avatars.com 生成首字母头像（纯前端方案，无外部依赖泄漏）
+        return "https://ui-avatars.com/api/?name={$name}&background=2563eb&color=fff&size=128";
+    }
 
     protected $hidden = [
         'password', 'remember_token', 'password_history',
@@ -39,6 +62,11 @@ class User extends Authenticatable
             'remember_tenant_id' => 'integer',
             'password_history' => 'array',
             'login_attempts' => 'integer',
+            'agent_status_changed_at' => 'datetime',
+            'max_concurrent_chats' => 'integer',
+            'onboarding_completed' => 'boolean',
+            'onboarding_skipped_at' => 'datetime',
+            'preferences' => 'array',
         ];
     }
 
@@ -109,9 +137,29 @@ class User extends Authenticatable
         return $this->hasMany(Ticket::class, 'assigned_to');
     }
 
+    public function activeHandoffs()
+    {
+        return $this->hasMany(HandoffRequest::class, 'assigned_to');
+    }
+
     public function deletionRequest()
     {
         return $this->hasOne(\App\Models\AccountDeletionRequest::class)
             ->where('status', 'pending');
+    }
+
+    public function onboardingProgress()
+    {
+        return $this->hasOne(\App\Models\UserOnboardingProgress::class);
+    }
+
+    public function quickStartItems()
+    {
+        return $this->hasMany(\App\Models\QuickStartItem::class);
+    }
+
+    public function tutorialProgress()
+    {
+        return $this->hasMany(\App\Models\UserTutorialProgress::class);
     }
 }

@@ -1,0 +1,99 @@
+# ============================================================
+# Istio Ingress Gateway - 统一入口
+# M3-68: 服务网格 Istio
+#
+# 管理后台: admin.huwutong.com
+# API 服务: api.huwutong.com
+# 客户门户: portal.huwutong.com
+# WebSocket: ws.huwutong.com
+# 状态页:   status.huwutong.com
+# ============================================================
+
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: hwt-public-gateway
+  namespace: huwutong
+  labels:
+    app: hwt-license
+    mesh: istio
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    # ─── 管理后台 (HTTPS) ───
+    - hosts:
+        - admin.huwutong.com
+      port:
+        number: 443
+        name: https-admin
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: admin-tls-cert
+    # ─── API 服务 (HTTPS) ───
+    - hosts:
+        - api.huwutong.com
+      port:
+        number: 443
+        name: https-api
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: api-tls-cert
+    # ─── 客户门户 (HTTPS) ───
+    - hosts:
+        - portal.huwutong.com
+      port:
+        number: 443
+        name: https-portal
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: portal-tls-cert
+    # ─── WebSocket (WSS) ───
+    - hosts:
+        - ws.huwutong.com
+      port:
+        number: 443
+        name: https-ws
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: ws-tls-cert
+    # ─── 状态页 (HTTPS) ───
+    - hosts:
+        - status.huwutong.com
+      port:
+        number: 443
+        name: https-status
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: status-tls-cert
+    # ─── HTTP 重定向到 HTTPS ───
+    - hosts:
+        - "*.huwutong.com"
+      port:
+        number: 80
+        name: http-redirect
+        protocol: HTTP
+---
+# ─── HTTP 重定向到 HTTPS ───
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: http-redirect
+  namespace: huwutong
+spec:
+  hosts:
+    - "*.huwutong.com"
+  gateways:
+    - hwt-public-gateway
+  http:
+    - match:
+        - port: 80
+      redirect:
+        scheme: https
+        port: 443
+        permanent: true

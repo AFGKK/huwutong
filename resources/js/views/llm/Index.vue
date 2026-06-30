@@ -12,6 +12,9 @@
         <el-tabs v-model="activeTab" class="tabs-container">
             <!-- Provider 管理 -->
             <el-tab-pane label="Provider 管理" name="providers">
+                <div style="margin-bottom:12px">
+                    <el-button type="primary" size="small" @click="openCreateDialog">+ 新增 Provider</el-button>
+                </div>
                 <el-table :data="providers" v-loading="loadingProviders" stripe>
                     <el-table-column label="排序" width="60" prop="sort_order" align="center" />
                     <el-table-column label="名称" min-width="120" prop="name" />
@@ -45,8 +48,8 @@
                     </el-table-column>
                 </el-table>
 
-                <!-- 编辑 Provider 对话框 -->
-                <el-dialog v-model="editDialogVisible" :title="'编辑 ' + editForm.name" width="560px">
+                <!-- 编辑/新增 Provider 对话框 -->
+                <el-dialog v-model="editDialogVisible" :title="isCreating ? '新增 Provider' : '编辑 ' + editForm.name" width="560px">
                     <el-form :model="editForm" label-position="top" size="small">
                         <el-row :gutter="16">
                             <el-col :span="12">
@@ -54,6 +57,19 @@
                                     <el-input v-model="editForm.name" />
                                 </el-form-item>
                             </el-col>
+                            <el-col :span="12" v-if="isCreating">
+                                <el-form-item label="驱动">
+                                    <el-select v-model="editForm.driver" style="width:100%">
+                                        <el-option label="OpenAI 兼容" value="openai" />
+                                        <el-option label="DeepSeek" value="deepseek" />
+                                        <el-option label="Ollama (本地)" value="ollama" />
+                                        <el-option label="vLLM (本地)" value="vllm" />
+                                        <el-option label="Anthropic Claude" value="claude" />
+                                    </el-select>
+                                </el-form-item>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="16">
                             <el-col :span="12">
                                 <el-form-item label="默认模型">
                                     <el-input v-model="editForm.default_model" placeholder="如 deepseek-chat" />
@@ -213,6 +229,87 @@
                 </div>
             </el-tab-pane>
 
+            <!-- LLM 健康监控 -->
+            <el-tab-pane label="健康监控" name="health">
+                <div class="health-panel">
+                    <el-row :gutter="16">
+                        <el-col :span="12">
+                            <el-card shadow="never" class="section-card">
+                                <template #header>
+                                    <div class="card-header">
+                                        <span>Provider 健康状态</span>
+                                        <el-button size="small" @click="runHealthCheck" :loading="checkingHealth">执行检查</el-button>
+                                    </div>
+                                </template>
+                                <el-table :data="healthData" size="small" v-loading="loadingHealth">
+                                    <el-table-column label="Provider" prop="name" width="120" />
+                                    <el-table-column label="状态" width="80">
+                                        <template #default="{ row }">
+                                            <el-tag v-if="row.healthy" type="success" size="small">健康</el-tag>
+                                            <el-tag v-else type="danger" size="small">异常</el-tag>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="延迟" width="80" align="right">
+                                        <template #default="{ row }">
+                                            <span :style="{ color: row.latency_ms > 5000 ? '#e6a23c' : '#67c23a' }">
+                                                {{ row.latency_ms ? row.latency_ms + 'ms' : '-' }}
+                                            </span>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="24h 健康率" width="100" align="right">
+                                        <template #default="{ row }">
+                                            <el-tag :type="(row.health_rate_24h || 100) >= 99 ? 'success' : (row.health_rate_24h || 100) >= 95 ? 'warning' : 'danger'" size="small">
+                                                {{ row.health_rate_24h || 100 }}%
+                                            </el-tag>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="24h 平均延迟" width="110" align="right">
+                                        <template #default="{ row }">
+                                            {{ row.avg_latency_24h ? row.avg_latency_24h + 'ms' : '-' }}
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="熔断" width="60">
+                                        <template #default="{ row }">
+                                            <el-tag v-if="row.circuit_status === 'open'" type="danger" size="small">开</el-tag>
+                                            <el-tag v-else type="success" size="small">关</el-tag>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="报错" min-width="140">
+                                        <template #default="{ row }">
+                                            <span class="error-text">{{ row.last_error || '-' }}</span>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="最后检查" width="160" prop="last_check_at" />
+                                </el-table>
+                            </el-card>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-card shadow="never" class="section-card">
+                                <template #header><span>降级事件时间线</span></template>
+                                <div class="event-timeline" v-if="events.length > 0">
+                                    <el-timeline>
+                                        <el-timeline-item v-for="evt in events" :key="evt.id"
+                                            :type="evt.event_type === 'circuit_closed' || evt.event_type === 'health_recover' ? 'success' : 'danger'"
+                                            :timestamp="formatEventTime(evt.created_at)">
+                                            <div class="event-item">
+                                                <el-tag :type="eventTagType(evt.event_type)" size="small" class="event-tag">
+                                                    {{ eventLabel(evt.event_type) }}
+                                                </el-tag>
+                                                <p class="event-reason">{{ evt.reason || evt.context?.reason || '' }}</p>
+                                                <p class="event-meta" v-if="evt.provider?.name">
+                                                    {{ evt.provider.name }}
+                                                </p>
+                                            </div>
+                                        </el-timeline-item>
+                                    </el-timeline>
+                                </div>
+                                <el-empty v-else description="暂无降级事件" />
+                            </el-card>
+                        </el-col>
+                    </el-row>
+                </div>
+            </el-tab-pane>
+
             <!-- Token 统计 -->
             <el-tab-pane label="Token 用量统计" name="stats">
                 <el-row :gutter="16" class="stats-row">
@@ -284,6 +381,120 @@
                     <el-table-column label="时间" width="170" prop="created_at" />
                 </el-table>
             </el-tab-pane>
+
+            <!-- ─── 本地大模型部署 (M3-49) ─── -->
+            <el-tab-pane label="本地部署" name="local">
+                <el-alert
+                  title="私有化本地大模型 — 数据不出企业内网，支持 Ollama / vLLM"
+                  type="info" show-icon :closable="false" class="mb-3"
+                />
+
+                <!-- 实例状态 -->
+                <h4 class="mb-2">运行实例</h4>
+                <el-row :gutter="16" class="mb-3">
+                  <el-col :span="8" v-for="inst in localInstances" :key="inst.id || inst.driver">
+                    <el-card shadow="hover" :class="['instance-card', inst.healthy ? 'healthy' : 'unhealthy']">
+                      <template #header>
+                        <span>{{ inst.name }}</span>
+                        <el-tag :type="inst.healthy ? 'success' : 'danger'" size="small" style="float:right">
+                          {{ inst.healthy ? '健康' : '异常' }}
+                        </el-tag>
+                      </template>
+                      <div class="instance-meta">
+                        <div>驱动: {{ inst.driver }}</div>
+                        <div>API: <code>{{ inst.api_base }}</code></div>
+                        <div>延迟: {{ inst.latency_ms }}ms</div>
+                        <div>模型数: {{ inst.model_count }}</div>
+                        <div v-if="inst.default_model">默认模型: {{ inst.default_model }}</div>
+                      </div>
+                    </el-card>
+                  </el-col>
+                </el-row>
+
+                <!-- GPU 信息 -->
+                <el-card shadow="never" class="mb-3" v-if="gpuInfo.available">
+                  <template #header><span>GPU 状态</span></template>
+                  <el-table :data="gpuInfo.gpus || []" stripe size="small">
+                    <el-table-column prop="index" label="GPU #" width="60" />
+                    <el-table-column prop="name" label="型号" min-width="200" />
+                    <el-table-column label="显存" width="200">
+                      <template #default="{ row }">
+                        {{ formatMB(row.memory_used_mb) }} / {{ formatMB(row.memory_total_mb) }}
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="温度" width="100">
+                      <template #default="{ row }">{{ row.temperature_c }}°C</template>
+                    </el-table-column>
+                    <el-table-column label="利用率" width="120">
+                      <template #default="{ row }">
+                        <el-progress :percentage="row.utilization_percent" :stroke-width="12" />
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </el-card>
+                <el-alert v-else title="未检测到 GPU" type="warning" show-icon :closable="false" class="mb-3" />
+
+                <!-- 模型管理 -->
+                <h4 class="mb-2">模型管理 (Ollama)</h4>
+                <div class="section-toolbar mb-2">
+                  <el-select v-model="modelToPull" placeholder="选择要下载的模型" style="width:220px">
+                    <el-option label="Qwen 2 (7B) - 推荐" value="qwen2:7b" />
+                    <el-option label="Qwen 2 (72B)" value="qwen2:72b" />
+                    <el-option label="DeepSeek R1 (7B)" value="deepseek-r1:7b" />
+                    <el-option label="DeepSeek R1 (14B)" value="deepseek-r1:14b" />
+                    <el-option label="Llama 3 (8B)" value="llama3" />
+                    <el-option label="Mistral (7B)" value="mistral" />
+                    <el-option label="Nomic Embed Text" value="nomic-embed-text" />
+                  </el-select>
+                  <el-button type="primary" @click="handlePullModel" :loading="pulling" size="small">下载模型</el-button>
+                </div>
+                <el-table :data="localModels" stripe size="small" v-if="localModels.length">
+                  <el-table-column prop="id" label="模型名称" min-width="250" />
+                  <el-table-column label="大小" width="120">
+                    <template #default="{ row }">{{ formatBytes(row.size) }}</template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="100">
+                    <template #default="{ row }">
+                      <el-popconfirm title="确认删除此模型？" @confirm="deleteModel(row.id)">
+                        <template #reference>
+                          <el-button text type="danger" size="small">删除</el-button>
+                        </template>
+                      </el-popconfirm>
+                    </template>
+                  </el-table-column>
+                </el-table>
+
+                <!-- 硬件信息 -->
+                <el-card shadow="never" class="mt-3">
+                  <template #header><span>硬件信息</span></template>
+                  <el-descriptions :column="3" border size="small">
+                    <el-descriptions-item label="CPU">{{ hardware.cpu || 'N/A' }}</el-descriptions-item>
+                    <el-descriptions-item label="核心数">{{ hardware.cpu_cores || 'N/A' }}</el-descriptions-item>
+                    <el-descriptions-item label="内存">{{ hardware.ram_total_gb }}GB / {{ hardware.ram_available_gb }}GB 可用</el-descriptions-item>
+                    <el-descriptions-item label="磁盘">{{ hardware.disk_total_gb }}GB / {{ hardware.disk_free_gb }}GB 可用</el-descriptions-item>
+                    <el-descriptions-item label="最低要求">
+                      <el-tag :type="hardware.meets_minimum ? 'success' : 'danger'" size="small">
+                        {{ hardware.meets_minimum ? '达标' : '未达标' }}
+                      </el-tag>
+                    </el-descriptions-item>
+                    <el-descriptions-item label="推荐配置">
+                      RAM ≥ {{ hardware.recommended_hardware?.recommended_ram_gb }}GB | VRAM ≥ {{ hardware.recommended_hardware?.recommended_vram_gb }}GB
+                    </el-descriptions-item>
+                  </el-descriptions>
+                </el-card>
+
+                <!-- 部署指引 -->
+                <el-card shadow="never" class="mt-3">
+                  <template #header><span>部署指引</span></template>
+                  <el-steps direction="vertical" :active="-1" v-if="deployGuide.ollama">
+                    <el-step v-for="(s, i) in deployGuide.ollama.steps" :key="i" :title="s.action" :description="s.command" />
+                  </el-steps>
+                  <el-divider />
+                  <el-button size="small" @click="refreshLocalData" :loading="localLoading">
+                    <el-icon><Refresh /></el-icon> 刷新状态
+                  </el-button>
+                </el-card>
+            </el-tab-pane>
         </el-tabs>
     </div>
 </template>
@@ -294,6 +505,7 @@ import { ElMessage } from 'element-plus';
 import { ChatLineSquare } from '@element-plus/icons-vue';
 import llmApi from '@/api/llm';
 import llmFallbackApi from '@/api/llmFallback';
+import localLlmApi from '@/api/localLLM';
 import { Refresh } from '@element-plus/icons-vue';
 
 const activeTab = ref('providers');
@@ -303,8 +515,9 @@ const testingId = ref(null);
 
 const providers = ref([]);
 const editDialogVisible = ref(false);
+const isCreating = ref(false);
 const editForm = reactive({
-    id: null, name: '', api_base: '', api_key: '',
+    id: null, name: '', driver: '', api_base: '', api_key: '',
     default_model: '', is_active: true, is_fallback: false,
     config: { temperature: 0.7, max_tokens: 4096 },
 });
@@ -383,9 +596,11 @@ async function loadProviders() {
 }
 
 function openEditDialog(provider) {
+    isCreating.value = false;
     Object.assign(editForm, {
         id: provider.id,
         name: provider.name,
+        driver: provider.driver || '',
         api_base: provider.api_base || '',
         api_key: '',
         default_model: provider.default_model || '',
@@ -395,6 +610,16 @@ function openEditDialog(provider) {
             temperature: provider.config?.temperature ?? 0.7,
             max_tokens: provider.config?.max_tokens ?? 4096,
         },
+    });
+    editDialogVisible.value = true;
+}
+
+function openCreateDialog() {
+    isCreating.value = true;
+    Object.assign(editForm, {
+        id: null, name: '', driver: 'openai', api_base: '', api_key: '',
+        default_model: '', is_active: true, is_fallback: false,
+        config: { temperature: 0.7, max_tokens: 4096 },
     });
     editDialogVisible.value = true;
 }
@@ -415,14 +640,22 @@ async function handleSaveProvider() {
         };
         if (editForm.api_key) data.api_key = editForm.api_key;
 
-        const { data: res } = await llmApi.updateProvider(editForm.id, data);
-        if (res.success) {
-            ElMessage.success('配置已保存');
-            editDialogVisible.value = false;
-            await loadProviders();
+        if (isCreating.value) {
+            data.driver = editForm.driver;
+            const { data: res } = await llmApi.createProvider(data);
+            if (res.success) {
+                ElMessage.success('Provider 已创建');
+            }
+        } else {
+            const { data: res } = await llmApi.updateProvider(editForm.id, data);
+            if (res.success) {
+                ElMessage.success('配置已保存');
+            }
         }
+        editDialogVisible.value = false;
+        await loadProviders();
     } catch {
-        ElMessage.error('保存失败');
+        ElMessage.error(isCreating.value ? '创建失败' : '保存失败');
     } finally {
         savingProvider.value = false;
     }
@@ -524,6 +757,62 @@ const fallbackStatus = ref(null);
 const loadingFallback = ref(false);
 const resettingFallback = ref(false);
 
+// ── 健康监控 ──
+const healthData = ref([]);
+const loadingHealth = ref(false);
+const checkingHealth = ref(false);
+const events = ref([]);
+
+async function loadHealthStatus() {
+    loadingHealth.value = true;
+    try {
+        const { data: res } = await llmApi.healthStatus();
+        if (res.success) healthData.value = res.data || [];
+    } catch { /* ignore */ }
+    finally { loadingHealth.value = false; }
+}
+
+async function loadFallbackEvents() {
+    try {
+        const { data: res } = await llmApi.fallbackEvents();
+        if (res.success) events.value = res.data || [];
+    } catch { /* ignore */ }
+}
+
+async function runHealthCheck() {
+    checkingHealth.value = true;
+    try {
+        const { data: res } = await llmApi.runHealthCheck();
+        if (res.success) {
+            ElMessage.success(`健康检查完成: ${res.data.healthy_count}/${res.data.total_count} 正常`);
+            await loadHealthStatus();
+            await loadFallbackEvents();
+        }
+    } catch { ElMessage.error('健康检查失败'); }
+    finally { checkingHealth.value = false; }
+}
+
+function eventTagType(type) {
+    return ['circuit_closed', 'health_recover'].includes(type) ? 'success' : 'warning';
+}
+
+function eventLabel(type) {
+    const labels = {
+        circuit_opened: '熔断开启',
+        circuit_closed: '熔断关闭',
+        provider_switch: 'Provider切换',
+        health_fail: '健康异常',
+        health_recover: '健康恢复',
+        all_down: '全部不可用',
+    };
+    return labels[type] || type;
+}
+
+function formatEventTime(t) {
+    if (!t) return '';
+    return new Date(t).toLocaleString('zh-CN');
+}
+
 async function loadFallbackStatus() {
     loadingFallback.value = true;
     try {
@@ -558,7 +847,95 @@ onMounted(() => {
     loadStats();
     loadLogs();
     loadFallbackStatus();
+    loadHealthStatus();
+    loadFallbackEvents();
+    loadLocalData();
 });
+
+// ─── 本地大模型部署 (M3-49) ───
+const localLoading = ref(false);
+const localInstances = ref([]);
+const gpuInfo = ref({ available: false });
+const hardware = ref({});
+const deployGuide = ref({});
+const localModels = ref([]);
+const modelToPull = ref('qwen2:7b');
+const pulling = ref(false);
+
+function formatMB(mb) {
+  if (!mb) return '0 MB';
+  if (mb > 1024) return (mb / 1024).toFixed(1) + ' GB';
+  return mb + ' MB';
+}
+
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
+}
+
+async function loadLocalData() {
+  localLoading.value = true;
+  try {
+    const [statusRes, hwRes, guideRes] = await Promise.all([
+      localLlmApi.getStatus(),
+      localLlmApi.getHardwareInfo(),
+      localLlmApi.getDeploymentGuide(),
+    ]);
+
+    if (statusRes.success) {
+      localInstances.value = statusRes.data.instances || [];
+      gpuInfo.value = statusRes.data.gpu_info || { available: false };
+      const allModels = [];
+      statusRes.data.instances.forEach(inst => {
+        if (inst.models) allModels.push(...inst.models);
+      });
+      localModels.value = allModels;
+    }
+    if (hwRes.success) hardware.value = hwRes.data;
+    if (guideRes.success) deployGuide.value = guideRes.data;
+  } catch {
+    // silent
+  } finally {
+    localLoading.value = false;
+  }
+}
+
+async function refreshLocalData() {
+  await loadLocalData();
+  ElMessage.success('本地 LLM 状态已刷新');
+}
+
+async function handlePullModel() {
+  if (!modelToPull.value) { ElMessage.warning('请选择模型'); return; }
+  pulling.value = true;
+  try {
+    const { data } = await localLlmApi.pullModel(modelToPull.value);
+    if (data.success) {
+      ElMessage.success(data.message);
+      await loadLocalData();
+    } else {
+      ElMessage.error(data.message);
+    }
+  } catch {
+    ElMessage.error('模型下载失败');
+  } finally {
+    pulling.value = false;
+  }
+}
+
+async function deleteModel(modelName) {
+  try {
+    const { data } = await localLlmApi.deleteModel(modelName);
+    if (data.success) {
+      ElMessage.success(data.message);
+      await loadLocalData();
+    }
+  } catch {
+    ElMessage.error('删除失败');
+  }
+}
 </script>
 
 <style scoped>
@@ -722,4 +1099,13 @@ onMounted(() => {
 .empty-data {
     padding: 20px 0;
 }
+
+/* Health monitoring */
+.health-panel {}
+.event-timeline { max-height: 480px; overflow-y: auto; }
+.event-item { font-size: 13px; }
+.event-tag { margin-bottom: 4px; }
+.event-reason { margin: 4px 0; color: #606266; }
+.event-meta { margin: 0; font-size: 12px; color: #909399; }
+.error-text { font-size: 12px; color: #909399; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
 </style>

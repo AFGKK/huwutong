@@ -32,6 +32,23 @@ class SmsService
     }
 
     /**
+     * 发送通知类短信（用于续费提醒等）
+     *
+     * @param string $phone 手机号
+     * @param string $message 短信内容（最长150字）
+     * @return bool
+     */
+    public function sendNotification(string $phone, string $message): bool
+    {
+        $driver = env('SMS_DRIVER', 'log');
+
+        return match ($driver) {
+            'aliyun' => $this->sendViaAliyunNotification($phone, $message),
+            default  => $this->logOnly($phone, $message),
+        };
+    }
+
+    /**
      * 通过阿里云短信发送
      */
     private function sendViaAliyun(string $phone, string $code): bool
@@ -93,13 +110,64 @@ class SmsService
     /**
      * 开发环境仅记录日志
      */
-    private function logOnly(string $phone, string $code): bool
+    private function logOnly(string $phone, string $message): bool
     {
-        Log::info('SMS: [开发环境] 手机验证码', [
+        Log::info('SMS: [开发环境] 短信', [
             'phone' => $phone,
-            'code' => $code,
+            'message' => $message,
         ]);
         return true;
+    }
+
+    /**
+     * 通过阿里云发送通知类短信
+     */
+    private function sendViaAliyunNotification(string $phone, string $message): bool
+    {
+        $accessKeyId = env('ALIYUN_SMS_ACCESS_KEY_ID');
+        $accessSecret = env('ALIYUN_SMS_ACCESS_KEY_SECRET');
+        $signName = env('ALIYUN_SMS_SIGN_NAME', '互物通');
+        $templateCode = env('ALIYUN_SMS_NOTIFICATION_TEMPLATE', 'SMS_NOTIFICATION');
+
+        if (empty($accessKeyId) || empty($accessSecret)) {
+            return $this->logOnly($phone, $message);
+        }
+
+        try {
+            $params = [
+                'PhoneNumbers' => $phone,
+                'SignName' => $signName,
+                'TemplateCode' => $templateCode,
+                'TemplateParam' => json_encode(['message' => $message]),
+            ];
+
+            $timestamp = gmdate('Y-m-d\TH:i:s\Z');
+            $nonce = uniqid('', true);
+
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'Authorization' => $this->signRequest($accessKeyId, $accessSecret, $params, $timestamp, $nonce),
+                'X-Acs-Date' => $timestamp,
+                'X-Acs-Signature-Nonce' => $nonce,
+                'Content-Type' => 'application/json',
+            ])->post('https://dysmsapi.aliyuncs.com/', $params);
+
+            $result = $response->json();
+
+            if (($result['Code'] ?? '') === 'OK') {
+                Log::info('SMS: 通知已通过阿里云发送', [
+                    'phone' => substr($phone, 0, 3) . '****' . substr($phone, -4),
+                ]);
+                return true;
+            }
+
+            Log::error('SMS: 阿里云发送通知失败', [
+                'code' => $result['Code'] ?? 'unknown',
+            ]);
+            return false;
+        } catch (\Throwable $e) {
+            Log::error('SMS: 阿里云发送通知异常', ['error' => $e->getMessage()]);
+            return $this->logOnly($phone, $message);
+        }
     }
 
     /**

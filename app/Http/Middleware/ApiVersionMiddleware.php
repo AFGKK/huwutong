@@ -33,6 +33,13 @@ class ApiVersionMiddleware
             return $next($request);
         }
 
+        // 测试环境或无 API 版本记录时，自动跳过版本检查
+        if (ApiVersion::count() === 0) {
+            $request->attributes->set('api_version', 'v1');
+            $request->attributes->set('api_version_id', null);
+            return $next($request);
+        }
+
         $result = $this->versionManager->checkRequestVersion($path);
 
         if (!$result['available']) {

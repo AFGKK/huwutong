@@ -1,0 +1,3 @@
+product-detail.blade.php.fixed2: SYNTAX ERROR at C:\Users\WENHUI\AppData\Local\Temp\tmpwfghpz1t.js:29
+product-detail.blade.php.fixed: SYNTAX ERROR at C:\Users\WENHUI\AppData\Local\Temp\tmp5knc8qvm.js:57
+product-detail.blade.php: SYNTAX ERROR at C:\Users\WENHUI\AppData\Local\Temp\tmp1abr8dan.js:2108

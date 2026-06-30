@@ -1,0 +1,24 @@
+{
+    "name": "huwutong/huwutong-sdk-php",
+    "description": "HWT License 官方 PHP SDK - License 激活/验证/设备管理",
+    "type": "library",
+    "require": {
+        "php": ">=8.1",
+        "guzzlehttp/guzzle": "^7.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Huwutong\\": "src/"
+        }
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Huwutong Team",
+            "email": "dev@huwutong.com"
+        }
+    ]
+}

@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package huwutong.common;
+
+option php_namespace = "App\\Services\\Grpc\\Proto\\Common";
+option php_metadata_namespace = "App\\Services\\Grpc\\Proto\\Common\\GPBMetadata";
+
+// ─── 基础类型 ───
+
+message Empty {}
+
+message Timestamp {
+    int64 seconds = 1;
+    int32 nanos = 2;
+}
+
+message Pagination {
+    int32 page = 1;
+    int32 per_page = 2;
+    int32 total = 3;
+    int32 last_page = 4;
+}
+
+// ─── 通用枚举 ───
+
+enum StatusCode {
+    OK = 0;
+    NOT_FOUND = 1;
+    INVALID_ARGUMENT = 2;
+    ALREADY_EXISTS = 3;
+    PERMISSION_DENIED = 4;
+    UNAUTHENTICATED = 5;
+    FAILED_PRECONDITION = 6;
+    INTERNAL = 7;
+    UNAVAILABLE = 8;
+    DEADLINE_EXCEEDED = 9;
+}
+
+// ─── 通用响应 ───
+
+message ErrorDetail {
+    string code = 1;
+    string message = 2;
+    string field = 3;
+}
+
+message ApiResponse {
+    StatusCode status = 1;
+    string message = 2;
+    repeated ErrorDetail errors = 3;
+}
+
+// ─── 租户上下文 ───
+
+message TenantContext {
+    int64 tenant_id = 1;
+    string tenant_key = 2;
+}

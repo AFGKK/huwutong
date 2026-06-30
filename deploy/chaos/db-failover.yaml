@@ -1,0 +1,42 @@
+# DB 主从切换实验
+# 验证数据库故障时的系统降级行为
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: db-failover
+  namespace: chaos-engineering
+spec:
+  action: pod-kill
+  mode: one
+  duration: "30s"
+  selector:
+    namespaces:
+      - "default"
+    labelSelectors:
+      "app.kubernetes.io/component": "mysql"
+  scheduler:
+    cron: "@every 48h"
+---
+# 网络分区 - 隔离数据库
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: db-network-partition
+  namespace: chaos-engineering
+spec:
+  action: partition
+  mode: one
+  duration: "30s"
+  selector:
+    namespaces:
+      - "default"
+    labelSelectors:
+      "app.kubernetes.io/component": "mysql"
+  direction: both
+  target:
+    mode: all
+    selector:
+      namespaces:
+        - "default"
+      labelSelectors:
+        "app": "api"

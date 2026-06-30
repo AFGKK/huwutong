@@ -50,7 +50,7 @@ class AnnounceBannerController extends Controller
             'type' => 'sometimes|in:info,success,warning,danger',
             'position' => 'sometimes|in:top,bottom',
             'can_close' => 'sometimes|boolean',
-            'link_url' => 'nullable|string|url|max:500',
+            'link_url' => 'nullable|string|max:500',
             'link_text' => 'nullable|string|max:100',
             'roles' => 'nullable|array',
             'roles.*' => 'string',

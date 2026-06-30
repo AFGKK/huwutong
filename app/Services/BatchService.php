@@ -345,6 +345,12 @@ class BatchService
         $newStatus = $params['new_status'] ?? 'active';
 
         if ($target instanceof License) {
+            // 状态校验：仅 active/expired 可续期
+            $allowedStatuses = ['active', 'expired', 'suspended'];
+            if (!in_array($target->status, $allowedStatuses)) {
+                throw new \InvalidArgumentException("License #{$target->id} 状态 [{$target->status}] 不允许续期");
+            }
+
             $oldExpiresAt = $target->expires_at ? $target->expires_at->toIso8601String() : null;
             $this->takeSnapshot($batchJob, $target, 'expires_at', $target->expires_at);
             $this->takeSnapshot($batchJob, $target, 'status', $target->status);
@@ -358,9 +364,43 @@ class BatchService
                 'expires_at' => $newExpiresAt,
             ]);
 
+            // 记录审计日志
+            activity()
+                ->performedOn($target)
+                ->causedBy($batchJob->user)
+                ->withProperties([
+                    'action' => 'batch_renew',
+                    'batch_job_id' => $batchJob->id,
+                    'old_expires_at' => $oldExpiresAt,
+                    'new_expires_at' => $newExpiresAt->toIso8601String(),
+                    'days_added' => $days,
+                ])
+                ->log('license:batch_renew');
+
             return [
                 'old_expires_at' => $oldExpiresAt,
                 'new_expires_at' => $newExpiresAt->toIso8601String(),
+                'days_added' => $days,
+            ];
+        }
+
+        if ($target instanceof Subscription) {
+            $oldExpiresAt = $target->ends_at ? $target->ends_at->toIso8601String() : null;
+            $this->takeSnapshot($batchJob, $target, 'ends_at', $target->ends_at);
+            $this->takeSnapshot($batchJob, $target, 'status', $target->status);
+
+            $newEndsAt = $target->ends_at && $target->ends_at > now()
+                ? $target->ends_at->copy()->addDays($days)
+                : now()->addDays($days);
+
+            $target->update([
+                'status' => $newStatus,
+                'ends_at' => $newEndsAt,
+            ]);
+
+            return [
+                'old_expires_at' => $oldExpiresAt,
+                'new_expires_at' => $newEndsAt->toIso8601String(),
                 'days_added' => $days,
             ];
         }

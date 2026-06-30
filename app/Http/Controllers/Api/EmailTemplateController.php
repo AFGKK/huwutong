@@ -337,7 +337,7 @@ class EmailTemplateController extends Controller
             ],
             // 英文版
             [
-                'code' => 'license_activated',
+                'code' => 'license_activated_en',
                 'name' => 'License Activated',
                 'subject' => '[{{site_name}}] License Activated - {{product_name}}',
                 'body_html' => '<h2>License Activation</h2>
@@ -355,7 +355,7 @@ class EmailTemplateController extends Controller
                 'status' => 'published',
             ],
             [
-                'code' => 'license_expiring',
+                'code' => 'license_expiring_en',
                 'name' => 'License Expiring Soon',
                 'subject' => '[{{site_name}}] License Expiring - {{days_remaining}} Days Left',
                 'body_html' => '<h2>License Expiry Reminder</h2>
@@ -373,7 +373,7 @@ class EmailTemplateController extends Controller
                 'status' => 'published',
             ],
             [
-                'code' => 'welcome',
+                'code' => 'welcome_en',
                 'name' => 'Welcome New User',
                 'subject' => 'Welcome to {{site_name}}!',
                 'body_html' => '<h2>Welcome!</h2>

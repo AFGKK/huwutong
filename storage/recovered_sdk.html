@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SDK 下载 - 互物�?| 企业级授权管理系�?/title>
+<link rel="preload" as="style" href="http://88.huwutong.com/build/assets/public-BKTwNp4r.css" /><link rel="stylesheet" href="http://88.huwutong.com/build/assets/public-BKTwNp4r.css" /><script>tailwind.config={theme:{extend:{colors:{primary:{50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a'}}}}}</script>
+<style>.sdk-card{transition:all .3s ease}.sdk-card:hover{transform:translateY(-4px);box-shadow:0 12px 24px -8px rgba(59,130,246,.15)}</style>
+</head>
+<body class="font-sans antialiased text-gray-800 bg-white">
+    <nav class="fixed top-0 w-full bg-white/80 backdrop-blur-xl z-50 border-b border-gray-100/80 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16 md:h-20">
+            <a href="http://88.huwutong.com" class="flex items-center gap-2.5 group">
+                <div class="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300">
+                    <span class="text-white font-bold text-base">互</span>
+                </div>
+                <span class="font-bold text-xl text-gray-900">互物通</span>
+            </a>
+            <div class="hidden md:flex items-center gap-1">
+                <a href="http://88.huwutong.com#features" class="nav-link">产品特性</a>
+                <a href="http://88.huwutong.com/products" class="nav-link">产品商城</a>
+                <a href="http://88.huwutong.com/pricing" class="nav-link">定价</a>
+                <a href="http://88.huwutong.com/license/query" class="nav-link">授权查询</a>
+                <a href="http://88.huwutong.com/blog" class="nav-link">开发者博客</a>
+                <a href="http://88.huwutong.com/help" class="nav-link">帮助中心</a>
+                <div class="ml-4 flex items-center gap-3">
+                    <a href="/build/login" class="text-sm font-medium text-gray-600 hover:text-primary-600 transition px-3 py-2">登录</a>
+                    <a href="/build/register" class="text-sm font-medium bg-gradient-to-r from-primary-500 to-primary-600 text-white px-6 py-2.5 rounded-xl hover:from-primary-600 hover:to-primary-700 transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5">免费注册</a>
+                </div>
+            </div>
+            <button class="md:hidden p-2.5 rounded-xl hover:bg-gray-100 transition" onclick="document.getElementById('nav-mobile').classList.toggle('hidden')">
+                <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+        </div>
+    </div>
+    <div id="nav-mobile" class="hidden md:hidden border-t border-gray-100 bg-white/95 backdrop-blur-xl">
+        <div class="px-4 py-4 space-y-1">
+            <a href="http://88.huwutong.com#features" class="block px-4 py-3 rounded-xl text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition font-medium">产品特性</a>
+            <a href="http://88.huwutong.com/products" class="block px-4 py-3 rounded-xl text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition font-medium">产品商城</a>
+            <a href="http://88.huwutong.com/pricing" class="block px-4 py-3 rounded-xl text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition font-medium">定价</a>
+            <a href="http://88.huwutong.com/license/query" class="block px-4 py-3 rounded-xl text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition font-medium">授权查询</a>
+            <a href="http://88.huwutong.com/blog" class="block px-4 py-3 rounded-xl text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition font-medium">开发者博客</a>
+            <a href="http://88.huwutong.com/help" class="block px-4 py-3 rounded-xl text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition font-medium">帮助中心</a>
+            <hr class="my-2 border-gray-100">
+            <a href="/build/login" class="block px-4 py-3 rounded-xl text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition font-medium">登录</a>
+            <a href="/build/register" class="block text-center mt-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white px-5 py-3 rounded-xl hover:from-primary-600 hover:to-primary-700 transition font-medium shadow-md">免费注册</a>
+        </div>
+    </div>
+</nav>
+<style>
+.nav-link { @apply px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary-600 transition rounded-lg hover:bg-primary-50/50; }
+</style>
+    <section class="pt-28 pb-16 bg-gradient-to-br from-primary-50 via-white to-blue-50">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">SDK 下载</h1>
+            <p class="text-lg text-gray-600">选择您的编程语言�? 行代码完成授权验证集�?/p>
+        </div>
+    </section>
+    <section class="py-16">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="sdk-card bg-white rounded-xl border border-gray-100 p-6">
+                    <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-4"><span class="text-2xl font-bold text-blue-600">PHP</span></div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">PHP SDK</h3>
+                    <p class="text-sm text-gray-500 mb-4">适用�?Laravel / Symfony / ThinkPHP 等框�?/p>
+                    <div class="bg-gray-50 rounded-lg p-3 mb-4"><code class="text-sm text-gray-800">composer require huwutong/sdk</code></div>
+                    <a href="http://88.huwutong.com/api/api-docs/public" class="text-primary-600 text-sm font-medium hover:underline">查看文档 �?/a>
+                </div>
+                <div class="sdk-card bg-white rounded-xl border border-gray-100 p-6">
+                    <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mb-4"><span class="text-2xl font-bold text-green-600">JS</span></div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">Node.js SDK</h3>
+                    <p class="text-sm text-gray-500 mb-4">适用�?Express / Koa / Next.js 等框�?/p>
+                    <div class="bg-gray-50 rounded-lg p-3 mb-4"><code class="text-sm text-gray-800">npm install huwutong-sdk</code></div>
+                    <a href="http://88.huwutong.com/api/api-docs/public" class="text-primary-600 text-sm font-medium hover:underline">查看文档 �?/a>
+                </div>
+                <div class="sdk-card bg-white rounded-xl border border-gray-100 p-6">
+                    <div class="w-12 h-12 bg-yellow-50 rounded-xl flex items-center justify-center mb-4"><span class="text-2xl font-bold text-yellow-600">Py</span></div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">Python SDK</h3>
+                    <p class="text-sm text-gray-500 mb-4">适用�?Django / Flask / FastAPI 等框�?/p>
+                    <div class="bg-gray-50 rounded-lg p-3 mb-4"><code class="text-sm text-gray-800">pip install huwutong-sdk</code></div>
+                    <a href="http://88.huwutong.com/api/api-docs/public" class="text-primary-600 text-sm font-medium hover:underline">查看文档 �?/a>
+                </div>
+                <div class="sdk-card bg-white rounded-xl border border-gray-100 p-6">
+                    <div class="w-12 h-12 bg-cyan-50 rounded-xl flex items-center justify-center mb-4"><span class="text-2xl font-bold text-cyan-600">Go</span></div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">Go SDK</h3>
+                    <p class="text-sm text-gray-500 mb-4">适用�?Gin / Echo / Fiber 等框�?/p>
+                    <div class="bg-gray-50 rounded-lg p-3 mb-4"><code class="text-sm text-gray-800">go get huwutong.com/sdk</code></div>
+                    <a href="http://88.huwutong.com/api/api-docs/public" class="text-primary-600 text-sm font-medium hover:underline">查看文档 �?/a>
+                </div>
+                <div class="sdk-card bg-white rounded-xl border border-gray-100 p-6">
+                    <div class="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mb-4"><span class="text-2xl font-bold text-red-600">Java</span></div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">Java SDK</h3>
+                    <p class="text-sm text-gray-500 mb-4">适用�?Spring Boot / Micronaut 等框�?/p>
+                    <div class="bg-gray-50 rounded-lg p-3 mb-4"><code class="text-sm text-gray-800">// Maven: com.huwutong:sdk:1.0</code></div>
+                    <a href="http://88.huwutong.com/api/api-docs/public" class="text-primary-600 text-sm font-medium hover:underline">查看文档 �?/a>
+                </div>
+                <div class="sdk-card bg-white rounded-xl border border-gray-100 p-6">
+                    <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center mb-4"><span class="text-2xl font-bold text-purple-600">C#</span></div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">C# SDK</h3>
+                    <p class="text-sm text-gray-500 mb-4">适用�?.NET Core / ASP.NET 等框�?/p>
+                    <div class="bg-gray-50 rounded-lg p-3 mb-4"><code class="text-sm text-gray-800">Install-Package HWT.Sdk</code></div>
+                    <a href="http://88.huwutong.com/api/api-docs/public" class="text-primary-600 text-sm font-medium hover:underline">查看文档 �?/a>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="py-16 bg-gray-50" id="examples">
+        <div class="max-w-4xl mx-auto px-4">
+            <h2 class="text-2xl font-bold text-gray-900 text-center mb-8">一分钟集成示例</h2>
+            <div class="bg-gray-900 rounded-2xl p-8 shadow-xl">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="w-3 h-3 bg-red-500 rounded-full"></span>
+                    <span class="w-3 h-3 bg-yellow-500 rounded-full"></span>
+                    <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+                    <span class="text-gray-400 text-sm ml-2">PHP 示例</span>
+                </div>
+                <pre class="text-sm text-gray-200 font-mono leading-relaxed overflow-x-auto"><code><span class="text-purple-400">require</span> <span class="text-orange-400">'vendor/autoload.php'</span>;
+
+<span class="text-blue-400">$client</span> = <span class="text-purple-400">new</span> <span class="text-green-400">HWT\Client</span>([
+    <span class="text-orange-400">'api_key'</span> => <span class="text-orange-400">'your_api_key'</span>,
+]);
+
+<span class="text-blue-400">$result</span> = <span class="text-blue-400">$client</span>-><span class="text-yellow-300">validate</span>(<span class="text-orange-400">'HWT-ENT-XXXX-XXXX'</span>);
+
+<span class="text-gray-400">if</span> (<span class="text-blue-400">$result</span>-><span class="text-yellow-300">isValid</span>()) {
+    <span class="text-gray-400">echo</span> <span class="text-green-400">"License 有效"</span>;
+} <span class="text-gray-400">else</span> {
+    <span class="text-gray-400">echo</span> <span class="text-green-400">"License 无效: "</span> . <span class="text-blue-400">$result</span>-><span class="text-yellow-300">getError</span>();
+}</code></pre>
+            </div>
+        </div>
+    </section>
+    <footer class="bg-gray-900 text-gray-400 pt-16 pb-8 relative overflow-hidden">
+    <!-- ─── Live Chat 在线客服 Widget (M2-103) ─── -->
+<div id="live-chat-root"></div>
+
+<style>
+#live-chat-root {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.lc-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #409eff, #337ecc);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+    color: #fff;
+    font-size: 24px;
+}
+.lc-btn:hover { transform: scale(1.08); }
+.lc-btn svg { width: 24px; height: 24px; fill: currentColor; }
+
+.lc-window {
+    width: 360px;
+    height: 520px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.lc-header {
+    background: linear-gradient(135deg, #409eff, #337ecc);
+    color: #fff;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.lc-header-title { font-weight: 600; font-size: 14px; }
+.lc-header-status {
+    font-size: 11px; background: rgba(255,255,255,0.2);
+    padding: 2px 8px; border-radius: 10px;
+}
+.lc-header-actions { display: flex; gap: 4px; }
+.lc-header-actions button {
+    background: none; border: none; color: #fff; cursor: pointer;
+    padding: 2px 6px; border-radius: 4px; font-size: 16px;
+}
+.lc-header-actions button:hover { background: rgba(255,255,255,0.15); }
+
+.lc-messages {
+    flex: 1; overflow-y: auto; padding: 16px; background: #f5f7fa;
+}
+.lc-welcome { text-align: center; padding: 24px 16px; }
+.lc-welcome-avatar { font-size: 48px; margin-bottom: 12px; }
+.lc-welcome p { color: #606266; font-size: 14px; margin-bottom: 16px; }
+.lc-suggestions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.lc-suggestion {
+    padding: 4px 12px; background: #fff; border: 1px solid #dcdfe6;
+    border-radius: 14px; font-size: 12px; color: #606266; cursor: pointer;
+    transition: all 0.2s;
+}
+.lc-suggestion:hover { border-color: #409eff; color: #409eff; }
+
+.lc-msg { display: flex; gap: 8px; margin-bottom: 14px; }
+.lc-msg-user { justify-content: flex-end; }
+.lc-msg-agent, .lc-msg-ai { justify-content: flex-start; }
+.lc-msg-avatar {
+    width: 30px; height: 30px; border-radius: 50%; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+}
+.lc-msg-content {
+    max-width: 75%; padding: 9px 13px; border-radius: 10px;
+    font-size: 13px; line-height: 1.5; word-break: break-word;
+}
+.lc-msg-user .lc-msg-content {
+    background: #409eff; color: #fff;
+    border-radius: 10px 10px 0 10px;
+}
+.lc-msg-ai .lc-msg-content {
+    background: #fff; color: #303133;
+    border: 1px solid #e4e7ed;
+    border-radius: 10px 10px 10px 0;
+}
+.lc-msg-agent .lc-msg-content {
+    background: #e8f5e9; color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+.lc-handoff-notice {
+    text-align: center; padding: 10px; background: #fff3e0;
+    border-radius: 8px; margin-bottom: 12px;
+    font-size: 12px; color: #e65100;
+}
+
+.lc-typing { display: flex; gap: 4px; padding: 8px 0; justify-content: center; }
+.lc-typing span {
+    width: 6px; height: 6px; background: #909399; border-radius: 50%;
+    animation: lc-blink 1.4s infinite;
+}
+.lc-typing span:nth-child(2) { animation-delay: 0.2s; }
+.lc-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes lc-blink { 0%,80%,100% { opacity: 0; } 40% { opacity: 1; } }
+
+.lc-input-wrap {
+    padding: 8px 12px; border-top: 1px solid #ebeef5; background: #fff;
+    display: flex; gap: 8px;
+}
+.lc-input-wrap input {
+    flex: 1; border: 1px solid #dcdfe6; border-radius: 8px;
+    padding: 8px 12px; font-size: 13px; outline: none;
+}
+.lc-input-wrap input:focus { border-color: #409eff; }
+.lc-input-wrap button {
+    padding: 8px 16px; background: #409eff; color: #fff;
+    border: none; border-radius: 8px; cursor: pointer; font-size: 13px;
+}
+.lc-input-wrap button:disabled { opacity: 0.5; cursor: not-allowed; }
+.lc-input-wrap button:hover:not(:disabled) { background: #337ecc; }
+</style>
+
+<script>
+(function() {
+    var root = document.getElementById('live-chat-root');
+    if (!root) return;
+
+    var state = { open: false, conversationId: null, messages: [], loading: false, handoffNotice: null };
+
+    function render() {
+        if (!state.open) {
+            root.innerHTML =
+                '<button class="lc-btn" onclick="window.__lcOpen()" title="在线客服">' +
+                '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.88.54 3.63 1.48 5.12L2 22l5.12-1.48C8.37 21.46 10.12 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z"/></svg>' +
+                '</button>';
+            return;
+        }
+
+        var msgsHtml = '';
+        if (state.messages.length === 0) {
+            msgsHtml =
+                '<div class="lc-welcome">' +
+                '<div class="lc-welcome-avatar">🤖</div>' +
+                '<p>您好！我是互物通智能客服助手，请问有什么可以帮您？</p>' +
+                '<div class="lc-suggestions">' +
+                '<span class="lc-suggestion" onclick="window.__lcSend(\'如何激活 License？\')">如何激活 License？</span>' +
+                '<span class="lc-suggestion" onclick="window.__lcSend(\'License 已过期怎么办？\')">License 已过期怎么办？</span>' +
+                '<span class="lc-suggestion" onclick="window.__lcSend(\'设备数量超出限制\')">设备数量超出限制</span>' +
+                '<span class="lc-suggestion" onclick="window.__lcSend(\'转人工客服\')">转人工客服</span>' +
+                '</div></div>';
+        } else {
+            msgsHtml = state.messages.map(function(m) {
+                var roleClass = m.role === 'user' ? 'lc-msg-user' : (m.role === 'agent' ? 'lc-msg-agent' : 'lc-msg-ai');
+                var avatar = m.role === 'user' ? '' : (m.role === 'agent' ? '👤' : '🤖');
+                var content = (m.content || '').replace(/\n/g, '<br>');
+                return '<div class="lc-msg ' + roleClass + '">' +
+                    (avatar ? '<div class="lc-msg-avatar">' + avatar + '</div>' : '') +
+                    '<div class="lc-msg-content">' + content + '</div>' +
+                    (m.role === 'user' ? '<div class="lc-msg-avatar" style="background:#409eff;color:#fff;">👤</div>' : '') +
+                    '</div>';
+            }).join('');
+        }
+
+        var handoffHtml = state.handoffNotice
+            ? '<div class="lc-handoff-notice">⏳ 正在为您转接人工客服，请稍候...</div>'
+            : '';
+
+        var typingHtml = state.loading
+            ? '<div class="lc-msg lc-msg-ai"><div class="lc-msg-avatar">🤖</div><div class="lc-msg-content"><div class="lc-typing"><span></span><span></span><span></span></div></div></div>'
+            : '';
+
+        root.innerHTML =
+            '<div class="lc-window">' +
+            '<div class="lc-header">' +
+            '<div><span class="lc-header-title">🤖 互物通智能客服</span> <span class="lc-header-status">在线</span></div>' +
+            '<div class="lc-header-actions">' +
+            '<button onclick="window.__lcMinimize()">−</button>' +
+            '<button onclick="window.__lcClose()">✕</button>' +
+            '</div></div>' +
+            '<div class="lc-messages" id="lc-msgs">' + msgsHtml + handoffHtml + typingHtml + '</div>' +
+            '<div class="lc-input-wrap">' +
+            '<input type="text" id="lc-input" placeholder="输入您的问题..." onkeydown="if(event.key===\'Enter\')window.__lcSend()" />' +
+            '<button onclick="window.__lcSend()">发送</button>' +
+            '</div></div>';
+
+        // 滚动到底部
+        var el = document.getElementById('lc-msgs');
+        if (el) el.scrollTop = el.scrollHeight;
+        // 聚焦输入框
+        var inp = document.getElementById('lc-input');
+        if (inp) inp.focus();
+    }
+
+    window.__lcOpen = function() { state.open = true; render(); };
+    window.__lcMinimize = function() { state.open = false; render(); };
+    window.__lcClose = function() {
+        state.open = false;
+        state.messages = [];
+        state.conversationId = null;
+        state.handoffNotice = null;
+        render();
+    };
+
+    window.__lcSend = function(text) {
+        var inp = document.getElementById('lc-input');
+        var msg = text || (inp ? inp.value.trim() : '');
+        if (!msg || state.loading) return;
+        if (inp) inp.value = '';
+
+        state.messages.push({ role: 'user', content: msg });
+        state.loading = true;
+        render();
+
+        var apiBase = '/api';
+        var createConv = function() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', apiBase + '/live-chat/conversations', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.onload = function() {
+                try {
+                    var d = JSON.parse(xhr.responseText);
+                    state.conversationId = d.data?.id || d.data?.data?.id;
+                    if (state.conversationId) sendMsg();
+                    else { state.loading = false; render(); }
+                } catch(e) { state.loading = false; render(); }
+            };
+            xhr.onerror = function() { state.loading = false; render(); };
+            xhr.send(JSON.stringify({ source: 'widget' }));
+        };
+
+        var sendMsg = function() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', apiBase + '/live-chat/conversations/' + state.conversationId + '/messages', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.onload = function() {
+                state.loading = false;
+                try {
+                    var d = JSON.parse(xhr.responseText);
+                    var data = d.data || d;
+                    if (data.reply) {
+                        state.messages.push({ role: 'assistant', content: data.reply.content || data.reply });
+                    }
+                    if (data.handoff) {
+                        state.handoffNotice = { handoff_id: data.handoff.id || data.handoff };
+                        state.messages.push({ role: 'assistant', content: '⏳ 正在为您转接人工客服，请稍候...' });
+                    }
+                } catch(e) {}
+                render();
+            };
+            xhr.onerror = function() {
+                state.loading = false;
+                state.messages.push({ role: 'assistant', content: '抱歉，连接失败。请稍后再试。' });
+                render();
+            };
+            xhr.send(JSON.stringify({ content: msg }));
+        };
+
+        if (state.conversationId) { sendMsg(); }
+        else { createConv(); }
+    };
+
+    render();
+})();
+</script>
+    <!-- ─── Cookie 横幅 ─── -->
+<div id="cookie-banner" class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg px-4 py-4 sm:px-6 sm:py-4 hidden" style="box-shadow: 0 -4px 24px rgba(0,0,0,0.08);">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <button onclick="rejectCookieConsent()" class="absolute top-2 right-2 sm:static sm:order-last w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 transition flex-shrink-0" title="关闭">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <div class="flex items-start gap-3 flex-1">
+            <span class="text-xl flex-shrink-0 mt-0.5">🍪</span>
+            <div>
+                <p class="text-sm text-gray-700 font-medium">Cookie 设置</p>
+                <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                    我们使用必要的 Cookie 来确保服务正常运行。您可以选择接受或拒绝非必要的 Cookie。
+                    <a href="http://88.huwutong.com/cookie-policy" class="text-primary-600 hover:text-primary-700 underline ml-1">Cookie 政策</a> | <a href="http://88.huwutong.com/privacy" class="text-primary-600 hover:text-primary-700 underline ml-1">隐私政策</a>
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+            <button onclick="acceptCookieConsent()" class="flex-1 sm:flex-none px-5 py-2 bg-gradient-to-r from-primary-600 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-primary-700 hover:to-blue-700 transition shadow-sm">
+                接受全部
+            </button>
+            <button onclick="rejectCookieConsent()" class="flex-1 sm:flex-none px-4 py-2 text-sm text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                拒绝
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var key = 'cookie_consent';
+    var val = localStorage.getItem(key);
+    if (!val) {
+        // 检查 Vue 组件使用的 cookie_consent_given
+        var vueConsent = localStorage.getItem('cookie_consent_given');
+        if (!vueConsent) {
+            var banner = document.getElementById('cookie-banner');
+            if (banner) banner.classList.remove('hidden');
+        }
+    }
+})();
+
+function acceptCookieConsent() {
+    var banner = document.getElementById('cookie-banner');
+    if (banner) banner.classList.add('hidden');
+    // 兼容 Vue CookieConsent 组件
+    var data = JSON.stringify({ action: 'accepted', timestamp: Date.now(), categories: [] });
+    localStorage.setItem('cookie_consent', 'accepted');
+    localStorage.setItem('cookie_consent_given', data);
+}
+
+function rejectCookieConsent() {
+    var banner = document.getElementById('cookie-banner');
+    if (banner) banner.classList.add('hidden');
+    var data = JSON.stringify({ action: 'rejected', timestamp: Date.now(), categories: [] });
+    localStorage.setItem('cookie_consent', 'rejected');
+    localStorage.setItem('cookie_consent_given', data);
+}
+</script>
+    <div class="absolute inset-0 bg-gradient-to-b from-gray-800/20 to-transparent pointer-events-none"></div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-10">
+            <div class="lg:col-span-2">
+                <a href="http://88.huwutong.com" class="flex items-center gap-2.5 mb-4 group">
+                    <div class="w-9 h-9 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
+                        <span class="text-white font-bold text-base">互</span>
+                    </div>
+                    <span class="font-bold text-xl text-white">互物通</span>
+                </a>
+                <p class="text-sm leading-relaxed text-gray-400 max-w-sm">企业级软件授权与 License 管理平台</p>
+                <div class="flex gap-2.5 mt-5 flex-wrap">
+                    <a href="http://88.huwutong.com/contact" class="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-green-500 hover:text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg" title="微信">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.045c.134 0 .24-.11.24-.245 0-.06-.024-.12-.04-.178l-.325-1.233a.492.492 0 0 1 .178-.553C23.028 18.333 24 16.592 24 14.628c0-3.299-3.063-5.77-7.062-5.77zm-2.18 2.364c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982zm4.36 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982z"/></svg>
+                    </a>
+                    <a href="https://weibo.com/huwutong" target="_blank" rel="noopener noreferrer" class="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-red-500 hover:text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg" title="微博">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M10.098 20.323c-3.977.391-7.414-1.406-7.672-4.02-.259-2.609 2.759-5.047 6.74-5.441 3.979-.394 7.413 1.404 7.671 4.018.259 2.6-2.759 5.049-6.739 5.443z"/></svg>
+                    </a>
+                    <a href="https://github.com/huwutong" target="_blank" rel="noopener noreferrer" class="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-600 hover:text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg" title="GitHub">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+                    </a>
+                    <a href="mailto:support@huwutong.com" class="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg" title="邮箱">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <h4 class="font-semibold text-white mb-5 text-sm uppercase tracking-wider">产品</h4>
+                <ul class="space-y-3 text-sm">
+                    <li><a href="http://88.huwutong.com#features" class="text-gray-400 hover:text-white transition flex items-center gap-2 group"><span class="w-0 group-hover:w-2 h-0.5 bg-primary-400 transition-all duration-300"></span>产品特性</a></li>
+                    <li><a href="http://88.huwutong.com/products" class="text-gray-400 hover:text-white transition flex items-center gap-2 group"><span class="w-0 group-hover:w-2 h-0.5 bg-primary-400 transition-all duration-300"></span>产品商城</a></li>
+                    <li><a href="http://88.huwutong.com/pricing" class="text-gray-400 hover:text-white transition flex items-center gap-2 group"><span class="w-0 group-hover:w-2 h-0.5 bg-primary-400 transition-all duration-300"></span>定价</a></li>
+                    <li><a href="http://88.huwutong.com/compare" class="text-gray-400 hover:text-white transition flex items-center gap-2 group"><span class="w-0 group-hover:w-2 h-0.5 bg-primary-400 transition-all duration-300"></span>竞品对比</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-semibold text-white mb-5 text-sm uppercase tracking-wider">开发者</h4>
+                <ul class="space-y-3 text-sm">
+                    <li><a href="http://88.huwutong.com/sdk" class="text-gray-400 hover:text-white transition flex items-center gap-2 group"><span class="w-0 group-hover:w-2 h-0.5 bg-primary-400 transition-all duration-300"></span>SDK 下载</a></li>
+                    <li><a href="http://88.huwutong.com/blog" class="text-gray-400 hover:text-white transition flex items-center gap-2 group"><span class="w-0 group-hover:w-2 h-0.5 bg-primary-400 transition-all duration-300"></span>开发者博客</a></li>
+                    <li><a href="http://88.huwutong.com/help" class="text-gray-400 hover:text-white transition flex items-center gap-2 group"><span class="w-0 group-hover:w-2 h-0.5 bg-primary-400 transition-all duration-300"></span>帮助中心</a></li>
+                    <li><a href="http://88.huwutong.com/license/query" class="text-gray-400 hover:text-white transition flex items-center gap-2 group"><span class="w-0 group-hover:w-2 h-0.5 bg-primary-400 transition-all duration-300"></span>授权查询</a></li>
+                    <li><a href="/build/login" class="text-gray-400 hover:text-white transition flex items-center gap-2 group"><span class="w-0 group-hover:w-2 h-0.5 bg-primary-400 transition-all duration-300"></span>管理后台</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-semibold text-white mb-5 text-sm uppercase tracking-wider">公司</h4>
+                <ul class="space-y-3 text-sm">
+                    <li><a href="http://88.huwutong.com/about" class="text-gray-400 hover:text-white transition flex items-center gap-2 group"><span class="w-0 group-hover:w-2 h-0.5 bg-primary-400 transition-all duration-300"></span>关于我们</a></li>
+                    <li><a href="http://88.huwutong.com/contact" class="text-gray-400 hover:text-white transition flex items-center gap-2 group"><span class="w-0 group-hover:w-2 h-0.5 bg-primary-400 transition-all duration-300"></span>联系我们</a></li>
+                    <li><a href="http://88.huwutong.com/privacy" class="hover:text-white transition">隐私政策</a></li>
+                    <li><a href="http://88.huwutong.com/terms" class="hover:text-white transition">服务条款</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="border-t border-gray-800 mt-12 pt-8 text-sm text-center">
+            <p>&copy; 2026 © 2026 互物通. All rights reserved.</p>
+            <div class="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-gray-500">
+                                            </div>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

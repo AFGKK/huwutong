@@ -60,8 +60,6 @@ return new class extends Migration
             $table->decimal('tax_amount', 12, 2)->comment('税额');
             $table->string('exempt_reason')->nullable()->comment('免税原因代码');
             $table->timestamps();
-
-            $table->index('invoice_id');
         });
 
         // 给 invoices 表增加税务相关字段

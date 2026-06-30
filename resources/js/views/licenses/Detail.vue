@@ -64,6 +64,88 @@
             </el-descriptions>
         </el-card>
 
+        <!-- 交付物 -->
+        <el-card class="mt-4" shadow="never" v-if="deliverables.length > 0">
+            <template #header>
+                <span>📦 交付物</span>
+            </template>
+            <div class="deliverables-grid">
+                <div v-for="(d, idx) in deliverables" :key="idx" class="deliverable-card">
+                    <div class="dlv-header">
+                        <span class="dlv-icon">{{ typeIcon(d.type) }}</span>
+                        <el-tag size="small" class="dlv-category">{{ categoryLabel(d.category) }}</el-tag>
+                    </div>
+                    <div class="dlv-name">{{ d.name }}</div>
+                    <div v-if="d.description" class="dlv-desc">{{ d.description }}</div>
+
+                    <div v-if="d.type === 'file' && d.file_url" class="dlv-action">
+                        <el-button size="small" type="primary" plain @click="downloadDeliverable(d)">
+                            <el-icon><Download /></el-icon> 下载
+                        </el-button>
+                        <span v-if="d.file_size" class="dlv-size">{{ formatFileSize(d.file_size) }}</span>
+                    </div>
+                    <div v-else-if="d.type === 'link' && d.file_url" class="dlv-action">
+                        <el-button size="small" type="primary" link @click="openLink(d.file_url)">
+                            <el-icon><Link /></el-icon> 打开链接
+                        </el-button>
+                    </div>
+                    <div v-else-if="d.type === 'text' && d.content" class="dlv-action">
+                        <el-button size="small" type="primary" link @click="copyText(d.content)">
+                            <el-icon><CopyDocument /></el-icon> 复制内容
+                        </el-button>
+                    </div>
+                </div>
+            </div>
+        </el-card>
+
+        <!-- 标签 -->
+        <el-card class="mt-4" shadow="never">
+            <template #header>
+                <span>标签</span>
+            </template>
+            <TagSelector
+                taggable-type="license"
+                :taggable-id="license.id"
+                :tags="license.tags || []"
+            />
+        </el-card>
+
+        <!-- 自定义字段 -->
+        <el-card class="mt-4" shadow="never">
+            <template #header>
+                <span>自定义字段</span>
+                <el-button size="small" type="primary" plain @click="editCustomFields" v-if="customFields.length > 0">
+                    编辑
+                </el-button>
+            </template>
+            <div v-if="customFields.length === 0" class="empty-text">暂无自定义字段</div>
+            <el-descriptions v-else :column="2" border size="small">
+                <el-descriptions-item v-for="field in customFields" :key="field.id" :label="field.name">
+                    <template v-if="field.field_type === 'boolean'">
+                        <el-tag :type="field.value === '1' || field.value === 'true' ? 'success' : 'info'" size="small">
+                            {{ field.value === '1' || field.value === 'true' ? '是' : '否' }}
+                        </el-tag>
+                    </template>
+                    <template v-else>
+                        {{ field.value || '-' }}
+                    </template>
+                </el-descriptions-item>
+            </el-descriptions>
+        </el-card>
+
+        <!-- 内部备注 -->
+        <el-card class="mt-4" shadow="never">
+            <template #header>
+                <span>内部备注</span>
+            </template>
+            <NotesTimeline :license-id="license.id" />
+        </el-card>
+
+        <!-- 时段限制配置 -->
+        <div class="mt-4">
+            <TimeRestrictionTab :license-id="license.id" />
+        </div>
+
         <!-- 状态操作 -->
         <el-card class="mt-4">
             <template #header>
@@ -187,6 +269,76 @@
                 <el-button type="primary" :loading="updating" @click="confirmEdit">保存修改</el-button>
             </template>
         </el-dialog>
+
+        <!-- 自定义字段编辑对话框 -->
+        <el-dialog v-model="showCustomFieldEdit" title="编辑自定义字段" width="550px">
+            <el-form label-width="120px">
+                <template v-for="field in customFields" :key="field.id">
+                    <el-form-item :label="field.name" :required="field.is_required">
+                        <!-- text -->
+                        <el-input
+                            v-if="field.field_type === 'text'"
+                            v-model="customFieldForm[field.field_definition_id]"
+                            :placeholder="field.placeholder || ''"
+                        />
+                        <!-- textarea -->
+                        <el-input
+                            v-else-if="field.field_type === 'textarea'"
+                            v-model="customFieldForm[field.field_definition_id]"
+                            type="textarea"
+                            :rows="3"
+                            :placeholder="field.placeholder || ''"
+                        />
+                        <!-- number -->
+                        <el-input-number
+                            v-else-if="field.field_type === 'number'"
+                            v-model="customFieldForm[field.field_definition_id]"
+                            style="width: 200px"
+                        />
+                        <!-- select -->
+                        <el-select
+                            v-else-if="field.field_type === 'select'"
+                            v-model="customFieldForm[field.field_definition_id]"
+                            :placeholder="field.placeholder || '请选择'"
+                            style="width: 100%"
+                            clearable
+                        >
+                            <el-option v-for="opt in field.options" :key="opt" :label="opt" :value="opt" />
+                        </el-select>
+                        <!-- multi_select -->
+                        <el-select
+                            v-else-if="field.field_type === 'multi_select'"
+                            v-model="customFieldForm[field.field_definition_id]"
+                            multiple
+                            :placeholder="field.placeholder || '请选择'"
+                            style="width: 100%"
+                        >
+                            <el-option v-for="opt in field.options" :key="opt" :label="opt" :value="opt" />
+                        </el-select>
+                        <!-- date -->
+                        <el-date-picker
+                            v-else-if="field.field_type === 'date'"
+                            v-model="customFieldForm[field.field_definition_id]"
+                            type="date"
+                            value-format="YYYY-MM-DD"
+                            :placeholder="field.placeholder || '选择日期'"
+                            style="width: 100%"
+                        />
+                        <!-- boolean -->
+                        <el-switch
+                            v-else-if="field.field_type === 'boolean'"
+                            v-model="customFieldForm[field.field_definition_id]"
+                            active-value="1"
+                            inactive-value="0"
+                        />
+                    </el-form-item>
+                </template>
+            </el-form>
+            <template #footer>
+                <el-button @click="showCustomFieldEdit = false">取消</el-button>
+                <el-button type="primary" :loading="savingFields" @click="saveCustomFields">保存字段</el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -197,9 +349,14 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import licenseApi from '@/api/license';
 import productApi from '@/api/product';
 import customerApi from '@/api/customer';
+import TagSelector from '@/components/TagSelector.vue';
+import NotesTimeline from '@/components/NotesTimeline.vue';
+import TimeRestrictionTab from '@/views/licenses/TimeRestrictionTab.vue';
+import customFieldApi from '@/api/customField';
 import {
     Remove, VideoPause, ColdDrink, Refresh,
     WarningFilled, Money, Delete,
+    Download, Link, CopyDocument,
 } from '@element-plus/icons-vue';
 
 const route = useRoute();
@@ -215,6 +372,7 @@ const devices = ref([]);
 const activations = ref([]);
 const products = ref([]);
 const customers = ref([]);
+const deliverables = ref([]);
 
 const editForm = reactive({
     product_id: null,
@@ -242,6 +400,52 @@ function scoreType(score) {
     if (score >= 80) return 'success';
     if (score >= 60) return 'warning';
     return 'danger';
+}
+
+// ─── 交付物辅助 ───
+function typeIcon(type) {
+    const icons = { file: '📦', link: '🔗', text: '📝' };
+    return icons[type] || '📄';
+}
+function categoryLabel(cat) {
+    const labels = {
+        software: '💻 软件',
+        document: '📄 文档',
+        template: '🔧 模板',
+        api: '🌐 API',
+        tutorial: '🎓 教程',
+        other: '其他',
+    };
+    return labels[cat] || cat || '其他';
+}
+function formatFileSize(bytes) {
+    if (!bytes) return '';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = bytes;
+    let uid = 0;
+    while (size >= 1024 && uid < units.length - 1) { size /= 1024; uid++; }
+    return size.toFixed(1) + ' ' + units[uid];
+}
+function downloadDeliverable(d) {
+    if (d.file_url) window.open(d.file_url, '_blank');
+}
+function openLink(url) {
+    if (url) window.open(url, '_blank');
+}
+async function copyText(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        ElMessage.success('已复制到剪贴板');
+    } catch {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        ElMessage.success('已复制到剪贴板');
+    }
 }
 
 const expiryClass = computed(() => {
@@ -286,10 +490,50 @@ async function fetchDetail() {
         statusInfo.value = res.data?.status_info || null;
         devices.value = res.data?.devices || license.value?.devices || [];
         activations.value = res.data?.activations || license.value?.activations || [];
+        deliverables.value = res.data?.deliverables || [];
+        await loadCustomFields();
     } catch {
         ElMessage.error('获取 License 详情失败');
     } finally {
         loading.value = false;
+    }
+}
+
+// ─── 自定义字段 ───
+const customFields = ref([]);
+const showCustomFieldEdit = ref(false);
+const customFieldForm = ref({});
+const savingFields = ref(false);
+
+async function loadCustomFields() {
+    try {
+        const res = await customFieldApi.licenseValues(id.value);
+        customFields.value = res.data?.data || [];
+    } catch {
+        customFields.value = [];
+    }
+}
+
+function editCustomFields() {
+    const form = {};
+    for (const f of customFields.value) {
+        form[f.field_definition_id] = f.value || '';
+    }
+    customFieldForm.value = form;
+    showCustomFieldEdit.value = true;
+}
+
+async function saveCustomFields() {
+    savingFields.value = true;
+    try {
+        await customFieldApi.updateLicenseValues(id.value, customFieldForm.value);
+        ElMessage.success('自定义字段已保存');
+        showCustomFieldEdit.value = false;
+        await loadCustomFields();
+    } catch (err) {
+        ElMessage.error(err.response?.data?.message || '保存失败');
+    } finally {
+        savingFields.value = false;
     }
 }
 
@@ -426,4 +670,41 @@ onMounted(() => {
 .small-text { font-size: 11px; }
 .expired-text { color: #f56c6c; text-decoration: line-through; }
 .expiring-text { color: #e6a23c; font-weight: 600; }
+
+/* ─── 交付物卡片 ─── */
+.deliverables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+}
+.deliverable-card {
+    background: #fafafa;
+    border: 1px solid #ebeef5;
+    border-radius: 8px;
+    padding: 14px;
+    transition: all 0.2s;
+}
+.deliverable-card:hover {
+    border-color: #409eff;
+    box-shadow: 0 2px 8px rgba(64,158,255,0.1);
+}
+.dlv-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.dlv-icon { font-size: 20px; }
+.dlv-category { font-size: 11px; }
+.dlv-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.dlv-desc { font-size: 12px; color: #909399; margin-bottom: 10px; line-height: 1.4; }
+.dlv-action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #f0f0f0;
+}
+.dlv-size { font-size: 11px; color: #909399; }
 </style>

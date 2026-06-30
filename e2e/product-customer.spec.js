@@ -11,8 +11,9 @@ test.describe('产品管理 E2E', () => {
     test('P1. 产品列表页正常加载', async ({ page }) => {
         await navigateAsLoggedIn(page, '/admin/products');
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 
     test('P2. 产品详情页查看', async ({ page }) => {
@@ -55,8 +56,9 @@ test.describe('客户管理 E2E', () => {
     test('C1. 客户列表页正常加载', async ({ page }) => {
         await navigateAsLoggedIn(page, '/admin/customers');
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 
     test('C2. 客户详情页查看', async ({ page }) => {

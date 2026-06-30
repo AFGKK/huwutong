@@ -8,16 +8,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class InvoiceTaxLine extends Model
 {
     protected $fillable = [
-        'invoice_id', 'tax_rate_id', 'name', 'rate',
-        'taxable_amount', 'tax_amount', 'exempt_reason',
+        'invoice_id', 'tax_rate_id',
+        'name', 'rate', 'taxable_amount', 'tax_amount',
+        'exempt_reason',
     ];
 
     protected function casts(): array
     {
         return [
-            'rate' => 'float',
-            'taxable_amount' => 'float',
-            'tax_amount' => 'float',
+            'rate' => 'decimal:4',
+            'taxable_amount' => 'decimal:2',
+            'tax_amount' => 'decimal:2',
         ];
     }
 

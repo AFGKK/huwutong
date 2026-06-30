@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package huwutong.device;
+
+import "common.proto";
+
+option php_namespace = "App\\Services\\Grpc\\Proto\\Device";
+option php_metadata_namespace = "App\\Services\\Grpc\\Proto\\Device\\GPBMetadata";
+
+// ─── 设备服务 ───
+// 设备指纹、信任体系、激活管理
+
+service DeviceService {
+    // 注册设备
+    rpc RegisterDevice(RegisterDeviceRequest) returns (DeviceResponse);
+
+    // 获取设备详情
+    rpc GetDevice(GetDeviceRequest) returns (DeviceDetail);
+
+    // 查询 License 关联设备
+    rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse);
+
+    // 更新设备信任分
+    rpc UpdateTrustScore(UpdateTrustRequest) returns (DeviceResponse);
+
+    // 踢出设备
+    rpc RemoveDevice(RemoveDeviceRequest) returns (DeviceResponse);
+
+    // 黑名单设备
+    rpc BlacklistDevice(BlacklistRequest) returns (DeviceResponse);
+
+    // 设备指纹匹配
+    rpc MatchFingerprint(MatchFingerprintRequest) returns (MatchFingerprintResponse);
+}
+
+message RegisterDeviceRequest {
+    huwutong.common.TenantContext tenant = 1;
+    string license_key = 2;
+    string fingerprint = 3;
+    string device_name = 4;
+    string platform = 5;
+    string os_version = 6;
+    string ip_address = 7;
+    double latitude = 8;
+    double longitude = 9;
+    string country = 10;
+    map<string, string> hardware_info = 11;
+}
+
+message DeviceResponse {
+    huwutong.common.ApiResponse api = 1;
+    DeviceDetail device = 2;
+}
+
+message GetDeviceRequest {
+    int64 device_id = 1;
+    string fingerprint = 2;
+}
+
+message DeviceDetail {
+    int64 id = 1;
+    int64 license_id = 2;
+    string fingerprint = 3;
+    string device_name = 4;
+    string platform = 5;
+    string os_version = 6;
+    int32 trust_score = 7;
+    bool is_blacklisted = 8;
+    bool is_vm = 9;
+    string ip_address = 10;
+    string country = 11;
+    int64 first_seen_at = 12;
+    int64 last_seen_at = 13;
+    int64 created_at = 14;
+    int64 updated_at = 15;
+}
+
+message ListDevicesRequest {
+    huwutong.common.TenantContext tenant = 1;
+    int64 license_id = 2;
+    string platform = 3;
+    bool is_blacklisted = 4;
+    huwutong.common.Pagination pagination = 5;
+}
+
+message ListDevicesResponse {
+    huwutong.common.ApiResponse api = 1;
+    repeated DeviceDetail devices = 2;
+    huwutong.common.Pagination pagination = 3;
+}
+
+message UpdateTrustRequest {
+    int64 device_id = 1;
+    int32 trust_score = 2;
+    string reason = 3;
+}
+
+message RemoveDeviceRequest {
+    huwutong.common.TenantContext tenant = 1;
+    int64 device_id = 2;
+    string reason = 3;
+}
+
+message BlacklistRequest {
+    int64 device_id = 1;
+    string reason = 2;
+    string blacklisted_by = 3;
+}
+
+message MatchFingerprintRequest {
+    int64 license_id = 1;
+    string fingerprint = 2;
+}
+
+message MatchFingerprintResponse {
+    huwutong.common.ApiResponse api = 1;
+    bool is_match = 2;
+    float confidence = 3;
+    string matched_version = 4;
+}

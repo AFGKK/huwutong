@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class EarningsAccount extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'tenant_id', 'user_id', 'type',
         'pending_balance', 'available_balance',
         'total_withdrawn', 'frozen_amount', 'status',
+        'metadata',
+        'last_settlement_at', 'next_settlement_at', 'lifetime_settled',
     ];
 
     protected function casts(): array
@@ -19,6 +23,8 @@ class EarningsAccount extends Model
             'available_balance' => 'decimal:2',
             'total_withdrawn' => 'decimal:2',
             'frozen_amount' => 'decimal:2',
+            'lifetime_settled' => 'decimal:2',
+            'metadata' => 'array',
         ];
     }
 

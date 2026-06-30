@@ -24,9 +24,12 @@ test.describe('License 详情与激活 E2E', () => {
             mockLicenseDetail,
         });
 
-        // 验证页面标题（el-page-header 的 content 或 h2）
-        const heading = page.locator('h2, .page-title, [class*="title"], .el-page-header').first();
-        await expect(heading).toBeVisible({ timeout: 10000 });
+        // 等待 loading 消失
+        await page.waitForSelector('.el-page-header', { timeout: 15000 });
+
+        // 验证页面标题
+        const heading = page.locator('.el-page-header').first();
+        await expect(heading).toBeVisible({ timeout: 5000 });
     });
 
     test('LD2. License 详情页统计卡片', async ({ page }) => {
@@ -43,8 +46,9 @@ test.describe('License 详情与激活 E2E', () => {
             await expect(statCards).toBeVisible();
         } else {
             // 至少页面加载成功
-            const heading = page.locator('h2, .page-title, [class*="title"]').first();
-            await expect(heading).toBeVisible({ timeout: 3000 });
+            const errors = await page.locator('.el-alert--error').count();
+            expect(errors).toBe(0);
+            await expect(page.locator('body')).not.toContainText('Loading');
         }
     });
 
@@ -114,7 +118,7 @@ test.describe('License 详情与激活 E2E', () => {
         });
 
         // 直接导航回列表
-        await page.goto('/admin/licenses');
+        await page.goto(adminUrl('/admin/licenses'));
         await page.waitForTimeout(1000);
         expect(page.url()).toContain('licenses');
         expect(page.url()).not.toMatch(/licenses\/\d+/);

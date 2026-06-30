@@ -184,6 +184,8 @@ class RagEngineService
             'session_id' => $sessionId,
             'answer' => $response['answer'],
             'sources' => array_map(fn($d) => [
+                'id' => $d['id'] ?? null,
+                'source_id' => $d['source_id'] ?? null,
                 'title' => $d['title'],
                 'content' => $d['content'],
                 'score' => $d['score'],

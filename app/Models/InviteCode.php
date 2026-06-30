@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InviteCode extends Model
 {
     protected $fillable = [
-        'code', 'created_by_type', 'created_by_id',
-        'max_uses', 'used_count', 'expires_at', 'status', 'remarks',
+        'channel_id', 'code',
+        'created_by_type', 'created_by_id', 'created_by_email',
+        'max_uses', 'used_count', 'last_used_at',
+        'expires_at', 'status', 'remarks', 'meta',
     ];
 
     protected function casts(): array
@@ -16,13 +19,20 @@ class InviteCode extends Model
         return [
             'max_uses' => 'integer',
             'used_count' => 'integer',
+            'last_used_at' => 'datetime',
             'expires_at' => 'datetime',
+            'meta' => 'array',
         ];
     }
 
-    public function creator()
+    public function creator(): \Illuminate\Database\Eloquent\Relations\MorphTo
     {
         return $this->morphTo('created_by');
+    }
+
+    public function channel(): BelongsTo
+    {
+        return $this->belongsTo(InviteChannel::class);
     }
 
     /**
@@ -43,7 +53,7 @@ class InviteCode extends Model
     }
 
     /**
-     * 使用邀请码（递增计数）
+     * 使用邀请码（递增计数并记录时间）
      */
     public function consume(): bool
     {
@@ -51,6 +61,7 @@ class InviteCode extends Model
             return false;
         }
         $this->increment('used_count');
+        $this->update(['last_used_at' => now()]);
         return true;
     }
 

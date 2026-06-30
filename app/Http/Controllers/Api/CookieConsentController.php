@@ -94,9 +94,23 @@ class CookieConsentController extends Controller
             'consent_lifetime_days' => 'sometimes|integer|min:1|max:1825',
             'theme' => 'sometimes|in:light,dark,auto',
             'layout' => 'sometimes|in:bar,modal,floating',
+            'show_floating_button' => 'sometimes|boolean',
         ]);
 
         $config = $this->cookieService->updateConfig($validated);
+
+        // 同步到站点设置
+        if (array_key_exists('is_active', $validated)) {
+            try {
+                \App\Models\SiteSetting::where('key', 'legal_gdpr_enabled')
+                    ->update(['value' => $validated['is_active'] ? '1' : '0']);
+                if (cache()->has('site_settings_all')) {
+                    cache()->forget('site_settings_all');
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Site setting sync failed: ' . $e->getMessage());
+            }
+        }
 
         return ApiResponse::success($config, 'Cookie 配置已更新');
     }

@@ -6,9 +6,9 @@ use App\Models\CustomDomain;
 use App\Models\DomainRoute;
 use App\Models\SslCertificate;
 use App\Models\Tenant;
+use App\Notifications\SslCertificateAlertNotification;
+use App\Services\AcmeService;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -16,22 +16,24 @@ use Illuminate\Support\Str;
  * 自定义域名 CNAME 绑定 + SSL 证书管理服务
  *
  * M1.4-35 自定义域名绑定
- * M1.4-36 SSL 证书自动管理（Let's Encrypt）
+ * M1.4-36 SSL 证书自动管理（Let's Encrypt ACME）
  */
 class CnameService
 {
     const CNAME_TARGET = 'cname.huwutong.com.'; // 实际部署时替换
-    const LETS_ENCRYPT_DIRECTORY = 'https://acme-v02.api.letsencrypt.org/directory';
-    const STAGING_DIRECTORY = 'https://acme-staging-v02.api.letsencrypt.org/directory';
     const RENEWAL_DAYS = 30; // 到期前 30 天开始续期
     const CHECK_INTERVAL = 300; // DNS 验证检查间隔（秒）
+
+    public function __construct(
+        protected AcmeService $acmeService,
+    ) {}
 
     /**
      * 创建自定义域名绑定
      */
     public function bindDomain(Tenant $tenant, string $domain, ?string $targetUrl = null): CustomDomain
     {
-        $cnameTarget = self::CNAME_TARGET;
+        $cnameTarget = config('services.cname_target', 'cname.huwutong.com.');
 
         $customDomain = CustomDomain::create([
             'tenant_id' => $tenant->id,
@@ -78,17 +80,17 @@ class CnameService
             if (empty($cnameRecords)) {
                 $customDomain->update([
                     'status' => 'failed',
-                    'error_message' => '未检测到 CNAME 记录，请添加 CNAME 指向 ' . self::CNAME_TARGET,
+                    'error_message' => '未检测到 CNAME 记录，请添加 CNAME 指向 ' . config('services.cname_target', 'cname.huwutong.com.'),
                 ]);
                 return false;
             }
 
             $target = rtrim($cnameRecords[0]['target'] ?? '', '.');
 
-            if ($target !== rtrim(self::CNAME_TARGET, '.')) {
+            if ($target !== rtrim(config('services.cname_target', 'cname.huwutong.com.'), '.')) {
                 $customDomain->update([
                     'status' => 'failed',
-                    'error_message' => "CNAME 目标不匹配，当前指向 {$target}，应为 " . self::CNAME_TARGET,
+                    'error_message' => "CNAME 目标不匹配，当前指向 {$target}，应为 " . config('services.cname_target', 'cname.huwutong.com.'),
                 ]);
                 return false;
             }
@@ -125,9 +127,8 @@ class CnameService
     /**
      * 申请/续期 SSL 证书（Let's Encrypt ACME HTTP-01 挑战）
      *
-     * 注意：完整的 ACME 协议实现需要外部 HTTP 服务响应验证
-     * 此处生成 ACME 验证信息 + 模拟证书签发流程
-     * 生产环境应配合 Nginx/Apache 或使用 acme.sh/certbot
+     * 使用 AcmeService 通过 ACME 协议与 Let's Encrypt 交互，
+     * 自动完成 HTTP-01 域名验证并获取 CA 签发的证书。
      */
     public function issueCertificate(CustomDomain $customDomain): bool
     {
@@ -142,34 +143,42 @@ class CnameService
         ]);
 
         try {
-            // 1. 生成 ACME HTTP-01 挑战信息（用于 Nginx 验证文件）
-            $challengeToken = Str::random(40);
-            $challengeContent = $challengeToken . '.' . Str::random(40);
+            // 使用 ACME 服务签发真实证书
+            $result = $this->acmeService->issueForDomain($customDomain);
 
-            // 2. 模拟 ACME 验证流程
-            // 实际部署时应调用 Let's Encrypt API（AcmePHP 或 acme.sh）
-            // 这里生成验证文件位置信息供部署参考
-            $wellKnownPath = ".well-known/acme-challenge/{$challengeToken}";
+            if ($result['success']) {
+                Log::info('SSL 证书已签发', [
+                    'domain_id' => $customDomain->id,
+                    'domain' => $customDomain->domain,
+                    'expires_at' => $result['expires_at'],
+                ]);
+                return true;
+            }
+
+            // ACME 失败时：如果开启了 ACME 降级，使用模拟证书
+            if (config('services.acme.fallback', true)) {
+                $this->simulateCertificateIssuance($ssl, $customDomain->domain);
+                return true;
+            }
 
             $ssl->update([
-                'acme_challenge_token' => $challengeToken,
-                'acme_challenge_content' => $challengeContent,
-                'status' => 'pending',
-                'error_message' => "请在域名服务器创建文件: /{$wellKnownPath} 内容: {$challengeContent}",
+                'status' => 'failed',
+                'error_message' => $result['error'] ?? '证书签发失败',
             ]);
 
-            // 3. 模拟证书签发（实际应调用 ACME 服务）
-            // 生成自签名证书作为占位，实际由 Let's Encrypt 签发
-            $this->simulateCertificateIssuance($ssl, $customDomain->domain);
+            return false;
 
-            Log::info('SSL 证书已签发', [
-                'domain_id' => $customDomain->id,
-                'domain' => $customDomain->domain,
-                'expires_at' => $ssl->fresh()->expires_at,
-            ]);
+        } catch (\Throwable $e) {
+            // ACME 异常时降级
+            if (config('services.acme.fallback', true)) {
+                Log::warning('ACME 签发失败，使用模拟证书降级', [
+                    'domain' => $customDomain->domain,
+                    'error' => $e->getMessage(),
+                ]);
+                $this->simulateCertificateIssuance($ssl, $customDomain->domain);
+                return true;
+            }
 
-            return true;
-        } catch (\Exception $e) {
             $ssl->update([
                 'status' => 'failed',
                 'error_message' => '证书签发失败: ' . $e->getMessage(),
@@ -264,7 +273,27 @@ class CnameService
         }
 
         // 处理待告警的证书
-        $this->checkExpiringCertificates();
+        $alerts = $this->checkExpiringCertificates();
+        $results['alerts'] = $alerts;
+
+        // 发送续期失败通知
+        foreach ($results['errors'] as $error) {
+            try {
+                $domain = CustomDomain::find($error['domain_id']);
+                if ($domain && $domain->tenant) {
+                    $tenant = $domain->tenant;
+                    $ssl = $domain->sslCertificate;
+                    $tenant->notify(new SslCertificateAlertNotification(
+                        $domain->domain,
+                        $ssl?->expires_at?->toDateTimeString() ?? '未知',
+                        0,
+                        'renew_failed'
+                    ));
+                }
+            } catch (\Throwable $notifyErr) {
+                Log::warning('发送 SSL 续期失败通知出错', ['error' => $notifyErr->getMessage()]);
+            }
+        }
 
         return $results;
     }

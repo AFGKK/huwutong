@@ -1,0 +1,19 @@
+{
+    "name": "huwutong/sdk-demo-php",
+    "description": "HWT License SDK PHP Demo - 互物通授权系统 PHP 集成示例",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "guzzlehttp/guzzle": "^7.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Huwutong\\Demo\\": "src/"
+        }
+    },
+    "scripts": {
+        "activate": "php examples/activate.php",
+        "validate": "php examples/validate.php",
+        "check-feature": "php examples/check_feature.php"
+    }
+}

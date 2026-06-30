@@ -6,6 +6,8 @@ use App\Services\CorsManagerService;
 use App\Services\CspManagerService;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -35,7 +37,12 @@ class SecurityHeadersMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $response = $next($request);
+        // ─── OPTIONS 预检请求：直接返回 CORS 头 + 204 ───
+        if ($request->isMethod('OPTIONS')) {
+            $response = new Response('', 204);
+        } else {
+            $response = $next($request);
+        }
 
         if (! $response instanceof Response) {
             return $response;
@@ -47,35 +54,59 @@ class SecurityHeadersMiddleware
             $response->headers->set($key, $value);
         }
 
+        // Vary: Origin — 当 ACAC 为特定 origin 时，CDN 需要此头
+        $origin = $request->header('Origin');
+        if ($origin && $response->headers->get('Access-Control-Allow-Origin') !== '*') {
+            $response->headers->set('Vary', 'Origin');
+        }
+
         // ─── CSP（通过 CspManagerService 从数据库读取） ───
         $cspHeaders = $this->cspManager->buildHeaders($request);
         foreach ($cspHeaders as $key => $value) {
             $response->headers->set($key, $value);
         }
 
-        // X-Frame-Options — 禁止 iframe 嵌套（防点击劫持）
-        $response->headers->set('X-Frame-Options', 'DENY');
-
-        // X-Content-Type-Options — 禁止 MIME 嗅探
-        $response->headers->set('X-Content-Type-Options', 'nosniff');
-
-        // Referrer-Policy
-        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-
-        // Permissions-Policy — 限制浏览器 API 权限
-        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
-
-        // X-XSS-Protection (已废弃但保留兼容性)
-        $response->headers->set('X-XSS-Protection', '1; mode=block');
-
-        // 缓存控制 — API 响应默认不缓存
-        if (! $response->headers->has('Cache-Control')) {
-            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        // ─── 动态安全响应头（从缓存读取配置，支持后台管理） ───
+        $config = \Illuminate\Support\Facades\Cache::get(\App\Http\Controllers\Api\SecurityHeadersController::CACHE_KEY);
+        if ($config) {
+            if ($config['hsts'] ?? true) {
+                $hstsValue = "max-age={$config['hsts_max_age']}";
+                if ($config['hsts_include_subdomains'] ?? true) {
+                    $hstsValue .= '; includeSubDomains';
+                }
+                $response->headers->set('Strict-Transport-Security', $hstsValue);
+            }
+            if (($config['x_frame_options'] ?? 'DENY') !== 'off') {
+                $value = $config['x_frame_options'];
+                if ($value === 'ALLOW-FROM' && !empty($config['x_frame_options_origin'])) {
+                    $value .= " {$config['x_frame_options_origin']}";
+                }
+                $response->headers->set('X-Frame-Options', $value);
+            } else {
+                $response->headers->remove('X-Frame-Options');
+            }
+            if (($config['x_content_type_options'] ?? 'nosniff') !== 'off') {
+                $response->headers->set('X-Content-Type-Options', $config['x_content_type_options']);
+            }
+            if (($config['referrer_policy'] ?? 'strict-origin-when-cross-origin') !== 'off') {
+                $response->headers->set('Referrer-Policy', $config['referrer_policy']);
+            }
+            if ($config['permissions_policy_enabled'] ?? true) {
+                $response->headers->set('Permissions-Policy', $config['permissions_policy'] ?? 'camera=(), microphone=(), geolocation=(), payment=()');
+            }
+            if (($config['x_xss_protection'] ?? '1; mode=block') !== 'off') {
+                $response->headers->set('X-XSS-Protection', $config['x_xss_protection']);
+            }
+            if ($config['cache_control_enabled'] ?? true) {
+                if (! $response->headers->has('Cache-Control')) {
+                    $response->headers->set('Cache-Control', $config['cache_control'] ?? 'no-store, no-cache, must-revalidate');
+                }
+            }
         }
 
         // X-Request-Id — 链路追踪
         if (! $response->headers->has('X-Request-Id')) {
-            $requestId = $request->header('X-Request-Id') ?: str_replace('-', '', (string) \Illuminate\Support\Str::uuid());
+            $requestId = $request->header('X-Request-Id') ?: (string) Str::uuid();
             $response->headers->set('X-Request-Id', $requestId);
         }
 

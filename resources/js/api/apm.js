@@ -27,3 +27,7 @@ export function getApmOtelStatus() {
 export function getApmConfig() {
   return apiClient.get('/apm/config')
 }
+
+export function getApmDashboard(period = 24) {
+  return apiClient.get('/apm/dashboard', { params: { period } })
+}

@@ -10,6 +10,9 @@
             </el-button>
         </div>
 
+        <!-- 个性化推荐模块 (M3-80) -->
+        <PersonalizedSection @loaded="onPersonalizationLoaded" />
+
         <!-- 统计卡片 -->
         <el-row :gutter="16" class="mb-4">
             <el-col :span="6" v-for="card in statCards" :key="card.label">
@@ -34,13 +37,13 @@
                     <template #header>
                         <div class="card-header">
                             <span>我的 License</span>
-                            <el-link type="primary" :underline="false" @click="$router.push('/portal/licenses')">查看全部</el-link>
+                            <el-link type="primary" :underline="'never'" @click="$router.push('/portal/licenses')">查看全部</el-link>
                         </div>
                     </template>
                     <el-table v-if="licenses.length" :data="licenses" stripe style="width: 100%" v-loading="loading">
                         <el-table-column prop="license_key" label="License Key" min-width="160">
                             <template #default="{ row }">
-                                <el-link type="primary" :underline="false" @click="$router.push(`/portal/licenses/${row.id}`)">
+                                <el-link type="primary" :underline="'never'" @click="$router.push(`/portal/licenses/${row.id}`)">
                                     <code class="small-text">{{ row.license_key }}</code>
                                 </el-link>
                             </template>
@@ -55,10 +58,10 @@
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="expires_at" label="到期时间" width="160">
+                        <el-table-column prop="expires_at" label="到期时间" width="180">
                             <template #default="{ row }">
-                                <span v-if="row.expires_at" :class="isExpiring(row.expires_at) ? 'expiring-text' : ''">
-                                    {{ row.expires_at }}
+                                <span v-if="row.expires_at" :class="'expiry-badge ' + expiryClass(row.expires_at)">
+                                    {{ expiryText(row.expires_at) }}
                                 </span>
                                 <span v-else>永久</span>
                             </template>
@@ -72,7 +75,7 @@
                     <template #header>
                         <div class="card-header">
                             <span>最近激活的设备</span>
-                            <el-link type="primary" :underline="false" @click="$router.push('/portal/devices')">查看全部</el-link>
+                            <el-link type="primary" :underline="'never'" @click="$router.push('/portal/devices')">查看全部</el-link>
                         </div>
                     </template>
                     <el-table v-if="devices.length" :data="devices" stripe style="width: 100%">
@@ -135,15 +138,18 @@
                     <el-table v-if="expiringLicenses.length" :data="expiringLicenses" stripe>
                         <el-table-column prop="license_key" label="License" minWidth="140">
                             <template #default="{ row }">
-                                <el-link type="primary" :underline="false" @click="$router.push(`/portal/licenses/${row.id}`)">
+                                <el-link type="primary" :underline="'never'" @click="$router.push(`/portal/licenses/${row.id}`)">
                                     <code class="small-text">{{ row.license_key }}</code>
                                 </el-link>
                             </template>
                         </el-table-column>
                         <el-table-column prop="product?.name" label="产品" width="80" />
-                        <el-table-column prop="expires_at" label="到期" width="110">
+                        <el-table-column prop="expires_at" label="到期" width="150">
                             <template #default="{ row }">
-                                <span class="expiring-text">{{ row.expires_at }}</span>
+                                <span v-if="row.expires_at" :class="'expiry-badge ' + expiryClass(row.expires_at)">
+                                    {{ expiryText(row.expires_at) }}
+                                </span>
+                                <span v-else>永久</span>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -186,13 +192,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, markRaw, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import licenseApi from '@/api/license';
 import deviceApi from '@/api/device';
 import customerApi from '@/api/customer';
 import { ElMessage } from 'element-plus';
+import PersonalizedSection from './PersonalizedSection.vue';
 import {
     Key, Monitor, Goods, Setting, Refresh, Odometer,
 } from '@element-plus/icons-vue';
@@ -215,10 +222,10 @@ const licenseStats = reactive({
 });
 
 const statCards = reactive([
-    { label: '全部 License', value: '0', icon: Key, color: '#409eff', action: () => router.push('/portal/licenses') },
-    { label: '活跃中', value: '0', icon: Odometer, color: '#67c23a', action: () => router.push('/portal/licenses') },
-    { label: '已过期', value: '0', icon: Key, color: '#f56c6c', action: () => router.push('/portal/licenses') },
-    { label: '已激活设备', value: '0', icon: Monitor, color: '#e6a23c', action: () => router.push('/portal/devices') },
+    { label: '全部 License', value: '0', icon: markRaw(Key), color: '#409eff', action: () => router.push('/portal/licenses') },
+    { label: '活跃中', value: '0', icon: markRaw(Odometer), color: '#67c23a', action: () => router.push('/portal/licenses') },
+    { label: '已过期', value: '0', icon: markRaw(Key), color: '#f56c6c', action: () => router.push('/portal/licenses') },
+    { label: '已激活设备', value: '0', icon: markRaw(Monitor), color: '#e6a23c', action: () => router.push('/portal/devices') },
 ]);
 
 const STATUS_MAP = {
@@ -254,6 +261,33 @@ function isExpiring(dateStr) {
     const diff = new Date(dateStr) - new Date();
     const days = diff / (1000 * 60 * 60 * 24);
     return days <= 30 && days >= 0;
+}
+
+function daysUntil(dateStr) {
+    if (!dateStr) return Infinity;
+    return (new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+}
+
+function expiryClass(dateStr) {
+    if (!dateStr) return '';
+    const d = daysUntil(dateStr);
+    if (d < 0) return 'expiry-overdue';
+    if (d < 1) return 'expiry-urgent';
+    const cd = Math.ceil(d);
+    if (cd <= 3) return 'expiry-urgent';
+    if (cd <= 7) return 'expiry-warning';
+    if (cd <= 30) return 'expiry-soon';
+    return '';
+}
+
+function expiryText(dateStr) {
+    if (!dateStr) return '永久';
+    const d = daysUntil(dateStr);
+    if (d < 0) return `已过期 ${Math.ceil(Math.abs(d))} 天`;
+    if (d < 1) return '今天到期';
+    const cd = Math.ceil(d);
+    if (cd <= 30) return `${cd} 天后到期`;
+    return dateStr;
 }
 
 async function refreshAll() {
@@ -292,6 +326,10 @@ async function refreshAll() {
     } finally {
         loading.value = false;
     }
+}
+
+function onPersonalizationLoaded(data) {
+    // 个性化数据已加载，可在此处记录或扩展
 }
 
 onMounted(refreshAll);
@@ -369,6 +407,12 @@ onMounted(refreshAll);
 
 .small-text { font-size: 11px; }
 .expiring-text { color: #e6a23c; font-weight: 500; }
+.expiry-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:600; white-space:nowrap; }
+.expiry-overdue { background:#fef0f0; color:#f56c6c; }
+.expiry-urgent { background:#fdf6ec; color:#e6a23c; animation:pulse 1.5s infinite; }
+.expiry-warning { background:#fdf6ec; color:#e6a23c; }
+.expiry-soon { background:#f0f9eb; color:#67c23a; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 
 .action-btn {
     width: 100%;

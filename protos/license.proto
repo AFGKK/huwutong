@@ -1,0 +1,159 @@
+syntax = "proto3";
+
+package huwutong.license;
+
+import "common.proto";
+
+option php_namespace = "App\\Services\\Grpc\\Proto\\License";
+option php_metadata_namespace = "App\\Services\\Grpc\\Proto\\License\\GPBMetadata";
+
+// ─── License 服务 ───
+// 管理授权利生命周期：激活、验证、吊销、查询
+
+service LicenseService {
+    // 激活 License
+    rpc Activate(ActivateRequest) returns (ActivateResponse);
+
+    // 验证 License
+    rpc Validate(ValidateRequest) returns (ValidateResponse);
+
+    // 吊销 License
+    rpc Revoke(RevokeRequest) returns (LicenseResponse);
+
+    // 查询 License 详情
+    rpc GetLicense(GetLicenseRequest) returns (LicenseDetail);
+
+    // 批量查询 License
+    rpc ListLicenses(ListLicensesRequest) returns (ListLicensesResponse);
+
+    // 挂起 License
+    rpc Suspend(SuspendRequest) returns (LicenseResponse);
+
+    // 恢复 License
+    rpc Unsuspend(SuspendRequest) returns (LicenseResponse);
+
+    // 更新 License 状态
+    rpc UpdateStatus(UpdateStatusRequest) returns (LicenseResponse);
+
+    // 检查 Feature 可用性
+    rpc CheckFeature(CheckFeatureRequest) returns (CheckFeatureResponse);
+}
+
+// ─── 消息定义 ───
+
+message ActivateRequest {
+    huwutong.common.TenantContext tenant = 1;
+    string license_key = 2;
+    string device_fingerprint = 3;
+    string device_name = 4;
+    string platform = 5;
+    string client_version = 6;
+    string ip_address = 7;
+    map<string, string> metadata = 8;
+}
+
+message ActivateResponse {
+    huwutong.common.ApiResponse api = 1;
+    LicenseDetail license = 2;
+    string activation_token = 3;
+    int64 expires_at = 4;
+    int32 max_devices = 5;
+}
+
+message ValidateRequest {
+    huwutong.common.TenantContext tenant = 1;
+    string license_key = 2;
+    string device_fingerprint = 3;
+    int64 timestamp = 4;
+    string signature = 5;
+}
+
+message ValidateResponse {
+    huwutong.common.ApiResponse api = 1;
+    bool is_valid = 2;
+    LicenseDetail license = 3;
+    int64 expires_at = 4;
+    int32 remaining_days = 5;
+    repeated string active_features = 6;
+    string status = 7;
+}
+
+message RevokeRequest {
+    huwutong.common.TenantContext tenant = 1;
+    string license_key = 2;
+    string reason = 3;
+    string revoked_by = 4;
+}
+
+message LicenseResponse {
+    huwutong.common.ApiResponse api = 1;
+    string license_key = 2;
+    string status = 3;
+}
+
+message GetLicenseRequest {
+    huwutong.common.TenantContext tenant = 1;
+    string license_key = 2;
+    int64 license_id = 3;
+}
+
+message LicenseDetail {
+    int64 id = 1;
+    string license_key = 2;
+    int64 product_id = 3;
+    int64 customer_id = 4;
+    int64 tenant_id = 5;
+    string type = 6;
+    string status = 7;
+    int64 activated_at = 8;
+    int64 expires_at = 9;
+    int32 max_devices = 10;
+    int32 seats = 11;
+    string notes = 12;
+    repeated string features = 13;
+    map<string, string> metadata = 14;
+    int64 created_at = 15;
+    int64 updated_at = 16;
+}
+
+message ListLicensesRequest {
+    huwutong.common.TenantContext tenant = 1;
+    int64 product_id = 2;
+    int64 customer_id = 3;
+    string status = 4;
+    string search = 5;
+    huwutong.common.Pagination pagination = 6;
+    string sort_by = 7;
+    string sort_order = 8;
+}
+
+message ListLicensesResponse {
+    huwutong.common.ApiResponse api = 1;
+    repeated LicenseDetail licenses = 2;
+    huwutong.common.Pagination pagination = 3;
+}
+
+message SuspendRequest {
+    huwutong.common.TenantContext tenant = 1;
+    string license_key = 2;
+    string reason = 3;
+}
+
+message UpdateStatusRequest {
+    huwutong.common.TenantContext tenant = 1;
+    string license_key = 2;
+    string new_status = 3;
+    string reason = 4;
+}
+
+message CheckFeatureRequest {
+    huwutong.common.TenantContext tenant = 1;
+    string license_key = 2;
+    string feature_key = 3;
+}
+
+message CheckFeatureResponse {
+    huwutong.common.ApiResponse api = 1;
+    bool is_enabled = 2;
+    map<string, string> feature_config = 3;
+}

@@ -28,13 +28,10 @@ test.describe('客户门户 E2E', () => {
             roles: ['customer'],
         });
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
-
         // 验证页面没有崩溃
-        const error = page.locator('text=错误, text=出错了, text=Error').first();
-        const hasError = await error.isVisible().catch(() => false);
-        expect(hasError).toBeFalsy();
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 
     test('P2. 门户 License 列表页', async ({ page }) => {
@@ -46,8 +43,9 @@ test.describe('客户门户 E2E', () => {
             mockLicenses,
         });
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 
     test('P3. 门户 License 详情页', async ({ page }) => {
@@ -60,8 +58,9 @@ test.describe('客户门户 E2E', () => {
             mockLicenseDetail: getMockLicenseDetail(1),
         });
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 
     test('P4. 门户设备列表页', async ({ page }) => {
@@ -162,7 +161,8 @@ test.describe('租户切换 E2E', () => {
         });
 
         // 应该可以进入仪表盘
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 });

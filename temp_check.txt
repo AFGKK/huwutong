@@ -1,0 +1,7 @@
+import {
+    Plus, Star, StarFilled, Bell, Mute, Delete, ArrowLeft, ArrowRight,
+    Message, Setting, MoreFilled, Edit, User, Search, Picture,
+    ChatDotRound, Download, Close, Loading, CollectionTag, MagicStick,
+    Tickets, DataBoard, Service, Share, Phone, VideoCamera, MuteNotification,
+    RefreshLeft, RemoveFilled, EditPen, Timer, Microphone, CaretRight, Sunny, MoonNight, Monitor, Location
+} from '@element-plus/icons-vue'

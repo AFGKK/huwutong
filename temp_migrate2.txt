@@ -1,0 +1,5 @@
+
+   INFO  Running migrations.  
+
+  2026_06_25_000010_add_author_id_to_blog_posts .............................................................. 2s DONE
+

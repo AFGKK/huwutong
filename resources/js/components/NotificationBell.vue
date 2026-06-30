@@ -82,16 +82,19 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import { Bell } from '@element-plus/icons-vue';
 import notificationApi from '@/api/notification';
 
 const router = useRouter();
+const authStore = useAuthStore();
 const popoverVisible = ref(false);
 const loading = ref(false);
 const notifications = ref([]);
 const unreadCount = ref(0);
 
 let pollTimer = null;
+let echoChannel = null;
 
 function typeTag(type) {
     const map = {
@@ -99,6 +102,7 @@ function typeTag(type) {
         status_change: 'primary',
         system: 'info',
         license_activation: 'success',
+        new_device: 'warning',
     };
     return map[type] || 'info';
 }
@@ -109,6 +113,7 @@ function typeIcon(type) {
         status_change: '🔄',
         system: 'ℹ️',
         license_activation: '✅',
+        new_device: '🖥️',
     };
     return map[type] || '📢';
 }
@@ -172,10 +177,54 @@ function handleClick(item) {
     }
 }
 
-// 定时轮询未读数
+// ─── 实时广播订阅 ───
+
+function subscribeEcho() {
+    const userId = authStore.user?.id;
+    if (!userId || typeof window.Echo === 'undefined') {
+        // Echo 未初始化或用户未登录，回退到轮询
+        startPolling();
+        return;
+    }
+
+    echoChannel = window.Echo.private(`App.Models.User.${userId}`);
+
+    // 新通知到达
+    echoChannel.listen('.notification.created', (payload) => {
+        // 增加未读数
+        unreadCount.value += 1;
+
+        // 如果弹窗打开，在前面插入新通知
+        if (popoverVisible.value) {
+            notifications.value.unshift({
+                id: payload.id,
+                type: payload.type,
+                title: payload.title,
+                content: payload.content,
+                payload: payload.payload,
+                is_read: false,
+                created_at: payload.created_at,
+            });
+            // 保持最多 50 条
+            if (notifications.value.length > 50) {
+                notifications.value.pop();
+            }
+        }
+    });
+}
+
+function unsubscribeEcho() {
+    if (echoChannel) {
+        echoChannel.stopListening('.notification.created');
+        echoChannel.unsubscribe();
+        echoChannel = null;
+    }
+}
+
+// 备用轮询
 function startPolling() {
     loadUnreadCount();
-    pollTimer = setInterval(loadUnreadCount, 30000); // 30秒
+    pollTimer = setInterval(loadUnreadCount, 30000);
 }
 
 function stopPolling() {
@@ -186,11 +235,12 @@ function stopPolling() {
 }
 
 onMounted(() => {
-    startPolling();
+    subscribeEcho();
 });
 
 onUnmounted(() => {
     stopPolling();
+    unsubscribeEcho();
 });
 </script>
 

@@ -1,0 +1,12 @@
+{
+  "name": "@huwutong/sdk",
+  "version": "1.0.0",
+  "description": "HWT License SDK for Electron - M2-21",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "crypto": "^1.0.1"
+  }
+}

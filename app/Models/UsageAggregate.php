@@ -2,17 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/**
- * 用量聚合
- *
- * 预聚合的用量数据，用于快速查询不同时间维度的用量统计。
- * 由定时任务或实时计数器更新。
- */
 class UsageAggregate extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'tenant_id',
         'license_id',

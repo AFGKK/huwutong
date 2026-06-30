@@ -56,6 +56,24 @@ const ticketApi = {
     checkSla(data) {
         return apiClient.post('/tickets/check-sla', data);
     },
+
+    // ── 批量操作 ──
+
+    batchClose(ids) {
+        return apiClient.post('/tickets/batch/close', { ids });
+    },
+    batchAssign(ids, userId) {
+        return apiClient.post('/tickets/batch/assign', { ids, user_id: userId });
+    },
+    batchDelete(ids) {
+        return apiClient.post('/tickets/batch/delete', { ids });
+    },
+
+    // ── 导出 ──
+
+    exportCsv(params) {
+        return apiClient.get('/tickets/export/csv', { params, responseType: 'blob' });
+    },
 };
 
 export default ticketApi;

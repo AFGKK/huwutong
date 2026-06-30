@@ -60,7 +60,7 @@ class AdminUserSeeder extends Seeder
         $tenantAdmin->assignRole('tenant-admin');
 
         // 创建普通用户（演示用）
-        User::firstOrCreate(
+        $demo = User::firstOrCreate(
             ['email' => 'demo@huwutong.com'],
             [
                 'name' => '演示用户',
@@ -70,6 +70,9 @@ class AdminUserSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
+        if (! $demo->hasRole('developer')) {
+            $demo->assignRole('developer');
+        }
 
         $this->command->info('管理员账号创建成功:');
         $this->command->info('  - admin@huwutong.com / admin123 (超级管理员)');

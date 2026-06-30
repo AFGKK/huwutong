@@ -1,0 +1,25 @@
+{
+  "name": "hwt-license-zapier",
+  "version": "1.0.0",
+  "description": "HWT License Zapier Integration",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "zapier test",
+    "push": "zapier push",
+    "validate": "zapier validate",
+    "register": "zapier register"
+  },
+  "engines": {
+    "node": ">=18",
+    "npm": ">=8"
+  },
+  "dependencies": {
+    "zapier-platform-core": "^15.0.0"
+  },
+  "devDependencies": {
+    "zapier-platform-cli": "^15.0.0"
+  },
+  "zapier": {
+    "convertedByCLIVersion": "15.0.0"
+  }
+}

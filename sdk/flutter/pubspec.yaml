@@ -1,0 +1,11 @@
+name: huwutong_sdk
+description: HWT License SDK for Flutter/Dart - M2-21
+version: 1.0.0
+license: MIT
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  http: ^1.2.0
+  crypto: ^3.0.3

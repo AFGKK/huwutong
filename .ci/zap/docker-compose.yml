@@ -1,0 +1,88 @@
+# OWASP ZAP 自动化渗透测试 CI 配置
+# ============================================
+# M2-112: 自动化渗透测试 CI集成
+# 用于 CI/CD 流水线中的自动化安全扫描
+#
+# 使用方式:
+#   docker compose -f .ci/zap/docker-compose.yml up -d
+#   bash .ci/zap/quick-scan.sh http://host.docker.internal:8000
+#
+# 依赖:
+#   - Docker Desktop (Windows/Mac) 或 Docker Engine (Linux)
+#   - OWASP ZAP 镜像: ghcr.io/zaproxy/zaproxy:stable
+
+version: '3.8'
+
+services:
+  # ─── ZAP 基线扫描（快速，无主动攻击） ───
+  zap-baseline:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    container_name: hwt-zap-baseline
+    profiles: ["baseline", "full"]
+    network_mode: "host"
+    volumes:
+      - ./reports:/zap/reports:rw
+      - ./policies:/zap/policies:ro
+      - ./scripts:/zap/scripts:ro
+    environment:
+      - ZAP_JAVA_OPTS=-Xmx1024m
+    command: >
+      zap-baseline.py
+      -t ${TARGET_URL:-http://localhost:8000}
+      -r /zap/reports/baseline-report.html
+      -w /zap/reports/baseline-warnings.md
+      -x /zap/reports/baseline-report.xml
+      -I
+      -j
+      --hook=/zap/scripts/zap-hook.py
+    restart: "no"
+
+  # ─── ZAP 主动扫描（完整渗透测试） ───
+  zap-full:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    container_name: hwt-zap-full
+    profiles: ["full"]
+    network_mode: "host"
+    volumes:
+      - ./reports:/zap/reports:rw
+      - ./policies:/zap/policies:ro
+      - ./scripts:/zap/scripts:ro
+    environment:
+      - ZAP_JAVA_OPTS=-Xmx2048m
+    command: >
+      zap-full-scan.py
+      -t ${TARGET_URL:-http://localhost:8000}
+      -r /zap/reports/full-report.html
+      -w /zap/reports/full-warnings.md
+      -x /zap/reports/full-report.xml
+      -I
+      -j
+      -d
+      --hook=/zap/scripts/zap-hook.py
+    restart: "no"
+
+  # ─── ZAP API 扫描（仅扫描 API 端点） ───
+  zap-api:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    container_name: hwt-zap-api
+    profiles: ["api", "full"]
+    network_mode: "host"
+    volumes:
+      - ./reports:/zap/reports:rw
+      - ./policies:/zap/policies:ro
+      - ./scripts:/zap/scripts:ro
+      - ../../storage/api-docs:/zap/openapi:ro
+    environment:
+      - ZAP_JAVA_OPTS=-Xmx1024m
+    command: >
+      zap-api-scan.py
+      -t ${OPENAPI_SPEC:-/zap/openapi/openapi.yaml}
+      -f openapi
+      -r /zap/reports/api-report.html
+      -w /zap/reports/api-warnings.md
+      -x /zap/reports/api-report.xml
+      -I
+      -j
+      -d
+      --hook=/zap/scripts/zap-hook.py
+    restart: "no"

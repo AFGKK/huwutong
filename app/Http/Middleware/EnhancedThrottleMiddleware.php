@@ -6,6 +6,7 @@ use App\Http\ApiResponse;
 use App\Services\EnhancedRateLimiter;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -31,10 +32,22 @@ class EnhancedThrottleMiddleware
     {
         $limiter = app(EnhancedRateLimiter::class);
 
-        // 解析规则
+        // 解析规则（支持 slug 名称或内联规则字符串）
         $ruleSet = $this->parseRules($rules);
 
         $result = $limiter->check($request, $ruleSet);
+
+        // 记录限流统计
+        $ruleSlug = is_string($rules) ? $rules : 'custom';
+        if (! $result['allowed']) {
+            $limiter->recordStat($ruleSlug, $request->ip() ?? 'unknown', true);
+            Log::warning('增强限流触发', [
+                'rule' => $ruleSlug,
+                'ip' => $request->ip(),
+                'path' => $request->path(),
+                'retry_after' => $result['retry_after'],
+            ]);
+        }
 
         $response = $result['allowed']
             ? $next($request)
@@ -61,26 +74,25 @@ class EnhancedThrottleMiddleware
      * 解析规则字符串或返回规则集名称
      *
      * 格式:
-     * - 'activate' → 使用预定义规则集
+     * - 'activate' → 使用预定义规则集或 DB 规则
      * - 'ip,60,60|license,30,60' → key_type, max_attempts, window_seconds
      */
-    protected function parseRules(string $rules): array
+    protected function parseRules(string $rules): array|string
     {
-        // 预定义规则集
-        $knownSets = EnhancedRateLimiter::getDefaultRules($rules);
-
-        // 如果是已知规则集名称，直接返回
-        if (EnhancedRateLimiter::getDefaultRules($rules) !== EnhancedRateLimiter::getDefaultRules('default')
-            || $rules === 'default'
-            || $rules === 'activate'
-            || $rules === 'validate'
-            || $rules === 'api'
-            || $rules === 'admin'
-        ) {
-            return $knownSets;
+        // 如果包含 | 或 , 说明是内联规则字符串
+        if (str_contains($rules, '|') || str_contains($rules, ',')) {
+            return $this->parseInlineRules($rules);
         }
 
-        // 自定义格式: key_type,max_attempts,window_seconds|key_type,max_attempts,window_seconds
+        // 否则当作 slug 传给 limiter，由 limiter 自行加载 DB 规则或回退
+        return $rules;
+    }
+
+    /**
+     * 解析内联规则
+     */
+    protected function parseInlineRules(string $rules): array
+    {
         $parsed = [];
         $segments = explode('|', $rules);
         foreach ($segments as $segment) {
@@ -94,6 +106,6 @@ class EnhancedThrottleMiddleware
             }
         }
 
-        return ! empty($parsed) ? $parsed : EnhancedRateLimiter::getDefaultRules();
+        return $parsed;
     }
 }

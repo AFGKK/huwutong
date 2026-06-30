@@ -1,416 +1,359 @@
+<script setup>
+import { ref, reactive, onMounted, computed } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+    getMyNotificationPreferences,
+    updateMyNotificationPreferences,
+    initializeNotificationPreferences,
+    updateGeneralSettings,
+} from '../../api/notificationPreference.js'
+
+const preferences = ref([])
+const channels = ref([])
+const loading = ref(false)
+const saving = ref(false)
+const activeTab = ref('all')
+
+const general = reactive({
+    quiet_hours_start: null,
+    quiet_hours_end: null,
+    timezone: 'Asia/Shanghai',
+    digest_frequency: 'none',
+    in_quiet_hours: false,
+})
+
+// 时区选项
+const timezoneOptions = [
+    { value: 'Asia/Shanghai', label: '中国标准时间 (UTC+8)' },
+    { value: 'Asia/Hong_Kong', label: '香港时间 (UTC+8)' },
+    { value: 'Asia/Tokyo', label: '日本时间 (UTC+9)' },
+    { value: 'America/New_York', label: '美东时间 (UTC-5)' },
+    { value: 'America/Los_Angeles', label: '美西时间 (UTC-8)' },
+    { value: 'Europe/London', label: '伦敦时间 (UTC+0)' },
+    { value: 'Europe/Berlin', label: '柏林时间 (UTC+1)' },
+    { value: 'Australia/Sydney', label: '悉尼时间 (UTC+10)' },
+    { value: 'Pacific/Auckland', label: '奥克兰时间 (UTC+12)' },
+]
+
+const digestLabels = {
+    none: '不发送摘要',
+    daily: '每日摘要',
+    weekly: '每周摘要',
+    monthly: '每月摘要',
+}
+
+// 所有分类名称映射
+const categoryLabels = {
+    license_expiry: 'License 到期提醒',
+    invoice: '发票/账单通知',
+    payment: '支付通知',
+    security: '安全提醒',
+    system: '系统公告',
+    promotion: '营销推广',
+    commission: '佣金通知',
+}
+
+const categoryIcons = {
+    license_expiry: 'Key',
+    invoice: 'Document',
+    payment: 'Wallet',
+    security: 'WarningFilled',
+    system: 'Bell',
+    promotion: 'Present',
+    commission: 'Coin',
+}
+
+const channelLabels = {
+    mail: '📧 邮件',
+    sms: '📱 短信',
+    database: '🔔 站内信',
+}
+
+// 按分类组织偏好
+const groupedByCategory = computed(() => {
+    const groups = {}
+    for (const pref of preferences.value) {
+        if (!groups[pref.category]) {
+            groups[pref.category] = {
+                category: pref.category,
+                label: categoryLabels[pref.category] || pref.category,
+                icon: categoryIcons[pref.category] || 'Bell',
+                items: [],
+            }
+        }
+        groups[pref.category].items.push(pref)
+    }
+    return Object.values(groups)
+})
+
+// 过滤后的组
+const filteredGroups = computed(() => {
+    if (activeTab.value === 'all') return groupedByCategory.value
+    return groupedByCategory.value.filter(g => g.category === activeTab.value)
+})
+
+// 计算每个分类是否全开/全关
+function categoryAllEnabled(items) {
+    return items.length > 0 && items.every(i => i.enabled)
+}
+
+function categoryHasEnabled(items) {
+    return items.some(i => i.enabled)
+}
+
+async function loadPreferences() {
+    loading.value = true
+    try {
+        const res = await getMyNotificationPreferences()
+        preferences.value = res.data.preferences || []
+        channels.value = res.data.channels || []
+        const gen = res.data.general || {}
+        general.quiet_hours_start = gen.quiet_hours_start || null
+        general.quiet_hours_end = gen.quiet_hours_end || null
+        general.timezone = gen.timezone || 'Asia/Shanghai'
+        general.digest_frequency = gen.digest_frequency || 'none'
+        general.in_quiet_hours = gen.in_quiet_hours || false
+    } catch (e) {
+        console.error('Failed to load preferences:', e)
+    } finally {
+        loading.value = false
+    }
+}
+
+async function savePreferences() {
+    saving.value = true
+    try {
+        await updateMyNotificationPreferences({
+            preferences: preferences.value.map(p => ({
+                channel: p.channel,
+                category: p.category,
+                enabled: p.enabled,
+            })),
+        })
+        ElMessage.success('通知偏好已保存')
+    } catch (e) {
+        ElMessage.error('保存失败')
+    } finally {
+        saving.value = false
+    }
+}
+
+async function saveGeneralSettings() {
+    saving.value = true
+    try {
+        await updateGeneralSettings({
+            quiet_hours_start: general.quiet_hours_start || null,
+            quiet_hours_end: general.quiet_hours_end || null,
+            timezone: general.timezone,
+            digest_frequency: general.digest_frequency,
+        })
+        ElMessage.success('通用设置已保存')
+    } catch (e) {
+        ElMessage.error('保存通用设置失败')
+    } finally {
+        saving.value = false
+    }
+}
+
+function togglePref(pref) {
+    pref.enabled = !pref.enabled
+}
+
+function toggleCategory(category, enabled) {
+    for (const pref of preferences.value) {
+        if (pref.category === category) {
+            pref.enabled = enabled
+        }
+    }
+}
+
+async function handleInitialize() {
+    try {
+        await ElMessageBox.confirm('将重置所有通知偏好为默认值，确定继续？', '确认')
+        await initializeNotificationPreferences()
+        ElMessage.success('已重置为默认设置')
+        loadPreferences()
+    } catch (e) {
+        if (e !== 'cancel') ElMessage.error('重置失败')
+    }
+}
+
+async function handleResetAndSave() {
+    await handleInitialize()
+    // After initialize, save will be implicit
+}
+
+// 检查是否有未保存的变更
+const hasUnsavedChanges = computed(() => true) // Always show save button
+
+const categorySummaries = computed(() => {
+    return groupedByCategory.value.map(g => ({
+        category: g.category,
+        label: g.label,
+        email: g.items.find(i => i.channel === 'mail')?.enabled ?? false,
+        sms: g.items.find(i => i.channel === 'sms')?.enabled ?? false,
+        inapp: g.items.find(i => i.channel === 'database')?.enabled ?? false,
+    }))
+})
+
+onMounted(loadPreferences)
+</script>
+
 <template>
-    <div class="portal-notification-preferences">
-        <div class="page-header">
-            <h2>通知偏好设置</h2>
-            <p class="text-muted">选择您希望接收哪些类型的通知以及通过什么渠道接收。</p>
+    <div>
+        <div class="mb-4">
+            <h1 class="text-xl font-semibold">通知偏好设置</h1>
+            <p class="text-gray-500 text-sm mt-1">管理您希望接收哪些类型的通知，以及通过什么渠道接收。</p>
         </div>
 
-        <el-row :gutter="16">
-            <el-col :span="16">
-                <el-card shadow="never">
-                    <template #header>
-                        <div class="card-header">
-                            <span>通知分类</span>
-                            <el-button text size="small" @click="setAll('all')">全部开启</el-button>
-                            <el-button text size="small" @click="setAll('none')">全部关闭</el-button>
-                        </div>
-                    </template>
-
-                    <div v-if="preferences.length" class="preference-list">
-                        <div
-                            v-for="group in groupedPreferences"
-                            :key="group.group"
-                            class="preference-group"
-                        >
-                            <div class="group-header">
-                                <h4 class="group-title">{{ groupGroupLabel(group.group) }}</h4>
-                            </div>
-                            <div
-                                v-for="pref in group.items"
-                                :key="pref.id || pref.key"
-                                class="preference-item"
-                            >
-                                <div class="pref-info">
-                                    <div class="pref-name">{{ pref.label }}</div>
-                                    <div class="pref-desc">{{ pref.description }}</div>
-                                </div>
-                                <div class="pref-channels">
-                                    <el-checkbox
-                                        v-if="pref.channels?.includes('email')"
-                                        v-model="pref.email_enabled"
-                                        @change="() => updatePreference(pref)"
-                                    >
-                                        邮件
-                                    </el-checkbox>
-                                    <el-checkbox
-                                        v-if="pref.channels?.includes('sms')"
-                                        v-model="pref.sms_enabled"
-                                        @change="() => updatePreference(pref)"
-                                    >
-                                        短信
-                                    </el-checkbox>
-                                    <el-checkbox
-                                        v-if="pref.channels?.includes('in_app')"
-                                        v-model="pref.in_app_enabled"
-                                        @change="() => updatePreference(pref)"
-                                    >
-                                        站内信
-                                    </el-checkbox>
-                                </div>
-                            </div>
-                        </div>
+        <!-- 可用渠道概览 -->
+        <el-card class="mb-5" shadow="never">
+            <template #header><span class="font-semibold">可用通知渠道</span></template>
+            <el-row :gutter="12">
+                <el-col :span="8" v-for="ch in channels" :key="ch.channel">
+                    <div class="channel-card p-3 rounded-lg" :class="ch.verified ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border border-gray-200'">
+                        <div class="font-semibold">{{ channelLabels[ch.channel] || ch.channel }}</div>
+                        <div class="text-sm text-gray-500 mt-1">{{ ch.description }}</div>
+                        <el-tag v-if="ch.verified" type="success" size="small" class="mt-1">已验证</el-tag>
+                        <el-tag v-else type="warning" size="small" class="mt-1">未验证</el-tag>
                     </div>
-                    <el-empty v-else description="暂无通知偏好设置" :image-size="60" />
-                </el-card>
-            </el-col>
+                </el-col>
+            </el-row>
+        </el-card>
 
-            <el-col :span="8">
-                <!-- 全局设置 -->
-                <el-card class="mb-4">
-                    <template #header>
-                        <span>全局设置</span>
-                    </template>
-                    <div class="global-settings">
-                        <div class="global-item">
-                            <div class="global-info">
-                                <div class="global-label">通知摘要</div>
-                                <div class="global-desc">将非紧急通知合并为每日摘要发送</div>
-                            </div>
-                            <el-switch v-model="digestEnabled" @change="updateDigest" />
-                        </div>
-                        <el-divider />
-                        <div class="global-item">
-                            <div class="global-info">
-                                <div class="global-label">勿扰模式</div>
-                                <div class="global-desc">在指定时间内不发送通知</div>
-                            </div>
-                            <el-switch v-model="quietHoursEnabled" @change="() => {}" />
-                        </div>
-                        <div v-if="quietHoursEnabled" class="quiet-hours-config">
-                            <el-time-picker
-                                v-model="quietStart"
-                                placeholder="开始"
-                                format="HH:mm"
-                                style="width: 130px"
-                                @change="updateQuietHours"
-                            />
-                            <span class="quiet-separator">至</span>
-                            <el-time-picker
-                                v-model="quietEnd"
-                                placeholder="结束"
-                                format="HH:mm"
-                                style="width: 130px"
-                                @change="updateQuietHours"
+        <!-- 免打扰 & 摘要设置 (M3-29) -->
+        <el-card class="mb-5" shadow="never">
+            <template #header><span class="font-semibold">⏰ 免打扰与时区设置</span></template>
+            <el-row :gutter="24" class="items-end">
+                <el-col :span="6">
+                    <el-form-item label="免打扰开始时间">
+                        <el-time-picker v-model="general.quiet_hours_start" format="HH:mm" value-format="HH:mm"
+                            placeholder="不限制" style="width:100%" is-range />
+                    </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                    <el-form-item label="免打扰结束时间">
+                        <el-time-picker v-model="general.quiet_hours_end" format="HH:mm" value-format="HH:mm"
+                            placeholder="不限制" style="width:100%" is-range />
+                    </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                    <el-form-item label="时区">
+                        <el-select v-model="general.timezone" style="width:100%">
+                            <el-option v-for="tz in timezoneOptions" :key="tz.value" :label="tz.label" :value="tz.value" />
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                    <el-form-item label="摘要频率">
+                        <el-select v-model="general.digest_frequency" style="width:100%">
+                            <el-option v-for="(label, val) in digestLabels" :key="val" :label="label" :value="val" />
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+            </el-row>
+            <div class="mt-2 flex items-center gap-4">
+                <el-tag v-if="general.in_quiet_hours" type="warning" size="small">🔕 当前在免打扰时段</el-tag>
+                <el-tag v-else type="success" size="small">🔔 通知正常发送</el-tag>
+                <el-button size="small" type="primary" plain @click="saveGeneralSettings" :loading="saving">保存通用设置</el-button>
+            </div>
+        </el-card>
+
+        <!-- 操作栏 -->
+        <div class="flex items-center justify-between mb-4">
+            <el-radio-group v-model="activeTab" size="small">
+                <el-radio-button value="all">全部</el-radio-button>
+                <el-radio-button v-for="g in groupedByCategory" :key="g.category" :value="g.category">
+                    {{ g.label }}
+                </el-radio-button>
+            </el-radio-group>
+            <div class="flex gap-2">
+                <el-button size="small" @click="handleInitialize">恢复默认</el-button>
+                <el-button type="primary" size="small" @click="savePreferences" :loading="saving">保存设置</el-button>
+            </div>
+        </div>
+
+        <!-- 通知偏好矩阵 -->
+        <div v-loading="loading">
+            <el-card v-for="group in filteredGroups" :key="group.category" class="mb-4" shadow="never">
+                <template #header>
+                    <div class="flex items-center justify-between">
+                        <span class="font-semibold">{{ group.label }}</span>
+                        <div class="flex gap-2 items-center">
+                            <span class="text-sm text-gray-400">全选:</span>
+                            <el-switch
+                                :model-value="categoryAllEnabled(group.items)"
+                                size="small"
+                                :loading="false"
+                                @change="(val) => toggleCategory(group.category, val)"
                             />
                         </div>
                     </div>
-                </el-card>
+                </template>
 
-                <!-- 当前联系方式 -->
-                <el-card>
-                    <template #header>
-                        <span>当前联系方式</span>
+                <el-table :data="group.items" stripe>
+                    <el-table-column label="通知渠道" width="180">
+                        <template #default="{ row }">
+                            <div class="flex items-center gap-2">
+                                <span>{{ channelLabels[row.channel] || row.channel }}</span>
+                            </div>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="通知类型" min-width="200">
+                        <template #default="{ row }">
+                            <span>{{ row.label || categoryLabels[row.category] || row.category }}</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="启用" width="120" align="center">
+                        <template #default="{ row }">
+                            <el-switch v-model="row.enabled" @click.stop />
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="说明" min-width="200">
+                        <template #default="{ row }">
+                            <span class="text-gray-400 text-sm">
+                                <template v-if="row.channel === 'mail'">发送到注册邮箱</template>
+                                <template v-else-if="row.channel === 'sms'">发送到注册手机</template>
+                                <template v-else>平台消息中心可查看</template>
+                            </span>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-card>
+
+            <el-empty v-if="!loading && groupedByCategory.length === 0" description="暂无通知分类" />
+        </div>
+
+        <!-- 简略概览表 -->
+        <el-card class="mb-4" shadow="never" v-if="categorySummaries.length">
+            <template #header><span class="font-semibold">概览</span></template>
+            <el-table :data="categorySummaries" stripe>
+                <el-table-column prop="label" label="通知类型" min-width="160" />
+                <el-table-column label="邮件" width="100" align="center">
+                    <template #default="{ row }">
+                        <el-tag v-if="row.email" type="success" size="small">✓</el-tag>
+                        <el-tag v-else type="info" size="small">✗</el-tag>
                     </template>
-                    <div class="contact-info">
-                        <div class="contact-item">
-                            <el-icon><Message /></el-icon>
-                            <div>
-                                <div class="contact-label">邮箱</div>
-                                <div class="contact-value">{{ authStore.userEmail || '未设置' }}</div>
-                            </div>
-                        </div>
-                        <div class="contact-item">
-                            <el-icon><Phone /></el-icon>
-                            <div>
-                                <div class="contact-label">手机</div>
-                                <div class="contact-value">{{ userPhone || '未设置' }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <el-button text type="primary" class="w-full" @click="$router.push('/portal/settings')">
-                        前往个人设置修改
-                    </el-button>
-                </el-card>
-            </el-col>
-        </el-row>
+                </el-table-column>
+                <el-table-column label="短信" width="100" align="center">
+                    <template #default="{ row }">
+                        <el-tag v-if="row.sms" type="success" size="small">✓</el-tag>
+                        <el-tag v-else type="info" size="small">✗</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column label="站内信" width="100" align="center">
+                    <template #default="{ row }">
+                        <el-tag v-if="row.inapp" type="success" size="small">✓</el-tag>
+                        <el-tag v-else type="info" size="small">✗</el-tag>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </el-card>
     </div>
 </template>
 
-<script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useAuthStore } from '@/stores/auth';
-import apiClient from '@/api/client';
-import { ElMessage } from 'element-plus';
-import { Message, Phone } from '@element-plus/icons-vue';
-
-const authStore = useAuthStore();
-const preferences = ref([]);
-const digestEnabled = ref(false);
-const quietHoursEnabled = ref(false);
-const quietStart = ref(null);
-const quietEnd = ref(null);
-const userPhone = ref('');
-
-const groupedPreferences = computed(() => {
-    const groups = {};
-    for (const pref of preferences.value) {
-        const g = pref.group || 'other';
-        if (!groups[g]) groups[g] = { group: g, items: [] };
-        groups[g].items.push(pref);
-    }
-    return Object.values(groups);
-});
-
-function groupGroupLabel(group) {
-    const map = {
-        license: 'License 相关',
-        billing: '计费与账单',
-        security: '安全相关',
-        system: '系统通知',
-        marketing: '营销推广',
-        other: '其他',
-    };
-    return map[group] || group;
-}
-
-async function fetchPreferences() {
-    try {
-        const { data: res } = await apiClient.get('/notifications/preferences');
-        const data = res.data || {};
-        preferences.value = data.items || [];
-
-        if (Array.isArray(preferences.value)) {
-            preferences.value.forEach(p => {
-                if (!p.channels) p.channels = ['email', 'in_app'];
-                p.email_enabled = p.email_enabled ?? p.channels.includes('email');
-                p.sms_enabled = p.sms_enabled ?? p.channels.includes('sms');
-                p.in_app_enabled = p.in_app_enabled ?? p.channels.includes('in_app');
-            });
-        }
-
-        digestEnabled.value = data.digest_enabled ?? false;
-        quietHoursEnabled.value = data.quiet_hours_enabled ?? false;
-        if (data.quiet_start) quietStart.value = data.quiet_start;
-        if (data.quiet_end) quietEnd.value = data.quiet_end;
-    } catch {
-        // Fallback defaults
-        preferences.value = getDefaultPreferences();
-    }
-}
-
-function getDefaultPreferences() {
-    return [
-        { key: 'license_expiry', group: 'license', label: 'License 到期提醒', description: 'License 即将到期或已到期时通知', channels: ['email', 'in_app'], email_enabled: true, in_app_enabled: true },
-        { key: 'license_status_change', group: 'license', label: 'License 状态变更', description: 'License 被暂停、冻结、吊销等状态变化时通知', channels: ['email', 'in_app'], email_enabled: true, in_app_enabled: true },
-        { key: 'device_activation', group: 'license', label: '新设备激活', description: '有新的设备激活 License 时通知', channels: ['email', 'in_app'], email_enabled: true, in_app_enabled: true },
-        { key: 'billing_renewal', group: 'billing', label: '自动续费通知', description: '订阅自动续费成功或失败时通知', channels: ['email', 'sms', 'in_app'], email_enabled: true, sms_enabled: false, in_app_enabled: true },
-        { key: 'invoice_available', group: 'billing', label: '新发票生成', description: '有新发票可供查看时通知', channels: ['email', 'in_app'], email_enabled: true, in_app_enabled: true },
-        { key: 'payment_failed', group: 'billing', label: '支付失败提醒', description: '支付扣款失败时即时通知', channels: ['email', 'sms', 'in_app'], email_enabled: true, sms_enabled: true, in_app_enabled: true },
-        { key: 'security_login', group: 'security', label: '新登录提醒', description: '有新的设备或位置登录您的账户时通知', channels: ['email', 'in_app'], email_enabled: true, in_app_enabled: true },
-        { key: 'security_password', group: 'security', label: '密码变更提醒', description: '账户密码被修改时通知', channels: ['email', 'in_app'], email_enabled: true, in_app_enabled: true },
-        { key: 'system_maintenance', group: 'system', label: '系统维护通知', description: '计划内系统维护或服务变更通知', channels: ['email', 'in_app'], email_enabled: true, in_app_enabled: true },
-    ];
-}
-
-async function updatePreference(pref) {
-    try {
-        const payload = {
-            key: pref.key || pref.id,
-            email_enabled: !!pref.email_enabled,
-            sms_enabled: !!pref.sms_enabled,
-            in_app_enabled: !!pref.in_app_enabled,
-        };
-        await apiClient.put('/notifications/preferences', payload);
-        // 不提示成功，保持交互轻量
-    } catch {
-        ElMessage.error('更新偏好设置失败');
-    }
-}
-
-function setAll(action) {
-    const value = action === 'all';
-    for (const pref of preferences.value) {
-        pref.email_enabled = pref.channels?.includes('email') ? value : false;
-        pref.sms_enabled = pref.channels?.includes('sms') ? value : false;
-        pref.in_app_enabled = pref.channels?.includes('in_app') ? value : false;
-    }
-    // 批量保存最后一个偏好
-    if (preferences.value.length) {
-        updatePreference(preferences.value[0]);
-        ElMessage.success(action === 'all' ? '已开启全部通知' : '已关闭全部通知');
-    }
-}
-
-async function updateDigest() {
-    try {
-        await apiClient.put('/notifications/preferences', { digest_enabled: digestEnabled.value });
-        ElMessage.success(digestEnabled.value ? '通知摘要已开启' : '通知摘要已关闭');
-    } catch {
-        digestEnabled.value = !digestEnabled.value;
-    }
-}
-
-async function updateQuietHours() {
-    try {
-        await apiClient.put('/notifications/preferences', {
-            quiet_hours_enabled: quietHoursEnabled.value,
-            quiet_start: quietStart.value,
-            quiet_end: quietEnd.value,
-        });
-        ElMessage.success('勿扰时间已更新');
-    } catch {
-        // ignore
-    }
-}
-
-onMounted(fetchPreferences);
-</script>
-
 <style scoped>
-.page-header {
-    margin-bottom: 20px;
+.channel-card {
+    border-radius: 10px;
 }
-
-.page-header h2 { margin: 0 0 4px; }
-
-.text-muted {
-    color: #909399;
-    font-size: 14px;
-    margin: 0;
-}
-
-.mb-4 { margin-bottom: 16px; }
-
-.card-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.card-header span { flex: 1; }
-
-.preference-list {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.preference-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.group-header {
-    margin-bottom: 8px;
-}
-
-.group-title {
-    margin: 0;
-    font-size: 15px;
-    font-weight: 600;
-    color: #303133;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #ebeef5;
-}
-
-.preference-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid #f5f7fa;
-}
-
-.preference-item:last-child {
-    border-bottom: none;
-}
-
-.pref-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.pref-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: #303133;
-}
-
-.pref-desc {
-    font-size: 12px;
-    color: #909399;
-    margin-top: 2px;
-}
-
-.pref-channels {
-    display: flex;
-    gap: 16px;
-    flex-shrink: 0;
-}
-
-.pref-channels .el-checkbox {
-    margin-right: 0;
-}
-
-.global-settings {
-    display: flex;
-    flex-direction: column;
-}
-
-.global-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-}
-
-.global-label {
-    font-size: 14px;
-    font-weight: 500;
-    color: #303133;
-}
-
-.global-desc {
-    font-size: 12px;
-    color: #909399;
-    margin-top: 2px;
-}
-
-.quiet-hours-config {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 12px;
-    padding-left: 4px;
-}
-
-.quiet-separator {
-    color: #909399;
-    font-size: 13px;
-}
-
-.contact-info {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.contact-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.contact-label {
-    font-size: 13px;
-    color: #909399;
-}
-
-.contact-value {
-    font-size: 14px;
-    color: #303133;
-}
-
-.w-full { width: 100%; }
 </style>

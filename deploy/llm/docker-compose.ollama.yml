@@ -1,0 +1,56 @@
+version: '3.8'
+
+# ===================================================
+# Ollama 本地大模型部署
+# M3-49 LocalLLMDeploy
+# 使用方式: docker compose -f deploy/llm/docker-compose.ollama.yml up -d
+# ===================================================
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hwt-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_NUM_PARALLEL=4
+      - OLLAMA_MAX_LOADED_MODELS=2
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Open WebUI (可选)
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: hwt-ollama-webui
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
+    volumes:
+      - openwebui_data:/app/backend/data
+    depends_on:
+      - ollama
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  ollama_data:
+    driver: local
+  openwebui_data:
+    driver: local

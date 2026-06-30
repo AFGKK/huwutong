@@ -1,0 +1,24 @@
+{
+  "title": "互物通 — 系统资源",
+  "uid": "huwutong-system",
+  "description": "CPU / 内存 / 磁盘 / 网络",
+  "tags": ["huwutong", "system", "infra"],
+  "timezone": "Asia/Shanghai",
+  "editable": true,
+  "panels": [
+    {"title": "CPU 使用率", "type": "graph", "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+      "targets": [{"expr": "100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "{{instance}}"}],
+      "datasource": "Prometheus"},
+    {"title": "内存使用率", "type": "graph", "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
+      "targets": [{"expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100", "legendFormat": "{{instance}}"}],
+      "datasource": "Prometheus"},
+    {"title": "磁盘使用率", "type": "graph", "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+      "targets": [{"expr": "(node_filesystem_size_bytes{mountpoint=\"/\"} - node_filesystem_avail_bytes{mountpoint=\"/\"}) / node_filesystem_size_bytes{mountpoint=\"/\"} * 100", "legendFormat": "{{instance}}"}],
+      "datasource": "Prometheus"},
+    {"title": "网络 I/O", "type": "graph", "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "rate(node_network_receive_bytes_total[5m])", "legendFormat": "{{device}} 接收"},
+        {"expr": "rate(node_network_transmit_bytes_total[5m])", "legendFormat": "{{device}} 发送"}
+      ], "datasource": "Prometheus"}
+  ]
+}

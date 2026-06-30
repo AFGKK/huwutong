@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互物通 (HuWuTong) Bug Bounty Program - Security Policy</title>
+    <meta name="robots" content="all">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6; color: #1a1a2e; background: #f8f9fa; padding: 2rem 1rem;
+        }
+        .container { max-width: 860px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 2.5rem; }
+        h1 { font-size: 2rem; margin-bottom: .25rem; color: #e74c3c; }
+        .subtitle { color: #666; margin-bottom: 2rem; font-size: .9rem; }
+        h2 { font-size: 1.3rem; margin: 2rem 0 .75rem; padding-bottom: .5rem; border-bottom: 2px solid #e74c3c; color: #2c3e50; }
+        h3 { font-size: 1.1rem; margin: 1.5rem 0 .5rem; color: #34495e; }
+        p, li { color: #444; }
+        ul, ol { padding-left: 1.5rem; margin: .75rem 0; }
+        li { margin-bottom: .4rem; }
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th, td { padding: .6rem .8rem; text-align: left; border: 1px solid #dee2e6; }
+        th { background: #e74c3c; color: #fff; font-weight: 600; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        .contact-box { background: #f0f4f8; border-radius: 8px; padding: 1.25rem; margin: 1rem 0; }
+        .contact-box code { display: block; padding: .3rem 0; color: #2c3e50; }
+        .safe-harbor { background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 1rem; margin: 1rem 0; color: #155724; }
+        .disclosure-box { background: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; padding: 1rem; margin: 1rem 0; color: #856404; }
+        .response-box { background: #cce5ff; border: 1px solid #b8daff; border-radius: 8px; padding: 1rem; margin: 1rem 0; color: #004085; }
+        .badge { display: inline-block; padding: .15em .5em; font-size: .8rem; font-weight: 600; border-radius: 4px; text-transform: uppercase; }
+        .badge-critical { background: #e74c3c; color: #fff; }
+        .badge-high { background: #e67e22; color: #fff; }
+        .badge-medium { background: #f1c40f; color: #333; }
+        .badge-low { background: #3498db; color: #fff; }
+        .badge-info { background: #95a5a6; color: #fff; }
+        footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: .85rem; color: #999; text-align: center; }
+        @media (max-width: 600px) { .container { padding: 1.5rem; } h1 { font-size: 1.5rem; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 互物通 (HuWuTong) Bug Bounty Program</h1>
+        <p class="subtitle">Last updated: 2026-06-24</p>
+
+        <p>We take the security of our platform seriously. We welcome security researchers to help us keep HuWuTong safe for everyone. This document outlines our bug bounty program, scope, rewards, and rules.</p>
+
+        <h2>Scope</h2>
+        <p>The following properties are in scope:</p>
+        <ul>
+                            <li><code>api.huwutong.com</code></li>
+                            <li><code>*.huwutong.com</code></li>
+                            <li><code>SDK packages (js-sdk, python-sdk, java-sdk)</code></li>
+                            <li><code>Mobile API endpoints</code></li>
+                    </ul>
+
+        <h3>Out of Scope</h3>
+        <ul>
+                            <li>Self-XSS that cannot be escalated</li>
+                            <li>Social engineering attacks</li>
+                            <li>Denial of Service attacks</li>
+                            <li>Physical attacks on infrastructure</li>
+                            <li>Third-party services not controlled by HuWuTong (e.g. GitHub, AWS)</li>
+                            <li>Rate limiting bypass without demonstrated harm</li>
+                            <li>Missing HTTP security headers without exploitability</li>
+                    </ul>
+
+        <h2>Rewards</h2>
+        <p>Rewards are based on severity and impact. All rewards are in USD.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Severity</th>
+                    <th>Classification</th>
+                    <th>Reward Range</th>
+                </tr>
+            </thead>
+            <tbody>
+                                <tr>
+                    <td><span class="badge badge-critical">严重</span></td>
+                    <td>Critical</td>
+                    <td>Critical: $500 - $2,000+</td>
+                </tr>
+                                <tr>
+                    <td><span class="badge badge-high">高危</span></td>
+                    <td>High</td>
+                    <td>High: $200 - $500</td>
+                </tr>
+                                <tr>
+                    <td><span class="badge badge-medium">中危</span></td>
+                    <td>Medium</td>
+                    <td>Medium: $100 - $200</td>
+                </tr>
+                                <tr>
+                    <td><span class="badge badge-low">低危</span></td>
+                    <td>Low</td>
+                    <td>Low: $50 - $100</td>
+                </tr>
+                                <tr>
+                    <td><span class="badge badge-info">信息</span></td>
+                    <td>Informational</td>
+                    <td>Informational: No reward (Hall of Fame only)</td>
+                </tr>
+                            </tbody>
+        </table>
+
+        <h2>Rules</h2>
+        <ol>
+                            <li>Provide clear steps to reproduce with PoC when possible</li>
+                            <li>Allow reasonable time for fix (typically 90 days for critical issues)</li>
+                            <li>Do not access or modify user data without permission</li>
+                            <li>Report vulnerabilities privately — do not disclose publicly before fix</li>
+                            <li>Only test on your own accounts</li>
+                            <li>One report per vulnerability (duplicates will be marked as such)</li>
+                            <li>No automated scanning without prior approval</li>
+                    </ol>
+
+        <h2>Disclosure Policy</h2>
+        <div class="disclosure-box">
+            We practice Coordinated Disclosure. After a fix is deployed, we grant permission for public disclosure after 30 days.
+        </div>
+
+        <h2>Safe Harbor</h2>
+        <div class="safe-harbor">
+            We will not pursue legal action against researchers who act in good faith and follow this policy.
+        </div>
+
+        <h2>Response Expectations</h2>
+        <div class="response-box">
+            We aim to acknowledge receipt within 48 hours and provide initial assessment within 5 business days.
+        </div>
+
+        <h2>Contact</h2>
+        <div class="contact-box">
+            <strong>Email:</strong> <code><a href="mailto:security@huwutong.com">security@huwutong.com</a></code>
+            <strong>PGP Fingerprint:</strong> <code>F3FA E9A7 2B8D 1C4E 9A0B 5C6D 7E8F 9A0B 1C2D 3E4F</code>
+            <strong>HackerOne:</strong> <code><a href="https://hackerone.com/huwutong" target="_blank" rel="noopener">https://hackerone.com/huwutong</a></code>
+            <strong>Bugcrowd:</strong> <code><a href="https://bugcrowd.com/huwutong" target="_blank" rel="noopener">https://bugcrowd.com/huwutong</a></code>
+        </div>
+
+        <h2>Submit a Report</h2>
+        <p>To submit a vulnerability report, please use one of the following methods:</p>
+        <ul>
+            <li>Email us at <a href="mailto:security@huwutong.com">security@huwutong.com</a> (PGP encrypted preferred)</li>
+            <li>Submit via HackerOne: <a href="https://hackerone.com/huwutong" target="_blank" rel="noopener">https://hackerone.com/huwutong</a></li>
+            <li>Submit via Bugcrowd: <a href="https://bugcrowd.com/huwutong" target="_blank" rel="noopener">https://bugcrowd.com/huwutong</a></li>
+            <li>Use our <a href="/bug-bounty/report">online submission form</a></li>
+        </ul>
+
+        <footer>
+            <p>HuWuTong (互物�? �?Bug Bounty Program | <a href="/.well-known/security.txt">security.txt</a></p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -15,6 +15,17 @@ class DatabaseSeeder extends Seeder
             TaxRateSeeder::class,
             SiteSettingsSeeder::class,
             DemoDataSeeder::class,
+            AutomationRuleSeeder::class,
+            InviteCodeSeeder::class,
+            AuditExportSeeder::class,
+            DashboardSeeder::class,
+            DataImportSeeder::class,
+            SecurityCenterSeeder::class,
+            SlaSeeder::class,
+            AuditVisualizationSeeder::class,
+            AlertingSeeder::class,
+            LicenseTemplateSeeder::class,
+            PortalBrandingSeeder::class,
         ]);
     }
 }

@@ -29,7 +29,7 @@
                             </div>
                         </div>
 
-                        <h3 class="ticket-title">{{ ticket.title }}</h3>
+                        <h3 class="ticket-title">{{ ticket.subject || ticket.title }}</h3>
 
                         <div class="ticket-customer">
                             <el-icon><User /></el-icon>
@@ -47,6 +47,18 @@
                         </div>
                     </el-card>
 
+                    <!-- 标签 -->
+                    <el-card class="mb-4">
+                        <template #header>
+                            <span>标签</span>
+                        </template>
+                        <TagSelector
+                            taggable-type="ticket"
+                            :taggable-id="ticket.id"
+                            :tags="ticket.tags || []"
+                        />
+                    </el-card>
+
                     <!-- 回复区域 -->
                     <el-card class="mb-4">
                         <template #header>
@@ -59,7 +71,12 @@
                             <div v-for="reply in replies" :key="reply.id" class="reply-item" :class="{ 'staff-reply': reply.is_admin }">
                                 <div class="reply-header">
                                     <div class="reply-author">
-                                        <el-avatar :size="28" :icon="reply.is_admin ? 'UserFilled' : 'User'" />
+                                        <el-avatar :size="28" :src="reply.user?.avatar_url || reply.admin?.avatar_url || reply.customer?.user?.avatar_url">
+                                            <span class="avatar-initial">{{ (reply.user?.name || reply.admin?.name || reply.customer?.name || '?').charAt(0).toUpperCase() }}</span>
+                                            <template #error>
+                                                <span class="avatar-initial">{{ (reply.user?.name || reply.admin?.name || reply.customer?.name || '?').charAt(0).toUpperCase() }}</span>
+                                            </template>
+                                        </el-avatar>
                                         <span class="reply-name">
                                             {{ reply.user?.name || reply.admin?.name || reply.customer?.name || '客户' }}
                                             <el-tag v-if="reply.is_admin" size="small" type="primary" class="staff-tag">客服</el-tag>
@@ -68,7 +85,7 @@
                                     </div>
                                     <span class="reply-time">{{ reply.created_at }}</span>
                                 </div>
-                                <div class="reply-body">{{ reply.body || reply.message }}</div>
+                                <div class="reply-body">{{ reply.content || reply.body || reply.message }}</div>
                             </div>
                         </div>
                         <el-empty v-else description="暂无回复" :image-size="60" />
@@ -220,6 +237,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ticketApi from '@/api/ticket';
+import TagSelector from '@/components/TagSelector.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
     User, UserFilled, EditPen, CircleCheck, CircleClose, Refresh,
@@ -240,6 +258,7 @@ const staffUsers = ref([]);
 
 const STATUS_MAP = {
     open: { type: 'danger', label: '待处理' },
+    replied: { type: 'warning', label: '已回复' },
     in_progress: { type: 'primary', label: '处理中' },
     resolved: { type: 'success', label: '已解决' },
     closed: { type: 'info', label: '已关闭' },
@@ -264,7 +283,7 @@ async function fetchDetail() {
     try {
         const { data: res } = await ticketApi.show(id);
         ticket.value = res.data || {};
-        replies.value = res.data?.replies || [];
+        replies.value = res.data?.public_replies || res.data?.publicReplies || res.data?.replies || [];
     } catch {
         ElMessage.error('获取工单详情失败');
     } finally {
@@ -276,7 +295,7 @@ async function handleReply() {
     if (!replyBody.value.trim()) return;
     replying.value = true;
     try {
-        await ticketApi.reply(ticket.value.id, { body: replyBody.value });
+        await ticketApi.reply(ticket.value.id, { content: replyBody.value });
         ElMessage.success('回复已发送');
         replyBody.value = '';
         await fetchDetail();

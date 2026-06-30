@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\ApiResponse;
 use App\Services\CircuitBreakerService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;

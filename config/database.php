@@ -59,6 +59,27 @@ return [
             ]) : [],
         ],
 
+        // ─── 只读从库连接 (M2-23 读写分离) ───
+        'mysql_replica' => [
+            'driver' => 'mysql',
+            'url' => env('DB_REPLICA_URL'),
+            'host' => env('DB_REPLICA_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('DB_REPLICA_PORT', env('DB_PORT', '3306')),
+            'database' => env('DB_REPLICA_DATABASE', env('DB_DATABASE', 'laravel')),
+            'username' => env('DB_REPLICA_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('DB_REPLICA_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('DB_REPLICA_SOCKET', env('DB_SOCKET', '')),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_0900_ai_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
@@ -145,24 +166,61 @@ return [
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
             'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+            // Redis Sentinel 高可用配置
+            'replication' => env('REDIS_REPLICATION', 'sentinel'),
         ],
 
         'default' => [
             'url' => env('REDIS_URL'),
-            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'host' => env('REDIS_CLUSTER', 'redis') !== false && env('REDIS_CLUSTER') !== 'false' && env('REDIS_CLUSTER') !== ''
+                ? explode(',', env('REDIS_HOST', '127.0.0.1'))
+                : env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DB', '0'),
+            // Sentinel 模式：需要配置 service 名称
+            'service' => env('REDIS_SENTINEL_SERVICE', 'mymaster'),
+            'read_timeout' => env('REDIS_READ_TIMEOUT', 60),
+            // 连接池配置
+            'persistent' => env('REDIS_PERSISTENT', false),
+            'persistent_id' => env('REDIS_PERSISTENT_ID', null),
+            'timeout' => env('REDIS_TIMEOUT', 5.0),
+            'retry_interval' => env('REDIS_RETRY_INTERVAL', 10),
+            'retry_limit' => env('REDIS_RETRY_LIMIT', 3),
         ],
 
         'cache' => [
             'url' => env('REDIS_URL'),
-            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'host' => env('REDIS_CLUSTER', 'redis') !== false && env('REDIS_CLUSTER') !== 'false' && env('REDIS_CLUSTER') !== ''
+                ? explode(',', env('REDIS_HOST', '127.0.0.1'))
+                : env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_CACHE_DB', '1'),
+            'service' => env('REDIS_SENTINEL_SERVICE', 'mymaster'),
+            'read_timeout' => env('REDIS_READ_TIMEOUT', 60),
+            'persistent' => env('REDIS_PERSISTENT', false),
+            'timeout' => env('REDIS_TIMEOUT', 5.0),
+            'retry_interval' => env('REDIS_RETRY_INTERVAL', 10),
+            'retry_limit' => env('REDIS_RETRY_LIMIT', 3),
+        ],
+
+        // 可选的 Sentinel 专用连接（读写分离）
+        'sentinel' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_REPLICATION', 'sentinel') !== false && env('REDIS_REPLICATION') !== 'false' && env('REDIS_REPLICATION') !== ''
+                ? explode(',', env('REDIS_SENTINEL_HOST', env('REDIS_HOST', '127.0.0.1')))
+                : env('REDIS_SENTINEL_HOST', env('REDIS_HOST', '127.0.0.1')),
+            'port' => env('REDIS_SENTINEL_PORT', '26379'),
+            'username' => env('REDIS_USERNAME'),
+            'password' => env('REDIS_SENTINEL_PASSWORD', env('REDIS_PASSWORD')),
+            'database' => env('REDIS_DB', '0'),
+            'service' => env('REDIS_SENTINEL_SERVICE', 'mymaster'),
+            'read_timeout' => env('REDIS_READ_TIMEOUT', 60),
+            'persistent' => env('REDIS_PERSISTENT', false),
+            'timeout' => env('REDIS_TIMEOUT', 5.0),
         ],
 
     ],

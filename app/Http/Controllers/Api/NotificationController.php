@@ -17,20 +17,28 @@ class NotificationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $query = Notification::where('user_id', $user->id)
-            ->orWhere(function ($q) use ($user) {
-                // 系统级通知（没有特定 user_id 但属于同 tenant）
-                $q->whereNull('user_id')
-                  ->where('tenant_id', $user->tenant_id);
+        $query = Notification::where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                  ->orWhere(function ($sub) use ($user) {
+                      $sub->whereNull('user_id')
+                          ->where('tenant_id', $user->tenant_id);
+                  });
             });
 
         // 筛选
         if ($request->filled('filter.type')) {
             $query->where('type', $request->input('filter.type'));
         }
+        if ($request->filled('type')) {
+            $types = explode(',', $request->input('type'));
+            $query->whereIn('type', $types);
+        }
         if ($request->filled('filter.is_read')) {
             $isRead = $request->boolean('filter.is_read');
             $query->where('is_read', $isRead);
+        }
+        if ($request->filled('unread')) {
+            $query->where('is_read', false);
         }
 
         // 排序
@@ -49,15 +57,26 @@ class NotificationController extends Controller
     public function unreadCount(Request $request): JsonResponse
     {
         $user = $request->user();
-        $count = Notification::where(function ($q) use ($user) {
-            $q->where('user_id', $user->id)
-              ->orWhere(function ($sub) use ($user) {
-                  $sub->whereNull('user_id')
-                      ->where('tenant_id', $user->tenant_id);
-              });
-        })->where('is_read', false)->count();
+        $baseQuery = function ($q) use ($user) {
+            $q->where(function ($sub) use ($user) {
+                $sub->where('user_id', $user->id)
+                  ->orWhere(function ($inner) use ($user) {
+                      $inner->whereNull('user_id')
+                          ->where('tenant_id', $user->tenant_id);
+                  });
+            })->where('is_read', false);
+        };
 
-        return ApiResponse::success(['count' => $count]);
+        $count = Notification::where($baseQuery)->count();
+
+        $criticalCount = Notification::where($baseQuery)
+            ->whereIn('type', ['app_suspended', 'app_force_update', 'system_alert'])
+            ->count();
+
+        return ApiResponse::success([
+            'count' => $count,
+            'critical_count' => $criticalCount,
+        ]);
     }
 
     /**

@@ -1,1 +1,10 @@
 @import 'admin.scss';
+@import 'a11y.css';
+
+/* 头像首字母 fallback 样式 */
+.el-avatar .avatar-initial {
+    font-size: inherit;
+    font-weight: 600;
+    line-height: 1;
+    user-select: none;
+}

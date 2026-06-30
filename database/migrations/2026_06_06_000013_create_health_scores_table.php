@@ -46,20 +46,23 @@ return new class extends Migration
         });
 
         // 流失预警记录
-        Schema::create('churn_predictions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('customer_id')->constrained()->cascadeOnDelete();
-            $table->decimal('churn_probability', 5, 4)->comment('流失概率 0.0000 ~ 1.0000');
-            $table->string('risk_level', 20)->comment('low / medium / high / critical');
-            $table->json('top_signals')->nullable()->comment('主要流失信号');
-            $table->json('recommendations')->nullable()->comment('干预建议');
-            $table->timestamp('predicted_at')->index();
-            $table->timestamps();
+        // 注意：此表在 2026_06_07_000011_create_crm_tables 中被更完整的版本覆盖，此处跳过避免冲突
+        if (!Schema::hasTable('churn_predictions')) {
+            Schema::create('churn_predictions', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('customer_id')->constrained()->cascadeOnDelete();
+                $table->decimal('churn_probability', 5, 4)->comment('流失概率 0.0000 ~ 1.0000');
+                $table->string('risk_level', 20)->comment('low / medium / high / critical');
+                $table->json('top_signals')->nullable()->comment('主要流失信号');
+                $table->json('recommendations')->nullable()->comment('干预建议');
+                $table->timestamp('predicted_at')->index();
+                $table->timestamps();
 
-            $table->index(['tenant_id', 'customer_id', 'predicted_at']);
-            $table->index(['tenant_id', 'risk_level']);
-        });
+                $table->index(['tenant_id', 'customer_id', 'predicted_at']);
+                $table->index(['tenant_id', 'risk_level']);
+            });
+        }
     }
 
     public function down(): void

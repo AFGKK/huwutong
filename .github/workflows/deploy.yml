@@ -1,0 +1,206 @@
+# 互物通 — 生产部署流水线 (蓝绿部署)
+# M0-03/M3-63: 零停机 Blue-Green 部署
+# 触发: 手动触发 + 自动 Tag 推送 (v*)
+name: Deploy Production
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '部署环境'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      dry_run:
+        description: '仅构建，不部署'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ${{ secrets.REGISTRY_URL }}
+  APP_NAME: hwt-license
+  K8S_NAMESPACE: hwt-production
+
+jobs:
+  # ─── 1. 构建与测试 ───
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      image_tag: ${{ steps.tag.outputs.image_tag }}
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 生成镜像标签
+        id: tag
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "image_tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          else
+            echo "image_tag=commit-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          fi
+
+      # ── 后端 ──
+      - name: 设置 PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, bcmath, sodium, redis
+          tools: composer:v2
+
+      - name: 安装 PHP 依赖
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      - name: 缓存优化
+        run: |
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          php artisan event:cache
+
+      # ── 前端 ──
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 安装前端依赖
+        run: npm ci
+
+      - name: 前端构建
+        run: npm run build
+
+      # ── 构建 Docker 镜像 ──
+      - name: 登录容器仓库
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASS }}
+
+      - name: 构建并推送 App 镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.APP_NAME }}:${{ steps.tag.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ env.APP_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 构建并推送 Worker 镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.worker
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.APP_NAME }}-worker:${{ steps.tag.outputs.image_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─── 2. Staging 部署 ───
+  deploy-staging:
+    name: Deploy Staging
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.environment == 'staging' || github.event.inputs.environment == '' }}
+    environment: staging
+
+    steps:
+      - name: 检出 Helm Charts
+        uses: actions/checkout@v4
+        with:
+          path: deploy
+
+      - name: 配置 K8s 上下文
+        uses: azure/k8s-set-context@v4
+        with:
+          kubeconfig: ${{ secrets.K8S_CONFIG_STAGING }}
+
+      - name: 部署至 Staging
+        run: |
+          helm upgrade --install ${{ env.APP_NAME }} deploy/helm/hwt-license \
+            --namespace ${{ env.K8S_NAMESPACE }} \
+            --values deploy/helm/values-staging.yaml \
+            --set image.tag=${{ needs.build-and-test.outputs.image_tag }} \
+            --wait --timeout 5m
+
+      - name: 运行集成测试
+        run: |
+          sleep 30  # 等待 Pod 就绪
+          curl -f --retry 10 --retry-delay 5 https://staging.huwutong.com/health/ready
+
+  # ─── 3. 生产蓝绿部署 ───
+  deploy-production:
+    name: Deploy Production (Blue-Green)
+    needs: [build-and-test, deploy-staging]
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.environment == 'production' || github.ref_type == 'tag' }}
+    environment: production
+    concurrency: production
+
+    steps:
+      - name: 检出 Helm Charts
+        uses: actions/checkout@v4
+        with:
+          path: deploy
+
+      - name: 配置 K8s 上下文
+        uses: azure/k8s-set-context@v4
+        with:
+          kubeconfig: ${{ secrets.K8S_CONFIG_PRODUCTION }}
+
+      # ── Blue-Green 部署 ──
+      - name: 切换至 Green 环境
+        run: |
+          helm upgrade --install ${{ env.APP_NAME }}-green deploy/helm/hwt-license \
+            --namespace ${{ env.K8S_NAMESPACE }} \
+            --values deploy/helm/values-production.yaml \
+            --set image.tag=${{ needs.build-and-test.outputs.image_tag }} \
+            --set deployment.color=green \
+            --wait --timeout 10m
+
+      - name: 健康检查 (Green)
+        run: |
+          kubectl wait --for=condition=available --timeout=5m \
+            deployment/${{ env.APP_NAME }}-green -n ${{ env.K8S_NAMESPACE }}
+          kubectl port-forward service/${{ env.APP_NAME }}-green 8081:80 -n ${{ env.K8S_NAMESPACE }} &
+          sleep 5
+          curl -f http://localhost:8081/health/ready
+
+      - name: 流量切换至 Green
+        run: |
+          kubectl patch service ${{ env.APP_NAME }} \
+            -n ${{ env.K8S_NAMESPACE }} \
+            -p '{"spec":{"selector":{"color":"green"}}}'
+
+      - name: 观察期 (5分钟)
+        run: |
+          echo "观察 Green 环境运行状态 5 分钟..."
+          sleep 300
+          curl -f https://api.huwutong.com/health/ready
+
+      - name: 清理 Blue 环境
+        run: |
+          helm uninstall ${{ env.APP_NAME }}-blue \
+            -n ${{ env.K8S_NAMESPACE }} || true
+
+      # ── 回滚就绪 ──
+      - name: 记录部署信息
+        run: |
+          echo "✅ 部署完成"
+          echo "镜像版本: ${{ needs.build-and-test.outputs.image_tag }}"
+          echo "部署时间: $(date '+%Y-%m-%d %H:%M:%S')"

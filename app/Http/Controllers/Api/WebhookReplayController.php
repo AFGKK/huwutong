@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
+
 use App\Http\ApiResponse;
 use App\Models\EventDelivery;
 use App\Models\WebhookEndpoint;
@@ -9,7 +11,6 @@ use App\Models\WebhookEvent;
 use App\Services\WebhookService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 
 /**
  * Webhook 事件回放控制器

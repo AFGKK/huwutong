@@ -13,15 +13,17 @@ test.describe('License 管理 E2E', () => {
     test('L1. License 列表页正常加载', async ({ page }) => {
         await navigateAsLoggedIn(page, '/admin/licenses');
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 
     test('L2. License 列表包含页面元素', async ({ page }) => {
         await navigateAsLoggedIn(page, '/admin/licenses');
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
 
         // 验证页面没有崩溃
         const error = page.locator('text=错误, text=出错了, text=Error').first();

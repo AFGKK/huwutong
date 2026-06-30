@@ -1,0 +1,88 @@
+# ============================================================
+# Blue 环境 Deployment — 当前稳定版本
+# M3-63 BlueGreenDeploy
+# ============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hwt-api-blue
+  namespace: huwutong
+  labels:
+    app: hwt-api
+    deployment: blue
+    version: blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hwt-api
+      deployment: blue
+  template:
+    metadata:
+      labels:
+        app: hwt-api
+        deployment: blue
+        version: blue
+    spec:
+      containers:
+        - name: api
+          image: hwt-license-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - name: APP_ENV
+              value: "production"
+            - name: DEPLOYMENT_ENV
+              value: "blue"
+            - name: DB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: hwt-db-secret
+                  key: database
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: hwt-db-secret
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hwt-db-secret
+                  key: password
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+---
+# Blue Service (稳定版本服务)
+apiVersion: v1
+kind: Service
+metadata:
+  name: hwt-api-blue
+  namespace: huwutong
+  labels:
+    app: hwt-api
+    deployment: blue
+spec:
+  selector:
+    app: hwt-api
+    deployment: blue
+  ports:
+    - port: 80
+      targetPort: 8000

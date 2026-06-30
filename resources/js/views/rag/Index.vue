@@ -86,7 +86,7 @@
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column label="文章标题" min-width="200">
           <template #default="{ row }">
-            <el-link type="primary" :underline="false" @click="$router.push(`/knowledge-base`)">
+            <el-link type="primary" :underline="'never'" @click="$router.push(`/knowledge-base`)">
               {{ row.article?.title || `文章 #${row.article_id}` }}
             </el-link>
           </template>

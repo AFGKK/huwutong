@@ -4,7 +4,17 @@
         <el-card shadow="never" class="mb-4">
             <template #header>
                 <div class="flex-between">
-                    <span>自定义域名</span>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <span>自定义域名</span>
+                        <el-input v-model="searchKeyword" placeholder="搜索域名" size="small" style="width:180px" clearable @keyup.enter="fetchDomains" />
+                        <el-select v-model="filterStatus" clearable placeholder="状态" size="small" style="width:110px" @change="fetchDomains">
+                            <el-option label="全部" value="" />
+                            <el-option label="已生效" value="active" />
+                            <el-option label="待验证" value="pending" />
+                            <el-option label="失败" value="failed" />
+                        </el-select>
+                        <el-button size="small" @click="fetchDomains">搜索</el-button>
+                    </div>
                     <el-button type="primary" size="small" @click="showCreateDialog = true">
                         <el-icon><Plus /></el-icon>绑定域名
                     </el-button>
@@ -163,6 +173,20 @@ const creating = ref(false);
 const showCreateDialog = ref(false);
 const showDnsDialog = ref(false);
 const dnsInfoData = ref(null);
+const searchKeyword = ref('');
+const filterStatus = ref('');
+
+async function fetchDomains() {
+  loading.value = true;
+  try {
+    const params = {};
+    if (searchKeyword.value) params.search = searchKeyword.value;
+    if (filterStatus.value) params.status = filterStatus.value;
+    const res = await domainApi.list(params);
+    domains.value = res.data ?? [];
+  } catch { /* ignore */ }
+  finally { loading.value = false; }
+}
 const formRef = ref(null);
 
 const form = reactive({
@@ -219,15 +243,7 @@ function formatDate(date) {
 }
 
 async function loadDomains() {
-    loading.value = true;
-    try {
-        const { data: res } = await domainApi.list();
-        domains.value = res.data || [];
-    } catch {
-        ElMessage.error('加载域名列表失败');
-    } finally {
-        loading.value = false;
-    }
+    await fetchDomains();
 }
 
 async function handleCreate() {

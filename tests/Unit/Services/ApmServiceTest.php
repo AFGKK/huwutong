@@ -56,12 +56,12 @@ class ApmServiceTest extends TestCase
     #[Test]
     public function slow_threshold_constant_is_1000ms(): void
     {
-        $this->assertEquals(1000, ApmService::SLOW_THRESHOLD_MS);
+        $this->assertEquals(1000, config('apm.slow_threshold_ms'));
     }
 
     #[Test]
     public function sample_rate_constant_is_100(): void
     {
-        $this->assertEquals(100, ApmService::SAMPLE_RATE);
+        $this->assertEquals(100, config('apm.sample_rate'));
     }
 }

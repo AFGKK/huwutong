@@ -1,47 +1,94 @@
-import apiClient from './client';
+import client from './client';
 
-const billingApi = {
-    // Subscription
-    subscriptions(params) {
-        return apiClient.get('/billing/subscriptions', { params });
+export default {
+    // Subscriptions
+    subscriptions(params = {}) {
+        return client.get('/billing/subscriptions', { params });
     },
-    createSubscription(data) {
-        return apiClient.post('/billing/subscriptions', data);
+    list(params = {}) {
+        return client.get('/billing/subscriptions', { params });
     },
-    getSubscription(id) {
-        return apiClient.get(`/billing/subscriptions/${id}`);
+    create(data) {
+        return client.post('/billing/subscriptions', data);
+    },
+    show(id) {
+        return client.get(`/billing/subscriptions/${id}`);
     },
     changePlan(id, data) {
-        return apiClient.put(`/billing/subscriptions/${id}/plan`, data);
+        return client.put(`/billing/subscriptions/${id}/plan`, data);
     },
-    cancelSubscription(id, data) {
-        return apiClient.post(`/billing/subscriptions/${id}/cancel`, data);
+    cancel(id, reason) {
+        return client.post(`/billing/subscriptions/${id}/cancel`, { reason });
     },
-    resumeSubscription(id) {
-        return apiClient.post(`/billing/subscriptions/${id}/resume`);
+    resume(id) {
+        return client.post(`/billing/subscriptions/${id}/resume`);
     },
-    manualRenew(id) {
-        return apiClient.post(`/billing/subscriptions/${id}/renew`);
+    renew(id) {
+        return client.post(`/billing/subscriptions/${id}/renew`);
+    },
+    suspend(id) {
+        return client.post(`/billing/subscriptions/${id}/suspend`);
     },
 
     // Invoices
-    invoices(params) {
-        return apiClient.get('/billing/invoices', { params });
+    invoices(params = {}) {
+        return client.get('/billing/invoices', { params });
     },
-    getInvoice(id) {
-        return apiClient.get(`/billing/invoices/${id}`);
+    showInvoice(id) {
+        return client.get(`/billing/invoices/${id}`);
     },
-    markInvoicePaid(id, transactionId) {
-        return apiClient.post(`/billing/invoices/${id}/mark-paid`, { transaction_id: transactionId });
+    markPaid(id, transactionId) {
+        return client.post(`/billing/invoices/${id}/mark-paid`, { transaction_id: transactionId });
+    },
+    payInvoice(id, paymentMethod = 'gateway') {
+        return client.post(`/billing/invoices/${id}/pay`, { payment_method: paymentMethod });
+    },
+    paymentStatus(id) {
+        return client.get(`/billing/invoices/${id}/payment-status`);
     },
 
     // Stats
     stats() {
-        return apiClient.get('/billing/stats');
+        return client.get('/billing/stats');
     },
     invoiceStats() {
-        return apiClient.get('/billing/invoice-stats');
+        return client.get('/billing/invoice-stats');
+    },
+
+    // Pricing Plans
+    getPublicPlans() {
+        return client.get('/billing/plans/public');
+    },
+    getPlans(params = {}) {
+        return client.get('/billing/plans', { params });
+    },
+    createPlan(data) {
+        return client.post('/billing/plans', data);
+    },
+    updatePlan(id, data) {
+        return client.put(`/billing/plans/${id}`, data);
+    },
+    deletePlan(id) {
+        return client.delete(`/billing/plans/${id}`);
+    },
+
+    // Coupons
+    getCoupons(params = {}) {
+        return client.get('/billing/coupons', { params });
+    },
+    createCoupon(data) {
+        return client.post('/billing/coupons', data);
+    },
+    updateCoupon(id, data) {
+        return client.put(`/billing/coupons/${id}`, data);
+    },
+    validateCoupon(data) {
+        return client.post('/billing/coupons/validate', data);
+    },
+    getCouponStats() {
+        return client.get('/billing/coupons/stats');
+    },
+    getCouponRedemptions(id, params = {}) {
+        return client.get(`/billing/coupons/${id}/redemptions`, { params });
     },
 };
-
-export default billingApi;

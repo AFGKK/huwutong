@@ -21,6 +21,10 @@
                         <el-form-item label="启用横幅" prop="is_active">
                             <el-switch v-model="form.is_active" />
                         </el-form-item>
+                        <el-form-item label="浮动 🍪 按钮" prop="show_floating_button">
+                            <el-switch v-model="form.show_floating_button" />
+                            <span style="font-size:12px;color:#999;margin-left:8px">关闭横幅后显示悬浮按钮，可随时重新打开设置</span>
+                        </el-form-item>
 
                         <el-row :gutter="24">
                             <el-col :span="8">
@@ -297,6 +301,7 @@ const defaultCategories = [
 
 const form = reactive({
     is_active: true,
+    show_floating_button: true,
     position: 'bottom',
     layout: 'bar',
     theme: 'light',
@@ -340,6 +345,7 @@ async function fetchConfig() {
         if (res.data) {
             Object.assign(form, {
                 is_active: res.data.is_active ?? true,
+                show_floating_button: res.data.show_floating_button ?? true,
                 position: res.data.position || 'bottom',
                 layout: res.data.layout || 'bar',
                 theme: res.data.theme || 'light',

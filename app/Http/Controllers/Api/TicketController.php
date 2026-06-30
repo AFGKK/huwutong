@@ -21,13 +21,12 @@ class TicketController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Ticket::class);
-
         $query = Ticket::with([
             'customer.user:id,name',
             'user:id,name',
             'category:id,name',
             'assignee:id,name',
+            'tags',
         ]);
 
         if ($request->filled('status')) {
@@ -98,14 +97,15 @@ class TicketController extends Controller
      */
     public function show(Ticket $ticket): JsonResponse
     {
-        $this->authorize('view', $ticket);
-
         $ticket->load([
             'customer.user:id,name,email',
             'user:id,name',
             'category:id,name',
             'assignee:id,name',
-            'publicReplies.user:id,name',
+            'tags',
+            'publicReplies.user' => function ($q) {
+                $q->select('id', 'name')->with('roles:id,name');
+            },
             'satisfaction',
         ]);
 
@@ -117,8 +117,6 @@ class TicketController extends Controller
      */
     public function reply(Request $request, Ticket $ticket): JsonResponse
     {
-        $this->authorize('update', $ticket);
-
         $validator = Validator::make($request->all(), [
             'content' => 'required|string|min:1',
             'is_internal' => 'sometimes|boolean',
@@ -147,8 +145,6 @@ class TicketController extends Controller
      */
     public function resolve(Ticket $ticket): JsonResponse
     {
-        $this->authorize('update', $ticket);
-
         $this->ticketService->resolve($ticket);
 
         return response()->json([
@@ -162,8 +158,6 @@ class TicketController extends Controller
      */
     public function close(Ticket $ticket): JsonResponse
     {
-        $this->authorize('update', $ticket);
-
         $this->ticketService->close($ticket);
 
         return response()->json([
@@ -177,8 +171,6 @@ class TicketController extends Controller
      */
     public function reopen(Ticket $ticket): JsonResponse
     {
-        $this->authorize('update', $ticket);
-
         $this->ticketService->reopen($ticket);
 
         return response()->json([
@@ -192,8 +184,6 @@ class TicketController extends Controller
      */
     public function assign(Request $request, Ticket $ticket): JsonResponse
     {
-        $this->authorize('assign', $ticket);
-
         $validator = Validator::make($request->all(), [
             'user_id' => 'required|exists:users,id',
         ]);
@@ -254,8 +244,6 @@ class TicketController extends Controller
      */
     public function storeCategory(Request $request): JsonResponse
     {
-        $this->authorize('create', TicketCategory::class);
-
         TicketCategory::create($request->validate([
             'name' => 'required|string|max:100',
             'description' => 'sometimes|string|max:500',
@@ -270,8 +258,6 @@ class TicketController extends Controller
      */
     public function destroyCategory(TicketCategory $category): JsonResponse
     {
-        $this->authorize('delete', TicketCategory::class);
-
         if ($category->tickets()->count() > 0) {
             return response()->json([
                 'success' => false,
@@ -288,8 +274,6 @@ class TicketController extends Controller
      */
     public function stats(): JsonResponse
     {
-        $this->authorize('viewAny', Ticket::class);
-
         return response()->json([
             'success' => true,
             'data' => $this->ticketService->getStats(),
@@ -305,7 +289,72 @@ class TicketController extends Controller
 
         return response()->json(['success' => true, 'data' => $result]);
     }
+    // ─── 批量操作 ───
 
+    public function batchClose(Request $request): JsonResponse
+    {
+        $ids = $request->input('ids', []);
+        if (empty($ids)) return response()->json(['success' => false, 'message' => '请选择工单'], 422);
+        $count = 0;
+        foreach (Ticket::whereIn('id', $ids)->get() as $ticket) {
+            $this->ticketService->close($ticket);
+            $count++;
+        }
+        return response()->json(['success' => true, 'data' => ['closed' => $count], 'message' => "已关闭 {$count} 个工单"]);
+    }
+
+    public function batchAssign(Request $request): JsonResponse
+    {
+        $ids = $request->input('ids', []);
+        $userId = $request->input('user_id');
+        if (empty($ids) || !$userId) return response()->json(['success' => false, 'message' => '参数不完整'], 422);
+        $count = Ticket::whereIn('id', $ids)->update(['assigned_to' => $userId]);
+        return response()->json(['success' => true, 'data' => ['assigned' => $count], 'message' => "已分配 {$count} 个工单"]);
+    }
+
+    public function batchDelete(Request $request): JsonResponse
+    {
+        $ids = $request->input('ids', []);
+        if (empty($ids)) return response()->json(['success' => false, 'message' => '请选择工单'], 422);
+        $count = Ticket::whereIn('id', $ids)->delete();
+        return response()->json(['success' => true, 'data' => ['deleted' => $count], 'message' => "已删除 {$count} 个工单"]);
+    }
+
+    // ─── 导出 ───
+
+    public function exportCsv(Request $request)
+    {
+        $query = Ticket::with(['customer.user', 'category', 'assignee']);
+        if ($request->filled('status')) $query->where('status', $request->status);
+        if ($request->filled('priority')) $query->where('priority', $request->priority);
+        $tickets = $query->orderByDesc('created_at')->get();
+
+        $filename = 'tickets-export-' . now()->format('YmdHis') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function () use ($tickets) {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, ['ID', '标题', '分类', '优先级', '状态', '客户', '处理人', '创建时间', '描述']);
+            foreach ($tickets as $t) {
+                fputcsv($handle, [
+                    $t->id, $t->title,
+                    $t->category?->name ?? '',
+                    $t->priority, $t->status,
+                    $t->customer?->name ?? $t->customer?->user?->name ?? '',
+                    $t->assignee?->name ?? '',
+                    $t->created_at,
+                    strip_tags($t->description ?? ''),
+                ]);
+            }
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
     /**
      * 客户自己的工单列表
      */

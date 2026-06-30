@@ -1,0 +1,62 @@
+# ─── APISIX API Gateway 配置 ───
+# M1.3-20 API 网关统一层
+# 部署: 复制到 APISIX 容器的 /usr/local/apisix/conf/config.yaml
+
+apisix:
+  node_listen: 9080
+  enable_admin: true
+  admin_listen:
+    ip: "0.0.0.0"
+    port: 9180
+  enable_control: true
+  control_listen:
+    ip: "0.0.0.0"
+    port: 9090
+
+deployment:
+  role: traditional
+  role_traditional:
+    config_provider: etcd
+  admin:
+    admin_key: "edc1"  # ⚠️ 生产环境务必修改此密钥
+    allow_admin:
+      - 0.0.0.0/0
+  etcd:
+    host:
+      - "http://etcd:2379"
+    prefix: "/apisix"
+    timeout: 30
+
+nginx_config:
+  error_log_level: warn
+  worker_processes: auto
+
+plugin_attr:
+  prometheus:
+    export_uri: /apisix/prometheus/metrics
+    enable_export_server: true
+
+# ─── 路由规则 ───
+# 通过 Admin API 动态添加：
+# curl http://127.0.0.1:9180/apisix/admin/routes/1 -X PUT -d '
+# {
+#   "uri": "/api/v1/*",
+#   "methods": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+#   "upstream": {
+#     "type": "roundrobin",
+#     "nodes": {
+#       "host.docker.internal:8000": 1
+#     }
+#   },
+#   "plugins": {
+#     "limit-req": {
+#       "rate": 600,
+#       "burst": 100,
+#       "rejected_code": 429
+#     },
+#     "cors": {
+#       "allow_origins": "*",
+#       "allow_methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+#     }
+#   }
+# }'

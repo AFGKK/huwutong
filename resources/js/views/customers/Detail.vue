@@ -13,7 +13,13 @@
             <el-card shadow="never" class="info-card">
                 <template #header>
                     <div class="card-header">
-                        <span>基本信息</span>
+                        <div class="card-header-left" style="display: flex; align-items: center; gap: 12px;">
+                            <el-avatar :size="48" :src="customer.user?.avatar_url" shape="square">
+                                <span class="avatar-initial">{{ (customer.user?.name || '?').charAt(0).toUpperCase() }}</span>
+                                <template #error>{{ (customer.user?.name || '?').charAt(0).toUpperCase() }}</template>
+                            </el-avatar>
+                            <span>基本信息</span>
+                        </div>
                         <div class="header-actions">
                             <el-button size="small" @click="openEditDialog">编辑</el-button>
                             <el-button
@@ -75,6 +81,18 @@
                         {{ formatDate(customer.updated_at) }}
                     </el-descriptions-item>
                 </el-descriptions>
+            </el-card>
+
+            <!-- 标签 -->
+            <el-card shadow="never" class="section-card">
+                <template #header>
+                    <span>标签</span>
+                </template>
+                <TagSelector
+                    taggable-type="customer"
+                    :taggable-id="customer.id"
+                    :tags="customer.tags || []"
+                />
             </el-card>
 
             <!-- License 列表（Tabs 切换） -->
@@ -245,6 +263,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import customerApi from '@/api/customer';
+import TagSelector from '@/components/TagSelector.vue';
 
 const route = useRoute();
 const router = useRouter();

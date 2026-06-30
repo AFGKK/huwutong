@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\ApiKey;
 use App\Models\Product;
+use App\Models\RateLimitRule;
+use App\Models\RateLimitStat;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -29,17 +32,14 @@ class EnhancedRateLimiter
      * 检查请求是否通过所有配置的限流规则
      *
      * @param Request $request
-     * @param array $rules 限流规则数组，每个规则格式：
-     *   [
-     *     'key_type' => 'ip|license|product|tenant|api|global',
-     *     'max_attempts' => 60,
-     *     'window_seconds' => 60,
-     *     'decay_ms' => 100, // 每个 key 的衰减毫秒数（用于平滑降级）
-     *   ]
+     * @param array|string $rules 限流规则数组或规则集名称（slug）
      * @return array ['allowed' => bool, 'headers' => array, 'retry_after' => int]
      */
-    public function check(Request $request, array $rules): array
+    public function check(Request $request, array|string $rules = 'default'): array
     {
+        // 如果是字符串，从 DB 加载规则
+        $rules = is_string($rules) ? $this->loadRules($rules) : $rules;
+
         $headers = [];
         $retryAfter = 0;
 
@@ -100,10 +100,25 @@ class EnhancedRateLimiter
                 ?? 'unknown'),
             'product' => $this->buildProductKey($request),
             'tenant' => $this->buildTenantKey($request),
+            'api_key' => $this->buildApiKeyKey($request),
             'api' => self::CACHE_PREFIX . 'api:' . str_replace('/', '_', trim($request->path(), '/')),
             'global' => self::CACHE_PREFIX . 'global',
             default => null,
         };
+    }
+
+    /**
+     * 从请求中解析 API Key 并构建限流键
+     */
+    protected function buildApiKeyKey(Request $request): ?string
+    {
+        $apiKey = $request->header('X-Api-Key') ?? $request->bearerToken();
+        if ($apiKey) {
+            // 使用 API Key 的前 16 位作为标识
+            $prefix = substr($apiKey, 0, 16);
+            return self::CACHE_PREFIX . 'apikey:' . md5($prefix);
+        }
+        return null;
     }
 
     /**
@@ -259,5 +274,98 @@ class EnhancedRateLimiter
                 ['key_type' => 'api', 'max_attempts' => 200, 'window_seconds' => 60],
             ],
         };
+    }
+
+    /**
+     * 从数据库加载限流规则集
+     *
+     * @param string $slug 规则集标识
+     * @return array
+     */
+    public function loadRules(string $slug): array
+    {
+        $rules = RateLimitRule::active()
+            ->bySlug($slug)
+            ->orderBy('priority')
+            ->get();
+
+        if ($rules->isNotEmpty()) {
+            return $rules->map(fn($r) => $r->toLimiterRule())->toArray();
+        }
+
+        // DB 中未找到时回退到默认硬编码规则
+        return self::getDefaultRules($slug);
+    }
+
+    /**
+     * 记录限流命中统计
+     */
+    public function recordStat(string $ruleSlug, string $dimension, bool $blocked): void
+    {
+        try {
+            $stat = RateLimitStat::firstOrCreate(
+                [
+                    'rule_slug' => $ruleSlug,
+                    'dimension' => $dimension,
+                    'window_start' => now()->startOfMinute(),
+                    'window_end' => now()->endOfMinute(),
+                ],
+                [
+                    'hit_count' => 0,
+                    'blocked_count' => 0,
+                ]
+            );
+
+            if ($blocked) {
+                $stat->increment('blocked_count');
+            } else {
+                $stat->increment('hit_count');
+            }
+        } catch (\Throwable $e) {
+            // 统计失败不影响主流程
+            Log::warning('RateLimit stat record failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * 获取限流统计概览
+     */
+    public function getStats(array $filters = []): array
+    {
+        $query = RateLimitStat::query();
+
+        if (! empty($filters['rule_slug'])) {
+            $query->where('rule_slug', $filters['rule_slug']);
+        }
+        if (! empty($filters['dimension'])) {
+            $query->where('dimension', $filters['dimension']);
+        }
+        if (! empty($filters['from'])) {
+            $query->where('created_at', '>=', $filters['from']);
+        }
+        if (! empty($filters['to'])) {
+            $query->where('created_at', '<=', $filters['to']);
+        }
+
+        return [
+            'total_hits' => (clone $query)->sum('hit_count'),
+            'total_blocked' => (clone $query)->sum('blocked_count'),
+            'block_rate' => $this->calcBlockRate($query),
+            'top_rules' => (clone $query)
+                ->selectRaw('rule_slug, SUM(hit_count) as hits, SUM(blocked_count) as blocked')
+                ->groupBy('rule_slug')
+                ->orderByRaw('SUM(hit_count) DESC')
+                ->limit(10)
+                ->get(),
+        ];
+    }
+
+    protected function calcBlockRate($query): float
+    {
+        $hits = (clone $query)->sum('hit_count');
+        $blocked = (clone $query)->sum('blocked_count');
+        $total = $hits + $blocked;
+
+        return $total > 0 ? round($blocked / $total * 100, 2) : 0;
     }
 }

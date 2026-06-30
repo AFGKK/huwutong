@@ -166,7 +166,7 @@
                                     :key="idx"
                                     type="primary"
                                     :href="r.url"
-                                    :underline="false"
+                                    :underline="'never'"
                                     class="resource-link"
                                 >
                                     {{ r.title || r }}

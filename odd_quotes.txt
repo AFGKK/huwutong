@@ -1,0 +1,20 @@
+Line 2124: odd quotes (3): const welcome = '您好！我★€ + sellerName + '的智能★服助手，很高兴为您服务★€★😊\n\n' +
+Line 2164: odd quotes (1): '👤 如需人工服务，点击★€★转人工★€;
+Line 2444: odd quotes (3): appendChatMessage({ role: 'assistant', content: '感谢您的咨★，★服将尽快回★您★€€, timestamp: new Date().toISOString() });
+Line 2468: odd quotes (3): appendChatMessage({ role: 'assistant', content: '抱歉，暂时无法响应，请稍后再试★€€, timestamp: new Date().toISOString() });
+Line 2500: odd quotes (3): appendChatMessage({ role: 'assistant', content: '网络异常，★★€查连接后重试★€, timestamp: new Date().toISOString() });
+Line 3724: odd quotes (3): body: JSON.stringify({ message: '用户发★€★了' + msg + '★€ + fileUrl, session_id: _chatSessionId })
+Line 5067: odd quotes (3): body: JSON.stringify({ message: '[★★★消息] ' + duration + '★€, session_id: _chatSessionId })
+Line 5131: odd quotes (3): appendChatMessage({ role: 'user', content: '★★★发★€★失★? timestamp: new Date().toISOString() });
+Line 5163: odd quotes (3): appendChatMessage({ role: 'user', content: '★★★发★€★失★? timestamp: new Date().toISOString() });
+Line 5971: odd quotes (3): body: JSON.stringify({ message: '我想了解这个产品★€ + name + ' - ' + url, session_id: _chatSessionId })
+Line 6035: odd quotes (5): else appendChatMessage({ role: 'assistant', content: '感谢您的咨★！这★★★品是 ' + name + '，★★€了解更★请点击卡片查看★情★€€, timestamp: new Date().toISOString() });
+Line 6051: odd quotes (3): appendChatMessage({ role: 'assistant', content: '感谢您的咨★！我已收到您发★€★的产品信息，★服将尽快为您服务★€, timestamp: new Date().toISOString() });
+Line 6099: odd quotes (3): appendChatMessage({ role: 'assistant', content: '已收到您的产品卡片，客服将尽★★★复★€€, timestamp: new Date().toISOString() });
+Line 6162: odd quotes (1): const ans = confirm('您需要登录后才能★★★人工客服。\n★★★前往登录★€);
+Line 6170: odd quotes (1): if (ans) window.location.href = ans;<div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center shrink-0 text-primary-600 font-bo
+Line 6218: odd quotes (1): body: JSON.stringify({ message: '【转人工】用户★求转接人工★服，请帮助转接★€€, session_id: _chatSessionId })
+Line 6434: odd quotes (3): appendChatMessage({ role: 'assistant', content: '已收到您的转人工请求，★服人员将尽快接入。★耐心等待★€, timestamp: new Date().toISOString() });
+Line 8858: odd quotes (3): alert('月★★★★对比' + MAX_COMPARE + ' 了吗？?;
+Line 9018: odd quotes (1): ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d=
+Line 9659: odd quotes (1): msg.textContent = data.message || '订阅成功★€;

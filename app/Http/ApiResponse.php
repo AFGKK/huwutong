@@ -23,11 +23,16 @@ class ApiResponse
         int    $code = 200,
         array  $extra = [],
     ): JsonResponse {
-        $response = array_filter([
+        $response = [
             'success' => true,
             'message' => $message,
             'data' => $data,
-        ]);
+        ];
+
+        // 仅移除 null 的 data（保留空数组）
+        if (is_null($response['data'])) {
+            unset($response['data']);
+        }
 
         return response()->json(array_merge($response, $extra), $code);
     }

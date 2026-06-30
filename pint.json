@@ -1,0 +1,107 @@
+<?php
+
+/**
+ * Laravel Pint 代码格式化配置
+ *
+ * M0-08: 代码质量工具链
+ * 基于 Laravel 官方规范 + 严格 PSR-12
+ */
+
+return [
+    'preset' => 'laravel',
+
+    'rules' => [
+        // ─── PHP 8+ 特性 ───
+        'nullable_type_declaration_for_default_null_value' => true,
+        'trailing_comma_in_multiline' => [
+            'elements' => ['arguments', 'arrays', 'match', 'parameters'],
+        ],
+
+        // ─── 导入管理 ───
+        'ordered_imports' => [
+            'sort_algorithm' => 'alpha',
+            'imports_order' => ['class', 'function', 'const'],
+        ],
+        'no_unused_imports' => true,
+        'no_leading_import_slash' => true,
+        'single_import_per_statement' => false,
+        'global_namespace_import' => [
+            'import_classes' => true,
+            'import_constants' => false,
+            'import_functions' => false,
+        ],
+
+        // ─── 命名空间 ───
+        'blank_line_after_namespace' => true,
+        'single_blank_line_before_namespace' => true,
+
+        // ─── 类结构 ───
+        'ordered_class_elements' => [
+            'order' => [
+                'use_trait',
+                'case',
+                'constant_public',
+                'constant_protected',
+                'constant_private',
+                'property_public',
+                'property_protected',
+                'property_private',
+                'construct',
+                'destruct',
+                'magic',
+                'phpunit',
+                'method_public',
+                'method_protected',
+                'method_private',
+            ],
+            'sort_algorithm' => 'none',
+        ],
+        'visibility_required' => true,
+
+        // ─── 空白与换行 ───
+        'no_extra_blank_lines' => [
+            'tokens' => [
+                'break', 'case', 'continue', 'curly_brace_block',
+                'default', 'extra', 'parenthesis_brace_block',
+                'return', 'square_brace_block', 'switch', 'throw',
+                'use', 'use_trait',
+            ],
+        ],
+        'no_whitespace_in_blank_line' => true,
+        'blank_line_before_statement' => [
+            'statements' => ['return', 'throw', 'try', 'continue', 'break'],
+        ],
+
+        // ─── 类型声明 ───
+        'declare_strict_types' => false,
+        'native_function_type_declaration_casing' => true,
+        'native_constant_invocation' => [
+            'fix_built_in_function' => false,
+            'include' => ['constant'],
+        ],
+
+        // ─── 数组 ───
+        'no_multiline_whitespace_around_double_arrow' => true,
+        'trim_array_spaces' => true,
+        'whitespace_after_comma_in_array' => true,
+
+        // ─── 运算符 ───
+        'not_operator_with_successor_space' => true,
+        'standardize_not_equals' => true,
+        'ternary_to_null_coalescing' => true,
+
+        // ─── 字符串 ───
+        'single_quote' => true,
+        'heredoc_indentation' => true,
+
+        // ─── 控制结构 ───
+        'include' => true,
+        'no_break_comment' => true,
+        'no_superfluous_elseif' => true,
+        'yoda_style' => [
+            'equal' => false,
+            'identical' => false,
+            'less_and_greater' => false,
+        ],
+    ],
+];

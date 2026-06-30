@@ -1,0 +1,91 @@
+# ============================================================
+# Prometheus 配置 — 互物通(HuWuTong) 监控系统
+# ============================================================
+global:
+  scrape_interval: 15s      # 默认抓取间隔
+  evaluation_interval: 15s  # 规则评估间隔
+  scrape_timeout: 10s
+
+# 告警配置
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# 规则文件
+rule_files:
+  - "rules/*.yml"
+
+# 抓取配置
+scrape_configs:
+  # ─── Laravel 应用指标 ───
+  - job_name: 'huwutong-app'
+    metrics_path: '/metrics'
+    scheme: http
+    static_configs:
+      - targets: ['app:8000']
+        labels:
+          app: 'huwutong'
+          tier: 'api'
+    # 基础认证（如果启用）
+    # basic_auth:
+    #   username: 'prometheus'
+    #   password: '${PROMETHEUS_PASSWORD}'
+
+  # ─── PHP-FPM 指标 ───
+  - job_name: 'php-fpm'
+    static_configs:
+      - targets: ['php-fpm-exporter:9253']
+        labels:
+          app: 'huwutong'
+          tier: 'php'
+
+  # ─── Nginx 指标 ───
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+        labels:
+          app: 'huwutong'
+          tier: 'web'
+
+  # ─── MySQL 指标 ───
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysqld-exporter:9104']
+        labels:
+          app: 'huwutong'
+          tier: 'database'
+
+  # ─── Redis 指标 ───
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          app: 'huwutong'
+          tier: 'cache'
+
+  # ─── Node 系统指标 ───
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          app: 'huwutong'
+          tier: 'infra'
+
+  # ─── Laravel Horizon 队列指标 ───
+  - job_name: 'horizon'
+    metrics_path: '/horizon/metrics'
+    static_configs:
+      - targets: ['app:8000']
+        labels:
+          app: 'huwutong'
+          tier: 'queue'
+
+  # ─── Docker 容器指标 ───
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          app: 'huwutong'
+          tier: 'container'

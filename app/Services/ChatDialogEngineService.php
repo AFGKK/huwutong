@@ -20,6 +20,7 @@ class ChatDialogEngineService
     public function __construct(
         protected RagEngineService $ragService,
         protected IntentRecognizer $intentRecognizer,
+        protected PromptTemplateService $promptService,
     ) {}
 
     /**
@@ -119,7 +120,15 @@ class ChatDialogEngineService
                 $llmService = app(LlmService::class);
                 $context = $this->buildStreamContext($documents);
 
-                $systemPrompt = "你是一个互物通授权管理系统的智能客服助手。基于以下知识库文档回答问题，要求简洁准确。\n\n{$context}";
+                // 从 Prompt 模板中获取 System Prompt
+                $systemPrompt = $this->promptService->renderByCategory('chat', [
+                    'topic' => $intentResult['intent'] ?? 'general',
+                    'intent_history' => '',
+                    'rag_context' => $context,
+                ]);
+                if (empty($systemPrompt)) {
+                    $systemPrompt = "你是一个互物通授权管理系统的智能客服助手。基于以下知识库文档回答问题，要求简洁准确。\n\n{$context}";
+                }
 
                 $streamResult = $llmService->chatStreamed([
                     ['role' => 'system', 'content' => $systemPrompt],
@@ -377,42 +386,69 @@ class ChatDialogEngineService
      */
     protected function handleEscalation(RagConversation $conversation, string $message, array $intentResult, float $startTime): array
     {
+        $handoffId = null;
         $ticketId = null;
 
-        // 创建一个工单
         try {
-            $ticketService = app(TicketService::class);
-            $ticket = $ticketService->create([
-                'subject' => '在线客服转人工: ' . Str::limit($message, 100),
-                'description' => "对话来源: 在线客服\n\n" .
-                    "用户问题: {$message}\n\n" .
-                    "对话上下文: " . json_encode($this->getHistory($conversation->session_id, 3), JSON_UNESCAPED_UNICODE),
-                'priority' => 'medium',
-                'source' => 'chat',
-                'metadata' => [
-                    'session_id' => $conversation->session_id,
-                    'conversation_id' => $conversation->id,
+            // 使用新的 HandoffService 创建转接请求
+            $handoffService = app(HandoffService::class);
+            $handoff = $handoffService->createHandoff(
+                $conversation,
+                $intentResult['reason'] ?? 'low_confidence',
+                [
+                    'priority' => $intentResult['confidence'] < 0.2 ? 'high' : 'medium',
+                    'user_id' => $conversation->user_id,
                     'intent' => $intentResult['intent'] ?? 'unknown',
-                ],
-            ]);
-            $ticketId = $ticket->id;
+                    'confidence' => $intentResult['confidence'] ?? 0,
+                    'source' => 'chat',
+                ]
+            );
+            $handoffId = $handoff->id;
         } catch (\Throwable $e) {
-            Log::error('LiveChat: failed to create ticket for escalation', [
+            Log::error('LiveChat: failed to create handoff', [
                 'error' => $e->getMessage(),
             ]);
+
+            // 降级：创建工单
+            try {
+                $ticketService = app(TicketService::class);
+                $ticket = $ticketService->create([
+                    'subject' => '在线客服转人工: ' . Str::limit($message, 100),
+                    'description' => "对话来源: 在线客服\n\n" .
+                        "用户问题: {$message}\n\n" .
+                        "对话上下文: " . json_encode($this->getHistory($conversation->session_id, 3), JSON_UNESCAPED_UNICODE),
+                    'priority' => 'medium',
+                    'source' => 'chat',
+                    'metadata' => [
+                        'session_id' => $conversation->session_id,
+                        'conversation_id' => $conversation->id,
+                        'intent' => $intentResult['intent'] ?? 'unknown',
+                    ],
+                ]);
+                $ticketId = $ticket->id;
+            } catch (\Throwable $t) {
+                Log::error('LiveChat: ticket fallback also failed', ['error' => $t->getMessage()]);
+            }
         }
 
         $answer = "您已要求转接人工客服，我们会尽快为您安排。\n\n";
-        if ($ticketId) {
+        if ($handoffId) {
+            $queuedHandoff = \App\Models\HandoffRequest::find($handoffId);
+            $queuePos = $queuedHandoff?->queue_position ?? '—';
+            $answer .= "🔄 您已在转接队列中，位置 #{$queuePos}。\n";
+            $answer .= "如有客服在线，将很快接入您的对话。\n\n";
+        } elseif ($ticketId) {
             $answer .= "📋 已自动创建工单 #{$ticketId}，客服将尽快回复您。\n\n";
         }
 
         $response = [
             'answer' => $answer .
-                "预计等待时间：1-5 分钟\n" .
-                "工作时间：周一至周五 9:00-18:00\n\n" .
+                "工作时间：周一至周五 9:00-18:00\n" .
                 "紧急情况请拨打：400-000-0000",
-            'actions' => [['type' => 'escalate_to_human', 'ticket_id' => $ticketId]],
+            'actions' => [
+                ['type' => 'escalate_to_human', 'handoff_id' => $handoffId, 'ticket_id' => $ticketId],
+                ['type' => 'open_chat', 'url' => $handoffId ? "/handoff/{$handoffId}" : null],
+            ],
             'sources' => [],
         ];
 
@@ -428,6 +464,8 @@ class ChatDialogEngineService
             'actions' => $response['actions'],
             'response_time_ms' => round($responseTime, 2),
             'escalated' => true,
+            'handoff_id' => $handoffId,
+            'ticket_id' => $ticketId,
         ];
     }
 

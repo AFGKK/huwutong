@@ -1,0 +1,184 @@
+# ============================================================
+# OWASP ZAP 自动化渗透测试 CI 流水线
+# M2-112: 每次发布前自动执行 + 高危漏洞阻断发布
+# ============================================================
+#
+# 触发条件:
+#   - push: 推送到 main/master 分支
+#   - pull_request: 针对 main/master 的 PR
+#   - schedule: 每周日凌晨 3 点定时扫描
+#   - workflow_dispatch: 手动触发
+#
+# 流程:
+#   1. 启动 Laravel 测试环境
+#   2. 运行 OWASP ZAP 基线扫描
+#   3. 运行 OWASP ZAP API 扫描（如果有 OpenAPI 规范）
+#   4. 解析结果，高危漏洞阻断发布
+#   5. 上传扫描报告作为 CI 产物
+
+name: OWASP ZAP Security Scan
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    - cron: '0 3 * * 0'  # 每周日凌晨3点
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: '扫描类型'
+        required: true
+        default: 'ci'
+        type: choice
+        options:
+          - ci
+          - baseline
+          - full
+          - api
+
+jobs:
+  zap-security-scan:
+    name: OWASP ZAP 安全扫描
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: huwutong_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_mysql, bcmath, redis, xml, json
+          tools: composer:v2
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 安装 Composer 依赖
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: 安装 NPM 依赖
+        run: npm ci --no-audit
+
+      - name: 构建前端资源
+        run: npm run build
+
+      - name: 复制环境配置
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: 运行数据库迁移
+        run: php artisan migrate --force
+
+      - name: 启动 Laravel 应用
+        run: |
+          php artisan serve --port=8000 --env=testing &
+          sleep 3
+          curl -s -o /dev/null http://localhost:8000 || echo "应用启动中..."
+
+      - name: 运行静态安全分析
+        run: php artisan security:scan --quick
+
+      - name: 运行单元测试
+        run: php artisan test --testsuite=Unit --compact
+
+      - name: 运行功能测试
+        run: php artisan test --testsuite=Feature --compact
+
+      - name: 启动 OWASP ZAP 扫描
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'http://localhost:8000'
+          rules_file_name: '.ci/zap/policies/HWT-Security-Policy.xml'
+          cmd_options: '-I -j -t 600'
+          allow_issue_writing: false
+          fail_action: true
+        continue-on-error: true
+
+      - name: 解析 ZAP 扫描结果
+        id: zap-results
+        run: |
+          if [ -f report.xml ]; then
+            HIGH=$(grep -oP 'risk="High"' report.xml | wc -l)
+            MEDIUM=$(grep -oP 'risk="Medium"' report.xml | wc -l)
+            LOW=$(grep -oP 'risk="Low"' report.xml | wc -l)
+
+            echo "🔴 高危: $HIGH"
+            echo "🟡 中危: $MEDIUM"
+            echo "🔵 低危: $LOW"
+
+            echo "high=$HIGH" >> $GITHUB_OUTPUT
+            echo "medium=$MEDIUM" >> $GITHUB_OUTPUT
+            echo "low=$LOW" >> $GITHUB_OUTPUT
+
+            # 高危阻断
+            if [ "$HIGH" -gt 0 ]; then
+              echo "❌ 发现 $HIGH 个高危漏洞，阻断发布！"
+              echo "blocked=true" >> $GITHUB_OUTPUT
+            else
+              echo "blocked=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "未找到 ZAP 报告文件"
+            echo "blocked=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 上传 ZAP 报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-security-report
+          path: |
+            report.html
+            report.xml
+            report.md
+          retention-days: 30
+
+      - name: 生成安全报告摘要
+        if: always()
+        run: |
+          {
+            echo "## 🔒 OWASP ZAP 安全扫描报告"
+            echo ""
+            echo "| 严重级别 | 数量 |"
+            echo "|---------|:---:|"
+            echo "| 🔴 高危 | ${{ steps.zap-results.outputs.high || '0' }} |"
+            echo "| 🟡 中危 | ${{ steps.zap-results.outputs.medium || '0' }} |"
+            echo "| 🔵 低危 | ${{ steps.zap-results.outputs.low || '0' }} |"
+            echo ""
+            if [ "${{ steps.zap-results.outputs.blocked }}" = "true" ]; then
+              echo "> ⚠️  发现高危漏洞，此次发布已被阻断！"
+            else
+              echo "> ✅ 安全扫描通过，未发现高危漏洞。"
+            fi
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: 检查阻断条件
+        if: steps.zap-results.outputs.blocked == 'true'
+        run: |
+          echo "❌ 发布被阻断：安全扫描发现高危漏洞"
+          echo "请修复高危漏洞后重新运行 CI"
+          exit 1

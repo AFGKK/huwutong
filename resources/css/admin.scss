@@ -26,3 +26,125 @@
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+// ── WCAG 2.1 AA 无障碍样式 ──
+
+// 屏幕阅读器专用类（仅在屏幕阅读器中显示）
+.sr-only,
+.a11y-sr-only,
+.screen-reader-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+// WCAG 2.4.7: 焦点可见指示器（全局）
+:focus-visible {
+    outline: 2px solid #409eff;
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+// 避免鼠标点击时显示焦点框
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
+// WCAG 1.4.1: 非文本对比度
+// 确保 Element Plus 侧边栏文字有足够对比度
+.el-menu--vertical,
+.sidebar-menu {
+    .el-menu-item,
+    .el-sub-menu__title {
+        // 1d1e1f 背景 + bfcbd9 文字 -> 对比度约 4.8:1 (AA satisfied)
+        color: #bfcbd9;
+    }
+
+    .el-menu-item.is-active {
+        color: #409eff;
+    }
+}
+
+// WCAG 1.4.11: 非文本对比度 — 输入元素边框
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+    border-color: #c0c4cc;
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focus {
+    border-color: #409eff;
+    box-shadow: 0 0 0 1px #409eff inset;
+}
+
+// WCAG 2.4.4: 链接区分 — 给所有链接加下划线
+a:not(.el-button):not(.skip-link):not(.el-menu-item):not(.el-breadcrumb__inner):not(.prod-card-link):not(.discover-mch-prod-link):not([data-type="product-card"] *) {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+// WCAG 2.4.3: 焦点顺序 — 弹窗头部的关闭按钮优先
+.el-dialog__headerbtn {
+    order: -1;
+}
+
+// WCAG 1.4.3: 表格对比度 — 悬停行提升对比度
+.el-table__body tr:hover > td {
+    background-color: #ecf5ff;
+}
+
+.el-table__body tr.current-row > td {
+    background-color: #d9ecff;
+}
+
+// WCAG 2.4.6/2.4.10: 表单标签 — 确保标签可见
+.el-form-item__label {
+    font-weight: 500;
+    color: #303133;
+}
+
+// WCAG 2.4.7: 为 el-button 提供 focus-visible 样式覆盖
+.el-button:focus-visible {
+    outline: 2px solid #409eff;
+    outline-offset: 2px;
+}
+
+// WCAG 1.4.12: 文本间距 — 确保文本可缩放
+html {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+// WCAG 2.5.5/2.5.8: 目标尺寸 — 小按钮最小尺寸
+.el-button--small,
+.el-button--mini {
+    min-height: 28px;
+    min-width: 28px;
+}
+
+// WCAG 2.4.11: 隐藏的字符不被截断
+.el-tooltip__popper {
+    word-break: break-all;
+}
+
+// 禁用状态的对比度改善
+.el-input.is-disabled .el-input__wrapper {
+    background-color: #f5f7fa;
+    color: #909399;
+}
+
+// WCAG 2.5.3: 标签与名称 — 图标按钮应可被屏幕阅读器识别
+[class*=" el-icon-"],
+[class^=el-icon-],
+.el-icon {
+    &[aria-hidden="false"] {
+        aria-hidden: false;
+    }
+}

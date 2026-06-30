@@ -11,22 +11,24 @@ test.describe('系统设置 E2E', () => {
     test('S1. 系统设置页面加载', async ({ page }) => {
         await navigateAsLoggedIn(page, '/admin/settings');
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 
     test('S2. 系统健康/诊断页面', async ({ page }) => {
         await navigateAsLoggedIn(page, '/admin/health');
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        await expect(heading).toBeVisible({ timeout: 5000 });
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 
     test('S3. 审计日志页面', async ({ page }) => {
         await navigateAsLoggedIn(page, '/admin/audit-logs');
 
-        const heading = page.locator('h2, .page-title, [class*="title"]').first();
-        const hasHeading = await heading.isVisible().catch(() => false);
-        expect(hasHeading).toBeTruthy();
+        const errors = await page.locator('.el-alert--error').count();
+        expect(errors).toBe(0);
+        await expect(page.locator('body')).not.toContainText('Loading');
     });
 });

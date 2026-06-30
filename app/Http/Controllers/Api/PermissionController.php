@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Models\PermissionAuditLog;
+use App\Models\RoleTemplate;
 use App\Models\User;
+use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Permission;
@@ -12,7 +15,16 @@ use Spatie\Permission\Models\Role;
 
 class PermissionController extends Controller
 {
-    // ─── 角色管理 ───
+    protected PermissionService $permissionService;
+
+    public function __construct(PermissionService $permissionService)
+    {
+        $this->permissionService = $permissionService;
+    }
+
+    // ══════════════════════════════════════════
+    //  角色管理
+    // ══════════════════════════════════════════
 
     /**
      * 角色列表
@@ -20,9 +32,7 @@ class PermissionController extends Controller
     public function roles(Request $request): JsonResponse
     {
         $query = Role::with('permissions')
-            ->where(function ($q) {
-                // super-admin 是平台级别，只在没有 tenant_id 时不限
-                // tenant 下只能看到自己创建的角色
+            ->where(function ($q) use ($request) {
                 if ($tenantId = $request->user()?->tenant_id) {
                     $q->where('tenant_id', $tenantId)->orWhereNull('tenant_id');
                 }
@@ -55,6 +65,8 @@ class PermissionController extends Controller
             'name' => 'required|string|max:255|unique:roles,name,NULL,id,guard_name,web',
             'permissions' => 'nullable|array',
             'permissions.*' => 'string|exists:permissions,name',
+            'parent_role_id' => 'nullable|integer|exists:roles,id',
+            'description' => 'nullable|string|max:500',
         ]);
 
         $role = Role::create([
@@ -67,6 +79,17 @@ class PermissionController extends Controller
             $role->givePermissionTo($validated['permissions']);
         }
 
+        // 设置角色层级
+        if (!empty($validated['parent_role_id'])) {
+            $this->permissionService->setRoleHierarchy($role->id, $validated['parent_role_id']);
+        }
+
+        // 审计日志
+        $this->permissionService->logFromRequest(
+            'role_created', 'role', $role->id, $role->name,
+            null, $validated, $request
+        );
+
         return ApiResponse::created($role->load('permissions'), '角色创建成功');
     }
 
@@ -76,11 +99,14 @@ class PermissionController extends Controller
     public function roleUpdate(int $id, Request $request): JsonResponse
     {
         $role = Role::findOrFail($id);
+        $oldPerms = $role->permissions->pluck('name')->toArray();
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255|unique:roles,name,' . $id . ',id,guard_name,web',
             'permissions' => 'nullable|array',
             'permissions.*' => 'string|exists:permissions,name',
+            'parent_role_id' => 'nullable|integer|exists:roles,id',
+            'description' => 'nullable|string|max:500',
         ]);
 
         if (isset($validated['name'])) {
@@ -92,13 +118,26 @@ class PermissionController extends Controller
             $role->syncPermissions($validated['permissions']);
         }
 
+        // 设置角色层级
+        if (array_key_exists('parent_role_id', $validated)) {
+            $this->permissionService->setRoleHierarchy($role->id, $validated['parent_role_id']);
+        }
+
+        // 审计日志
+        $newPerms = $role->fresh()->permissions->pluck('name')->toArray();
+        $this->permissionService->logFromRequest(
+            'role_updated', 'role', $role->id, $role->name,
+            ['permissions' => $oldPerms], ['permissions' => $newPerms],
+            $request
+        );
+
         return ApiResponse::success($role->fresh()->load('permissions'), '角色更新成功');
     }
 
     /**
      * 删除角色
      */
-    public function roleDestroy(int $id): JsonResponse
+    public function roleDestroy(int $id, Request $request): JsonResponse
     {
         $role = Role::findOrFail($id);
 
@@ -107,11 +146,39 @@ class PermissionController extends Controller
             return ApiResponse::error('SYSTEM_ROLE', '系统角色不可删除', 403);
         }
 
+        $permSnapshot = $role->permissions->pluck('name')->toArray();
         $role->delete();
+
+        // 审计日志
+        $this->permissionService->logFromRequest(
+            'role_deleted', 'role', $id, $role->name,
+            ['permissions' => $permSnapshot], null, $request
+        );
+
         return ApiResponse::success(null, '角色已删除');
     }
 
-    // ─── 权限管理 ───
+    /**
+     * 复制角色
+     */
+    public function roleDuplicate(int $id, Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:roles,name,NULL,id,guard_name,web',
+        ]);
+
+        $newRole = $this->permissionService->duplicateRole(
+            $id,
+            $validated['name'],
+            $request->user()->tenant_id
+        );
+
+        return ApiResponse::created($newRole, '角色复制成功');
+    }
+
+    // ══════════════════════════════════════════
+    //  权限管理
+    // ══════════════════════════════════════════
 
     /**
      * 所有权限（按分组）
@@ -120,7 +187,6 @@ class PermissionController extends Controller
     {
         $permissions = Permission::orderBy('name')->get();
 
-        // 按组分组（权限名的第一部分）
         $grouped = $permissions->groupBy(function ($p) {
             return explode('.', $p->name)[0] ?? 'other';
         });
@@ -131,7 +197,170 @@ class PermissionController extends Controller
         ]);
     }
 
-    // ─── 用户角色分配 ───
+    /**
+     * 创建新权限
+     */
+    public function permissionStore(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:permissions,name,NULL,id,guard_name,web',
+            'group' => 'nullable|string|max:50',
+        ]);
+
+        $name = $validated['name'];
+        // 如果提供了 group，自动添加前缀
+        if (!empty($validated['group']) && !str_contains($name, '.')) {
+            $name = $validated['group'] . '.' . $name;
+        }
+
+        $permission = Permission::create([
+            'name' => $name,
+            'guard_name' => 'web',
+        ]);
+
+        return ApiResponse::created($permission, '权限创建成功');
+    }
+
+    /**
+     * 批量创建权限
+     */
+    public function permissionBatchStore(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'permissions' => 'required|array',
+            'permissions.*.name' => 'required|string|max:255',
+            'permissions.*.group' => 'nullable|string|max:50',
+        ]);
+
+        $created = [];
+        foreach ($validated['permissions'] as $item) {
+            $name = $item['name'];
+            if (!empty($item['group']) && !str_contains($name, '.')) {
+                $name = $item['group'] . '.' . $name;
+            }
+            try {
+                $perm = Permission::firstOrCreate([
+                    'name' => $name,
+                    'guard_name' => 'web',
+                ]);
+                $created[] = $perm;
+            } catch (\Exception $e) {
+                // skip duplicates
+            }
+        }
+
+        return ApiResponse::created($created, count($created) . ' 个权限已创建');
+    }
+
+    /**
+     * 删除权限
+     */
+    public function permissionDestroy(int $id): JsonResponse
+    {
+        $permission = Permission::findOrFail($id);
+        $permission->delete();
+
+        return ApiResponse::success(null, '权限已删除');
+    }
+
+    // ══════════════════════════════════════════
+    //  角色层级管理
+    // ══════════════════════════════════════════
+
+    /**
+     * 角色层级树
+     */
+    public function roleHierarchy(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        return ApiResponse::success(
+            $this->permissionService->getRoleHierarchy($tenantId)
+        );
+    }
+
+    // ══════════════════════════════════════════
+    //  角色模板
+    // ══════════════════════════════════════════
+
+    /**
+     * 角色模板列表
+     */
+    public function roleTemplates(Request $request): JsonResponse
+    {
+        $templates = $this->permissionService->getRoleTemplates($request->input('category'));
+        return ApiResponse::success($templates);
+    }
+
+    /**
+     * 从模板创建角色
+     */
+    public function roleFromTemplate(int $templateId, Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:roles,name,NULL,id,guard_name,web',
+        ]);
+
+        $role = $this->permissionService->createRoleFromTemplate(
+            $templateId,
+            $validated['name'],
+            $request->user()->tenant_id
+        );
+
+        return ApiResponse::created($role, '角色创建成功');
+    }
+
+    /**
+     * 创建自定义模板
+     */
+    public function templateStore(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:role_templates,name',
+            'description' => 'nullable|string|max:500',
+            'category' => 'nullable|string|max:50',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string',
+        ]);
+
+        $template = RoleTemplate::create([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'category' => $validated['category'] ?? 'custom',
+            'permissions' => $validated['permissions'] ?? [],
+            'created_by' => $request->user()->id,
+        ]);
+
+        return ApiResponse::created($template, '模板创建成功');
+    }
+
+    /**
+     * 删除模板
+     */
+    public function templateDestroy(int $id): JsonResponse
+    {
+        $template = RoleTemplate::findOrFail($id);
+        if ($template->is_system) {
+            return ApiResponse::error('SYSTEM_TEMPLATE', '系统模板不可删除', 403);
+        }
+        $template->delete();
+        return ApiResponse::success(null, '模板已删除');
+    }
+
+    /**
+     * 初始化系统模板
+     */
+    public function seedTemplates(): JsonResponse
+    {
+        $this->permissionService->seedSystemTemplates();
+        return ApiResponse::success(
+            RoleTemplate::where('is_system', true)->get(),
+            '系统模板已初始化'
+        );
+    }
+
+    // ══════════════════════════════════════════
+    //  用户角色分配
+    // ══════════════════════════════════════════
 
     /**
      * 租户下用户列表（用于分配角色）
@@ -172,7 +401,17 @@ class PermissionController extends Controller
         ]);
 
         $user = User::where('tenant_id', $request->user()->tenant_id)->findOrFail($userId);
+        $oldRoles = $user->roles->pluck('name')->toArray();
+
+        app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($user->tenant_id);
         $user->syncRoles($validated['roles']);
+
+        // 审计日志
+        $this->permissionService->logFromRequest(
+            'user_role_assigned', 'user', $user->id, $user->name,
+            ['roles' => $oldRoles], ['roles' => $validated['roles']],
+            $request
+        );
 
         return ApiResponse::success(
             $user->fresh()->load('roles'),
@@ -191,5 +430,80 @@ class PermissionController extends Controller
             'permissions' => $user->getAllPermissions()->pluck('name'),
             'all_permissions' => Permission::orderBy('name')->pluck('name'),
         ]);
+    }
+
+    // ══════════════════════════════════════════
+    //  权限审计日志
+    // ══════════════════════════════════════════
+
+    /**
+     * 审计日志列表
+     */
+    public function auditLogs(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $perPage = min((int) $request->input('per_page', 20), 100);
+
+        $logs = $this->permissionService->getAuditLogs($tenantId, $request->only([
+            'action', 'user_id', 'date_from', 'date_to', 'search',
+        ]), $perPage);
+
+        return ApiResponse::paginated($logs);
+    }
+
+    /**
+     * 审计日志统计
+     */
+    public function auditStats(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        return ApiResponse::success(
+            $this->permissionService->getAuditStats($tenantId)
+        );
+    }
+
+    // ══════════════════════════════════════════
+    //  用户直接权限
+    // ══════════════════════════════════════════
+
+    /**
+     * 获取用户直接权限
+     */
+    public function userDirectPermissions(int $userId, Request $request): JsonResponse
+    {
+        $user = User::where('tenant_id', $request->user()->tenant_id)->findOrFail($userId);
+        return ApiResponse::success([
+            'direct_permissions' => $this->permissionService->getUserDirectPermissions($userId),
+            'inherited_permissions' => $user->getAllPermissions()->pluck('name'),
+        ]);
+    }
+
+    /**
+     * 为用户分配直接权限
+     */
+    public function assignUserDirectPermissions(int $userId, Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string|exists:permissions,name',
+        ]);
+
+        $user = User::where('tenant_id', $request->user()->tenant_id)->findOrFail($userId);
+        $oldPerms = $user->getDirectPermissions()->pluck('name')->toArray();
+
+        $this->permissionService->assignUserDirectPermissions(
+            $userId,
+            $validated['permissions'] ?? [],
+            $request->user()->tenant_id
+        );
+
+        $this->permissionService->logFromRequest(
+            'permission_assigned', 'user', $user->id, $user->name,
+            ['direct_permissions' => $oldPerms],
+            ['direct_permissions' => $validated['permissions'] ?? []],
+            $request
+        );
+
+        return ApiResponse::success(null, '直接权限更新成功');
     }
 }

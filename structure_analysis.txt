@@ -1,0 +1,25 @@
+L   113: <script>
+L   185: </script>
+L   713: </script>
+L   969: <body class="font-sans antialiased text-gray-800 bg-gray-50">
+L   985: <nav class="fixed top-0 w-full bg-white/90 backdrop-blur-md z-50 border-b border
+L  1601: <!-- ─── 面包───★€ -->
+L  1697: <!-- ─── 产品详情 ─── -->
+L  2825: <script>
+L  3153: </script>
+L  3169: <!-- ─── ★★★保障 / 信任徽章 ─── -->
+L  3537: <!-- Tab 导航 -->
+L  3601: <!-- Tab 内★ -->
+L  3617: <!-- 功能特★€-->
+L  4081: <!-- 评价 Tab -->
+L  4529: <script>
+L  4641: </script>
+L  4649: <!-- ─── 定价方案 / SKU 选购 ─── -->
+L  6401: <!-- ─── CTA ─── -->
+L  6465: <!-- ─── Footer ─── -->
+L  6481: <script>
+L 16265: </script>
+L 18769: <script>
+L 19673: </script>
+L 19680: </body>
+L 19688: </html>

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class CorsConfig extends Model
 {
@@ -61,6 +62,8 @@ class CorsConfig extends Model
 
     /**
      * 判断是否匹配路由模式
+     *
+     * 使用 Laravel Str::is() 支持通配符模式（如 api/*、api/license/*）
      */
     public function matchesRoute(string $path): bool
     {
@@ -68,7 +71,6 @@ class CorsConfig extends Model
             return true;
         }
 
-        $pattern = str_replace(['*', '/'], ['.*', '\/'], $this->route_pattern);
-        return preg_match('/^' . $pattern . '$/', $path) === 1;
+        return Str::is($this->route_pattern, $path);
     }
 }

@@ -77,9 +77,9 @@
                         <el-tag size="small" effect="plain">{{ row.category?.name || '-' }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="title" label="标题" min-width="200">
+                <el-table-column prop="subject" label="标题" min-width="200">
                     <template #default="{ row }">
-                        <span class="ticket-title">{{ row.title }}</span>
+                        <span class="ticket-title">{{ row.subject || row.title }}</span>
                     </template>
                 </el-table-column>
                 <el-table-column label="状态" width="100">
@@ -140,7 +140,7 @@
                 <el-form-item label="优先级" prop="priority">
                     <el-radio-group v-model="createForm.priority">
                         <el-radio value="low">低</el-radio>
-                        <el-radio value="normal">普通</el-radio>
+                        <el-radio value="medium">普通</el-radio>
                         <el-radio value="high">高</el-radio>
                         <el-radio value="urgent">紧急</el-radio>
                     </el-radio-group>
@@ -186,7 +186,7 @@ const createForm = reactive({
     category_id: '',
     title: '',
     description: '',
-    priority: 'normal',
+    priority: 'medium',
 });
 
 const createRules = {
@@ -197,7 +197,7 @@ const createRules = {
     ],
     description: [
         { required: true, message: '请描述您的问题', trigger: 'blur' },
-        { min: 10, message: '描述至少 10 个字符', trigger: 'blur' },
+        { min: 20, message: '描述至少 20 个字符', trigger: 'blur' },
     ],
     priority: [{ required: true, message: '请选择优先级', trigger: 'change' }],
 };
@@ -211,7 +211,7 @@ const STATUS_MAP = {
 
 const PRIORITY_MAP = {
     low: { type: 'info', label: '低' },
-    normal: { type: '', label: '普通' },
+    medium: { type: '', label: '普通' },
     high: { type: 'warning', label: '高' },
     urgent: { type: 'danger', label: '紧急' },
 };
@@ -242,8 +242,9 @@ async function fetchTickets() {
         if (filters.category_id) params.category_id = filters.category_id;
 
         const { data: res } = await ticketApi.myTickets(params);
-        tickets.value = res.data?.data || [];
-        total.value = res.data?.total || 0;
+        const pageData = res.data || {};
+        tickets.value = pageData.data || [];
+        total.value = pageData.total || 0;
 
         // Stats
         const { data: statsRes } = await ticketApi.stats();
@@ -267,7 +268,7 @@ async function handleCreate() {
     try {
         await ticketApi.create({
             category_id: createForm.category_id,
-            title: createForm.title,
+            subject: createForm.title,
             description: createForm.description,
             priority: createForm.priority,
         });
@@ -276,7 +277,7 @@ async function handleCreate() {
         createForm.category_id = '';
         createForm.title = '';
         createForm.description = '';
-        createForm.priority = 'normal';
+        createForm.priority = 'medium';
         await fetchTickets();
     } catch (e) {
         ElMessage.error(e.response?.data?.message || '创建工单失败');

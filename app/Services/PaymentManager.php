@@ -6,7 +6,9 @@ use App\Contracts\PaymentGateway;
 use App\Models\Invoice;
 use App\Services\Payment\AlipayPaymentGateway;
 use App\Services\Payment\MockPaymentGateway;
+use App\Services\Payment\PaypalPaymentGateway;
 use App\Services\Payment\StripePaymentGateway;
+use App\Services\Payment\WechatPaymentGateway;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
 
@@ -96,7 +98,9 @@ class PaymentManager
 
         return match ($driver) {
             'alipay' => App::make(AlipayPaymentGateway::class),
+            'wechat' => App::make(WechatPaymentGateway::class),
             'stripe' => App::make(StripePaymentGateway::class),
+            'paypal' => App::make(PaypalPaymentGateway::class),
             default  => App::make(MockPaymentGateway::class),
         };
     }
