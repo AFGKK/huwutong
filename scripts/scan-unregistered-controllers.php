@@ -8,6 +8,7 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 $controllerDir = __DIR__.'/../app/Http/Controllers/Api';
 $routeFiles = glob(__DIR__.'/../routes/**/*.php') ?: [];
+$routeFiles = array_merge($routeFiles, glob(__DIR__.'/../routes/api/*.php') ?: []);
 $routeFiles = array_merge($routeFiles, glob(__DIR__.'/../routes/*.php') ?: []);
 $routeContent = '';
 foreach ($routeFiles as $f) {

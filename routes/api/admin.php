@@ -691,6 +691,11 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::get('/admin/dev-portal/quickstart-steps', [DevPortalController::class, 'quickstartSteps']);
 
         require __DIR__.'/developer.php';
+        require __DIR__.'/operations.php';
+        require __DIR__.'/enterprise.php';
+        require __DIR__.'/platform.php';
+        require __DIR__.'/extensions.php';
+        require __DIR__.'/catalog.php';
 
         // ── 支付回调 ──
         Route::get('/payment-callbacks/stats', [PaymentCallbackController::class, 'stats']);

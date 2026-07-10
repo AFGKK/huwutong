@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\BillingHistoryPortalController;
+use App\Http\Controllers\Api\PrepaidBalanceController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\ProductCategoryController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\GdprComplianceController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PortalBrandingController;
 use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\NotificationPreferenceController;
 use App\Http\Controllers\Api\TenantTeamController;
 use App\Http\Controllers\Api\TransferController;
 use App\Http\Controllers\Api\WithdrawalController;
@@ -127,6 +129,16 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::get('/portal/data-exports/{id}/download', [CustomerDataExportController::class, 'downloadExport'])->whereNumber('id');
     Route::delete('/portal/data-exports/{id}', [CustomerDataExportController::class, 'deleteExport'])->whereNumber('id');
 
+    // ── 通知偏好 ──
+    Route::prefix('portal/notification-preferences')->group(function () {
+        Route::get('/', [NotificationPreferenceController::class, 'myPreferences']);
+        Route::put('/', [NotificationPreferenceController::class, 'updateMyPreferences']);
+        Route::post('/initialize', [NotificationPreferenceController::class, 'initializeMyPreferences']);
+        Route::get('/check', [NotificationPreferenceController::class, 'checkNotification']);
+        Route::patch('/general', [NotificationPreferenceController::class, 'updateGeneralSettings']);
+        Route::get('/resolve-channels', [NotificationPreferenceController::class, 'resolveChannels']);
+    });
+
     // ── 客户反馈 ──
     Route::get('/portal/feedback', [FeedbackController::class, 'myFeedback']);
     Route::post('/portal/feedback', [FeedbackController::class, 'store']);
@@ -139,7 +151,23 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     // ── 计费/套餐 ──
     Route::get('/billing/plans/public', [BillingController::class, 'plans']);
     Route::post('/billing/coupons/validate', [BillingController::class, 'validateCoupon']);
+    Route::get('/billing/invoices', [BillingHistoryPortalController::class, 'invoices']);
+    Route::get('/billing/invoices/{id}', [BillingHistoryPortalController::class, 'show'])->whereNumber('id');
+    Route::get('/billing/stats', [BillingHistoryPortalController::class, 'stats']);
+    Route::get('/billing/subscriptions', [BillingHistoryPortalController::class, 'subscriptions']);
+    Route::get('/billing/failed-payments', [BillingHistoryPortalController::class, 'failedPayments']);
+    Route::get('/billing/auto-renewals', [BillingHistoryPortalController::class, 'autoRenewals']);
+    Route::get('/billing/filter-options', [BillingHistoryPortalController::class, 'filterOptions']);
     Route::post('/billing/invoices/{id}/pay', [BillingHistoryPortalController::class, 'payInvoice'])->whereNumber('id');
+
+    // ── 预付费余额 ──
+    Route::prefix('portal/prepaid')->group(function () {
+        Route::get('/balance', [PrepaidBalanceController::class, 'myBalance']);
+        Route::post('/recharge', [PrepaidBalanceController::class, 'recharge']);
+        Route::get('/transactions', [PrepaidBalanceController::class, 'myTransactions']);
+        Route::post('/auto-recharge', [PrepaidBalanceController::class, 'saveAutoRecharge']);
+        Route::post('/check-auto-recharge', [PrepaidBalanceController::class, 'checkAutoRecharge']);
+    });
 
     // ── 支付方式管理 ──
     Route::get('/billing/payment-methods', [PaymentMethodController::class, 'index']);

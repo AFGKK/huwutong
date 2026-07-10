@@ -459,6 +459,7 @@ Route::middleware(['ability:admin,super-admin'])->prefix('admin/revenue')->group
     Route::get('/mrr-breakdown/region', [MrrWaterfallController::class, 'breakdownByRegion']);
     Route::get('/mrr-breakdown/customer-segment', [MrrWaterfallController::class, 'breakdownByCustomerSegment']);
     Route::post('/mrr-scan', [MrrWaterfallController::class, 'scanChanges']);
+    Route::post('/mrr-scan-changes', [MrrWaterfallController::class, 'scanChanges']);
 });
 
 // ── 时段限制 ──

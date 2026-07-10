@@ -8,9 +8,12 @@ use App\Http\Controllers\Api\PasswordPolicyController;
 use App\Http\Controllers\Api\AccountDeletionAdminController;
 use App\Http\Controllers\Api\AppealController;
 use App\Http\Controllers\Api\MerkleChainController;
+use App\Http\Controllers\Api\TokenController;
 use App\Http\Controllers\Api\ImpersonateController;
 
 // ─── 公开认证 ───
+
+Route::post('/token/introspect', [TokenController::class, 'introspect']);
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -52,6 +55,8 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/token/refresh', [AuthController::class, 'refreshToken']);
+    Route::post('/token/revoke', [TokenController::class, 'revokeCurrent']);
+    Route::get('/tokens', [TokenController::class, 'myTokens']);
 
     // Email verification
     Route::post('/email/verify/send', [AuthController::class, 'sendEmailVerification']);
