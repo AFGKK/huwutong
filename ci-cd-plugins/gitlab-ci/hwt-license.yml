@@ -1,0 +1,36 @@
+# HWT License — GitLab CI Template
+# 在流水线中自动获取 License
+# 用法: include 此文件后使用 extends: .hwt_fetch_license
+
+.hwt_fetch_license:
+  image: curlimages/curl:latest
+  script:
+    - |
+      echo "Fetching HWT License..."
+      RESPONSE=$(curl -s -X GET "${HWT_API_URL:-https://api.huwutong.com}/api/ci/license/fetch" \
+        -H "Authorization: Bearer ${HWT_CI_TOKEN}" \
+        -H "User-Agent: hwt-gitlab-ci/1.0")
+      LICENSE_KEY=$(echo "$RESPONSE" | jq -r '.license_key // empty')
+      if [ -z "$LICENSE_KEY" ]; then
+        echo "ERROR: Failed to fetch license: $(echo "$RESPONSE" | jq -r '.error // "unknown"')"
+        exit 1
+      fi
+      echo "License: $LICENSE_KEY"
+      echo "HWT_LICENSE_KEY=$LICENSE_KEY" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+.hwt_activate_license:
+  image: curlimages/curl:latest
+  script:
+    - |
+      if [ -z "${LICENSE_KEY}" ]; then
+        echo "ERROR: LICENSE_KEY not set"
+        exit 1
+      fi
+      curl -s -X POST "${HWT_API_URL:-https://api.huwutong.com}/api/ci/license/activate" \
+        -H "Authorization: Bearer ${HWT_CI_TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d "{\"license_key\":\"${LICENSE_KEY}\"}"
+      echo "License activated: $LICENSE_KEY"

@@ -1,0 +1,64 @@
+version: 2.1
+
+description: >
+  HWT License integration for CircleCI.
+  Automatically fetch and activate HWT licenses in your pipelines.
+
+display:
+  home_url: 'https://huwutong.com'
+  source_url: 'https://github.com/huwutong/hwt-license-orb'
+
+commands:
+  fetch-license:
+    description: 'Fetch a HWT License from the API'
+    parameters:
+      token:
+        type: env_var_name
+        default: HWT_CI_TOKEN
+        description: 'HWT CI/CD API Token'
+      api-url:
+        type: string
+        default: 'https://api.huwutong.com'
+        description: 'API base URL'
+    steps:
+      - run:
+          name: 'Fetch HWT License'
+          command: |
+            RESPONSE=$(curl -s -X GET "<<parameters.api-url>>/api/ci/license/fetch" \
+              -H "Authorization: Bearer ${<<parameters.token>>}" \
+              -H "User-Agent: hwt-circleci-orb/1.0")
+            LICENSE_KEY=$(echo "$RESPONSE" | jq -r '.license_key // empty')
+            if [ -z "$LICENSE_KEY" ]; then
+              echo "ERROR: Failed to fetch license: $(echo "$RESPONSE" | jq -r '.error // "unknown"')"
+              exit 1
+            fi
+            echo "export HWT_LICENSE_KEY=$LICENSE_KEY" >> $BASH_ENV
+            echo "License: $LICENSE_KEY"
+
+  activate-license:
+    description: 'Activate a HWT License'
+    parameters:
+      token:
+        type: env_var_name
+        default: HWT_CI_TOKEN
+        description: 'HWT CI/CD API Token'
+      license-key:
+        type: string
+        description: 'License key to activate'
+      api-url:
+        type: string
+        default: 'https://api.huwutong.com'
+        description: 'API base URL'
+    steps:
+      - run:
+          name: 'Activate HWT License'
+          command: |
+            LICENSE_KEY="<<parameters.license-key>>"
+            if [ -z "$LICENSE_KEY" ]; then
+              LICENSE_KEY="${HWT_LICENSE_KEY}"
+            fi
+            curl -s -X POST "<<parameters.api-url>>/api/ci/license/activate" \
+              -H "Authorization: Bearer ${<<parameters.token>>}" \
+              -H "Content-Type: application/json" \
+              -d "{\"license_key\":\"$LICENSE_KEY\"}"
+            echo "License activated: $LICENSE_KEY"

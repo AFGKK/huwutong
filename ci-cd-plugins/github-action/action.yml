@@ -1,0 +1,82 @@
+name: 'HWT License Action'
+description: 'Fetch or activate HWT License in GitHub Actions workflows'
+author: 'Huwutong'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  action:
+    description: 'Action to perform: fetch | activate'
+    required: true
+    default: 'fetch'
+  token:
+    description: 'HWT CI/CD API Token'
+    required: true
+  license-key:
+    description: 'License key to activate (only for action=activate)'
+    required: false
+  api-url:
+    description: 'HWT API base URL'
+    required: false
+    default: 'https://api.huwutong.com'
+
+outputs:
+  license-key:
+    description: 'Fetched or activated license key'
+  license-status:
+    description: 'License status'
+  expires-at:
+    description: 'License expiration date'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate inputs
+      shell: bash
+      run: |
+        if [ "${{ inputs.action }}" != "fetch" ] && [ "${{ inputs.action }}" != "activate" ]; then
+          echo "::error::action must be 'fetch' or 'activate'"
+          exit 1
+        fi
+        if [ -z "${{ inputs.token }}" ]; then
+          echo "::error::token is required"
+          exit 1
+        fi
+
+    - name: Fetch license
+      if: inputs.action == 'fetch'
+      shell: bash
+      run: |
+        RESPONSE=$(curl -s -X GET "${{ inputs.api-url }}/api/ci/license/fetch" \
+          -H "Authorization: Bearer ${{ inputs.token }}" \
+          -H "User-Agent: hwt-github-action/1.0")
+        echo "HWT_RESPONSE=$RESPONSE" >> $GITHUB_ENV
+        LICENSE_KEY=$(echo "$RESPONSE" | jq -r '.license_key // empty')
+        if [ -z "$LICENSE_KEY" ]; then
+          echo "::error::Failed to fetch license: $(echo "$RESPONSE" | jq -r '.error // "unknown error"')"
+          exit 1
+        fi
+        echo "license-key=$LICENSE_KEY" >> $GITHUB_OUTPUTS
+        echo "HWT_LICENSE_KEY=$LICENSE_KEY" >> $GITHUB_ENV
+
+    - name: Activate license
+      if: inputs.action == 'activate'
+      shell: bash
+      run: |
+        if [ -z "${{ inputs.license-key }}" ] && [ -z "$HWT_LICENSE_KEY" ]; then
+          echo "::error::license-key is required for activate action"
+          exit 1
+        fi
+        KEY="${{ inputs.license-key }}"
+        [ -z "$KEY" ] && KEY="$HWT_LICENSE_KEY"
+        RESPONSE=$(curl -s -X POST "${{ inputs.api-url }}/api/ci/license/activate" \
+          -H "Authorization: Bearer ${{ inputs.token }}" \
+          -H "Content-Type: application/json" \
+          -d "{\"license_key\":\"$KEY\"}")
+        STATUS=$(echo "$RESPONSE" | jq -r '.status // empty')
+        echo "license-key=$KEY" >> $GITHUB_OUTPUTS
+        echo "license-status=$STATUS" >> $GITHUB_OUTPUTS
+        echo "HWT_LICENSE_KEY=$KEY" >> $GITHUB_ENV
+        echo "HWT_LICENSE_STATUS=$STATUS" >> $GITHUB_ENV
