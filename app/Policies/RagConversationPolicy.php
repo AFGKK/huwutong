@@ -11,6 +11,6 @@ class RagConversationPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['admin', '运营']);
+        return $user->hasRole(['super-admin', 'admin', '运营']);
     }
 }

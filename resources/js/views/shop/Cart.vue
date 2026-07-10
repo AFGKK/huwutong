@@ -270,4 +270,27 @@ function cycleLabel(c) {
 .total-price { font-size: 24px; font-weight: 700; color: #F56C6C; }
 
 .cart-actions { display: flex; justify-content: flex-end; gap: 12px; }
+
+@media (max-width: 768px) {
+    .cart-page { padding: 12px; }
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .cart-page :deep(.el-table) {
+        display: block;
+        overflow-x: auto;
+    }
+    .coupon-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .coupon-input-field { max-width: none; width: 100%; }
+    .summary-row { justify-content: space-between; }
+    .cart-actions {
+        flex-direction: column;
+    }
+    .cart-actions .el-button { width: 100%; margin-left: 0 !important; }
+}
 </style>

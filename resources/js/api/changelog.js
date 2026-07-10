@@ -56,14 +56,14 @@ export default {
   // ─── 公开 API ───
 
   publicList(params = {}) {
-    return apiClient.get('/api/changelog', { params });
+    return apiClient.get('/changelog', { params });
   },
 
   publicLatest() {
-    return apiClient.get('/api/changelog/latest');
+    return apiClient.get('/changelog/latest');
   },
 
   publicByVersion() {
-    return apiClient.get('/api/changelog/versions');
+    return apiClient.get('/changelog/versions');
   },
 };

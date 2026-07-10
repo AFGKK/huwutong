@@ -12,9 +12,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * 统一转接请求模型
  *
  * 管理 AI/在线客服 → 人工客服的转接队列、分配、处理和跟踪。
- * 支持两种来源：
+ * 支持三种来源：
  * - AI客服对话 (conversation_id → rag_conversations)
  * - 在线客服对话 (live_chat_conversation_id → live_chat_conversations)
+ * - 用户聊天 (user_conversation_id → user_conversations)
  *
  * @mixin IdeHelperHandoffRequest
  */
@@ -23,7 +24,7 @@ class HandoffRequest extends Model
     use HasFactory;
 
     protected $fillable = [
-        'tenant_id', 'conversation_id', 'live_chat_conversation_id',
+        'tenant_id', 'conversation_id', 'live_chat_conversation_id', 'user_conversation_id',
         'customer_id', 'user_id',
         'assigned_to', 'ticket_id',
         'reason', 'status', 'priority',
@@ -71,6 +72,14 @@ class HandoffRequest extends Model
         return $this->belongsTo(LiveChatConversation::class, 'live_chat_conversation_id');
     }
 
+    /**
+     * 用户聊天会话
+     */
+    public function userChatConversation(): BelongsTo
+    {
+        return $this->belongsTo(UserConversation::class, 'user_conversation_id');
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
@@ -106,7 +115,7 @@ class HandoffRequest extends Model
      */
     public function sourceConversation(): ?Model
     {
-        return $this->liveChatConversation ?? $this->conversation;
+        return $this->liveChatConversation ?? $this->userChatConversation ?? $this->conversation;
     }
 
     /**

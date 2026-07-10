@@ -21,7 +21,7 @@ export function updateSlo(id, data) {
 }
 
 export function deleteSlo(id) {
-    return api.delete(`/admin/slo/${id}`);
+    return apiClient.delete(`/admin/slo/${id}`);
 }
 
 export function calculateSlo(id) {

@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\BillingHistoryPortalController;
+use App\Http\Controllers\Api\AffiliateController;
 use App\Http\Controllers\Api\ChangelogController;
 use App\Http\Controllers\Api\ComplianceReportAiController;
 use App\Http\Controllers\Api\CustomerDataExportController;
@@ -267,6 +267,7 @@ $tenantTeamRoutes = function () {
     Route::post('/transfer-admin', [TenantTeamController::class, 'transferAdmin']);
     Route::post('/leave', [TenantTeamController::class, 'leave']);
 };
+Route::prefix('team')->group($tenantTeamRoutes);
 Route::prefix('api/team')->group($tenantTeamRoutes);
 
 // ── SLO / 链路追踪 ──
@@ -374,17 +375,6 @@ Route::prefix('admin/workflows')->group(function () {
     Route::get('/{instance}/saga', [WorkflowController::class, 'sagaStatus'])->whereNumber('instance');
     Route::post('/{instance}/cancel', [WorkflowController::class, 'cancel'])->whereNumber('instance');
     Route::post('/{instance}/retry', [WorkflowController::class, 'retry'])->whereNumber('instance');
-});
-
-// ── 账单历史（门户，管理端也可访问） ──
-Route::prefix('billing')->group(function () {
-    Route::get('/invoices', [BillingHistoryPortalController::class, 'invoices']);
-    Route::get('/invoices/{id}', [BillingHistoryPortalController::class, 'show'])->whereNumber('id');
-    Route::get('/stats', [BillingHistoryPortalController::class, 'stats']);
-    Route::get('/subscriptions', [BillingHistoryPortalController::class, 'subscriptions']);
-    Route::get('/failed-payments', [BillingHistoryPortalController::class, 'failedPayments']);
-    Route::get('/auto-renewals', [BillingHistoryPortalController::class, 'autoRenewals']);
-    Route::get('/filter-options', [BillingHistoryPortalController::class, 'filterOptions']);
 });
 
 // ── 数据导出（管理端） ──
@@ -506,4 +496,24 @@ Route::prefix('admin/grpc')->group(function () {
     Route::get('/endpoints', [GrpcController::class, 'endpoints']);
     Route::get('/circuit-breaker', [GrpcController::class, 'circuitBreaker']);
     Route::post('/reset-circuit-breaker', [GrpcController::class, 'resetCircuitBreaker']);
+});
+
+// ── 联盟推广 (M3-05) ──
+Route::prefix('affiliate')->group(function () {
+    Route::get('/dashboard', [AffiliateController::class, 'dashboard']);
+    Route::get('/campaigns', [AffiliateController::class, 'campaigns']);
+    Route::post('/campaigns', [AffiliateController::class, 'storeCampaign']);
+    Route::get('/campaigns/{campaign}', [AffiliateController::class, 'showCampaign']);
+    Route::put('/campaigns/{campaign}', [AffiliateController::class, 'updateCampaign']);
+    Route::post('/campaigns/{campaign}/refresh', [AffiliateController::class, 'refreshCampaign']);
+    Route::get('/campaigns/{campaign}/creatives', [AffiliateController::class, 'creatives']);
+    Route::post('/campaigns/{campaign}/creatives', [AffiliateController::class, 'storeCreative']);
+    Route::get('/campaigns/{campaign}/creative-stats', [AffiliateController::class, 'creativeStats']);
+    Route::post('/tree', [AffiliateController::class, 'buildTree']);
+    Route::get('/agents/{agent}/upline', [AffiliateController::class, 'upline']);
+    Route::get('/agents/{agent}/downline', [AffiliateController::class, 'downline']);
+    Route::get('/agents/{agent}/summary', [AffiliateController::class, 'agentSummary']);
+    Route::post('/clicks', [AffiliateController::class, 'recordClick']);
+    Route::get('/clicks', [AffiliateController::class, 'clickLogs']);
+    Route::post('/attribute', [AffiliateController::class, 'attributeConversion']);
 });

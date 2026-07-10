@@ -485,5 +485,57 @@ class ImChatTest extends TestCase
         ], $this->headers($this->tokenA));
         $r->assertStatus(200);
     }
+
+    // ─────────────────────────────────────────
+    // 10. Handoff 转接
+    // ─────────────────────────────────────────
+
+    /** @test */
+    public function user_can_request_handoff_from_user_chat_conversation()
+    {
+        $conv = UserConversation::create(['type' => 'private', 'created_by' => $this->userA->id]);
+        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userA->id, 'role' => 'member']);
+        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userB->id, 'role' => 'member']);
+
+        ConversationMessage::create([
+            'conversation_id' => $conv->id,
+            'sender_id' => $this->userA->id,
+            'message_type' => 'text',
+            'content' => '需要帮助',
+        ]);
+
+        $response = $this->postJson('/api/handoff', [
+            'conversation_id' => $conv->id,
+            'reason' => 'user_request',
+        ], $this->headers($this->tokenA));
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'queued');
+
+        $this->assertDatabaseHas('handoff_requests', [
+            'user_conversation_id' => $conv->id,
+            'user_id' => $this->userA->id,
+            'reason' => 'user_request',
+        ]);
+    }
+
+    /** @test */
+    public function non_participant_cannot_request_handoff_for_conversation()
+    {
+        $conv = UserConversation::create(['type' => 'private', 'created_by' => $this->userA->id]);
+        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userA->id, 'role' => 'member']);
+        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userB->id, 'role' => 'member']);
+
+        $response = $this->postJson('/api/handoff', [
+            'conversation_id' => $conv->id,
+        ], $this->headers($this->tokenC));
+
+        $response->assertStatus(422);
+        $this->assertDatabaseMissing('handoff_requests', [
+            'user_conversation_id' => $conv->id,
+            'user_id' => $this->userC->id,
+        ]);
+    }
 }
 

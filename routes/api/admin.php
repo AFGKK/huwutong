@@ -168,7 +168,6 @@ use App\Http\Controllers\Api\CompliancePackController;
 use App\Http\Controllers\Api\PwaController;
 use App\Http\Controllers\Api\PersonalizationController;
 use App\Http\Controllers\Api\CrossSellController;
-use App\Http\Controllers\Api\AdminPageDataController;
 use App\Http\Controllers\Api\CloudMarketplaceController;
 use App\Http\Controllers\Api\LicenseComplianceReportController;
 use App\Http\Controllers\Api\CiCdController;
@@ -310,6 +309,14 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
             Route::get('/stats', [EcommerceOpsController::class, 'securityStats']);
             Route::get('/logs', [EcommerceOpsController::class, 'securityLogs']);
             Route::post('/pre-check', [EcommerceOpsController::class, 'prePaymentCheck']);
+        });
+
+        // 🆕 退款售后 (M2-155)
+        Route::prefix('ecommerce/refunds')->group(function () {
+            Route::get('/stats', [EcommerceOpsController::class, 'refundStats']);
+            Route::get('/', [EcommerceOpsController::class, 'refundList']);
+            Route::post('/request', [EcommerceOpsController::class, 'requestRefund']);
+            Route::post('/{refundId}/review', [EcommerceOpsController::class, 'reviewRefund'])->whereNumber('refundId');
         });
 
         // 🆕 计费周期管理
@@ -888,6 +895,8 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::post('/rag/rebuild', [RagController::class, 'rebuildIndex']);
         Route::get('/rag/stats', [RagController::class, 'stats']);
         Route::get('/chat/stats', [ChatController::class, 'stats']);
+        Route::get('/chat/handoff-config', [ChatController::class, 'handoffConfig']);
+        Route::post('/chat/handoff-config', [ChatController::class, 'saveHandoffConfig']);
 
         // 🆕 AI 知识库自增长
         Route::prefix('kb-auto-grow')->group(function () {
@@ -2227,11 +2236,6 @@ Route::middleware(['auth:sanctum', 'ability:admin,super-admin'])->prefix('points
     Route::get('/admin/users', [PointsController::class, 'adminUserList']);
     Route::get('/admin/transactions', [PointsController::class, 'adminTransactions']);
     Route::get('/admin/stats', [PointsController::class, 'adminStats']);
-});
-
-// ── 新增页面数据接口 ──
-Route::middleware(['auth:sanctum'])->group(function () {
-    AdminPageDataController::registerRoutes();
 });
 
 // ── 商品佣金显示权限检查 ──

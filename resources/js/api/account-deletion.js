@@ -2,23 +2,23 @@ import apiClient from '@/api/client'
 
 // 用户侧
 export function requestDeletion(reason = '') {
-  return apiClient.post('/api/account/deletion', { reason, confirm: true })
+  return apiClient.post('/account/deletion', { reason, confirm: true })
 }
 
 export function cancelDeletion() {
-  return apiClient.post('/api/account/deletion/cancel')
+  return apiClient.post('/account/deletion/cancel')
 }
 
 export function getDeletionStatus() {
-  return apiClient.get('/api/account/deletion/status')
+  return apiClient.get('/account/deletion/status')
 }
 
 export function getDeletionCheck() {
-  return apiClient.get('/api/account/deletion/check')
+  return apiClient.get('/account/deletion/check')
 }
 
 export function getCancellationReasons() {
-  return apiClient.get('/api/account/deletion/reasons')
+  return apiClient.get('/account/deletion/reasons')
 }
 
 // 管理侧

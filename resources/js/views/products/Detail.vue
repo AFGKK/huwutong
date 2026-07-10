@@ -965,4 +965,34 @@ code {
     height: 20px;
     padding: 0;
 }
+
+@media (max-width: 768px) {
+    .product-detail-page { padding: 12px; }
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    .header-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    .product-detail-page :deep(.el-descriptions) {
+        --el-descriptions-item-bordered-label-background: var(--el-fill-color-light);
+    }
+    .product-detail-page :deep(.el-descriptions__body .el-descriptions__table) {
+        display: block;
+    }
+    .product-detail-page :deep(.el-descriptions__cell) {
+        display: block;
+        width: 100% !important;
+    }
+    .product-detail-page :deep(.el-table) {
+        display: block;
+        overflow-x: auto;
+    }
+    .product-detail-page :deep(.el-tabs__nav-scroll) {
+        overflow-x: auto;
+    }
+}
 </style>

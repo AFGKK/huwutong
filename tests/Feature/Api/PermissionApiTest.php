@@ -148,10 +148,10 @@ class PermissionApiTest extends TestCase
 
     public function test_role_destroy_protects_system_roles(): void
     {
-        $systemRole = Role::create([
-            'name' => 'super-admin',
-            'guard_name' => 'web',
-        ]);
+        $systemRole = Role::firstOrCreate(
+            ['name' => 'super-admin', 'guard_name' => 'web'],
+            ['tenant_id' => $this->tenant->id],
+        );
 
         $response = $this->deleteJson("/api/roles/{$systemRole->id}", [], $this->authHeaders());
 

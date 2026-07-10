@@ -4150,7 +4150,7 @@ async function toggleMute() { if (!activeConv.value) return; try { await apiClie
 async function handleDeleteConv() { if (!activeConv.value) return; if (activeConv.value.is_channel || activeConv.value.is_oa) { activeConv.value = null; return } try { await ElMessageBox.confirm('确定删除此会话？'); await apiClient.delete('/user-chat/conversations/'+activeConv.value.id); activeConv.value = null; await loadConversations() } catch { /* ignore */ } }
 function onSearch() { /* filteredConversations handles it */ }
 async function handleExportConv() { if (!activeConv.value) return; try { const res = await apiClient.get('/im/conversations/'+activeConv.value.id+'/export', { responseType: 'blob' }); const url = URL.createObjectURL(new Blob([res.data])); const a = document.createElement('a'); a.href = url; a.download = 'chat-export.html'; a.click(); URL.revokeObjectURL(url) } catch { ElMessage.error('导出失败') } }
-async function handleHandoff() { if (!activeConv.value) return; try { await apiClient.post('/api/handoff', { conversation_id: activeConv.value.id }); ElMessage.success('已提交转接请求，客服将尽快接入') } catch (e) { ElMessage.error(e.response?.data?.message || '转接失败') } }
+async function handleHandoff() { if (!activeConv.value) return; try { await apiClient.post('/handoff', { conversation_id: activeConv.value.id }); ElMessage.success('已提交转接请求，客服将尽快接入') } catch (e) { ElMessage.error(e.response?.data?.message || '转接失败') } }
 
 // ── 无障碍 AI ──
 const a11yAnnounceMsg = ref(false)
@@ -4516,11 +4516,11 @@ async function submitForward() {
     } catch (e) { ElMessage.error(e.response?.data?.message || '转发失败') }
     finally { forwarding.value = false }
 }
-async function aiOptimizeMessage(msg) { try { const res = await apiClient.post('/api/chat/send', { message: '优化以下客服回复文案，使其更专业友好：'+msg.content }); if (res.data?.reply) { inputMessage.value = res.data.reply } } catch { /* ignore */ } }
+async function aiOptimizeMessage(msg) { try { const res = await apiClient.post('/chat/send', { message: '优化以下客服回复文案，使其更专业友好：'+msg.content, session_id: 'im-optimize-' + (activeConv.value?.id || 'default') }); if (res.data?.data?.reply || res.data?.reply) { inputMessage.value = res.data?.data?.reply || res.data?.reply } } catch { /* ignore */ } }
 
 // ── 工单 ──
 function openCreateTicket(msg) { ticketSubject.value = ''; ticketDescription.value = '消息内容：\n'+msg.content+'\n\n发送者：'+ (msg.sender?.name||'未知') + '\n时间：'+formatTime(msg.created_at); ticketPriority.value = 'medium'; showCreateTicket.value = true }
-async function submitTicket() { if (!ticketSubject.value.trim()) return ElMessage.warning('请输入工单主题'); if (!ticketDescription.value.trim()) return ElMessage.warning('请输入工单描述'); creatingTicket.value = true; try { await apiClient.post('/api/tickets', { subject: ticketSubject.value, description: ticketDescription.value, priority: ticketPriority.value }); showCreateTicket.value = false; ElMessage.success('工单已提交') } catch (e) { ElMessage.error(e.response?.data?.message || '提交失败') } finally { creatingTicket.value = false } }
+async function submitTicket() { if (!ticketSubject.value.trim()) return ElMessage.warning('请输入工单主题'); if (!ticketDescription.value.trim()) return ElMessage.warning('请输入工单描述'); creatingTicket.value = true; try { await apiClient.post('/tickets', { subject: ticketSubject.value, description: ticketDescription.value, priority: ticketPriority.value }); showCreateTicket.value = false; ElMessage.success('工单已提交') } catch (e) { ElMessage.error(e.response?.data?.message || '提交失败') } finally { creatingTicket.value = false } }
 
 // ── AI 助手（支持 SSE 流式输出）──
 const aiStreaming = ref(false)
@@ -5266,7 +5266,7 @@ function openLocation(msg) { const coords = locationCoords(msg); if (coords) win
 async function saveDndSettings() { try { await apiClient.post('/user/notification-preferences', { dnd_enabled: dndEnabled.value, dnd_start: dndStart.value, dnd_end: dndEnd.value }); ElMessage.success('免打扰设置已保存'); showDndSettings.value = false } catch (e) { ElMessage.error(e.response?.data?.message || '保存失败') } }
 
 // ── IM 看板 ──
-async function loadDashboard() { loadingDashboard.value = true; try { const res = await apiClient.get('/api/im/dashboard'); dashboardData.value = res.data?.data || {} } catch { dashboardData.value = {} } finally { loadingDashboard.value = false } }
+async function loadDashboard() { loadingDashboard.value = true; try { const res = await apiClient.get('/im/dashboard'); dashboardData.value = res.data?.data || {} } catch { dashboardData.value = {} } finally { loadingDashboard.value = false } }
 
 // ── 群管理 ──
 async function loadGroupMembers() { if (!activeConv.value) return; loadingGroupMembers.value = true; try { const res = await apiClient.get('/user-chat/conversations/'+activeConv.value.id+'/participants'); groupMembers.value = res.data?.data || []; const me = groupMembers.value.find(m => m.id === myId.value); userRoleInGroup.value = me?.pivot?.role || 'member' } catch { groupMembers.value = [] } finally { loadingGroupMembers.value = false } }
@@ -6988,7 +6988,7 @@ async function loadAgentMessages(handoffId) {
     if (!handoffId) { agentMessages.value = []; return; }
     try {
         const res = await apiClient.get('/handoff/' + handoffId + '/messages');
-        agentMessages.value = res.data?.data || [];
+        agentMessages.value = res.data?.data?.messages || [];
         scrollAgentMessages();
     } catch { agentMessages.value = []; }
 }

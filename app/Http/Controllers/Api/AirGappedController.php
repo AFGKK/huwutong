@@ -26,7 +26,6 @@ class AirGappedController extends Controller
      */
     public function status(): JsonResponse
     {
-        $this->authorize('viewAny', \App\Models\Deployment::class);
 
         try {
             $status = $this->airGappedService->getStatus();
@@ -50,7 +49,6 @@ class AirGappedController extends Controller
      */
     public function metrics(): JsonResponse
     {
-        $this->authorize('viewAny', \App\Models\Deployment::class);
 
         try {
             $metrics = $this->airGappedService->getMetrics();
@@ -72,8 +70,6 @@ class AirGappedController extends Controller
      */
     public function scanUsb(): JsonResponse
     {
-        $this->authorize('create', \App\Models\Deployment::class);
-
         try {
             $candidates = $this->airGappedService->scanUsbDrives();
 
@@ -97,8 +93,6 @@ class AirGappedController extends Controller
      */
     public function importLicense(Request $request): JsonResponse
     {
-        $this->authorize('create', \App\Models\Deployment::class);
-
         $validated = $request->validate([
             'file_path' => ['required', 'string'],
             'validate' => ['boolean'],
@@ -124,8 +118,6 @@ class AirGappedController extends Controller
      */
     public function uploadLicense(Request $request): JsonResponse
     {
-        $this->authorize('create', \App\Models\Deployment::class);
-
         $validated = $request->validate([
             'license_file' => ['required', 'file', 'mimes:lic,license,key,txt,bin', 'max:10240'],
         ]);
@@ -153,8 +145,6 @@ class AirGappedController extends Controller
      */
     public function listLicenses(): JsonResponse
     {
-        $this->authorize('viewAny', \App\Models\Deployment::class);
-
         $path = storage_path('app/air-gapped/licenses');
         $files = [];
 
@@ -185,7 +175,6 @@ class AirGappedController extends Controller
      */
     public function dockerInfo(): JsonResponse
     {
-        $this->authorize('viewAny', \App\Models\Deployment::class);
 
         try {
             $info = $this->airGappedService->getDockerInfo();
@@ -207,8 +196,6 @@ class AirGappedController extends Controller
      */
     public function listUpdates(): JsonResponse
     {
-        $this->authorize('viewAny', \App\Models\Deployment::class);
-
         $path = storage_path('app/air-gapped/updates');
         $packages = [];
 
@@ -234,8 +221,6 @@ class AirGappedController extends Controller
      */
     public function applyUpdate(Request $request): JsonResponse
     {
-        $this->authorize('update', \App\Models\Deployment::class);
-
         $validated = $request->validate([
             'package' => ['required', 'string'],
         ]);
@@ -259,8 +244,6 @@ class AirGappedController extends Controller
      */
     public function uploadUpdate(Request $request): JsonResponse
     {
-        $this->authorize('create', \App\Models\Deployment::class);
-
         $validated = $request->validate([
             'update_package' => ['required', 'file', 'mimes:gz,tar,tgz', 'max:2097152'], // 2GB
         ]);

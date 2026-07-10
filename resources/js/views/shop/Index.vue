@@ -493,4 +493,34 @@ onMounted(async () => {
 .btn-cart { border-radius: 6px; }
 .btn-buy { border-radius: 6px; }
 :deep(.search-highlight) { background: #fff3cd; padding: 0 2px; border-radius: 2px; }
+
+@media (max-width: 768px) {
+    .shop-page { padding: 12px; }
+    .shop-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .shop-header h1 { font-size: 20px; }
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .search-input { width: 100%; }
+    .product-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .sku-actions {
+        flex-direction: column;
+    }
+    .filter-bar :deep(.el-col) {
+        margin-bottom: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .product-image-wrap { height: 140px; }
+    .price { font-size: 20px; }
+}
 </style>

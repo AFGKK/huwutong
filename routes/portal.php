@@ -152,14 +152,16 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     // ── 计费/套餐 ──
     Route::get('/billing/plans/public', [BillingController::class, 'plans']);
     Route::post('/billing/coupons/validate', [BillingController::class, 'validateCoupon']);
-    Route::get('/billing/invoices', [BillingHistoryPortalController::class, 'invoices']);
-    Route::get('/billing/invoices/{id}', [BillingHistoryPortalController::class, 'show'])->whereNumber('id');
-    Route::get('/billing/stats', [BillingHistoryPortalController::class, 'stats']);
-    Route::get('/billing/subscriptions', [BillingHistoryPortalController::class, 'subscriptions']);
-    Route::get('/billing/failed-payments', [BillingHistoryPortalController::class, 'failedPayments']);
-    Route::get('/billing/auto-renewals', [BillingHistoryPortalController::class, 'autoRenewals']);
-    Route::get('/billing/filter-options', [BillingHistoryPortalController::class, 'filterOptions']);
-    Route::post('/billing/invoices/{id}/pay', [BillingHistoryPortalController::class, 'payInvoice'])->whereNumber('id');
+    Route::prefix('portal/billing')->group(function () {
+        Route::get('/invoices', [BillingHistoryPortalController::class, 'invoices']);
+        Route::get('/invoices/{id}', [BillingHistoryPortalController::class, 'show'])->whereNumber('id');
+        Route::get('/stats', [BillingHistoryPortalController::class, 'stats']);
+        Route::get('/subscriptions', [BillingHistoryPortalController::class, 'subscriptions']);
+        Route::get('/failed-payments', [BillingHistoryPortalController::class, 'failedPayments']);
+        Route::get('/auto-renewals', [BillingHistoryPortalController::class, 'autoRenewals']);
+        Route::get('/filter-options', [BillingHistoryPortalController::class, 'filterOptions']);
+        Route::post('/invoices/{id}/pay', [BillingHistoryPortalController::class, 'payInvoice'])->whereNumber('id');
+    });
 
     // ── 预付费余额 ──
     Route::prefix('portal/prepaid')->group(function () {

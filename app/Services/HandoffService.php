@@ -8,6 +8,8 @@ use App\Models\HandoffRequest;
 use App\Models\LiveChatConversation;
 use App\Models\RagConversation;
 use App\Models\User;
+use App\Models\UserConversation;
+use App\Models\ConversationParticipant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -245,7 +247,7 @@ class HandoffService
             ->where('status', 'queued')
             ->orderByRaw("CASE priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 END")
             ->orderBy('created_at')
-            ->with(['customer.user:id,name,email', 'conversation'])
+            ->with(['customer.user:id,name,email', 'conversation', 'userChatConversation'])
             ->get();
 
         return $queued->toArray();
@@ -477,11 +479,11 @@ class HandoffService
     protected function tryAutoAssign(HandoffRequest $handoff): void
     {
         $availableAgent = User::where('agent_status', 'online')
-            ->whereHas('roles', fn($q) => $q->where('name', '客服'))
-            ->withCount(['activeHandoffs' => fn($q) => $q->whereIn('status', ['assigned', 'in_progress'])])
-            ->having('active_handoffs_count', '<', DB::raw('users.max_concurrent_chats'))
+            ->whereHas('roles', fn ($q) => $q->where('name', '客服'))
+            ->withCount(['activeHandoffs' => fn ($q) => $q->whereIn('status', ['assigned', 'in_progress'])])
             ->orderBy('active_handoffs_count')
-            ->first();
+            ->get()
+            ->first(fn (User $agent) => $agent->active_handoffs_count < ($agent->max_concurrent_chats ?? 3));
 
         if ($availableAgent) {
             $handoff->assignTo($availableAgent);
@@ -667,5 +669,111 @@ class HandoffService
             ->orderByDesc('id')
             ->get()
             ->toArray();
+    }
+
+    // ═══════════════════════════════════════
+    // 用户聊天 (User Chat) 转接支持
+    // ═══════════════════════════════════════
+
+    /**
+     * 从用户聊天会话创建转接请求
+     */
+    public function createUserChatHandoff(
+        UserConversation $conversation,
+        string $reason = 'user_request',
+        array $options = []
+    ): HandoffRequest {
+        return DB::transaction(function () use ($conversation, $reason, $options) {
+            $userId = $options['user_id'] ?? null;
+            if ($userId) {
+                $isParticipant = ConversationParticipant::where('conversation_id', $conversation->id)
+                    ->where('user_id', $userId)
+                    ->whereNull('deleted_at')
+                    ->exists();
+
+                if (! $isParticipant) {
+                    throw new \RuntimeException('无权转接此会话');
+                }
+            }
+
+            $existing = HandoffRequest::where('user_conversation_id', $conversation->id)
+                ->whereIn('status', ['queued', 'assigned', 'in_progress'])
+                ->first();
+
+            if ($existing) {
+                return $existing;
+            }
+
+            $tenantId = $options['tenant_id'] ?? auth()->user()?->tenant_id ?? 1;
+            $queuePosition = HandoffRequest::where('tenant_id', $tenantId)
+                ->where('status', 'queued')
+                ->count() + 1;
+
+            $handoff = HandoffRequest::create([
+                'tenant_id' => $tenantId,
+                'conversation_id' => null,
+                'live_chat_conversation_id' => null,
+                'user_conversation_id' => $conversation->id,
+                'customer_id' => $options['customer_id'] ?? null,
+                'user_id' => $userId,
+                'ticket_id' => null,
+                'reason' => $reason,
+                'status' => 'queued',
+                'priority' => $options['priority'] ?? $this->determinePriority($reason, $options),
+                'queue_position' => $queuePosition,
+                'conversation_context' => $this->buildUserChatContext($conversation),
+                'metadata' => [
+                    'source' => 'user_chat',
+                    'conversation_type' => $conversation->type,
+                    'conversation_name' => $conversation->name,
+                    'intent' => $options['intent'] ?? null,
+                    'confidence' => $options['confidence'] ?? null,
+                    'page_url' => $options['page_url'] ?? null,
+                    'user_agent' => $options['user_agent'] ?? null,
+                    'ip_address' => $options['ip_address'] ?? request()->ip(),
+                ],
+                'queued_at' => now(),
+            ]);
+
+            $this->tryAutoAssign($handoff);
+
+            Log::info('Handoff: user-chat created', [
+                'handoff_id' => $handoff->id,
+                'user_conversation_id' => $conversation->id,
+                'reason' => $reason,
+            ]);
+
+            return $handoff;
+        });
+    }
+
+    protected function buildUserChatContext(UserConversation $conversation): array
+    {
+        $messages = $conversation->messages()
+            ->with('sender:id,name')
+            ->orderBy('created_at', 'desc')
+            ->limit(20)
+            ->get()
+            ->reverse()
+            ->values()
+            ->map(fn ($msg) => [
+                'id' => $msg->id,
+                'sender_id' => $msg->sender_id,
+                'sender_name' => $msg->sender?->name,
+                'content' => $msg->content,
+                'message_type' => $msg->message_type,
+                'created_at' => $msg->created_at?->toIso8601String(),
+            ]);
+
+        return [
+            'source' => 'user_chat',
+            'conversation_id' => $conversation->id,
+            'conversation_type' => $conversation->type,
+            'conversation_name' => $conversation->name,
+            'messages' => $messages->toArray(),
+            'total_messages' => $conversation->messages()->count(),
+            'created_at' => $conversation->created_at?->toIso8601String(),
+            'last_activity' => $conversation->updated_at?->toIso8601String(),
+        ];
     }
 }

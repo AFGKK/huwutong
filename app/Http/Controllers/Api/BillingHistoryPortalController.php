@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Tenant;
 use App\Services\BillingHistoryPortalService;
+use App\Services\PortalInvoicePaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

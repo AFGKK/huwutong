@@ -807,6 +807,12 @@ const routes = [
                 meta: { title: '续费提醒与优化', icon: 'Bell' },
             },
             {
+                path: 'auto-renewal',
+                name: 'AutoRenewal',
+                component: () => import('@/views/auto-renewal/Index.vue'),
+                meta: { title: '自动续费管理', icon: 'Refresh' },
+            },
+            {
                 path: 'dunning',
                 name: 'Dunning',
                 component: () => import('@/views/dunning/Index.vue'),
@@ -1043,6 +1049,12 @@ const routes = [
                 name: 'SloBudget',
                 component: () => import('@/views/slo/Index.vue'),
                 meta: { title: 'SLO 错误预算', icon: 'Coin' },
+            },
+            {
+                path: 'sla-probes',
+                name: 'SlaProbes',
+                component: () => import('@/views/sla-probes/Index.vue'),
+                meta: { title: 'SLA 拨测', icon: 'Monitor' },
             },
             {
                 path: 'health',

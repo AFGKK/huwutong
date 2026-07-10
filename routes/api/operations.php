@@ -94,7 +94,7 @@ Route::prefix('admin/waf')->group(function () {
 });
 
 // ── 气隙部署 (Air-Gapped) ──
-Route::prefix('admin/air-gapped')->group(function () {
+Route::middleware(['auth:sanctum', 'ability:admin,super-admin'])->prefix('admin/air-gapped')->group(function () {
     Route::get('/status', [AirGappedController::class, 'status']);
     Route::get('/metrics', [AirGappedController::class, 'metrics']);
     Route::get('/health', [AirGappedController::class, 'healthCheck']);

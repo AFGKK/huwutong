@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\HandoffRequest;
 use App\Models\RagConversation;
 use App\Models\User;
+use App\Models\UserConversation;
 use App\Services\HandoffService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,7 +33,7 @@ class HandoffController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'conversation_id' => 'required|exists:rag_conversations,id',
+            'conversation_id' => 'required|integer',
             'reason' => 'sometimes|string|max:50',
             'priority' => 'sometimes|in:low,medium,high,urgent',
             'message' => 'sometimes|string|max:2000',
@@ -42,25 +43,34 @@ class HandoffController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $conversation = RagConversation::findOrFail($request->input('conversation_id'));
-
+        $conversationId = (int) $request->input('conversation_id');
         $reason = $request->input('reason', 'user_request');
+        $options = [
+            'priority' => $request->input('priority'),
+            'user_id' => $request->user()?->id,
+            'customer_id' => $request->user()?->customer_id,
+            'tenant_id' => $request->user()?->tenant_id,
+            'intent' => $request->input('intent'),
+            'confidence' => $request->input('confidence'),
+            'source' => 'portal',
+            'page_url' => $request->header('Referer'),
+            'user_agent' => $request->userAgent(),
+        ];
 
         try {
-            $handoff = $this->handoffService->createHandoff(
-                $conversation,
-                $reason,
-                [
-                    'priority' => $request->input('priority'),
-                    'user_id' => $request->user()?->id,
-                    'customer_id' => $request->user()?->customer_id,
-                    'intent' => $request->input('intent'),
-                    'confidence' => $request->input('confidence'),
-                    'source' => 'portal',
-                    'page_url' => $request->header('Referer'),
-                    'user_agent' => $request->userAgent(),
-                ]
-            );
+            if (RagConversation::whereKey($conversationId)->exists()) {
+                $conversation = RagConversation::findOrFail($conversationId);
+                $handoff = $this->handoffService->createHandoff($conversation, $reason, $options);
+            } elseif (UserConversation::whereKey($conversationId)->exists()) {
+                $conversation = UserConversation::findOrFail($conversationId);
+                $handoff = $this->handoffService->createUserChatHandoff($conversation, $reason, $options);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => '无效的会话 ID',
+                    'errors' => ['conversation_id' => ['会话不存在']],
+                ], 422);
+            }
 
             return response()->json([
                 'success' => true,
@@ -73,6 +83,11 @@ class HandoffController extends Controller
                     'context' => $handoff->conversation_context,
                 ],
             ], 201);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -110,7 +125,7 @@ class HandoffController extends Controller
     }
 
     /**
-     * 客户发送消息（转接后的对话）
+     * 发送消息（客户或已接单的客服）
      */
     public function sendMessage(Request $request, HandoffRequest $handoff): JsonResponse
     {
@@ -122,15 +137,22 @@ class HandoffController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        try {
-            $message = $this->handoffService->sendCustomerMessage(
-                $handoff,
-                $request->input('content'),
-                $request->user()?->id
-            );
+        $user = $request->user();
+        $content = $request->input('content');
 
-            // 推送实时通知
-            event(new HandoffMessageSent($handoff, $request->input('content'), 'customer'));
+        try {
+            if ($handoff->assigned_to && (int) $handoff->assigned_to === (int) $user->id) {
+                $this->authorize('update', $handoff);
+                $message = $this->handoffService->sendMessage($handoff, $user, $content);
+                event(new HandoffMessageSent($handoff, $content, 'agent'));
+            } else {
+                $message = $this->handoffService->sendCustomerMessage(
+                    $handoff,
+                    $content,
+                    $user?->id
+                );
+                event(new HandoffMessageSent($handoff, $content, 'customer'));
+            }
 
             return response()->json([
                 'success' => true,
@@ -422,6 +444,7 @@ class HandoffController extends Controller
             'messages.user:id,name',
             'actions.user:id,name',
             'conversation',
+            'userChatConversation',
             'ticket',
         ]);
 

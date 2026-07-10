@@ -6,7 +6,6 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\License;
 use App\Models\Subscription;
-use App\Models\Trial;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -96,7 +95,7 @@ class BusinessMetricsService
             $q->where('status', 'paid');
         })->withSum(['invoices as total_paid' => function ($q) {
             $q->where('status', 'paid');
-        }])->get();
+        }], 'amount')->get();
 
         if ($customers->isEmpty()) return 0;
 
@@ -175,10 +174,15 @@ class BusinessMetricsService
      */
     public function trialConversionRate(): float
     {
-        $totalTrials = Trial::count();
-        $converted = Trial::where('converted_at', '!=', null)->count();
+        $totalTrials = Subscription::whereNotNull('trial_ends_at')->count();
+        $converted = Subscription::whereNotNull('trial_ends_at')
+            ->whereIn('status', ['active', 'grace'])
+            ->where('trial_ends_at', '<', now())
+            ->count();
 
-        if ($totalTrials <= 0) return 0;
+        if ($totalTrials <= 0) {
+            return 0;
+        }
 
         return round(($converted / $totalTrials) * 100, 2);
     }
@@ -377,7 +381,7 @@ class BusinessMetricsService
                     ->where(function ($q) use ($periodEnd) {
                         $q->whereNull('ends_at')->orWhere('ends_at', '>=', $periodStart);
                     })
-                    ->distinct('customer_id')
+                    ->distinct()
                     ->count('customer_id');
 
                 $retention[] = [

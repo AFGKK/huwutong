@@ -221,9 +221,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, reactive } from 'vue';
+import { ref, computed, onMounted, onUnmounted, reactive, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useResponsive } from '@/composables/useResponsive';
 import apiClient from '@/api/client';
 import {
     Fold, Expand, Key, ArrowDown, Setting, SwitchButton,
@@ -238,14 +239,24 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const sidebarCollapsed = ref(false);
-const isMobile = ref(window.innerWidth <= 768);
+const { isMobile } = useResponsive();
 
-// 监听窗口变化
-function checkMobile() {
-    isMobile.value = window.innerWidth <= 768;
-    if (!isMobile.value) sidebarCollapsed.value = false;
+function syncSidebarForViewport() {
+    if (isMobile.value) {
+        sidebarCollapsed.value = true;
+    } else {
+        sidebarCollapsed.value = false;
+    }
 }
-window.addEventListener('resize', checkMobile);
+
+watch(isMobile, syncSidebarForViewport);
+
+// 路由切换时在移动端自动收起侧栏
+watch(() => route.path, () => {
+    if (isMobile.value) {
+        sidebarCollapsed.value = true;
+    }
+});
 
 const branding = reactive({
     brand_name: '互物通 客户门户',
@@ -285,8 +296,8 @@ onMounted(() => {
     loadBranding();
     authStore.fetchUser().catch(() => {});
     fetchUnreadCount();
-    // 每30秒轮询未读数
     unreadTimer = setInterval(fetchUnreadCount, 30000);
+    syncSidebarForViewport();
 });
 
 onUnmounted(() => {
@@ -346,12 +357,6 @@ function handleCommand(command) {
         router.push('/portal/settings');
     }
 }
-
-onMounted(() => {
-    loadBranding();
-    // 刷新用户数据确保头像等信息最新
-    authStore.fetchUser().catch(() => {});
-});
 </script>
 
 <style scoped>
@@ -513,8 +518,10 @@ onMounted(() => {
     }
     .portal-header {
         padding: 0 12px;
+        height: 56px;
     }
-    .brand-text {
+    .brand-text,
+    .brand-slogan {
         display: none;
     }
     .user-name {
@@ -522,7 +529,7 @@ onMounted(() => {
     }
     .portal-sidebar {
         position: fixed;
-        top: 60px;
+        top: 56px;
         left: 0;
         bottom: 0;
         z-index: 99;
@@ -550,6 +557,17 @@ onMounted(() => {
     }
     .breadcrumb-bar {
         padding: 8px 12px;
+        overflow-x: auto;
+    }
+    .breadcrumb-bar :deep(.el-breadcrumb) {
+        white-space: nowrap;
+    }
+    .portal-footer {
+        padding: 12px;
+    }
+    .footer-inner {
+        flex-direction: column;
+        align-items: flex-start;
     }
     /* Element Plus 表格在移动端可横向滚动 */
     .portal-content :deep(.el-table) {

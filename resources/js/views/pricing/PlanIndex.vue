@@ -550,7 +550,7 @@ onMounted(() => {
                     <el-col :span="8"><el-form-item label="公开可见"><el-switch v-model="planForm.is_public" /></el-form-item></el-col>
                 </el-row>
 
-                <div class="form-section-title">� 限制配置</div>
+                <div class="form-section-title">📊 限制配置</div>
                 <el-row :gutter="12">
                     <el-col :span="8">
                         <el-form-item label="API Key 上限">
@@ -586,7 +586,7 @@ onMounted(() => {
                     </el-col>
                 </el-row>
 
-                <div class="form-section-title">�📋 功能清单</div>
+                <div class="form-section-title">📋 功能清单</div>
                 <el-form-item label="功能列表">
                     <div style="width:100%">
                         <div v-if="planForm.features.length" class="feature-tags">
@@ -679,4 +679,34 @@ onMounted(() => {
     font-size: 12px; background: #f5f7fa; padding: 1px 6px; border-radius: 3px; white-space: nowrap;
 }
 .text-muted { color: #c0c4cc; }
+
+@media (max-width: 768px) {
+    .w-96 { width: 100%; }
+    :deep(.el-tabs__nav-scroll) { overflow-x: auto; }
+    :deep(.el-table) { display: block; overflow-x: auto; }
+    :deep(.el-dialog) {
+        width: calc(100vw - 32px) !important;
+        max-width: 100%;
+    }
+    :deep(.el-form-item__label) {
+        width: 100% !important;
+        text-align: left;
+        justify-content: flex-start;
+    }
+    :deep(.el-form-item__content) {
+        margin-left: 0 !important;
+    }
+    .flex.items-center.justify-between {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 12px;
+    }
+    .flex.items-center.flex-wrap.gap-2 {
+        width: 100%;
+    }
+    .flex.items-center.flex-wrap.gap-2 :deep(.el-input),
+    .flex.items-center.flex-wrap.gap-2 :deep(.el-select) {
+        width: 100% !important;
+    }
+}
 </style>

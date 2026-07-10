@@ -401,13 +401,26 @@ async function rebuildIndex() {
     finally { rebuilding.value = false; }
 }
 
-function saveHandoffConfig() {
-    ElMessage.success('Handoff 规则已保存');
+async function saveHandoffConfig() {
+    try {
+        await apiClient.post('/chat/handoff-config', handoffConfig);
+        ElMessage.success('Handoff 规则已保存');
+    } catch (e) {
+        ElMessage.error(e.response?.data?.message || '保存失败');
+    }
 }
 
 function loadAll() {
     loadChatStats();
     loadRagStats();
+    loadHandoffConfig();
+}
+
+async function loadHandoffConfig() {
+    try {
+        const { data: res } = await apiClient.get('/chat/handoff-config');
+        Object.assign(handoffConfig, res.data || {});
+    } catch { /* use defaults */ }
 }
 
 onMounted(() => {

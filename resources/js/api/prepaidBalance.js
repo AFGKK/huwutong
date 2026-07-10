@@ -20,32 +20,32 @@ export default {
 
     // 管理侧 - 指定客户
     customerBalance(customerId) {
-        return apiClient.get(`/api/billing/prepaid/customers/${customerId}/balance`);
+        return apiClient.get(`/billing/prepaid/customers/${customerId}/balance`);
     },
     adminRecharge(customerId, data) {
-        return apiClient.post(`/api/billing/prepaid/customers/${customerId}/recharge`, data);
+        return apiClient.post(`/billing/prepaid/customers/${customerId}/recharge`, data);
     },
     adminDeduct(customerId, data) {
-        return apiClient.post(`/api/billing/prepaid/customers/${customerId}/deduct`, data);
+        return apiClient.post(`/billing/prepaid/customers/${customerId}/deduct`, data);
     },
     adminAdjust(customerId, data) {
-        return apiClient.post(`/api/billing/prepaid/customers/${customerId}/adjust`, data);
+        return apiClient.post(`/billing/prepaid/customers/${customerId}/adjust`, data);
     },
     adminTransactions(customerId, params = {}) {
-        return apiClient.get(`/api/billing/prepaid/customers/${customerId}/transactions`, { params });
+        return apiClient.get(`/billing/prepaid/customers/${customerId}/transactions`, { params });
     },
     setCreditLimit(customerId, data) {
-        return apiClient.post(`/api/billing/prepaid/customers/${customerId}/credit-limit`, data);
+        return apiClient.post(`/billing/prepaid/customers/${customerId}/credit-limit`, data);
     },
     getCreditLimit(customerId) {
-        return apiClient.get(`/api/billing/prepaid/customers/${customerId}/credit-limit`);
+        return apiClient.get(`/billing/prepaid/customers/${customerId}/credit-limit`);
     },
 
     // 管理侧 - 全局
     getStats() {
-        return apiClient.get('/api/billing/prepaid/stats');
+        return apiClient.get('/billing/prepaid/stats');
     },
     allTransactions(params = {}) {
-        return apiClient.get('/api/billing/prepaid/all-transactions', { params });
+        return apiClient.get('/billing/prepaid/all-transactions', { params });
     },
 };

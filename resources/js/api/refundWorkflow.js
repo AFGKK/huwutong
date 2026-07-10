@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 
-const BASE = '/api/ecommerce/refunds'
+const BASE = '/ecommerce/refunds'
 
 export function stats() {
   return request.get(`${BASE}/stats`)

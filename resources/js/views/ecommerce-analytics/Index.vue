@@ -344,7 +344,7 @@ async function loadAll() {
 function handleExport(type) {
     const token = localStorage.getItem('token');
     const days = period.value === '7d' ? 7 : period.value === '30d' ? 30 : period.value === '90d' ? 90 : 365;
-    const url = `${import.meta.env.VITE_API_URL || ''}/api/admin/ecommerce-analytics/export-csv?type=${type}&days=${days}`;
+    const url = `${import.meta.env.VITE_API_URL || ''}/api/ecommerce-analytics/export-csv?type=${type}&days=${days}`;
     // 在新窗口打开或通过链接下载
     const link = document.createElement('a');
     link.href = token ? `${url}&token=${token}` : url;

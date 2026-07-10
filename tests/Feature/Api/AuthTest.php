@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Tenant;
 use App\Models\User;
+use Laravel\Sanctum\PersonalAccessToken;
 use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
@@ -109,8 +110,8 @@ class AuthTest extends TestCase
 
         $response->assertStatus(200);
 
-        // Token 已被删除
-        $this->assertDatabaseCount('personal_access_tokens', 0);
+        // Token 已被删除（仅统计当前用户）
+        $this->assertSame(0, PersonalAccessToken::where('tokenable_id', $user->id)->count());
     }
 
     public function test_refresh_token_returns_new_token(): void
@@ -127,7 +128,7 @@ class AuthTest extends TestCase
             ->assertJsonStructure(['data' => ['token']]);
 
         // 旧 token 被删除，新 token 被创建
-        $this->assertDatabaseCount('personal_access_tokens', 1);
+        $this->assertSame(1, PersonalAccessToken::where('tokenable_id', $user->id)->count());
     }
 
     public function test_refresh_token_requires_auth(): void
@@ -150,7 +151,7 @@ class AuthTest extends TestCase
         $this->assertNotNull($newToken);
 
         // 旧 token 已从数据库中删除（应只有 1 个新 token）
-        $this->assertDatabaseCount('personal_access_tokens', 1);
+        $this->assertSame(1, PersonalAccessToken::where('tokenable_id', $user->id)->count());
 
         // 新 token 可以正常使用
         $this->getJson('/api/user', [

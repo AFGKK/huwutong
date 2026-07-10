@@ -46,6 +46,7 @@ class Refund extends Model
         return [
             'amount' => 'decimal:2',
             'metadata' => 'array',
+            'attachments' => 'array',
             'completed_at' => 'datetime',
             'approved_at' => 'datetime',
         ];
@@ -59,6 +60,11 @@ class Refund extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
     }
 
     public function tenant(): BelongsTo
@@ -84,5 +90,14 @@ class Refund extends Model
     public function processor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'processed_by');
+    }
+
+    public function scopeByTenant($query, ?int $tenantId)
+    {
+        if ($tenantId === null) {
+            return $query;
+        }
+
+        return $query->where('tenant_id', $tenantId);
     }
 }

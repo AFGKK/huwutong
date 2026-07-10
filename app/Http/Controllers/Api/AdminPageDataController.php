@@ -11,7 +11,6 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
 
 /**
  * 后台页面数据接口
@@ -171,94 +170,11 @@ class AdminPageDataController extends Controller
     public function emailDripTriggers(): JsonResponse { return ApiResponse::success([]); }
 
     /**
-     * 注册所有占位路由
+     * 占位路由已停用：真实 API 由 catalog/platform/enterprise/extensions 等模块注册。
+     * 此前在此重复注册会覆盖真实控制器并返回空数据。
      */
     public static function registerRoutes(): void
     {
-        $c = static::class;
-
-        // 产品使用分析
-        Route::get('/product-analytics/summary', [$c, 'productAnalyticsSummary']);
-        Route::get('/product-analytics/product-ranking', [$c, 'productAnalyticsRanking']);
-        Route::get('/product-analytics/license-trend', [$c, 'productAnalyticsTrend']);
-        Route::get('/product-analytics/activation-trend', [$c, 'productAnalyticsActivationTrend']);
-        Route::get('/product-analytics/product-monthly-trend', [$c, 'productAnalyticsMonthlyTrend']);
-        Route::get('/product-analytics/regional-growth', [$c, 'productAnalyticsRegional']);
-        Route::get('/product-analytics/regional-trend', [$c, 'productAnalyticsRegionalTrend']);
-        Route::get('/product-analytics/module-usage', [$c, 'productAnalyticsModuleUsage']);
-
-        // 电商数据分析
-        Route::get('/ecommerce-analytics/summary', [$c, 'ecommerceSummary']);
-        Route::get('/ecommerce-analytics/comparison', [$c, 'ecommerceComparison']);
-        Route::get('/ecommerce-analytics/sales-trend', [$c, 'ecommerceSalesTrend']);
-        Route::get('/ecommerce-analytics/product-ranking', [$c, 'ecommerceProductRanking']);
-        Route::get('/ecommerce-analytics/repurchase-rate', [$c, 'ecommerceRepurchaseRate']);
-        Route::get('/ecommerce-analytics/payment-channels', [$c, 'ecommercePaymentChannels']);
-        Route::get('/ecommerce-analytics/forecast', [$c, 'ecommerceForecast']);
-
-        // 转化漏斗
-        Route::get('/admin/conversion-funnel/dashboard', [$c, 'funnelDashboard']);
-        Route::get('/admin/conversion-funnel/data', [$c, 'funnelData']);
-        Route::get('/admin/conversion-funnel/by-source', [$c, 'funnelBySource']);
-        Route::get('/admin/conversion-funnel/trend', [$c, 'funnelTrend']);
-
-        // 邮件营销
-        Route::get('/admin/email-drip/dashboard', [$c, 'emailDripDashboard']);
-        Route::get('/admin/email-drip/campaigns', [$c, 'emailDripCampaigns']);
-        Route::get('/admin/email-drip/campaigns/{id}', [$c, 'emailDripCampaignDetail']);
-        Route::get('/admin/email-drip/triggers', [$c, 'emailDripTriggers']);
-
-        // 组合套餐
-        Route::get('/admin/bundles', [$c, 'bundlesList']);
-        Route::get('/admin/bundles/stats', [$c, 'bundlesStats']);
-        Route::get('/admin/bundles/{id}', [$c, 'bundlesDetail']);
-        Route::get('/admin/bundles/purchases', [$c, 'bundlesPurchases']);
-
-        // 预售/众筹
-        Route::get('/admin/pre-sale/stats', [$c, 'preSaleStats']);
-        Route::get('/admin/pre-sale', [$c, 'preSaleList']);
-        Route::get('/admin/pre-sale/{id}', [$c, 'preSaleDetail']);
-
-        // 秒杀/抢购
-        Route::get('/admin/flash-sale/dashboard', [$c, 'flashSaleDashboard']);
-        Route::get('/admin/flash-sale/list', [$c, 'flashSaleList']);
-        Route::get('/admin/flash-sale', [$c, 'flashSaleList']);
-        Route::get('/admin/flash-sale/{id}', [$c, 'flashSaleDetail']);
-
-        // 秒杀/抢购 CRUD 操作（使用专用控制器）
-        Route::post('/admin/flash-sale/create', [\App\Http\Controllers\Api\FlashSaleController::class, 'store']);
-        Route::post('/admin/flash-sale/{id}/status', [\App\Http\Controllers\Api\FlashSaleController::class, 'updateStatus']);
-        Route::post('/admin/flash-sale/{id}/release-expired', [\App\Http\Controllers\Api\FlashSaleController::class, 'releaseExpired']);
-
-        // 二级市场转售
-        Route::get('/admin/resale/dashboard', [$c, 'resaleDashboard']);
-        Route::get('/admin/resale', [$c, 'resaleList']);
-        Route::get('/admin/resale/{id}', [$c, 'resaleDetail']);
-
-        // 规格对比
-        Route::get('/admin/product-comparison', [$c, 'productComparisonList']);
-        Route::get('/admin/product-comparison/{id}', [$c, 'productComparisonDetail']);
-
-        // 促销引擎
-        Route::get('/admin/promotion-engine', [$c, 'promotionEngineList']);
-        Route::get('/admin/promotion-engine/stats', [$c, 'promotionEngineStats']);
-
-        // 续费提醒
-        Route::get('/admin/renewal-reminder/dashboard', [$c, 'renewalReminderDashboard']);
-        Route::get('/admin/renewal-reminder', [$c, 'renewalReminderList']);
-
-        // License 继承/合并
-        Route::get('/admin/license-merge', [$c, 'licenseMergeList']);
-        Route::get('/admin/license-merge/stats', [$c, 'licenseMergeStats']);
-
-        // License 二级市场
-        Route::get('/admin/license-marketplace/dashboard', [$c, 'licenseMarketplaceDashboard']);
-        Route::get('/admin/license-marketplace/listings', [$c, 'licenseMarketplaceListings']);
-        Route::get('/admin/license-marketplace/transactions', [$c, 'licenseMarketplaceTransactions']);
-        Route::get('/admin/license-marketplace/disputes', [$c, 'licenseMarketplaceDisputes']);
-
-        // 开发者认证
-        Route::get('/admin/certification', [$c, 'certificationList']);
-        Route::get('/admin/certification/stats', [$c, 'certificationStats']);
+        // intentionally empty
     }
 }

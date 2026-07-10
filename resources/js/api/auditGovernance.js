@@ -12,7 +12,7 @@ export default {
         return apiClient.get('/audit-governance/reports', { params }).then(r => r.data);
     },
     generateReport(data) {
-        return apiClient.post('/audit-governance/reports', data).then(r => r.data);
+        return apiClient.post('/audit-governance/reports/generate', data).then(r => r.data);
     },
     showReport(id) {
         return apiClient.get(`/audit-governance/reports/${id}`).then(r => r.data);
@@ -99,14 +99,14 @@ export default {
 
     // ─── 合规报告导出 ───
     reportExports(reportId) {
-        return apiClient.get(`/admin/compliance/reports/${reportId}/exports`).then(r => r.data);
+        return apiClient.get(`/audit-governance/reports/${reportId}/exports`).then(r => r.data);
     },
     exportReport(reportId, format) {
-        return apiClient.post(`/admin/compliance/reports/${reportId}/export`, { format }).then(r => r.data);
+        return apiClient.post(`/audit-governance/reports/${reportId}/export`, { format }).then(r => r.data);
     },
 
     // ─── 治理概览 ───
     governanceDashboard() {
-        return apiClient.get('/admin/audit-governance/dashboard').then(r => r.data);
+        return apiClient.get('/audit-governance/dashboard').then(r => r.data);
     },
 };

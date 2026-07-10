@@ -5,7 +5,7 @@
     </div>
 
     <el-row :gutter="24">
-      <el-col :span="16">
+      <el-col :xs="24" :sm="24" :md="16">
         <el-card shadow="hover" class="mb-4">
           <template #header><span>商品明细</span></template>
           <el-table :data="items" stripe size="small">
@@ -26,7 +26,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="8">
+      <el-col :xs="24" :sm="24" :md="8">
         <el-card shadow="hover">
           <template #header><span>订单摘要</span></template>
           <div class="summary-row"><span>商品总额</span><span>¥{{ subtotal }}</span></div>
@@ -112,4 +112,20 @@ function cycleLabel(c) {
 .total-price { font-size: 20px; font-weight: 700; color: #F56C6C; }
 .text-success { color: #67C23A; }
 .text-muted { color: #909399; }
+
+@media (max-width: 768px) {
+    .checkout-page { padding: 12px; }
+    .checkout-page :deep(.el-table) {
+        display: block;
+        overflow-x: auto;
+    }
+    .checkout-page :deep(.el-input) {
+        width: 100% !important;
+        margin-right: 0 !important;
+        margin-bottom: 8px;
+    }
+    .checkout-page .mb-4 :deep(.el-button) {
+        width: 100%;
+    }
+}
 </style>

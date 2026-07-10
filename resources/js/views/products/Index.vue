@@ -15,25 +15,25 @@
 
         <!-- 统计卡片 -->
         <el-row :gutter="16" class="stats-row" v-if="stats">
-            <el-col :span="6">
+            <el-col :xs="12" :sm="12" :md="6">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value">{{ stats.total }}</div>
                     <div class="stat-label">产品总数</div>
                 </el-card>
             </el-col>
-            <el-col :span="6">
+            <el-col :xs="12" :sm="12" :md="6">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value" style="color: var(--el-color-success);">{{ stats.active }}</div>
                     <div class="stat-label">已上架</div>
                 </el-card>
             </el-col>
-            <el-col :span="6">
+            <el-col :xs="12" :sm="12" :md="6">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value" style="color: var(--el-color-warning);">{{ stats.total_licenses }}</div>
                     <div class="stat-label">总 License 数</div>
                 </el-card>
             </el-col>
-            <el-col :span="6">
+            <el-col :xs="12" :sm="12" :md="6">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value" style="font-size: 14px;">
                         <template v-if="stats.top_products && stats.top_products.length">
@@ -809,5 +809,37 @@ code {
     background: #409eff;
     border-radius: 2px;
     flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .products-page { padding: 12px; }
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .header-left { display: flex; flex-direction: column; gap: 4px; }
+    .header-subtitle { margin-left: 0; }
+    .header-right { width: 100%; }
+    .header-right .el-button { width: 100%; }
+    .filter-card :deep(.el-form--inline .el-form-item) {
+        display: block;
+        margin-right: 0;
+        margin-bottom: 12px;
+    }
+    .filter-card :deep(.el-input),
+    .filter-card :deep(.el-select) {
+        width: 100% !important;
+    }
+    .batch-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .stat-value { font-size: 22px; }
+    .products-page :deep(.el-table) {
+        display: block;
+        overflow-x: auto;
+    }
 }
 </style>

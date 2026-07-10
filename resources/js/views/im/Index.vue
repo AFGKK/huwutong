@@ -441,18 +441,7 @@ async function submitFaq() {
     }
     faqDialog.submitting = true;
     try {
-        const token = localStorage.getItem('auth_token') || '';
-        const res = await fetch('/api/admin/chat-faqs', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify(faqDialog.form),
-        });
-        const data = await res.json();
+        const { data } = await apiClient.post('/chat-faqs', faqDialog.form);
         if (data.success) {
             ElMessage.success('FAQ 已添加');
             faqDialog.visible = false;
@@ -675,6 +664,13 @@ async function searchRag() {
 }
 
 // ── Handoff 配置 ──
+async function loadHandoffConfig() {
+    try {
+        const { data: res } = await apiClient.get('/chat/handoff-config');
+        Object.assign(handoffConfig, res.data || {});
+    } catch { /* use defaults */ }
+}
+
 async function saveHandoffConfig() {
     try {
         await apiClient.post('/chat/handoff-config', handoffConfig);
@@ -688,6 +684,7 @@ onMounted(() => {
     loadStats();
     loadChatWidgetConfig();
     loadAsrConfig();
+    loadHandoffConfig();
 });
 </script>
 

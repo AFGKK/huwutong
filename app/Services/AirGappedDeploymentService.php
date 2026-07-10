@@ -410,6 +410,21 @@ class AirGappedDeploymentService
     }
 
     /**
+     * 气隙存储目录磁盘占用（字节）
+     */
+    protected function getDiskUsage(): array
+    {
+        $path = storage_path('app/air-gapped');
+        $used = is_dir($path) ? $this->getDirectorySize($path) : 0;
+
+        return [
+            'path' => $path,
+            'used_bytes' => $used,
+            'used_mb' => round($used / 1024 / 1024, 2),
+        ];
+    }
+
+    /**
      * 获取已导入的 License 数量
      */
     protected function countImportedLicenses(): int

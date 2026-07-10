@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 
-const BASE = '/api/shop'
+const BASE = '/shop'
 
 export default {
   // ═══ 商品 ═══

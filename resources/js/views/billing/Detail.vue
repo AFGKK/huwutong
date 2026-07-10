@@ -353,7 +353,7 @@ async function loadPlans() {
 async function loadActivity() {
     try {
         // Try to load activity log from the renewal/activity endpoint
-        const { data: res } = await apiClient.get('/renewal-dashboard/activity-log', {
+        const { data: res } = await apiClient.get('/admin/renewal-dashboard/activity-log', {
             params: { subscription_id: route.params.id, per_page: 20 }
         }).catch(() => ({ data: { success: false } }));
         if (res.success) {

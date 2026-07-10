@@ -207,7 +207,7 @@ async function handleLogout() {
 async function handleRequestDataExport() {
     ElMessage.info('正在准备数据导出，请稍候...');
     try {
-        const res = await apiClient.post('/api/gdpr/requests', {
+        const res = await apiClient.post('/gdpr/requests', {
             type: 'access',
             reason: '用户自助导出',
         });

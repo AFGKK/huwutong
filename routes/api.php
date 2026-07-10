@@ -179,7 +179,6 @@ use App\Http\Controllers\Api\SecretScanController;
 use App\Http\Controllers\Api\IncidentAlertingController;
 use App\Http\Controllers\Api\RefundController;
 use App\Http\Controllers\Api\ApprovalWorkflowController;
-use App\Http\Controllers\Api\AdminPageDataController;
 use App\Http\Controllers\Api\PortalBrandingController;
 use App\Http\Controllers\Api\CloudMarketplaceController;
 use App\Http\Controllers\Api\LicenseComplianceReportController;

@@ -1,5 +1,7 @@
 <template>
   <div class="slo-management">
+    <el-tabs v-model="mainTab">
+      <el-tab-pane label="SLO 错误预算" name="slo">
     <!-- 顶部统计卡片 -->
     <el-row :gutter="20" class="mb-4">
       <el-col :span="6">
@@ -254,6 +256,33 @@
         </el-table-column>
       </el-table>
     </el-card>
+      </el-tab-pane>
+
+      <el-tab-pane label="调用链追踪" name="tracing">
+        <el-row :gutter="16" class="mb-4">
+          <el-col :span="6"><el-card shadow="hover"><div class="stat-value">{{ tracingStats.total || 0 }}</div><div class="stat-label">总请求</div></el-card></el-col>
+          <el-col :span="6"><el-card shadow="hover"><div class="stat-value text-red-500">{{ tracingStats.slow || 0 }}</div><div class="stat-label">慢请求</div></el-card></el-col>
+          <el-col :span="6"><el-card shadow="hover"><div class="stat-value">{{ tracingStats.avg_duration_ms || 0 }}ms</div><div class="stat-label">平均耗时</div></el-card></el-col>
+          <el-col :span="6"><el-card shadow="hover"><div class="stat-value">{{ tracingStats.error_rate || 0 }}%</div><div class="stat-label">错误率</div></el-card></el-col>
+        </el-row>
+        <el-card shadow="never">
+          <el-table :data="tracingList" v-loading="tracingLoading" stripe>
+            <el-table-column prop="method" label="方法" width="80" />
+            <el-table-column prop="path" label="路径" min-width="220" show-overflow-tooltip />
+            <el-table-column prop="status_code" label="状态码" width="90" />
+            <el-table-column prop="duration_ms" label="耗时(ms)" width="100" />
+            <el-table-column prop="created_at" label="时间" width="170">
+              <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="90">
+              <template #default="{ row }">
+                <el-button size="small" link type="primary" @click="openTracingDetail(row.id)">详情</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
@@ -263,8 +292,14 @@ import { ElMessage } from 'element-plus';
 import { Plus, Refresh, Delete, DataAnalysis } from '@element-plus/icons-vue';
 import {
   getSloDashboard, getSloList, getSlo, createSlo, updateSlo,
-  deleteSlo, calculateSlo, calculateAllSlo
+  deleteSlo, calculateSlo, calculateAllSlo,
+  getTracingList, getTracingStats, getTracingDetail,
 } from '../../api/slo';
+
+const mainTab = ref('slo');
+const tracingLoading = ref(false);
+const tracingList = ref([]);
+const tracingStats = reactive({ total: 0, slow: 0, avg_duration_ms: 0, error_rate: 0 });
 
 const loading = ref(false);
 const calculating = ref(false);
@@ -496,9 +531,35 @@ async function handleCalculateAll() {
   }
 }
 
+async function fetchTracing() {
+  tracingLoading.value = true;
+  try {
+    const [{ data: listRes }, { data: statsRes }] = await Promise.all([
+      getTracingList({ per_page: 20 }),
+      getTracingStats(),
+    ]);
+    tracingList.value = listRes.data?.data || listRes.data || [];
+    Object.assign(tracingStats, statsRes.data || {});
+  } catch (e) {
+    console.error('获取调用链失败', e);
+  } finally {
+    tracingLoading.value = false;
+  }
+}
+
+async function openTracingDetail(id) {
+  try {
+    const { data } = await getTracingDetail(id);
+    ElMessage.info(`Trace #${id}: ${data.data?.path || data.path || '详情已加载'}`);
+  } catch {
+    ElMessage.error('获取详情失败');
+  }
+}
+
 onMounted(() => {
   fetchDashboard();
   fetchList();
+  fetchTracing();
 });
 </script>
 
