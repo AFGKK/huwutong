@@ -134,7 +134,7 @@ class ApiResponse
      */
     public static function unauthorized(?string $message = null): JsonResponse
     {
-        return static::errorCode(ErrorCode::UNAUTHORIZED, message: $message ?: null);
+        return static::error(ErrorCode::UNAUTHORIZED, $message, ErrorCode::UNAUTHORIZED->httpStatus());
     }
 
     /**
@@ -142,7 +142,7 @@ class ApiResponse
      */
     public static function forbidden(?string $message = null): JsonResponse
     {
-        return static::errorCode(ErrorCode::FORBIDDEN, message: $message ?: null);
+        return static::error(ErrorCode::FORBIDDEN, $message, ErrorCode::FORBIDDEN->httpStatus());
     }
 
     /**
@@ -150,7 +150,7 @@ class ApiResponse
      */
     public static function notFound(?string $message = null): JsonResponse
     {
-        return static::errorCode(ErrorCode::NOT_FOUND, message: $message ?: null);
+        return static::error(ErrorCode::NOT_FOUND, $message, ErrorCode::NOT_FOUND->httpStatus());
     }
 
     /**

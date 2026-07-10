@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperFlashSaleOrder
+ */
 class FlashSaleOrder extends Model
 {
     protected $table = 'flash_sale_orders';

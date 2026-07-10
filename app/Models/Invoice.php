@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * @mixin IdeHelperInvoice
+ */
 class Invoice extends Model
 {
     use HasFactory;
@@ -83,6 +86,14 @@ class Invoice extends Model
     public function refunds(): HasMany
     {
         return $this->hasMany(Refund::class, 'invoice_id');
+    }
+
+    /**
+     * 会计系统同步映射
+     */
+    public function accountingSyncMappings(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(AccountingSyncMapping::class, 'local', 'local_type', 'local_id');
     }
 
     /**

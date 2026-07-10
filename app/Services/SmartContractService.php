@@ -314,7 +314,7 @@ class SmartContractService
             $failedConditions = array_values(array_filter($conditionsResults, fn($r) => !$r['matched']));
 
             LicenseContractEvaluationLog::create([
-                'tenant_id' => $context['tenant_id'] ?? 1,
+                'tenant_id' => $context['tenant_id'] ?? $contract->tenant_id,
                 'contract_id' => $contract->id,
                 'contract_slug' => $contract->slug,
                 'contract_name' => $contract->name,

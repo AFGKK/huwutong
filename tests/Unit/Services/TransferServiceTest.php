@@ -8,7 +8,7 @@ use App\Models\LicenseTransferRequest;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\TransferService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class TransferServiceTest extends TestCase
@@ -16,6 +16,7 @@ class TransferServiceTest extends TestCase
     use RefreshDatabase;
 
     protected TransferService $service;
+    protected Tenant $tenant;
     protected User $admin;
     protected Customer $customer;
     protected License $license;
@@ -25,25 +26,19 @@ class TransferServiceTest extends TestCase
         parent::setUp();
         $this->service = new TransferService();
 
-        Tenant::create(['id' => 1, 'name' => 'Default']);
+        $this->tenant = Tenant::factory()->create();
 
-        $this->admin = User::create([
-            'name' => 'Admin', 'email' => 'admin@test.com',
-            'password' => bcrypt('password'),
-        ]);
+        $this->admin = User::factory()->create();
         $this->actingAs($this->admin);
 
-        $this->customer = Customer::create([
-            'name' => 'Test Corp', 'email' => 'corp@test.com',
-            'tenant_id' => 1,
+        $this->customer = Customer::factory()->create([
+            'tenant_id' => $this->tenant->id,
         ]);
 
-        $this->license = License::create([
-            'license_key' => 'HWT-TEST-001',
+        $this->license = License::factory()->create([
             'customer_id' => $this->customer->id,
-            'type' => 'enterprise',
             'status' => 'active',
-            'tenant_id' => 1,
+            'tenant_id' => $this->tenant->id,
         ]);
     }
 
@@ -67,7 +62,7 @@ class TransferServiceTest extends TestCase
 
     public function test_can_create_customer_transfer_request()
     {
-        $targetCustomer = Customer::create(['name' => 'Target Corp', 'email' => 'target@test.com', 'tenant_id' => 1]);
+        $targetCustomer = Customer::factory()->create(['tenant_id' => $this->tenant->id]);
 
         $request = $this->service->createRequest([
             'type' => 'customer_transfer',
@@ -110,7 +105,7 @@ class TransferServiceTest extends TestCase
 
     public function test_can_approve_customer_transfer()
     {
-        $target = Customer::create(['name' => 'Target', 'email' => 't@t.com', 'tenant_id' => 1]);
+        $target = Customer::factory()->create(['tenant_id' => $this->tenant->id]);
 
         $request = $this->service->createRequest([
             'type' => 'customer_transfer',

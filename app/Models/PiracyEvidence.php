@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperPiracyEvidence
+ */
 class PiracyEvidence extends Model
 {
     protected $table = 'piracy_evidence';

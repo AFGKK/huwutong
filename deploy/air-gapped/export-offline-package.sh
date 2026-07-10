@@ -11,12 +11,18 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 VERSION="${1:-$(date +%Y%m%d)-$(git describe --tags --always 2>/dev/null || echo 'unknown')}"
+STACK="${2:-pgsql}"  # pgsql（默认）| mysql | both
+INCLUDE_DATA="${INCLUDE_DATA:-0}"
+if [ "${3:-}" = "with-data" ]; then
+    INCLUDE_DATA=1
+fi
 OUTPUT_DIR="${SCRIPT_DIR}/output/hwt-license-offline-${VERSION}"
 PACKAGE_NAME="hwt-license-offline-${VERSION}.zip"
 
 echo "=========================================="
 echo " HWT License 离线安装包导出"
 echo " 版本: ${VERSION}"
+echo " 数据库栈: ${STACK}"
 echo "=========================================="
 
 # ---------- 检查环境 ----------
@@ -33,12 +39,23 @@ echo ""
 echo ">>> [1/5] Pulling Docker images..."
 
 IMAGES=(
-    "mysql:8.0"
     "redis:7-alpine"
     "nginx:1.25-alpine"
     "composer:2.6"
     "node:20-alpine"
 )
+
+case "${STACK}" in
+    mysql)
+        IMAGES+=("mysql:8.0")
+        ;;
+    pgsql)
+        IMAGES+=("pgvector/pgvector:pg16")
+        ;;
+    *)
+        IMAGES+=("pgvector/pgvector:pg16" "mysql:8.0")
+        ;;
+esac
 
 for img in "${IMAGES[@]}"; do
     echo "  Pulling ${img}..."
@@ -48,19 +65,26 @@ done
 echo ""
 echo ">>> [2/5] Building application Docker images..."
 
-# Build API image
-docker build -f "${PROJECT_ROOT}/Dockerfile" \
-    --build-arg APP_ENV=production \
-    --build-arg APP_DEBUG=false \
-    -t "hwt-license-api:${VERSION}" \
-    -t "hwt-license-api:latest" \
-    "${PROJECT_ROOT}" 2>/dev/null || echo "  [WARN] Dockerfile not found, building minimal image"
-
-# If no Dockerfile, create a minimal one
-if [ ! -f "${PROJECT_ROOT}/Dockerfile" ]; then
+# Build API image (含 pdo_mysql + pdo_pgsql)
+DOCKERFILE="${PROJECT_ROOT}/deploy/docker/Dockerfile"
+if [ -f "${DOCKERFILE}" ]; then
+    docker build -f "${DOCKERFILE}" \
+        -t "hwt-license-api:${VERSION}" \
+        -t "hwt-license-api:latest" \
+        "${PROJECT_ROOT}"
+elif [ -f "${PROJECT_ROOT}/Dockerfile" ]; then
+    docker build -f "${PROJECT_ROOT}/Dockerfile" \
+        --build-arg APP_ENV=production \
+        --build-arg APP_DEBUG=false \
+        -t "hwt-license-api:${VERSION}" \
+        -t "hwt-license-api:latest" \
+        "${PROJECT_ROOT}"
+else
+    echo "  [WARN] Dockerfile not found, building minimal image"
     cat > /tmp/hwt-minimal.Dockerfile << 'DOCKERFILE'
 FROM php:8.3-fpm-alpine
-RUN apk add --no-cache nginx supervisor
+RUN apk add --no-cache nginx supervisor postgresql-dev \
+    && docker-php-ext-install pdo_mysql pdo_pgsql
 COPY . /app
 DOCKERFILE
     docker build -f /tmp/hwt-minimal.Dockerfile -t "hwt-license-api:${VERSION}" "${PROJECT_ROOT}"
@@ -84,11 +108,44 @@ echo ">>> [4/5] Copying scripts and configs..."
 
 # Copy scripts
 cp "${SCRIPT_DIR}/scripts/"*.sh "${OUTPUT_DIR}/scripts/" 2>/dev/null || true
+cp "${PROJECT_ROOT}/scripts/export-pgsql-data.php" "${OUTPUT_DIR}/scripts/" 2>/dev/null || true
+cp "${PROJECT_ROOT}/scripts/export-mysql-data.php" "${OUTPUT_DIR}/scripts/" 2>/dev/null || true
 
-# Copy docker-compose
+# Copy compose & env templates
 cp "${SCRIPT_DIR}/docker-compose.yml" "${OUTPUT_DIR}/" 2>/dev/null || true
+cp "${SCRIPT_DIR}/docker-compose.pgsql.yml" "${OUTPUT_DIR}/" 2>/dev/null || true
+cp "${SCRIPT_DIR}/docker-compose.mysql.yml" "${OUTPUT_DIR}/" 2>/dev/null || true
 cp "${SCRIPT_DIR}/.env.airgap" "${OUTPUT_DIR}/.env" 2>/dev/null || true
-cp "${SCRIPT_DIR}/config/"* "${OUTPUT_DIR}/config/" 2>/dev/null || true
+cp "${SCRIPT_DIR}/.env.airgap.pgsql" "${OUTPUT_DIR}/" 2>/dev/null || true
+cp "${SCRIPT_DIR}/.env.airgap.mysql" "${OUTPUT_DIR}/" 2>/dev/null || true
+cp -r "${SCRIPT_DIR}/config/"* "${OUTPUT_DIR}/config/" 2>/dev/null || true
+echo "pgsql" > "${OUTPUT_DIR}/STACK.default"
+
+# 可选: 打包 PostgreSQL 数据
+if [ "${INCLUDE_DATA}" = "1" ] && { [ "${STACK}" = "pgsql" ] || [ "${STACK}" = "both" ]; }; then
+    echo ""
+    echo ">>> [4.5/5] 导出 PostgreSQL 数据..."
+    if bash "${SCRIPT_DIR}/scripts/export-pgsql-data.sh" "${OUTPUT_DIR}/data/pgsql"; then
+        echo "  数据已写入 data/pgsql/"
+    else
+        echo "  [WARN] PG 数据导出失败，尝试: php scripts/export-pgsql-data.php"
+        php "${PROJECT_ROOT}/scripts/export-pgsql-data.php" "${OUTPUT_DIR}/data/pgsql" 2>/dev/null || \
+            echo "  [WARN] 跳过 PG 数据打包"
+    fi
+fi
+
+# 可选: 打包 MySQL 数据（遗留栈）
+if [ "${INCLUDE_DATA}" = "1" ] && { [ "${STACK}" = "mysql" ] || [ "${STACK}" = "both" ]; }; then
+    echo ""
+    echo ">>> [4.6/5] 导出 MySQL 数据..."
+    if bash "${SCRIPT_DIR}/scripts/export-mysql-data.sh" "${OUTPUT_DIR}/data/mysql"; then
+        echo "  数据已写入 data/mysql/"
+    else
+        echo "  [WARN] MySQL 数据导出失败，尝试: php scripts/export-mysql-data.php"
+        php "${PROJECT_ROOT}/scripts/export-mysql-data.php" "${OUTPUT_DIR}/data/mysql" 2>/dev/null || \
+            echo "  [WARN] 跳过 MySQL 数据打包"
+    fi
+fi
 
 # Create manifest
 cat > "${OUTPUT_DIR}/MANIFEST" << MANIFEST
@@ -97,6 +154,11 @@ Version: ${VERSION}
 Created: $(date -u '+%Y-%m-%dT%H:%M:%SZ')
 Git Commit: $(git rev-parse HEAD 2>/dev/null || echo 'n/a')
 Git Branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'n/a')
+Database Stack: ${STACK}
+Default Stack: pgsql (PostgreSQL 16 + pgvector)
+Includes DB Data: ${INCLUDE_DATA}
+Compose (PG): docker-compose.yml / docker-compose.pgsql.yml
+Legacy MySQL: docker-compose.mysql.yml + .env.airgap.mysql
 Images:
 $(ls "${OUTPUT_DIR}/docker-images/" 2>/dev/null | sed 's/^/  - /')
 MANIFEST
@@ -131,5 +193,10 @@ echo "  2. 在目标离线环境执行:"
 echo "     unzip ${PACKAGE_NAME}"
 echo "     cd hwt-license-offline-${VERSION}"
 echo "     bash scripts/check-integrity.sh"
-echo "     bash scripts/deploy-offline.sh"
+echo "     bash scripts/deploy-offline.sh          # 默认 PostgreSQL"
+echo "     DEPLOY_STACK=mysql bash scripts/deploy-offline.sh  # MySQL 遗留"
+echo ""
+echo "  含数据导出: bash export-offline-package.sh ${VERSION} pgsql with-data"
+echo "  MySQL 遗留: bash export-offline-package.sh ${VERSION} mysql with-data"
+echo "  或 Windows: php scripts/export-pgsql-data.php / php scripts/export-mysql-data.php"
 echo "=========================================="

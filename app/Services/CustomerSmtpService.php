@@ -450,7 +450,7 @@ class CustomerSmtpService
     public function getConfigs(?int $tenantId = null): array
     {
         return CustomerSmtpConfig::byTenant($tenantId)
-            ->with('logs' => function ($q) { $q->latest()->limit(5); })
+            ->with(['logs' => function ($q) { $q->latest()->limit(5); }])
             ->orderByDesc('is_primary')
             ->orderByDesc('priority')
             ->get()

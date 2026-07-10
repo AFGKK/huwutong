@@ -44,6 +44,24 @@ class SitemapController extends Controller
         }
 
         // 产品详情页
+        // 互物号文章
+        try {
+            $articles = \App\Models\OaArticle::where('status', 'published')
+                ->orderByDesc('published_at')
+                ->get(['id', 'title', 'published_at', 'updated_at']);
+
+            foreach ($articles as $article) {
+                $pages[] = [
+                    'loc' => '/oa-article/' . $article->id,
+                    'priority' => '0.6',
+                    'changefreq' => 'weekly',
+                    'lastmod' => ($article->updated_at ?? $article->published_at)?->toDateString(),
+                ];
+            }
+        } catch (\Exception $e) {
+            // 静默失败
+        }
+
         try {
             $products = Product::where('is_active', true)->get(['slug', 'updated_at']);
             foreach ($products as $product) {

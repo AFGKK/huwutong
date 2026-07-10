@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperMarketplaceBanner
+ */
 class MarketplaceBanner extends Model
 {
     protected $fillable = [

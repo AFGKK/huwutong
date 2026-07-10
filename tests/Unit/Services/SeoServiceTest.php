@@ -8,7 +8,7 @@ use App\Models\SeoMetadata;
 use App\Models\Tenant;
 use App\Models\UrlRedirect;
 use App\Services\SeoService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SeoServiceTest extends TestCase

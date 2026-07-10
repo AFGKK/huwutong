@@ -10,7 +10,7 @@ use App\Models\ApiDocSchema;
 use App\Models\ApiTestRequest;
 use App\Models\User;
 use App\Services\ApiDocsService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ApiDocsServiceTest extends TestCase

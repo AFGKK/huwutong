@@ -7,7 +7,7 @@ use App\Models\PromotionRule;
 use App\Models\Tenant;
 use App\Services\PromotionEngineService;
 use Exception;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class PromotionEngineTest extends TestCase

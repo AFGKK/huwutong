@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
  * 跨境数据传输评估 (PIPL Art.38)
  *
  * 记录跨境数据传输的目的地、法律依据、安全措施
+ *
+ * @mixin IdeHelperCrossBorderTransfer
  */
 class CrossBorderTransfer extends Model
 {

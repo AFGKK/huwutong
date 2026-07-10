@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperComplianceEvidenceItem
+ */
 class ComplianceEvidenceItem extends Model
 {
     protected $table = 'compliance_evidence_items';

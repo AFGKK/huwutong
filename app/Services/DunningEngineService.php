@@ -10,6 +10,7 @@ use App\Models\Invoice;
 use App\Models\License;
 use App\Models\Subscription;
 use App\Models\PricingPlan;
+use App\Support\DbSql;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -320,7 +321,10 @@ class DunningEngineService
         License::where('subscription_id', $subscription->id)
             ->where('status', 'active')
             ->update([
-                'metadata' => DB::raw("JSON_SET(COALESCE(metadata, '{}'), '$.downgraded', true, '$.downgraded_at', '\"" . now()->toIso8601String() . "\"')"),
+                'metadata' => DB::raw(DbSql::jsonMerge('metadata', [
+                    'downgraded' => true,
+                    'downgraded_at' => now()->toIso8601String(),
+                ])),
             ]);
     }
 

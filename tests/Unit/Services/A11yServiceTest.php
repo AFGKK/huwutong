@@ -4,7 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\User;
 use App\Services\A11yService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class A11yServiceTest extends TestCase

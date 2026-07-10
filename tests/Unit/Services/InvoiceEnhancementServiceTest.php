@@ -11,7 +11,7 @@ use App\Models\InvoiceTemplate;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Services\InvoiceEnhancementService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class InvoiceEnhancementServiceTest extends TestCase

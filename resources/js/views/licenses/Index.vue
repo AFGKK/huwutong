@@ -47,6 +47,28 @@
             </div>
         </div>
 
+        <!-- 快速筛选状态标签 -->
+        <div class="quick-filters mb-4">
+            <el-tag
+                :type="!filters.status ? 'primary' : 'info'"
+                :effect="!filters.status ? 'dark' : 'plain'"
+                class="clickable-tag"
+                @click="filters.status = ''; fetchData(1)"
+            >
+                全部
+            </el-tag>
+            <el-tag
+                v-for="s in quickFilterOptions"
+                :key="s.value"
+                :type="filters.status === s.value ? s.type : 'info'"
+                :effect="filters.status === s.value ? 'dark' : 'plain'"
+                class="clickable-tag"
+                @click="filters.status = s.value; fetchData(1)"
+            >
+                {{ s.label }}
+            </el-tag>
+        </div>
+
         <!-- 搜索/筛选栏 -->
         <el-card class="mb-4">
             <el-form :model="filters" inline label-width="90px" @keyup.enter="fetchData">
@@ -162,9 +184,20 @@
                 <el-table-column type="selection" width="40" />
                 <el-table-column prop="license_key" label="License Key" min-width="200" sortable="custom">
                     <template #default="{ row }">
-                        <el-link type="primary" :underline="'never'" @click="$router.push(`/licenses/${row.id}`)">
-                            <code class="key-text">{{ row.license_key }}</code>
-                        </el-link>
+                        <div class="key-cell">
+                            <el-link type="primary" :underline="'never'" @click="$router.push(`/licenses/${row.id}`)">
+                                <code class="key-text">{{ row.license_key }}</code>
+                            </el-link>
+                            <el-button
+                                text
+                                size="small"
+                                class="copy-btn"
+                                @click.stop="copyLicenseKey(row.license_key)"
+                                title="复制 License Key"
+                            >
+                                <el-icon><CopyDocument /></el-icon>
+                            </el-button>
+                        </div>
                     </template>
                 </el-table-column>
                 <el-table-column prop="product?.name" label="产品" width="120" :formatter="(r) => r.product?.name || '-'" />
@@ -187,7 +220,9 @@
                 <el-table-column prop="max_devices" label="设备限制" width="90" align="center" />
                 <el-table-column prop="expires_at" label="过期时间" width="170" sortable="custom">
                     <template #default="{ row }">
-                        <span :class="expiryClass(row)">{{ row.expires_at || '永久' }}</span>
+                        <el-tooltip :content="expiryTooltip(row)" placement="top" :disabled="!row.expires_at">
+                            <span :class="expiryClass(row)">{{ row.expires_at || '永久' }}</span>
+                        </el-tooltip>
                     </template>
                 </el-table-column>
                 <el-table-column prop="created_at" label="创建时间" width="170" sortable="custom" />
@@ -535,7 +570,7 @@ import SavedSearchBar from '@/components/SavedSearchBar.vue';
 import {
     Plus, Download, Upload, DocumentAdd, ArrowDown,
     View, VideoPause, ColdDrink, Refresh, Remove,
-    WarningFilled, Money,
+    WarningFilled, Money, CopyDocument,
 } from '@element-plus/icons-vue';
 
 const router = useRouter();
@@ -1129,6 +1164,15 @@ const STATUS_MAP = {
     blacklisted: { type: 'danger', label: '黑名单' },
 };
 
+// 快速筛选标签（主要状态，不含终态）
+const quickFilterOptions = [
+    { value: 'active', label: '活跃中', type: 'success' },
+    { value: 'expired', label: '已过期', type: 'info' },
+    { value: 'suspended', label: '已暂停', type: 'warning' },
+    { value: 'frozen', label: '已冻结', type: 'warning' },
+    { value: 'revoked', label: '已吊销', type: 'danger' },
+];
+
 function statusType(status) {
     return STATUS_MAP[status]?.type || 'info';
 }
@@ -1142,6 +1186,31 @@ function expiryClass(row) {
     if (expiry < now) return 'expired-text';
     const days = (expiry - now) / 86400000;
     return days <= 7 ? 'expiring-soon-text' : '';
+}
+function expiryTooltip(row) {
+    if (!row.expires_at) return '永久有效';
+    const now = Date.now();
+    const expiry = new Date(row.expires_at).getTime();
+    const diffMs = expiry - now;
+    const days = Math.ceil(diffMs / 86400000);
+    if (diffMs < 0) return `已过期 ${Math.abs(days)} 天`;
+    if (days <= 7) return `⚠️ 还剩 ${days} 天过期`;
+    if (days <= 30) return `还剩 ${days} 天过期`;
+    return `有效期至 ${row.expires_at}`;
+}
+function copyLicenseKey(key) {
+    navigator.clipboard.writeText(key).then(() => {
+        ElMessage.success({ message: 'License Key 已复制', duration: 1500 });
+    }).catch(() => {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = key;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        ElMessage.success({ message: 'License Key 已复制', duration: 1500 });
+    });
 }
 
 onMounted(() => {
@@ -1214,6 +1283,34 @@ onMounted(() => {
 .expiring-soon-text {
     color: #e6a23c;
     font-weight: 500;
+}
+/* ─── 快速筛选标签 ─── */
+.quick-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.clickable-tag {
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s;
+}
+.clickable-tag:hover {
+    transform: translateY(-1px);
+}
+/* ─── License Key 复制按钮 ─── */
+.key-cell {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.key-cell .copy-btn {
+    opacity: 0;
+    transition: opacity 0.2s;
+    margin-left: 2px;
+}
+.key-cell:hover .copy-btn {
+    opacity: 1;
 }
 .filter-bar-footer {
     display: flex;

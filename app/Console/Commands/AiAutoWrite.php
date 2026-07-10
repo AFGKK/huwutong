@@ -31,7 +31,7 @@ class AiAutoWrite extends Command
 
         $accounts = OfficialAccount::where('status', 'active')->get();
         if ($accounts->isEmpty()) {
-            $this->warn('没有可用的公众号');
+            $this->warn('没有可用的互物号');
             return Command::SUCCESS;
         }
 
@@ -43,7 +43,7 @@ class AiAutoWrite extends Command
                 try {
                     $topic = $topics[array_rand($topics)];
                     $result = $orchestrator->forFriend($writer)->generate(null,
-                        "请写一篇关于「{$topic}」的公众号文章，标题要吸引人，内容专业有价值，500-800字。返回格式：\n标题：xxx\n\n正文内容");
+                        "请写一篇关于「{$topic}」的互物号文章，标题要吸引人，内容专业有价值，500-800字。返回格式：\n标题：xxx\n\n正文内容");
 
                     $reply = $result['content'] ?? '';
                     if (empty($reply)) continue;

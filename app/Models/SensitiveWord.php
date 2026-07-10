@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperSensitiveWord
+ */
 class SensitiveWord extends Model
 {
     protected $fillable = ['word', 'replacement', 'category', 'severity', 'is_active'];

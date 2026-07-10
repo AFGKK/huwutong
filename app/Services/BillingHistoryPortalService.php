@@ -124,9 +124,7 @@ class BillingHistoryPortalService
 
         // 最近 12 个月月度收入趋势
         $dbDriver = DB::connection()->getDriverName();
-        $monthExpr = $dbDriver === 'sqlite'
-            ? "strftime('%Y-%m', created_at) as month"
-            : "DATE_FORMAT(created_at, '%Y-%m') as month";
+        $monthExpr = db_date_format('created_at', '%Y-%m').' as month';
 
         $monthlyRevenue = (clone $query)
             ->where('status', 'paid')

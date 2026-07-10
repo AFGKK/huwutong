@@ -72,7 +72,7 @@ class EventBus
                 oldStatus: $event->oldStatus,
                 newStatus: $event->newStatus,
                 reason: $event->reason,
-                userId: $event->operatorId ?? auth()->id(),
+                userId: auth()->id(),
             );
         } catch (\Throwable $e) {
             LogFacade::error('审计日志写入失败', [
@@ -143,19 +143,25 @@ class EventBus
             }
 
             if ($title && $content) {
+                $payload = [
+                    'license_id' => $license->id,
+                    'license_key' => $license->license_key,
+                ];
+
+                if ($event instanceof LicenseStatusChanged) {
+                    $payload['old_status'] = $event->oldStatus;
+                    $payload['new_status'] = $event->newStatus;
+                } elseif ($event instanceof LicenseAboutToExpire) {
+                    $payload['days_remaining'] = $event->daysRemaining;
+                }
+
                 \App\Models\Notification::create([
                     'tenant_id' => $license->tenant_id,
                     'customer_id' => $license->customer_id,
                     'type' => $event instanceof LicenseAboutToExpire ? 'expiry_warning' : 'status_change',
                     'title' => $title,
                     'content' => $content,
-                    'payload' => [
-                        'license_id' => $license->id,
-                        'license_key' => $license->license_key,
-                        'old_status' => $event->oldStatus ?? null,
-                        'new_status' => $event->newStatus ?? null,
-                        'days_remaining' => $event->daysRemaining ?? null,
-                    ],
+                    'payload' => $payload,
                 ]);
             }
         } catch (\Throwable $e) {

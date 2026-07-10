@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Services\IdempotencyService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Tests\TestCase;

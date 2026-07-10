@@ -160,7 +160,11 @@ async function handleRegister() {
       password: form.password,
       password_confirmation: form.password_confirmation,
     };
-    if (route.query.ref) {
+    // 优先使用 referral_code 参数作为推广码，兼容 ref 参数
+    if (route.query.referral_code) {
+      payload.invite_code = route.query.referral_code;
+    } else if (route.query.ref) {
+      // ref 可能是推广码也可能是活动 slug，作为后备
       payload.invite_code = route.query.ref;
     }
     const response = await authApi.register(payload);

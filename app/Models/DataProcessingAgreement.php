@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
  * DPA 数据处理协议 (M3-33)
  *
  * 记录与租户之间的数据处理协议，包含数据类别、处理目的、子处理者、安全措施等。
+ *
+ * @mixin IdeHelperDataProcessingAgreement
  */
 class DataProcessingAgreement extends Model
 {

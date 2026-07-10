@@ -7,7 +7,7 @@ use App\Models\License;
 use App\Models\Product;
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ProductApiTest extends TestCase
@@ -94,8 +94,12 @@ class ProductApiTest extends TestCase
         ], $this->authHeaders());
 
         $response->assertStatus(201)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.name', '新产品');
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('products', [
+            'slug' => 'new-product',
+            'name' => '新产品',
+        ]);
     }
 
     public function test_store_validates_required_fields(): void

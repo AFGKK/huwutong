@@ -44,7 +44,14 @@ export const useAuthStore = defineStore('auth', {
                 localStorage.setItem('user', JSON.stringify(user));
                 ElMessage.success('登录成功');
                 return true;
-            } catch {
+            } catch (e) {
+                const errData = e?.response?.data?.error;
+                if (errData?.details) {
+                    const firstMsg = Object.values(errData.details)[0]?.[0];
+                    if (firstMsg) ElMessage.error(firstMsg);
+                } else {
+                    ElMessage.error(errData?.message || '登录失败，请检查邮箱和密码');
+                }
                 return false;
             } finally {
                 this.loading = false;

@@ -7,7 +7,7 @@ use App\Models\AuthorizationReservation;
 use App\Models\License;
 use App\Services\TwoPhaseCommitService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class TwoPhaseCommitTest extends TestCase

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * 推广链接/码
+ *
+ * @mixin IdeHelperReferralLink
  */
 class ReferralLink extends Model
 {

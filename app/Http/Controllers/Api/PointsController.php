@@ -280,7 +280,7 @@ class PointsController extends Controller
     private function contentTypeLabel(string $type): string
     {
         return match ($type) {
-            'oa_article' => '公众号文章',
+            'oa_article' => '互物号文章',
             'forum_post' => '广场帖子',
             'blog_post'  => '博客文章',
             'product'    => '商品',

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperOemSubscriptionChange
+ */
 class OemSubscriptionChange extends Model
 {
     protected $table = 'oem_subscription_changes';

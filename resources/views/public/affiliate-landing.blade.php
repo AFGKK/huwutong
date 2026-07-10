@@ -110,7 +110,7 @@
 
                 <!-- CTA 按钮 -->
                 <div class="text-center">
-                    @php $registerUrl = url('/build/register?ref=' . $campaign->slug . ($referralCode ? '&referral_code=' . $referralCode : '')); @endphp
+                    @php $registerUrl = url('/build/register?ref=' . $campaign->slug . ($referralCode ? '&referral_code=' . $referralCode : '') . '&redirect=/portal/affiliate'); @endphp
                     <a href="{{ $registerUrl }}"
                        class="btn-primary inline-flex items-center gap-2 text-white font-semibold px-8 py-3.5 rounded-xl shadow-lg transition-all duration-300">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
@@ -121,9 +121,7 @@
             </div>
 
             <!-- 底部 -->
-            <div class="text-center mt-8 text-xs text-gray-400">
-                &copy; {{ date('Y') }} 互物通 - 企业级授权管理系统
-            </div>
+            @include('public.partials.footer')
         </div>
     </div>
 </body>

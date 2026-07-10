@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use App\Support\DbSql;
 use Throwable;
 
 /**
@@ -188,8 +189,7 @@ class TextToSqlGuardService
 
         // 执行查询
         try {
-            // 设置查询超时
-            DB::statement("SET LOCAL statement_timeout = " . (self::QUERY_TIMEOUT * 1000));
+            DbSql::applyQueryTimeout(self::QUERY_TIMEOUT);
 
             $startTime = microtime(true);
             $results = DB::select($validation['sql'], $bindings);

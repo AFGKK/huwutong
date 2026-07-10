@@ -9,7 +9,7 @@ use App\Models\Product;
 use App\Models\Tenant;
 use App\Services\LicenseAnalyticsService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class LicenseAnalyticsEnhancedTest extends TestCase

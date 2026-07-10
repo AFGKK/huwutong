@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * 客户支付方式模型
  *
  * 存储脱敏的支付方式信息，支持多卡管理和默认支付方式。
+ *
+ * @mixin IdeHelperPaymentMethod
  */
 class PaymentMethod extends Model
 {

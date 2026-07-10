@@ -8,7 +8,7 @@ use App\Models\EnterpriseContract;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\EnterpriseContractService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 
 class EnterpriseContractServiceTest extends TestCase
 {

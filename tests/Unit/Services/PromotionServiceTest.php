@@ -9,7 +9,7 @@ use App\Models\Promotion;
 use App\Models\PromotionRedemption;
 use App\Models\User;
 use App\Services\PromotionService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class PromotionServiceTest extends TestCase
@@ -18,6 +18,7 @@ class PromotionServiceTest extends TestCase
 
     protected PromotionService $service;
     protected User $admin;
+    protected \App\Models\Tenant $tenant;
 
     protected function setUp(): void
     {
@@ -25,7 +26,7 @@ class PromotionServiceTest extends TestCase
         $this->service = new PromotionService();
 
         // Create a tenant for FK constraints
-        \App\Models\Tenant::create(['id' => 1, 'name' => 'Default']);
+        $this->tenant = \App\Models\Tenant::factory()->create();
 
         $this->admin = User::create([
             'name' => 'Admin', 'email' => 'admin@test.com',
@@ -36,10 +37,8 @@ class PromotionServiceTest extends TestCase
 
     protected function createCustomer(array $overrides = []): Customer
     {
-        return Customer::create(array_merge([
-            'name' => 'Test Customer',
-            'email' => 'c' . uniqid() . '@test.com',
-            'tenant_id' => 1,
+        return Customer::factory()->create(array_merge([
+            'tenant_id' => $this->tenant->id,
         ], $overrides));
     }
 
@@ -50,7 +49,7 @@ class PromotionServiceTest extends TestCase
             'name' => 'Test Coupon',
             'type' => 'percentage',
             'value' => 10,
-            'tenant_id' => 1,
+            'tenant_id' => $this->tenant->id,
             'starts_at' => now()->subDay(),
             'expires_at' => now()->addDays(30),
         ], $overrides));

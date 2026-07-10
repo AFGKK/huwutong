@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class RenewalReminderTemplateFactory extends Factory
@@ -11,7 +12,7 @@ class RenewalReminderTemplateFactory extends Factory
     public function definition(): array
     {
         return [
-            'tenant_id' => 1,
+            'tenant_id' => Tenant::factory(),
             'name' => $this->faker->words(3, true) . '模板',
             'channel' => $this->faker->randomElement(['mail', 'sms', 'in_app']),
             'days_before' => $this->faker->randomElement([7, 14, 30]),

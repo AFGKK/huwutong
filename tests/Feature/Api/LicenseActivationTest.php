@@ -7,7 +7,7 @@ use App\Models\Product;
 use App\Models\Tenant;
 use App\Services\FingerprintService;
 use App\Services\KeyGenerator;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\Concerns\LicenseActivationHelpers;
 use Tests\TestCase;
 
@@ -51,6 +51,9 @@ class LicenseActivationTest extends TestCase
             'expires_at' => now()->addYear(),
             'metadata' => ['signature_secret' => 'test-activation-secret'],
         ]);
+
+        $this->activationTenantId = $this->tenant->id;
+        $this->activationProductId = $this->product->id;
     }
 
     // ─── 基本激活测试 ───

@@ -4,7 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\PublicKeyVersion;
 use App\Services\PublicKeyVersionService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class PublicKeyVersionServiceTest extends TestCase

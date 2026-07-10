@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperSiteSetting
+ */
 class SiteSetting extends Model
 {
     protected $fillable = [

@@ -592,7 +592,7 @@ class RevenueRecognitionService
                 ->where('status', 'pending')
                 ->update([
                     'status' => 'skipped',
-                    'reason' => $reason,
+                    'description' => $reason,
                 ]);
 
             // 更新排程状态

@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperEmailVerification
+ */
 class EmailVerification extends Model
 {
     protected $fillable = [

@@ -11,7 +11,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Models\WatermarkTraceAudit;
 use App\Services\WatermarkTamperService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class WatermarkTamperServiceTest extends TestCase

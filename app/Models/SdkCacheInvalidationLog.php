@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $reason
  * @property array|null $affected_cache_keys
  * @property string $source
+ * @mixin IdeHelperSdkCacheInvalidationLog
  */
 class SdkCacheInvalidationLog extends Model
 {

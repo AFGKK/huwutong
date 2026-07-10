@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int|null $created_by
  * @property int|null $approved_by
  * @property string|null $approved_at
+ * @mixin IdeHelperLicenseRestriction
  */
 class LicenseRestriction extends Model
 {

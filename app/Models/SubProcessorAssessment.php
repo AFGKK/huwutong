@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * 子处理商评估
+ *
+ * @mixin IdeHelperSubProcessorAssessment
  */
 class SubProcessorAssessment extends Model
 {

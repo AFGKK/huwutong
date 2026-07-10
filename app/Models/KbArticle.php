@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
+/**
+ * @mixin IdeHelperKbArticle
+ */
 class KbArticle extends Model
 {
     use SoftDeletes;

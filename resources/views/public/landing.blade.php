@@ -542,6 +542,115 @@
         </div>
     </section>
 
+    <!-- ─── 社区精选 ─── -->
+    <section class="py-16 md:py-20 bg-gray-50" id="community-posts">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-end justify-between mb-10">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900">🌐 社区精选</h2>
+                    <p class="text-gray-500 mt-2">来自用户的热门讨论与经验分享</p>
+                </div>
+                <a href="/build/community" class="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 transition">
+                    查看更多 <span>→</span>
+                </a>
+            </div>
+            <div id="community-feed" class="grid md:grid-cols-2 gap-4">
+                <div class="text-center text-gray-400 py-8 col-span-full">加载中...</div>
+            </div>
+            <div class="text-center mt-6 sm:hidden">
+                <a href="/build/community" class="inline-flex items-center gap-1 text-sm font-medium text-primary-600">查看更多 →</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── 推荐互物号 ─── -->
+    <section class="py-16 md:py-20 bg-white" id="featured-channels">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-end justify-between mb-10">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900">📢 推荐互物号</h2>
+                    <p class="text-gray-500 mt-2">关注你感兴趣的互物号，获取最新动态</p>
+                </div>
+                <a href="/build/channels" class="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 transition">
+                    浏览全部 <span>→</span>
+                </a>
+            </div>
+            <div id="channels-grid" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="text-center text-gray-400 py-8 col-span-full">加载中...</div>
+            </div>
+            <div class="text-center mt-6 sm:hidden">
+                <a href="/build/channels" class="inline-flex items-center gap-1 text-sm font-medium text-primary-600">浏览全部 →</a>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    // 加载社区精选帖子
+    (async function() {
+        try {
+            var r = await fetch('/api/moments?per_page=4&sort=trending');
+            var d = await r.json();
+            var posts = d.data?.data || d.data || [];
+            var container = document.getElementById('community-feed');
+            if (!posts.length) { container.innerHTML = '<div class="text-center text-gray-300 py-8 col-span-full">暂无内容</div>'; return; }
+            container.innerHTML = posts.map(function(p) {
+                var name = p.user?.name || '匿名';
+                var avatar = p.user?.avatar ? '<img src="'+p.user.avatar+'" class="w-full h-full object-cover" />' : '<span>'+name.charAt(0)+'</span>';
+                var images = '';
+                if (p.images) {
+                    try { var imgs = typeof p.images === 'string' ? JSON.parse(p.images) : p.images;
+                        images = imgs.slice(0,2).map(function(i) { return '<img src="'+i+'" class="w-full h-28 object-cover rounded-lg" />'; }).join('');
+                    } catch(e) {}
+                }
+                var content = (p.content || '').substring(0, 120);
+                if ((p.content || '').length > 120) content += '...';
+                var tags = '';
+                if (p.tags && p.tags.length) {
+                    tags = p.tags.map(function(t) { return '<span class="px-2 py-0.5 bg-gray-50 text-gray-400 rounded-full text-xs">'+(t.name||t)+'</span>'; }).join('');
+                }
+                return '<div class="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-md transition cursor-pointer" onclick="window.open(\'/build/plaza/'+p.id+'\',\'_blank\')">'+
+                    '<div class="flex items-center gap-2 mb-3">'+
+                        '<div class="w-7 h-7 rounded-full bg-primary-50 flex items-center justify-center text-primary-600 text-xs font-bold overflow-hidden">'+avatar+'</div>'+
+                        '<span class="text-sm text-gray-500">'+name+'</span>'+
+                    '</div>'+
+                    '<p class="text-sm text-gray-700 leading-relaxed mb-3">'+content+'</p>'+
+                    (images ? '<div class="flex gap-2 mb-3">'+images+'</div>' : '')+
+                    '<div class="flex items-center gap-3 text-xs text-gray-400">'+
+                        '<span>❤️ '+(p.likes_count||0)+'</span>'+
+                        '<span>💬 '+(p.replies_count||0)+'</span>'+
+                        (tags ? '<span class="ml-auto flex gap-1">'+tags+'</span>' : '')+
+                    '</div>'+
+                '</div>';
+            }).join('');
+        } catch(e) { document.getElementById('community-feed').innerHTML = '<div class="text-center text-gray-300 py-8 col-span-full">加载失败</div>'; }
+    })();
+
+    // 加载推荐互物号
+    (async function() {
+        try {
+            var r = await fetch('/api/official-accounts?per_page=4&sort=followers');
+            var d = await r.json();
+            var accounts = d.data?.data || d.data || [];
+            var container = document.getElementById('channels-grid');
+            if (!accounts.length) { container.innerHTML = '<div class="text-center text-gray-300 py-8 col-span-full">暂无内容</div>'; return; }
+            container.innerHTML = accounts.map(function(a) {
+                var initial = (a.name||'号').charAt(0);
+                var avatar = a.avatar ? '<img src="'+a.avatar+'" class="w-full h-full object-cover" />' : '<span class="text-lg font-bold">'+initial+'</span>';
+                return '<div class="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-md transition cursor-pointer" onclick="window.open(\'/build/channels\',\'_blank\')">'+
+                    '<div class="flex items-center gap-3 mb-3">'+
+                        '<div class="w-11 h-11 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600 overflow-hidden">'+avatar+'</div>'+
+                        '<div class="flex-1 min-w-0">'+
+                            '<div class="text-sm font-semibold text-gray-900 truncate">'+(a.name||'互物号')+'</div>'+
+                            '<div class="text-xs text-gray-400">'+(a.followers_count||0)+' 关注者</div>'+
+                        '</div>'+
+                    '</div>'+
+                    '<p class="text-xs text-gray-500 line-clamp-2">'+(a.description||'暂无简介')+'</p>'+
+                '</div>';
+            }).join('');
+        } catch(e) { document.getElementById('channels-grid').innerHTML = '<div class="text-center text-gray-300 py-8 col-span-full">加载失败</div>'; }
+    })();
+    </script>
+
     <!-- ─── CTA ─── -->
     <section class="py-20 bg-gradient-to-r from-primary-600 to-blue-700">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperWebauthnChallenge
+ */
 class WebauthnChallenge extends Model
 {
     protected $fillable = [

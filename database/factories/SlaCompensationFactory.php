@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Tenant;
 use App\Models\SlaCompensation;
 use App\Models\SlaContract;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -15,7 +16,7 @@ class SlaCompensationFactory extends Factory
         return [
             'sla_contract_id' => SlaContract::factory(),
             'sla_breach_id' => null,
-            'tenant_id' => 1,
+            'tenant_id' => Tenant::factory(),
             'customer_id' => null,
             'compensation_type' => $this->faker->randomElement(['credit', 'discount', 'extension', 'refund']),
             'severity' => $this->faker->randomElement(['minor', 'major', 'critical']),

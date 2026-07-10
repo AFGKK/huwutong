@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperDataRetentionExecution
+ */
 class DataRetentionExecution extends Model
 {
     protected $fillable = [

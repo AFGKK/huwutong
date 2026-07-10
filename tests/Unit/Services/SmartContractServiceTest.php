@@ -8,7 +8,7 @@ use App\Models\LicenseContractEvaluationLog;
 use App\Models\Tenant;
 use App\Services\ContractConditionEngine;
 use App\Services\SmartContractService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SmartContractServiceTest extends TestCase
@@ -264,6 +264,8 @@ class SmartContractServiceTest extends TestCase
     /** @test */
     public function it_logs_evaluation_results()
     {
+        $license = \App\Models\License::factory()->create(['tenant_id' => $this->tenant->id]);
+
         $contract = LicenseContract::factory()->create([
             'tenant_id' => $this->tenant->id,
             'conditions' => [
@@ -275,10 +277,10 @@ class SmartContractServiceTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'contract_id' => $contract->id,
             'assignable_type' => 'App\\Models\\License',
-            'assignable_id' => 1,
+            'assignable_id' => $license->id,
         ]);
 
-        $this->service->evaluateForEntity('App\\Models\\License', 1, ['status' => 'active']);
+        $this->service->evaluateForEntity('App\\Models\\License', $license->id, ['status' => 'active']);
 
         $this->assertDatabaseHas('license_contract_evaluation_logs', [
             'contract_id' => $contract->id,

@@ -36,7 +36,7 @@ class SlaService
         $monthlyCompliance = SlaRecord::whereIn('sla_contract_id',
             SlaContract::when($tenantId, fn($q) => $q->where('tenant_id', $tenantId))->select('id')
         )->where('record_date', '>=', $currentMonth)
-            ->selectRaw('AVG(compliance_rate) as avg_rate, SUM(CASE WHEN is_breached = 1 THEN 1 ELSE 0 END) as breaches')
+            ->selectRaw('AVG(compliance_rate) as avg_rate, SUM(CASE WHEN '.db_is_true('is_breached').' THEN 1 ELSE 0 END) as breaches')
             ->first();
 
         $openBreaches = SlaBreach::whereIn('sla_contract_id',

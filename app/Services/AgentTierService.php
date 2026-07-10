@@ -388,7 +388,7 @@ class AgentTierService
         $monthlyTrend = CommissionSettlement::where('agent_id', $agent->id)
             ->where('status', '!=', 'cancelled')
             ->where('created_at', '>=', now()->subMonths(12))
-            ->selectRaw("strftime('%Y-%m', created_at) as month, count(*) as total, sum(commission_amount) as amount")
+            ->selectRaw(db_date_format('created_at', '%Y-%m').' as month, count(*) as total, sum(commission_amount) as amount')
             ->groupBy('month')
             ->orderBy('month')
             ->get()

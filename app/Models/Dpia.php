@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
  * DPIA 数据保护影响评估 (PIPL Art.55-56)
  *
  * 高风险处理活动的合规评估
+ *
+ * @mixin IdeHelperDpia
  */
 class Dpia extends Model
 {

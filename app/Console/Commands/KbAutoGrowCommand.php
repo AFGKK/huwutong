@@ -13,7 +13,7 @@ class KbAutoGrowCommand extends Command
         {--min-confidence=0.3 : 最低置信度}
         {--dry-run : 仅预览不写入}';
 
-    protected $description = 'AI 知识库自增长：从对话/论坛自动提取知识到 KB';
+    protected $description = 'AI 知识库自增长：从对话/广场自动提取知识到 KB';
 
     public function handle(KbAutoGrowService $service): int
     {
@@ -49,7 +49,7 @@ class KbAutoGrowCommand extends Command
             $sourceLabels = [
                 'rag_chat' => '💬 AI 客服对话',
                 'handoff' => '🎧 人工客服记录',
-                'forum_post' => '📝 论坛高赞帖子',
+                'forum_post' => '📝 广场高赞帖子',
                 'im_chat' => '💭 IM 群聊消息',
             ];
             $label = $sourceLabels[$source] ?? $source;

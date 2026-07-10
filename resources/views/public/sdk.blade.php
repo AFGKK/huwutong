@@ -83,30 +83,58 @@
     </section>
     <section class="py-16 md:py-20 bg-gray-50" id="examples">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-2xl font-bold text-gray-900 text-center mb-8">一分钟集成示例</h2>
+            <h2 class="text-2xl font-bold text-gray-900 text-center mb-6">一分钟集成示例</h2>
+            <!-- 语言 Tab -->
+            <div class="flex flex-wrap justify-center gap-2 mb-8">
+                <button class="code-tab px-4 py-2 text-sm font-medium rounded-lg bg-primary-600 text-white transition" data-lang="php" onclick="switchCode('php')">PHP</button>
+                <button class="code-tab px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-lang="node" onclick="switchCode('node')">Node.js</button>
+                <button class="code-tab px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-lang="python" onclick="switchCode('python')">Python</button>
+                <button class="code-tab px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-lang="go" onclick="switchCode('go')">Go</button>
+                <button class="code-tab px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-lang="java" onclick="switchCode('java')">Java</button>
+                <button class="code-tab px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition" data-lang="csharp" onclick="switchCode('csharp')">C#</button>
+            </div>
             <div class="bg-gray-900 rounded-2xl p-8 shadow-xl">
                 <div class="flex items-center gap-2 mb-4">
                     <span class="w-3 h-3 bg-red-500 rounded-full"></span>
                     <span class="w-3 h-3 bg-yellow-500 rounded-full"></span>
                     <span class="w-3 h-3 bg-green-500 rounded-full"></span>
-                    <span class="text-gray-400 text-sm ml-2">PHP 示例</span>
+                    <span id="code-lang-label" class="text-gray-400 text-sm ml-2">PHP</span>
                 </div>
-                <pre class="text-sm text-gray-200 font-mono leading-relaxed overflow-x-auto"><code><span class="text-purple-400">require</span> <span class="text-orange-400">'vendor/autoload.php'</span>;
+                <pre class="text-sm text-gray-200 font-mono leading-relaxed overflow-x-auto"><code id="code-snippet">
+<span class="text-purple-400">require</span> <span class="text-orange-400">'vendor/autoload.php'</span>;
 
 <span class="text-blue-400">$client</span> = <span class="text-purple-400">new</span> <span class="text-green-400">HWT\Client</span>([
     <span class="text-orange-400">'api_key'</span> => <span class="text-orange-400">'your_api_key'</span>,
 ]);
 
-<span class="text-blue-400">$result</span> = <span class="text-blue-400">$client</span>-><span class="text-yellow-300">validate</span>(<span class="text-orange-400">'HWT-ENT-XXXX-XXXX'</span>);
-
-<span class="text-gray-400">if</span> (<span class="text-blue-400">$result</span>-><span class="text-yellow-300">isValid</span>()) {
-    <span class="text-gray-400">echo</span> <span class="text-green-400">"License 有效"</span>;
-} <span class="text-gray-400">else</span> {
-    <span class="text-gray-400">echo</span> <span class="text-green-400">"License 无效: "</span> . <span class="text-blue-400">$result</span>-><span class="text-yellow-300">getError</span>();
-}</code></pre>
+<span class="text-blue-400">$result</span> = <span class="text-blue-400">$client</span>-&gt;<span class="text-yellow-300">validate</span>(<span class="text-orange-400">'HWT-ENT-XXXX-XXXX'</span>);
+<span class="text-gray-400">echo</span> <span class="text-blue-400">$result</span>-&gt;<span class="text-yellow-300">isValid</span>() ? <span class="text-green-400">"✓ License 有效"</span> : <span class="text-green-400">"✗ License 无效"</span>;
+                </code></pre>
             </div>
         </div>
     </section>
+    <script>
+    const CODES = {
+        php: `require 'vendor/autoload.php';\n\n$client = new HWT\\Client([\n    'api_key' => 'your_api_key',\n]);\n\n$result = $client->validate('HWT-ENT-XXXX-XXXX');\necho $result->isValid() ? "✓ License 有效" : "✗ License 无效";`,
+        node: `const HWT = require('huwutong-sdk');\n\nconst client = new HWT.Client({\n    apiKey: 'your_api_key',\n});\n\nconst result = await client.validate('HWT-ENT-XXXX-XXXX');\nconsole.log(result.isValid ? '✓ License 有效' : '✗ License 无效');`,
+        python: `from huwutong import Client\n\nclient = Client(api_key='your_api_key')\nresult = client.validate('HWT-ENT-XXXX-XXXX')\nprint('✓ License 有效' if result.is_valid else '✗ License 无效')`,
+        go: `package main\n\nimport "github.com/huwutong/sdk-go"\n\nfunc main() {\n    client := hwt.NewClient("your_api_key")\n    result := client.Validate("HWT-ENT-XXXX-XXXX")\n    if result.IsValid() {\n        fmt.Println("✓ License 有效")\n    }\n}`,
+        java: `import com.huwutong.HWTClient;\n\nHWTClient client = new HWTClient.Builder()\n    .apiKey("your_api_key")\n    .build();\n\nValidationResult result = client.validate("HWT-ENT-XXXX-XXXX");\nSystem.out.println(result.isValid() ? "✓ License 有效" : "✗ License 无效");`,
+        csharp: `using Huwutong.Sdk;\n\nvar client = new HWTClient("your_api_key");\nvar result = client.Validate("HWT-ENT-XXXX-XXXX");\nConsole.WriteLine(result.IsValid ? "✓ License 有效" : "✗ License 无效");`,
+    };
+
+    function switchCode(lang) {
+        document.querySelectorAll('.code-tab').forEach(function(t) {
+            if (t.dataset.lang === lang) {
+                t.className = 'code-tab px-4 py-2 text-sm font-medium rounded-lg bg-primary-600 text-white transition';
+            } else {
+                t.className = 'code-tab px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition';
+            }
+        });
+        document.getElementById('code-lang-label').textContent = lang === 'node' ? 'Node.js' : lang.charAt(0).toUpperCase() + lang.slice(1);
+        document.getElementById('code-snippet').textContent = CODES[lang] || CODES.php;
+    }
+    </script>
     @include('public.partials.footer')
 </body>
 </html>

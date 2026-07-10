@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * 健康度变化历史
+ *
+ * @mixin IdeHelperHealthScoreHistory
  */
 class HealthScoreHistory extends Model
 {

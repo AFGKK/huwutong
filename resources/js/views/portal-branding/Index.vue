@@ -45,13 +45,25 @@
             </el-row>
             <el-row :gutter="16">
               <el-col :span="12">
-                <el-form-item label="Logo URL">
-                  <el-input v-model="form.logo_url" @blur="saveConfig" placeholder="https://example.com/logo.png" />
+                <el-form-item label="Logo">
+                  <div class="upload-row">
+                    <el-upload :auto-upload="false" :on-change="handleLogoUpload" accept="image/*" :show-file-list="false">
+                      <el-button size="small" type="primary">选择图片</el-button>
+                    </el-upload>
+                    <el-input v-model="form.logo_url" size="small" placeholder="或输入URL" style="flex:1;min-width:0" @blur="saveConfig" />
+                    <img v-if="form.logo_url" :src="form.logo_url" class="upload-preview" @error="$event.target.style.display='none'" />
+                  </div>
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="Favicon URL">
-                  <el-input v-model="form.favicon_url" @blur="saveConfig" placeholder="https://example.com/favicon.ico" />
+                <el-form-item label="Favicon">
+                  <div class="upload-row">
+                    <el-upload :auto-upload="false" :on-change="handleFaviconUpload" accept="image/*" :show-file-list="false">
+                      <el-button size="small" type="primary">选择图片</el-button>
+                    </el-upload>
+                    <el-input v-model="form.favicon_url" size="small" placeholder="或输入URL" style="flex:1;min-width:0" @blur="saveConfig" />
+                    <img v-if="form.favicon_url" :src="form.favicon_url" class="upload-preview" @error="$event.target.style.display='none'" />
+                  </div>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -62,7 +74,13 @@
               <el-input v-model="form.login_page_subtitle" @blur="saveConfig" />
             </el-form-item>
             <el-form-item label="登录页背景图">
-              <el-input v-model="form.login_bg_image" @blur="saveConfig" placeholder="https://example.com/bg.jpg" />
+              <div class="upload-row">
+                <el-upload :auto-upload="false" :on-change="handleBgUpload" accept="image/*" :show-file-list="false">
+                  <el-button size="small" type="primary">选择图片</el-button>
+                </el-upload>
+                <el-input v-model="form.login_bg_image" size="small" placeholder="或输入URL" style="flex:1;min-width:0" @blur="saveConfig" />
+                <img v-if="form.login_bg_image" :src="form.login_bg_image" class="upload-preview" @error="$event.target.style.display='none'" />
+              </div>
             </el-form-item>
             <el-form-item label="底部版权文字">
               <el-input v-model="form.footer_text" @blur="saveConfig" />
@@ -205,7 +223,7 @@ async function loadConfig() {
 async function loadThemes() {
   try {
     const { data } = await brandingApi.themeTemplates()
-    themes.value = Array.isArray(data) ? data : []
+    themes.value = Array.isArray(data?.data) ? data.data : []
   } catch { }
 }
 
@@ -220,13 +238,37 @@ async function applyTheme(t) {
   ElMessage.success(`已应用主题「${t.name}」`)
 }
 
-function saveConfig() {
+async function saveConfig() {
   saving.value = true
-  brandingApi.update({ ...form }).then(() => {
+  try {
+    await brandingApi.update({ ...form })
     ElMessage.success('已保存')
-  }).catch(() => {
+  } catch {
     ElMessage.error('保存失败')
-  }).finally(() => { saving.value = false })
+  } finally { saving.value = false }
+}
+
+async function handleLogoUpload(file) {
+  const url = await uploadImage(file, 'logo')
+  if (url) { form.logo_url = url; await saveConfig() }
+}
+async function handleFaviconUpload(file) {
+  const url = await uploadImage(file, 'logo')
+  if (url) { form.favicon_url = url; await saveConfig() }
+}
+async function handleBgUpload(file) {
+  const url = await uploadImage(file, 'logo')
+  if (url) { form.login_bg_image = url; await saveConfig() }
+}
+
+async function uploadImage(file, type) {
+  const formData = new FormData()
+  formData.append('file', file.raw)
+  formData.append('type', type)
+  try {
+    const { data } = await brandingApi.uploadImage(formData)
+    return data?.data?.url || ''
+  } catch { ElMessage.error('上传失败'); return '' }
 }
 
 async function resetConfig() {
@@ -257,6 +299,8 @@ onMounted(() => {
 .theme-name { font-size: 12px; color: #606266; }
 
 .color-picker-row { display: flex; align-items: center; }
+.upload-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.upload-preview { height: 32px; border-radius: 4px; border: 1px solid #e4e7ed; flex-shrink: 0; }
 
 .preview-frame { border: 1px solid #e4e7ed; border-radius: 8px; overflow: hidden; font-size: 12px; }
 .pf-header { padding: 8px 12px; }

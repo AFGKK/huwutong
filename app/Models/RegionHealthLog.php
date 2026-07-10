@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperRegionHealthLog
+ */
 class RegionHealthLog extends Model
 {
     use HasFactory;
@@ -13,9 +16,10 @@ class RegionHealthLog extends Model
     protected $table = 'region_health_logs';
 
     protected $fillable = [
+        'region_key',
         'data_center_id',
-        'latency_ms', 'load', 'is_healthy', 'check_type',
-        'error_message', 'metrics', 'checked_at',
+        'latency_ms', 'response_time_ms', 'load', 'is_healthy', 'check_type',
+        'checker_region', 'error_message', 'metrics', 'details', 'checked_at',
     ];
 
     protected function casts(): array

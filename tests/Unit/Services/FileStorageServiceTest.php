@@ -8,7 +8,7 @@ use App\Models\FileShareLink;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\FileStorageService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 

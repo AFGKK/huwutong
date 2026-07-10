@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperBugBountyHallOfFame
+ */
 class BugBountyHallOfFame extends Model
 {
     protected $table = 'bug_bounty_hall_of_fame';

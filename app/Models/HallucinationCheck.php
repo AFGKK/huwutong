@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperHallucinationCheck
+ */
 class HallucinationCheck extends Model
 {
     protected $fillable = [

@@ -16,7 +16,14 @@ class TransferService
 
     public function listRequests(array $filters = [], int $perPage = 20)
     {
-        $query = LicenseTransferRequest::with(['license', 'requester:id,name', 'approver:id,name', 'targetCustomer:id,name', 'targetDevice:id,fingerprint'])
+        $query = LicenseTransferRequest::with([
+            'license',
+            'requester:id,name',
+            'approver:id,name',
+            'targetCustomer:id,user_id',
+            'targetCustomer.user:id,name',
+            'targetDevice:id,fingerprint',
+        ])
             ->orderBy('created_at', 'desc');
 
         if (!empty($filters['status'])) $query->where('status', $filters['status']);
@@ -34,7 +41,7 @@ class TransferService
 
     public function createRequest(array $data): LicenseTransferRequest
     {
-        $license = License::findOrFail($data['license_id']);
+        $license = License::with('customer.user')->findOrFail($data['license_id']);
 
         // Check license is transferable
         if (!in_array($license->status, ['active', 'suspended'])) {
@@ -46,7 +53,7 @@ class TransferService
         $data['request_ip'] = request()->ip();
         $data['source_info'] = [
             'customer_id' => $license->customer_id,
-            'customer_name' => $license->customer?->name,
+            'customer_name' => $license->customer?->user?->name,
             'license_key' => $license->license_key,
             'license_status' => $license->status,
             'devices_count' => $license->devices()->count(),
@@ -197,7 +204,12 @@ class TransferService
 
     public function myRequests(User $user, array $filters = [], int $perPage = 20)
     {
-        $query = LicenseTransferRequest::with(['license', 'targetCustomer:id,name', 'targetDevice:id,name'])
+        $query = LicenseTransferRequest::with([
+            'license',
+            'targetCustomer:id,user_id',
+            'targetCustomer.user:id,name',
+            'targetDevice:id,fingerprint',
+        ])
             ->where('requested_by', $user->id)
             ->orderBy('created_at', 'desc');
 
@@ -263,7 +275,14 @@ class TransferService
      */
     public function listRequestsByTenant(int $tenantId, array $filters = [], int $perPage = 20)
     {
-        $query = LicenseTransferRequest::with(['license', 'requester:id,name', 'approver:id,name', 'targetCustomer:id,name', 'targetDevice:id,fingerprint'])
+        $query = LicenseTransferRequest::with([
+            'license',
+            'requester:id,name',
+            'approver:id,name',
+            'targetCustomer:id,user_id',
+            'targetCustomer.user:id,name',
+            'targetDevice:id,fingerprint',
+        ])
             ->whereHas('license', fn($q) => $q->where('tenant_id', $tenantId))
             ->orderBy('created_at', 'desc');
 

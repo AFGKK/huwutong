@@ -4,7 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\DemoSession;
 use App\Services\DemoService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class DemoServiceTest extends TestCase

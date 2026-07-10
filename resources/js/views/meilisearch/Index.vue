@@ -3,7 +3,7 @@
         <div class="page-header">
             <div>
                 <h2>Meilisearch 全文搜索</h2>
-                <p class="text-muted">高性能全文搜索引擎，覆盖商品、知识库、应用市场、广场、博客、公众号、用户 7 大内容类型</p>
+                <p class="text-muted">高性能全文搜索引擎，覆盖商品、知识库、应用市场、社区、博客、互物号、用户 7 大内容类型</p>
             </div>
             <div class="header-actions">
                 <el-tag :type="healthTag" size="large">
@@ -38,7 +38,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-value">{{ stats.forum_posts?.in_db || 0 }} / {{ stats.blog_posts?.in_db || 0 }} / {{ stats.oa_articles?.in_db || 0 }}</div>
-                    <div class="stat-label">广场/博客/公众号 (DB)</div>
+                    <div class="stat-label">社区/博客/互物号 (DB)</div>
                 </el-card>
             </el-col>
         </el-row>
@@ -51,16 +51,16 @@
                         <el-button type="primary" @click="setupIndex('products')" :loading="setupLoading" size="small">初始化商品</el-button>
                         <el-button type="primary" @click="setupIndex('kb_articles')" :loading="setupLoading" size="small">初始化知识库</el-button>
                         <el-button type="primary" @click="setupIndex('marketplace_apps')" :loading="setupLoading" size="small">初始化应用市场</el-button>
-                        <el-tooltip content="论坛/博客/公众号/用户" placement="top">
+                        <el-tooltip content="社区/博客/互物号/用户" placement="top">
                             <el-button type="primary" @click="setupIndex('forum_posts')" :loading="setupLoading" size="small">初始化其他</el-button>
                         </el-tooltip>
                         <el-button @click="handleSync('all')" :loading="syncLoading" type="success" size="small">同步全部</el-button>
                         <el-button @click="handleSync('products')" :loading="syncLoading" size="small">同步商品</el-button>
                         <el-button @click="handleSync('kb_articles')" :loading="syncLoading" size="small">同步知识库</el-button>
                         <el-button @click="handleSync('marketplace_apps')" :loading="syncLoading" size="small">同步应用市场</el-button>
-                        <el-button @click="handleSync('forum_posts')" :loading="syncLoading" size="small">同步广场</el-button>
+                        <el-button @click="handleSync('forum_posts')" :loading="syncLoading" size="small">同步社区</el-button>
                         <el-button @click="handleSync('blog_posts')" :loading="syncLoading" size="small">同步博客</el-button>
-                        <el-button @click="handleSync('oa_articles')" :loading="syncLoading" size="small">同步公众号</el-button>
+                        <el-button @click="handleSync('oa_articles')" :loading="syncLoading" size="small">同步互物号</el-button>
                         <el-button @click="handleSync('users')" :loading="syncLoading" size="small">同步用户</el-button>
                         <el-button @click="refreshHealth" :icon="Refresh" size="small">刷新</el-button>
                     </div>
@@ -98,9 +98,9 @@
                                 <el-option label="商品" value="products" />
                                 <el-option label="知识库" value="kb_articles" />
                                 <el-option label="应用市场" value="marketplace_apps" />
-                                <el-option label="广场" value="forum_posts" />
+                                <el-option label="社区" value="forum_posts" />
                                 <el-option label="博客" value="blog_posts" />
-                                <el-option label="公众号" value="oa_articles" />
+                                <el-option label="互物号" value="oa_articles" />
                                 <el-option label="用户" value="users" />
                             </el-select>
                         </el-form-item>

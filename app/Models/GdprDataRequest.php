@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
  * GDPR 数据主体请求（Data Subject Request）(M3-33)
  *
  * 支持：访问权/数据可移植性导出/更正/删除/限制处理/反对自动化决策
+ *
+ * @mixin IdeHelperGdprDataRequest
  */
 class GdprDataRequest extends Model
 {

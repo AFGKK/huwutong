@@ -6,6 +6,7 @@ use App\Models\CrossBorderTransfer;
 use App\Models\Dpia;
 use App\Models\PersonalDataInventory;
 use App\Models\Tenant;
+use App\Support\DbSql;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -154,18 +155,7 @@ class PiplComplianceService
      */
     protected function getTables(?string $connection = null): array
     {
-        $prefix = DB::connection($connection)->getTablePrefix();
-        $database = DB::connection($connection)->getDatabaseName();
-
-        // SQLite
-        if (DB::connection($connection)->getDriverName() === 'sqlite') {
-            return DB::connection($connection)->select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
-        }
-
-        // MySQL
-        $tables = DB::connection($connection)->select("SHOW TABLES");
-        $key = "Tables_in_{$database}";
-        return array_map(fn($t) => $t->$key, $tables);
+        return DbSql::listTableNames($connection);
     }
 
     /**

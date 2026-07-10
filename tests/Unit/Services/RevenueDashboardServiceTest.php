@@ -11,7 +11,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionAgent;
 use App\Services\RevenueDashboardService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class RevenueDashboardServiceTest extends TestCase

@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @mixin IdeHelperSecuritySopTemplate
+ */
 class SecuritySopTemplate extends Model
 {
     use HasFactory, SoftDeletes;

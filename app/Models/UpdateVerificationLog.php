@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * M2-15 更新签名验证日志
+ *
+ * @mixin IdeHelperUpdateVerificationLog
  */
 class UpdateVerificationLog extends Model
 {

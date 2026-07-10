@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperWishlistShare
+ */
 class WishlistShare extends Model
 {
     protected $table = 'wishlist_shares';

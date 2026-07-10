@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperMessageReaction
+ */
 class MessageReaction extends Model
 {
     protected $fillable = ['message_id', 'user_id', 'reaction'];

@@ -490,7 +490,7 @@ async function handlePromote(sku, cmd) {
     return
   }
   if (cmd === 'html') {
-    copyToClipboard(buildPromoHtml(sku), '图文推广代码已复制，可粘贴到网页/公众号编辑器')
+    copyToClipboard(buildPromoHtml(sku), '图文推广代码已复制，可粘贴到网页/互物号编辑器')
     return
   }
   if (cmd === 'qrcode') {

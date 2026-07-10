@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * AI 内容质量评分与自动化运营服务
  *
- * 对 IM 消息/频道/论坛等内容进行质量评分，
+ * 对 IM 消息/频道/广场等内容进行质量评分，
  * 自动折叠低质内容、归档过期内容、标记违规。
  */
 class ContentQualityService
@@ -163,7 +163,7 @@ class ContentQualityService
     }
 
     /**
-     * 扫描并处理低质/过期论坛帖子
+     * 扫描并处理低质/过期广场帖子
      */
     public function scanForumPosts(int $limit = 50, int $archiveDays = 90): array
     {
@@ -240,7 +240,7 @@ class ContentQualityService
                 break;
 
             case 'folded':
-                // 论坛帖子锁定
+                // 广场帖子锁定
                 if ($model instanceof ForumPost) {
                     $model->update(['is_locked' => true]);
                 }

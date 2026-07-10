@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperCreditLimit
+ */
 class CreditLimit extends Model
 {
     protected $table = 'credit_limits';

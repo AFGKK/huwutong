@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * 工作流步骤执行记录
+ *
+ * @mixin IdeHelperWorkflowStepExecution
  */
 class WorkflowStepExecution extends Model
 {

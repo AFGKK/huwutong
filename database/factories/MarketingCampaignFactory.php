@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
+use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class MarketingCampaignFactory extends Factory
@@ -11,13 +13,13 @@ class MarketingCampaignFactory extends Factory
     public function definition(): array
     {
         return [
-            'tenant_id' => 1,
+            'tenant_id' => Tenant::factory(),
             'name' => '测试营销活动',
             'slug' => 'test-campaign',
             'status' => 'draft',
             'type' => 'email',
             'audience_type' => 'all',
-            'created_by' => 1,
+            'created_by' => User::factory(),
         ];
     }
 }

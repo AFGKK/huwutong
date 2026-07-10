@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $created_by
  * @property Carbon $created_at
  * @property Carbon $updated_at
+ * @mixin IdeHelperHoneypotLicense
  */
 class HoneypotLicense extends Model
 {

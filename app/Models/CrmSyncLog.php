@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperCrmSyncLog
+ */
 class CrmSyncLog extends Model
 {
     protected $table = 'crm_sync_logs';

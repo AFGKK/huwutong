@@ -294,15 +294,15 @@ class GdprComplianceService
                 'status' => $customer->status,
                 'created_at' => $customer->created_at?->toIso8601String(),
             ] : null,
-            'licenses' => License::where('customer_id', $customer?->id)
-                ->get(['id', 'license_key', 'product_name', 'type', 'status', 'created_at', 'expires_at', 'activated_at'])
-                ->toArray(),
-            'subscriptions' => Subscription::where('customer_id', $customer?->id)
-                ->get(['id', 'plan', 'status', 'amount', 'currency', 'current_period_start', 'current_period_end', 'created_at'])
-                ->toArray(),
-            'invoices' => Invoice::where('customer_id', $customer?->id)
-                ->get(['id', 'invoice_number', 'total', 'currency', 'status', 'issued_at', 'paid_at'])
-                ->toArray(),
+            'licenses' => $this->formatLicensesForExport(
+                License::where('customer_id', $customer?->id)->get()
+            ),
+            'subscriptions' => $this->formatSubscriptionsForExport(
+                Subscription::where('customer_id', $customer?->id)->get()
+            ),
+            'invoices' => $this->formatInvoicesForExport(
+                Invoice::where('customer_id', $customer?->id)->get()
+            ),
             'login_history' => $user->logs()
                 ->where('action', 'login')
                 ->limit(50)
@@ -327,15 +327,15 @@ class GdprComplianceService
                 'locale' => $user->locale,
                 'timezone' => $user->timezone,
             ],
-            'licenses' => $customer ? License::where('customer_id', $customer->id)
-                ->get(['license_key', 'product_name', 'type', 'status', 'seats', 'created_at', 'expires_at'])
-                ->toArray() : [],
-            'subscriptions' => $customer ? Subscription::where('customer_id', $customer->id)
-                ->get(['plan', 'status', 'amount', 'currency', 'interval', 'current_period_start', 'current_period_end'])
-                ->toArray() : [],
-            'invoices' => $customer ? Invoice::where('customer_id', $customer->id)
-                ->get(['invoice_number', 'total', 'currency', 'status', 'items', 'issued_at'])
-                ->toArray() : [],
+            'licenses' => $customer
+                ? $this->formatLicensesForExport(License::where('customer_id', $customer->id)->get())
+                : [],
+            'subscriptions' => $customer
+                ? $this->formatSubscriptionsForExport(Subscription::where('customer_id', $customer->id)->get())
+                : [],
+            'invoices' => $customer
+                ? $this->formatInvoicesForExport(Invoice::where('customer_id', $customer->id)->get())
+                : [],
         ];
     }
 
@@ -573,5 +573,69 @@ class GdprComplianceService
             'dpa_count' => DataProcessingAgreement::count(),
             'published_dpa' => DataProcessingAgreement::where('status', DataProcessingAgreement::STATUS_PUBLISHED)->count(),
         ];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, License>  $licenses
+     * @return array<int, array<string, mixed>>
+     */
+    protected function formatLicensesForExport($licenses): array
+    {
+        $licenses->loadMissing('product:id,name');
+
+        return $licenses->map(function (License $license) {
+            return [
+                'id' => $license->id,
+                'license_key' => $license->license_key,
+                'product_name' => $license->product?->name,
+                'type' => $license->type,
+                'status' => $license->status,
+                'seats' => $license->seats,
+                'created_at' => $license->created_at?->toIso8601String(),
+                'expires_at' => $license->expires_at?->toIso8601String(),
+                'activated_at' => $license->activated_at?->toIso8601String(),
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Subscription>  $subscriptions
+     * @return array<int, array<string, mixed>>
+     */
+    protected function formatSubscriptionsForExport($subscriptions): array
+    {
+        return $subscriptions->map(function (Subscription $subscription) {
+            return [
+                'id' => $subscription->id,
+                'plan' => $subscription->plan,
+                'status' => $subscription->status,
+                'amount' => $subscription->price,
+                'currency' => $subscription->currency,
+                'interval' => $subscription->billing_period,
+                'current_period_start' => $subscription->starts_at?->toIso8601String(),
+                'current_period_end' => $subscription->ends_at?->toIso8601String(),
+                'created_at' => $subscription->created_at?->toIso8601String(),
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Invoice>  $invoices
+     * @return array<int, array<string, mixed>>
+     */
+    protected function formatInvoicesForExport($invoices): array
+    {
+        return $invoices->map(function (Invoice $invoice) {
+            return [
+                'id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_no,
+                'total' => $invoice->amount,
+                'currency' => $invoice->currency,
+                'status' => $invoice->status,
+                'items' => $invoice->metadata['items'] ?? null,
+                'issued_at' => $invoice->created_at?->toIso8601String(),
+                'paid_at' => $invoice->paid_at?->toIso8601String(),
+            ];
+        })->values()->all();
     }
 }

@@ -488,7 +488,7 @@ class EarningsPortalController extends Controller
         // 按月份汇总
         $byMonth = Commission::where('earnings_account_id', $account->id)
             ->where('status', 'frozen')
-            ->selectRaw("strftime('%Y-%m', frozen_until) as month, SUM(amount) as total, COUNT(*) as count")
+            ->selectRaw(db_date_format('frozen_until', '%Y-%m').' as month, SUM(amount) as total, COUNT(*) as count')
             ->whereNotNull('frozen_until')
             ->groupBy('month')
             ->orderBy('month')

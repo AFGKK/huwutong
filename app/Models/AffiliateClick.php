@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
  * 推广点击/转化追踪 (M3-05)
+ *
+ * @mixin IdeHelperAffiliateClick
  */
 class AffiliateClick extends Model
 {
@@ -16,7 +18,7 @@ class AffiliateClick extends Model
         'agent_id', 'campaign_id', 'creative_id',
         'referral_code', 'ip_address', 'user_agent',
         'referrer_url', 'landing_url', 'utm_params',
-        'converted', 'converted_at', 'converted_user_id', 'commission_amount',
+        'converted', 'converted_at', 'converted_user_id', 'commission_amount', 'commission_rate', 'platform_share_rate',
     ];
 
     protected $casts = [

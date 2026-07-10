@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperCommission
+ */
 class Commission extends Model
 {
     protected $fillable = [

@@ -255,10 +255,10 @@ class EmailDashboardController extends Controller
 
         // 退信高发域名
         $byDomain = (clone $bounced)
-            ->selectRaw("
-                SUBSTRING_INDEX(to_email, '@', -1) as domain,
+            ->selectRaw('
+                '.db_substring_index('to_email', '@', -1).' as domain,
                 COUNT(*) as count
-            ")
+            ')
             ->groupBy('domain')
             ->orderByDesc('count')
             ->limit(10)
@@ -298,10 +298,10 @@ class EmailDashboardController extends Controller
         $query = EmailLog::where('tenant_id', $tenantId)
             ->where('created_at', '>=', now()->subDays(7));
 
-        return $query->selectRaw("
-                HOUR(created_at) as hour,
+        return $query->selectRaw('
+                '.db_hour('created_at').' as hour,
                 COUNT(*) as total
-            ")
+            ')
             ->groupBy('hour')
             ->orderBy('hour')
             ->get()

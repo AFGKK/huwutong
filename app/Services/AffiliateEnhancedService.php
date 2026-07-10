@@ -51,9 +51,15 @@ class AffiliateEnhancedService
             $params['product_id'] = $productId;
         }
 
-        $landingUrl = $productId
-            ? $baseUrl . '/products/' . $productId . '?' . http_build_query($params)
-            : $baseUrl . '/register?' . http_build_query($params);
+        // 优先使用素材自定义 URL
+        if ($creative && $creative->url) {
+            $separator = str_contains($creative->url, '?') ? '&' : '?';
+            $landingUrl = $creative->url . $separator . http_build_query($params);
+        } elseif ($productId) {
+            $landingUrl = $baseUrl . '/products/' . $productId . '?' . http_build_query($params);
+        } else {
+            $landingUrl = $baseUrl . '/register?' . http_build_query($params);
+        }
 
         // 保存推荐码
         RegistrationTracking::updateOrCreate(

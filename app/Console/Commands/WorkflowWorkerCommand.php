@@ -126,9 +126,9 @@ class WorkflowWorkerCommand extends Command
 
         // 按工作流类型统计
         $byWorkflow = WorkflowInstance::selectRaw(
-            'workflow_name, COUNT(*) as total,
-             SUM(CASE WHEN status = "running" THEN 1 ELSE 0 END) as running,
-             SUM(CASE WHEN status = "failed" THEN 1 ELSE 0 END) as failed'
+            "workflow_name, COUNT(*) as total,
+             SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) as running,
+             SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed"
         )->groupBy('workflow_name')->get();
 
         if ($byWorkflow->isNotEmpty()) {

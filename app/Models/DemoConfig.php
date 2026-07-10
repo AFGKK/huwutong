@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
  * - 演示时长、是否启用、种子数据定制
  *
  * @m3-70 InteractiveDemo
+ * @mixin IdeHelperDemoConfig
  */
 class DemoConfig extends Model
 {

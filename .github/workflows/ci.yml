@@ -1,5 +1,5 @@
 # 互物通 License 管理系统 — CI 工作流
-# 每次 push/PR 自动执行: PHPUnit 测试 → 前端 Vitest 测试 → npm run build → (可选) E2E Playwright
+# 每次 push/PR 自动执行: PHPUnit 矩阵 → 迁移审计 → 前端 Vitest → E2E Playwright
 name: CI
 
 on:
@@ -13,12 +13,18 @@ permissions:
 
 jobs:
   backend:
-    name: PHPUnit (PHP ${{ matrix.php-versions }})
+    name: PHPUnit (PHP ${{ matrix.php-versions }} / ${{ matrix.database }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['8.2', '8.3']
+        include:
+          - php-versions: '8.2'
+            database: mysql
+          - php-versions: '8.3'
+            database: mysql
+          - php-versions: '8.3'
+            database: pgsql
 
     services:
       mysql:
@@ -30,6 +36,20 @@ jobs:
           - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: hwut_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -51,7 +71,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, pdo, pdo_mysql, bcmath, sodium, redis
+          extensions: mbstring, pdo, pdo_mysql, pdo_pgsql, bcmath, sodium, redis
           coverage: none
           tools: composer:v2
 
@@ -74,25 +94,136 @@ jobs:
           php artisan key:generate
           php artisan storage:link
 
+      - name: Install PostgreSQL client
+        if: matrix.database == 'pgsql'
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Enable pgvector extension
+        if: matrix.database == 'pgsql'
+        run: |
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d hwut_test \
+            -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
       - name: Run database migrations
-        run: php artisan migrate --seed --env=testing
+        run: php artisan migrate --force --env=testing
         env:
-          DB_CONNECTION: mysql
+          DB_CONNECTION: ${{ matrix.database }}
           DB_HOST: 127.0.0.1
-          DB_PORT: 3306
+          DB_PORT: ${{ matrix.database == 'mysql' && '3306' || '5432' }}
           DB_DATABASE: hwut_test
-          DB_USERNAME: root
-          DB_PASSWORD: root
+          DB_USERNAME: ${{ matrix.database == 'mysql' && 'root' || 'postgres' }}
+          DB_PASSWORD: ${{ matrix.database == 'mysql' && 'root' || 'postgres' }}
 
       - name: Execute PHPUnit tests
         run: vendor/bin/phpunit --verbose
         env:
+          DB_CONNECTION: ${{ matrix.database }}
+          DB_HOST: 127.0.0.1
+          DB_PORT: ${{ matrix.database == 'mysql' && '3306' || '5432' }}
+          DB_DATABASE: hwut_test
+          DB_USERNAME: ${{ matrix.database == 'mysql' && 'root' || 'postgres' }}
+          DB_PASSWORD: ${{ matrix.database == 'mysql' && 'root' || 'postgres' }}
+
+  migration-audit:
+    name: MySQL → PostgreSQL Migration Audit
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: hwut_migration_audit
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: hwut_migration_audit
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: hwut_migration_audit
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: hwut_migration_audit
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: root
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.3
+          extensions: mbstring, pdo, pdo_mysql, pdo_pgsql, bcmath, sodium
+          coverage: none
+          tools: composer:v2
+
+      - name: Install PHP dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: Prepare Laravel environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Enable pgvector extension
+        run: |
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d hwut_migration_audit \
+            -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+      - name: Migrate and seed MySQL (source)
+        run: php artisan migrate --seed --force
+        env:
           DB_CONNECTION: mysql
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
-          DB_DATABASE: hwut_test
+          DB_DATABASE: hwut_migration_audit
           DB_USERNAME: root
           DB_PASSWORD: root
+
+      - name: Migrate PostgreSQL (target schema only)
+        run: php artisan migrate --force
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: hwut_migration_audit
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+
+      - name: Sync MySQL data to PostgreSQL
+        run: php scripts/sync-mysql-to-pgsql.php --all
+
+      - name: Audit migration completeness
+        run: php scripts/audit-mysql-pgsql.php --strict
+
+      - name: Deep audit (ID-level)
+        run: php scripts/audit-mysql-pgsql-deep.php
 
   frontend:
     name: Frontend (Vitest + Build)
@@ -117,9 +248,13 @@ jobs:
         run: npm run build
 
   e2e:
-    name: E2E Playwright
+    name: E2E Playwright (${{ matrix.database }})
     runs-on: ubuntu-latest
     needs: [backend, frontend]
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [mysql, pgsql]
 
     services:
       mysql:
@@ -135,6 +270,28 @@ jobs:
           --health-timeout=5s
           --health-retries=5
 
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: hwut_e2e
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DB_CONNECTION: ${{ matrix.database }}
+      DB_HOST: 127.0.0.1
+      DB_PORT: ${{ matrix.database == 'mysql' && '3306' || '5432' }}
+      DB_DATABASE: hwut_e2e
+      DB_USERNAME: ${{ matrix.database == 'mysql' && 'root' || 'postgres' }}
+      DB_PASSWORD: ${{ matrix.database == 'mysql' && 'root' || 'postgres' }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -142,7 +299,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: 8.3
-          extensions: mbstring, pdo, pdo_mysql, bcmath, sodium, redis
+          extensions: mbstring, pdo, pdo_mysql, pdo_pgsql, bcmath, sodium, redis
           coverage: none
           tools: composer:v2
 
@@ -158,19 +315,22 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Install PostgreSQL client
+        if: matrix.database == 'pgsql'
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Enable pgvector extension
+        if: matrix.database == 'pgsql'
+        run: |
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d hwut_e2e \
+            -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
       - name: Prepare environment
         run: |
           cp .env.example .env
           php artisan key:generate
           php artisan storage:link
           php artisan migrate --seed
-        env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: hwut_e2e
-          DB_USERNAME: root
-          DB_PASSWORD: root
 
       - name: Build assets
         run: npm run build
@@ -186,6 +346,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: e2e-report
+          name: e2e-report-${{ matrix.database }}
           path: e2e-report/
           retention-days: 7

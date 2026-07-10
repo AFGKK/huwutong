@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class CustomerLifecycleStageFactory extends Factory
@@ -11,7 +12,7 @@ class CustomerLifecycleStageFactory extends Factory
     public function definition(): array
     {
         return [
-            'tenant_id' => 1,
+            'tenant_id' => Tenant::factory(),
             'customer_id' => \App\Models\Customer::factory(),
             'stage' => 'active',
             'previous_stage' => 'onboarding',

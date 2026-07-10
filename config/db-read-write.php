@@ -16,8 +16,11 @@ return [
     'read_write' => [
         'enabled' => env('DB_READ_WRITE_SPLITTING', false),
 
-        // 从库连接配置名称（对应 config/database.php connections）
-        'replica_connection' => env('DB_REPLICA_CONNECTION', 'mysql_replica'),
+        // 从库连接：随主库驱动自动选择（pgsql → pgsql_replica，mysql → mysql_replica）
+        'replica_connection' => env(
+            'DB_REPLICA_CONNECTION',
+            env('DB_CONNECTION', 'mysql') === 'pgsql' ? 'pgsql_replica' : 'mysql_replica'
+        ),
 
         // 读流量分配到从库的比例 (0~100, 100=全部读走从库)
         'read_percent' => (int) env('DB_READ_PERCENT', 100),
@@ -48,19 +51,19 @@ return [
         'sources' => [
             'products' => [
                 'key_prefix' => 'product:',
-                'query' => 'select id, name, type, status, metadata from products where is_active = 1',
+                'query' => 'select id, name, slug, description, category_id, base_price, is_active from products where is_active = true',
                 'ttl' => 3600, // 1 小时
                 'batch_size' => 100,
             ],
             'feature_flags' => [
                 'key_prefix' => 'feature_flag:',
-                'query' => 'select id, key, name, enabled, rules from feature_flags where is_active = 1',
+                'query' => 'select id, key, name, description, is_active from feature_flags where is_active = true',
                 'ttl' => 1800,
                 'batch_size' => 200,
             ],
-            'plans' => [
-                'key_prefix' => 'plan:',
-                'query' => 'select id, name, type, price, features from plans where is_active = 1',
+            'pricing_plans' => [
+                'key_prefix' => 'pricing_plan:',
+                'query' => 'select id, slug, name, price_monthly, price_yearly, features, is_active from pricing_plans where is_active = true',
                 'ttl' => 3600,
                 'batch_size' => 50,
             ],

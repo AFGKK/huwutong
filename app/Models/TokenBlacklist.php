@@ -9,9 +9,13 @@ use Illuminate\Database\Eloquent\Model;
  *
  * 吊销的 token 会记录在此表，供内省中间件快速检查。
  * 配合 Cache 实现 O(1) 实时吊销检查。
+ *
+ * @mixin IdeHelperTokenBlacklist
  */
 class TokenBlacklist extends Model
 {
+    protected $table = 'token_blacklist';
+
     protected $fillable = [
         'token_id', 'user_id', 'reason', 'revoked_at',
     ];

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperRoleHierarchy
+ */
 class RoleHierarchy extends Model
 {
     protected $table = 'role_hierarchy';

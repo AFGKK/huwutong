@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\DataLineageRecord;
+use App\Support\DbSql;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -179,7 +180,7 @@ class DataLineageService
 
         $totalRecords = (clone $base)->count();
         $totalTracked = (clone $base)
-            ->select(DB::raw('COUNT(DISTINCT CONCAT(trackable_type, ":", trackable_id)) as cnt'))
+            ->select(DB::raw('COUNT(DISTINCT '.DbSql::concat('trackable_type', "':'", 'trackable_id').') as cnt'))
             ->value('cnt');
 
         // 按数据类别统计

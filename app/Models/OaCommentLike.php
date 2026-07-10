@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperOaCommentLike
+ */
 class OaCommentLike extends Model
 {
     protected $fillable = ['comment_id', 'user_id'];

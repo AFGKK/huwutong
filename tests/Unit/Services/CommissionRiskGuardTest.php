@@ -5,7 +5,7 @@ namespace Tests\Unit\Services;
 use App\Models\Agent;
 use App\Models\EarningsAccount;
 use App\Services\CommissionRiskGuard;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class CommissionRiskGuardTest extends TestCase
@@ -165,9 +165,11 @@ class CommissionRiskGuardTest extends TestCase
 
     public function test_freeze_commission_and_release_cycle()
     {
-        $user = \App\Models\User::factory()->create();
+        $tenant = \App\Models\Tenant::factory()->create();
+        $user = \App\Models\User::factory()->create(['tenant_id' => $tenant->id]);
         $account = EarningsAccount::factory()->create([
             'user_id' => $user->id,
+            'tenant_id' => $tenant->id,
         ]);
         $agent = Agent::factory()->create(['user_id' => $user->id, 'status' => 'active']);
         $settlement = \App\Models\CommissionSettlement::factory()->create([
@@ -176,7 +178,11 @@ class CommissionRiskGuardTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $this->guard->freezeCommission($account, $settlement);
+        try {
+            $this->guard->freezeCommission($account, $settlement);
+        } catch (\Throwable $e) {
+            $this->fail('freezeCommission failed: ' . $e->getMessage());
+        }
 
         $fresh = $account->fresh();
         $this->assertEquals(500.00, (float) $fresh->pending_balance);

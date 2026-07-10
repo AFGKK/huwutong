@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property array|null $failed_files
  * @property string|null $error_message
  * @property string|null $client_ip
+ * @mixin IdeHelperSdkIntegrityCheck
  */
 class SdkIntegrityCheck extends Model
 {

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperAlertEscalationLog
+ */
 class AlertEscalationLog extends Model
 {
     protected $table = 'alert_escalation_logs';

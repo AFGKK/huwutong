@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property Carbon|null $released_at
  * @property Carbon|null $deprecated_at
  * @property Carbon|null $sunset_at
+ * @mixin IdeHelperSdkVersion
  */
 class SdkVersion extends Model
 {

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperSeatWaitingQueue
+ */
 class SeatWaitingQueue extends Model
 {
     protected $table = 'seat_waiting_queue';

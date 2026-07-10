@@ -19,7 +19,9 @@ class NotifyFollowersOnArticlePublished
         if (!$account) return;
 
         $ownerId = $account->owner_id;
-        $followers = OaFollower::where('account_id', $account->id)->get();
+        $followers = OaFollower::where('followable_id', $account->id)
+            ->where('followable_type', 'App\\Models\\OfficialAccount')
+            ->get();
 
         foreach ($followers as $follower) {
             try {

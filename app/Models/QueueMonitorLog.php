@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperQueueMonitorLog
+ */
 class QueueMonitorLog extends Model
 {
     protected $table = 'queue_monitor_logs';

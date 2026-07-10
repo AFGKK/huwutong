@@ -65,6 +65,13 @@ return [
             'filterable_attributes' => ['status'],
             'sortable_attributes' => ['created_at'],
         ],
+        'official_accounts' => [
+            'name' => env('MEILISEARCH_OA_ACCOUNT_INDEX', 'official_accounts'),
+            'primary_key' => 'id',
+            'searchable_attributes' => ['name', 'slug', 'description'],
+            'filterable_attributes' => ['status', 'category_id', 'owner_id'],
+            'sortable_attributes' => ['follower_count', 'article_count', 'created_at'],
+        ],
     ],
 
     /*

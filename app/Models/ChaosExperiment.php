@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * 记录混沌实验的定义、执行和结果
  *
  * @m3-80 ChaosEngineering
+ * @mixin IdeHelperChaosExperiment
  */
 class ChaosExperiment extends Model
 {

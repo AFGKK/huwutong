@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * M2-15 灰度发布规则
+ *
+ * @mixin IdeHelperUpdateGrayRelease
  */
 class UpdateGrayRelease extends Model
 {

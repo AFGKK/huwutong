@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\DbSql;
 use App\Services\TextToSqlGuardService;
 use Illuminate\Support\Facades\Log;
 
@@ -145,12 +146,26 @@ class AIOpsAnalystService
         if ($r3['success']) $metrics['total_customers'] = $r3['data'][0]['total'] ?? 0;
 
         // 今日激活
-        $r4 = $this->guardService->execute("SELECT COUNT(*) as total FROM license_activations WHERE DATE(created_at) = CURDATE()", [], $userContext);
-        if ($r4['success']) $metrics['today_activations'] = $r4['data'][0]['total'] ?? 0;
+        $todaySql = DbSql::aiOpsTemplateSql()['today_activations'] ?? null;
+        if ($todaySql) {
+            $r4 = $this->guardService->execute($todaySql, [], $userContext);
+            if ($r4['success']) {
+                $metrics['today_activations'] = $r4['data'][0]['total'] ?? 0;
+            }
+        }
 
         // 即将过期（7天内）
-        $r5 = $this->guardService->execute("SELECT COUNT(*) as total FROM licenses WHERE status = 'active' AND expires_at BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY)", [], $userContext);
-        if ($r5['success']) $metrics['expiring_soon'] = $r5['data'][0]['total'] ?? 0;
+        $expiringSql = DbSql::aiOpsTemplateSql()['expiring_soon'] ?? null;
+        if ($expiringSql) {
+            $r5 = $this->guardService->execute(
+                'SELECT COUNT(*) as total FROM licenses WHERE status = \'active\' AND expires_at BETWEEN NOW() AND '.DbSql::addDaysToNow(7),
+                [],
+                $userContext
+            );
+            if ($r5['success']) {
+                $metrics['expiring_soon'] = $r5['data'][0]['total'] ?? 0;
+            }
+        }
 
         return $metrics;
     }
@@ -163,17 +178,13 @@ class AIOpsAnalystService
         $days = $params['days'] ?? 30;
         $limit = $params['limit'] ?? 10;
 
-        $sqlMap = [
-            'activation_trend' => "SELECT DATE(created_at) as date, COUNT(*) as count FROM license_activations WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL {$days} DAY) GROUP BY DATE(created_at) ORDER BY date",
+        $sqlMap = array_merge(DbSql::aiOpsTemplateSql($days, $limit), [
             'activation_by_product' => "SELECT p.name as product, COUNT(*) as total FROM license_activations la JOIN licenses l ON la.license_id = l.id JOIN products p ON l.product_id = p.id GROUP BY p.id, p.name ORDER BY total DESC LIMIT {$limit}",
-            'license_status_dist' => "SELECT status, COUNT(*) as total FROM licenses GROUP BY status ORDER BY total DESC",
-            'expiring_soon' => "SELECT l.license_key, p.name as product, l.expires_at, c.name as customer FROM licenses l JOIN products p ON l.product_id = p.id LEFT JOIN customers c ON l.customer_id = c.id WHERE l.status = 'active' AND l.expires_at BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY) ORDER BY l.expires_at LIMIT {$limit}",
+            'license_status_dist' => 'SELECT status, COUNT(*) as total FROM licenses GROUP BY status ORDER BY total DESC',
             'top_customers' => "SELECT c.name, c.email, COUNT(l.id) as license_count FROM customers c LEFT JOIN licenses l ON l.customer_id = c.id GROUP BY c.id, c.name, c.email ORDER BY license_count DESC LIMIT {$limit}",
-            'customer_growth' => "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as new_customers FROM customers WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY month",
-            'device_by_platform' => "SELECT platform, COUNT(*) as total FROM devices GROUP BY platform ORDER BY total DESC",
-            'active_devices' => "SELECT DATE(last_seen_at) as date, COUNT(*) as active_devices FROM devices WHERE last_seen_at >= DATE_SUB(CURDATE(), INTERVAL {$days} DAY) GROUP BY DATE(last_seen_at) ORDER BY date",
+            'device_by_platform' => 'SELECT platform, COUNT(*) as total FROM devices GROUP BY platform ORDER BY total DESC',
             'subscription_by_plan' => "SELECT plan, COUNT(*) as total FROM subscriptions WHERE status = 'active' GROUP BY plan ORDER BY total DESC",
-        ];
+        ]);
 
         return $sqlMap[$key] ?? null;
     }

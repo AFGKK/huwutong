@@ -710,6 +710,9 @@ class DynamicPricingService
             'group' => $group,
             'original_price' => $originalPrice,
             'experiment_price' => $experimentPrice,
+            'revenue_impact' => ($experimentPrice !== null && $originalPrice !== null)
+                ? round($experimentPrice - $originalPrice, 2)
+                : 0,
             'assigned_at' => now(),
         ]);
 

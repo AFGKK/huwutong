@@ -15,6 +15,7 @@ class PricingPlanFactory extends Factory
             'slug' => $this->faker->unique()->slug(1),
             'name' => $this->faker->words(2, true),
             'description' => $this->faker->sentence(),
+            'billing_period' => 'monthly',
             'price_monthly' => $this->faker->randomFloat(2, 10, 500),
             'price_quarterly' => $this->faker->randomFloat(2, 20, 1000),
             'price_yearly' => $this->faker->randomFloat(2, 100, 5000),

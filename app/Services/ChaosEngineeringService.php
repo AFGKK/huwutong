@@ -190,8 +190,9 @@ class ChaosEngineeringService
     protected function simulateDbFailover(array $config): array
     {
         $duration = $config['duration_seconds'] ?? 15;
-        // 通过设置数据库只读模式模拟主从切换
-        DB::statement('SET SESSION sql_mode = ?', ['STRICT_ALL_TABLES']);
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('SET SESSION sql_mode = ?', ['STRICT_ALL_TABLES']);
+        }
         sleep(min($duration, 10)); // 最多等10秒
 
         return [

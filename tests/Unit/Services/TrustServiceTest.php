@@ -6,7 +6,7 @@ use App\Models\Device;
 use App\Models\License;
 use App\Services\TrustService;
 use Database\Factories\LicenseFactory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class TrustServiceTest extends TestCase

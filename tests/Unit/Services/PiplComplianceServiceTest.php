@@ -7,7 +7,7 @@ use App\Models\Dpia;
 use App\Models\PersonalDataInventory;
 use App\Models\User;
 use App\Services\PiplComplianceService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class PiplComplianceServiceTest extends TestCase

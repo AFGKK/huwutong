@@ -144,7 +144,7 @@ class QueueMonitorService
             $query->where('queue', $queue);
         }
 
-        $records = $query->selectRaw("DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') as hour, status, COUNT(*) as count")
+        $records = $query->selectRaw(db_date_format('created_at', '%Y-%m-%d %H:00:00').' as hour, status, COUNT(*) as count')
             ->groupBy('hour', 'status')
             ->orderBy('hour')
             ->get();

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperCrossTenantShare
+ */
 class CrossTenantShare extends Model
 {
     protected $table = 'cross_tenant_shares';

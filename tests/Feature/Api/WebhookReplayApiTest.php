@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Models\WebhookEndpoint;
 use App\Models\WebhookEvent;
 use Database\Factories\UserFactory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;

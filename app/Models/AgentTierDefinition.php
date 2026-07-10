@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
  * 代理商等级定义 (M3-04)
  *
  * regular → silver → gold → platinum
+ *
+ * @mixin IdeHelperAgentTierDefinition
  */
 class AgentTierDefinition extends Model
 {

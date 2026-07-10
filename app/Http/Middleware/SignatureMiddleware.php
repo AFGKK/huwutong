@@ -195,6 +195,10 @@ class SignatureMiddleware
             if ($license && ! empty($license->metadata['signature_secret'] ?? null)) {
                 return $license->metadata['signature_secret'];
             }
+
+            // 请求携带了 license_key 但未找到对应 License 时，不使用系统默认密钥，
+            // 避免测试/客户端用 License 专属密钥签名时被默认密钥校验拦截。
+            return null;
         }
 
         // 3. 系统默认密钥（用于内部服务间通信）

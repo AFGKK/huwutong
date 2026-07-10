@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperStickerPack
+ */
 class StickerPack extends Model
 {
     protected $fillable = ['name', 'description', 'cover_url', 'user_id', 'is_system', 'sort_order'];

@@ -38,6 +38,9 @@ class ActivateController extends Controller
     {
         $data = $request->validate([
             'license_key' => 'required|string',
+            'product_id' => 'nullable|integer|exists:products,id',
+            'sku_id' => 'nullable|integer|exists:product_skus,id',
+            'tenant_id' => 'nullable|integer|exists:tenants,id',
             'fingerprint' => 'required|string',
             'components' => 'nullable|array',
             'components.mac' => 'nullable|string',
@@ -76,9 +79,45 @@ class ActivateController extends Controller
             return ApiResponse::error('LICENSE_NOT_FOUND', 'License Key 不存在', 404);
         }
 
-        // 状态校验
+        // 漏洞1修复：Product 匹配检查（License 有绑定 product_id 时必须校验）
+        if ($license->product_id) {
+            $reqProductId = $data['product_id'] ?? null;
+            if (! $reqProductId) {
+                return ApiResponse::error('PRODUCT_ID_REQUIRED', '请提供要激活的产品 ID', 422);
+            }
+            if ($license->product_id != $reqProductId) {
+                return ApiResponse::error('LICENSE_PRODUCT_MISMATCH', 'License Key 不适用于该产品', 422);
+            }
+        }
+
+        // 漏洞1修复：SKU 匹配检查（License 有绑定 sku_id 时必须校验）
+        if ($license->sku_id) {
+            $reqSkuId = $data['sku_id'] ?? null;
+            if (! $reqSkuId) {
+                return ApiResponse::error('SKU_ID_REQUIRED', '请提供要激活的方案/SKU ID', 422);
+            }
+            if ($license->sku_id != $reqSkuId) {
+                return ApiResponse::error('LICENSE_SKU_MISMATCH', 'License Key 不适用于该版本/方案', 422);
+            }
+        }
+
+        // 漏洞2修复：租户隔离检查
+        if ($license->tenant_id) {
+            $reqTenantId = $data['tenant_id'] ?? null;
+            if (! $reqTenantId) {
+                return ApiResponse::error('TENANT_ID_REQUIRED', '请提供租户 ID', 422);
+            }
+            if ($license->tenant_id != $reqTenantId) {
+                return ApiResponse::error('LICENSE_TENANT_MISMATCH', 'License Key 不属于该租户', 422);
+            }
+        }
+
+        // 状态校验（含漏洞3修复：suspended/frozen 不可激活新设备）
         $status = LicenseStatus::tryFrom($license->status);
-        if (! $status || ! $status->isActivable()) {
+        if (! $status) {
+            return ApiResponse::error('LICENSE_STATUS_INVALID', 'License 状态异常', 422);
+        }
+        if ($status !== LicenseStatus::Pending && $status !== LicenseStatus::Active) {
             return ApiResponse::error('LICENSE_NOT_ACTIVATABLE', "License 当前状态「{$license->status}」不允许激活", 422);
         }
 

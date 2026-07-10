@@ -9,6 +9,7 @@ use App\Models\ForumPost;
 use App\Models\BlogPost;
 use App\Models\OaArticle;
 use App\Models\User;
+use App\Models\OfficialAccount;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -173,12 +174,10 @@ class MeilisearchService
         try {
             $health = $this->client->health();
             $version = $this->client->version();
-            $stats = $this->client->getStats();
 
             return [
                 'status' => $health['status'] ?? 'unknown',
                 'version' => $version,
-                'stats' => $stats,
                 'indexes' => $this->getIndexes(),
             ];
         } catch (\Throwable $e) {
@@ -200,7 +199,7 @@ class MeilisearchService
         $total = 0;
 
         try {
-            Product::with(['category:id,name', 'merchant:id,name'])->chunk($chunkSize, function ($products) use ($indexUid, &$total) {
+            Product::with(['category:id,name'])->chunk($chunkSize, function ($products) use ($indexUid, &$total) {
                 $documents = $products->map(fn($p) => [
                     'id' => $p->id,
                     'name' => $p->name,
@@ -247,6 +246,7 @@ class MeilisearchService
                     $documents = $articles->map(fn($a) => [
                         'id' => $a->id,
                         'title' => $a->title,
+                        'slug' => $a->slug,
                         'content' => strip_tags($a->content ?? ''),
                         'excerpt' => $a->excerpt,
                         'tags' => is_array($a->tags) ? $a->tags : [],
@@ -286,6 +286,7 @@ class MeilisearchService
         $results['blog_posts'] = $this->syncBlogPosts();
         $results['oa_articles'] = $this->syncOaArticles();
         $results['users'] = $this->syncUsers();
+        $results['official_accounts'] = $this->syncOfficialAccounts();
         return $results;
     }
 
@@ -343,7 +344,7 @@ class MeilisearchService
     }
 
     /**
-     * 同步论坛帖子到 Meilisearch
+     * 同步广场帖子到 Meilisearch
      */
     public function syncForumPosts(?int $chunkSize = null): array
     {
@@ -375,8 +376,8 @@ class MeilisearchService
 
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
-            Log::error('同步论坛到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException('同步论坛失败: ' . $e->getMessage());
+            Log::error('同步广场到 Meilisearch 失败: ' . $e->getMessage());
+            throw new \RuntimeException('同步广场失败: ' . $e->getMessage());
         }
     }
 
@@ -393,8 +394,7 @@ class MeilisearchService
             BlogPost::with(['authorUser:id,name,avatar'])->where('is_published', true)->chunk($chunkSize, function ($posts) use ($indexUid, &$total) {
                 $documents = $posts->map(fn($p) => [
                     'id' => $p->id,
-                    'title' => $p->title,
-                    'content' => strip_tags($p->content ?? ''),
+                    'title' => $p->title,                    'slug' => $p->slug,                    'content' => strip_tags($p->content ?? ''),
                     'excerpt' => $p->excerpt,
                     'tags' => is_array($p->tags) ? $p->tags : [],
                     'author' => $p->author,
@@ -419,7 +419,7 @@ class MeilisearchService
     }
 
     /**
-     * 同步公众号文章到 Meilisearch
+     * 同步互物号文章到 Meilisearch
      */
     public function syncOaArticles(?int $chunkSize = null): array
     {
@@ -453,8 +453,8 @@ class MeilisearchService
 
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
-            Log::error('同步公众号到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException('同步公众号失败: ' . $e->getMessage());
+            Log::error('同步互物号到 Meilisearch 失败: ' . $e->getMessage());
+            throw new \RuntimeException('同步互物号失败: ' . $e->getMessage());
         }
     }
 
@@ -490,17 +490,65 @@ class MeilisearchService
     }
 
     /**
+     * 同步互物号账号到 Meilisearch
+     */
+    public function syncOfficialAccounts(?int $chunkSize = null): array
+    {
+        $chunkSize = $chunkSize ?: config('meilisearch.sync.chunk_size', 100);
+        $indexUid = config('meilisearch.indexes.official_accounts.name', 'official_accounts');
+        $total = 0;
+
+        try {
+            OfficialAccount::with(['category:id,name'])
+                ->withCount('followers as follower_count')
+                ->withCount('articles as article_count')
+                ->where('status', 'active')
+                ->chunk($chunkSize, function ($accounts) use ($indexUid, &$total) {
+                    $documents = $accounts->map(fn($a) => [
+                        'id' => $a->id,
+                        'name' => $a->name,
+                        'slug' => $a->slug,
+                        'description' => $a->description,
+                        'avatar' => $a->avatar,
+                        'cover_image' => $a->cover_image,
+                        'category_id' => $a->category_id,
+                        'category_name' => $a->category?->name,
+                        'owner_id' => $a->owner_id,
+                        'status' => $a->status,
+                        'is_verified' => $a->is_verified,
+                        'verified_info' => $a->is_verified && isset($a->settings['verified_info']) ? $a->settings['verified_info'] : null,
+                        'verified_at' => $a->verified_at ? (is_string($a->verified_at) ? $a->verified_at : $a->verified_at->toIso8601String()) : null,
+                        'follower_count' => (int) ($a->follower_count ?? 0),
+                        'article_count' => (int) ($a->article_count ?? 0),
+                        'created_at' => $a->created_at?->toIso8601String(),
+                    ])->toArray();
+
+                    $this->client->index($indexUid)->addDocuments($documents);
+                    $total += count($documents);
+                });
+
+            return ['index' => $indexUid, 'synced' => $total];
+        } catch (\Throwable $e) {
+            Log::error('同步互物号账号到 Meilisearch 失败: ' . $e->getMessage());
+            throw new \RuntimeException('同步互物号账号失败: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * 统一搜索 — 跨所有索引搜索
      */
     public function unifiedSearch(string $query, array $options = []): array
     {
         $limit = $options['limit'] ?? 5;
+        $sort = $options['sort'] ?? 'relevance';
+        $userId = $options['user_id'] ?? null;
         $indexes = array_keys(config('meilisearch.indexes', []));
         $results = [];
         $rankedHits = [];
         $labelMap = [
             'products' => '商品', 'kb_articles' => '帮助中心', 'marketplace_apps' => '应用市场',
-            'forum_posts' => '广场', 'blog_posts' => '博客', 'oa_articles' => '公众号', 'users' => '用户',
+            'forum_posts' => '社区', 'blog_posts' => '博客', 'oa_articles' => '互物号', 'users' => '用户',
+            'official_accounts' => '互物号账号',
         ];
 
         foreach ($indexes as $indexKey) {
@@ -519,20 +567,69 @@ class MeilisearchService
                         'total' => $searchResult['total'],
                         'hits' => $searchResult['hits'],
                     ];
-                    // 收集到权重排序列表
                     foreach ($searchResult['hits'] as $hit) {
                         $hit['_content_type'] = $indexKey;
                         $hit['_content_label'] = $labelMap[$indexKey] ?? $indexKey;
+                        $hit['_sort_time'] = strtotime($hit['published_at'] ?? $hit['created_at'] ?? 'now');
                         $rankedHits[] = $hit;
                     }
                 }
             } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('unifiedSearch [' . $indexKey . ']: ' . $e->getMessage());
                 continue;
             }
         }
 
-        // 按 Meilisearch 权重分数降序排列
-        usort($rankedHits, fn($a, $b) => ($b['_rankingScore'] ?? 0) <=> ($a['_rankingScore'] ?? 0));
+        // 智能推荐排序（结合用户兴趣）
+        if ($sort === 'smart' && $userId) {
+            $smartScores = $this->getSmartScores($userId, $rankedHits);
+            foreach ($rankedHits as &$hit) {
+                $id = $hit['id'] ?? 0;
+                $type = $hit['_content_type'] ?? '';
+                $key = $type . '_' . $id;
+                $interest = $smartScores[$key] ?? 0;
+                $rankingScore = $hit['_rankingScore'] ?? 0;
+                $hit['_smart_score'] = round($rankingScore * 0.6 + $interest * 0.4, 4);
+            }
+            usort($rankedHits, fn($a, $b) => ($b['_smart_score'] ?? 0) <=> ($a['_smart_score'] ?? 0));
+        } elseif ($sort === 'ai' && $userId) {
+            $aiScores = $this->getAiScores($userId, $rankedHits);
+            foreach ($rankedHits as &$hit) {
+                $id = $hit['id'] ?? 0;
+                $type = $hit['_content_type'] ?? '';
+                $key = $type . '_' . $id;
+                $score = $aiScores[$key] ?? 0;
+                $rankingScore = $hit['_rankingScore'] ?? 0;
+                $hit['_smart_score'] = round($rankingScore * 0.3 + $score * 0.7, 4);
+            }
+            usort($rankedHits, fn($a, $b) => ($b['_smart_score'] ?? 0) <=> ($a['_smart_score'] ?? 0));
+        } elseif ($sort === 'cf' && $userId) {
+            $cfScores = $this->getCfScores($userId, $rankedHits);
+            foreach ($rankedHits as &$hit) {
+                $id = $hit['id'] ?? 0;
+                $type = $hit['_content_type'] ?? '';
+                $key = $type . '_' . $id;
+                $score = $cfScores[$key] ?? 0;
+                $rankingScore = $hit['_rankingScore'] ?? 0;
+                $hit['_smart_score'] = round($rankingScore * 0.4 + $score * 0.6, 4);
+            }
+            usort($rankedHits, fn($a, $b) => ($b['_smart_score'] ?? 0) <=> ($a['_smart_score'] ?? 0));
+        } elseif ($sort === 'sequence' && $userId) {
+            $seqScores = $this->getSequenceScores($userId, $rankedHits);
+            foreach ($rankedHits as &$hit) {
+                $id = $hit['id'] ?? 0;
+                $type = $hit['_content_type'] ?? '';
+                $key = $type . '_' . $id;
+                $score = $seqScores[$key] ?? 0;
+                $rankingScore = $hit['_rankingScore'] ?? 0;
+                $hit['_smart_score'] = round($rankingScore * 0.3 + $score * 0.7, 4);
+            }
+            usort($rankedHits, fn($a, $b) => ($b['_smart_score'] ?? 0) <=> ($a['_smart_score'] ?? 0));
+        } elseif ($sort === 'newest') {
+            usort($rankedHits, fn($a, $b) => ($b['_sort_time'] ?? 0) <=> ($a['_sort_time'] ?? 0));
+        } else {
+            usort($rankedHits, fn($a, $b) => ($b['_rankingScore'] ?? 0) <=> ($a['_rankingScore'] ?? 0));
+        }
 
         return [
             'query' => $query,
@@ -540,7 +637,242 @@ class MeilisearchService
             'ranked' => $rankedHits,
             'total_types' => count($results),
             'total' => count($rankedHits),
+            'sort' => $sort,
         ];
+    }
+
+    /**
+     * 获取用户兴趣分数（用于 smart 排序）
+     */
+    private function getSmartScores(int $userId, array $hits): array
+    {
+        $scores = [];
+        // 已关注的互物号账号
+        $followedAccountIds = \App\Models\Follow::where('user_id', $userId)
+            ->where('followable_type', 'App\\Models\\OfficialAccount')
+            ->pluck('followable_id')->toArray();
+
+        // 用户阅读过的 OA 文章 ID
+        $readArticleIds = \App\Models\OaArticleRead::where('user_id', $userId)
+            ->distinct('oa_article_id')
+            ->pluck('oa_article_id')->toArray();
+
+        // 用户购买过的产品 ID
+        $purchasedProductIds = \App\Models\License::whereHas('customer', fn($q) => $q->where('user_id', $userId))
+            ->whereNotNull('product_id')
+            ->distinct('product_id')
+            ->pluck('product_id')->toArray();
+
+        foreach ($hits as $hit) {
+            $id = $hit['id'] ?? 0;
+            $type = $hit['_content_type'] ?? '';
+            $score = 0;
+
+            if ($type === 'official_accounts' && in_array($id, $followedAccountIds)) {
+                $score = 1.0;
+            } elseif ($type === 'oa_articles') {
+                $accountId = $hit['account_id'] ?? 0;
+                if (in_array($accountId, $followedAccountIds)) $score = 0.8;
+                if (in_array($id, $readArticleIds)) $score = max($score, 0.6);
+            } elseif ($type === 'products' && in_array($id, $purchasedProductIds)) {
+                $score = 0.5;
+            } elseif ($type === 'blog_posts' || $type === 'forum_posts') {
+                $authorId = $hit['author_id'] ?? $hit['user_id'] ?? 0;
+                if ($authorId === $userId) $score = 0.7;
+            }
+
+            $scores[$type . '_' . $id] = $score;
+        }
+
+        return $scores;
+    }
+
+    /**
+     * 获取 AI 向量推荐分数
+     */
+    private function getAiScores(int $userId, array $hits): array
+    {
+        $scores = [];
+        try {
+            $ai = app(\App\Services\AiRecommendationService::class);
+            $articleScores = $ai->recommend($userId, 50);
+            $productScores = $ai->recommendProducts($userId, 30);
+
+            foreach ($hits as $hit) {
+                $id = $hit['id'] ?? 0;
+                $type = $hit['_content_type'] ?? '';
+                $score = 0;
+                if ($type === 'oa_articles' && isset($articleScores[$id])) {
+                    $score = $articleScores[$id];
+                } elseif ($type === 'products' && isset($productScores[$id])) {
+                    $score = $productScores[$id];
+                }
+                $scores[$type . '_' . $id] = $score;
+            }
+        } catch (\Throwable $e) {}
+        return $scores;
+    }
+
+    /**
+     * 获取协同过滤分数（基于购买/关注/阅读等行为共现）
+     */
+    private function getCfScores(int $userId, array $hits): array
+    {
+        $scores = [];
+        try {
+            $ai = app(\App\Services\AiRecommendationService::class);
+            $productCfScores = $ai->productCollaborativeFiltering(0, 30);
+            $articleScores = $ai->recommend($userId, 50);
+
+            foreach ($hits as $hit) {
+                $id = $hit['id'] ?? 0;
+                $type = $hit['_content_type'] ?? '';
+                $score = 0;
+                if ($type === 'products' && isset($productCfScores[$id])) {
+                    $score = $productCfScores[$id] * 0.5;
+                }
+                if ($type === 'oa_articles' && isset($articleScores[$id])) {
+                    $score = max($score, $articleScores[$id] * 0.6);
+                }
+                $scores[$type . '_' . $id] = $score;
+            }
+        } catch (\Throwable $e) {}
+        return $scores;
+    }
+
+    /**
+     * 获取序列预测分数（马尔可夫链）
+     */
+    private function getSequenceScores(int $userId, array $hits): array
+    {
+        $scores = [];
+        try {
+            $seq = app(\App\Services\BehaviorSequenceService::class);
+            $articleSeqScores = $seq->predictNext($userId, 30);
+            $productSeqScores = $seq->predictNextProduct($userId, 20);
+
+            foreach ($hits as $hit) {
+                $id = $hit['id'] ?? 0;
+                $type = $hit['_content_type'] ?? '';
+                $score = 0;
+                if ($type === 'oa_articles' && isset($articleSeqScores[$id])) {
+                    $score = $articleSeqScores[$id] * 0.7;
+                } elseif ($type === 'products' && isset($productSeqScores[$id])) {
+                    $score = $productSeqScores[$id] * 0.7;
+                }
+                $scores[$type . '_' . $id] = $score;
+            }
+        } catch (\Throwable $e) {}
+        return $scores;
+    }
+
+    /**
+     * 搜索建议（输入即搜，轻量快速，用于下拉补全）
+     */
+    public function searchSuggest(string $query, int $perIndex = 3): array
+    {
+        $indexes = array_keys(config('meilisearch.indexes', []));
+        $labelMap = [
+            'products' => '📦 商品', 'kb_articles' => '📖 帮助中心', 'marketplace_apps' => '🧩 应用市场',
+            'forum_posts' => '💬 社区', 'blog_posts' => '📝 博客', 'oa_articles' => '📢 互物号', 'users' => '👤 用户',
+            'official_accounts' => '🏢 互物号账号',
+        ];
+        $typeLabelMap = [
+            'products' => '商品', 'kb_articles' => '帮助中心', 'marketplace_apps' => '应用市场',
+            'forum_posts' => '社区', 'blog_posts' => '博客', 'oa_articles' => '互物号', 'users' => '用户',
+            'official_accounts' => '互物号账号',
+        ];
+        $suggestions = [];
+
+        foreach ($indexes as $indexKey) {
+            $indexUid = config("meilisearch.indexes.{$indexKey}.name");
+            if (!$indexUid) continue;
+
+            try {
+                $searchResult = $this->search($indexUid, $query, [
+                    'limit' => $perIndex,
+                    'attributesToHighlight' => ['title', 'name'],
+                    'show_ranking_score' => true,
+                ]);
+                if (!empty($searchResult['hits'])) {
+                    foreach ($searchResult['hits'] as $hit) {
+                        $title = $hit['_formatted']['title'] ?? $hit['_formatted']['name'] ?? $hit['title'] ?? $hit['name'] ?? '';
+                        $desc = $hit['description'] ?? $hit['excerpt'] ?? $hit['content'] ?? '';
+                        $suggestions[] = [
+                            'type' => $indexKey,
+                            'label' => $labelMap[$indexKey] ?? '',
+                            'type_label' => $typeLabelMap[$indexKey] ?? '',
+                            'id' => $hit['id'],
+                            'title' => strip_tags(html_entity_decode($title)),
+                            'description' => mb_substr(strip_tags(html_entity_decode($desc)), 0, 60),
+                            'slug' => $hit['slug'] ?? null,
+                            'avatar' => $hit['avatar'] ?? $hit['image_url'] ?? null,
+                            'score' => $hit['_rankingScore'] ?? 0,
+                        ];
+                    }
+                }
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+
+        // 按分数降序
+        usort($suggestions, fn($a, $b) => $b['score'] <=> $a['score']);
+
+        return ['query' => $query, 'suggestions' => array_slice($suggestions, 0, 10)];
+    }
+
+    /**
+     * 获取热门推荐内容（无搜索结果时展示）
+     */
+    public function trending(int $perType = 3): array
+    {
+        $indexes = array_keys(config('meilisearch.indexes', []));
+        $labelMap = [
+            'products' => '商品', 'kb_articles' => '帮助中心', 'marketplace_apps' => '应用市场',
+            'forum_posts' => '社区', 'blog_posts' => '博客', 'oa_articles' => '互物号', 'users' => '用户',
+            'official_accounts' => '互物号账号',
+        ];
+        $iconMap = [
+            'products' => '📦', 'kb_articles' => '📖', 'marketplace_apps' => '🧩',
+            'forum_posts' => '💬', 'blog_posts' => '📝', 'oa_articles' => '📢', 'users' => '👤',
+            'official_accounts' => '🏢',
+        ];
+        $trending = [];
+
+        foreach ($indexes as $indexKey) {
+            $indexUid = config("meilisearch.indexes.{$indexKey}.name");
+            if (!$indexUid) continue;
+
+            try {
+                // 空搜索返回最新文档（按创建时间降序）
+                $searchResult = $this->search($indexUid, '', [
+                    'limit' => $perType,
+                    'sort' => ['created_at:desc'],
+                ]);
+                if (!empty($searchResult['hits'])) {
+                    foreach ($searchResult['hits'] as $hit) {
+                        $title = $hit['title'] ?? $hit['name'] ?? '';
+                        $desc = $hit['description'] ?? $hit['excerpt'] ?? '';
+                        $trending[] = [
+                            'type' => $indexKey,
+                            'icon' => $iconMap[$indexKey] ?? '',
+                            'label' => $labelMap[$indexKey] ?? '',
+                            'id' => $hit['id'],
+                            'title' => mb_substr(strip_tags($title), 0, 60),
+                            'description' => mb_substr(strip_tags($desc), 0, 80),
+                            'slug' => $hit['slug'] ?? null,
+                            'image' => $hit['image_url'] ?? $hit['avatar'] ?? null,
+                            'date' => $hit['created_at'] ?? null,
+                        ];
+                    }
+                }
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+
+        return $trending;
     }
 
     // ══════════════════════════════════════════

@@ -619,7 +619,7 @@ class PrepaidBalanceService
         $consumeResult = $this->consume($customer, $actualConsume, 'CNY', $invoice);
 
         if ($consumeResult['success']) {
-            $consumedAmount = (float) ($consumeResult['transaction']->amount ?? 0);
+            $consumedAmount = abs((float) ($consumeResult['transaction']->amount ?? 0));
             if ($consumedAmount >= $amount) {
                 // 全额余额支付
                 $invoice->update([
@@ -632,7 +632,7 @@ class PrepaidBalanceService
         }
 
         // 2. 余额不够时，检查信用额度
-        $remaining = $amount - (float) ($consumeResult['success'] ? ($consumeResult['transaction']->amount ?? 0) : 0);
+        $remaining = $amount - (float) ($consumeResult['success'] ? abs($consumeResult['transaction']->amount ?? 0) : 0);
         if ($remaining <= 0) {
             return ['success' => true, 'method' => 'prepaid'];
         }

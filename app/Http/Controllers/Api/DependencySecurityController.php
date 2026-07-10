@@ -51,7 +51,7 @@ class DependencySecurityController extends Controller
         $allowedSorts = ['severity', 'package_name', 'detected_at', 'created_at'];
         if (in_array($field, $allowedSorts)) {
             if ($field === 'severity') {
-                $query->orderByRaw("FIELD(severity, 'critical', 'high', 'medium', 'low') {$direction}");
+                $query->orderByRaw("CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END {$direction}");
             } else {
                 $query->orderBy($field, $direction);
             }

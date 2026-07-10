@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperTranslationHistory
+ */
 class TranslationHistory extends Model
 {
     protected $table = 'translation_histories';

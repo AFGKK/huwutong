@@ -1,7 +1,7 @@
 <?php
 /**
  * 互动数据迁移脚本
- * 将论坛(OaArticleLike/OaFavorite/ForumLike)的数据迁移到统一 Like/Favorite 表
+ * 将广场(OaArticleLike/OaFavorite/ForumLike)的数据迁移到统一 Like/Favorite 表
  * 
  * 运行: php migrate_interactions.php
  */
@@ -70,8 +70,8 @@ if ($count > 0) {
 }
 echo "  完成: {$count} 条\n\n";
 
-// 3. 论坛帖子点赞 → Like 表
-echo "3. 迁移论坛帖子点赞...\n";
+// 3. 广场帖子点赞 → Like 表
+echo "3. 迁移广场帖子点赞...\n";
 $count = 0;
 ForumLike::chunk(100, function ($likes) use (&$count) {
     foreach ($likes as $like) {
@@ -149,8 +149,8 @@ if ($count > 0) {
 }
 echo "  完成: {$count} 条\n\n";
 
-// 6. 论坛用户关注 → Follow 表
-echo "6. 迁移论坛用户关注数据...\n";
+// 6. 广场用户关注 → Follow 表
+echo "6. 迁移广场用户关注数据...\n";
 $count = 0;
 ForumFollow::chunk(100, function ($follows) use (&$count) {
     foreach ($follows as $f) {

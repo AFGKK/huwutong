@@ -42,7 +42,7 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->index(['category_id', 'status']);
-            // fullText 全文索引（MySQL only，SQLite 测试环境跳过）
+            // fullText 全文索引（MySQL/PostgreSQL 支持，SQLite 跳过）
             if (config('database.default') !== 'sqlite' && DB::connection()->getDriverName() !== 'sqlite') {
                 $table->fullText(['title', 'content'], 'kb_articles_fulltext');
             }

@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * 存储 API Key、密码、证书等敏感信息的加密版本。
  * 所有值使用 envelope encryption 加密（DEK 由 KEK 加密）。
+ *
+ * @mixin IdeHelperTenantSecret
  */
 class TenantSecret extends Model
 {

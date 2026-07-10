@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperImportMappingTemplate
+ */
 class ImportMappingTemplate extends Model
 {
     protected $table = 'import_mapping_templates';

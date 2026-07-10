@@ -5,7 +5,7 @@ namespace Tests\Unit\Services;
 use App\Models\LarkIntegration;
 use App\Models\Tenant;
 use App\Services\LarkService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  * 记录每个租户的数据存储区域分配和迁移记录
  *
  * @m3-60 DataResidency
+ * @mixin IdeHelperDataResidencyRecord
  */
 class DataResidencyRecord extends Model
 {

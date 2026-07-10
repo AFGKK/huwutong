@@ -7,7 +7,7 @@ use App\Models\License;
 use App\Models\Product;
 use App\Models\Tenant;
 use App\Services\TrialLicenseService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class TrialLicenseServiceTest extends TestCase

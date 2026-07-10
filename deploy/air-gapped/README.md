@@ -23,7 +23,8 @@
 │    ├── docker-images/                  │
 │    │   ├── hwt-api.tar                │
 │    │   ├── hwt-admin.tar              │
-│    │   ├── mysql-8.0.tar              │
+│    │   ├── pgvector-pg16.tar           │
+│    │   ├── mysql-8.0.tar (可选遗留)   │
 │    │   ├── redis-7.tar                │
 │    │   └── hwt-reverb.tar             │
 │    ├── scripts/                        │
@@ -50,6 +51,20 @@
 └──────────────────────────┘
 ```
 
+## 数据库栈
+
+| 栈 | Compose 文件 | 环境变量 | 说明 |
+|:---|:-------------|:---------|:-----|
+| **PostgreSQL**（**默认**） | `docker-compose.yml` 或 `docker-compose.pgsql.yml` | `.env.airgap` | PG 16 + pgvector，与生产一致 |
+| MySQL（遗留） | `docker-compose.mysql.yml` | `.env.airgap.mysql` | 旧版离线环境兼容 |
+
+切换栈：
+
+```bash
+bash scripts/use-stack.sh pgsql   # 默认推荐
+bash scripts/use-stack.sh mysql   # 遗留环境
+```
+
 ## 快速开始
 
 ### 步骤 1: 在联网环境打包
@@ -57,10 +72,14 @@
 ```bash
 cd deploy/air-gapped
 
-# 导出离线安装包
+# 导出离线安装包（默认仅 PostgreSQL 镜像，体积更小）
 bash export-offline-package.sh
 
-# 输出: hwt-license-offline-v1.0.0.zip
+# 含 PG + MySQL 双栈镜像（兼容遗留）
+bash export-offline-package.sh "" both
+
+# 仅 MySQL 遗留栈
+bash export-offline-package.sh "" mysql
 ```
 
 ### 步骤 2: 传输到目标环境
@@ -74,8 +93,15 @@ bash export-offline-package.sh
 unzip hwt-license-offline-v1.0.0.zip
 cd hwt-license-offline-v1.0.0
 
-# 部署所有 Docker 镜像
+# 部署（默认 PostgreSQL）
 bash scripts/deploy-offline.sh
+
+# 或显式指定栈
+DEPLOY_STACK=pgsql bash scripts/deploy-offline.sh
+DEPLOY_STACK=mysql bash scripts/deploy-offline.sh
+
+# PG 迁移/验证（可选，deploy 会自动尝试）
+bash scripts/bootstrap-pgsql.sh
 
 # 验证完整性
 bash scripts/check-integrity.sh
@@ -96,17 +122,26 @@ bash scripts/import-license.sh /mnt/usb/license.lic
 ```
 deploy/air-gapped/
 ├── README.md                       # 本文档
-├── export-offline-package.sh       # 导出离线包脚本
-├── docker-compose.yml              # Docker Compose 配置
-├── .env.airgap                     # 离线环境变量
+├── STACK.default                   # 包默认栈标记 (pgsql)
+├── export-offline-package.sh       # 导出离线包（默认 pgsql，可选 mysql/both）
+├── docker-compose.yml              # 默认 PostgreSQL 栈
+├── docker-compose.pgsql.yml        # 同 docker-compose.yml（显式 PG 命名）
+├── docker-compose.mysql.yml        # MySQL 遗留栈
+├── .env.airgap                     # PG 环境变量（默认）
+├── .env.airgap.pgsql               # PG 环境变量副本
+├── .env.airgap.mysql               # MySQL 环境变量
 ├── config/
-│   ├── php.ini                     # PHP 配置
-│   └── nginx.conf                  # Nginx 配置
+│   ├── php.ini
+│   ├── nginx.conf
+│   ├── pgsql-init/01-extensions.sql
+│   └── mysql-init/                 # MySQL 遗留
 ├── scripts/
-│   ├── deploy-offline.sh           # 部署脚本
-│   ├── import-license.sh           # License 导入
-│   ├── check-integrity.sh          # 完整性校验
-│   └── apply-update.sh             # 离线更新
-└── updates/                        # 离线更新包目录
+│   ├── deploy-offline.sh
+│   ├── use-stack.sh                # 切换 pgsql/mysql 栈
+│   ├── bootstrap-pgsql.sh          # PG 迁移与验证
+│   ├── import-license.sh
+│   ├── check-integrity.sh
+│   └── apply-update.sh
+└── updates/
     └── README.md
 ```

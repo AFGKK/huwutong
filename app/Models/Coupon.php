@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * 优惠券模型
  *
  * 支持百分比折扣、固定金额折扣、免费试用等多种类型。
+ *
+ * @mixin IdeHelperCoupon
  */
 class Coupon extends Model
 {

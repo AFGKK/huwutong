@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * 数据泄露通知
+ *
+ * @mixin IdeHelperDataBreachNotification
  */
 class DataBreachNotification extends Model
 {

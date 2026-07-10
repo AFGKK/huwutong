@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * DPA 签署记录 (M3-33)
+ *
+ * @mixin IdeHelperDpaSignature
  */
 class DpaSignature extends Model
 {

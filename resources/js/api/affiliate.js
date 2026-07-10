@@ -37,6 +37,30 @@ export default {
     creativeStats(campaignId) {
         return client.get(`/store-affiliate/campaigns/${campaignId}/creative-stats`);
     },
+    reviewCreative(campaignId, id, action, reviewNotes = '') {
+        return client.post(`/store-affiliate/campaigns/${campaignId}/creatives/${id}/review`, { action, review_notes: reviewNotes });
+    },
+    pendingCreatives(params = {}) {
+        return client.get('/store-affiliate/pending-creatives', { params });
+    },
+    resubmitCreative(id) {
+        return client.post(`/store-affiliate/creatives/${id}/resubmit`);
+    },
+    submitCreative(data) {
+        return client.post('/store-affiliate/creatives/submit', data);
+    },
+    myCreatives(params = {}) {
+        return client.get('/store-affiliate/my-creatives', { params });
+    },
+    applyAgent() {
+        return client.post('/store-affiliate/apply-agent');
+    },
+    pendingAgents(params = {}) {
+        return client.get('/store-affiliate/pending-agents', { params });
+    },
+    reviewAgent(id, action, notes = '') {
+        return client.post(`/store-affiliate/agents/${id}/review`, { action, notes });
+    },
 
     // ─── 多级关系链 ───
     buildTree(data) {
@@ -77,5 +101,8 @@ export default {
     },
     agentSummary(agentId) {
         return client.get(`/store-affiliate/agents/${agentId}/summary`);
+    },
+    myAgent() {
+        return client.get('/store-affiliate/my-agent');
     },
 };

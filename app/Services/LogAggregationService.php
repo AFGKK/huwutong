@@ -38,7 +38,7 @@ class LogAggregationService
 
         // 最近24小时趋势
         $trend = LogAggregationEntry::selectRaw(
-            "DATE_FORMAT(logged_at, '%Y-%m-%d %H:00') as hour, COUNT(*) as count"
+            db_date_format('logged_at', '%Y-%m-%d %H:00').' as hour, COUNT(*) as count'
         )
             ->where('logged_at', '>=', now()->subHours(24))
             ->groupBy('hour')

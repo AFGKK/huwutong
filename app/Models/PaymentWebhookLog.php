@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * 支付 Webhook 日志
  *
  * 记录所有 incoming 支付网关回调事件，支持幂等性和审计追踪。
+ *
+ * @mixin IdeHelperPaymentWebhookLog
  */
 class PaymentWebhookLog extends Model
 {

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperApiDocCodeSnippet
+ */
 class ApiDocCodeSnippet extends Model
 {
     protected $table = 'api_doc_code_snippets';

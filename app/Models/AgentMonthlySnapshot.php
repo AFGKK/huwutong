@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * 代理商月度业绩快照
+ *
+ * @mixin IdeHelperAgentMonthlySnapshot
  */
 class AgentMonthlySnapshot extends Model
 {

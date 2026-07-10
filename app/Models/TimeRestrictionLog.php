@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperTimeRestrictionLog
+ */
 class TimeRestrictionLog extends Model
 {
     protected $fillable = [

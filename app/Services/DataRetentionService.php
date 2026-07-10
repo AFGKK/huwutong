@@ -59,13 +59,13 @@ class DataRetentionService
                 ->toArray();
 
             $executionStats = DataRetentionExecution::recent(30)
-                ->selectRaw("
+                ->selectRaw('
                     COUNT(*) as total,
-                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-                    SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
-                    SUM(CASE WHEN is_dry_run = 1 THEN 1 ELSE 0 END) as dry_runs,
+                    SUM(CASE WHEN status = \'completed\' THEN 1 ELSE 0 END) as completed,
+                    SUM(CASE WHEN status = \'failed\' THEN 1 ELSE 0 END) as failed,
+                    SUM(CASE WHEN '.db_is_true('is_dry_run').' THEN 1 ELSE 0 END) as dry_runs,
                     SUM(affected_records) as total_affected
-                ")
+                ')
                 ->first();
 
             return [

@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * 用量记录
+ *
+ * @mixin IdeHelperUsageRecord
  */
 class UsageRecord extends Model
 {

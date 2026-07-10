@@ -240,11 +240,11 @@ class RenewalReminderService
             ->whereNotNull('sent_at')
             ->join('subscriptions', 'renewal_reminder_logs.subscription_id', '=', 'subscriptions.id')
             ->whereNotNull('subscriptions.ends_at')
-            ->selectRaw("
-                CAST(julianday(subscriptions.ends_at) - julianday(renewal_reminder_logs.sent_at) AS INTEGER) as days_before,
-                COUNT(*) as total
-            ")
-            ->whereRaw('julianday(subscriptions.ends_at) - julianday(renewal_reminder_logs.sent_at) BETWEEN 0 AND 90')
+            ->selectRaw(
+                db_date_diff('subscriptions.ends_at', 'renewal_reminder_logs.sent_at').' as days_before,
+                COUNT(*) as total'
+            )
+            ->whereRaw(db_date_diff('subscriptions.ends_at', 'renewal_reminder_logs.sent_at').' BETWEEN 0 AND 90')
             ->groupBy('days_before')
             ->orderBy('days_before')
             ->get()

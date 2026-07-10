@@ -8,7 +8,7 @@ use App\Models\InvoiceLineItem;
 use App\Models\Tenant;
 use App\Services\EcommerceAnalyticsService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class EcommerceAnalyticsTest extends TestCase

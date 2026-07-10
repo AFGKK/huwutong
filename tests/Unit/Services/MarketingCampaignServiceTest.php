@@ -12,7 +12,7 @@ use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\MarketingCampaignService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 
 class MarketingCampaignServiceTest extends TestCase
 {
@@ -66,8 +66,15 @@ class MarketingCampaignServiceTest extends TestCase
 
     public function test_list_campaigns()
     {
-        MarketingCampaign::factory()->create(['tenant_id' => $this->tenant->id]);
-        MarketingCampaign::factory()->create(['tenant_id' => $this->tenant->id, 'name' => '第二个活动']);
+        MarketingCampaign::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'created_by' => $this->user->id,
+        ]);
+        MarketingCampaign::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'created_by' => $this->user->id,
+            'name' => '第二个活动',
+        ]);
 
         $result = $this->service->listCampaigns($this->tenant->id);
         $this->assertCount(2, $result['data']);

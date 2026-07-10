@@ -268,7 +268,7 @@ class WebhookMonitorService
                 COUNT(*) as count
             ")
             ->groupBy('bucket')
-            ->orderByRaw("FIELD(bucket, '<100ms','100-300ms','300-500ms','500ms-1s','1-3s','3-5s','>5s')")
+            ->orderByRaw("CASE bucket WHEN '<100ms' THEN 1 WHEN '100-300ms' THEN 2 WHEN '300-500ms' THEN 3 WHEN '500ms-1s' THEN 4 WHEN '1-3s' THEN 5 WHEN '3-5s' THEN 6 ELSE 7 END")
             ->get()
             ->toArray();
     }

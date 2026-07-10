@@ -172,6 +172,10 @@ class TranslationEngineService
             return $text;
         }
 
+        if ($sourceLocale === $targetLocale) {
+            return $text;
+        }
+
         $sourceName = $this->getLanguageName($sourceLocale);
         $targetName = $this->getLanguageName($targetLocale);
         $context = $this->buildTranslationContext($namespace, $key);

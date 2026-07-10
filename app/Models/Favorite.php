@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/**
+ * @mixin IdeHelperFavorite
+ */
 class Favorite extends Model
 {
     protected $fillable = ['user_id', 'favorable_type', 'favorable_id'];

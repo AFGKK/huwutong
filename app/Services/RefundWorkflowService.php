@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\License;
 use App\Models\Order;
 use App\Models\Refund;
+use App\Support\DbSql;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -183,7 +184,11 @@ class RefundWorkflowService
                     ->where('status', 'active')
                     ->update([
                         'status' => 'revoked',
-                        'metadata' => \DB::raw("JSON_SET(COALESCE(metadata, '{}'), '$.revoked_reason', 'order_refund', '$.refund_id', '{$refund->id}', '$.revoked_at', '" . now()->toIso8601String() . "')"),
+                        'metadata' => DB::raw(DbSql::jsonMerge('metadata', [
+                            'revoked_reason' => 'order_refund',
+                            'refund_id' => $refund->id,
+                            'revoked_at' => now()->toIso8601String(),
+                        ])),
                     ]);
             }
         }
@@ -204,7 +209,7 @@ class RefundWorkflowService
             'total_amount' => (clone $base)->where('status', 'completed')->sum('amount'),
             'today_requests' => (clone $base)->whereDate('created_at', today())->count(),
             'avg_refund_time_hours' => (clone $base)->whereNotNull('completed_at')
-                ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, created_at, completed_at)) as avg')
+                ->selectRaw('AVG('.DbSql::timestampDiff('HOUR', 'created_at', 'completed_at').') as avg')
                 ->value('avg') ?: 0,
         ];
     }

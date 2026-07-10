@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperAutoRenewalAttempt
+ */
 class AutoRenewalAttempt extends Model
 {
     protected $table = 'auto_renewal_attempts';

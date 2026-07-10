@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * 代理商等级分成比例
+ *
+ * @mixin IdeHelperAgentCommissionRate
  */
 class AgentCommissionRate extends Model
 {

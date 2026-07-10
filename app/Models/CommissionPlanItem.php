@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * 佣金计划明细
  *
  * 产品 × 等级 → 佣金比例
+ *
+ * @mixin IdeHelperCommissionPlanItem
  */
 class CommissionPlanItem extends Model
 {

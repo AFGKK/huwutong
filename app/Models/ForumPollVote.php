@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperForumPollVote
+ */
 class ForumPollVote extends Model
 {
     protected $fillable = ['poll_id', 'option_id', 'user_id'];

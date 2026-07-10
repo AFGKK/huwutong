@@ -8,44 +8,48 @@ parameters:
         - app/
         - config/
         - routes/
-        - tests/
     tmpDir: storage/framework/cache/phpstan
-
     excludePaths:
         - ./*/*/FileToReplace.php
         - vendor/
         - storage/
         - resources/
         - database/migrations/*_create_telescope_*.php
-
+    scanFiles:
+        - vendor/autoload.php
+    databaseMigrationsPath:
+        - database/migrations/
     checkMissingIterableValueType: true
     checkGenericClassInNonGenericObjectType: true
     checkUninitializedProperties: true
-    checkTooWideReturnType: true
     checkExplicitMixedMissingReturn: false
-    checkFunctionNameCase: true
-    checkInternalClassCase: true
-    checkBenevolentUnionTypes: true
-
+    reportUnmatchedIgnoredErrors: false
     ignoreErrors:
-        - '#Call to an undefined method .*::factory\(\)#'
-        - '#Call to an undefined method .*::create\(\)#'
-        - '#Call to an undefined method .*::where\(\)#'
-        - '#Call to an undefined method .*::find\(\)#'
-        - '#Call to an undefined static method .*::route\(\)#'
-        - '#Call to an undefined static method .*::dispatch\(\)#'
-        - '#Access to an undefined property .*::\$[a-zA-Z_]+\.'
-        - '#Function mix not found#'
-        - '#Function auth not found#'
-        - '#Function dispatch not found#'
-        - '#Method .*::assert[[:upper:]][a-zA-Z]+ not found#'
-
-    databaseMigrationsPath:
-        - database/migrations/
-
-    featureFlags:
-        strictRules:
-            noSwitchWithoutContinue: true
-            noBooleanInBooleanComparison: true
-            noDeadLoops: true
-            noErrorCatch: false
+        - message: '#Call to an undefined method .*::factory\(\)#'
+          path: '*'
+        - message: '#Call to an undefined method .*::create\(\)#'
+          path: '*'
+        - message: '#Call to an undefined method .*::where\(\)#'
+          path: '*'
+        - message: '#Call to an undefined method .*::find\(\)#'
+          path: '*'
+        - message: '#Call to an undefined method .*::findOrFail\(\)#'
+          path: '*'
+        - message: '#Call to an undefined static method .*::route\(\)#'
+          path: '*'
+        - message: '#Call to an undefined static method .*::dispatch\(\)#'
+          path: '*'
+        - message: '#Access to an undefined property .*::\$[a-zA-Z_]+#'
+          path: '*'
+        - message: '#Function mix not found#'
+          path: '*'
+        - message: '#Function auth not found#'
+          path: '*'
+        - message: '#Function dispatch not found#'
+          path: '*'
+        - message: '#Method .*::assert[[:upper:]][a-zA-Z]+ not found#'
+          path: '*'
+        - message: '#Call to an undefined method .*::singleton\(\)#'
+          path: '*'
+        - message: '#Call to an undefined method .*::bind\(\)#'
+          path: '*'

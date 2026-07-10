@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperUserTutorialProgress
+ */
 class UserTutorialProgress extends Model
 {
     protected $table = 'user_tutorial_progress';

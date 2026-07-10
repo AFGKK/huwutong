@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperDataRetentionAudit
+ */
 class DataRetentionAudit extends Model
 {
     protected $table = 'data_retention_audits';

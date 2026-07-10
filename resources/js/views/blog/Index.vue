@@ -952,7 +952,7 @@ function exitCodeBlock() {
     editor.value.chain().focus().toggleCodeBlock().run()
 }
 
-// ─── 代码块复制（公众号风格：智能定位当前代码块 → 一键复制） ───
+// ─── 代码块复制（互物号风格：智能定位当前代码块 → 一键复制） ───
 function copyCodeBlock() {
     if (!editor.value) return
     // 智能定位：从光标所在位置向上查找代码块节点
@@ -1220,7 +1220,7 @@ function uploadCoverImage() {
     input.click()
 }
 
-// ─── 图片上传（如公众号：打开对话框 → 上传或粘贴 URL → 设置尺寸 → 插入） ───
+// ─── 图片上传（如互物号：打开对话框 → 上传或粘贴 URL → 设置尺寸 → 插入） ───
 function insertImageFile() {
     pendingMediaUrl.value = ''
     imageCustomWidth.value = 400

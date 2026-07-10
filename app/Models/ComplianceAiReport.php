@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperComplianceAiReport
+ */
 class ComplianceAiReport extends Model
 {
     protected $table = 'compliance_ai_reports';

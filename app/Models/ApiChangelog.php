@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperApiChangelog
+ */
 class ApiChangelog extends Model
 {
     protected $table = 'api_changelogs';

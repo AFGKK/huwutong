@@ -5,7 +5,7 @@ namespace Tests\Unit\Services;
 use App\Enums\LicenseStatus;
 use App\Models\License;
 use App\Services\LicenseService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class LicenseStatusMachineTest extends TestCase

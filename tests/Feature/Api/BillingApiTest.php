@@ -4,11 +4,12 @@ namespace Tests\Feature\Api;
 
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\PricingPlan;
 use App\Models\Product;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class BillingApiTest extends TestCase
@@ -82,18 +83,21 @@ class BillingApiTest extends TestCase
 
     public function test_store_creates_subscription(): void
     {
+        $plan = PricingPlan::factory()->create([
+            'slug' => 'pro',
+            'tenant_id' => $this->tenant->id,
+        ]);
+
         $response = $this->postJson('/api/billing/subscriptions', [
             'customer_id' => $this->customer->id,
             'product_id' => $this->product->id,
-            'plan' => 'pro',
-            'price' => 199,
+            'plan_slug' => $plan->slug,
             'billing_period' => 'monthly',
         ], $this->authHeaders());
 
         $response->assertStatus(201)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.plan', 'pro');
-        $this->assertEquals(199, (float) $response->json('data.price'));
+            ->assertJsonPath('success', true);
+        $this->assertEquals($plan->slug, $response->json('data.plan'));
     }
 
     public function test_store_validates_required_fields(): void
@@ -123,22 +127,31 @@ class BillingApiTest extends TestCase
 
     public function test_change_plan(): void
     {
+        $currentPlan = PricingPlan::factory()->create([
+            'slug' => 'starter',
+            'tenant_id' => $this->tenant->id,
+        ]);
+        $enterprisePlan = PricingPlan::factory()->create([
+            'slug' => 'enterprise',
+            'tenant_id' => $this->tenant->id,
+        ]);
+
         $subscription = Subscription::factory()->create([
             'tenant_id' => $this->tenant->id,
             'customer_id' => $this->customer->id,
             'product_id' => $this->product->id,
+            'plan' => $currentPlan->slug,
         ]);
 
         $response = $this->putJson(
             "/api/billing/subscriptions/{$subscription->id}/plan",
-            ['plan' => 'enterprise', 'price' => 599],
+            ['plan_slug' => $enterprisePlan->slug],
             $this->authHeaders(),
         );
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.plan', 'enterprise');
-        $this->assertEquals(599, (float) $response->json('data.price'));
+            ->assertJsonPath('data.plan', $enterprisePlan->slug);
     }
 
     public function test_cancel_subscription(): void

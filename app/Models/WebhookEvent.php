@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperWebhookEvent
+ */
 class WebhookEvent extends Model
 {
     protected $fillable = [
@@ -32,6 +35,11 @@ class WebhookEvent extends Model
     public function endpoint(): BelongsTo
     {
         return $this->belongsTo(WebhookEndpoint::class, 'webhook_endpoint_id');
+    }
+
+    public function webhookEndpoint(): BelongsTo
+    {
+        return $this->endpoint();
     }
 
     public function deliveries(): HasMany

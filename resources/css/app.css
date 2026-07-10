@@ -1,6 +1,15 @@
 @import 'admin.scss';
 @import 'a11y.css';
 
+/* ── Tailwind base + utilities（SPA 页面也需要基础样式重置） ── */
+@tailwind base;
+@tailwind utilities;
+
+/* ── 全局链接重置：覆盖浏览器 a:-webkit-any-link 默认下划线 ── */
+a {
+    text-decoration: none !important;
+}
+
 /* 头像首字母 fallback 样式 */
 .el-avatar .avatar-initial {
     font-size: inherit;

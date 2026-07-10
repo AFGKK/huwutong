@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperSearchBookmark
+ */
 class SearchBookmark extends Model
 {
     protected $table = 'search_bookmarks';

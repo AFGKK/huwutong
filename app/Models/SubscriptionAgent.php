@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * 订阅-代理关联
  *
  * 记录哪个代理推荐了哪个订阅。
+ *
+ * @mixin IdeHelperSubscriptionAgent
  */
 class SubscriptionAgent extends Model
 {

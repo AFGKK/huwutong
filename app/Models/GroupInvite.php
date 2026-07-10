@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
+/**
+ * @mixin IdeHelperGroupInvite
+ */
 class GroupInvite extends Model
 {
     protected $fillable = ['conversation_id', 'created_by', 'token', 'expires_at', 'max_uses', 'use_count', 'is_active'];

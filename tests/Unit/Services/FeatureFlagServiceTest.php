@@ -8,7 +8,7 @@ use App\Models\License;
 use App\Models\Product;
 use App\Models\Tenant;
 use App\Services\FeatureFlagService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class FeatureFlagServiceTest extends TestCase

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * 客服消息（转接后的人工聊天记录）
+ *
+ * @mixin IdeHelperAgentMessage
  */
 class AgentMessage extends Model
 {

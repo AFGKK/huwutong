@@ -24,6 +24,7 @@ class DataMaskingService
         'ip_address' => 'maskIp',
         'real_name' => 'maskName',
         'contact_name' => 'maskName',
+        'name' => 'maskName',
         'id_card' => 'maskIdCard',
         'id_number' => 'maskIdCard',
         'wechat' => 'maskWechat',

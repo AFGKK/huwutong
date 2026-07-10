@@ -8,7 +8,7 @@ use App\Models\Product;
 use App\Models\ProductTranslation;
 use App\Models\Tenant;
 use App\Services\ProductLocalizationService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ProductLocalizationServiceTest extends TestCase

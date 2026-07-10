@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperLiveChatHandoff
+ */
 class LiveChatHandoff extends Model
 {
     protected $table = 'live_chat_handoffs';

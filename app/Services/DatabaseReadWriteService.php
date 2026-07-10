@@ -83,9 +83,21 @@ class DatabaseReadWriteService
     public function getConnection(string $operation = 'read'): string
     {
         if ($this->shouldUseReplica($operation)) {
-            return $this->config['replica_connection'] ?? 'mysql_replica';
+            return $this->replicaConnection();
         }
-        return 'mysql';
+
+        return $this->masterConnection();
+    }
+
+    protected function masterConnection(): string
+    {
+        return (string) config('database.default', 'mysql');
+    }
+
+    protected function replicaConnection(): string
+    {
+        return $this->config['replica_connection']
+            ?? (config('database.default') === 'pgsql' ? 'pgsql_replica' : 'mysql_replica');
     }
 
     /**
@@ -97,20 +109,24 @@ class DatabaseReadWriteService
     public function read(callable $callback): mixed
     {
         $connection = $this->getConnection('read');
+        $master = $this->masterConnection();
         DB::setDefaultConnection($connection);
 
         try {
             $result = $callback();
-            DB::setDefaultConnection('mysql');
+            DB::setDefaultConnection($master);
+
             return $result;
         } catch (\Throwable $e) {
-            DB::setDefaultConnection('mysql');
+            DB::setDefaultConnection($master);
             // 从库失败则重试主库
-            if ($connection !== 'mysql') {
+            if ($connection !== $master) {
                 $this->recordReplicaFailure();
-                Log::warning("Replica read failed, falling back to master", [
+                Log::warning('Replica read failed, falling back to master', [
                     'error' => $e->getMessage(),
+                    'replica' => $connection,
                 ]);
+
                 return $callback();
             }
             throw $e;
@@ -140,31 +156,42 @@ class DatabaseReadWriteService
         ];
 
         try {
-            // 从库简单查询检查
-            $replicaConnection = $this->config['replica_connection'] ?? 'mysql_replica';
+            $replicaConnection = $this->replicaConnection();
+            $driver = config("database.connections.{$replicaConnection}.driver", 'mysql');
 
-            // 检查从库是否可达
             DB::connection($replicaConnection)->select('SELECT 1 as alive');
 
-            // 检查主从延迟 (MySQL Seconds_Behind_Master)
-            $lagResult = DB::connection($replicaConnection)->select('SHOW SLAVE STATUS');
-            $lag = null;
-            if (!empty($lagResult)) {
-                $lag = (int) ($lagResult[0]->Seconds_Behind_Master ?? -1);
-                $result['lag_seconds'] = $lag;
-                $result['healthy'] = $lag >= 0 && $lag <= ($this->config['replica_max_lag_seconds'] ?? 5);
+            if ($driver === 'pgsql') {
+                $lagRow = DB::connection($replicaConnection)->selectOne(
+                    'SELECT EXTRACT(EPOCH FROM (NOW() - pg_last_xact_replay_timestamp()))::int AS lag_seconds'
+                );
+                $lag = $lagRow->lag_seconds ?? null;
 
-                // 检查 Slave_IO_Running 和 Slave_SQL_Running
-                $ioRunning = $lagResult[0]->Slave_IO_Running ?? 'No';
-                $sqlRunning = $lagResult[0]->Slave_SQL_Running ?? 'No';
-                $result['io_running'] = $ioRunning;
-                $result['sql_running'] = $sqlRunning;
-                if ($ioRunning !== 'Yes' || $sqlRunning !== 'Yes') {
-                    $result['healthy'] = false;
+                if ($lag === null) {
+                    // 非流复制从库（单机或主库作读端点）
+                    $result['healthy'] = true;
+                } else {
+                    $result['lag_seconds'] = (int) $lag;
+                    $result['healthy'] = $lag <= ($this->config['replica_max_lag_seconds'] ?? 5);
                 }
             } else {
-                // 没有从库（单机模式），检查是否能正常查询
-                $result['healthy'] = true;
+                // MySQL 主从延迟 (Seconds_Behind_Master)
+                $lagResult = DB::connection($replicaConnection)->select('SHOW SLAVE STATUS');
+                if (! empty($lagResult)) {
+                    $lag = (int) ($lagResult[0]->Seconds_Behind_Master ?? -1);
+                    $result['lag_seconds'] = $lag;
+                    $result['healthy'] = $lag >= 0 && $lag <= ($this->config['replica_max_lag_seconds'] ?? 5);
+
+                    $ioRunning = $lagResult[0]->Slave_IO_Running ?? 'No';
+                    $sqlRunning = $lagResult[0]->Slave_SQL_Running ?? 'No';
+                    $result['io_running'] = $ioRunning;
+                    $result['sql_running'] = $sqlRunning;
+                    if ($ioRunning !== 'Yes' || $sqlRunning !== 'Yes') {
+                        $result['healthy'] = false;
+                    }
+                } else {
+                    $result['healthy'] = true;
+                }
             }
 
             Cache::put(self::HEALTH_CACHE_KEY, $result['healthy'], $this->config['health_check_interval'] ?? 60);
@@ -208,7 +235,8 @@ class DatabaseReadWriteService
             'enabled' => $this->isEnabled(),
             'read_percent' => $this->config['read_percent'] ?? 100,
             'replica_healthy' => $this->isReplicaHealthy(),
-            'replica_connection' => $this->config['replica_connection'] ?? 'mysql_replica',
+            'replica_connection' => $this->replicaConnection(),
+            'master_connection' => $this->masterConnection(),
             'failure_count' => $failureCount,
             'health' => $health,
             'config' => [

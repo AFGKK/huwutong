@@ -354,8 +354,7 @@ class OwnershipTransferService
         }
 
         if ($type === 'product') {
-            $query = Product::where('is_active', true)
-                ->where('tenant_id', $tenantId);
+            $query = Product::where('is_active', true);
             if ($search) {
                 $query->where('name', 'like', "%{$search}%");
             }

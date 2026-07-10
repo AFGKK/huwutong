@@ -8,7 +8,7 @@ use App\Models\Customer;
 use App\Models\License;
 use App\Models\Tenant;
 use App\Services\CustomFieldService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class CustomFieldServiceTest extends TestCase

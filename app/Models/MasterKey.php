@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
  *
  * 用于对 TenantSecret 进行 envelope encryption。
  * 每个密钥由 KMS/Vault 加密保管，解密时需通过 KMS 解密。
+ *
+ * @mixin IdeHelperMasterKey
  */
 class MasterKey extends Model
 {

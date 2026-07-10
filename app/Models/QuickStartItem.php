@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperQuickStartItem
+ */
 class QuickStartItem extends Model
 {
     protected $table = 'quick_start_items';

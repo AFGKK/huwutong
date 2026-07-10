@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperAuditRetentionPolicy
+ */
 class AuditRetentionPolicy extends Model
 {
     protected $table = 'audit_retention_policies';

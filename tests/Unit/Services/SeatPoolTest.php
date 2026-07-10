@@ -10,7 +10,7 @@ use App\Models\Product;
 use App\Models\Customer;
 use App\Services\SeatPoolService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SeatPoolTest extends TestCase

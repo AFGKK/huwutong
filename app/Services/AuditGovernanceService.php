@@ -12,6 +12,7 @@ use App\Models\ComplianceReportExport;
 use App\Models\DataRetentionAudit;
 use App\Models\Log;
 use App\Models\RetentionPolicy;
+use App\Support\DbSql;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -461,12 +462,8 @@ class AuditGovernanceService
 
     protected function estimateStorageMb(?string $type = null): float
     {
-        $tableName = (new Log())->getTable();
-        $query = "SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as size_mb
-                  FROM information_schema.tables WHERE table_name = ?";
-        $result = \DB::select($query, [$tableName]);
-
-        $total = (float) ($result[0]->size_mb ?? 0);
+        $tableName = (new Log)->getTable();
+        $total = DbSql::estimateTableSizeMb($tableName);
 
         if ($type) {
             $ratio = Log::ofType($type)->count() / max(Log::count(), 1);
@@ -961,13 +958,7 @@ class AuditGovernanceService
         $model = new $modelClass;
         $tableName = $model->getTable();
 
-        $result = \DB::select(
-            "SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as size_mb
-             FROM information_schema.tables WHERE table_name = ?",
-            [$tableName]
-        );
-
-        $total = (float) ($result[0]->size_mb ?? 0);
+        $total = DbSql::estimateTableSizeMb($tableName);
 
         $logType = $this->logTypeFromSource($dataSource);
         if ($logType && $modelClass === Log::class) {

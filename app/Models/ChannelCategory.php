@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperChannelCategory
+ */
 class ChannelCategory extends Model
 {
     protected $fillable = ['name', 'sort_order'];

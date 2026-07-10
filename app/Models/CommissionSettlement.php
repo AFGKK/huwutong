@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * 佣金结算记录
  *
  * 每笔符合条件的发票生成一条结算记录。
+ *
+ * @mixin IdeHelperCommissionSettlement
  */
 class CommissionSettlement extends Model
 {

@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperAiInteractionLog
+ */
 class AiInteractionLog extends Model
 {
     protected $fillable = [

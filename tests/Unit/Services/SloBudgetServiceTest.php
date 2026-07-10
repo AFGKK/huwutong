@@ -9,7 +9,7 @@ use App\Models\SloDefinition;
 use App\Models\Tenant;
 use App\Services\SloBudgetService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SloBudgetServiceTest extends TestCase

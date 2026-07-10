@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * SDK 版本分布快照
+ *
+ * @mixin IdeHelperSdkVersionSnapshot
  */
 class SdkVersionSnapshot extends Model
 {

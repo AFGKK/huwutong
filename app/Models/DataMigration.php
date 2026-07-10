@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
  * 数据迁移记录
  *
  * @m3-60 DataResidency
+ * @mixin IdeHelperDataMigration
  */
 class DataMigration extends Model
 {

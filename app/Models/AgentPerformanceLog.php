@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperAgentPerformanceLog
+ */
 class AgentPerformanceLog extends Model
 {
     protected $fillable = ['user_id', 'log_date', 'conversations_count', 'messages_count', 'avg_response_seconds', 'satisfaction_score', 'handoffs_count'];

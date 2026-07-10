@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * 工作流定义
  *
  * 描述一个工作流的结构：包含哪些步骤、每个步骤的配置（超时、重试、补偿）。
+ *
+ * @mixin IdeHelperWorkflowDefinition
  */
 class WorkflowDefinition extends Model
 {

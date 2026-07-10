@@ -54,7 +54,8 @@ class ApmService
             ]);
         }
 
-        $apmRequest = ApmRequest::create([
+        try {
+            $apmRequest = ApmRequest::create([
             'method' => $request->method(),
             'path' => $this->sanitizePath($request->path()),
             'route_name' => $request->route()?->getName(),
@@ -73,9 +74,14 @@ class ApmService
             'user_id' => $request->user()?->id,
             'tenant_id' => $request->user()?->tenant_id ?? $request->header('X-Tenant-Id'),
             'created_at' => now(),
-        ]);
+            ]);
 
-        return $apmRequest;
+            return $apmRequest;
+        } catch (\Throwable $e) {
+            Log::warning('APM 记录失败: ' . $e->getMessage());
+
+            return null;
+        }
     }
 
     /**

@@ -10,7 +10,7 @@ use App\Models\SlaProbeResult;
 use App\Models\SlaProbeUptime;
 use App\Models\Tenant;
 use App\Services\SlaProbeService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SlaProbeTest extends TestCase

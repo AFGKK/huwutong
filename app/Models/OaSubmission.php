@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperOaSubmission
+ */
 class OaSubmission extends Model
 {
     protected $fillable = ['account_id', 'user_id', 'title', 'content', 'cover_image', 'summary', 'status', 'reviewer_id', 'reviewed_at', 'reject_reason'];

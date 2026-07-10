@@ -97,10 +97,12 @@ class AuditVisualizationService
             default => '%Y-%m-%d',
         };
 
+        $periodExpr = db_date_format('created_at', $dateFormat);
+
         $query = Log::when($tenantId, fn($q) => $q->where('tenant_id', $tenantId))
             ->whereBetween('created_at', [$start, $end->endOfDay()])
             ->when($type, fn($q, $v) => $q->where('type', $v))
-            ->selectRaw("DATE_FORMAT(created_at, ?) as period_label", [$dateFormat])
+            ->selectRaw("{$periodExpr} as period_label")
             ->selectRaw('COUNT(*) as count')
             ->selectRaw('COUNT(DISTINCT user_id) as unique_users')
             ->selectRaw('COUNT(DISTINCT ip_address) as unique_ips')
@@ -115,7 +117,7 @@ class AuditVisualizationService
         $byType = Log::when($tenantId, fn($q) => $q->where('tenant_id', $tenantId))
             ->whereBetween('created_at', [$start, $end->endOfDay()])
             ->when($type, fn($q, $v) => $q->where('type', $v))
-            ->selectRaw("DATE_FORMAT(created_at, ?) as period_label", [$dateFormat])
+            ->selectRaw("{$periodExpr} as period_label")
             ->selectRaw('type, COUNT(*) as count')
             ->groupBy('period_label', 'type')
             ->orderBy('period_label')
@@ -212,7 +214,7 @@ class AuditVisualizationService
 
         Log::when($tenantId, fn($q) => $q->where('tenant_id', $tenantId))
             ->whereBetween('created_at', [Carbon::parse($startDate), Carbon::parse($endDate)->endOfDay()])
-            ->selectRaw('HOUR(created_at) as hour, COUNT(*) as count')
+            ->selectRaw(db_hour('created_at').' as hour, COUNT(*) as count')
             ->groupBy('hour')
             ->orderBy('hour')
             ->get()
@@ -242,7 +244,7 @@ class AuditVisualizationService
     {
         return Log::when($tenantId, fn($q) => $q->where('tenant_id', $tenantId))
             ->whereBetween('created_at', [Carbon::parse($startDate), Carbon::parse($endDate)->endOfDay()])
-            ->selectRaw("SUBSTRING_INDEX(action, '.', 1) as category, COUNT(*) as count")
+            ->selectRaw(db_substring_index('action', '.', 1)." as category, COUNT(*) as count")
             ->groupBy('category')
             ->orderByDesc('count')
             ->get()

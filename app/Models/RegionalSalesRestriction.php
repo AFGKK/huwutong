@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/**
+ * @mixin IdeHelperRegionalSalesRestriction
+ */
 class RegionalSalesRestriction extends Model
 {
     protected $table = 'regional_sales_restrictions';

@@ -13,7 +13,7 @@ use App\Models\User;
 use App\Services\Payment\MockPaymentGateway;
 use App\Services\PaymentManager;
 use App\Services\PreSaleService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class PreSaleServiceTest extends TestCase

@@ -9,12 +9,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // SRCH-001: 全文搜索索引（SQLite 不支持 FULLTEXT）
-        if (Schema::hasTable('conversation_messages') && Schema::getConnection()->getDriverName() !== 'sqlite') {
+        // SRCH-001: 全文搜索索引
+        $driver = Schema::getConnection()->getDriverName();
+        if (Schema::hasTable('conversation_messages') && !in_array($driver, ['sqlite', 'pgsql'])) {
             $indexExists = collect(DB::select("SHOW INDEX FROM conversation_messages WHERE Key_name = 'msg_content_ft'"))->isNotEmpty();
             if (! $indexExists) {
                 DB::statement('ALTER TABLE conversation_messages ADD FULLTEXT INDEX msg_content_ft (content)');
             }
+        }
+        // PostgreSQL 使用 GIN 索引
+        if (Schema::hasTable('conversation_messages') && $driver === 'pgsql') {
+            DB::statement("CREATE INDEX IF NOT EXISTS msg_content_ft ON conversation_messages USING GIN(to_tsvector('simple', content))");
         }
 
         // SYNC-004: 消息漫游 - 添加最后同步时间
@@ -49,8 +54,11 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('conversation_messages') && Schema::getConnection()->getDriverName() !== 'sqlite') {
+        if (Schema::hasTable('conversation_messages') && Schema::getConnection()->getDriverName() === 'mysql') {
             DB::statement('ALTER TABLE conversation_messages DROP INDEX msg_content_ft');
+        }
+        if (Schema::hasTable('conversation_messages') && Schema::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement('DROP INDEX IF EXISTS msg_content_ft');
         }
     }
 };

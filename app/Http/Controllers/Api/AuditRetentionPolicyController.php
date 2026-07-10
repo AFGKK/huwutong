@@ -6,6 +6,7 @@ use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\AuditRetentionPolicy;
 use App\Models\Log;
+use App\Support\DbSql;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -179,8 +180,7 @@ class AuditRetentionPolicyController extends Controller
         $recent30d = Log::where('created_at', '>=', now()->subDays(30))->count();
 
         // 存储占用估算
-        $dbSize = \DB::select("SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as size_mb FROM information_schema.tables WHERE table_name = 'logs'");
-        $estimatedMb = $dbSize[0]->size_mb ?? 0;
+        $estimatedMb = DbSql::estimateTableSizeMb((new Log)->getTable());
 
         return ApiResponse::success([
             'total' => $totalLogs,

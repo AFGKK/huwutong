@@ -9,7 +9,7 @@ use App\Models\RfmScore;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Services\LifecycleService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 
 class LifecycleServiceTest extends TestCase
 {

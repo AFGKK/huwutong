@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\HeatmapLayer;
 use App\Models\LicenseAnalyticsEvent;
+use App\Support\DbSql;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -152,9 +153,11 @@ class HeatmapService
      */
     protected function getApiHeatmap(int $tenantId, int $days): array
     {
+        $heatSourceExpr = DbSql::jsonStringEquals('metadata', 'source', 'api');
+
         $query = LicenseAnalyticsEvent::where('tenant_id', $tenantId)
             ->where('event_type', 'heartbeat')
-            ->whereRaw("JSON_EXTRACT(metadata, '$.source') = 'api'")
+            ->whereRaw($heatSourceExpr)
             ->whereNotNull('latitude')->whereNotNull('longitude')
             ->where('occurred_at', '>=', now()->subDays($days));
 

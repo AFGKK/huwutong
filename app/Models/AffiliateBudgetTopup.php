@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperAffiliateBudgetTopup
+ */
 class AffiliateBudgetTopup extends Model
 {
     protected $table = 'affiliate_budget_topups';

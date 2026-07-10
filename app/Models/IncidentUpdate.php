@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * 事件更新
+ *
+ * @mixin IdeHelperIncidentUpdate
  */
 class IncidentUpdate extends Model
 {

@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperForumPollOption
+ */
 class ForumPollOption extends Model
 {
     protected $fillable = ['poll_id', 'label', 'sort_order'];

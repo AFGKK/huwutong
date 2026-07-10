@@ -4,10 +4,8 @@
     <div class="oa-article-topbar" :class="{ 'topbar-hidden': topbarHidden }">
       <div class="topbar-left">
         <el-button text size="small" @click="goBack">
-          <el-icon><ArrowLeft /></el-icon> 返回
+          <el-icon><ArrowLeft /></el-icon> 返回社区
         </el-button>
-        <el-divider direction="vertical" />
-        <span class="topbar-acc-name">🌐 广场</span>
       </div>
       <div class="topbar-right">
         <el-button text size="small" @click="toggleFontSize" title="字号">
@@ -46,7 +44,7 @@
     <div v-if="loading" style="text-align:center;padding:80px 0"><el-icon class="is-loading" :size="28"><Loading /></el-icon></div>
     <div v-else-if="error" style="text-align:center;padding:80px 0">
       <el-empty description="帖子不存在或已删除" :image-size="80" />
-      <el-button @click="goBack" style="margin-top:12px">返回</el-button>
+      <el-button @click="goBack" style="margin-top:12px">返回社区</el-button>
     </div>
 
     <!-- 帖子内容 -->
@@ -78,9 +76,6 @@
               </template>
               <span v-else style="margin-left:4px;font-size:11px;color:#409eff;cursor:pointer" @click="redirectToLogin">登录后可关注</span>
             </span>
-            <span class="oa-meta-sep">·</span>
-            <span class="oa-meta-time">🌐 广场</span>
-            <span class="oa-meta-sep">·</span>
             <span class="oa-meta-time">{{ formatFullTime(post.created_at) }}</span>
             <span class="oa-meta-sep">·</span>
             <span class="oa-meta-time">⏱️ {{ readingTime }} 分钟</span>
@@ -88,8 +83,28 @@
           </div>
         </header>
 
+        <!-- 🔒 付费墙 -->
+        <div v-if="post.is_paid && !post.has_purchased" class="oa-paywall">
+            <div class="oa-paywall-blur" v-if="post.content_preview">
+                <div class="oa-paywall-preview">{{ post.content_preview }}...</div>
+            </div>
+            <div class="oa-paywall-overlay">
+                <div class="oa-paywall-icon">🔒</div>
+                <h3 class="oa-paywall-title">付费内容</h3>
+                <p class="oa-paywall-desc">解锁后可查看全部内容</p>
+                <div class="oa-paywall-price">
+                    <PointsIcon v-if="post.price_type === 'points'" :size="26" /> {{ post.price_type === 'points' ? post.price + ' 积分' : '¥' + post.price }}
+                </div>
+                <div class="oa-paywall-actions">
+                    <el-button type="primary" :loading="purchasing" @click="purchasePost">
+                        <PointsIcon :size="18" v-if="post.price_type === 'points'" /> {{ post.price_type === 'points' ? '积分解锁' : '💳 支付解锁' }}
+                    </el-button>
+                </div>
+            </div>
+        </div>
+
         <!-- 正文 -->
-        <div class="oa-article-content" v-html="renderedContent"></div>
+        <div v-else class="oa-article-content" v-html="renderedContent"></div>
 
         <!-- 图片 -->
         <div v-if="post.images?.length" class="plaza-images-grid">
@@ -133,8 +148,8 @@
           <el-button :type="post.is_favorited ? 'warning' : 'default'" size="small" @click="isLoggedIn ? toggleFavorite() : redirectToLogin()" :loading="favLoading">
             {{ post.is_favorited ? '⭐' : '☆' }} 收藏
           </el-button>
-          <el-button size="small" text type="warning" @click="openTipDialog" title="打赏">
-            🪙 打赏
+          <el-button text type="warning" @click="openTipDialog" title="打赏">
+            <PointsIcon :size="16" /> 打赏
           </el-button>
         </div>
         <div class="toolbar-right">
@@ -154,10 +169,23 @@
             <el-button size="small" text type="primary" @click="redirectToLogin" style="margin-left:8px">立即登录</el-button>
           </div>
           <div v-else class="oa-comment-input">
-            <el-input v-model="commentText" type="textarea" :rows="2" placeholder="写下你的评论..." maxlength="1000" />
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
-              <span></span>
-              <el-button size="small" type="primary" :loading="commentSubmitting" @click="submitComment">发表评论</el-button>
+            <div style="display:flex;gap:8px;align-items:flex-start">
+              <el-avatar :size="32" :src="currentUserAvatar" style="flex-shrink:0">{{ myId ? '?' : '' }}</el-avatar>
+              <div style="flex:1">
+                <el-input v-model="commentText" type="textarea" :rows="2" placeholder="写下你的评论..." maxlength="1000" @focus="loadAiSuggestions" />
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+                  <span v-for="(sg, si) in aiSuggestions" :key="si"
+                    class="px-2.5 py-1 text-xs rounded-full border border-gray-200 text-gray-500 cursor-pointer hover:bg-primary-50 hover:border-primary-300 hover:text-primary-600 transition"
+                    @click="commentText = sg; aiSuggestions = []">
+                    🤖 {{ sg }}
+                  </span>
+                  <el-button v-if="aiSuggestions.length" size="small" text @click="aiSuggestions = []" style="font-size:11px">取消</el-button>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+                  <span></span>
+                  <el-button size="small" type="primary" :loading="commentSubmitting" @click="submitComment">发表评论</el-button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -173,10 +201,12 @@
               </div>
               <div v-if="c.replies?.length" class="oa-sub-replies">
                 <div v-for="r in c.replies" :key="r.id" class="oa-sub-reply">
+                  <el-avatar :size="20" :src="r.user?.avatar_url" style="flex-shrink:0;vertical-align:middle">{{ r.user?.name?.charAt(0) || '?' }}</el-avatar>
                   <span class="oa-reply-author">{{ r.user?.name }}：</span>{{ r.content }}
                 </div>
               </div>
               <div v-if="replyTo?.id === c.id" class="oa-reply-box" style="display:flex;gap:6px;margin-top:6px">
+                <el-avatar :size="24" :src="currentUserAvatar" style="flex-shrink:0">{{ myId ? '?' : '' }}</el-avatar>
                 <el-input v-model="replyText" placeholder="输入回复..." size="small" style="flex:1" maxlength="1000" />
                 <el-button size="small" type="primary" :loading="replySubmitting" @click="submitReply(c)">发送</el-button>
                 <el-button size="small" @click="replyTo = null">取消</el-button>
@@ -202,11 +232,13 @@ import { Loading, ArrowLeft, ArrowDown, ZoomIn, Share } from '@element-plus/icon
 import apiClient from '@/api/client'
 import TipDialog from '@/components/TipDialog.vue'
 import PointsHistory from '@/components/PointsHistory.vue'
+import PointsIcon from '@/components/PointsIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
 const myId = ref(0)
 const isLoggedIn = ref(false)
+const currentUserAvatar = ref('')
 const loading = ref(true)
 const error = ref(false)
 const post = ref(null)
@@ -231,6 +263,21 @@ const readingProgress = ref(0)
 const topbarHidden = ref(false)
 const showTipDialog = ref(false)
 const showPoints = ref(false)
+const purchasing = ref(false)
+
+async function purchasePost() {
+  if (!isLoggedIn.value) { window.location.href = '/login'; return }
+  purchasing.value = true
+  try {
+    const h = { Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
+    const res = await apiClient.post(`/moments/${post.value.id}/purchase`, {}, { headers: h })
+    post.value.has_purchased = true
+    post.value.content = res.data?.data?.content || post.value.content
+    ElMessage.success('解锁成功')
+  } catch (e) {
+    ElMessage.error(e.response?.data?.message || '解锁失败')
+  } finally { purchasing.value = false }
+}
 
 const renderedContent = computed(() => {
   if (!post.value?.content) return ''
@@ -280,21 +327,40 @@ function redirectToLogin() {
   window.location.href = '/login';
 }
 
+// ── AI 评论建议 ──
+const aiSuggestions = ref([])
+let aiSuggestionTimer = null
+async function loadAiSuggestions() {
+  if (aiSuggestions.value.length || !post.value?.content) return
+  clearTimeout(aiSuggestionTimer)
+  aiSuggestionTimer = setTimeout(async () => {
+    try {
+      const content = (post.value.content || '').replace(/<[^>]*>/g, '').substring(0, 300)
+      const h = { Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
+      const res = await apiClient.post('/user-chat/ai-conversation', {
+        message: '你是一个社区评论助手。请针对以下帖子内容，生成3条简短友好的评论建议（每条不超过20字），用中文，用|分隔，直接返回结果不要多余文字。\n\n' + content
+      }, { headers: h })
+      const reply = res.data?.data?.reply || ''
+      aiSuggestions.value = reply.split('|').filter(Boolean).map(s => s.trim()).slice(0, 3)
+    } catch { /* ignore */ }
+  }, 300)
+}
+
 async function loadUser() {
-  try { const res = await apiClient.get('/user'); const user = res.data?.data || {}; myId.value = user.id || 0; isLoggedIn.value = !!user.id } catch { myId.value = 0; isLoggedIn.value = false }
+  try { const res = await apiClient.get('/user'); const user = res.data?.data || {}; myId.value = user.id || 0; isLoggedIn.value = !!user.id; currentUserAvatar.value = user.avatar_url || '' } catch { myId.value = 0; isLoggedIn.value = false; currentUserAvatar.value = '' }
 }
 
 function goBack() {
-  // 如果有上一页则返回，否则跳到广场列表
+  // 如果有上一页则返回，否则回到社区
   if (window.history.length > 1) {
     router.back()
   } else {
-    window.location.href = '/build/user-chat'
+    window.location.href = '/build/community'
   }
 }
 
 function goTag(slug) {
-  // 返回广场并按标签筛选
+  // 返回社区并按标签筛选
   window.location.href = '/build/user-chat?tag=' + slug
 }
 
@@ -497,9 +563,9 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); window.s
 </script>
 
 <style>
-.oa-article-page { max-width: 820px; margin: 0 auto; padding: 0; min-height: 100vh; background: #fff; }
+.oa-article-page { max-width: 820px; margin: 0 auto; padding: 80px 0 0; min-height: 100vh; background: #fff; }
 .oa-article-topbar {
-  position: sticky; top: 0; z-index: 100; display: flex; align-items: center;
+  position: sticky; top: 80px; z-index: 100; display: flex; align-items: center;
   justify-content: space-between; padding: 8px 16px; background: rgba(255,255,255,.95);
   border-bottom: 1px solid #eee; backdrop-filter: blur(8px); transition: transform .3s;
 }
@@ -521,6 +587,7 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); window.s
 .oa-meta-time { color: #909399; }
 .focus-hidden { opacity: 0; transition: opacity .3s; }
 .focus-active .oa-article-content { max-width: 680px; margin: 0 auto; }
+.oa-article-content img { max-width: 100%; border-radius: 6px; margin: 16px auto; display: block; }
 .oa-article-content { font-size: inherit; line-height: 1.8; color: #303133; }
 .oa-article-toolbar { display: flex; align-items: center; justify-content: space-between; margin-top: 24px; padding-top: 16px; border-top: 1px solid #eee; }
 .plaza-images-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin: 16px 0; }
@@ -582,4 +649,15 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); window.s
 .theme-night .oa-article-content, .theme-night .oa-comment-author { color: #ccc; }
 .theme-night .oa-article-header, .theme-night .oa-article-toolbar { border-color: #333; }
 .theme-night .oa-comment-text { color: #999; }
+
+/* ── 付费墙 ── */
+.oa-paywall { position: relative; margin: 24px 0; border-radius: 12px; overflow: hidden; background: #f9f9f9; border: 1px solid #e8e8e8; }
+.oa-paywall-blur { overflow: hidden; max-height: 120px; position: relative; }
+.oa-paywall-blur::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: linear-gradient(transparent, #f9f9f9); }
+.oa-paywall-preview { padding: 16px 20px; font-size: 14px; line-height: 1.8; color: #999; filter: blur(6px); user-select: none; }
+.oa-paywall-overlay { position: relative; text-align: center; padding: 24px 20px 32px; }
+.oa-paywall-icon { font-size: 48px; margin-bottom: 8px; }
+.oa-paywall-title { font-size: 20px; font-weight: 700; color: #303133; margin-bottom: 4px; }
+.oa-paywall-desc { font-size: 13px; color: #909399; margin-bottom: 16px; }
+.oa-paywall-price { font-size: 28px; font-weight: 800; color: #e6a23c; margin-bottom: 20px; }
 </style>

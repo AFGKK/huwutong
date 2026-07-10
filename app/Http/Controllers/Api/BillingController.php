@@ -543,7 +543,13 @@ class BillingController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
         }
-        if ($request->filled('code')) {
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                  ->orWhere('name', 'like', "%{$search}%");
+            });
+        } elseif ($request->filled('code')) {
             $query->where('code', 'like', "%{$request->input('code')}%");
         }
         if ($request->filled('type')) {

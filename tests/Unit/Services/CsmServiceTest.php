@@ -15,7 +15,7 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Models\Product;
 use App\Services\CsmService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class CsmServiceTest extends TestCase

@@ -55,7 +55,7 @@ class EmailDripSendCommand extends Command
         $pending = $query
             ->whereHas('sequence', function ($q) use ($now) {
                 $q->whereRaw(
-                    'DATE_ADD(email_drip_recipients.created_at, INTERVAL email_drip_sequences.delay_days DAY) <= ?',
+                    db_date_add_days_col('email_drip_recipients.created_at', 'email_drip_sequences.delay_days').' <= ?',
                     [$now]
                 );
             })

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
  * 蓝绿部署记录模型
  *
  * @m3-63 BlueGreenDeploy
+ * @mixin IdeHelperBlueGreenDeployment
  */
 class BlueGreenDeployment extends Model
 {

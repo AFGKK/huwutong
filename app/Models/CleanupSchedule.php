@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperCleanupSchedule
+ */
 class CleanupSchedule extends Model
 {
     protected $fillable = [

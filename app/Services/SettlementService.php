@@ -51,7 +51,7 @@ class SettlementService
 
             try {
                 $settlementTrend = CommissionSettlement::selectRaw(
-                    "DATE_FORMAT(settled_at, '%Y-%m') as month, SUM(commission_amount) as total"
+                    db_date_format('settled_at', '%Y-%m').' as month, SUM(commission_amount) as total'
                 )->where('status', 'settled')
                     ->where('settled_at', '>=', now()->subMonths(12))
                     ->groupBy('month')
@@ -385,7 +385,8 @@ class SettlementService
         $query = PlatformFee::byTenant($tenantId)->where('status', 'collected');
 
         if ($yearMonth) {
-            $query->whereRaw("DATE_FORMAT(collected_at, '%Y-%m') = ?", [$yearMonth]);
+            $monthExpr = db_date_format('collected_at', '%Y-%m');
+            $query->whereRaw("{$monthExpr} = ?", [$yearMonth]);
         }
 
         $byType = $query->selectRaw('fee_type, SUM(amount) as total')

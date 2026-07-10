@@ -15,7 +15,7 @@ use App\Models\UsageRecord;
 use App\Services\MeteredBillingService;
 use App\Services\UsageMeterService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class MeteredBillingTest extends TestCase

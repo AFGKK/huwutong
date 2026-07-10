@@ -1,7 +1,7 @@
 <template>
     <div class="forum-panel">
         <div class="sidebar-header">
-            <h3>📋 论坛</h3>
+            <h3>📋 广场</h3>
             <div class="sidebar-header-actions">
                 <el-button size="small" type="primary" @click="showCreate = true">
                     <el-icon><Plus /></el-icon> 发帖

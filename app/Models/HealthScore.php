@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * 综合考量激活活跃度、续费健康度、工单体验、设备安全、支付健康度
  * 评分范围: 0.00 ~ 100.00
  * 等级: healthy (>=70) / warning (>=40) / critical (<40)
+ *
+ * @mixin IdeHelperHealthScore
  */
 class HealthScore extends Model
 {

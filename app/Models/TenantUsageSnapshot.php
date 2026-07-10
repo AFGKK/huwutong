@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperTenantUsageSnapshot
+ */
 class TenantUsageSnapshot extends Model
 {
     protected $table = 'tenant_usage_snapshots';

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperLicenseBatchItem
+ */
 class LicenseBatchItem extends Model
 {
     protected $table = 'license_batch_items';

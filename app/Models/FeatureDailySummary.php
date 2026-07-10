@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperFeatureDailySummary
+ */
 class FeatureDailySummary extends Model
 {
     protected $fillable = [

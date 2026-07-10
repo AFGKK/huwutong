@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperApiDocTag
+ */
 class ApiDocTag extends Model
 {
     protected $table = 'api_doc_tags';

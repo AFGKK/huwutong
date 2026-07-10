@@ -230,7 +230,7 @@ class UpdatePackageController extends Controller
             ->count();
 
         $topRegions = $updatePackage->downloads()
-            ->selectRaw('SUBSTRING_INDEX(client_ip, ".", 3) as subnet, COUNT(*) as count')
+            ->selectRaw(db_substring_index('client_ip', '.', 3).' as subnet, COUNT(*) as count')
             ->groupBy('subnet')
             ->orderByDesc('count')
             ->limit(10)

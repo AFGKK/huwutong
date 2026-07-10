@@ -60,7 +60,7 @@
                 <el-form-item label="类型">
                     <el-select v-model="filters.type" clearable placeholder="全部" style="width: 120px">
                         <el-option label="百分比" value="percentage" />
-                        <el-option label="固定金额" value="fixed" />
+                        <el-option label="固定金额" value="fixed_amount" />
                         <el-option label="免费试用" value="free_trial" />
                     </el-select>
                 </el-form-item>
@@ -74,9 +74,21 @@
             </el-form>
         </el-card>
 
+        <!-- 批量操作 -->
+        <div class="mb-4" v-if="selectedIds.length > 0">
+            <el-alert :title="`已选择 ${selectedIds.length} 条记录`" type="info" show-icon :closable="false">
+                <template #action>
+                    <el-button size="small" type="success" @click="batchToggleStatus('active')">批量启用</el-button>
+                    <el-button size="small" type="warning" @click="batchToggleStatus('disabled')">批量停用</el-button>
+                    <el-button size="small" @click="selectedIds = []">取消选择</el-button>
+                </template>
+            </el-alert>
+        </div>
+
         <!-- 优惠券列表 -->
         <el-card shadow="never">
-            <el-table :data="coupons" v-loading="loading" stripe>
+            <el-table :data="coupons" v-loading="loading" stripe @selection-change="onSelectionChange">
+                <el-table-column type="selection" width="40" />
                 <el-table-column prop="code" label="优惠码" width="140">
                     <template #default="{ row }">
                         <el-tag effect="dark" size="small">{{ row.code }}</el-tag>
@@ -107,11 +119,13 @@
                         {{ row.expires_at ? row.expires_at.substring(0, 10) : '永久' }}
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="180" fixed="right">
+                <el-table-column label="操作" width="260" fixed="right">
                     <template #default="{ row }">
                         <el-button type="primary" link size="small" @click="viewDetail(row)">详情</el-button>
                         <el-button type="primary" link size="small" @click="openEditDialog(row)">编辑</el-button>
-                        <el-button type="danger" link size="small" @click="viewRedemptions(row)">使用记录</el-button>
+                        <el-button type="primary" link size="small" @click="viewRedemptions(row)">记录</el-button>
+                        <el-button v-if="row.status === 'active'" type="warning" link size="small" @click="toggleStatus(row, 'disabled')">停用</el-button>
+                        <el-button v-else type="success" link size="small" @click="toggleStatus(row, 'active')">启用</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -150,7 +164,8 @@
                         <el-form-item label="类型" prop="type">
                             <el-select v-model="form.type" style="width:100%">
                                 <el-option label="百分比折扣" value="percentage" />
-                                <el-option label="固定金额" value="fixed" />
+                                <el-option label="固定金额" value="fixed_amount" />
+                                <el-option label="免费试用" value="free_trial" />
                             </el-select>
                         </el-form-item>
                     </el-col>
@@ -202,6 +217,46 @@
                         </el-form-item>
                     </el-col>
                 </el-row>
+                <!-- 适用限制 -->
+                <el-form-item label="适用方案">
+                    <el-select v-model="form.applicable_plans" multiple clearable placeholder="全部方案" style="width:100%" :loading="loadingPlans">
+                        <el-option v-for="p in planOptions" :key="p.id" :label="p.name" :value="p.slug" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="适用产品">
+                    <el-select v-model="form.applicable_products" multiple clearable placeholder="全部产品" style="width:100%" :loading="loadingProducts" value-key="id">
+                        <el-option v-for="p in productOptions" :key="p.id" :label="p.name" :value="p.id" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="适用周期">
+                    <el-select v-model="form.applicable_billing_periods" multiple clearable placeholder="全部周期" style="width:100%">
+                        <el-option label="月付" value="monthly" />
+                        <el-option label="季付" value="quarterly" />
+                        <el-option label="半年付" value="semi_annually" />
+                        <el-option label="年付" value="yearly" />
+                    </el-select>
+                </el-form-item>
+                <!-- 高级设置 -->
+                <el-divider>高级设置</el-divider>
+                <el-row :gutter="12">
+                    <el-col :span="12">
+                        <el-form-item label="优先级">
+                            <el-input-number v-model="form.priority" :min="0" :max="999" style="width:100%" />
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                        <el-form-item label="预算金额">
+                            <el-input v-model.number="form.budget" :min="0" type="number" placeholder="0 不限制">
+                                <template #append>¥</template>
+                            </el-input>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-form-item label="叠加/自动">
+                    <el-checkbox v-model="form.is_redeemable_with_other_coupons" label="可与其他优惠券叠加" border />
+                    <el-checkbox v-model="form.is_stackable" label="可叠加促销" border class="ml-2" />
+                    <el-checkbox v-model="form.auto_apply" label="自动应用" border class="ml-2" />
+                </el-form-item>
             </el-form>
             <template #footer>
                 <el-button @click="dialogVisible = false">取消</el-button>
@@ -258,6 +313,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import billingApi from '@/api/billing'
+import productApi from '@/api/product'
 
 const loading = ref(false)
 const coupons = ref([])
@@ -279,6 +335,13 @@ const redemptionVisible = ref(false)
 const redemptions = ref([])
 const redemptionLoading = ref(false)
 
+const selectedIds = ref([])
+
+const planOptions = ref([])
+const productOptions = ref([])
+const loadingPlans = ref(false)
+const loadingProducts = ref(false)
+
 const filters = reactive({
     status: '',
     type: '',
@@ -295,8 +358,16 @@ const form = reactive({
     maximum_discount: 0,
     usage_limit: 0,
     usage_limit_per_user: 0,
+    applicable_plans: [],
+    applicable_products: [],
+    applicable_billing_periods: [],
     starts_at: '',
     expires_at: '',
+    is_redeemable_with_other_coupons: false,
+    is_stackable: false,
+    auto_apply: false,
+    priority: 0,
+    budget: 0,
 })
 
 const rules = {
@@ -307,7 +378,7 @@ const rules = {
 }
 
 function typeLabel(type) {
-    return { percentage: '百分比', fixed: '固定金额', free_trial: '免费试用' }[type] || type
+    return { percentage: '百分比', fixed_amount: '固定金额', free_trial: '免费试用' }[type] || type
 }
 
 function statusLabel(coupon) {
@@ -383,8 +454,16 @@ function openCreateDialog() {
     form.maximum_discount = 0
     form.usage_limit = 0
     form.usage_limit_per_user = 0
+    form.applicable_plans = []
+    form.applicable_products = []
+    form.applicable_billing_periods = []
     form.starts_at = ''
     form.expires_at = ''
+    form.is_redeemable_with_other_coupons = false
+    form.is_stackable = false
+    form.auto_apply = false
+    form.priority = 0
+    form.budget = 0
     dialogVisible.value = true
 }
 
@@ -401,8 +480,16 @@ function openEditDialog(row) {
         maximum_discount: row.maximum_discount || 0,
         usage_limit: row.usage_limit || 0,
         usage_limit_per_user: row.usage_limit_per_user || 0,
+        applicable_plans: row.applicable_plans || [],
+        applicable_products: row.applicable_products ? row.applicable_products.map(Number) : [],
+        applicable_billing_periods: row.applicable_billing_periods || [],
         starts_at: row.starts_at || '',
         expires_at: row.expires_at || '',
+        is_redeemable_with_other_coupons: row.is_redeemable_with_other_coupons ?? false,
+        is_stackable: row.is_stackable ?? false,
+        auto_apply: row.auto_apply ?? false,
+        priority: row.priority ?? 0,
+        budget: row.budget || 0,
     })
     dialogVisible.value = true
 }
@@ -450,9 +537,64 @@ async function viewRedemptions(row) {
     }
 }
 
+/** 切换单个优惠券状态 */
+async function toggleStatus(row, newStatus) {
+    try {
+        await billingApi.updateCoupon(row.id, { status: newStatus })
+        ElMessage.success(newStatus === 'active' ? '已启用' : '已停用')
+        loadCoupons()
+        loadStats()
+    } catch (e) {
+        ElMessage.error('操作失败')
+    }
+}
+
+/** 批量切换状态 */
+async function batchToggleStatus(newStatus) {
+    try {
+        const promises = selectedIds.value.map(id => billingApi.updateCoupon(id, { status: newStatus }))
+        await Promise.all(promises)
+        ElMessage.success(`已${newStatus === 'active' ? '启用' : '停用'} ${selectedIds.value.length} 条优惠券`)
+        selectedIds.value = []
+        loadCoupons()
+        loadStats()
+    } catch (e) {
+        ElMessage.error('批量操作失败')
+    }
+}
+
+/** 选择变更 */
+function onSelectionChange(rows) {
+    selectedIds.value = rows.map(r => r.id)
+}
+
+/** 加载方案列表 */
+async function loadPlans() {
+    loadingPlans.value = true
+    try {
+        const res = await billingApi.getPlans({ per_page: 999 })
+        const d = res.data?.data || res.data || []
+        planOptions.value = d.data || (Array.isArray(d) ? d : [])
+    } catch { /* ignore */ }
+    finally { loadingPlans.value = false }
+}
+
+/** 加载产品列表 */
+async function loadProducts() {
+    loadingProducts.value = true
+    try {
+        const res = await productApi.list({ per_page: 999 })
+        const d = res.data?.data || res.data || []
+        productOptions.value = d.data || (Array.isArray(d) ? d : [])
+    } catch { /* ignore */ }
+    finally { loadingProducts.value = false }
+}
+
 onMounted(() => {
     loadStats()
     loadCoupons()
+    loadPlans()
+    loadProducts()
 })
 </script>
 

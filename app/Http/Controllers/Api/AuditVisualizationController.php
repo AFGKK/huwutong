@@ -14,7 +14,7 @@ class AuditVisualizationController extends Controller
         protected AuditVisualizationService $auditVisService
     ) {}
 
-    // ─── 概览仪表�?───
+    // ─── 概览仪表�?───
 
     public function dashboard(Request $request)
     {
@@ -107,7 +107,7 @@ class AuditVisualizationController extends Controller
         ));
     }
 
-    // ─── 异常检�?───
+    // ─── 异常检�?───
 
     public function detectAnomalies(Request $request)
     {

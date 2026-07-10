@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperUserConversation
+ */
 class UserConversation extends Model
 {
     protected $fillable = ['type', 'name', 'created_by', 'last_message_id', 'last_message_at', 'slow_mode_interval', 'join_approval', 'permissions'];

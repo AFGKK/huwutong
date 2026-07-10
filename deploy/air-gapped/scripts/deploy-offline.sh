@@ -11,8 +11,36 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BASE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# 栈选择: pgsql（默认）| mysql
+DEPLOY_STACK="${DEPLOY_STACK:-}"
+if [ -z "${DEPLOY_STACK}" ] && [ -f "${BASE_DIR}/STACK.default" ]; then
+    DEPLOY_STACK="$(tr -d '\r\n' < "${BASE_DIR}/STACK.default")"
+fi
+DEPLOY_STACK="${DEPLOY_STACK:-pgsql}"
+
+if [ -f "${BASE_DIR}/.env" ] && grep -q '^DB_CONNECTION=mysql' "${BASE_DIR}/.env" 2>/dev/null; then
+    DEPLOY_STACK="mysql"
+fi
+
+case "${DEPLOY_STACK}" in
+    mysql)
+        COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.mysql.yml}"
+        ENV_TEMPLATE=".env.airgap.mysql"
+        ;;
+    pgsql|pg|postgres)
+        COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
+        ENV_TEMPLATE=".env.airgap"
+        DEPLOY_STACK="pgsql"
+        ;;
+    *)
+        echo "[ERROR] 未知 DEPLOY_STACK=${DEPLOY_STACK}（支持 pgsql | mysql）"
+        exit 1
+        ;;
+esac
+
 echo "=========================================="
-echo " HWT License 离线部署"
+echo " HWT License 离线部署 (${DEPLOY_STACK})"
+echo " Compose: ${COMPOSE_FILE}"
 echo "=========================================="
 
 # ---------- 前置检查 ----------
@@ -80,7 +108,11 @@ fi
 
 echo ""
 echo ">>> [4/6] 检查端口占用..."
-PORTS=(8000 3306 6379 8080)
+if [ "${DEPLOY_STACK}" = "mysql" ]; then
+    PORTS=(8000 3306 6379 80 443)
+else
+    PORTS=(8000 5432 6379 80 443)
+fi
 for port in "${PORTS[@]}"; do
     if lsof -i:${port} &>/dev/null 2>/dev/null || netstat -tuln 2>/dev/null | grep -q ":${port} "; then
         echo "  [WARN] 端口 ${port} 已被占用，请检查"
@@ -92,13 +124,15 @@ done
 echo ""
 echo ">>> [5/6] 配置环境变量..."
 if [ -f "${BASE_DIR}/.env" ]; then
-    # 检查是否需要修改配置
     if [ ! -f "${BASE_DIR}/.env.airgap" ]; then
         cp "${BASE_DIR}/.env" "${BASE_DIR}/.env.airgap"
     fi
-    echo "  环境变量已加载"
+    echo "  环境变量已加载 (.env)"
+elif [ -f "${BASE_DIR}/${ENV_TEMPLATE}" ]; then
+    cp "${BASE_DIR}/${ENV_TEMPLATE}" "${BASE_DIR}/.env"
+    echo "  已从 ${ENV_TEMPLATE} 生成 .env"
 else
-    echo "  [ERROR] 未找到 .env 文件"
+    echo "  [ERROR] 未找到 .env 或 ${ENV_TEMPLATE}"
     exit 1
 fi
 
@@ -106,19 +140,59 @@ echo ""
 echo ">>> [6/6] 启动服务..."
 cd "${BASE_DIR}"
 
-# 如果有 docker-compose.yml 则直接启动
-if [ -f "docker-compose.yml" ]; then
-    docker compose -f docker-compose.yml up -d
-    echo ""
-    echo "  服务启动中，等待10秒..."
-    sleep 10
+DATA_DUMP_PGSQL="${BASE_DIR}/data/pgsql/huwutong.sql.gz"
+DATA_DUMP_MYSQL="${BASE_DIR}/data/mysql/huwutong.sql.gz"
+IMPORT_DATA="${IMPORT_DB_DATA:-auto}"
 
-    # 检查服务状态
-    docker compose ps
+if [ -f "${COMPOSE_FILE}" ]; then
+    # 含数据包时先启动数据库，导入后再拉起全栈
+    if [ "${DEPLOY_STACK}" = "pgsql" ] && [ -f "${DATA_DUMP_PGSQL}" ] && [ "${IMPORT_DATA}" != "skip" ]; then
+        if [ "${IMPORT_DATA}" = "auto" ] || [ "${IMPORT_DATA}" = "1" ]; then
+            echo ""
+            echo "  检测到 PG 数据包，先启动 postgres + redis..."
+            docker compose -f "${COMPOSE_FILE}" up -d postgres redis
+            echo "  等待 PostgreSQL 就绪..."
+            sleep 10
+            echo "  导入业务数据..."
+            COMPOSE_FILE="${COMPOSE_FILE}" bash scripts/import-pgsql-data.sh "${DATA_DUMP_PGSQL}"
+            echo "  启动全部服务..."
+        fi
+    fi
+
+    if [ "${DEPLOY_STACK}" = "mysql" ] && [ -f "${DATA_DUMP_MYSQL}" ] && [ "${IMPORT_DATA}" != "skip" ]; then
+        if [ "${IMPORT_DATA}" = "auto" ] || [ "${IMPORT_DATA}" = "1" ]; then
+            echo ""
+            echo "  检测到 MySQL 数据包，先启动 mysql + redis..."
+            docker compose -f "${COMPOSE_FILE}" up -d mysql redis
+            echo "  等待 MySQL 就绪..."
+            sleep 15
+            echo "  导入业务数据..."
+            COMPOSE_FILE="${COMPOSE_FILE}" bash scripts/import-mysql-data.sh "${DATA_DUMP_MYSQL}"
+            echo "  启动全部服务..."
+        fi
+    fi
+
+    docker compose -f "${COMPOSE_FILE}" up -d
+    echo ""
+    echo "  服务启动中，等待 15 秒..."
+    sleep 15
+
+    docker compose -f "${COMPOSE_FILE}" ps
+
+    if [ "${DEPLOY_STACK}" = "pgsql" ] && [ -f "scripts/bootstrap-pgsql.sh" ]; then
+        echo ""
+        echo "  执行 PG 初始化（迁移 + 健康检查）..."
+        COMPOSE_FILE="${COMPOSE_FILE}" bash scripts/bootstrap-pgsql.sh || echo "  [WARN] bootstrap 未完成，请手动运行 COMPOSE_FILE=${COMPOSE_FILE} bash scripts/bootstrap-pgsql.sh"
+    fi
+
+    if [ "${DEPLOY_STACK}" = "mysql" ] && [ -f "scripts/bootstrap-mysql.sh" ]; then
+        echo ""
+        echo "  执行 MySQL 初始化（迁移 + 健康检查）..."
+        COMPOSE_FILE="${COMPOSE_FILE}" bash scripts/bootstrap-mysql.sh || echo "  [WARN] bootstrap 未完成，请手动运行 COMPOSE_FILE=${COMPOSE_FILE} bash scripts/bootstrap-mysql.sh"
+    fi
 else
-    # 手动启动容器
-    echo "  docker-compose.yml 不存在，手动启动容器..."
-    echo "  请参考 README.md 手动配置"
+    echo "  [ERROR] 未找到 ${COMPOSE_FILE}"
+    exit 1
 fi
 
 cd "${SCRIPT_DIR}"
@@ -133,9 +207,14 @@ echo "   API:  http://localhost:8000/api"
 echo "   Reverb: http://localhost:8080"
 echo ""
 echo " 管理命令:"
-echo "   查看日志:  docker compose logs -f"
-echo "   停止:      docker compose down"
-echo "   重启:      docker compose restart"
+echo "   查看日志:  docker compose -f ${COMPOSE_FILE} logs -f"
+echo "   停止:      docker compose -f ${COMPOSE_FILE} down"
+echo "   重启:      docker compose -f ${COMPOSE_FILE} restart"
+if [ "${DEPLOY_STACK}" = "pgsql" ]; then
+echo "   PG 初始化: bash scripts/bootstrap-pgsql.sh"
+elif [ "${DEPLOY_STACK}" = "mysql" ]; then
+echo "   MySQL 初始化: bash scripts/bootstrap-mysql.sh"
+fi
 echo ""
 echo " License 导入:"
 echo "   bash scripts/import-license.sh /path/to/license.lic"

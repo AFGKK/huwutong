@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * 提现记录
+ *
+ * @mixin IdeHelperCommissionPayout
  */
 class CommissionPayout extends Model
 {

@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperForumFavoriteCollection
+ */
 class ForumFavoriteCollection extends Model
 {
     protected $table = 'forum_favorite_collections';

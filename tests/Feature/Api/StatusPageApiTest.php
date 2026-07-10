@@ -4,7 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class StatusPageApiTest extends TestCase
@@ -16,7 +16,7 @@ class StatusPageApiTest extends TestCase
         $response = $this->getJson('/api/status');
 
         $response->assertStatus(200);
-        $response->assertJsonStructure(['status', 'checks', 'uptime']);
+        $response->assertJsonStructure(['success', 'data' => ['overall_status', 'components', 'incidents', 'uptime']]);
     }
 
     public function test_history_returns_data(): void
@@ -24,7 +24,7 @@ class StatusPageApiTest extends TestCase
         $response = $this->getJson('/api/status/history');
 
         $response->assertStatus(200);
-        $response->assertJsonStructure(['uptime_percent', 'incidents']);
+        $response->assertJsonStructure(['success', 'data' => ['uptime_percent', 'incidents']]);
     }
 
     public function test_subscribe_requires_email(): void

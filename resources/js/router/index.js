@@ -86,6 +86,26 @@ const routes = [
         component: () => import('@/views/plaza/Detail.vue'),
         meta: { layout: 'blank', title: '广场详情' },
     },
+    // ── 社区 / 广场 ──
+    {
+        path: '/community',
+        name: 'Community',
+        component: () => import('@/views/community/Index.vue'),
+        meta: { layout: 'blank', title: '社区' },
+    },
+    {
+        path: '/plaza/user/:id',
+        name: 'UserProfile',
+        component: () => import('@/views/community/UserProfile.vue'),
+        meta: { layout: 'blank', title: '用户主页' },
+    },
+    // ── 互物号 ──
+    {
+        path: '/channels',
+        name: 'Channels',
+        component: () => import('@/views/channels/Index.vue'),
+        meta: { layout: 'blank', title: '互物号' },
+    },
     // ── 已合并 IM 页面重定向（保持向后兼容） ──
     { path: '/ai-chat', redirect: '/im' },
     { path: '/handoff', redirect: '/im' },
@@ -207,6 +227,12 @@ const routes = [
                 name: 'LicenseTrash',
                 component: () => import('@/views/license-trash/Index.vue'),
                 meta: { title: 'License 回收站', icon: 'Delete' },
+            },
+            {
+                path: 'license-compliance',
+                name: 'LicenseCompliance',
+                component: () => import('@/views/license-compliance/Index.vue'),
+                meta: { title: '📋 合规审计报告', icon: 'Document' },
             },
             {
                 path: 'license-snapshot',
@@ -450,12 +476,12 @@ const routes = [
                 component: () => import('@/views/seat-pool/Index.vue'),
                 meta: { title: '席位池管理', icon: 'Connection' },
             },
-            // ── Webhook 条件过滤器 (M2-53) ──
+            // ── Webhook 管理 (已整合) ──
             {
-                path: 'webhook-filter',
-                name: 'WebhookFilter',
-                component: () => import('@/views/webhook-filter/Index.vue'),
-                meta: { title: 'Webhook 过滤器', icon: 'Connection' },
+                path: 'webhooks',
+                name: 'Webhooks',
+                component: () => import('@/views/webhooks/Index.vue'),
+                meta: { title: 'Webhook 管理', icon: 'Link' },
             },
             // ── SIEM 审计日志导出 (M2-52) ──
             {
@@ -463,13 +489,6 @@ const routes = [
                 name: 'SiemExport',
                 component: () => import('@/views/siem-export/Index.vue'),
                 meta: { title: 'SIEM 日志导出', icon: 'DataBoard' },
-            },
-            // ── 审计日志归档至低成本存储 (M2-73) ──
-            {
-                path: 'audit-archive',
-                name: 'AuditArchive',
-                component: () => import('@/views/audit-archive/Index.vue'),
-                meta: { title: '审计日志归档', icon: 'Wallet' },
             },
             // ── 页脚导航配置 (M2-85) ──
             {
@@ -536,12 +555,12 @@ const routes = [
                 component: () => import('@/views/conversion-funnel/Index.vue'),
                 meta: { title: '转化漏斗', icon: 'DataAnalysis' },
             },
-            // ── 邮件营销 Drip (M2-102) ──
+            // ── 邮件管理 (已整合) ──
             {
-                path: 'email-drip',
-                name: 'EmailDrip',
-                component: () => import('@/views/email-drip/Index.vue'),
-                meta: { title: '邮件营销 Drip', icon: 'Message' },
+                path: 'email',
+                name: 'EmailManager',
+                component: () => import('@/views/email/Index.vue'),
+                meta: { title: '邮件管理', icon: 'Message' },
             },
             // ── 🛒 秒杀/抢购 (M2-159) ──
             {
@@ -564,26 +583,11 @@ const routes = [
                 component: () => import('@/views/reconciliation/Index.vue'),
                 meta: { title: '电商对账系统', icon: 'DataBoard' },
             },
-            // ── SDK版本兼容策略 (M2-16) ──
             {
-                path: 'sdk-version',
-                name: 'SdkVersion',
-                component: () => import('@/views/sdk-version/Index.vue'),
-                meta: { title: 'SDK版本兼容', icon: 'CollectionTag' },
-            },
-            // ── SDK完整性自检 + 远程自毁 (M2-17) ──
-            {
-                path: 'sdk-integrity',
-                name: 'SdkIntegrity',
-                component: () => import('@/views/sdk-integrity/Index.vue'),
-                meta: { title: 'SDK完整性自检', icon: 'Shield' },
-            },
-            // ── SDK本地缓存 + 离线宽限期 (M2-17b) ──
-            {
-                path: 'sdk-cache',
-                name: 'SdkCache',
-                component: () => import('@/views/sdk-cache/Index.vue'),
-                meta: { title: 'SDK本地缓存', icon: 'Timer' },
+                path: 'ci-cd',
+                name: 'CiCd',
+                component: () => import('@/views/ci-cd/Index.vue'),
+                meta: { title: '🔑 CI/CD 自动授权', icon: 'Connection' },
             },
             {
                 path: 'customers',
@@ -754,6 +758,24 @@ const routes = [
                 meta: { title: '入门教程', icon: 'Reading' },
             },
             {
+                path: 'cloud-marketplace',
+                name: 'CloudMarketplace',
+                component: () => import('@/views/cloud-marketplace/Index.vue'),
+                meta: { title: '☁️ 云市场集成', icon: 'Connection' },
+            },
+            {
+                path: 'accounting',
+                name: 'Accounting',
+                component: () => import('@/views/accounting/Index.vue'),
+                meta: { title: '📊 会计系统集成', icon: 'Coin' },
+            },
+            {
+                path: 'bi-export',
+                name: 'BiExport',
+                component: () => import('@/views/bi-export/Index.vue'),
+                meta: { title: '📈 BI 数据仓库导出', icon: 'DataBoard' },
+            },
+            {
                 path: 'alerts',
                 name: 'Alerts',
                 component: () => import('@/views/alert/Index.vue'),
@@ -797,58 +819,16 @@ const routes = [
                 meta: { title: '页面管理', icon: 'Document' },
             },
             {
-                path: 'email-templates',
-                name: 'EmailTemplates',
-                component: () => import('@/views/email-templates/Index.vue'),
-                meta: { title: '邮件模板', icon: 'Message' },
-            },
-            {
                 path: 'playground',
                 name: 'ApiPlayground',
                 component: () => import('@/views/playground/Index.vue'),
                 meta: { title: 'API Playground', icon: 'Monitor' },
             },
             {
-                path: 'email-tracking',
-                name: 'EmailTracking',
-                component: () => import('@/views/email-tracking/Index.vue'),
-                meta: { title: '邮件追踪', icon: 'TrendCharts' },
-            },
-            {
-                path: 'webhook-endpoints',
-                name: 'WebhookEndpoints',
-                component: () => import('@/views/webhook/Endpoints.vue'),
-                meta: { title: 'Webhook 端点', icon: 'Link' },
-            },
-            {
-                path: 'webhook-simulator',
-                name: 'WebhookSimulator',
-                component: () => import('@/views/webhook/simulator/Index.vue'),
-                meta: { title: 'Webhook 模拟器', icon: 'Connection' },
-            },
-            {
-                path: 'email-dashboard',
-                name: 'EmailDashboard',
-                component: () => import('@/views/email-dashboard/Index.vue'),
-                meta: { title: '邮件投递面板', icon: 'Message' },
-            },
-            {
-                path: 'audit-retention',
-                name: 'AuditRetention',
-                component: () => import('@/views/audit-retention/Index.vue'),
-                meta: { title: '审计日志导出与保留', icon: 'Setting' },
-            },
-            {
                 path: 'custom-fields',
                 name: 'CustomFields',
                 component: () => import('@/views/custom-fields/Index.vue'),
                 meta: { title: '自定义字段', icon: 'Edit' },
-            },
-            {
-                path: 'webhook-replay',
-                name: 'WebhookReplay',
-                component: () => import('@/views/webhook/Index.vue'),
-                meta: { title: 'Webhook 回放', icon: 'Refresh' },
             },
             {
                 path: 'deps-security',
@@ -1001,24 +981,6 @@ const routes = [
                 component: () => import('@/views/quota-alert/Index.vue'),
                 meta: { title: '用量配额预警', icon: 'WarningFilled' },
             },
-            {
-                path: 'customer-smtp',
-                name: 'CustomerSmtp',
-                component: () => import('@/views/customer-smtp/Index.vue'),
-                meta: { title: 'SMTP 配置', icon: 'Connection' },
-            },
-            {
-                path: 'smtp-fallback',
-                name: 'SmtpFallback',
-                component: () => import('@/views/smtp-fallback/Index.vue'),
-                meta: { title: 'SMTP 降级', icon: 'Refresh' },
-            },
-            {
-                path: 'email-whitelabel',
-                name: 'EmailWhitelabel',
-                component: () => import('@/views/email-whitelabel/Index.vue'),
-                meta: { title: '邮件白标', icon: 'UploadFilled' },
-            },
             { path: 'teams-notifier', redirect: '/im-integration' },
             {
                 path: 'api-impact',
@@ -1070,30 +1032,17 @@ const routes = [
                 component: () => import('@/views/ai-ops/Index.vue'),
                 meta: { title: 'AI 运营分析', icon: 'MagicStick' },
             },
-            // ── SDK 开发工具包 (M2-18~20) ──
             {
-                path: 'sdk',
+                path: 'sdk-manager',
                 name: 'SdkManager',
-                component: () => import('@/views/sdk/Index.vue'),
-                meta: { title: 'SDK 开发工具包', icon: 'Connection' },
+                component: () => import('@/views/sdk-manager/Index.vue'),
+                meta: { title: 'SDK 管理', icon: 'Connection' },
             },
             {
                 path: 'slo',
                 name: 'SloBudget',
                 component: () => import('@/views/slo/Index.vue'),
                 meta: { title: 'SLO 错误预算', icon: 'Coin' },
-            },
-            {
-                path: 'webhook-monitor',
-                name: 'WebhookMonitor',
-                component: () => import('@/views/webhook-monitor/Index.vue'),
-                meta: { title: 'Webhook 监控', icon: 'Monitor' },
-            },
-            {
-                path: 'webhook-events',
-                name: 'WebhookEvents',
-                component: () => import('@/views/webhooks/Events.vue'),
-                meta: { title: 'Webhook 事件', icon: 'Promotion' },
             },
             {
                 path: 'health',
@@ -1365,13 +1314,6 @@ const routes = [
                 component: () => import('@/views/blue-green/Index.vue'),
                 meta: { title: '蓝绿部署', icon: 'Connection' },
             },
-            // ─── 数据本地化存储 (M3-60) ───
-            {
-                path: 'data-residency',
-                name: 'DataResidency',
-                component: () => import('@/views/data-residency/Index.vue'),
-                meta: { title: '数据本地化', icon: 'Connection' },
-            },
             {
                 path: 'license-templates',
                 name: 'LicenseTemplates',
@@ -1401,6 +1343,12 @@ const routes = [
                 name: 'TaxCalculator',
                 component: () => import('@/views/tax/Index.vue'),
                 meta: { title: '税务管理', icon: 'Document' },
+            },
+            {
+                path: 'china-invoice',
+                name: 'ChinaInvoice',
+                component: () => import('@/views/china-invoice/Index.vue'),
+                meta: { title: '🧾 中国电子发票', icon: 'Document' },
             },
             // ── 全球税收合规 (M3-18) ──
             {
@@ -1508,13 +1456,6 @@ const routes = [
                 component: () => import('@/views/portal-branding/Index.vue'),
                 meta: { title: '门户品牌化', icon: 'Brush' },
             },
-            // ── 隐私协议管理 ──
-            {
-                path: 'legal-consents',
-                name: 'LegalConsents',
-                component: () => import('@/views/legal-consent/Index.vue'),
-                meta: { title: '协议管理', icon: 'Document' },
-            },
             // ── 账号注销审核 ──
             {
                 path: 'account-deletions',
@@ -1579,41 +1520,6 @@ const routes = [
                 component: () => import('@/views/cookie-consent/Index.vue'),
                 meta: { title: 'Cookie 管理', icon: 'SetUp' },
             },
-            // ── SOC 2 / ISO 27001 合规包 (M3-69) ──
-            {
-                path: 'compliance',
-                name: 'ComplianceDashboard',
-                component: () => import('@/views/compliance/Index.vue'),
-                meta: { title: 'SOC 2 / ISO 27001 合规', icon: 'Shield' },
-            },
-            // ── GDPR 合规 (M3-33) ──
-            {
-                path: 'gdpr-compliance',
-                name: 'GdprCompliance',
-                component: () => import('@/views/gdpr-compliance/Index.vue'),
-                meta: { title: 'GDPR 合规', icon: 'ScaleToOriginal' },
-            },
-            // ── GDPR 增强 (M3-33 Enhancement) ──
-            {
-                path: 'gdpr-enhancement',
-                name: 'GdprEnhancement',
-                component: () => import('@/views/gdpr-compliance/Enhancement.vue'),
-                meta: { title: 'GDPR 增强', icon: 'SetUp' },
-            },
-            // ── PIPL 合规 (M3-33b) ──
-            {
-                path: 'pipl-compliance',
-                name: 'PiplCompliance',
-                component: () => import('@/views/pipl-compliance/Index.vue'),
-                meta: { title: 'PIPL 合规', icon: 'DocumentChecked' },
-            },
-            // ── 数据匿名化 (M3-62) ──
-            {
-                path: 'data-anonymization',
-                name: 'DataAnonymization',
-                component: () => import('@/views/system/DataAnonymization.vue'),
-                meta: { title: '数据匿名化', icon: 'Hide' },
-            },
             // ── 预约Demo/联系销售 (M2-98) ──
             {
                 path: 'demo-booking',
@@ -1676,6 +1582,26 @@ const routes = [
                 name: 'MarketplaceSecurity',
                 component: () => import('@/views/marketplace-security/Index.vue'),
                 meta: { title: '内容安全', icon: 'WarningFilled' },
+            },
+            // ── 社区管理 ──
+            {
+                path: 'moments',
+                name: 'AdminMoments',
+                component: () => import('@/views/community/AdminMoments.vue'),
+                meta: { title: '社区管理', icon: 'ChatDotSquare' },
+            },
+            // ── 互物号管理 ──
+            {
+                path: 'official-accounts',
+                name: 'AdminOfficialAccounts',
+                component: () => import('@/views/channels/AdminOfficialAccounts.vue'),
+                meta: { title: '互物号管理', icon: 'Monitor' },
+            },
+            {
+                path: 'articles/manage',
+                name: 'AdminArticles',
+                component: () => import('@/views/channels/AdminArticles.vue'),
+                meta: { title: '文章审核', icon: 'Document' },
             },
             // ── 灰度发布 ──
             {
@@ -1789,13 +1715,6 @@ const routes = [
                 component: () => import('@/views/cloud-upload/Index.vue'),
                 meta: { title: '云文件存储', icon: 'CloudUpload' },
             },
-            // ── 多区域合规 (M3-18) ──
-            {
-                path: 'regional-compliance',
-                name: 'RegionalCompliance',
-                component: () => import('@/views/regional-compliance/Index.vue'),
-                meta: { title: '多区域合规', icon: 'List' },
-            },
             // ── 虚拟环境检测 (M1.3-14) ──
             {
                 path: 'vm-detection',
@@ -1859,19 +1778,25 @@ const routes = [
                 component: () => import('@/views/compliance-ai/Index.vue'),
                 meta: { title: '合规报告AI', icon: 'Document' },
             },
-            // ── ISO 42001 AI 合规 (M2-140) ──
-            {
-                path: 'ai-compliance',
-                name: 'AiCompliance',
-                component: () => import('@/views/ai-compliance/Index.vue'),
-                meta: { title: 'AI 合规管理', icon: 'Document' },
-            },
             // ── TPM 硬件安全绑定 (M2-116) ──
             {
                 path: 'tpm-binding',
                 name: 'TpmBinding',
                 component: () => import('@/views/tpm-binding/Index.vue'),
                 meta: { title: 'TPM 硬件绑定', icon: 'Key' },
+            },
+            // ── 合规中心(已整合) ──
+            {
+                path: 'compliance-center',
+                name: 'ComplianceCenter',
+                component: () => import('@/views/compliance-center/Index.vue'),
+                meta: { title: '合规中心', icon: 'DocumentChecked' },
+            },
+            {
+                path: 'data-management',
+                name: 'DataManagement',
+                component: () => import('@/views/data-management/Index.vue'),
+                meta: { title: '数据管理', icon: 'Connection' },
             },
             // ── AI 攻击模式识别 (M3-36) ──
             {
@@ -1935,6 +1860,12 @@ const routes = [
                 name: 'UsageMeter',
                 component: () => import('@/views/usage-meter/Index.vue'),
                 meta: { title: '用量计量', icon: 'DataBoard' },
+            },
+            {
+                path: 'metered-billing',
+                name: 'MeteredBilling',
+                component: () => import('@/views/metered-billing/Index.vue'),
+                meta: { title: '按量计费深度', icon: 'TrendCharts' },
             },
             // ── 高级报表 (M3) ──
             {
@@ -2096,6 +2027,12 @@ const routes = [
                 component: () => import('@/views/sso/Index.vue'),
                 meta: { title: '单点登录', icon: 'Link' },
             },
+            {
+                path: 'enterprise-sso',
+                name: 'EnterpriseSso',
+                component: () => import('@/views/enterprise-sso/Index.vue'),
+                meta: { title: '🔐 企业 SSO 深度', icon: 'Link' },
+            },
             // ── 嵌入式 Widget (M2-141) ──
             {
                 path: 'embedded-widget',
@@ -2163,31 +2100,17 @@ const routes = [
             },
             // ── 更新包管理 ──
             {
-                path: 'updates',
-                name: 'UpdatePackages',
-                component: () => import('@/views/updates/Index.vue'),
-                meta: { title: '更新包管理', icon: 'Upload' },
-            },
-            // ── 更新包 CDN 分发 (M2-69) ──
-            {
-                path: 'update-cdn',
-                name: 'UpdateCdn',
-                component: () => import('@/views/update-cdn/Index.vue'),
-                meta: { title: 'CDN 分发', icon: 'Connection' },
-            },
-            // ── 更新签名/回滚/灰度 (M2-15) ──
-            {
-                path: 'update-signer',
-                name: 'UpdateSigner',
-                component: () => import('@/views/update-signer/Index.vue'),
-                meta: { title: '更新签名与灰度', icon: 'Connection' },
+                path: 'update-manager',
+                name: 'UpdateManager',
+                component: () => import('@/views/update-manager/Index.vue'),
+                meta: { title: '更新管理', icon: 'Upload' },
             },
             // ── 审计治理中心 ──
             {
-                path: 'audit-governance',
-                name: 'AuditGovernance',
-                component: () => import('@/views/audit-governance/Index.vue'),
-                meta: { title: '审计治理中心', icon: 'DataBoard' },
+                path: 'audit',
+                name: 'AuditCenter',
+                component: () => import('@/views/audit/Index.vue'),
+                meta: { title: '审计中心', icon: 'DataBoard' },
             },
             // ── 审计日志归档 (M2-73) ──
             {
@@ -2202,13 +2125,6 @@ const routes = [
                 name: 'LogAggregation',
                 component: () => import('@/views/log-aggregation/Index.vue'),
                 meta: { title: '日志平台', icon: 'DataBoard' },
-            },
-            // ── 数据保留审计 ──
-            {
-                path: 'retention-audit',
-                name: 'RetentionAudit',
-                component: () => import('@/views/retention-audit/Index.vue'),
-                meta: { title: '数据保留审计', icon: 'Timer' },
             },
             // ── 暗水印与防篡改 (M3-10) ──
             {
@@ -2319,13 +2235,6 @@ const routes = [
                 component: () => import('@/views/sla/Index.vue'),
                 meta: { title: 'SLA 追踪', icon: 'DataBoard' },
             },
-            // ── 审计可视化 ──
-            {
-                path: 'audit-visualization',
-                name: 'AuditVisualization',
-                component: () => import('@/views/audit-visualization/Index.vue'),
-                meta: { title: '审计可视化', icon: 'TrendCharts' },
-            },
             // ── 智能告警 ──
             {
                 path: 'alerting',
@@ -2346,20 +2255,6 @@ const routes = [
                 name: 'Automation',
                 component: () => import('@/views/automation/Index.vue'),
                 meta: { title: '自动化规则引擎', icon: 'Setting' },
-            },
-            // ── 审计日志 ──
-            {
-                path: 'audit-logs',
-                name: 'AuditLogs',
-                component: () => import('@/views/audit-logs/Index.vue'),
-                meta: { title: '审计日志', icon: 'Document' },
-            },
-            // ── 审计导出增强 ──
-            {
-                path: 'audit-export',
-                name: 'AuditExport',
-                component: () => import('@/views/audit-export/Index.vue'),
-                meta: { title: '审计导出中心', icon: 'Download' },
             },
             // ── Merkle 审计链验证 ──
             {
@@ -2545,6 +2440,12 @@ const routes = [
                 component: () => import('@/views/portal/Usage.vue'),
                 meta: { title: '用量看板' },
             },
+            {
+                path: 'analytics',
+                name: 'PortalAnalytics',
+                component: () => import('@/views/portal/AnalyticsDashboard.vue'),
+                meta: { title: '分析仪表盘' },
+            },
             // ── License 健康评分 (M2-110) ──
             {
                 path: 'license-health',
@@ -2682,19 +2583,20 @@ router.beforeEach((to, from, next) => {
 
     // 设置页面标题
     if (to.meta?.title) {
-        document.title = `${to.meta.title} - HWT License`;
+        const isPublicPage = ['Login', 'Register', 'ForgotPassword', 'Appeal', 'StatusPage', 'Community', 'Channels', 'UserProfile', 'PlazaDetail', 'InteractiveDemo', 'FollowingFeed', 'OaEditor', 'OaArticleDetail', 'Checkout'].includes(to.name);
+        document.title = `${to.meta.title} - ${isPublicPage ? '互物通' : 'HWT License 管理后台'}`;
     }
 
-    // 登录、注册、申诉、系统状态页面不需要认证
-    if (to.name === 'Login' || to.name === 'Register' || to.name === 'ForgotPassword' || to.name === 'Appeal' || to.name === 'StatusPage') {
+    // 登录、注册、密码重置页面 - 已登录时跳转仪表盘
+    if (to.name === 'Login' || to.name === 'Register' || to.name === 'ForgotPassword') {
         if (auth.isLoggedIn) {
             return next('/dashboard');
         }
         return next();
     }
 
-    // 演示页面不需要认证
-    if (to.name === 'InteractiveDemo') {
+    // 公开页面 - 无需认证，已登录用户也可访问
+    if (to.name === 'Appeal' || to.name === 'StatusPage' || to.name === 'Community' || to.name === 'Channels' || to.name === 'UserProfile' || to.name === 'PlazaDetail' || to.name === 'OaArticleDetail' || to.name === 'OaEditor' || to.name === 'InteractiveDemo' || String(to.path).startsWith('/oa-editor') || String(to.path).startsWith('/oa-article/')) {
         return next();
     }
 

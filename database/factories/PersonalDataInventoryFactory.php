@@ -14,8 +14,8 @@ class PersonalDataInventoryFactory extends Factory
     {
         return [
             'tenant_id' => Tenant::factory(),
-            'field_name' => $this->faker->randomElement(['name', 'email', 'phone', 'address']),
-            'table_name' => $this->faker->randomElement(['users', 'customers', 'invoices']),
+            'field_name' => fake()->unique()->bothify('field_##??'),
+            'table_name' => 'users',
             'category' => $this->faker->randomElement(['person', 'general', 'sensitive']),
             'classification' => $this->faker->randomElement(['L1', 'L2', 'L3']),
             'purpose' => '业务运营',

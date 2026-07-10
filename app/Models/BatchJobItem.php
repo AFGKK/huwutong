@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * 批量操作子项
+ *
+ * @mixin IdeHelperBatchJobItem
  */
 class BatchJobItem extends Model
 {

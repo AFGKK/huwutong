@@ -264,12 +264,15 @@ class UsageMeterService
         }
 
         // 降级：实时计算
+        $monthExpr = db_month_start('recorded_at');
+        $lastDayExpr = db_last_day_of_month('recorded_at');
+
         $rawData = UsageRecord::where('tenant_id', $tenantId)
             ->where('metric_key', $metricKey)
             ->selectRaw(
                 $period === 'daily'
                     ? "DATE(recorded_at) as period_start, DATE(recorded_at) as period_end, SUM(quantity) as total, COUNT(*) as records"
-                    : "DATE_FORMAT(recorded_at, '%Y-%m-01') as period_start, LAST_DAY(recorded_at) as period_end, SUM(quantity) as total, COUNT(*) as records"
+                    : "$monthExpr as period_start, $lastDayExpr as period_end, SUM(quantity) as total, COUNT(*) as records"
             )
             ->groupBy('period_start', 'period_end')
             ->orderBy('period_start', 'desc')
@@ -293,6 +296,9 @@ class UsageMeterService
         $stats = ['aggregated' => 0, 'period' => $period];
 
         // 按 tenant + metric_key 分组聚合
+        $aggMonthExpr = db_month_start('recorded_at');
+        $aggLastDayExpr = db_last_day_of_month('recorded_at');
+
         $rows = DB::table('usage_records')
             ->select(
                 'tenant_id',
@@ -301,11 +307,11 @@ class UsageMeterService
                 'metric_key',
                 DB::raw($period === 'daily'
                     ? "DATE(recorded_at) as period_start"
-                    : "DATE_FORMAT(recorded_at, '%Y-%m-01') as period_start"
+                    : "$aggMonthExpr as period_start"
                 ),
                 DB::raw($period === 'daily'
                     ? "DATE(recorded_at) as period_end"
-                    : "LAST_DAY(recorded_at) as period_end"
+                    : "$aggLastDayExpr as period_end"
                 ),
                 DB::raw('SUM(quantity) as total_quantity'),
                 DB::raw('COUNT(*) as record_count'),

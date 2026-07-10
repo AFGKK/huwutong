@@ -7,7 +7,7 @@ use App\Models\LicenseTransferRequest;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\TransferService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class TransferEnhancedTest extends TestCase
@@ -38,7 +38,7 @@ class TransferEnhancedTest extends TestCase
             'license_id' => $this->license->id,
             'type' => 'device_transfer',
             'status' => 'pending',
-            'target_device_fingerprint' => 'v2:' . str_repeat('a', 64),
+            'target_device_fingerprint' => 'v2:' . str_repeat('a', 61),
             'target_device_name' => 'New PC',
         ]);
         return $request;

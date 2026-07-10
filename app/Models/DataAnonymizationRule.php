@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
  * 数据匿名化规则 (M2-139)
  *
  * 存储用户自定义的表/字段匿名化规则，覆盖 config/data-anonymization.php 中的默认规则。
+ *
+ * @mixin IdeHelperDataAnonymizationRule
  */
 class DataAnonymizationRule extends Model
 {

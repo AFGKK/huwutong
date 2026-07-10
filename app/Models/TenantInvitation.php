@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
  *
  * M2-129 团队协作：企业管理员通过邮箱邀请员工加入租户，
  * 接受后自动创建 TenantMember 记录。
+ *
+ * @mixin IdeHelperTenantInvitation
  */
 class TenantInvitation extends Model
 {

@@ -149,7 +149,7 @@ class CrossBorderService
         // 从 cross_border_payments 聚合数据
         $payments = CrossBorderPayment::where('tenant_id', $tenantId)
             ->where('status', 'completed')
-            ->where(DB::raw("strftime('%Y-%m', created_at)"), $reportMonth)
+            ->where(DB::raw(db_date_format('created_at', '%Y-%m')), $reportMonth)
             ->get()
             ->groupBy('currency');
 
@@ -228,7 +228,7 @@ class CrossBorderService
         $thisMonth = now()->format('Y-m');
 
         $monthlyPayments = CrossBorderPayment::where('tenant_id', $tenantId)
-            ->where(DB::raw("strftime('%Y-%m', created_at)"), $thisMonth)
+            ->where(DB::raw(db_date_format('created_at', '%Y-%m')), $thisMonth)
             ->where('status', 'completed');
 
         $totalCrossBorderRevenue = (clone $monthlyPayments)
@@ -249,7 +249,7 @@ class CrossBorderService
 
         $complianceWarnings = CrossBorderPayment::where('tenant_id', $tenantId)
             ->where('status', 'completed')
-            ->where(DB::raw("json_extract(compliance_info, '$.passed')"), false)
+            ->where('compliance_info->passed', false)
             ->count();
 
         return [

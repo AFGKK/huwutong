@@ -9,7 +9,7 @@ use App\Models\RenewalReminderTemplate;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Services\RenewalReminderService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 
 class RenewalReminderServiceTest extends TestCase
 {

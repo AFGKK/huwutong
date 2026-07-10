@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperSystemHealthThreshold
+ */
 class SystemHealthThreshold extends Model
 {
     protected $table = 'system_health_thresholds';

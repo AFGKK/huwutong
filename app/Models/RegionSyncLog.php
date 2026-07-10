@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperRegionSyncLog
+ */
 class RegionSyncLog extends Model
 {
     protected $table = 'region_sync_logs';

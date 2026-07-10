@@ -8,6 +8,7 @@ use App\Models\SdkHeartbeat;
 use App\Models\SdkTelemetryAggregate;
 use App\Models\SdkTelemetryEvent;
 use App\Models\SdkVersionSnapshot;
+use App\Support\DbSql;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -144,51 +145,55 @@ class TelemetryService
     protected function updateAggregates(SdkHeartbeat $heartbeat): void
     {
         $today = now()->toDateString();
+        $now = DbSql::now();
 
         try {
+            $upsert = function (array $params, bool $incrementCount = true) use ($now, $today): void {
+                $driver = DbSql::driver();
+                if ($driver === 'pgsql') {
+                    $countUpdate = $incrementCount
+                        ? 'count = sdk_telemetry_aggregates.count + 1'
+                        : 'count = sdk_telemetry_aggregates.count';
+                    DB::statement(
+                        "INSERT INTO sdk_telemetry_aggregates (tenant_id, metric_key, dimension, dimension_value, count, agg_date, created_at, updated_at)
+                         VALUES (?, ?, ?, ?, 1, ?, {$now}, {$now})
+                         ON CONFLICT (tenant_id, metric_key, dimension, dimension_value, agg_date)
+                         DO UPDATE SET {$countUpdate}, updated_at = {$now}",
+                        $params
+                    );
+
+                    return;
+                }
+
+                DB::statement(
+                    "INSERT INTO sdk_telemetry_aggregates (tenant_id, metric_key, dimension, dimension_value, count, agg_date, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, 1, ?, {$now}, {$now})
+                     ON DUPLICATE KEY UPDATE count = count + ".($incrementCount ? '1' : '0').", updated_at = {$now}",
+                    $params
+                );
+            };
+
             // SDK 版本分布聚合
             if ($heartbeat->sdk_language && $heartbeat->sdk_version) {
-                DB::statement("
-                    INSERT INTO sdk_telemetry_aggregates (tenant_id, metric_key, dimension, dimension_value, count, agg_date, created_at, updated_at)
-                    VALUES (?, 'sdk_version', ?, ?, 1, ?, NOW(), NOW())
-                    ON DUPLICATE KEY UPDATE count = count + 1, updated_at = NOW()
-                ", [$heartbeat->tenant_id, 'sdk_language', $heartbeat->sdk_language, $today]);
-
-                DB::statement("
-                    INSERT INTO sdk_telemetry_aggregates (tenant_id, metric_key, dimension, dimension_value, count, agg_date, created_at, updated_at)
-                    VALUES (?, 'sdk_version', ?, ?, 1, ?, NOW(), NOW())
-                    ON DUPLICATE KEY UPDATE count = count + 1, updated_at = NOW()
-                ", [$heartbeat->tenant_id, 'sdk_version', $heartbeat->sdk_version, $today]);
+                $upsert([$heartbeat->tenant_id, 'sdk_version', 'sdk_language', $heartbeat->sdk_language, $today]);
+                $upsert([$heartbeat->tenant_id, 'sdk_version', 'sdk_version', $heartbeat->sdk_version, $today]);
             }
 
             // 平台分布聚合
             if ($heartbeat->sdk_platform) {
-                DB::statement("
-                    INSERT INTO sdk_telemetry_aggregates (tenant_id, metric_key, dimension, dimension_value, count, agg_date, created_at, updated_at)
-                    VALUES (?, 'platform', 'platform', ?, 1, ?, NOW(), NOW())
-                    ON DUPLICATE KEY UPDATE count = count + 1, updated_at = NOW()
-                ", [$heartbeat->tenant_id, $heartbeat->sdk_platform, $today]);
+                $upsert([$heartbeat->tenant_id, 'platform', 'platform', $heartbeat->sdk_platform, $today]);
             }
 
             // 运行时版本分布
             if ($heartbeat->runtime_version) {
-                DB::statement("
-                    INSERT INTO sdk_telemetry_aggregates (tenant_id, metric_key, dimension, dimension_value, count, agg_date, created_at, updated_at)
-                    VALUES (?, 'runtime', 'runtime_version', ?, 1, ?, NOW(), NOW())
-                    ON DUPLICATE KEY UPDATE count = count + 1, updated_at = NOW()
-                ", [$heartbeat->tenant_id, $heartbeat->runtime_version, $today]);
+                $upsert([$heartbeat->tenant_id, 'runtime', 'runtime_version', $heartbeat->runtime_version, $today]);
             }
 
             // 活跃 License 计数（分布式锁）
             $lockKey = "telemetry:active:{$heartbeat->license_id}";
-            if (!Cache::has($lockKey)) {
+            if (! Cache::has($lockKey)) {
                 Cache::put($lockKey, true, now()->addMinutes(30));
-
-                DB::statement("
-                    INSERT INTO sdk_telemetry_aggregates (tenant_id, metric_key, dimension, dimension_value, count, agg_date, created_at, updated_at)
-                    VALUES (?, 'active_licenses', 'license_id', ?, 1, ?, NOW(), NOW())
-                    ON DUPLICATE KEY UPDATE count = count, updated_at = NOW()
-                ", [$heartbeat->tenant_id, (string) $heartbeat->license_id, $today]);
+                $upsert([$heartbeat->tenant_id, 'active_licenses', 'license_id', (string) $heartbeat->license_id, $today], false);
             }
         } catch (\Exception $e) {
             logger()->warning('Failed to update telemetry aggregate', [

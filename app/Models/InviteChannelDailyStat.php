@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperInviteChannelDailyStat
+ */
 class InviteChannelDailyStat extends Model
 {
     protected $table = 'invite_channel_daily_stats';

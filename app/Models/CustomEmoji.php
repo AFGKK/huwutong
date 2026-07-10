@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperCustomEmoji
+ */
 class CustomEmoji extends Model
 {
     protected $table = 'custom_emojis';

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperPiracyForensicReport
+ */
 class PiracyForensicReport extends Model
 {
     protected $table = 'piracy_forensic_reports';

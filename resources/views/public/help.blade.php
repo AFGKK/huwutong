@@ -804,7 +804,16 @@
 
     // ─── 初始化 ───
     document.addEventListener('DOMContentLoaded', function() {
-        loadHome();
+        // 如果 URL 中包含文章 ID，自动加载（不显示首页）
+        var pathParts = window.location.pathname.split('/');
+        var lastPart = pathParts[pathParts.length - 1];
+        if (lastPart && /^\d+$/.test(lastPart) && parseInt(lastPart) > 0) {
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.getElementById('kb-home').classList.add('hidden');
+            loadArticle(parseInt(lastPart));
+        } else {
+            loadHome();
+        }
         // 确保 AI 聊天面板默认关闭
         document.getElementById('ai-chat-panel').classList.remove('open');
     });

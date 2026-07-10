@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * SDK 心跳记录
  *
  * SDK 客户端定期上报健康状态、版本信息、运行环境。
+ *
+ * @mixin IdeHelperSdkHeartbeat
  */
 class SdkHeartbeat extends Model
 {

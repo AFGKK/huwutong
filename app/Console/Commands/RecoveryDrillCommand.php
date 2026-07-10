@@ -232,8 +232,8 @@ class RecoveryDrillCommand extends Command
             $duration = microtime(true) - $start;
 
             // 验证恢复后的数据
-            $tableCount = DB::select('SELECT COUNT(*) as cnt FROM information_schema.tables WHERE table_schema = ?', [$record->database])[0]->cnt ?? 0;
-            $this->info("恢复完成: {$tableCount} 张表, 耗时 " . round($duration, 1) . "秒");
+            $tableCount = count(\App\Support\DbSql::listTableNames());
+            $this->info("恢复完成: {$tableCount} 张表, 耗时 ".round($duration, 1).'秒');
 
             $this->results[] = ['step' => 'Staging 完整恢复', 'status' => 'OK', 'detail' => "{$tableCount} 张表, " . round($duration, 1) . "s"];
         } catch (\Throwable $e) {

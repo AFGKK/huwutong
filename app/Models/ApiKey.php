@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @mixin IdeHelperApiKey
+ */
 class ApiKey extends Model
 {
     use HasFactory, SoftDeletes;
@@ -234,8 +237,8 @@ class ApiKey extends Model
         }
 
         foreach ($allowed as $pattern) {
-            $regex = str_replace(['*', '/', '.'], ['.*', '\/', '\.'], $pattern);
-            if (preg_match('/^' . $regex . '$/i', $path)) {
+            $regex = str_replace('\*', '.*', preg_quote($pattern, '/'));
+            if (preg_match('/^'.$regex.'$/i', $path)) {
                 return true;
             }
         }

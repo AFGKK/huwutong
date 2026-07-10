@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
  *
  * 可在管理后台动态配置，替代 EnhancedRateLimiter 中的硬编码默认规则。
  * 支持按路径、方法、HTTP 方法等条件匹配。
+ *
+ * @mixin IdeHelperRateLimitRule
  */
 class RateLimitRule extends Model
 {

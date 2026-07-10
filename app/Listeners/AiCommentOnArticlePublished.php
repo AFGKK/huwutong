@@ -19,7 +19,7 @@ class AiCommentOnArticlePublished implements ShouldQueue
     {
         $article = $event->article;
 
-        // 查找启用了 AI 评论员的公众号配置的 AI 好友
+        // 查找启用了 AI 评论员的互物号配置的 AI 好友
         $aiFriends = AiFriendProfile::where('category', 'commentator')
             ->with('llmConfig')
             ->whereHas('llmConfig')

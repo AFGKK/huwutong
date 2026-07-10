@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Crypt;
 
+/**
+ * @mixin IdeHelperLarkIntegration
+ */
 class LarkIntegration extends Model
 {
     use HasFactory;

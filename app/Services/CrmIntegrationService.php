@@ -287,44 +287,220 @@ class CrmIntegrationService
 
     protected function updateRemote(CrmConnection $connection, string $entityType, $entity, string $remoteId): void
     {
-        // 实际实现
+        match ($connection->provider) {
+            'hubspot' => $this->hubSpotUpdate($connection, $entityType, $entity, $remoteId),
+            'salesforce' => $this->salesforceUpdate($connection, $entityType, $entity, $remoteId),
+            default => throw new \InvalidArgumentException("Unsupported provider"),
+        };
     }
 
     protected function fetchRemote(CrmConnection $connection, string $entityType): array
     {
-        return []; // 实际从CRM API获取
+        return match ($connection->provider) {
+            'hubspot' => $this->hubSpotFetch($connection, $entityType),
+            'salesforce' => $this->salesforceFetch($connection, $entityType),
+            default => throw new \InvalidArgumentException("Unsupported provider"),
+        };
     }
 
     protected function createLocal(int $tenantId, string $entityType, array $remote): int
     {
-        return 0; // 实际创建本地记录
+        if ($entityType === 'customer') {
+            $customer = Customer::create([
+                'tenant_id' => $tenantId,
+                'name' => $remote['name'] ?? $remote['firstname'] ?? ($remote['firstName'] ?? ''),
+                'email' => $remote['email'] ?? '',
+                'phone' => $remote['phone'] ?? '',
+                'company' => $remote['company'] ?? '',
+            ]);
+            return $customer->id;
+        }
+        return 0;
     }
 
     protected function updateLocal(string $entityType, int $localId, array $remote): void
     {
-        // 实际更新本地记录
+        if ($entityType === 'customer') {
+            $customer = Customer::find($localId);
+            if ($customer) {
+                $customer->update([
+                    'name' => $remote['name'] ?? $remote['firstname'] ?? $customer->name,
+                    'email' => $remote['email'] ?? $customer->email,
+                    'phone' => $remote['phone'] ?? $customer->phone,
+                ]);
+            }
+        }
     }
 
     protected function hubSpotCreate(CrmConnection $connection, string $entityType, $entity): string
     {
+        $token = $connection->access_token;
+        $base = config('crm-integration.providers.hubspot.api_base', 'https://api.hubapi.com');
+
         if ($entityType === 'customer') {
-            $response = Http::withToken($connection->access_token)->post(
-                'https://api.hubapi.com/crm/v3/objects/contacts',
-                ['properties' => ['email' => $entity->email, 'firstname' => $entity->name]]
-            );
-            return $response->json('id') ?? '';
+            $properties = [
+                'email' => $entity->email ?? '',
+                'firstname' => $entity->name ?? '',
+                'phone' => $entity->phone ?? '',
+                'company' => $entity->company ?? '',
+            ];
+            $response = Http::withToken($token)->post("{$base}/crm/v3/objects/contacts", [
+                'properties' => array_filter($properties),
+            ]);
+            if ($response->successful()) return $response->json('id') ?? '';
+            Log::error('HubSpot create failed', ['response' => $response->body()]);
+            throw new \RuntimeException('HubSpot create failed: ' . $response->body());
         }
+
+        if ($entityType === 'license') {
+            // 将 License 创建为 HubSpot Deal
+            $response = Http::withToken($token)->post("{$base}/crm/v3/objects/deals", [
+                'properties' => [
+                    'dealname' => 'License: ' . ($entity->license_key ?? ''),
+                    'amount' => (string)($entity->price ?? 0),
+                    'dealstage' => 'closedwon',
+                    'pipeline' => 'default',
+                ],
+            ]);
+            if ($response->successful()) return $response->json('id') ?? '';
+            throw new \RuntimeException('HubSpot deal create failed: ' . $response->body());
+        }
+
         return '';
+    }
+
+    protected function hubSpotUpdate(CrmConnection $connection, string $entityType, $entity, string $remoteId): void
+    {
+        $token = $connection->access_token;
+        $base = config('crm-integration.providers.hubspot.api_base', 'https://api.hubapi.com');
+        $objectType = $entityType === 'customer' ? 'contacts' : 'deals';
+
+        $properties = [];
+        if ($entityType === 'customer') {
+            $properties = [
+                'email' => $entity->email ?? '',
+                'firstname' => $entity->name ?? '',
+                'phone' => $entity->phone ?? '',
+            ];
+        } elseif ($entityType === 'license') {
+            $properties = [
+                'dealname' => 'License: ' . ($entity->license_key ?? ''),
+                'amount' => (string)($entity->price ?? 0),
+            ];
+        }
+
+        $response = Http::withToken($token)->patch("{$base}/crm/v3/objects/{$objectType}/{$remoteId}", [
+            'properties' => array_filter($properties),
+        ]);
+
+        if (!$response->successful()) {
+            Log::error('HubSpot update failed', ['response' => $response->body()]);
+        }
+    }
+
+    protected function hubSpotFetch(CrmConnection $connection, string $entityType): array
+    {
+        $token = $connection->access_token;
+        $base = config('crm-integration.providers.hubspot.api_base', 'https://api.hubapi.com');
+        $objectType = $entityType === 'customer' ? 'contacts' : 'deals';
+
+        $response = Http::withToken($token)->get("{$base}/crm/v3/objects/{$objectType}", [
+            'limit' => 50,
+            'properties' => $entityType === 'customer' ? 'email,firstname,phone,company' : 'dealname,amount',
+        ]);
+
+        if (!$response->successful()) return [];
+
+        $results = $response->json('results') ?? [];
+        return array_map(fn($r) => array_merge(
+            ['id' => $r['id']],
+            $r['properties'] ?? []
+        ), $results);
     }
 
     protected function salesforceCreate(CrmConnection $connection, string $entityType, $entity): string
     {
-        $objectType = $entityType === 'customer' ? 'Contact' : 'Opportunity';
-        $response = Http::withToken($connection->access_token)
+        $instanceUrl = $connection->instance_url;
+        $token = $connection->access_token;
+        $apiVersion = config('crm-integration.providers.salesforce.api_version', 'v58.0');
+
+        $objectType = match ($entityType) {
+            'customer' => 'Contact',
+            'license' => 'Opportunity',
+            default => throw new \InvalidArgumentException("Unknown entity type: {$entityType}"),
+        };
+
+        $sObject = [];
+        if ($entityType === 'customer') {
+            $sObject = [
+                'LastName' => $entity->name ?? 'Unknown',
+                'Email' => $entity->email ?? '',
+                'Phone' => $entity->phone ?? '',
+            ];
+        } elseif ($entityType === 'license') {
+            $sObject = [
+                'Name' => 'License: ' . ($entity->license_key ?? ''),
+                'StageName' => 'Closed Won',
+                'CloseDate' => now()->format('Y-m-d'),
+                'Amount' => $entity->price ?? 0,
+            ];
+        }
+
+        $response = Http::withToken($token)
             ->withHeaders(['Sforce-Auto-Assign' => 'FALSE'])
-            ->post("{$connection->instance_url}/services/data/v58.0/sobjects/{$objectType}", [
-                'Name' => $entity->name ?? $entity->license_key,
-            ]);
-        return $response->json('id') ?? '';
+            ->post("{$instanceUrl}/services/data/{$apiVersion}/sobjects/{$objectType}", $sObject);
+
+        if ($response->successful()) return $response->json('id') ?? '';
+        Log::error('Salesforce create failed', [
+            'objectType' => $objectType,
+            'response' => $response->body(),
+        ]);
+        throw new \RuntimeException('Salesforce create failed: ' . $response->body());
+    }
+
+    protected function salesforceUpdate(CrmConnection $connection, string $entityType, $entity, string $remoteId): void
+    {
+        $instanceUrl = $connection->instance_url;
+        $token = $connection->access_token;
+        $apiVersion = config('crm-integration.providers.salesforce.api_version', 'v58.0');
+
+        $objectType = $entityType === 'customer' ? 'Contact' : 'Opportunity';
+
+        $sObject = [];
+        if ($entityType === 'customer') {
+            $sObject = ['LastName' => $entity->name ?? '', 'Email' => $entity->email ?? '', 'Phone' => $entity->phone ?? ''];
+        }
+
+        $response = Http::withToken($token)
+            ->patch("{$instanceUrl}/services/data/{$apiVersion}/sobjects/{$objectType}/{$remoteId}", $sObject);
+
+        if (!$response->successful()) {
+            Log::error('Salesforce update failed', ['response' => $response->body()]);
+        }
+    }
+
+    protected function salesforceFetch(CrmConnection $connection, string $entityType): array
+    {
+        $instanceUrl = $connection->instance_url;
+        $token = $connection->access_token;
+        $apiVersion = config('crm-integration.providers.salesforce.api_version', 'v58.0');
+
+        $objectType = $entityType === 'customer' ? 'Contact' : 'Opportunity';
+        $fields = $entityType === 'customer' ? 'Id, LastName, Email, Phone' : 'Id, Name, Amount, StageName';
+
+        $response = Http::withToken($token)->get(
+            "{$instanceUrl}/services/data/{$apiVersion}/query",
+            ['q' => "SELECT {$fields} FROM {$objectType} LIMIT 50"]
+        );
+
+        if (!$response->successful()) return [];
+
+        $records = $response->json('records') ?? [];
+        return array_map(fn($r) => [
+            'id' => $r['Id'],
+            'name' => $r['LastName'] ?? $r['Name'] ?? '',
+            'email' => $r['Email'] ?? '',
+            'phone' => $r['Phone'] ?? '',
+        ], $records);
     }
 }

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * ROPA — 处理活动记录
+ *
+ * @mixin IdeHelperProcessingActivityRecord
  */
 class ProcessingActivityRecord extends Model
 {

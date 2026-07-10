@@ -8,7 +8,7 @@ use App\Models\License;
 use App\Models\LicenseAnalyticsEvent;
 use App\Models\Tenant;
 use App\Services\HeatmapService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 
 class HeatmapServiceTest extends TestCase
 {

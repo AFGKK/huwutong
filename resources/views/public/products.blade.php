@@ -101,34 +101,37 @@
     </section>
 
     <!-- ─── 排序 + 筛选栏 ─── -->
-    <section class="py-4 bg-white border-b border-gray-100 sticky top-16 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-wrap items-center justify-between gap-3">
+    <section class="py-3 sm:py-4 bg-white border-b border-gray-100 sticky top-16 z-40">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div class="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
                 <div class="flex items-center gap-2 text-xs text-gray-400">
                     共 <span id="product-total-count">{{ $products->total() }}</span> 个产品
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-xs text-gray-400">排序：</span>
-                    <select id="sort-select" onchange="changeSort(this.value)" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white" style="min-height:44px">
-                        <option value="latest">默认</option>
+                <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                    <select id="sort-select" onchange="changeSort(this.value)" class="text-xs sm:text-sm border border-gray-200 rounded-lg px-2 sm:px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white" style="min-height:44px;max-width:150px">
+                        <option value="latest">最新上架</option>
+                        <option value="recommended">智能推荐</option>
+                        <option value="ai">AI 推荐</option>
+                        <option value="collaborative">买了还买</option>
+                        <option value="sequence">序列预测</option>
                         <option value="price_asc">价格 ↑</option>
                         <option value="price_desc">价格 ↓</option>
                         <option value="sold">销量</option>
                         <option value="name">名称 A-Z</option>
                     </select>
-                    <button id="toggle-advanced-filter" onclick="toggleAdvancedFilter()" class="ml-1 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-primary-300 transition flex items-center gap-1.5 text-gray-500" style="min-height:44px" title="高级筛选">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                        <span>筛选</span>
+                    <button id="toggle-advanced-filter" onclick="toggleAdvancedFilter()" class="px-2.5 sm:px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-primary-300 transition flex items-center gap-1 text-gray-500" style="min-height:44px" title="高级筛选">
+                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                        <span class="hidden sm:inline">筛选</span>
                         <span id="filter-active-badge" class="hidden filter-active-count ml-1">0</span>
                     </button>
                     <!-- 视图切换 -->
-                    <div class="ml-2 flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                        <button id="view-grid" onclick="setViewMode('grid')" class="px-3 py-1.5 md:py-2 transition active" title="网格视图" style="min-height:44px;display:inline-flex;align-items:center">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                    <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                        <button id="view-grid" onclick="setViewMode('grid')" class="px-2.5 sm:px-3 py-1.5 md:py-2 transition active" title="网格视图" style="min-height:44px;display:inline-flex;align-items:center">
+                            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
                         </button>
                         <div class="w-px h-5 bg-gray-200"></div>
-                        <button id="view-list" onclick="setViewMode('list')" class="px-3 py-1.5 md:py-2 transition" title="列表视图" style="min-height:44px;display:inline-flex;align-items:center">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        <button id="view-list" onclick="setViewMode('list')" class="px-2.5 sm:px-3 py-1.5 md:py-2 transition" title="列表视图" style="min-height:44px;display:inline-flex;align-items:center">
+                            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                         </button>
                     </div>
             </div>
@@ -212,7 +215,7 @@
 
     <section class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                 @forelse($products as $product)
                     <div class="product-card bg-white rounded-xl border border-gray-100 overflow-hidden flex flex-col group relative">
                         <a href="{{ url('/products/' . $product->slug) }}" class="block flex flex-col flex-1">
@@ -239,6 +242,9 @@
                                 @endif
                                 @if($product->demo_enabled ?? false)
                                     <span class="px-2 py-0.5 bg-purple-500 text-white text-xs font-bold rounded-full">演示</span>
+                                @endif
+                                @if(($product->max_commission_rate ?? 0) > 0)
+                                    <span class="px-2 py-0.5 text-xs font-bold rounded-full commission-badge" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#fff;box-shadow:0 1px 3px rgba(251,191,36,0.3);display:none;">赚 {{ $product->max_commission_rate }}%</span>
                                 @endif
                             </div>
                             <!-- 对比按钮 -->
@@ -506,7 +512,7 @@
             if (currentCategory) params.set('category', currentCategory);
             if (currentSearch) params.set('search', currentSearch);
             if (currentSort && currentSort !== 'latest') {
-                var sortMap = { price_asc: 'price', price_desc: '-price', sold: '-sold_total', name: 'name' };
+                var sortMap = { price_asc: 'price', price_desc: '-price', sold: '-sold_total', name: 'name', recommended: 'recommended', ai: 'ai', collaborative: 'collaborative', sequence: 'sequence' };
                 params.set('sort', sortMap[currentSort] || '-created_at');
             }
             // 高级筛选参数
@@ -869,88 +875,11 @@
         </div>
     </div>
 
-    <!-- ═══════ IM 在线客服 ═══════ -->
-    <button id="im-chat-btn" onclick="toggleChat()" class="fixed bottom-32 right-4 md:right-8 w-14 h-14 rounded-full bg-primary-600 text-white flex items-center justify-center z-50 shadow-lg hover:bg-primary-700" aria-label="在线客服">
-        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-        <span id="chat-unread-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 hidden shadow-lg">0</span>
-    </button>
-
-    <div id="im-chat-dialog" class="fixed bottom-36 right-4 md:right-8 w-[440px] max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl border border-gray-200 z-[55] hidden flex flex-col overflow-hidden" style="height:600px;max-height:calc(100vh-160px)">
-        <!-- 标题栏 -->
-        <div class="bg-primary-600 text-white px-5 py-4 flex items-center justify-between shrink-0">
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full overflow-hidden bg-white/20 flex items-center justify-center shrink-0">
-                    <span id="chat-seller-avatar-el" class="text-white font-bold text-sm">客</span>
-                </div>
-                <div>
-                    <div id="chat-seller-name" class="text-sm font-semibold">在线客服</div>
-                    <div class="text-xs text-primary-200 flex items-center gap-1">
-                        <span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
-                        在线
-                    </div>
-                </div>
-            </div>
-            <button onclick="toggleChat()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition text-white/80 hover:text-white">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-
-        <!-- 消息列表 -->
-        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 chat-scroll">
-            <div class="text-center py-8 text-gray-400 text-sm">
-                <svg class="w-10 h-10 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                <p>暂无消息，点击商家"客服"按钮开始咨询</p>
-            </div>
-        </div>
-
-        <!-- 输入区域 -->
-        <div class="flex items-center gap-2 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
-            <div class="relative">
-                <button onclick="toggleEmojiPicker()" class="w-9 h-9 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 transition shrink-0" title="表情" type="button">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </button>
-                <div id="emoji-picker" class="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-[60] hidden p-3" style="width:300px;max-height:260px">
-                    <div class="flex flex-wrap gap-1 overflow-y-auto" style="max-height:230px">
-                        <span onclick="insertEmoji('😀')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">😀</span>
-                        <span onclick="insertEmoji('😂')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">😂</span>
-                        <span onclick="insertEmoji('😍')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">😍</span>
-                        <span onclick="insertEmoji('👍')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">👍</span>
-                        <span onclick="insertEmoji('🎉')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">🎉</span>
-                        <span onclick="insertEmoji('❤️')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">❤️</span>
-                        <span onclick="insertEmoji('🔥')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">🔥</span>
-                        <span onclick="insertEmoji('✅')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">✅</span>
-                        <span onclick="insertEmoji('💡')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">💡</span>
-                        <span onclick="insertEmoji('🙏')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">🙏</span>
-                        <span onclick="insertEmoji('😊')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">😊</span>
-                        <span onclick="insertEmoji('😎')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">😎</span>
-                        <span onclick="insertEmoji('🥰')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">🥰</span>
-                        <span onclick="insertEmoji('🤔')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">🤔</span>
-                        <span onclick="insertEmoji('👏')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">👏</span>
-                        <span onclick="insertEmoji('🚀')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">🚀</span>
-                        <span onclick="insertEmoji('⭐')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">⭐</span>
-                        <span onclick="insertEmoji('💪')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">💪</span>
-                        <span onclick="insertEmoji('😘')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">😘</span>
-                        <span onclick="insertEmoji('🤩')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">🤩</span>
-                        <span onclick="insertEmoji('💯')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">💯</span>
-                        <span onclick="insertEmoji('🙌')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">🙌</span>
-                        <span onclick="insertEmoji('🎊')" class="w-9 h-9 flex items-center justify-center text-xl cursor-pointer hover:bg-gray-100 rounded-lg transition">🎊</span>
-                    </div>
-                </div>
-            </div>
-            <input id="chat-input" type="text" placeholder="输入消息..." class="flex-1 h-10 px-4 bg-gray-100 border-0 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-500 transition" autocomplete="off">
-            <button id="chat-send-btn" onclick="sendChatMessage()" class="w-10 h-10 rounded-xl bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19V5m0 0l-7 7m7-7l7 7"/></svg>
-            </button>
-        </div>
-    </div>
-
-    <script>
-    // ═══════ IM 聊天状态变量 ═══════
-    var _chatSellerId = 0;
-    var _chatSellerName = '在线客服';
-    var _chatSellerAvatar = '';
-    var _lastMsgDate = '';
-
+    <!-- ═══════ 联系客服 ═══════ -->
+    <a href="/help" class="fixed bottom-32 right-4 md:right-8 w-14 h-14 rounded-full bg-primary-600 text-white flex items-center justify-center z-50 shadow-lg hover:bg-primary-700 hover:scale-110 transition-all duration-300" aria-label="联系客服" title="联系客服">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+    </a>
+</body>
     // 打开指定商家聊天
     function openSellerChat(sellerId, sellerName, sellerAvatar) {
         _chatSellerId = sellerId;
@@ -1011,103 +940,21 @@
         if (!c) return;
         var d = new Date();
         var ts = d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
-        addTimeSeparator(d);
-        // 用户消息
+        addTimeSeparator(d);        // 发送到后端
+        var productId = document.querySelector('[data-product-id]')?.getAttribute('data-product-id');
+        var sellerId = _chatSellerId;
+        if (productId && sellerId) {
+            fetch('/contact-seller', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content||''},
+                body: JSON.stringify({product_id:parseInt(productId), seller_id:sellerId, message:msg})
+            }).catch(function(){});
+        }        // 用户消息
         var el = document.createElement('div');
         el.className = 'flex justify-end';
         el.innerHTML = '<div class="max-w-[75%] bg-primary-600 text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-sm leading-relaxed">'+escHtml(msg)+'<div class="flex items-center justify-end gap-1 mt-1"><span class="text-[10px] text-white/60">'+ts+'</span><span class="text-[10px] text-white/40">已发送</span></div></div>';
         c.appendChild(el);
         c.scrollTop = c.scrollHeight;
-        if (ip) ip.value = '';
-        // 模拟回复
-        setTimeout(function() {
-            addTimeSeparator(new Date());
-            var r = document.createElement('div');
-            r.className = 'flex justify-start';
-            var avatarHtml = _chatSellerAvatar
-                ? '<img src="'+_chatSellerAvatar+'" alt="" class="w-5 h-5 rounded-full object-cover" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><span class="w-5 h-5 rounded-full bg-primary-500 text-white text-[10px] flex items-center justify-center font-bold hidden" style="display:none">'+_chatSellerName.charAt(0)+'</span>'
-                : '<span class="w-5 h-5 rounded-full bg-primary-500 text-white text-[10px] flex items-center justify-center font-bold">'+_chatSellerName.charAt(0)+'</span>';
-            r.innerHTML = '<div class="max-w-[75%] bg-gray-100 text-gray-800 rounded-2xl rounded-tl-md px-4 py-2.5 text-sm leading-relaxed"><div class="flex items-center gap-1 mb-1">'+avatarHtml+'<span class="text-xs font-semibold text-gray-700">'+_chatSellerName+'</span><span class="text-[10px] text-green-500">在线</span></div>感谢您的咨询，' + _chatSellerName + '将尽快回复您。<div class="flex items-center gap-1 mt-1"><span class="text-[10px] text-gray-400">'+ts+'</span><span class="text-[10px] text-green-500">已读</span></div></div>';
-            c.appendChild(r);
-            c.scrollTop = c.scrollHeight;
-            showUnreadBadge(parseInt((document.getElementById('chat-unread-badge')?.textContent||'0'))+1);
-        }, 1000);
-    }
-
-    // ═══════ 辅助函数 ═══════
-    function escHtml(s) {
-        var div = document.createElement('div');
-        div.textContent = s;
-        return div.innerHTML;
-    }
-
-    function showChatToast(m) {
-        var t = document.createElement('div');
-        t.className = 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-900 text-white text-sm px-5 py-2.5 rounded-xl shadow-lg z-[999]';
-        t.textContent = m;
-        document.body.appendChild(t);
-        setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(function(){ t.remove() },300) }, 1500);
-    }
-
-    function showUnreadBadge(n) {
-        var b = document.getElementById('chat-unread-badge');
-        if (!b) return;
-        b.textContent = n || '';
-        b.classList.toggle('hidden', !n || n === 0);
-    }
-
-    function addTimeSeparator(ts) {
-        var c = document.getElementById('chat-messages');
-        if (!c) return;
-        var now = new Date(), today = now.toDateString();
-        var d = new Date(ts);
-        var label;
-        if (d.toDateString() === today) label = '今天';
-        else {
-            var y = new Date(now); y.setDate(y.getDate()-1);
-            if (d.toDateString() === y.toDateString()) label = '昨天';
-            else label = d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
-        }
-        if (label === _lastMsgDate) return;
-        _lastMsgDate = label;
-        var el = document.createElement('div');
-        el.className = 'text-center text-[10px] text-gray-400 py-2';
-        el.textContent = label;
-        c.appendChild(el);
-    }
-
-    // Emoji 选择器
-    function toggleEmojiPicker() {
-        var p = document.getElementById('emoji-picker');
-        if (!p) return;
-        p.classList.toggle('hidden');
-    }
-    function insertEmoji(e) {
-        var ip = document.getElementById('chat-input');
-        if (!ip) return;
-        ip.value += e;
-        ip.focus();
-        var p = document.getElementById('emoji-picker');
-        if (p) p.classList.add('hidden');
-    }
-
-    // Enter 发送
-    document.addEventListener('DOMContentLoaded', function() {
-        var ip = document.getElementById('chat-input');
-        if (ip) {
-            ip.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
-            });
-        }
-        // 点击外部关闭 emoji 面板
-        document.addEventListener('click', function(e) {
-            var ep = document.getElementById('emoji-picker');
-            if (ep && !ep.classList.contains('hidden') && !e.target.closest('[onclick*="toggleEmojiPicker"]') && !e.target.closest('#emoji-picker')) {
-                ep.classList.add('hidden');
-            }
-        });
-    });
-    </script>
 
 </body>
 </html>

@@ -6,7 +6,7 @@ use App\Models\Language;
 use App\Models\Translation;
 use App\Models\TranslationNamespace;
 use App\Services\TranslationEngineService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class TranslationEngineServiceTest extends TestCase

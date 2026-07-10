@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperSelfLearningPattern
+ */
 class SelfLearningPattern extends Model
 {
     protected $fillable = [

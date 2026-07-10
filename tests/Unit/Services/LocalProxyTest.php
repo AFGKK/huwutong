@@ -8,7 +8,7 @@ use App\Models\LocalProxyNode;
 use App\Models\Tenant;
 use App\Services\LocalProxyService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class LocalProxyTest extends TestCase

@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 class DeployStaticAssets extends Command
 {
     protected $signature = 'assets:cdn-deploy
-        {--version= : 自定义版本号（默认使用时间戳）}
+        {--app-version= : 自定义版本号（默认使用时间戳）}
         {--activate : 部署后自动激活版本}
         {--build-dir= : 构建产物目录（默认 public/build）}';
 
@@ -20,7 +20,7 @@ class DeployStaticAssets extends Command
 
         try {
             $result = $cdnService->deploy(
-                $this->option('version'),
+                $this->option('app-version'),
                 $this->option('build-dir')
             );
 
@@ -42,7 +42,7 @@ class DeployStaticAssets extends Command
 
             // 可选激活
             if ($this->option('activate')) {
-                $this->call('assets:cdn-activate', ['version' => $result['version']]);
+                $this->call('assets:cdn-activate', ['app-version' => $result['version']]);
             }
 
             return Command::SUCCESS;

@@ -2410,7 +2410,7 @@ class UserChatController extends Controller
 
         $query = ConversationMessage::whereIn('conversation_id', $convIds)
             ->whereNull('deleted_at')
-            ->whereRaw('MATCH(content) AGAINST(? IN BOOLEAN MODE)', [$q.'*']);
+            ->whereRaw(db_full_text_match('content'), [db_full_text_bind($q.'*')]);
 
         // SRCH-004: 限定当前会话
         if ($convId && in_array($convId, $convIds->toArray())) {
@@ -2570,7 +2570,7 @@ class UserChatController extends Controller
             ->where(function ($query) use ($keywords, $q) {
                 // 尝试全文索引搜索
                 try {
-                    $query->whereRaw('MATCH(content) AGAINST(? IN BOOLEAN MODE)', [$keywords.'*']);
+                    $query->whereRaw(db_full_text_match('content'), [db_full_text_bind($keywords.'*')]);
                 } catch (\Throwable $e) {
                     // 降级：LIKE 搜索
                     $terms = explode(' ', $keywords);

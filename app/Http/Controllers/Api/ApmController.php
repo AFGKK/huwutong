@@ -119,8 +119,9 @@ class ApmController extends Controller
             $distribution = $this->apmService->getDurationDistribution($since);
 
             // 近 24 小时请求趋势（按小时聚合）
+            $hourExpr = db_date_format('created_at', '%Y-%m-%d %H:00');
             $hourlyTrend = ApmRequest::where('created_at', '>=', now()->subDay())
-                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m-%d %H:00') as hour")
+                ->selectRaw("{$hourExpr} as hour")
                 ->selectRaw('COUNT(*) as total')
                 ->selectRaw('AVG(duration_ms) as avg_duration')
                 ->selectRaw("SUM(CASE WHEN is_slow THEN 1 ELSE 0 END) as slow_count")

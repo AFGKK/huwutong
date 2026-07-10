@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\ApmRequest;
-use Illuminate\Support\Facades\DB;
 
 class TracingService
 {
@@ -97,11 +96,7 @@ class TracingService
             ->pluck('cnt', 'method')
             ->toArray();
 
-        // 时段分布（按小时）- 兼容 SQLite 和 MySQL
-        $driver = DB::connection()->getDriverName();
-        $hourExpr = $driver === 'sqlite'
-            ? "strftime('%H', created_at)"
-            : "DATE_FORMAT(created_at, '%H')";
+        $hourExpr = db_hour('created_at');
         $byHour = (clone $query)
             ->selectRaw("{$hourExpr} as hour, COUNT(*) as cnt")
             ->groupBy('hour')

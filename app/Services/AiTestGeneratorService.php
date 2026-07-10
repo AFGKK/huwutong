@@ -214,10 +214,11 @@ class AiTestGeneratorService
     protected function buildApiTestPrompt(array $routeInfo, ?string $modelClass, ?string $requestClass, array $options): string
     {
         [$method, $uri] = $routeInfo;
+        $controllerName = $routeInfo['controller'] ?? 'unknown';
 
         $prompt = "为以下 Laravel API 端点生成 PHPUnit Feature Test：\n\n"
             . "HTTP {$method} {$uri}\n"
-            . "Controller: {$routeInfo['controller'] ?? 'unknown'}\n"
+            . "Controller: {$controllerName}\n"
             . "Model: {$modelClass}\n";
 
         if ($requestClass) {

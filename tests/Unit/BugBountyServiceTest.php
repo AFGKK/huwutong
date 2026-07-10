@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use App\Models\BugBountyHallOfFame;
 use App\Models\BugBountyReport;
 use App\Services\BugBountyService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class BugBountyServiceTest extends TestCase

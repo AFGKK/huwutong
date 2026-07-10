@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $card_id
  * @property array|null $payload
  * @property \Carbon\Carbon $created_at
+ * @mixin IdeHelperTeamsNotificationLog
  */
 class TeamsNotificationLog extends Model
 {

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
+/**
+ * @mixin IdeHelperAuditLogTag
+ */
 class AuditLogTag extends Model
 {
     protected $table = 'audit_log_tags';

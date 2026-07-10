@@ -14,6 +14,7 @@
     <style>
         html { scroll-behavior: smooth; }
         .plan-card { transition: all 0.3s ease; min-width: 280px; }
+        @media (max-width: 380px) { .plan-card { min-width: 260px; } }
         .plan-card.popular { border-color: #3b82f6; transform: scale(1.03); }
         .plan-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15); }
         .plan-card.popular:hover { transform: scale(1.03) translateY(-6px); }
@@ -26,8 +27,11 @@
         #plans-container::-webkit-scrollbar { display: none; }
         #plans-container > .plan-card { scroll-snap-align: start; }
         @media (max-width: 767px) {
-            #plans-container { display: flex !important; flex-wrap: nowrap !important; gap: 1rem; overflow-x: auto; padding: 0.5rem 1rem 1rem; margin: 0 -1rem; }
-            #plans-container > .plan-card { flex: 0 0 300px; }
+            #plans-container { display: flex !important; flex-wrap: nowrap !important; gap: 1rem; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; padding: 0.5rem 1rem 1rem; margin: 0 -1rem; }
+            #plans-container > .plan-card { flex: 0 0 280px; scroll-snap-align: start; }
+        }
+        @media (max-width: 380px) {
+            #plans-container > .plan-card { flex: 0 0 260px; }
         }
         /* 粘性定价栏 */
         #sticky-pricing-bar { transition: transform 0.3s ease, opacity 0.3s ease; z-index: 40; }

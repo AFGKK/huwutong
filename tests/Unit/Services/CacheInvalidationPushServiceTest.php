@@ -7,7 +7,7 @@ use App\Models\CacheInvalidationWebhook;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\CacheInvalidationPushService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class CacheInvalidationPushServiceTest extends TestCase

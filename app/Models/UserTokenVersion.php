@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Model;
  *
  * Token 创建时会记录当时的版本号；
  * 每次请求时比较版本号，不匹配则拒绝。
+ *
+ * @mixin IdeHelperUserTokenVersion
  */
 class UserTokenVersion extends Model
 {

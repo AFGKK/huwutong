@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" title="🪙 打赏" width="420px" :close-on-click-modal="false" top="20vh">
+  <el-dialog v-model="visible" title="打赏" width="420px" :close-on-click-modal="false" top="20vh">
     <div v-if="loading" style="text-align:center;padding:20px">
       <el-icon class="is-loading" :size="24"><Loading /></el-icon>
       <p style="color:#999;font-size:13px;margin-top:8px">加载中...</p>
@@ -16,7 +16,7 @@
         <div v-for="amt in presetAmounts" :key="amt" class="tip-amount-btn"
           :class="{ selected: selectedAmount === amt }"
           @click="selectedAmount = amt">
-          🪙 {{ amt }}
+          <PointsIcon :size="16" /> {{ amt }}
         </div>
         <div class="tip-amount-btn tip-custom-btn"
           :class="{ selected: !presetAmounts.includes(selectedAmount) && selectedAmount > 0 }"
@@ -43,7 +43,7 @@
       <div class="tip-footer">
         <el-button @click="visible = false">取消</el-button>
         <el-button type="warning" :loading="submitting" :disabled="!selectedAmount || selectedAmount < 1 || balance < 1" @click="submitTip">
-          🪙 打赏 {{ selectedAmount }} 积分
+          <PointsIcon :size="16" /> 打赏 {{ selectedAmount }} 积分
         </el-button>
       </div>
     </div>

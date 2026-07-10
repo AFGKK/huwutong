@@ -6,7 +6,7 @@ use App\Models\MarketplaceApp;
 use App\Models\MarketplaceDeveloper;
 use App\Models\User;
 use App\Services\OpenPlatformService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class OpenPlatformServiceTest extends TestCase

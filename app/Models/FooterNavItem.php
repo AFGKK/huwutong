@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperFooterNavItem
+ */
 class FooterNavItem extends Model
 {
     protected $fillable = [

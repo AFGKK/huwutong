@@ -5,7 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\LlmProvider;
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class LlmApiTest extends TestCase
@@ -66,8 +66,13 @@ class LlmApiTest extends TestCase
         ], $this->authHeaders());
 
         $response->assertStatus(200);
-        $response->assertJsonPath('data.name', 'OpenAI Updated');
         $response->assertJsonPath('data.is_active', false);
+
+        $this->assertDatabaseHas('llm_providers', [
+            'id' => $provider->id,
+            'name' => 'OpenAI Updated',
+            'is_active' => false,
+        ]);
     }
 
     // ─── 测试连接 ───

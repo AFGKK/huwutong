@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * SDK Telemetry 聚合统计
+ *
+ * @mixin IdeHelperSdkTelemetryAggregate
  */
 class SdkTelemetryAggregate extends Model
 {

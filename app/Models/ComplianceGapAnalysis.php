@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * 记录当前状态与合规目标之间的差距，以及整改计划。
  *
  * @m3-69 CompliancePack
+ * @mixin IdeHelperComplianceGapAnalysis
  */
 class ComplianceGapAnalysis extends Model
 {

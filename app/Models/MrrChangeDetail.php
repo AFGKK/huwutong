@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperMrrChangeDetail
+ */
 class MrrChangeDetail extends Model
 {
     protected $table = 'mrr_change_details';

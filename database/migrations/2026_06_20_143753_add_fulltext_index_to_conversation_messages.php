@@ -8,7 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (! Schema::hasTable('conversation_messages') || Schema::getConnection()->getDriverName() === 'sqlite') {
+        $driver = Schema::getConnection()->getDriverName();
+        if (! Schema::hasTable('conversation_messages') || in_array($driver, ['sqlite'])) {
+            return;
+        }
+
+        if ($driver === 'pgsql') {
+            DB::statement("CREATE INDEX IF NOT EXISTS messages_content_fulltext ON conversation_messages USING GIN(to_tsvector('simple', content))");
             return;
         }
 
@@ -20,7 +26,13 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (! Schema::hasTable('conversation_messages') || Schema::getConnection()->getDriverName() === 'sqlite') {
+        $driver = Schema::getConnection()->getDriverName();
+        if (! Schema::hasTable('conversation_messages') || in_array($driver, ['sqlite'])) {
+            return;
+        }
+
+        if ($driver === 'pgsql') {
+            DB::statement('DROP INDEX IF EXISTS messages_content_fulltext');
             return;
         }
 

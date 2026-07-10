@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperMlTrainingJob
+ */
 class MlTrainingJob extends Model
 {
     protected $table = 'ml_training_jobs';

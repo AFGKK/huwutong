@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperSlaProbeUptime
+ */
 class SlaProbeUptime extends Model
 {
     protected $fillable = [

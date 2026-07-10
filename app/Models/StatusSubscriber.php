@@ -7,6 +7,8 @@ use Illuminate\Support\Str;
 
 /**
  * 状态订阅者
+ *
+ * @mixin IdeHelperStatusSubscriber
  */
 class StatusSubscriber extends Model
 {

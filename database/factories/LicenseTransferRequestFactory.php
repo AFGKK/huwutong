@@ -36,7 +36,7 @@ class LicenseTransferRequestFactory extends Factory
     {
         return $this->state(fn(array $attrs) => [
             'type' => 'device_transfer',
-            'target_device_fingerprint' => 'v2:' . fake()->sha256(),
+            'target_device_fingerprint' => 'v2:' . substr(fake()->sha256(), 0, 61),
             'target_device_name' => fake()->word() . '-PC',
         ]);
     }

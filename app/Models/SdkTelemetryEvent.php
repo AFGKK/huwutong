@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * SDK Telemetry 事件日志（脱敏后使用统计）
+ *
+ * @mixin IdeHelperSdkTelemetryEvent
  */
 class SdkTelemetryEvent extends Model
 {

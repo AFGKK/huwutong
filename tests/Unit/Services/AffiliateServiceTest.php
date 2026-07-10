@@ -9,7 +9,7 @@ use App\Models\AffiliateTree;
 use App\Models\Agent;
 use App\Models\User;
 use App\Services\AffiliateService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class AffiliateServiceTest extends TestCase

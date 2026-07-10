@@ -13,6 +13,7 @@ class LogLicenseStatusChanged
         Log::create([
             'tenant_id' => $event->license->tenant_id,
             'user_id' => auth()->id(),
+            'license_id' => $event->license->id,
             'type' => 'audit',
             'action' => 'license.status_changed',
             'description' => sprintf(

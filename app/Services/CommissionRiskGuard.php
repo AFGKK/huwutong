@@ -65,7 +65,9 @@ class CommissionRiskGuard
         EarningsAccount $account,
         CommissionSettlement $settlement
     ): void {
-        DB::transaction(function () use ($account, $settlement) {
+        $notification = null;
+
+        $callback = function () use ($account, $settlement, &$notification) {
             $amount = $settlement->commission_amount;
 
             // 先抵扣负余额（如果有）
@@ -85,22 +87,15 @@ class CommissionRiskGuard
                     'account_id' => $account->id,
                 ]);
 
-                // ⭐ M2-128 入账全额抵扣通知
-                try {
-                    $agent = $settlement->agent;
-                    if ($agent) {
-                        $this->getNotifier()->notifyCommissionCredited(
-                            agent: $agent,
-                            settlement: $settlement,
-                            actualAmount: 0,
-                            frozenUntil: now()->toDateString(),
-                            deductedNegative: true,
-                            deductedAmount: $amount,
-                        );
-                    }
-                } catch (\Throwable $e) {
-                    Log::warning('佣金抵扣负余额通知失败', ['error' => $e->getMessage()]);
-                }
+                $notification = [
+                    'agent' => $settlement->agent,
+                    'settlement' => $settlement,
+                    'actualAmount' => 0,
+                    'frozenUntil' => now()->toDateString(),
+                    'deductedNegative' => true,
+                    'deductedAmount' => $amount,
+                ];
+
                 return;
             }
 
@@ -120,7 +115,7 @@ class CommissionRiskGuard
             // 创建佣金明细记录
             Commission::create([
                 'earnings_account_id' => $account->id,
-                'order_id' => $settlement->invoice_id,
+                'order_id' => null,
                 'amount' => $actualAmount,
                 'rate' => $settlement->commission_rate,
                 'status' => 'frozen',
@@ -137,26 +132,42 @@ class CommissionRiskGuard
                 'deducted_amount' => $amount - $actualAmount,
             ]);
 
-            // ⭐ M2-128 发送佣金入账通知
-            try {
-                $agent = $settlement->agent;
-                if ($agent) {
+            $notification = [
+                'agent' => $settlement->agent,
+                'settlement' => $settlement,
+                'actualAmount' => $actualAmount,
+                'frozenUntil' => $frozenUntil->toDateString(),
+                'deductedNegative' => $amount - $actualAmount > 0,
+                'deductedAmount' => $amount - $actualAmount,
+            ];
+        };
+
+        if (DB::transactionLevel() > 0) {
+            $callback();
+        } else {
+            DB::transaction($callback);
+        }
+
+        if ($notification && $notification['agent']) {
+            $payload = $notification;
+            DB::afterCommit(function () use ($payload) {
+                try {
                     $this->getNotifier()->notifyCommissionCredited(
-                        agent: $agent,
-                        settlement: $settlement,
-                        actualAmount: $actualAmount,
-                        frozenUntil: $frozenUntil->toDateString(),
-                        deductedNegative: $amount - $actualAmount > 0,
-                        deductedAmount: $amount - $actualAmount,
+                        agent: $payload['agent'],
+                        settlement: $payload['settlement'],
+                        actualAmount: $payload['actualAmount'],
+                        frozenUntil: $payload['frozenUntil'],
+                        deductedNegative: $payload['deductedNegative'],
+                        deductedAmount: $payload['deductedAmount'],
                     );
+                } catch (\Throwable $e) {
+                    Log::warning('佣金入账通知发送失败', [
+                        'settlement_id' => $payload['settlement']->id,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
-            } catch (\Throwable $e) {
-                Log::warning('佣金入账通知发送失败', [
-                    'settlement_id' => $settlement->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        });
+            });
+        }
     }
 
     /**

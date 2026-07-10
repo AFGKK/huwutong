@@ -12,7 +12,7 @@ use App\Models\TaxRate;
 use App\Models\Tenant;
 use App\Services\TaxComplianceService;
 use App\Services\TaxCalculatorService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 
 class TaxComplianceServiceTest extends TestCase
 {
@@ -114,7 +114,7 @@ class TaxComplianceServiceTest extends TestCase
     public function test_generate_report()
     {
         // 创建一张发票
-        Invoice::create([
+        $invoice = Invoice::create([
             'tenant_id' => $this->tenant->id,
             'customer_id' => $this->customer->id,
             'invoice_no' => 'INV-TEST-001',
@@ -126,6 +126,7 @@ class TaxComplianceServiceTest extends TestCase
             'billing_country' => 'CN',
             'status' => 'paid',
         ]);
+        $invoice->forceFill(['created_at' => '2026-06-15 10:00:00', 'updated_at' => '2026-06-15 10:00:00'])->saveQuietly();
 
         $report = $this->service->generateReport($this->tenant->id, 'CN', '2026-06', 'vat_return');
 
@@ -151,7 +152,7 @@ class TaxComplianceServiceTest extends TestCase
         ]);
 
         // With invoice
-        Invoice::create([
+        $invoice = Invoice::create([
             'tenant_id' => $this->tenant->id,
             'customer_id' => $this->customer->id,
             'invoice_no' => 'INV-TEST-002',
@@ -161,6 +162,7 @@ class TaxComplianceServiceTest extends TestCase
             'billing_country' => 'CN',
             'status' => 'paid',
         ]);
+        $invoice->forceFill(['created_at' => '2026-06-20 10:00:00', 'updated_at' => '2026-06-20 10:00:00'])->saveQuietly();
 
         $report = $this->service->generateReport($this->tenant->id, 'CN', '2026-06', 'vat_return');
         $this->assertEquals(200, (float) $report->total_sales);

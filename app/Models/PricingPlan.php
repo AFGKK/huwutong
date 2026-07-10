@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * 定价方案模型
  *
  * 管理产品定价策略，支持多周期定价、功能列表、使用限制。
+ *
+ * @mixin IdeHelperPricingPlan
  */
 class PricingPlan extends Model
 {

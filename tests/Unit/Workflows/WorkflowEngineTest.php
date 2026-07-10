@@ -7,7 +7,7 @@ use App\Models\Subscription;
 use App\Models\WorkflowDefinition;
 use App\Models\WorkflowInstance;
 use App\Workflows\WorkflowEngine;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class WorkflowEngineTest extends TestCase

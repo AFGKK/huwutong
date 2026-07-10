@@ -7,25 +7,29 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // 迁移 OA 文章点赞 → likes 表
-        DB::statement('INSERT IGNORE INTO likes (user_id, likeable_type, likeable_id, created_at, updated_at)
-            SELECT user_id, "App\\\\Models\\\\OaArticle", article_id, created_at, updated_at
-            FROM oa_article_likes');
+        $driver = DB::connection()->getDriverName();
+        $insertMode = $driver === 'pgsql' ? 'INSERT' : 'INSERT IGNORE';
+        $conflict = $driver === 'pgsql' ? ' ON CONFLICT DO NOTHING' : '';
 
-        // 迁移广场点赞 → likes 表 (ForumLike 已是多态，直接映射)
-        DB::statement('INSERT IGNORE INTO likes (user_id, likeable_type, likeable_id, created_at, updated_at)
+        // 迁移 OA 文章点赞 → likes 表
+        DB::statement("{$insertMode} INTO likes (user_id, likeable_type, likeable_id, created_at, updated_at)
+            SELECT user_id, 'App\\\\Models\\\\OaArticle', article_id, created_at, updated_at
+            FROM oa_article_likes{$conflict}");
+
+        // 迁移广场点赞 → likes 表
+        DB::statement("{$insertMode} INTO likes (user_id, likeable_type, likeable_id, created_at, updated_at)
             SELECT user_id, likeable_type, likeable_id, created_at, updated_at
-            FROM forum_likes');
+            FROM forum_likes{$conflict}");
 
         // 迁移 OA 收藏 → favorites 表
-        DB::statement('INSERT IGNORE INTO favorites (user_id, favorable_type, favorable_id, created_at, updated_at)
-            SELECT user_id, "App\\\\Models\\\\OaArticle", article_id, created_at, updated_at
-            FROM oa_favorites');
+        DB::statement("{$insertMode} INTO favorites (user_id, favorable_type, favorable_id, created_at, updated_at)
+            SELECT user_id, 'App\\\\Models\\\\OaArticle', article_id, created_at, updated_at
+            FROM oa_favorites{$conflict}");
 
         // 迁移广场收藏 → favorites 表
-        DB::statement('INSERT IGNORE INTO favorites (user_id, favorable_type, favorable_id, created_at, updated_at)
-            SELECT f.user_id, "App\\\\Models\\\\ForumPost", f.post_id, f.created_at, f.updated_at
-            FROM forum_favorites f');
+        DB::statement("{$insertMode} INTO favorites (user_id, favorable_type, favorable_id, created_at, updated_at)
+            SELECT f.user_id, 'App\\\\Models\\\\ForumPost', f.post_id, f.created_at, f.updated_at
+            FROM forum_favorites f{$conflict}");
     }
 
     public function down(): void

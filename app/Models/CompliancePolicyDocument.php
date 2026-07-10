@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
  * 用户可基于模板填写组织特定内容并生成正式文档。
  *
  * @m3-69 CompliancePack
+ * @mixin IdeHelperCompliancePolicyDocument
  */
 class CompliancePolicyDocument extends Model
 {

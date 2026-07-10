@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperLlmHealthCheck
+ */
 class LlmHealthCheck extends Model
 {
     public $timestamps = false;

@@ -1,8 +1,8 @@
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '../../api/affiliate.js'
-import { uploadFile, getUploadedFiles } from '../../api/cloudUpload.js'
+import { uploadFile, getUploadedFiles, deleteUploadedFile } from '../../api/cloudUpload.js'
 
 const loading = ref(false)
 const campaigns = ref([])
@@ -18,9 +18,11 @@ const campaignDialog = ref(false)
 const editingCampaign = ref(false)
 const campaignForm = reactive({
     name: '', slug: '', description: '', status: 'draft', type: 'referral',
+    billing_mode: 'cpa',
     starts_at: '', ends_at: '',
     reward_first: 0, reward_renewal: 0, reward_upgrade: 0,
     budget_total: null, max_participants: null,
+    cost_per_click: null, cost_per_impression: null,
     target_audience: [], terms: [],
 })
 const savingCampaign = ref(false)
@@ -31,6 +33,7 @@ const creativeCampaignId = ref(null)
 const creativesData = ref([])
 const creativeForm = reactive({
     type: 'link', name: '', url: '', content: '', image_url: '',
+    commission_amount: null, commission_rate: null,
     utm_params: { utm_source: 'affiliate', utm_medium: '', utm_campaign: '' },
 })
 const savingCreative = ref(false)
@@ -67,6 +70,16 @@ const depositForm = reactive({ amount: null, payment_method: 'mock_instant' })
 const depositing = ref(false)
 const depositResult = ref(null)
 
+// 推广审核
+const pendingCreatives = ref([])
+const pendingCount = ref(0)
+const loadingPending = ref(false)
+const reviewingId = ref(null)
+const reviewingAgentId = ref(null)
+const pendingAgentsList = ref([])
+const loadingPendingAgents = ref(false)
+const reviewStatus = ref('pending')
+
 const paymentMethods = [
     { value: 'mock_instant', label: '模拟支付（即时到账）', icon: '⚡' },
     { value: 'wechat', label: '微信支付', icon: '💚' },
@@ -87,8 +100,17 @@ const typeOptions = [
     { value: 'reward', label: '奖励计划' },
     { value: 'rebate', label: '返现活动' },
 ]
+const billingModeOptions = [
+    { value: 'cpa', label: 'CPA - 按转化付费' },
+    { value: 'cpc', label: 'CPC - 按点击付费' },
+    { value: 'cpm', label: 'CPM - 按展示付费' },
+]
+const billingModeLabels = { cpa: 'CPA 按转化', cpc: 'CPC 按点击', cpm: 'CPM 按展示' }
 const creativeTypeOptions = [
     { value: 'banner', label: '横幅' },
+    { value: 'image', label: '图片' },
+    { value: 'video', label: '视频' },
+    { value: 'text', label: '文案' },
     { value: 'landing_page', label: '落地页' },
     { value: 'link', label: '推广链接' },
     { value: 'coupon', label: '优惠券' },
@@ -97,7 +119,7 @@ const creativeTypeOptions = [
 const statusColors = { draft: 'info', active: 'success', paused: 'warning', completed: '' }
 const statusLabels = { draft: '草稿', active: '进行中', paused: '已暂停', completed: '已结束' }
 const typeLabels = { referral: '推荐返佣', commission: '佣金加成', reward: '奖励计划', rebate: '返现活动' }
-const creativeTypeLabels = { banner: '横幅', landing_page: '落地页', link: '推广链接', coupon: '优惠券', qr_code: '二维码' }
+const creativeTypeLabels = { banner: '横幅', image: '图片', video: '视频', text: '文案', landing_page: '落地页', link: '推广链接', coupon: '优惠券', qr_code: '二维码' }
 
 function previewImage(url) {
     if (!url) return
@@ -168,9 +190,12 @@ function openCreateCampaign() {
     editingCampaign.value = false
     Object.assign(campaignForm, {
         name: '', slug: '', description: '', status: 'draft', type: 'referral',
+        billing_mode: 'cpa',
         starts_at: '', ends_at: '',
         reward_first: 0, reward_renewal: 0, reward_upgrade: 0,
         budget_total: null, max_participants: null,
+        cost_per_click: null, cost_per_impression: null,
+        platform_share_rate: 0,
         target_audience: [], terms: [],
     })
     campaignDialog.value = true
@@ -181,10 +206,13 @@ function openEditCampaign(c) {
     Object.assign(campaignForm, {
         name: c.name, slug: c.slug || '', description: c.description || '',
         status: c.status, type: c.type,
+        billing_mode: c.billing_mode || 'cpa',
         starts_at: c.starts_at || '', ends_at: c.ends_at || '',
         reward_first: c.reward_first || 0, reward_renewal: c.reward_renewal || 0,
         reward_upgrade: c.reward_upgrade || 0,
         budget_total: c.budget_total, max_participants: c.max_participants,
+        cost_per_click: c.cost_per_click, cost_per_impression: c.cost_per_impression,
+        platform_share_rate: c.platform_share_rate ?? 0,
         target_audience: c.target_audience || [],
         terms: c.terms || [],
     })
@@ -232,7 +260,7 @@ function openCreateCreative(campaign) {
     editingCreative.value = false
     Object.assign(creativeForm, {
         type: 'link', name: '', url: '', content: '', image_url: '',
-        is_active: true,
+        is_active: true, commission_amount: null, commission_rate: null,
         utm_params: { utm_source: 'affiliate', utm_medium: '', utm_campaign: campaign.slug || campaign.name },
     })
     creativeDialog.value = true
@@ -287,13 +315,23 @@ function pickImage(file) {
     creativeForm.image_url = url
     imagePickerDialog.value = false
 }
-
+async function deletePickerImage(file) {
+    try {
+        await ElMessageBox.confirm('确定删除图片「' + (file.original_name || file.filename || '') + '」？删除后不可恢复。', '确认删除', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })
+        await deleteUploadedFile(file.id)
+        ElMessage.success('图片已删除')
+        uploadedFiles.value = uploadedFiles.value.filter(f => f.id !== file.id)
+    } catch (e) {
+        if (e !== 'cancel') ElMessage.error('删除失败')
+    }
+}
 function openEditCreative(c) {
     creativeCampaignId.value = c.campaign_id
     editingCreative.value = true
     Object.assign(creativeForm, {
         type: c.type, name: c.name, url: c.url || '', content: c.content || '',
         image_url: c.image_url || '', is_active: c.is_active ?? true,
+        commission_amount: c.commission_amount ?? null, commission_rate: c.commission_rate ?? null,
         utm_params: c.utm_params || { utm_source: 'affiliate', utm_medium: '', utm_campaign: '' },
     })
     creativeForm._id = c.id
@@ -330,6 +368,105 @@ async function deleteCreative(c) {
         loadCreatives(creativeCampaignId.value)
     } catch (e) {
         if (e !== 'cancel') ElMessage.error('删除失败')
+    }
+}
+
+async function reviewCreative(c, action) {
+    const notes = action === 'rejected'
+        ? await ElMessageBox.prompt('请输入驳回原因', '驳回素材', { inputType: 'textarea' }).then(r => r.value).catch(() => null)
+        : ''
+    if (action === 'rejected' && notes === null) return
+    try {
+        await api.reviewCreative(c.campaign_id, c.id, action, notes)
+        ElMessage.success(action === 'approved' ? '素材已审核通过' : '素材已驳回')
+        loadCreatives(creativeCampaignId.value)
+    } catch (e) {
+        ElMessage.error('操作失败')
+    }
+}
+
+async function loadPending() {
+    loadingPending.value = true
+    try {
+        const res = await api.pendingCreatives({ status: reviewStatus.value })
+        const d = res.data?.data || res.data
+        pendingCreatives.value = d?.data || d || []
+        pendingCount.value = reviewStatus.value === 'pending' ? pendingCreatives.value.length : 0
+    } catch (e) {
+        pendingCreatives.value = []
+        if (reviewStatus.value === 'pending') pendingCount.value = 0
+    } finally {
+        loadingPending.value = false
+    }
+}
+
+async function loadPendingAgents() {
+    loadingPendingAgents.value = true
+    try {
+        const res = await api.pendingAgents()
+        const d = res.data?.data || res.data
+        pendingAgentsList.value = d?.data || d || []
+    } catch (e) {
+        pendingAgentsList.value = []
+    } finally {
+        loadingPendingAgents.value = false
+    }
+}
+
+async function reviewAgent(agent, action) {
+    let notes = ''
+    if (action === 'rejected') {
+        try {
+            notes = await ElMessageBox.prompt('请输入驳回原因', '驳回推广员申请', {
+                inputType: 'textarea', confirmButtonText: '确认驳回', cancelButtonText: '取消'
+            }).then(r => r.value)
+        } catch { return }
+    }
+    reviewingAgentId.value = agent.id
+    try {
+        await api.reviewAgent(agent.id, action, notes)
+        ElMessage.success(action === 'approved' ? '✅ 推广员已通过' : '❌ 申请已驳回')
+        pendingAgentsList.value = pendingAgentsList.value.filter(x => x.id !== agent.id)
+    } catch (e) {
+        ElMessage.error('操作失败')
+    } finally {
+        reviewingAgentId.value = null
+    }
+}
+
+async function resubmitCreative(c) {
+    try {
+        await ElMessageBox.confirm(`确定将「${c.name}」重新提交审核？`, '重新提交')
+        reviewingId.value = c.id
+        await api.resubmitCreative(c.id)
+        ElMessage.success('✅ 已重新提交审核')
+        pendingCreatives.value = pendingCreatives.value.filter(x => x.id !== c.id)
+    } catch (e) {
+        if (e !== 'cancel') ElMessage.error('操作失败')
+    } finally {
+        reviewingId.value = null
+    }
+}
+
+async function quickReview(c, action) {
+    let notes = ''
+    if (action === 'rejected') {
+        try {
+            notes = await ElMessageBox.prompt('请输入驳回原因', '驳回素材', {
+                inputType: 'textarea', confirmButtonText: '确认驳回', cancelButtonText: '取消'
+            }).then(r => r.value)
+        } catch { return }
+    }
+    reviewingId.value = c.id
+    try {
+        await api.reviewCreative(c.campaign_id, c.id, action, notes)
+        ElMessage.success(action === 'approved' ? '✅ 已审核通过' : '❌ 已驳回')
+        pendingCreatives.value = pendingCreatives.value.filter(x => x.id !== c.id)
+        pendingCount.value = pendingCreatives.value.length
+    } catch (e) {
+        ElMessage.error('操作失败')
+    } finally {
+        reviewingId.value = null
     }
 }
 
@@ -422,6 +559,15 @@ onMounted(() => {
     loadDashboard()
     loadCampaigns()
     loadClickLogs()
+    loadPending()
+    loadPendingAgents()
+})
+
+watch(activeTab, (tab) => {
+    if (tab === 'review') {
+        loadPending()
+        loadPendingAgents()
+    }
 })
 </script>
 
@@ -498,6 +644,11 @@ onMounted(() => {
                         <el-table-column label="类型" width="100">
                             <template #default="{ row }">{{ typeLabels[row.type] || row.type }}</template>
                         </el-table-column>
+                        <el-table-column label="计费" width="100">
+                            <template #default="{ row }">
+                                <el-tag size="small" type="info">{{ billingModeLabels[row.billing_mode] || row.billing_mode?.toUpperCase() || 'CPA' }}</el-tag>
+                            </template>
+                        </el-table-column>
                         <el-table-column label="状态" width="80">
                             <template #default="{ row }">
                                 <el-tag :type="statusColors[row.status] || 'info'" size="small">{{ statusLabels[row.status] || row.status }}</el-tag>
@@ -552,6 +703,76 @@ onMounted(() => {
                         <el-pagination v-model:current-page="pagination.current_page"
                             :page-size="pagination.per_page" :total="pagination.total"
                             layout="prev, pager, next, total" @current-change="loadCampaigns" />
+                    </div>
+                </el-tab-pane>
+
+                <!-- ── 推广审核 ── -->
+                <el-tab-pane name="review">
+                    <template #label>
+                        <span>📋 推广审核 <el-tag v-if="pendingCount > 0" size="small" type="danger" style="margin-left:4px">{{ pendingCount }}</el-tag></span>
+                    </template>
+                    <div class="flex gap-3 mb-4">
+                        <el-radio-group v-model="reviewStatus" @change="loadPending">
+                            <el-radio-button value="pending">⏳ 待审核</el-radio-button>
+                            <el-radio-button value="rejected">❌ 已驳回</el-radio-button>
+                        </el-radio-group>
+                    </div>
+                    <div v-loading="loadingPending">
+                        <el-empty v-if="!pendingCreatives.length && !loadingPending" :description="reviewStatus === 'pending' ? '暂无待审核素材' : '暂无已驳回素材'" :image-size="60" />
+                        <el-table v-else :data="pendingCreatives" stripe size="small">
+                            <el-table-column label="预览" width="60">
+                                <template #default="{ row }">
+                                    <img v-if="row.image_url" :src="row.image_url" class="creative-preview" />
+                                    <span v-else class="text-xs text-gray-400">{{ row.type }}</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="name" label="素材名称" min-width="120" />
+                            <el-table-column label="所属活动" min-width="150">
+                                <template #default="{ row }">{{ row.campaign?.name || '-' }}</template>
+                            </el-table-column>
+                            <el-table-column label="提交人" width="120">
+                                <template #default="{ row }">{{ row.creator?.name || row.creator?.email || '未知' }}</template>
+                            </el-table-column>
+                            <el-table-column label="提交时间" width="160">
+                                <template #default="{ row }">{{ fmtDate(row.created_at) }}</template>
+                            </el-table-column>
+                            <el-table-column v-if="reviewStatus === 'rejected'" label="驳回原因" min-width="150">
+                                <template #default="{ row }"><span class="text-xs text-red-500">{{ row.review_notes || '-' }}</span></template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="220" align="center">
+                                <template #default="{ row }">
+                                    <template v-if="reviewStatus === 'pending'">
+                                        <el-button size="small" type="success" :loading="reviewingId === row.id" @click="quickReview(row, 'approved')">通过</el-button>
+                                        <el-button size="small" type="danger" :loading="reviewingId === row.id" @click="quickReview(row, 'rejected')">驳回</el-button>
+                                    </template>
+                                    <template v-else>
+                                        <el-button size="small" type="primary" :loading="reviewingId === row.id" @click="resubmitCreative(row)">🔄 重新提交审核</el-button>
+                                    </template>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+
+                    <!-- 推广员申请审核 -->
+                    <el-divider style="margin:12px 0" />
+                    <div class="font-semibold mb-3" style="font-size:13px;color:#303133">👤 推广员申请审核</div>
+                    <div v-loading="loadingPendingAgents">
+                        <el-empty v-if="!pendingAgentsList.length && !loadingPendingAgents" description="暂无待审核推广员申请" :image-size="50" />
+                        <el-table v-else :data="pendingAgentsList" stripe size="small">
+                            <el-table-column prop="agent_code" label="推广码" width="120" />
+                            <el-table-column label="申请人" width="150">
+                                <template #default="{ row }">{{ row.user?.name || row.user?.email || '-' }}</template>
+                            </el-table-column>
+                            <el-table-column label="申请时间" width="160">
+                                <template #default="{ row }">{{ fmtDate(row.created_at) }}</template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="200" align="center">
+                                <template #default="{ row }">
+                                    <el-button size="small" type="success" :loading="reviewingAgentId === row.id" @click="reviewAgent(row, 'approved')">通过</el-button>
+                                    <el-button size="small" type="danger" :loading="reviewingAgentId === row.id" @click="reviewAgent(row, 'rejected')">驳回</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
                     </div>
                 </el-tab-pane>
 
@@ -611,6 +832,33 @@ onMounted(() => {
 
                 <!-- ── 点击日志 ── -->
                 <el-tab-pane label="点击日志" name="clicks">
+                    <!-- 统计卡片 -->
+                    <el-row :gutter="16" class="mb-4">
+                        <el-col :span="6">
+                            <el-card shadow="never" class="stat-card">
+                                <div class="stat-label">总点击/展示</div>
+                                <div class="stat-value">{{ clickPagination.total }}</div>
+                            </el-card>
+                        </el-col>
+                        <el-col :span="6">
+                            <el-card shadow="never" class="stat-card">
+                                <div class="stat-label">转化次数</div>
+                                <div class="stat-value text-success">{{ clickLogs.filter(r => r.converted).length }}</div>
+                            </el-card>
+                        </el-col>
+                        <el-col :span="6">
+                            <el-card shadow="never" class="stat-card">
+                                <div class="stat-label">累计佣金</div>
+                                <div class="stat-value text-primary">{{ formatMoney(clickLogs.reduce((s, r) => s + (r.commission_amount || 0), 0)) }}</div>
+                            </el-card>
+                        </el-col>
+                        <el-col :span="6">
+                            <el-card shadow="never" class="stat-card">
+                                <div class="stat-label">预计消耗预算</div>
+                                <div class="stat-value text-warning">{{ formatMoney(clickLogs.reduce((s, r) => s + (r.campaign?.billing_mode === 'cpc' ? (r.campaign?.cost_per_click || 0) : (r.commission_amount || 0)), 0)) }}</div>
+                            </el-card>
+                        </el-col>
+                    </el-row>
                     <div class="flex gap-3 mb-4 flex-wrap">
                         <el-input v-model="clickFilters.campaign_id" placeholder="活动ID" style="width:120px" />
                         <el-input v-model="clickFilters.agent_id" placeholder="代理商ID" style="width:120px" />
@@ -626,14 +874,26 @@ onMounted(() => {
                         <el-table-column label="代理商" width="100">
                             <template #default="{ row }">{{ row.agent?.agent_code || row.agent_id }}</template>
                         </el-table-column>
-                        <el-table-column label="活动" width="100">
+                        <el-table-column label="活动" width="120">
                             <template #default="{ row }">{{ row.campaign?.name || row.campaign_id }}</template>
+                        </el-table-column>
+                        <el-table-column label="计费模式" width="100">
+                            <template #default="{ row }">
+                                <el-tag size="small" type="info">{{ billingModeLabels[row.campaign?.billing_mode] || (row.campaign?.billing_mode?.toUpperCase()) || 'CPA' }}</el-tag>
+                            </template>
                         </el-table-column>
                         <el-table-column prop="referral_code" label="推广码" width="110" />
                         <el-table-column prop="ip_address" label="IP" width="120" />
                         <el-table-column label="转化" width="70" align="center">
                             <template #default="{ row }">
                                 <el-tag :type="row.converted ? 'success' : 'info'" size="small">{{ row.converted ? '是' : '否' }}</el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="费用" width="100" align="right">
+                            <template #default="{ row }">
+                                <span v-if="row.campaign?.billing_mode === 'cpc'">{{ formatMoney(row.campaign?.cost_per_click || 0) }}/点击</span>
+                                <span v-else-if="row.campaign?.billing_mode === 'cpm'">{{ formatMoney(row.campaign?.cost_per_impression || 0) }}/千次</span>
+                                <span v-else>{{ formatMoney(row.commission_amount) }}</span>
                             </template>
                         </el-table-column>
                         <el-table-column prop="commission_amount" label="佣金" width="100" align="right">
@@ -666,6 +926,11 @@ onMounted(() => {
                         </el-select></el-form-item>
                     </el-col>
                     <el-col :span="8">
+                        <el-form-item label="计费模式"><el-select v-model="campaignForm.billing_mode" style="width:100%">
+                            <el-option v-for="o in billingModeOptions" :key="o.value" :label="o.label" :value="o.value" />
+                        </el-select></el-form-item>
+                    </el-col>
+                    <el-col :span="8">
                         <el-form-item label="状态"><el-select v-model="campaignForm.status" style="width:100%">
                             <el-option v-for="o in statusOptions" :key="o.value" :label="o.label" :value="o.value" />
                         </el-select></el-form-item>
@@ -688,6 +953,17 @@ onMounted(() => {
                     <el-col :span="8"><el-form-item label="升级奖励"><el-input-number v-model="campaignForm.reward_upgrade" :min="0" :precision="2" style="width:100%" /></el-form-item></el-col>
                 </el-row>
                 <el-form-item label="最大参与"><el-input-number v-model="campaignForm.max_participants" :min="0" /></el-form-item>
+                <!-- CPC/CPM 价格字段 -->
+                <el-form-item label="每次点击费用(CPC)" v-if="campaignForm.billing_mode === 'cpc'">
+                    <el-input-number v-model="campaignForm.cost_per_click" :min="0" :precision="2" style="width:200px" placeholder="每次点击扣除的费用" />
+                </el-form-item>
+                <el-form-item label="每千次展示费用(CPM)" v-if="campaignForm.billing_mode === 'cpm'">
+                    <el-input-number v-model="campaignForm.cost_per_impression" :min="0" :precision="2" style="width:200px" placeholder="每1000次展示扣除的费用" />
+                </el-form-item>
+                <el-form-item label="平台抽成">
+                    <el-input-number v-model="campaignForm.platform_share_rate" :min="0" :max="100" :precision="2" style="width:160px" />
+                    <span style="font-size:12px;color:#909399;margin-left:6px">% &nbsp; 0% = 全部归推广者</span>
+                </el-form-item>
             </el-form>
             <template #footer>
                 <el-button @click="campaignDialog = false">取消</el-button>
@@ -719,7 +995,21 @@ onMounted(() => {
                     </el-table-column>
                     <el-table-column prop="click_count" label="点击" width="55" align="center" />
                     <el-table-column prop="conversion_count" label="转化" width="55" align="center" />
-                    <el-table-column label="操作" width="90" align="center">
+                    <el-table-column label="佣金" width="90" align="center">
+                        <template #default="{ row }">
+                            <span v-if="row.commission_amount != null" style="color:#e6a23c;font-size:12px">¥{{ row.commission_amount }}</span>
+                            <span v-else-if="row.commission_rate != null" style="color:#e6a23c;font-size:12px">{{ row.commission_rate }}%</span>
+                            <span v-else style="color:#909399;font-size:11px">默认</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="审核" width="70" align="center">
+                        <template #default="{ row }">
+                            <el-tag v-if="row.status === 'pending'" size="small" type="warning">待审核</el-tag>
+                            <el-tag v-else-if="row.status === 'rejected'" size="small" type="danger">已驳回</el-tag>
+                            <el-tag v-else size="small" type="success">已通过</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="100" align="center">
                         <template #default="{ row }">
                             <el-button size="small" text @click="openEditCreative(row)">编辑</el-button>
                             <el-popconfirm title="确定删除?" @confirm="deleteCreative(row)">
@@ -752,6 +1042,16 @@ onMounted(() => {
                 <el-form-item label="启用">
                     <el-switch v-model="creativeForm.is_active" />
                 </el-form-item>
+                <el-divider style="margin:8px 0" />
+                <div class="text-xs text-gray-400 mb-2 font-semibold">💰 佣金设置（留空则使用活动默认佣金）</div>
+                <el-form-item label="佣金金额">
+                    <el-input-number v-model="creativeForm.commission_amount" :min="0" :precision="2" style="width:160px" placeholder="每笔转化佣金" clearable />
+                    <span style="font-size:12px;color:#909399;margin-left:6px">元</span>
+                </el-form-item>
+                <el-form-item label="佣金比例">
+                    <el-input-number v-model="creativeForm.commission_rate" :min="0" :max="100" :precision="2" style="width:160px" placeholder="佣金百分比" clearable />
+                    <span style="font-size:12px;color:#909399;margin-left:6px">%</span>
+                </el-form-item>
             </el-form>
             <template #footer>
                 <el-button @click="creativeDialog = false">取消</el-button>
@@ -765,9 +1065,16 @@ onMounted(() => {
                 <el-empty v-if="!uploadedFiles.length && !pickerLoading" description="暂无已上传图片" />
                 <el-row :gutter="12" v-else>
                     <el-col :span="8" v-for="f in uploadedFiles" :key="f.id" class="mb-3">
-                        <el-card shadow="hover" :body-style="{ padding: '8px' }" class="picker-card" @click="pickImage(f)">
-                            <img :src="f.thumbnail_url || f.url || f.file_url" class="picker-img" />
-                            <div class="text-xs text-gray-400 mt-1 truncate">{{ f.original_name || f.filename }}</div>
+                        <el-card shadow="hover" :body-style="{ padding: '8px' }" class="picker-card">
+                            <div class="picker-img-wrap" @click="pickImage(f)">
+                                <img :src="f.thumbnail_url || f.url || f.file_url" class="picker-img" />
+                            </div>
+                            <div class="flex items-center justify-between mt-1">
+                                <span class="text-xs text-gray-400 truncate" style="max-width:calc(100% - 26px)">{{ f.original_name || f.filename }}</span>
+                                <el-tooltip content="删除图片" placement="top">
+                                    <el-button size="small" text type="danger" circle @click.stop="deletePickerImage(f)" style="min-width:20px;height:20px;padding:0;font-size:12px">×</el-button>
+                                </el-tooltip>
+                            </div>
                         </el-card>
                     </el-col>
                 </el-row>

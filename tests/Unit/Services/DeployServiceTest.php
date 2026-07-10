@@ -8,7 +8,7 @@ use App\Models\DeployJob;
 use App\Models\DeployRelease;
 use App\Models\Tenant;
 use App\Services\DeployService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 
 class DeployServiceTest extends TestCase
 {

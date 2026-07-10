@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
  * 安全扫描结果模型
  *
  * M2-112: 存储 OWASP ZAP 自动化渗透测试的扫描结果
+ *
+ * @mixin IdeHelperSecurityScanResult
  */
 class SecurityScanResult extends Model
 {

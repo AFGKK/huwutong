@@ -279,7 +279,8 @@ class AffiliateService
         $activeCampaigns = AffiliateCampaign::where('status', AffiliateCampaign::STATUS_ACTIVE)->count();
 
         // 月度趋势
-        $monthlyClicks = AffiliateClick::selectRaw("strftime('%Y-%m', created_at) as month, count(*) as clicks, sum(case when converted then 1 else 0 end) as conversions, coalesce(sum(commission_amount), 0) as commission")
+        $monthExpr = db_date_format('created_at', '%Y-%m');
+        $monthlyClicks = AffiliateClick::selectRaw("{$monthExpr} as month, count(*) as clicks, sum(case when converted then 1 else 0 end) as conversions, coalesce(sum(commission_amount), 0) as commission")
             ->where('created_at', '>=', now()->subMonths(12))
             ->groupBy('month')
             ->orderBy('month')
@@ -327,8 +328,9 @@ class AffiliateService
         $downline = Agent::where('parent_agent_id', $agent->id)->count();
         $upline = $this->getUpline($agent);
 
+        $monthExpr = db_date_format('created_at', '%Y-%m');
         $monthlyClicks = (clone $clicks)
-            ->selectRaw("strftime('%Y-%m', created_at) as month, count(*) as clicks, sum(case when converted then 1 else 0 end) as conversions, coalesce(sum(commission_amount), 0) as commission")
+            ->selectRaw("{$monthExpr} as month, count(*) as clicks, sum(case when converted then 1 else 0 end) as conversions, coalesce(sum(commission_amount), 0) as commission")
             ->where('created_at', '>=', now()->subMonths(12))
             ->groupBy('month')
             ->orderBy('month')

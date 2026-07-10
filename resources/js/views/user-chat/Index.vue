@@ -7,13 +7,36 @@
             <div class="chat-sidebar" :class="{ 'sidebar-hidden': isMobile && activeConv }">
                 <div class="sidebar-tabs">
                     <el-tabs v-model="sidebarTab" @tab-change="onSidebarTabChange">
-                        <el-tab-pane label="💬 消息" name="messages" />
-                        <el-tab-pane label="�‍💼 客服" name="agentWorkspace" />
-                        <el-tab-pane label="�👥 好友" name="friends" />
-                        <el-tab-pane label="📡 圈子" name="channels" />
-                        <el-tab-pane label="🌐 广场" name="plaza" />
-                        <el-tab-pane label="📢 公众号" name="officialAccounts" />
-                        <el-tab-pane label="👤 我的" name="myProfile" />
+                        <el-tab-pane name="messages">
+                            <template #label>
+                                <el-icon style="vertical-align:middle;margin-right:2px"><ChatRound /></el-icon>
+                                <span style="vertical-align:middle">消息</span>
+                            </template>
+                        </el-tab-pane>
+                        <el-tab-pane name="agentWorkspace">
+                            <template #label>
+                                <el-icon style="vertical-align:middle;margin-right:2px"><Headset /></el-icon>
+                                <span style="vertical-align:middle">客服</span>
+                            </template>
+                        </el-tab-pane>
+                        <el-tab-pane name="friends">
+                            <template #label>
+                                <el-icon style="vertical-align:middle;margin-right:2px"><User /></el-icon>
+                                <span style="vertical-align:middle">好友</span>
+                            </template>
+                        </el-tab-pane>
+                        <el-tab-pane name="channels">
+                            <template #label>
+                                <el-icon style="vertical-align:middle;margin-right:2px"><ChatDotRound /></el-icon>
+                                <span style="vertical-align:middle">圈子</span>
+                            </template>
+                        </el-tab-pane>
+                        <el-tab-pane name="myProfile">
+                            <template #label>
+                                <el-icon style="vertical-align:middle;margin-right:2px"><User /></el-icon>
+                                <span style="vertical-align:middle">我的</span>
+                            </template>
+                        </el-tab-pane>
                         <el-tab-pane name="more">
                             <template #label>
                                 <el-dropdown trigger="click" @command="handleMoreTab" @click.stop>
@@ -33,219 +56,67 @@
 
                 <!-- ====== 消息列表 ====== -->
                 <template v-if="sidebarTab === 'messages'">
-                    <div class="sidebar-header">
-                        <h3>消息</h3>
-                        <div class="sidebar-header-actions">
-                            <el-button size="small" text @click="showBlockedList = true" title="黑名单"><el-icon><RemoveFilled /></el-icon></el-button>
-                            <el-button size="small" text @click="showSensitiveWords = true" title="敏感词管理"><el-icon><EditPen /></el-icon></el-button>
-                            <el-button size="small" text @click="showDndSettings = true" title="免打扰设置"><el-icon><MuteNotification /></el-icon></el-button>
-                            <el-button size="small" text @click="showPrivacySettings = true" title="隐私设置"><el-icon><Lock /></el-icon></el-button>
-                            <el-button size="small" text @click="showDashboard = true" title="IM 数据看板"><el-icon><DataBoard /></el-icon></el-button>
-                            <el-button size="small" text @click="showAiFriendAdmin = true" title="AI 好友管理"><el-icon><MagicStick /></el-icon></el-button>
-                            <el-button size="small" text @click="showSearchPanel = !showSearchPanel" :type="showSearchPanel ? 'primary' : 'default'" title="全局搜索"><el-icon><Search /></el-icon></el-button>
-                            <el-button size="small" type="primary" circle @click="showNewChat = true"><el-icon><Plus /></el-icon></el-button>
-                            <el-button size="small" text @click="cycleTheme" :title="'主题: ' + (themeMode === 'light' ? '浅色' : themeMode === 'dark' ? '深色' : '跟随系统')">
-                                <el-icon><Sunny v-if="themeMode === 'light'" /><MoonNight v-else-if="themeMode === 'dark'" /><Monitor v-else /></el-icon>
-                            </el-button>
-                            <el-dropdown trigger="click" @command="setMyStatus">
-                                <el-button size="small" text :title="'状态: '+ ({online:'在线',busy:'忙碌',invisible:'隐身'}[myStatus]||'在线')">
-                                    <el-icon :color="myStatus === 'online' ? '#67c23a' : myStatus === 'busy' ? '#e6a23c' : '#999'">
-                                        <User />
-                                    </el-icon>
-                                </el-button>
-                                <template #dropdown>
-                                    <el-dropdown-menu>
-                                        <el-dropdown-item command="online"><el-icon style="color:#67c23a"><Select /></el-icon> 在线</el-dropdown-item>
-                                        <el-dropdown-item command="busy"><el-icon style="color:#e6a23c"><RemoveFilled /></el-icon> 忙碌</el-dropdown-item>
-                                        <el-dropdown-item command="invisible"><el-icon style="color:#999"><Mute /></el-icon> 隐身</el-dropdown-item>
-                                        <el-dropdown-item divided>
-                                            <div style="display:flex;align-items:center;gap:6px;font-size:12px" @click.stop>
-                                                <span>🤖 自动回复</span>
-                                                <el-switch :model-value="autoReplyEnabled" size="small" @change="toggleAutoReply" />
-                                            </div>
-                                        </el-dropdown-item>
-                                        <el-dropdown-item command="goto_auto_reply" style="font-size:12px;color:#909399">⚙️ 管理回复规则</el-dropdown-item>
-                                    </el-dropdown-menu>
-                                </template>
-                            </el-dropdown>
-                        </div>
-                    </div>
-                    <div class="sidebar-search">
-                        <el-input v-model="searchKeyword" placeholder="搜索消息..." size="small" clearable @input="onSearch" />
-                    </div>
-                    <!-- 全局搜索面板 -->
-                    <div v-if="showSearchPanel" class="global-search-panel">
-                        <el-input v-model="globalSearchKeyword" placeholder="搜索所有消息，支持自然语言..." size="small" clearable @keydown.enter="onGlobalSearch">
-                            <template #prefix><el-icon><Search /></el-icon></template>
-                        </el-input>
-                        <div class="search-options">
-                            <el-radio-group v-model="searchMode" size="small">
-                                <el-radio-button value="fulltext">关键词</el-radio-button>
-                                <el-radio-button value="semantic">AI 语义</el-radio-button>
-                            </el-radio-group>
-                            <el-button v-if="globalSearchKeyword.trim()" text size="small" type="primary" @click="onGlobalSearch"><el-icon><Search /></el-icon> 搜索</el-button>
-                        </div>
-                        <div v-if="globalSearchResults.length > 0" class="search-results">
-                            <div v-for="r in globalSearchResults" :key="r.id" class="search-result-item" @click="jumpToMessage(r)">
-                                <div class="search-result-conv">{{ r.conversation_name || r.conversation?.name || '会话' }}</div>
-                                <div class="search-result-content" v-html="highlightKeyword(r.content)"></div>
-                                <div class="search-result-time">{{ formatTime(r.created_at) }}</div>
-                            </div>
-                        </div>
-                        <div v-else-if="globalSearchKeyword && !searchingGlobal" class="empty-chat">
-                            <el-empty description="未找到消息" :image-size="40" />
-                        </div>
-                        <div v-if="searchingGlobal" class="search-loading"><el-icon class="is-loading"><Loading /></el-icon> 搜索中...</div>
-                        <div v-if="searchKeywords && searchMode === 'semantic'" class="search-keywords">🔍 提取关键词: <strong>{{ searchKeywords }}</strong></div>
-                    </div>
-                    <!-- 会话文件夹 -->
-                    <div class="folder-bar">
-                        <el-select v-model="activeFolder" size="small" placeholder="全部分组" clearable style="width:120px" @change="onFolderChange">
-                            <el-option label="全部分组" value="" />
-                            <el-option v-for="f in folders" :key="f.id" :label="f.name" :value="f.id" />
-                        </el-select>
-                        <el-button text size="small" @click="showFolderDialog = true" title="管理分组"><el-icon><Setting /></el-icon></el-button>
-                        <el-button text size="small" @click="toggleBatchMode" :type="batchMode ? 'primary' : 'default'" title="批量操作">
-                            <el-icon><Select /></el-icon>
-                        </el-button>
-                        <el-button text size="small" @click="openHiddenConversations" title="私密空间" style="color:#909399">
-                            <el-icon><Lock /></el-icon>
-                        </el-button>
-                    </div>
-                    <!-- AI-018: 智能分类 -->
-                    <div class="category-bar">
-                        <el-radio-group v-model="convCategory" size="small" @change="onCategoryChange">
-                            <el-radio-button value="">全部</el-radio-button>
-                            <el-radio-button value="urgent"><el-icon style="color:#f56c6c"><Warning /></el-icon> 紧急</el-radio-button>
-                            <el-radio-button value="work"><el-icon style="color:#409eff"><Briefcase /></el-icon> 工作</el-radio-button>
-                            <el-radio-button value="normal"><el-icon style="color:#67c23a"><ChatDotRound /></el-icon> 普通</el-radio-button>
-                            <el-radio-button value="promotion"><el-icon style="color:#e6a23c"><PriceTag /></el-icon> 促销</el-radio-button>
-                            <el-radio-button value="spam"><el-icon style="color:#999"><Delete /></el-icon> 垃圾</el-radio-button>
-                            <el-radio-button value="archived"><el-icon style="color:#909399"><FolderDelete /></el-icon> 归档</el-radio-button>
-                        </el-radio-group>
-                    </div>
-                    <!-- 批量归档 -->
-                    <div class="batch-archive-bar" v-if="batchMode">
-                        <span class="batch-count">已选 {{ selectedConvIds.length }} 个</span>
-                        <div class="batch-actions">
-                            <el-button size="small" text @click="cancelBatch">取消</el-button>
-                            <el-button v-if="convCategory === 'archived'" size="small" @click="batchUnarchive">取消归档</el-button>
-                            <el-button v-else size="small" type="warning" @click="batchArchive">归档所选</el-button>
-                            <el-button size="small" type="primary" @click="batchArchiveInactive">归档30天未更新</el-button>
-                        </div>
-                    </div>
-                    <div class="self-chat-entry" @click="openSelfChat">
-                        <el-icon style="margin-right:6px;font-size:16px"><Message /></el-icon>
-                        <span>📁 文件传输助手</span>
-                    </div>
-                    <div class="self-chat-entry" style="border-top:1px solid #f0f0f0;margin-top:2px" @click="openAIChat">
-                        <el-icon style="margin-right:6px;font-size:16px;color:#409eff"><MagicStick /></el-icon>
-                        <span style="color:#409eff">🤖 AI 助手</span>
-                    </div>
-                    <div class="conversation-list" v-loading="loading">
-                        <div v-for="conv in (convCategory === 'archived' ? filteredConversations : (convCategory ? classifiedConversations : filteredConversations))" :key="conv.id"
-                            class="conv-item" :class="{ active: activeConv?.id === conv.id }"
-                            @click="onConvClick(conv)" @contextmenu.prevent="onConvContextMenu($event, conv)">
-                            <el-checkbox v-if="batchMode" v-model="selectedConvIds" :value="conv.id" :label="conv.id" size="small" @click.stop class="conv-checkbox" />
-                            <div class="conv-avatar-wrap">
-                                <div class="conv-avatar">{{ conv.name?.charAt(0) || '?' }}</div>
-                                <span v-if="conv.online_status === 'online'" class="online-dot"></span>
-                            </div>
-                            <div class="conv-info">
-                                <div class="conv-top">
-                                    <span class="conv-name">{{ conv.name }}</span>
-                                    <span class="conv-time">{{ formatTime(conv.updated_at) }}</span>
-                                </div>
-                                <div class="conv-bottom">
-                                    <span class="conv-last">{{ conv.last_message?.content || '暂无消息' }}</span>
-                                    <span v-if="conv.unread_count > 0" class="unread-badge">{{ conv.unread_count > 99 ? '99+' : conv.unread_count }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div v-if="(convCategory === 'archived' ? filteredConversations : (convCategory ? classifiedConversations : filteredConversations)).length === 0 && !loading" class="empty-chat">
-                            <el-empty :description="convCategory ? '该分类下暂无会话' : '暂无会话'" :image-size="60" />
-                        </div>
-                    </div>
+                    <message-sidebar
+                        :conversations="conversations"
+                        :loading="loading"
+                        :search-keyword="searchKeyword"
+                        :show-search-panel="showSearchPanel"
+                        :global-search-keyword="globalSearchKeyword"
+                        :global-search-results="globalSearchResults"
+                        :searching-global="searchingGlobal"
+                        :search-mode="searchMode"
+                        :active-conv-id="activeConv?.id"
+                        :folders="folders"
+                        :active-folder="activeFolder"
+                        :batch-mode="batchMode"
+                        :selected-conv-ids="selectedConvIds"
+                        :conv-category="convCategory"
+                        :theme-mode="themeMode"
+                        :my-status="myStatus"
+                        :auto-reply-enabled="autoReplyEnabled"
+                        :display-conversations="convCategory === 'archived' ? filteredConversations : (convCategory ? classifiedConversations : filteredConversations)"
+                        @new-chat="showNewChat = true"
+                        @cycle-theme="cycleTheme"
+                        @set-status="setMyStatus"
+                        @toggle-auto-reply="toggleAutoReply"
+                        @tool-action="handleToolAction"
+                        @search="onSearch"
+                        @toggle-search-panel="showSearchPanel = !showSearchPanel; if(showSearchPanel) searchKeyword = ''"
+                        @global-search="onGlobalSearch"
+                        @jump-to-message="jumpToMessage"
+                        @folder-change="onFolderChange"
+                        @manage-folders="showFolderDialog = true"
+                        @toggle-batch="toggleBatchMode"
+                        @open-hidden="openHiddenConversations"
+                        @category-change="onCategoryChange"
+                        @cancel-batch="cancelBatch"
+                        @batch-archive="batchArchive"
+                        @batch-unarchive="batchUnarchive"
+                        @batch-archive-inactive="batchArchiveInactive"
+                        @open-self-chat="openSelfChat"
+                        @open-ai-chat="openAIChat"
+                        @select-conv="onConvClick"
+                        @conv-context-menu="onConvContextMenu"
+                    />
                 </template>
 
                 <!-- ====== 好友列表 ====== -->
                 <template v-if="sidebarTab === 'friends'">
-                    <div class="sidebar-header">
-                        <h3>好友</h3>
-                        <div style="display:flex;gap:4px">
-                            <el-button size="small" circle @click="showCreateAiFriend = true" title="创建 AI 好友"><el-icon><MagicStick /></el-icon></el-button>
-                            <el-button size="small" type="primary" circle @click="showAddFriend = true"><el-icon><User /></el-icon></el-button>
-                        </div>
-                    </div>
-                    <!-- AI 好友分组 -->
-                    <div v-if="aiFriends.length" class="ai-friend-section">
-                        <div class="ai-friend-header"><el-icon style="color:#409eff"><MagicStick /></el-icon> AI 助手 <span class="ai-friend-count">{{ aiFriends.length }}</span></div>
-                        <div v-for="f in aiFriends" :key="'ai-'+f.id" class="conv-item ai-friend-item" @click="startAiFriendChat(f)">
-                            <div class="conv-avatar-wrap">
-                                <img v-if="f.avatar" :src="f.avatar" class="conv-avatar-img" />
-                                <div v-else class="conv-avatar" style="background:#409eff">{{ f.name?.charAt(0) || 'A' }}</div>
-                                <span class="ai-badge">🤖</span>
-                            </div>
-                            <div class="conv-info">
-                                <div class="conv-top">
-                                    <span class="conv-name">{{ f.name }}</span>
-                                    <span class="ai-category-tag">{{ categoryLabel(f.category) }}</span>
-                                </div>
-                                <div class="conv-bottom"><span class="conv-last">{{ f.description || f.welcome_message || 'AI 助手' }}</span></div>
-                            </div>
-                            <el-dropdown trigger="click" @command="(cmd) => handleAiFriendAction(cmd, f)" @click.stop>
-                                <el-button text size="small" @click.stop><el-icon><MoreFilled /></el-icon></el-button>
-                                <template #dropdown>
-                                    <el-dropdown-menu>
-                                        <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
-                                    </el-dropdown-menu>
-                                </template>
-                            </el-dropdown>
-                        </div>
-                    </div>
-                    <div class="sidebar-divider"></div>
-                    <!-- 搜索好友 -->
-                    <div class="sidebar-search">
-                        <el-input v-model="friendSearch" placeholder="搜索好友..." size="small" clearable />
-                    </div>
-                    <div class="friend-filter-bar">
-                        <el-select v-model="friendGroupFilter" placeholder="全部分组" size="small" clearable style="width:130px">
-                            <el-option label="全部分组" :value="null" />
-                            <el-option v-for="g in friendGroups" :key="g.id" :label="g.name" :value="g.id" />
-                        </el-select>
-                        <el-button size="small" text @click="showFriendGroups = true">管理分组</el-button>
-                        <el-button v-if="pendingRequests.length" size="small" text @click="showPendingRequests = true">请求({{ pendingRequests.length }})</el-button>
-                    </div>
-                    <div class="conversation-list" v-loading="loadingFriends">
-                        <div v-for="f in filteredFriends" :key="f.id" class="conv-item" @click="startFriendChat(f)">
-                            <div class="conv-avatar-wrap">
-                                <div class="conv-avatar" :style="{ background: f.online === 'online' ? '#52c41a' : '#999' }">{{ f.name?.charAt(0) || '?' }}</div>
-                                <span v-if="f.online === 'online'" class="online-dot"></span>
-                            </div>
-                            <div class="conv-info">
-                                <div class="conv-top">
-                                    <span class="conv-name">{{ f.remark || f.name || '用户' }}</span>
-                                    <span class="conv-time">{{ f.online === 'online' ? '在线' : '离线' }}</span>
-                                </div>
-                                <div class="conv-bottom">
-                                    <span v-if="f.friend_group_name" class="friend-group-tag">{{ f.friend_group_name }}</span>
-                                </div>
-                            </div>
-                            <el-dropdown trigger="click" @command="(cmd) => handleFriendAction(cmd, f)">
-                                <el-button text size="small" @click.stop><el-icon><MoreFilled /></el-icon></el-button>
-                                <template #dropdown>
-                                    <el-dropdown-menu>
-                                        <el-dropdown-item command="remark">设置备注</el-dropdown-item>
-                                        <el-dropdown-item command="group">移动分组</el-dropdown-item>
-                                        <el-dropdown-item command="remove" divided>删除好友</el-dropdown-item>
-                                    </el-dropdown-menu>
-                                </template>
-                            </el-dropdown>
-                        </div>
-                        <div v-if="!filteredFriends.length && !loadingFriends" class="empty-chat">
-                            <el-empty description="暂无好友" :image-size="60" />
-                        </div>
-                    </div>
+                    <friend-sidebar
+                        :ai-friends="aiFriends"
+                        :friends-list="friendsList"
+                        :loading-friends="loadingFriends"
+                        :friend-groups="friendGroups"
+                        :pending-requests="pendingRequests"
+                        @create-ai-friend="showCreateAiFriend = true"
+                        @add-friend="showAddFriend = true"
+                        @start-ai-friend-chat="startAiFriendChat"
+                        @ai-friend-action="handleAiFriendAction"
+                        @manage-groups="showFriendGroups = true"
+                        @show-requests="showPendingRequests = true"
+                        @start-chat="startFriendChat"
+                        @friend-action="handleFriendAction"
+                    />
                 </template>
 
                 <!-- ====== 通知列表 ====== -->
@@ -303,7 +174,7 @@
                                     <span class="conv-time">{{ formatTime(fav.created_at) }}</span>
                                 </div>
                                 <div class="conv-bottom">
-                                    <span class="conv-last">{{ fav.article?.account?.name || '公众号' }} · {{ fav.article?.summary?.substring(0, 40) || '' }}</span>
+                                    <span class="conv-last">{{ fav.article?.account?.name || '互物号' }} · {{ fav.article?.summary?.substring(0, 40) || '' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -330,7 +201,7 @@
                     <plaza-panel :my-id="myId" @select-category="onPlazaCategory" @view-my-post="viewMyPlazaPost" />
                 </template>
 
-                <!-- ====== 公众号面板 ====== -->
+                <!-- ====== 互物号面板 ====== -->
                 <template v-if="sidebarTab === 'officialAccounts'">
                     <oa-panel
                         ref="oaPanelRef"
@@ -344,82 +215,16 @@
 
                 <!-- ====== 我的面板 ====== -->
                 <template v-if="sidebarTab === 'myProfile'">
-                    <div class="sidebar-header" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px">
-                        <h3 style="margin:0;font-size:15px">👤 我的</h3>
-                        <el-button text size="small" @click="openAccountProfile">⚙️ 账户中心</el-button>
-                    </div>
-                    <div class="conversation-list" style="overflow-y:auto;flex:1">
-                        <!-- 用户信息 -->
-                        <div class="my-profile-card" style="text-align:center;padding:20px 16px;">
-                            <el-avatar :size="56" :src="userInfo?.avatar_url" style="margin:0 auto 8px">{{ userInfo?.name?.charAt(0) || '?' }}</el-avatar>
-                            <div style="font-weight:600;font-size:15px">{{ userInfo?.name || '用户' }}</div>
-                            <div style="font-size:12px;color:#909399;margin-top:2px">{{ userInfo?.email || '' }}</div>
-                            <div style="margin-top:8px;display:flex;justify-content:center;gap:12px;font-size:12px">
-                                <span>🪙 <strong>{{ pointsBalance }}</strong> 积分</span>
-                                <el-button text size="small" type="primary" style="font-size:12px" @click="openPointsHistory">交易记录</el-button>
-                            </div>
-                        </div>
-
-                        <!-- 功能入口按钮 -->
-                        <div class="my-profile-actions">
-                            <el-button :type="myProfileSection === 'daily' ? 'warning' : 'default'" size="small" @click="myProfileSection = 'daily'" style="flex:1">
-                                📅 每日签到
-                            </el-button>
-                            <el-button :type="myProfileSection === 'social' ? 'primary' : 'default'" size="small" @click="openMyInteractions" style="flex:1">
-                                👥 朋友圈
-                            </el-button>
-                        </div>
-
-                        <!-- 每日签到 / 今日任务 -->
-                        <div v-if="myProfileSection === 'daily'" class="my-profile-content">
-                            <div class="my-section-header">🎯 今日任务</div>
-                            <div class="daily-task-item" v-for="task in dailyTasks" :key="task.key">
-                                <div class="daily-task-info">
-                                    <span class="daily-task-icon">{{ task.done ? '✅' : '⭕' }}</span>
-                                    <span class="daily-task-label" :class="{ 'task-done': task.done }">{{ task.label }}</span>
-                                    <span class="daily-task-reward">+{{ task.reward }}分</span>
-                                </div>
-                                <div class="daily-task-bar-wrap">
-                                    <div class="daily-task-bar" :style="{ width: (task.progress / task.total * 100) + '%' }"></div>
-                                </div>
-                                <div class="daily-task-progress">{{ task.progress }}/{{ task.total }}</div>
-                            </div>
-                            <div class="daily-summary">
-                                🎉 今日已得 <strong>{{ dailyEarned }}</strong> / <strong>{{ dailyMax }}</strong> 积分
-                            </div>
-                        </div>
-
-                        <!-- 朋友圈 -->
-                        <div v-if="myProfileSection === 'social'" class="my-profile-content">
-                            <div class="my-section-header">👥 我的互动</div>
-                            <div class="social-menu-item" @click="openSocialTab('following')">
-                                <span class="social-menu-icon">🔥</span>
-                                <span class="social-menu-label">关注动态</span>
-                                <el-icon><ArrowRight /></el-icon>
-                            </div>
-                            <div class="social-menu-item" @click="openSocialTab('reading')">
-                                <span class="social-menu-icon">📋</span>
-                                <span class="social-menu-label">阅读清单</span>
-                                <span class="social-menu-badge">{{ readingListCount || 0 }}</span>
-                                <el-icon><ArrowRight /></el-icon>
-                            </div>
-                            <div class="social-menu-item" @click="openSocialTab('follows')">
-                                <span class="social-menu-icon">❤️</span>
-                                <span class="social-menu-label">关注</span>
-                                <el-icon><ArrowRight /></el-icon>
-                            </div>
-                            <div class="social-menu-item" @click="openSocialTab('favorites')">
-                                <span class="social-menu-icon">⭐</span>
-                                <span class="social-menu-label">收藏</span>
-                                <el-icon><ArrowRight /></el-icon>
-                            </div>
-                            <div class="social-menu-item" @click="openSocialTab('likes')">
-                                <span class="social-menu-icon">👍</span>
-                                <span class="social-menu-label">点赞</span>
-                                <el-icon><ArrowRight /></el-icon>
-                            </div>
-                        </div>
-                    </div>
+                    <user-profile-panel
+                        :user-info="userInfo"
+                        :points-balance="pointsBalance"
+                        :reading-list-count="readingListCount"
+                        :daily-tasks="dailyTasks"
+                        @open-account="openAccountProfile"
+                        @open-points="openPointsHistory"
+                        @open-interactions="openMyInteractions"
+                        @social-tab="openSocialTab"
+                    />
                 </template>
 
                 <!-- ====== 待处理列表 ====== -->
@@ -474,7 +279,7 @@
                                             <div class="my-feed-body">
                                                 <div class="my-feed-account">
                                                     <el-avatar :size="22" :src="item.account?.avatar" />
-                                                    <span class="my-feed-acc-name">{{ item.account?.name || '公众号' }}</span>
+                                                    <span class="my-feed-acc-name">{{ item.account?.name || '互物号' }}</span>
                                                     <span class="my-feed-time">{{ formatTime(item.published_at) }}</span>
                                                 </div>
                                                 <div class="my-feed-title">{{ item.title }}</div>
@@ -486,7 +291,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <el-empty v-if="!followingFeed.length && !loadingFollowing" description="还没有关注公众号，去发现一些优质内容吧" :image-size="50" />
+                                        <el-empty v-if="!followingFeed.length && !loadingFollowing" description="还没有关注互物号，去发现一些优质内容吧" :image-size="50" />
                                     </div>
                                 </el-tab-pane>
                                 <el-tab-pane label="📋 阅读清单" name="reading">
@@ -524,7 +329,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <el-empty v-if="!myFollowedAccounts.length && !loadingFollows" description="还没有关注任何公众号" :image-size="50" />
+                                        <el-empty v-if="!myFollowedAccounts.length && !loadingFollows" description="还没有关注任何互物号" :image-size="50" />
                                     </div>
                                 </el-tab-pane>
                                 <el-tab-pane label="⭐ 收藏" name="favorites">
@@ -797,7 +602,7 @@
                         </div>
                     </template>
 
-                    <!-- ═══════ 公众号文章列表视图 ═══════ -->
+                    <!-- ═══════ 互物号文章列表视图 ═══════ -->
                     <template v-else-if="activeConv.is_oa">
                         <div class="chat-header">
                             <div class="chat-header-left">
@@ -812,13 +617,13 @@
                                 </div>
                             </div>
                             <div class="chat-actions">
-                                <el-button v-if="selectedOaAccount?.owner_id === myId" text size="small" @click="openOaSettings" title="公众号设置">
+                                <el-button v-if="selectedOaAccount?.owner_id === myId" text size="small" @click="openOaSettings" title="互物号设置">
                                     <el-icon><Setting /></el-icon> 设置
                                 </el-button>
                                 <el-button text size="small" @click="handleDeleteConv"><el-icon><Close /></el-icon></el-button>
                             </div>
                         </div>
-                        <!-- 公众号管理面板（仅号主可见） -->
+                        <!-- 互物号管理面板（仅号主可见） -->
                         <div v-if="selectedOaAccount?.owner_id === myId && oaDashboard" class="oa-manage-bar">
                             <div class="oa-stats-row">
                                 <div class="oa-stat-item" title="关注粉丝">
@@ -1013,7 +818,7 @@
                                                 <template #dropdown>
                                                     <el-dropdown-menu>
                                                         <el-dropdown-item command="chat">💬 好友/聊天</el-dropdown-item>
-                                                        <el-dropdown-item command="plaza">🌐 广场</el-dropdown-item>
+                                                        <el-dropdown-item command="plaza">🌐 社区</el-dropdown-item>
                                                         <el-dropdown-item command="channel">📡 圈子</el-dropdown-item>
                                                         <el-dropdown-item command="wechat" divided>💚 微信</el-dropdown-item>
                                                         <el-dropdown-item command="weibo">🔴 微博</el-dropdown-item>
@@ -1695,14 +1500,14 @@
                             </div>
                         </div>
                         <div class="discover-search-bar">
-                            <el-input v-model="discoverKeyword" size="large" placeholder="搜索公众号与文章..." clearable
+                            <el-input v-model="discoverKeyword" size="large" placeholder="搜索互物号与文章..." clearable
                                 @keydown.enter="doDiscoverSearch" @clear="doDiscoverSearch">
                                 <template #prefix><el-icon><Search /></el-icon></template>
                             </el-input>
                             <div class="discover-tabs">
                                 <el-radio-group v-model="discoverTab" size="small" @change="doDiscoverSearch">
                                     <el-radio-button value="all">全部</el-radio-button>
-                                    <el-radio-button value="account">公众号</el-radio-button>
+                                    <el-radio-button value="account">互物号</el-radio-button>
                                     <el-radio-button value="article">文章</el-radio-button>
                                     <el-radio-button value="product">商品</el-radio-button>
                                     <el-radio-button value="merchant">商家</el-radio-button>
@@ -1711,10 +1516,10 @@
                         </div>
                         <div class="chat-messages-wrap">
                             <div class="discover-results" v-loading="discoverLoading">
-                                <!-- 公众号结果 -->
+                                <!-- 互物号结果 -->
                                 <template v-if="discoverTab !== 'article' && discoverTab !== 'product' && discoverTab !== 'merchant'">
                                     <div v-if="discoverAccounts.length" class="discover-section">
-                                        <h4 class="discover-section-title">📢 公众号</h4>
+                                        <h4 class="discover-section-title">📢 互物号</h4>
                                         <div v-for="acc in discoverAccounts" :key="'acc_'+acc.id" class="discover-account-card">
                                             <div class="discover-acc-avatar">
                                                 <img v-if="acc.avatar" :src="acc.avatar" class="discover-acc-img" />
@@ -1826,7 +1631,7 @@
                                     </div>
                                 </template>
                                 <div v-if="!discoverAccounts.length && !discoverArticles.length && !discoverProducts.length && !discoverMerchants.length && !discoverLoading" class="empty-chat" style="padding:60px 0">
-                                    <el-empty :description="discoverKeyword ? '未找到相关内容' : '输入关键词搜索公众号与文章'" :image-size="60" />
+                                    <el-empty :description="discoverKeyword ? '未找到相关内容' : '输入关键词搜索互物号与文章'" :image-size="60" />
                                 </div>
                             </div>
                         </div>
@@ -2008,432 +1813,102 @@
                         </el-popover>
                         <el-button v-if="convSearchResults.length" size="small" text @click="clearConvSearch" title="清除搜索"><el-icon><Close /></el-icon></el-button>
                     </div>
-                    <div class="chat-messages-wrap">
-                        <div class="messages-area" ref="msgAreaRef" @scroll="onScrollTop">
-                        <div v-if="pinnedMessages.length" class="pinned-banner">
-                            <div class="pinned-header">📌 置顶消息 <span class="pinned-count">{{ pinnedMessages.length }}</span></div>
-                            <div class="pinned-list">
-                                <div v-for="pm in pinnedMessages.slice(0, 3)" :key="pm.id" class="pinned-item" @click="scrollToMessage(pm.id)">
-                                    <span class="pinned-sender">{{ pm.sender?.name || '用户' }}:</span>
-                                    <span class="pinned-content">{{ pm.content?.substring(0, 40) }}</span>
-                                </div>
-                                <div v-if="pinnedMessages.length > 3" class="pinned-more">还有 {{ pinnedMessages.length - 3 }} 条置顶消息</div>
-                            </div>
-                        </div>
-                        <div v-if="hasMore" class="load-more"><el-button text size="small" @click="loadMore">加载更多</el-button></div>
-                        <div v-for="msg in messages" :key="msg.id" :data-msg-id="msg.id" class="msg-item" :class="{ 'msg-self': msg.sender_id === myId, 'msg-selected': selectingForward && forwardMsgs.some(m => m.id === msg.id) }" @click="selectingForward && toggleSelectForward(msg)">
-                            <div class="msg-avatar">
-                                <img v-if="msg.sender?.avatar" :src="msg.sender.avatar" class="msg-avatar-img" @error="$event.target.style.display='none'" />
-                                <span v-else>{{ msg.sender?.name?.charAt(0) || '?' }}</span>
-                            </div>
-                            <div class="msg-bubble" :class="{ 'msg-recalled': msg.is_recalled, 'msg-high-priority': msg.metadata?.priority === 'high' }">
-                                <div v-if="msg.metadata?.priority === 'high'" class="msg-priority-badge">🔴 紧急</div>
-                                <div v-else-if="msg.metadata?.priority === 'medium'" class="msg-priority-badge msg-priority-medium">🟡 重要</div>
-                                <div v-if="msg.sender_id !== myId" class="msg-sender">{{ msg.sender?.name || '用户' }}</div>
-                                <div v-if="msg.reply_to" class="msg-reply" @click="scrollToMessage(msg.reply_to_id)">
-                                    <div class="reply-sender">{{ msg.reply_to.sender?.name || '用户' }}</div>
-                                    <div class="reply-text">{{ replyPreviewText(msg.reply_to) }}</div>
-                                </div>
-                                <div v-if="msg.is_recalled" class="msg-recalled-text">{{ msg.sender_id === myId ? '你' : msg.sender?.name || '对方' }} 撤回了一条消息</div>
-                                <div v-else-if="msg.message_type === 'image' && msg.content" class="msg-image">
-                                    <img :src="msg.content" :alt="msg.metadata?.alt_text || '图片'" class="chat-image" @click="previewImage(msg.content)" @load="onImageLoaded(msg)" />
-                                    <button v-if="msg.metadata?.alt_text" class="alt-text-btn" @click.stop="readAltText(msg)" title="朗读图片描述">🔊</button>
-                                </div>
-                                <div v-else-if="msg.message_type === 'voice' && msg.content" class="msg-voice-wrap">
-                                    <div class="msg-voice" :class="{ 'msg-voice-self': msg.sender_id === myId }" @click="playVoice(msg)">
-                                        <el-icon :size="20" style="margin-right:6px"><CaretRight v-if="!voicePlayingId || voicePlayingId !== msg.id" /><Loading v-else /></el-icon>
-                                        <div class="voice-wave"><span v-for="i in 30" :key="i" class="voice-bar" :style="{ height: (10 + Math.sin(i * 0.5) * 8 + Math.random() * 4) + 'px' }"></span></div>
-                                        <span class="voice-duration">{{ voiceDuration(msg) }}″</span>
-                                    </div>
-                                    <div class="msg-voice-actions" v-if="msg.sender_id === myId || msg.metadata?.transcript">
-                                        <el-button v-if="!msg._transcribing && !msg.metadata?.transcript" text size="small" @click.stop="transcribeVoice(msg)">📝 转文字</el-button>
-                                        <el-button v-else-if="msg._transcribing" text size="small" disabled>⏳ 识别中...</el-button>
-                                        <div v-else-if="msg.metadata?.transcript" class="voice-transcript" @click.stop>
-                                            <el-icon style="margin-right:4px;color:#67c23a"><Reading /></el-icon>
-                                            <span>{{ msg.metadata.transcript }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-else-if="msg.message_type === 'contact' && msg.content" class="msg-contact-card" @click="addContactByCard(msg)">
-                                    <div class="contact-card-avatar">{{ contactName(msg)?.charAt(0) || '?' }}</div>
-                                    <div class="contact-card-info"><div class="contact-card-name">{{ contactName(msg) }}</div><div class="contact-card-hint">点击添加好友</div></div>
-                                </div>
-                                <div v-else-if="msg.message_type === 'location' && msg.content" class="msg-location" @click="openLocation(msg)">
-                                    <div class="location-icon">📍</div>
-                                    <div class="location-info"><div class="location-name">{{ locationName(msg) }}</div><div class="location-coords">{{ locationCoords(msg) }}</div></div>
-                                </div>
-                                <!-- 贴纸消息 -->
-                                <div v-else-if="msg.message_type === 'sticker' && msg.metadata?.image_url" class="msg-sticker">
-                                    <img :src="msg.metadata.image_url" class="sticker-img" :title="msg.metadata.emoji || ''" />
-                                </div>
-                                <!-- 文件消息 -->
-                                <div v-else-if="msg.message_type === 'file'" class="msg-file" @click.stop="previewFile(msg)">
-                                    <div class="file-icon">{{ fileIcon(msg) }}</div>
-                                    <div class="file-info">
-                                        <div class="file-name">{{ fileName(msg) }}</div>
-                                        <div class="file-meta">
-                                            <span class="file-size">{{ fileSizeStr(msg) }}</span>
-                                            <span class="file-action">预览</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- 转发消息 -->
-                                <div v-else-if="msg.message_type === 'forward'" class="msg-forward">
-                                    <div class="forward-header">📨 {{ msg.metadata?.merge_forward ? '合并转发' : '转发消息' }}</div>
-                                    <div v-if="msg.metadata?.merge_forward" class="forward-preview">
-                                        <div v-for="(item, fi) in (msg.attachments || msg.metadata?.items || [])" :key="fi" class="forward-item">
-                                            <span class="forward-item-sender">{{ item.sender }}:</span>
-                                            <span class="forward-item-content">{{ item.content }}</span>
-                                        </div>
-                                        <div class="forward-count">共 {{ msg.metadata?.message_count || (msg.attachments?.length || 0) }} 条消息</div>
-                                    </div>
-                                    <div v-else class="forward-single">
-                                        <span class="forward-origin">来自 {{ msg.metadata?.original_sender || '用户' }}</span>
-                                        <span class="forward-text">{{ msg.content }}</span>
-                                    </div>
-                                </div>
-                                <!-- 卡片消息：产品/订单/审批/文章/优惠券/待办，支持回调 -->
-                                <div v-else-if="msg.message_type === 'card' && msg.metadata" class="msg-card" :class="'card-'+ (msg.metadata.type || 'info')">
-                                    <!-- 产品卡片 -->
-                                    <template v-if="msg.metadata.type === 'product_card' && msg.metadata.product">
-                                        <a v-if="msg.metadata.product.image_url" :href="msg.metadata.product.action_url" target="_blank" class="card-img-link">
-                                            <img :src="msg.metadata.product.image_url" class="card-img" @error="$event.target.style.display='none'" />
-                                        </a>
-                                        <div class="card-body">
-                                            <a :href="msg.metadata.product.action_url" target="_blank" class="card-title-link">
-                                                <div class="card-title">{{ msg.metadata.product.name }}</div>
-                                            </a>
-                                            <div class="card-desc">{{ msg.metadata.product.description }}</div>
-                                            <div class="card-price">¥{{ msg.metadata.product.price }}</div>
-                                            <div class="card-actions">
-                                                <a :href="msg.metadata.product.action_url" target="_blank" class="card-btn primary">{{ msg.metadata.product.action_label || '立即购买' }}</a>
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <!-- 订单卡片 -->
-                                    <template v-else-if="msg.metadata.type === 'order_card' && msg.metadata.order">
-                                        <div class="card-body">
-                                            <div class="card-title">📦 订单 {{ msg.metadata.order.order_number }}</div>
-                                            <div class="card-field"><span class="card-label">金额</span><span class="card-value">¥{{ msg.metadata.order.amount }}</span></div>
-                                            <div class="card-field"><span class="card-label">状态</span><el-tag :type="msg.metadata.order.status === 'paid' ? 'success' : 'warning'" size="small">{{ msg.metadata.order.status }}</el-tag></div>
-                                            <div class="card-actions">
-                                                <a :href="msg.metadata.order.action_url" target="_blank" class="card-btn primary">{{ msg.metadata.order.action_label || '查看订单' }}</a>
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <!-- 文章卡片 -->
-                                    <template v-else-if="msg.metadata.type === 'article_card' && msg.metadata.article">
-                                        <a v-if="msg.metadata.article.cover_url" :href="msg.metadata.article.action_url" target="_blank" class="card-img-link">
-                                            <img :src="msg.metadata.article.cover_url" class="card-img" @error="$event.target.style.display='none'" />
-                                        </a>
-                                        <div class="card-body">
-                                            <a :href="msg.metadata.article.action_url" target="_blank" class="card-title-link">
-                                                <div class="card-title">{{ msg.metadata.article.title }}</div>
-                                            </a>
-                                            <div class="card-desc">{{ msg.metadata.article.summary }}</div>
-                                            <div v-if="msg.metadata.article.author" class="card-meta">✍️ {{ msg.metadata.article.author }}</div>
-                                            <div class="card-actions">
-                                                <a :href="msg.metadata.article.action_url" target="_blank" class="card-btn primary">{{ msg.metadata.article.action_label || '阅读全文' }}</a>
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <!-- 审批卡片 -->
-                                    <template v-else-if="msg.metadata.type === 'approval_card' && msg.metadata.approval">
-                                        <div class="card-body">
-                                            <div class="card-title">📋 {{ msg.metadata.approval.title }}</div>
-                                            <div v-if="msg.metadata.approval.applicant" class="card-field"><span class="card-label">申请人</span><span class="card-value">{{ msg.metadata.approval.applicant }}</span></div>
-                                            <div v-if="msg.metadata.approval.amount" class="card-field"><span class="card-label">金额</span><span class="card-value">¥{{ msg.metadata.approval.amount }}</span></div>
-                                            <div v-if="msg.metadata.approval.reason" class="card-desc">{{ msg.metadata.approval.reason }}</div>
-                                            <div v-for="(f, fi) in (msg.metadata.approval.fields || [])" :key="fi" class="card-field">
-                                                <span class="card-label">{{ f.label }}</span><span class="card-value">{{ f.value }}</span>
-                                            </div>
-                                            <div v-if="msg.metadata.actions?.length" class="card-actions">
-                                                <span v-for="(a, ai) in msg.metadata.actions" :key="ai" class="card-btn" :class="a.type || 'default'"
-                                                    @click="handleCardAction(msg, a)">{{ a.label }}</span>
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <!-- 优惠券卡片 -->
-                                    <template v-else-if="msg.metadata.type === 'coupon_card' && msg.metadata.coupon">
-                                        <div class="card-body coupon-body">
-                                            <div class="coupon-discount">{{ msg.metadata.coupon.discount }}</div>
-                                            <div class="card-title">{{ msg.metadata.coupon.title }}</div>
-                                            <div v-if="msg.metadata.coupon.condition" class="card-desc">{{ msg.metadata.coupon.condition }}</div>
-                                            <div v-if="msg.metadata.coupon.expire_at" class="card-meta">⏳ {{ msg.metadata.coupon.expire_at }} 前有效</div>
-                                            <div v-if="msg.metadata.actions?.length" class="card-actions">
-                                                <span v-for="(a, ai) in msg.metadata.actions" :key="ai" class="card-btn" :class="a.type || 'primary'"
-                                                    @click="handleCardAction(msg, a)">{{ a.label }}</span>
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <!-- 待办卡片 -->
-                                    <template v-else-if="msg.metadata.type === 'todo_card' && msg.metadata.todo">
-                                        <div class="card-body">
-                                            <div class="card-title">
-                                                <el-tag v-if="msg.metadata.todo.priority" :type="msg.metadata.todo.priority === 'urgent' ? 'danger' : msg.metadata.todo.priority === 'high' ? 'warning' : 'info'" size="small" style="margin-right:6px">{{ msg.metadata.todo.priority }}</el-tag>
-                                                {{ msg.metadata.todo.title }}
-                                            </div>
-                                            <div v-if="msg.metadata.todo.assignee" class="card-field"><span class="card-label">负责人</span><span class="card-value">{{ msg.metadata.todo.assignee }}</span></div>
-                                            <div v-if="msg.metadata.todo.deadline" class="card-field"><span class="card-label">截止</span><span class="card-value">{{ msg.metadata.todo.deadline }}</span></div>
-                                            <div v-if="msg.metadata.actions?.length" class="card-actions">
-                                                <span v-for="(a, ai) in msg.metadata.actions" :key="ai" class="card-btn" :class="a.type || 'default'"
-                                                    @click="handleCardAction(msg, a)">{{ a.label }}</span>
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <!-- 通用自定义卡片 -->
-                                    <template v-else-if="msg.metadata.card">
-                                        <div class="card-body">
-                                            <div class="card-title">{{ msg.metadata.card.title }}</div>
-                                            <div v-for="(f, fi) in (msg.metadata.card.fields || [])" :key="fi" class="card-field">
-                                                <span class="card-label">{{ f.label }}</span><span class="card-value">{{ f.value }}</span>
-                                            </div>
-                                            <div v-if="msg.metadata.card.actions?.length" class="card-actions">
-                                                <span v-for="(a, ai) in msg.metadata.card.actions" :key="ai" class="card-btn" :class="a.type || 'default'"
-                                                    @click="handleCardAction(msg, a)">{{ a.label }}</span>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </div>
-                                <div v-else class="msg-text-wrap" :class="{ 'msg-collapsed': isLongText(msg.content) && !msg._expanded }">
-                                    <div class="msg-text" v-html="renderMarkdown(renderCustomEmojis(renderSpoiler(msg.content)))"></div>
-                                    <button v-if="isLongText(msg.content) && !msg._expanded" class="expand-btn" @click.stop="msg._expanded = true">展开全文 <el-icon><ArrowDown /></el-icon></button>
-                                    <button v-else-if="isLongText(msg.content) && msg._expanded" class="expand-btn expanded" @click.stop="msg._expanded = false">收起 <el-icon><ArrowUp /></el-icon></button>
-                                </div>
-                                <span v-if="msg.is_edited" class="edited-badge"> 已编辑</span>
-                                <div v-if="msg.attachments && msg.attachments.length" class="msg-attachments">
-                                    <div v-for="(att, i) in msg.attachments" :key="i" class="msg-attachment-item">
-                                        <template v-if="typeof att === 'string'"><a :href="att" target="_blank">📎 附件 {{ i + 1 }}</a></template>
-                                        <template v-else>
-                                            <a v-if="att.url && (att.mime||'').startsWith('image/')" :href="att.url" target="_blank" @click.stop.prevent="previewImage(att.url)"><img :src="att.url" alt="" class="attach-thumb" /><span class="attach-preview-label">预览</span></a>
-                                            <a v-else :href="att.url" target="_blank" @click.stop.prevent="previewAttachment(att)">📎 {{ att.name || '附件' }}</a>
-                                        </template>
-                                    </div>
-                                </div>
-                                <div class="msg-encrypted" title="端到端加密">🔒</div>
-                                <div class="msg-time">
-                                    <span v-if="msg.sender_id === myId" class="msg-status-icon" :style="{color: messageStatusColor(msg)}">{{ messageStatusIcon(msg) }}</span>
-                                    {{ formatTime(msg.created_at) }}
-                                </div>
-                                <div v-if="msg.linkPreview" class="link-card" @click.stop="openLink(msg.linkPreview.url)">
-                                    <img v-if="msg.linkPreview.image" :src="msg.linkPreview.image" class="link-card-img" @error="msg.linkPreview.image = null" />
-                                    <div class="link-card-body">
-                                        <div class="link-card-title">{{ msg.linkPreview.title || msg.linkPreview.url }}</div>
-                                        <div v-if="msg.linkPreview.description" class="link-card-desc">{{ msg.linkPreview.description }}</div>
-                                        <div class="link-card-site">{{ msg.linkPreview.site_name || new URL(msg.linkPreview.url).hostname }}</div>
-                                    </div>
-                                </div>
-                                <div v-if="msg.id" class="msg-reactions">
-                                    <span v-for="r in (msg.reactions || [])" :key="r.emoji" class="reaction-badge" :class="{ 'reaction-me': r.me }" @click.stop="toggleReaction(msg, r.emoji)" :title="(r.users||[]).join(', ')">{{ r.emoji }} {{ r.count }}</span>
-                                    <el-popover trigger="click" :width="240">
-                                        <template #reference><span class="reaction-add" @click.stop>😊</span></template>
-                                        <div class="emoji-picker"><span v-for="emoji in emojiList" :key="emoji" class="emoji-option" @click="toggleReaction(msg, emoji)">{{ emoji }}</span></div>
-                                    </el-popover>
-                                </div>
-                                <div v-if="msg.sender_id === myId && msg.read_count > 0" class="msg-read-status">
-                                    <el-icon style="margin-right:2px;font-size:12px"><Select /></el-icon> {{ msg.read_count }} 人已读
-                                </div>
-                            </div>
-                            <div class="msg-actions">
-                                <el-button text size="small" @click.stop="replyToMsg = msg" title="回复"><el-icon><ChatDotRound /></el-icon></el-button>
-                                <el-button v-if="msg.thread_reply_count > 0 || msg.id === activeThreadId" text size="small" @click.stop="openThread(msg)" title="查看回复串">
-                                    <el-icon><ChatLineSquare /></el-icon> {{ msg.thread_reply_count || '' }}
-                                </el-button>
-                                <el-button text size="small" @click.stop="openForward(msg)" title="转发"><el-icon><Share /></el-icon></el-button>
-                                <el-button v-if="!msg.is_pinned" text size="small" @click.stop="pinMsg(msg)" title="置顶"><el-icon><StarFilled /></el-icon></el-button>
-                                <el-button v-else text size="small" type="warning" @click.stop="unpinMsg(msg)" title="取消置顶"><el-icon><StarFilled /></el-icon></el-button>
-                                <el-button v-if="msg.sender_id === myId && !msg.is_recalled" text size="small" @click.stop="editMessage(msg)" title="编辑"><el-icon><EditPen /></el-icon></el-button>
-                                <el-button v-if="(msg.sender_id === myId || (activeConv?.type === 'group' && userRoleInGroup !== 'member')) && !msg.is_recalled" text size="small" @click.stop="recallMessage(msg)" title="撤回"><el-icon><RefreshLeft /></el-icon></el-button>
-                                <el-button v-if="msg.sender_id === myId" text size="small" @click.stop="deleteMessage(msg)" title="删除"><el-icon><Delete /></el-icon></el-button>
-                                <el-button text size="small" @click.stop="toggleFavorite(msg)" :title="msg.is_favorited ? '取消收藏' : '收藏'">
-                                    <el-icon :color="msg.is_favorited ? '#e6a23c' : ''"><StarFilled v-if="msg.is_favorited" /><Star v-else /></el-icon>
-                                </el-button>
-                                <el-button text size="small" @click.stop="togglePendingMsg(msg)" :title="msg.is_pending ? '取消待处理' : '标记待处理'">
-                                    <el-icon :color="msg.is_pending ? '#e6a23c' : ''"><Clock v-if="msg.is_pending" /><Watch v-else /></el-icon>
-                                </el-button>
-                                <el-button text size="small" @click.stop="openCreateTicket(msg)" title="创建工单"><el-icon><Tickets /></el-icon></el-button>
-                                <el-button v-if="msg.sender_id !== myId" text size="small" @click.stop="openReportDialog(msg)" title="举报"><el-icon><Warning /></el-icon></el-button>
-                                <el-button v-if="msg.sender_id !== myId && msg.content" text size="small" @click.stop="translateMessage(msg)" title="翻译"><el-icon><ChatLineRound /></el-icon></el-button>
-                                <el-button text size="small" @click.stop="aiOptimizeMessage(msg)" title="AI 优化"><el-icon><MagicStick /></el-icon></el-button>
-                                <el-button v-if="msg.sender_id !== myId" text size="small" @click.stop="shareContact(msg)" title="分享名片"><el-icon><User /></el-icon></el-button>
-                            </div>
-                        </div>
-                        <div v-if="!messages.length" class="empty-chat" style="padding:60px 0"><el-empty description="暂无消息，发送第一条消息吧" :image-size="60" /></div>
-                    </div>
-                    <!-- THREAD: 话题面板 -->
-                    <div v-if="activeThreadId" class="thread-panel">
-                        <div class="thread-header">
-                            <span>💬 回复串</span>
-                            <el-button text size="small" @click="closeThread"><el-icon><Close /></el-icon></el-button>
-                        </div>
-                        <div class="thread-parent-msg" v-if="threadParentMsg">
-                            <div class="thread-parent-sender">{{ threadParentMsg.sender?.name || '用户' }}</div>
-                            <div class="thread-parent-content">{{ threadParentMsg.content }}</div>
-                        </div>
-                        <div class="thread-replies" ref="threadReplyRef">
-                            <div v-for="r in threadReplies" :key="r.id" class="thread-reply-item">
-                                <div class="thread-reply-avatar">
-                                    <img v-if="r.sender?.avatar" :src="r.sender.avatar" class="msg-avatar-img" />
-                                    <span v-else>{{ r.sender?.name?.charAt(0) || '?' }}</span>
-                                </div>
-                                <div class="thread-reply-body">
-                                    <div class="thread-reply-sender">{{ r.sender?.name || '用户' }} <span class="thread-reply-time">{{ formatTime(r.created_at) }}</span></div>
-                                    <div class="thread-reply-text">{{ r.content }}</div>
-                                </div>
-                            </div>
-                            <div v-if="!threadReplies.length && !loadingThread" class="thread-empty">暂无回复</div>
-                            <div v-if="loadingThread" class="thread-loading"><el-icon class="is-loading"><Loading /></el-icon></div>
-                        </div>
-                        <div class="thread-input-row">
-                            <el-input v-model="threadInput" size="small" placeholder="回复此话题..." @keydown.enter.prevent="sendThreadReply" :disabled="sendingThread" />
-                            <el-button size="small" type="primary" :loading="sendingThread" @click="sendThreadReply" :disabled="!threadInput.trim()">回复</el-button>
-                        </div>
-                    </div><!-- /thread-panel -->
-                    </div><!-- /chat-messages-wrap -->
-                    <div class="chat-input-area">
-                        <div v-if="replyToMsg" class="reply-preview">
-                            <div class="reply-preview-content">
-                                <span class="reply-preview-label">回复 {{ replyToMsg.sender?.name || '用户' }}:</span>
-                                <span class="reply-preview-text">{{ replyPreviewText(replyToMsg) }}</span>
-                            </div>
-                            <el-button text size="small" @click="replyToMsg = null"><el-icon><Close /></el-icon></el-button>
-                        </div>
-                        <div v-if="pendingAttachments.length" class="pending-attachments">
-                            <div v-for="(att, i) in pendingAttachments" :key="i" class="pending-att-item">
-                                <span class="att-name">📎 {{ att.name }}</span>
-                                <el-button text size="small" @click="removePendingAttachment(i)"><el-icon><Close /></el-icon></el-button>
-                            </div>
-                        </div>
-                        <!-- 斜杠命令建议 -->
-                        <div v-if="slashSuggestions.length" class="slash-suggestions">
-                            <div v-for="(cmd, i) in slashSuggestions" :key="cmd.command"
-                                class="slash-item" :class="{ 'slash-active': i === slashSelectedIndex }"
-                                @click="selectSlashCommand(cmd)" @mouseenter="slashSelectedIndex = i">
-                                <span class="slash-cmd">{{ cmd.command }}</span>
-                                <span class="slash-desc">{{ cmd.description }}</span>
-                            </div>
-                        </div>
-                        <el-input v-model="inputMessage" type="textarea" :rows="3" placeholder="输入消息... 输入 / 查看命令" @keydown.enter.exact.prevent="handleInputEnter" @keydown.up.prevent="slashSelectUp" @keydown.down.prevent="slashSelectDown" @input="onSlashInput" />
-                        <div class="input-actions">
-                            <div class="input-action-left">
-                                <el-button text size="small" @click="showFileUpload = true" title="上传文件/图片"><el-icon><Picture /></el-icon></el-button>
-                                <el-button text size="small" @click="toggleVoiceRecord" :title="isRecording ? '停止录音' : '语音消息'" :type="isRecording ? 'danger' : 'default'">
-                                    <template v-if="isRecording">{{ recordingDuration }}s</template>
-                                    <el-icon v-else><Microphone /></el-icon>
-                                </el-button>
-                                <el-button text size="small" @click="showCannedPanel = !showCannedPanel" title="快捷回复" :type="showCannedPanel ? 'primary' : 'default'"><el-icon><ChatDotRound /></el-icon></el-button>
-                                <el-button text size="small" @click="showStickerPanel = !showStickerPanel" title="贴纸/GIF" :type="showStickerPanel ? 'primary' : 'default'"><el-icon><Mug /></el-icon></el-button>
-                                <el-button text size="small" @click="showAIPanel = !showAIPanel" title="AI 助手" :type="showAIPanel ? 'primary' : 'default'"><el-icon><MagicStick /></el-icon></el-button>
-                                <el-dropdown trigger="click" v-if="inputMessage.trim()">
-                                    <el-button text size="small" title="AI 写作"><el-icon><EditPen /></el-icon></el-button>
-                                    <template #dropdown>
-                                        <el-dropdown-menu>
-                                            <el-dropdown-item @click="aiWrite('polish')"><el-icon><Edit /></el-icon> 润色</el-dropdown-item>
-                                            <el-dropdown-item @click="aiWrite('expand')"><el-icon><FullScreen /></el-icon> 扩写</el-dropdown-item>
-                                            <el-dropdown-item @click="aiWrite('translate')"><el-icon><ChatLineRound /></el-icon> 翻译为中文</el-dropdown-item>
-                                            <el-dropdown-item @click="aiWrite('formal')"><el-icon><Document /></el-icon> 改正式语气</el-dropdown-item>
-                                            <el-dropdown-item @click="aiWrite('friendly')"><el-icon><Mug /></el-icon> 改友好语气</el-dropdown-item>
-                                        </el-dropdown-menu>
-                                    </template>
-                                </el-dropdown>
-                                <el-button text size="small" @click="markdownEnabled = !markdownEnabled" :title="markdownEnabled ? 'Markdown 已开启' : 'Markdown 已关闭'" :type="markdownEnabled ? 'primary' : 'default'">
-                                    <code style="font-weight:700">MD</code>
-                                </el-button>
-                                <el-button text size="small" @click="showLocationDialog = true" title="发送位置"><el-icon><Location /></el-icon></el-button>
-                                <el-button v-if="activeConv?.type === 'group'" text size="small" @click="openPollDialog" title="发起投票"><el-icon><Select /></el-icon></el-button>
-                                <span class="text-muted">Enter 发送</span>
-                                <el-button text size="small" @click="translateConversation" title="翻译整个会话"><el-icon><ChatLineRound /></el-icon></el-button>
-                            </div>
-                            <el-button type="primary" size="small" :loading="sending" @click="sendMessage">发送</el-button>
-                        </div>
-                        <div v-if="smartReplies.length && activeConv" class="smart-replies-bar">
-                            <span class="smart-replies-label">💡 快捷回复</span>
-                            <el-button v-for="(r, i) in smartReplies" :key="i" size="small" text @click="inputMessage = r; sendMessage()">{{ r }}</el-button>
-                            <el-button size="small" text @click="smartReplies = []"><el-icon><Close /></el-icon></el-button>
-                        </div>
-                        <div v-if="showCannedPanel" class="canned-panel">
-                            <div class="canned-header">
-                                <span>📋 快捷回复</span>
-                                <div>
-                                    <el-button text size="small" @click="showAgentReplyManager = true; loadAgentQuickReplies()">管理</el-button>
-                                    <el-button text size="small" @click="showCannedPanel = false"><el-icon><Close /></el-icon></el-button>
-                                </div>
-                            </div>
-                            <div class="canned-categories">
-                                <el-radio-group v-model="cannedCategory" size="small">
-                                    <el-radio-button label="">全部</el-radio-button>
-                                    <el-radio-button v-for="cat in cannedCategories" :key="cat" :label="cat">{{ cat }}</el-radio-button>
-                                </el-radio-group>
-                            </div>
-                            <div class="canned-list">
-                                <div v-for="r in filteredCanned" :key="r.id" class="canned-item" @click="selectCanned(r)">
-                                    <div class="canned-title">{{ r.title }}</div>
-                                    <div class="canned-preview">{{ r.content }}</div>
-                                </div>
-                                <div v-if="!filteredCanned.length" style="padding:20px;text-align:center;color:#999">暂无快捷回复</div>
-                            </div>
-                        </div>
-                        <div v-if="showAIPanel" class="ai-panel">
-                            <div class="ai-header"><span>🤖 AI 助手</span><el-button text size="small" @click="showAIPanel = false"><el-icon><Close /></el-icon></el-button></div>
-                            <div class="ai-messages" ref="aiMsgRef">
-                                <div v-for="(m, i) in aiMessages" :key="i" class="ai-message" :class="m.role">
-                                    <span class="ai-role-tag">{{ m.role === 'assistant' ? 'AI' : '我' }}</span>
-                                    <span class="ai-msg-content">{{ m.content }}</span>
-                                </div>
-                                <div v-if="aiStreaming" class="ai-streaming-indicator">AI 正在输入<el-icon class="is-loading" style="margin-left:4px"><Loading /></el-icon></div>
-                            </div>
-                            <div class="ai-input-row">
-                                <el-input v-model="aiInput" size="small" placeholder="输入问题..." @keydown.enter.prevent="sendAiMessage" :disabled="aiStreaming" />
-                                <el-button size="small" type="primary" :loading="aiLoading" @click="sendAiMessage" :disabled="aiStreaming">{{ aiStreaming ? '输入中...' : '发送' }}</el-button>
-                            </div>
-                        </div>
-                        <div v-if="showStickerPanel" class="sticker-panel">
-                            <div class="sticker-header">
-                                <span>😊 贴纸 / GIF</span>
-                                <el-radio-group v-model="stickerTab" size="small">
-                                    <el-radio-button value="emoji">😀 表情</el-radio-button>
-                                    <el-radio-button value="stickers">🖼️ 贴纸</el-radio-button>
-                                    <el-radio-button value="custom">🏢 企业</el-radio-button>
-                                    <el-radio-button value="gif">🎬 GIF</el-radio-button>
-                                </el-radio-group>
-                                <el-button text size="small" @click="showStickerPanel = false"><el-icon><Close /></el-icon></el-button>
-                            </div>
-                            <div v-if="stickerTab === 'emoji'" class="sticker-grid emoji-grid">
-                                <span v-for="e in commonEmojis" :key="e" class="emoji-item" @click="sendStickerDirectly({ emoji: e })">{{ e }}</span>
-                            </div>
-                            <div v-if="stickerTab === 'stickers'" class="sticker-grid">
-                                <div v-if="stickerPacks.length === 0" style="padding:20px;text-align:center;color:#999">暂无贴纸</div>
-                                <div v-for="pack in stickerPacks" :key="pack.id" class="sticker-pack">
-                                    <div class="sticker-pack-name">{{ pack.name }}</div>
-                                    <div class="sticker-pack-items">
-                                        <img v-for="s in pack.stickers" :key="s.id" :src="s.image_url" class="sticker-item" @click="sendStickerDirectly({ sticker: s })" :title="s.name" />
-                                    </div>
-                                </div>
-                            </div>
-                            <div v-if="stickerTab === 'custom'" class="sticker-grid">
-                                <div v-if="customEmojis.length === 0" style="padding:20px;text-align:center;color:#999">暂无企业自定义表情</div>
-                                <div v-for="cat in customEmojiGroups" :key="cat.name" class="sticker-pack" v-if="cat.items.length">
-                                    <div class="sticker-pack-name">{{ customEmojiCategoryLabel(cat.name) }}</div>
-                                    <div class="sticker-pack-items">
-                                        <div v-for="e in cat.items" :key="e.id" class="custom-emoji-item" @click="insertCustomEmoji(e)" :title="':' + e.shortcode + ':'">
-                                            <img :src="e.image_url" class="sticker-item" />
-                                            <span class="custom-emoji-label">:{{ e.shortcode }}:</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div v-if="stickerTab === 'gif'" class="gif-panel">
-                                <div class="gif-search-row">
-                                    <el-input v-model="gifQuery" size="small" placeholder="搜索 GIF..." @keydown.enter.prevent="searchGif" />
-                                    <el-button size="small" type="primary" @click="searchGif">搜索</el-button>
-                                </div>
-                                <div v-if="gifResults.length" class="gif-grid">
-                                    <img v-for="(gif, i) in gifResults" :key="i" :src="gif.preview || gif.url" class="gif-item" @click="sendStickerDirectly({ gif })" :title="gif.title" />
-                                </div>
-                                <div v-else style="padding:20px;text-align:center;color:#999">{{ gifQuery ? '无结果' : '输入关键词搜索 GIF' }}</div>
-                            </div>
-                        </div>
-                    </div>
+                    <chat-message-list
+                        :messages="messages"
+                        :my-id="myId"
+                        :pinned-messages="pinnedMessages"
+                        :has-more="hasMore"
+                        :selecting-forward="selectingForward"
+                        :forward-msgs="forwardMsgs"
+                        :active-thread-id="activeThreadId"
+                        :thread-parent-msg="threadParentMsg"
+                        :thread-replies="threadReplies"
+                        :loading-thread="loadingThread"
+                        :sending-thread="sendingThread"
+                        :thread-input="threadInput"
+                        :voice-playing-id="voicePlayingId"
+                        :conv-type="activeConv?.type"
+                        :user-role-in-group="userRoleInGroup"
+                        :custom-emoji-map="customEmojiMap"
+                        @scroll-to-message="scrollToMessage"
+                        @load-more="loadMore"
+                        @toggle-select-forward="toggleSelectForward"
+                        @reply-to-msg="replyToMsg = $event"
+                        @open-thread="openThread"
+                        @open-forward="openForward"
+                        @pin-msg="pinMsg"
+                        @unpin-msg="unpinMsg"
+                        @edit-message="editMessage"
+                        @recall-message="recallMessage"
+                        @delete-message="deleteMessage"
+                        @toggle-favorite="toggleFavorite"
+                        @toggle-pending="togglePendingMsg"
+                        @create-ticket="openCreateTicket"
+                        @report-message="openReportDialog"
+                        @translate-message="translateMessage"
+                        @ai-optimize="aiOptimizeMessage"
+                        @share-contact="shareContact"
+                        @preview-image="previewImage"
+                        @preview-attachment="previewAttachment"
+                        @preview-file="previewFile"
+                        @play-voice="playVoice"
+                        @transcribe-voice="transcribeVoice"
+                        @add-contact-by-card="addContactByCard"
+                        @toggle-reaction="toggleReaction($event.msg, $event.emoji)"
+                        @card-action="handleCardAction($event.msg, $event.action)"
+                        @close-thread="closeThread"
+                        @send-thread-reply="sendThreadReply"
+                    />
+                    <chat-input-area
+                        :input-message="inputMessage"
+                        :sending="sending"
+                        :reply-to-msg="replyToMsg"
+                        :pending-attachments="pendingAttachments"
+                        :slash-suggestions="slashSuggestions"
+                        :slash-selected-index="slashSelectedIndex"
+                        :is-recording="isRecording"
+                        :recording-duration="recordingDuration"
+                        :show-canned-panel="showCannedPanel"
+                        :show-ai-panel="showAIPanel"
+                        :show-sticker-panel="showStickerPanel"
+                        :smart-replies="smartReplies"
+                        :markdown-enabled="markdownEnabled"
+                        :conv-type="activeConv?.type"
+                        :ai-messages="aiMessages"
+                        :ai-input="aiInput"
+                        :ai-loading="aiLoading"
+                        :ai-streaming="aiStreaming"
+                        :canned-replies="cannedReplies"
+                        :sticker-packs="stickerPacks"
+                        :custom-emojis="customEmojis"
+                        :custom-emoji-groups="customEmojiGroups"
+                        :gif-results="gifResults"
+                        @send="handleInputEnter"
+                        @clear-reply="replyToMsg = null"
+                        @remove-attachment="removePendingAttachment"
+                        @select-slash="selectSlashCommand"
+                        @slash-up="slashSelectUp"
+                        @slash-down="slashSelectDown"
+                        @input-change="onSlashInput(); onInputTyping()"
+                        @show-file-upload="showFileUpload = true"
+                        @toggle-voice="toggleVoiceRecord"
+                        @toggle-canned="showCannedPanel = !showCannedPanel"
+                        @toggle-sticker="showStickerPanel = !showStickerPanel"
+                        @toggle-ai="showAIPanel = !showAIPanel"
+                        @ai-write="aiWrite"
+                        @toggle-markdown="markdownEnabled = !markdownEnabled"
+                        @show-location="showLocationDialog = true"
+                        @show-poll="openPollDialog"
+                        @translate-conv="translateConversation"
+                        @smart-reply="inputMessage = $event; sendMessage()"
+                        @clear-smart-replies="smartReplies = []"
+                        @manage-canned="showAgentReplyManager = true; loadAgentQuickReplies()"
+                        @select-canned="selectCanned"
+                        @send-ai="sendAiMessage"
+                        @send-sticker="sendStickerDirectly"
+                        @insert-custom-emoji="insertCustomEmoji"
+                        @search-gif="searchGif"
+                    />
                     <div class="typing-indicator" v-if="typingUsers.length"><span>{{ typingUsers.join(', ') }} 正在输入...</span></div>
                 </template>
                 </template>
@@ -2444,7 +1919,7 @@
         </div>
 
         <!-- ====== Copilot 浮动按钮 ====== -->
-        <el-button class="copilot-fab" circle :type="showCopilot ? 'primary' : 'default'" @click="showCopilot = !showCopilot" title="Copilot">
+        <el-button v-if="false" class="copilot-fab" circle :type="showCopilot ? 'primary' : 'default'" @click="showCopilot = !showCopilot" title="Copilot">
             <el-icon style="font-size:20px"><MagicStick /></el-icon>
         </el-button>
         <transition name="slide-right">
@@ -3499,12 +2974,12 @@
             <template #header>
                 <div style="display:flex;align-items:center;gap:10px">
                     <span>🤖 自动回复管理</span>
-                    <el-tag size="small" type="info" effect="plain">公众号: {{ activeConv?.oaAccount?.name || selectedOaAccount?.name || '' }}</el-tag>
+                    <el-tag size="small" type="info" effect="plain">互物号: {{ activeConv?.oaAccount?.name || selectedOaAccount?.name || '' }}</el-tag>
                 </div>
             </template>
             <el-tabs v-model="oaAutoReplyTab" @tab-change="loadOaAutoReplies">
                 <el-tab-pane label="💬 关注回复" name="welcome">
-                    <div style="margin-bottom:10px;color:#909399;font-size:12px">当用户关注公众号时自动发送的回复消息</div>
+                    <div style="margin-bottom:10px;color:#909399;font-size:12px">当用户关注互物号时自动发送的回复消息</div>
                     <div v-if="oaWelcomeReply" class="oa-auto-reply-card">
                         <div class="oa-auto-reply-header">
                             <span class="oa-auto-reply-label">回复内容</span>
@@ -3848,7 +3323,7 @@
                 <div style="background:#fff;display:inline-block;padding:12px;border-radius:8px;border:1px solid #e4e7ed;margin-bottom:10px">
                     <img :src="oaQrData.qr_url" style="width:240px;height:240px;display:block" alt="关注二维码" />
                 </div>
-                <div style="font-size:12px;color:#909399;margin-bottom:12px">扫描二维码关注公众号</div>
+                <div style="font-size:12px;color:#909399;margin-bottom:12px">扫描二维码关注互物号</div>
                 <div style="display:flex;gap:8px;justify-content:center">
                     <el-button size="small" @click="downloadOaQrCode">⬇️ 下载二维码</el-button>
                     <el-button size="small" text @click="copyOaFollowUrl">📋 复制链接</el-button>
@@ -3956,11 +3431,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
     Plus, Star, StarFilled, Bell, Mute, Delete, ArrowLeft, ArrowRight, ArrowDown,
     Message, Setting, MoreFilled, Edit, User, Search, Picture,
-    ChatDotRound, Download, Close, Loading, CollectionTag, MagicStick,
+    ChatDotRound, ChatRound, Download, Close, Loading, CollectionTag, MagicStick,
     Tickets, DataBoard, Service, Share, Phone, VideoCamera, MuteNotification,
     RefreshLeft, RemoveFilled, EditPen, Timer, Microphone, CaretRight,
     Sunny, MoonNight, Monitor, Location, Select, Warning, Lock,
-    ChatLineSquare, View, Upload, Document, Link, Reading, CopyDocument
+    ChatLineSquare, View, Upload, Document, Link, Reading, CopyDocument,
+    Headset, UserFilled
 } from '@element-plus/icons-vue'
 import apiClient from '@/api/client'
 import PointsHistory from '@/components/PointsHistory.vue'
@@ -3971,6 +3447,13 @@ import ChannelPanel from './ChannelPanel.vue'
 import PlazaPanel from './PlazaPanel.vue'
 import OaPanel from './OaPanel.vue'
 import AgentWorkspace from '../im/AgentWorkspace.vue'
+
+// 已提取的子组件（待集成）
+// import ChatMessageList from './ChatMessageList.vue'
+// import ChatInputArea from './ChatInputArea.vue'
+// import MessageSidebar from './MessageSidebar.vue'
+// import FriendSidebar from './FriendSidebar.vue'
+// import UserProfilePanel from './UserProfilePanel.vue'
 
 function stripHtml(html) {
   var d = document.createElement('div')
@@ -3993,7 +3476,7 @@ function typeIcon(type) {
     return icons[type] || icons.default
 }
 function typeName(type) {
-    const names = { 'blog_post': '博客', 'oa_article': '公众号', 'forum_post': '广场', 'product': '商品', 'default': '内容' }
+    const names = { 'blog_post': '博客', 'oa_article': '互物号', 'forum_post': '广场', 'product': '商品', 'default': '内容' }
     return names[type] || names.default
 }
 const tplLabels = { discuss: '💬 讨论', poll: '📊 投票', qa: '❓ 问答', checkin: '✅ 打卡', announce: '📢 公告' }
@@ -4085,7 +3568,7 @@ const loadingChannels = ref(false)
 const browseChannels = ref([])
 const channelCategories = ref([])
 
-// ── 公众号状态 ──
+// ── 互物号状态 ──
 const oaPanelRef = ref(null)
 const oaArticles = ref([])
 const loadingOaArticles = ref(false)
@@ -5299,7 +4782,21 @@ const notifications = ref([])
 async function loadNotifications() { try { const res = await apiClient.get('/notifications'); notifications.value = res.data?.data || [] } catch { notifications.value = [] } }
 function handleNotifClick(n) { /* handle notification click */ }
 async function markAllNotifRead() { try { await apiClient.put('/notifications/read-all'); notifications.value.forEach(n => n.is_read = true) } catch { /* ignore */ } }
-function initNotifEcho() { /* echo listener placeholder */ }
+function initNotifEcho() {
+    const userId = authStore.user?.id
+    if (!userId || typeof window.Echo === 'undefined') return
+
+    if (window._notifEchoChannel) {
+        window.Echo.leave(`App.Models.User.${userId}`)
+    }
+
+    window._notifEchoChannel = window.Echo.private(`App.Models.User.${userId}`)
+    window._notifEchoChannel.listen('.notification.created', (payload) => {
+        notifications.value.unshift(payload)
+        // 更新侧栏通知徽标
+        if (typeof updateUnreadCount === 'function') updateUnreadCount()
+    })
+}
 
 // ── 在线状态与心跳 ──
 let heartbeatTimer = null
@@ -5579,6 +5076,17 @@ async function setMyStatus(status) {
     myStatus.value = status
     try { await apiClient.put('/user-chat/status', { status }) } catch { /* ignore */ }
 }
+function handleToolAction(cmd) {
+    const actions = {
+        blockedList: () => showBlockedList.value = true,
+        sensitiveWords: () => showSensitiveWords.value = true,
+        dndSettings: () => showDndSettings.value = true,
+        privacySettings: () => showPrivacySettings.value = true,
+        dashboard: () => showDashboard.value = true,
+        aiFriendAdmin: () => showAiFriendAdmin.value = true,
+    }
+    if (actions[cmd]) actions[cmd]()
+}
 async function toggleAutoReply(v) {
     autoReplyEnabled.value = v
     // 如果启用但没有规则，引导创建
@@ -5833,8 +5341,105 @@ async function deleteSensitiveWord(row) { try { await ElMessageBox.confirm('确�
 async function testSensitiveWord() { if (!sensitiveTestText.value.trim()) return; testingSensitive.value = true; try { const res = await apiClient.post('/im/sensitive-words/test', { text: sensitiveTestText.value }); sensitiveTestResult.value = res.data?.data || null } catch { sensitiveTestResult.value = null } finally { testingSensitive.value = false } }
 
 // ── 实时消息监听 ──
-function initEcho() { /* echo placeholder */ }
-function startTypingEcho() { /* typing echo placeholder */ }
+function initEcho() {
+    const userId = authStore.user?.id
+    if (!userId || typeof window.Echo === 'undefined') return
+
+    // 断开旧频道
+    if (window._chatEchoChannel) {
+        window.Echo.leave(`chat.${userId}`)
+    }
+
+    window._chatEchoChannel = window.Echo.private(`chat.${userId}`)
+
+    window._chatEchoChannel.listen('.chat.message', (payload) => {
+        // 消息来自自己则跳过（已通过 API 返回）
+        if (payload.sender_id === userId) return
+
+        // 如果当前会话正是该消息所属会话，追加消息
+        if (activeConv.value && activeConv.value.id === payload.conversation_id) {
+            // 避免重复
+            const exists = messages.value.some(m => m.id === payload.id || m.client_msg_id === payload.client_msg_id)
+            if (!exists) {
+                messages.value.push(payload)
+                nextTick(() => scrollToBottom())
+            }
+        }
+
+        // 更新会话列表中的最后消息
+        const conv = conversations.value.find(c => c.id === payload.conversation_id)
+        if (conv) {
+            conv.last_message = payload.content || '[消息]'
+            conv.last_message_at = payload.created_at || new Date().toISOString()
+            conv.last_message_id = payload.id
+            // 如果不是当前会话，增加未读数
+            if (!activeConv.value || activeConv.value.id !== payload.conversation_id) {
+                conv.unread_count = (conv.unread_count || 0) + 1
+            }
+        }
+
+        // 播放新消息提示音
+        playMessageSound()
+    })
+}
+
+function startTypingEcho() {
+    const userId = authStore.user?.id
+    if (!userId || typeof window.Echo === 'undefined') return
+
+    if (window._chatTypingChannel) {
+        window.Echo.leave(`chat.${userId}`)
+    }
+
+    window._chatTypingChannel = window.Echo.private(`chat.${userId}`)
+
+    window._chatTypingChannel.listenForWhisper('typing', (e) => {
+        if (!e.user_id || e.user_id === userId) return
+        if (!activeConv.value || activeConv.value.id !== e.conversation_id) return
+
+        const name = e.user_name || '对方'
+        if (!typingUsers.value.includes(name)) {
+            typingUsers.value.push(name)
+        }
+
+        clearTimeout(window._typingTimer)
+        window._typingTimer = setTimeout(() => {
+            typingUsers.value = typingUsers.value.filter(u => u !== name)
+        }, 3000)
+    })
+}
+
+function playMessageSound() {
+    try {
+        const audio = new Audio('/sounds/message.mp3')
+        audio.volume = 0.3
+        audio.play().catch(() => { /* 自动播放策略忽略 */ })
+    } catch { /* 静默失败 */ }
+}
+
+// 发送输入中的通知
+function sendTypingIndicator() {
+    const convId = activeConv.value?.id
+    if (!convId || typeof window.Echo === 'undefined') return
+
+    const channel = window.Echo.private(`chat.${authStore.user.id}`)
+    channel.whisper('typing', {
+        user_id: authStore.user.id,
+        user_name: authStore.user.name,
+        conversation_id: convId,
+    })
+}
+
+// 在输入时触发打字指示
+let _typingThrottle = 0
+const TYPING_THROTTLE_MS = 3000
+
+function onInputTyping() {
+    const now = Date.now()
+    if (now - _typingThrottle < TYPING_THROTTLE_MS) return
+    _typingThrottle = now
+    sendTypingIndicator()
+}
 
 // ── Tab切换 ──
 function onSidebarTabChange() {
@@ -6539,9 +6144,9 @@ async function plazaSubmitReply(parentComment) {
 async function plazaDeleteComment(comment) {
     try {
         await apiClient.delete('/moments/comments/' + comment.id)
-        // 从父评论列表中移除
-        if (plazaShowDetailComments.value) {
-            plazaShowDetailComments.value = plazaShowDetailComments.value.filter(c => c.id !== comment.id)
+        // 从评论列表中移除
+        if (plazaComments.value) {
+            plazaComments.value = plazaComments.value.filter(c => c.id !== comment.id)
         }
         if (plazaShowDetail.value) {
             plazaShowDetail.value.replies_count = Math.max(0, (plazaShowDetail.value.replies_count || 0) - 1)
@@ -7493,7 +7098,7 @@ async function leaveChannel(channelId) {
     } catch (e) { ElMessage.error(e.response?.data?.message || '操作失败') }
 }
 
-// ── 公众号方法 ──
+// ── 互物号方法 ──
 function openOaSettings() {
     if (selectedOaAccount.value && oaPanelRef.value?.openEditDialog) {
         oaPanelRef.value.openEditDialog(selectedOaAccount.value);
@@ -8503,13 +8108,13 @@ onMounted(async () => {
     loadSlashCommands()
     // 加载自动回复状态
     loadAutoReplyStatus()
-    // 加载公众号未读消息数（每30秒）
+    // 加载互物号未读消息数（每30秒）
     loadOaUnreadCount()
     oaUnreadTimer = setInterval(loadOaUnreadCount, 30000)
-    // 每30秒刷新公众号未读数
+    // 每30秒刷新互物号未读数
     // 加载私密空间 PIN 状态
     loadPrivacyPinStatus()
-    // 从编辑器返回时自动选中公众号
+    // 从编辑器返回时自动选中互物号
     if (route.query.account_id) {
         const aid = Number(route.query.account_id)
         if (aid) {
@@ -8527,7 +8132,7 @@ onMounted(async () => {
     }
 })
 
-// 监听路由参数，从编辑器返回时自动选中公众号
+// 监听路由参数，从编辑器返回时自动选中互物号
 watch(() => route.query.account_id, (aid) => {
     if (aid) {
         const id = Number(aid)
@@ -8632,7 +8237,7 @@ onUnmounted(() => { stopHeartbeat(); if (oaUnreadTimer) clearInterval(oaUnreadTi
 .channel-msg-context-menu div:hover { background: #f0f0f0; }
 .chat-dark-mode .channel-msg-context-menu { background: #2a2a3e; border-color: #3a3a4e; }
 
-/* ── 公众号 OA 样式 ── */
+/* ── 互物号 OA 样式 ── */
 /* OA 管理面板 */
 .oa-manage-bar {
     border-bottom: 1px solid #e4e7ed; padding: 10px 16px; background: #fafafa;
@@ -9457,9 +9062,11 @@ onUnmounted(() => { stopHeartbeat(); if (oaUnreadTimer) clearInterval(oaUnreadTi
 .add-friend-info { flex: 1; font-size: 14px; }
 .online-status-label { font-size: 12px; margin-right: 4px; }
 .typing-indicator { padding: 4px 20px; font-size: 12px; color: #999; font-style: italic; }
-.smart-replies-bar { display: flex; align-items: center; gap: 4px; padding: 4px 16px; border-top: 1px solid #f0f0f0; background: #fafafa; flex-wrap: wrap; }
-.smart-replies-label { font-size: 12px; color: #999; margin-right: 4px; white-space: nowrap; }
-.chat-dark-mode .smart-replies-bar { border-color: #2a2a4a; background: #16213e; }
+.smart-replies-bar { display: flex; align-items: center; gap: 6px; padding: 6px 16px; border-top: 1px dashed #e0e7ff; background: #f8faff; flex-wrap: wrap; }
+.smart-replies-bar .el-button { font-size: 12px; padding: 4px 10px; height: auto; border-radius: 12px; border: 1px solid #e0e7ff; background: #fff; color: #4a6cf7; white-space: nowrap; }
+.smart-replies-bar .el-button:hover { background: #eef1ff; border-color: #4a6cf7; }
+.chat-dark-mode .smart-replies-bar { border-color: #2a2a4a; background: #0f1a30; }
+.chat-dark-mode .smart-replies-bar .el-button { background: #162042; border-color: #2a3a6a; color: #7a9cff; }
 .poll-option-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 .poll-rank-badge { width: 22px; height: 22px; border-radius: 50%; background: #409eff; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
 .poll-rank-hint { font-size: 12px; color: #909399; margin: 4px 0; }
@@ -9474,7 +9081,7 @@ onUnmounted(() => { stopHeartbeat(); if (oaUnreadTimer) clearInterval(oaUnreadTi
 .poll-result-num { width: 60px; font-size: 12px; color: #666; text-align: left; }
 .empty-state { display: flex; align-items: center; justify-content: center; height: 100%; }
 /* AI-014: Copilot 侧边栏 */
-.copilot-fab { position: fixed; bottom: 100px; right: 30px; z-index: 1000; width: 48px; height: 48px; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.copilot-fab { position: fixed; bottom: 150px; right: 30px; z-index: 1000; width: 48px; height: 48px; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 .copilot-sidebar { position: fixed; top: 60px; right: 0; width: 340px; height: calc(100vh - 60px); background: #fff; border-left: 1px solid #e4e7ed; z-index: 999; display: flex; flex-direction: column; box-shadow: -4px 0 16px rgba(0,0,0,0.08); }
 .copilot-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 15px; font-weight: 600; }
 .copilot-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 16px; border-bottom: 1px solid #f0f0f0; }
@@ -9487,10 +9094,11 @@ onUnmounted(() => { stopHeartbeat(); if (oaUnreadTimer) clearInterval(oaUnreadTi
 .slide-right-enter-active, .slide-right-leave-active { transition: transform 0.3s ease; }
 .slide-right-enter-from, .slide-right-leave-to { transform: translateX(100%); }
 /* AI-018: 分类栏 */
-.category-bar { padding: 4px 8px; border-bottom: 1px solid #f0f0f0; }
-.category-bar .el-radio-group { display: flex; flex-wrap: wrap; gap: 2px; }
-.category-bar .el-radio-button { margin: 0; }
-.category-bar .el-radio-button__inner { padding: 4px 8px; font-size: 12px; }
+.category-bar { padding: 4px 8px; border-bottom: 1px solid #f0f0f0; overflow-x: auto; overflow-y: hidden; }
+.category-bar::-webkit-scrollbar { height: 0; }
+.category-bar .el-radio-group { display: flex; flex-wrap: nowrap; gap: 2px; white-space: nowrap; }
+.category-bar .el-radio-button { margin: 0; flex-shrink: 0; }
+.category-bar .el-radio-button__inner { padding: 4px 6px; font-size: 11px; }
 /* AI-015: 待办事项 */
 .task-item { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; flex-wrap: wrap; }
 .task-title { flex: 1; font-size: 14px; }

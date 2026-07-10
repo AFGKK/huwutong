@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * 自动决策/画像记录 (Art.22)
+ *
+ * @mixin IdeHelperAutomatedDecisionRecord
  */
 class AutomatedDecisionRecord extends Model
 {

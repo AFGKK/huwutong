@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\BugBountyReport;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class BugBountyControllerTest extends TestCase

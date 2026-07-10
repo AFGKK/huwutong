@@ -265,6 +265,7 @@
         .product-long-desc a { color:#2563eb; text-decoration:underline; }
         .product-long-desc strong { font-weight:700; }
         .product-long-desc em { font-style:italic; }
+        .commission-badge { display: none; }
 
     </style>
 
@@ -786,6 +787,137 @@
 
                     </div>
 
+                    <!-- 促销/优惠券/秒杀/预售展示 -->
+                    @php $_hasPromo = ($activePromotions && $activePromotions->count() > 0) || ($activeCoupons && $activeCoupons->count() > 0) || $flashSale || $preSale; @endphp
+                    @if($_hasPromo)
+                    @php
+                        // 格式化金额：整数去小数
+                        $_fmt = function($v) { return intval($v) == $v ? intval($v) : number_format($v, $v < 10 ? 2 : 1); };
+                    @endphp
+                    <div class="mt-6">
+                        {{-- 标题栏 --}}
+                        <div class="flex items-center gap-2.5 mb-3">
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-xs">🎉</span>
+                            <span class="text-sm font-bold text-gray-900">限时优惠</span>
+                            <span class="h-px flex-1 bg-gradient-to-r from-red-100 via-orange-100 to-transparent"></span>
+                        </div>
+
+                        <div class="space-y-2.5">
+                        {{-- ⚡ 秒杀通栏突出 --}}
+                        @if($flashSale)
+                        <div class="relative overflow-hidden bg-gradient-to-r from-red-500 via-red-500 to-orange-500 rounded-xl p-3.5 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+                            {{-- 装饰斜纹 --}}
+                            <div class="absolute inset-0 opacity-[0.08]" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.3) 8px, rgba(255,255,255,0.3) 16px)"></div>
+                            <div class="relative flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center shrink-0 backdrop-blur-sm"><span class="text-base">⚡</span></div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[11px] font-bold text-white uppercase tracking-wider">{{ $flashSale->name }}</span>
+                                        <span class="text-[11px] text-white/60 line-through">¥{{ $_fmt($flashSale->original_price) }}</span>
+                                        <span class="text-lg font-black text-white drop-shadow-sm">¥{{ $_fmt($flashSale->flash_price) }}</span>
+                                    </div>
+                                </div>
+                                <div class="shrink-0 flex items-center gap-3">
+                                    <div class="hidden sm:flex items-center gap-1.5">
+                                        <div class="w-14 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                                            @php $_soldPct = $flashSale->stock > 0 ? min(100, round(($flashSale->orders_count ?? 0) / $flashSale->stock * 100)) : 0; @endphp
+                                            <div class="h-full bg-white rounded-full transition-all duration-500" style="width:{{ $_soldPct }}%"></div>
+                                        </div>
+                                        <span class="text-[10px] text-white/70">{{ $flashSale->orders_count ?? 0 }}/{{ $flashSale->stock }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 bg-black/15 rounded-lg px-2.5 py-1">
+                                        <span class="text-[10px] text-white/70">⏱</span>
+                                        <span class="text-xs text-white font-mono font-bold flash-countdown tracking-wider" data-end="{{ $flashSale->end_time->timestamp }}">--:--:--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- 小网格卡片区 --}}
+                        @php
+                            $_gridItems = collect();
+                            if ($preSale) $_gridItems->push(['type' => 'presale', 'data' => $preSale]);
+                            if ($activePromotions) foreach ($activePromotions as $p) $_gridItems->push(['type' => 'promo', 'data' => $p]);
+                            if ($activeCoupons) foreach ($activeCoupons as $c) $_gridItems->push(['type' => 'coupon', 'data' => $c]);
+                        @endphp
+                        @if($_gridItems->count() > 0)
+                        <div class="grid grid-cols-2 gap-2 auto-rows-fr">
+                            @foreach($_gridItems as $item)
+                                @if($item['type'] === 'presale')
+                                @php $ps = $item['data']; @endphp
+                                <div class="bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-xl p-3 border border-blue-100/60 flex items-center gap-2.5 h-full group hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+                                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><span class="text-sm">{{ $ps->type === 'crowdfunding' ? '🚀' : '📋' }}</span></div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-[11px] font-bold text-blue-700">{{ $ps->type === 'crowdfunding' ? '众筹中' : '预售中' }}</span>
+                                            <span class="text-[10px] bg-blue-200/60 text-blue-600 px-1.5 py-0.5 rounded-full font-medium">¥{{ $_fmt($ps->min_amount) }}起</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 mt-1">
+                                            @php $_rp = $ps->target_amount > 0 ? min(100, round($ps->raised_amount / $ps->target_amount * 100)) : 0; @endphp
+                                            <div class="flex-1 h-1.5 bg-blue-100 rounded-full overflow-hidden max-w-[80px]">
+                                                <div class="h-full bg-blue-400 rounded-full transition-all" style="width:{{ $_rp }}%"></div>
+                                            </div>
+                                            <span class="text-[10px] text-gray-500 font-medium">{{ $_rp }}%</span>
+                                            <span class="text-[10px] text-gray-400">· {{ $ps->current_backers ?? 0 }}人</span>
+                                        </div>
+                                        @if($ps->estimated_delivery_at)
+                                        <div class="text-[10px] text-gray-400 mt-0.5">预计 {{ $ps->estimated_delivery_at->format('Y年n月') }} 发货</div>
+                                        @endif
+                                    </div>
+                                </div>
+                                @elseif($item['type'] === 'promo')
+                                @php $pr = $item['data']; @endphp
+                                <div class="bg-gradient-to-br from-green-50 to-emerald-50/50 rounded-xl p-3 border border-green-100/60 flex items-center gap-2.5 h-full group hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+                                    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><span class="text-sm">{{ $pr->type === 'bulk_discount' ? '🏷️' : ($pr->type === 'bundle' ? '📦' : ($pr->type === 'free_gift' ? '🎁' : '🎉')) }}</span></div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="text-[11px] font-bold text-green-800">{{ $pr->name }}</span>
+                                            @if($pr->discount_value)
+                                            <span class="text-[10px] bg-green-200 text-green-700 px-1.5 py-0.5 rounded-full font-semibold">{{ $pr->discount_type === 'percentage' ? $_fmt($pr->discount_value).'%OFF' : '减¥'.$_fmt($pr->discount_value) }}</span>
+                                            @endif
+                                        </div>
+                                        @if($pr->ends_at)
+                                        <div class="text-[10px] text-gray-400 mt-1">⏳ {{ $pr->ends_at->diffForHumans() }} 结束</div>
+                                        @endif
+                                    </div>
+                                </div>
+                                @elseif($item['type'] === 'coupon')
+                                @php $cp = $item['data']; @endphp
+                                <div class="relative bg-white rounded-xl border-2 border-dashed border-primary-200 p-3 flex items-center gap-2.5 h-full group hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer overflow-hidden">
+                                    {{-- 装饰圆点 --}}
+                                    <div class="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 border-primary-200"></div>
+                                    <div class="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 border-primary-200"></div>
+                                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-100 to-primary-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><span class="text-sm">🎟️</span></div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-[13px] font-black text-primary-600">
+                                            @if($cp->type === 'percentage'){{ $_fmt($cp->value) }}%OFF
+                                            @elseif($cp->type === 'fixed_amount')<span class="text-lg">¥{{ $_fmt($cp->value) }}</span>
+                                            @else{{ $cp->name }}
+                                            @endif
+                                        </div>
+                                        <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                            <span class="text-[10px] bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded font-mono font-bold">{{ $cp->code }}</span>
+                                            @if($cp->usage_limit)
+                                            <span class="text-[10px] text-gray-400">剩{{ max(0, $cp->usage_limit - $cp->usage_count) }}张</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    {{-- 领券按钮 --}}
+                                    <div class="shrink-0">
+                                        <span class="inline-flex items-center justify-center text-[10px] font-bold text-white bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg px-2.5 py-1.5 group-hover:from-primary-600 group-hover:to-primary-700 transition-all">领券</span>
+                                    </div>
+                                </div>
+                                @endif
+                            @endforeach
+                        </div>
+                        @endif
+                        </div>
+                    </div>
+                    @endif
+
+                    </div>
+
 
 
                 </div>
@@ -968,12 +1100,11 @@
 
                             @if($sku->commission_rate)
 
-                                <div class="text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg mb-4 flex items-center gap-1">
-
+                                <div class="commission-badge inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold mb-4"
+                                     style="background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; border: 1px solid #fbbf24; box-shadow: 0 1px 3px rgba(251,191,36,0.2);">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-
-                                    佣金 {{ $sku->commission_rate }}%
-
+                                    <span>推广佣金</span>
+                                    <span class="font-bold" style="color:#b45309;">{{ $sku->commission_rate }}%</span>
                                 </div>
 
                             @endif
@@ -1633,6 +1764,17 @@ var _token=localStorage.getItem('auth_token');
 var _currentRating=5;
 var _isAuth=!!_token;
 var _currentImageIndex=0;
+// 佣金显示权限检查：仅代理/管理员可见
+(async function(){
+    if(!_token) return;
+    try{
+        var r=await fetch('/api/user/permissions/check-commission',{headers:{'Authorization':'Bearer '+_token,'Accept':'application/json'}});
+        var d=await r.json();
+        if(d.canSeeCommission){
+            document.querySelectorAll('.commission-badge').forEach(function(el){el.style.display='flex'});
+        }
+    }catch(e){}
+})();
 function getAuthHeaders(){var h={'Accept':'application/json','Content-Type':'application/json'};if(_token)h['Authorization']='Bearer '+_token;return h}
 function showToast(m){var e=document.getElementById('toast-msg');if(e)e.remove();var d=document.createElement('div');d.id='toast-msg';d.className='fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] px-6 py-3 rounded-xl bg-gray-900 text-white text-sm shadow-xl max-w-sm text-center';d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.style.opacity='0';d.style.transition='opacity 0.3s';setTimeout(function(){d.remove()},300)},2500)}
 function toggleDarkMode(){var h=document.documentElement;if(h.getAttribute('data-theme')==='dark'){h.removeAttribute('data-theme');localStorage.setItem('huwutong_theme','light')}else{h.setAttribute('data-theme','dark');localStorage.setItem('huwutong_theme','dark')}updateDarkToggleIcon()}
@@ -1652,12 +1794,32 @@ function scrollThumbs(dir) {
     thumbs.forEach(function(t, i) {
         if (t.classList.contains('border-primary-500')) curIdx = i;
     });
+    if (curIdx < 0) curIdx = 0;
 
     var scrollAmount = container.scrollWidth - container.clientWidth;
     if (scrollAmount > 0) {
         // 有溢出 → 滚动容器
         var step = Math.min(200, scrollAmount);
+        var prevScroll = container.scrollLeft;
         var target = Math.max(0, Math.min(container.scrollLeft + dir * step, scrollAmount));
+
+        // 如果在左边界向左，或右边界向右 → 切换到上一张/下一张（循环）
+        var atLeftBoundary = prevScroll <= 0 && dir < 0;
+        var atRightBoundary = prevScroll >= scrollAmount && dir > 0;
+
+        if (atLeftBoundary || atRightBoundary) {
+            var nextIdx = curIdx + dir;
+            if (nextIdx < 0) nextIdx = thumbs.length - 1;
+            if (nextIdx >= thumbs.length) nextIdx = 0;
+            var t = thumbs[nextIdx];
+            var src = t.getAttribute('data-src');
+            if (src) switchImage(t, src);
+            // 如果目标方向还有空间，滚动一下让选中的缩略图更可见
+            var nextScroll = Math.max(0, Math.min(container.scrollLeft + dir * step, scrollAmount));
+            if (nextScroll !== container.scrollLeft) container.scrollLeft = nextScroll;
+            return;
+        }
+
         container.scrollLeft = target;
         // 滚动后选中最可见的缩略图
         var best = null, bestVisible = 0;
@@ -1670,7 +1832,6 @@ function scrollThumbs(dir) {
         if (best) { var src = best.getAttribute('data-src'); if (src) switchImage(best, src); }
     } else {
         // 无溢出 → 直接切换上一张/下一张
-        if (curIdx < 0) { curIdx = 0; }
         var nextIdx = curIdx + dir;
         if (nextIdx < 0) nextIdx = thumbs.length - 1;
         if (nextIdx >= thumbs.length) nextIdx = 0;
@@ -1684,13 +1845,20 @@ function scrollThumbs(dir) {
 var _imageList = []; // 图片URL列表，由 switchImage 维护
 function switchImage(btn, src) {
     if (!src) return;
+    // 标准化 URL（去除协议/域名，用于相对/绝对路径匹配）
+    function normalizeUrl(url) {
+        try { return new URL(url, window.location.origin).pathname; }
+        catch(e) { return url; }
+    }
+    var normSrc = normalizeUrl(src);
     // 更新主图
     var mainImg = document.querySelector('#main-image img');
     if (mainImg) mainImg.src = src;
-    // 更新缩略图高亮
+    // 更新缩略图高亮（用标准化 URL 比较）
     document.querySelectorAll('.gallery-thumb').forEach(function(el) {
-        el.classList.toggle('border-primary-500', el.getAttribute('data-src') === src);
-        el.classList.toggle('border-gray-200', el.getAttribute('data-src') !== src);
+        var elSrc = normalizeUrl(el.getAttribute('data-src') || '');
+        el.classList.toggle('border-primary-500', elSrc === normSrc);
+        el.classList.toggle('border-gray-200', elSrc !== normSrc);
     });
     // 维护图片列表用于灯箱导航
     _imageList = [];
@@ -1698,18 +1866,21 @@ function switchImage(btn, src) {
         var s = el.getAttribute('data-src');
         if (s && _imageList.indexOf(s) === -1) _imageList.push(s);
     });
-    _currentImageIndex = _imageList.indexOf(src);
+    // 用标准化 URL 查找当前索引
+    _currentImageIndex = _imageList.findIndex(function(s) { return normalizeUrl(s) === normSrc; });
 }
 function prevImage(){
-    if (_imageList.length > 0 && _currentImageIndex > 0) {
-        var src = _imageList[_currentImageIndex - 1];
+    if (_imageList.length > 0) {
+        var idx = _currentImageIndex > 0 ? _currentImageIndex - 1 : _imageList.length - 1;
+        var src = _imageList[idx];
         switchImage(null, src);
         openLightbox(src);
     }
 }
 function nextImage(){
-    if (_imageList.length > 0 && _currentImageIndex < _imageList.length - 1) {
-        var src = _imageList[_currentImageIndex + 1];
+    if (_imageList.length > 0) {
+        var idx = _currentImageIndex < _imageList.length - 1 ? _currentImageIndex + 1 : 0;
+        var src = _imageList[idx];
         switchImage(null, src);
         openLightbox(src);
     }
@@ -1843,12 +2014,97 @@ function updateCompareBar(){var items=JSON.parse(sessionStorage.getItem('compare
 function goCompare(){var items=JSON.parse(sessionStorage.getItem('compare_items')||'[]');if(items.length<2){showToast('请至少选择2个产品进行对比');return}window.location.href='/compare-products?ids='+items.map(function(it){return it.id}).join(',')}
 function saveCompareList(arr){sessionStorage.setItem('compare_items',JSON.stringify(arr));updateCompareBar();document.querySelectorAll('[id^="compare-btn-"]').forEach(function(b){b.classList.remove('text-amber-500')})}
 // ─── 灯箱 ───
+// ─── 灯箱缩放/平移/捏合 ───
+var _zoomScale = 1, _panX = 0, _panY = 0;
+var _isPanning = false, _panStartX, _panStartY;
+var _pinchDist = 0;
+function resetZoomPan() {
+    _zoomScale = 1; _panX = 0; _panY = 0;
+    var img = document.getElementById('lightbox-image');
+    if (img) { img.style.transform = 'scale(1) translate(0,0)'; img.style.cursor = 'grab'; }
+}
+function startPan(e) {
+    if (_zoomScale <= 1) return;
+    _isPanning = true;
+    _panStartX = e.clientX - _panX;
+    _panStartY = e.clientY - _panY;
+    document.getElementById('lightbox-image').style.cursor = 'grabbing';
+}
+function doPan(e) {
+    if (!_isPanning) return;
+    _panX = e.clientX - _panStartX;
+    _panY = e.clientY - _panStartY;
+    updateZoomPan();
+}
+function endPan() {
+    _isPanning = false;
+    var img = document.getElementById('lightbox-image');
+    if (img) img.style.cursor = _zoomScale > 1 ? 'grab' : 'grab';
+}
+function startPinch(e) {
+    if (e.touches.length === 2) {
+        _pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    }
+}
+function doPinch(e) {
+    if (e.touches.length === 2) {
+        e.preventDefault();
+        var dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        var newScale = _zoomScale * (dist / _pinchDist);
+        _zoomScale = Math.max(0.5, Math.min(5, newScale));
+        _pinchDist = dist;
+        updateZoomPan();
+    }
+}
+function endPinch() {}
+// ─── 秒杀倒计时 ───
+(function() {
+    var els = document.querySelectorAll('.flash-countdown');
+    if (!els.length) return;
+    function tick() {
+        var now = Math.floor(Date.now() / 1000);
+        els.forEach(function(el) {
+            var end = parseInt(el.getAttribute('data-end'));
+            if (!end) return;
+            var diff = Math.max(0, end - now);
+            if (diff <= 0) { el.textContent = '已结束'; return; }
+            var h = Math.floor(diff / 3600);
+            var m = Math.floor((diff % 3600) / 60);
+            var s = diff % 60;
+            el.textContent = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+        });
+    }
+    tick();
+    setInterval(tick, 1000);
+})();
+function toggleZoom(e) {
+    if (_zoomScale > 1) {
+        _zoomScale = 1; _panX = 0; _panY = 0;
+    } else {
+        _zoomScale = 2.5;
+        var rect = e.target.getBoundingClientRect();
+        _panX = (e.clientX - rect.left - rect.width / 2) * -0.5;
+        _panY = (e.clientY - rect.top - rect.height / 2) * -0.5;
+    }
+    updateZoomPan();
+}
+function updateZoomPan() {
+    var img = document.getElementById('lightbox-image');
+    if (img) img.style.transform = 'scale(' + _zoomScale + ') translate(' + _panX + 'px,' + _panY + 'px)';
+}
+
 function openLightbox(src){
     var lb = document.getElementById('image-lightbox');
     var img = document.getElementById('lightbox-image');
     if (lb && img) {
-        // 如果是数字索引，转换成URL
+        resetZoomPan();
+        // 数字索引转URL
         if (typeof src === 'number' && _imageList[src]) src = _imageList[src];
+        if (!src) {
+            // 获取当前主图的 src
+            var curMain = document.querySelector('#main-image img');
+            src = curMain ? curMain.src : null;
+        }
         if (!src) {
             var firstThumb = document.querySelector('.gallery-thumb');
             if (firstThumb) src = firstThumb.getAttribute('data-src');
@@ -1874,6 +2130,18 @@ function closeLightbox(){
         lb.style.display = 'none';
         document.body.style.overflow = '';
     }
+}
+
+// ─── 灯箱键盘导航（只注册一次）───
+if (!window._lightboxKeydownRegistered) {
+    window._lightboxKeydownRegistered = true;
+    document.addEventListener('keydown', function(e) {
+        var lb = document.getElementById('image-lightbox');
+        if (!lb || lb.classList.contains('hidden')) return;
+        if (e.key === 'Escape') { closeLightbox(); }
+        else if (e.key === 'ArrowLeft') { e.preventDefault(); prevImage(); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); nextImage(); }
+    });
 }
 document.addEventListener('DOMContentLoaded',function(){var btn=document.getElementById('detail-wishlist-btn');if(btn){var m=btn.getAttribute('onclick').match(/\d+/);if(m)checkWishlist(parseInt(m[0]))}updateCompareBar();initRecentlyViewed({{ $product->id }},'{{ str_replace("'","\\'",$product->name) }}','{{ $product->image_url ?: '' }}','{{ url('/products/'.$product->slug) }}','{{ $_lowPrice }}','{{ $_cycleLabel }}')});
 // 页面加载后预加载评价数据（首次切换到评价Tab时再真正渲染）
@@ -2081,15 +2349,9 @@ function clearRecentlyViewed(){
 
     <div id="image-lightbox" class="fixed inset-0 z-[100] bg-black/90 hidden items-center justify-center" onclick="if(event.target===this)closeLightbox()">
 
-        <!-- 产品特性 -->
-
         <button onclick="closeLightbox()" class="absolute top-4 right-4 w-12 h-12 flex items-center justify-center text-white/70 hover:text-white text-4xl z-10 rounded-full hover:bg-white/10 transition">&times;</button>
 
-        <!-- 提示 -->
-
         <button onclick="event.stopPropagation();prevImage()" class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-white/60 hover:text-white text-5xl z-10 rounded-full hover:bg-white/10 transition opacity-0 md:opacity-100" id="lightbox-prev">&lsaquo;</button>
-
-        <!-- 对比提示信息 -->
 
         <div id="lightbox-image-container" class="flex items-center justify-center w-full h-full overflow-hidden select-none cursor-grab active:cursor-grabbing" onmousedown="startPan(event)" onmousemove="doPan(event)" onmouseup="endPan()" onmouseleave="endPan()" ontouchstart="startPinch(event)" ontouchmove="doPinch(event)" ontouchend="endPinch()" ondblclick="toggleZoom(event)">
 
@@ -2097,15 +2359,9 @@ function clearRecentlyViewed(){
 
         </div>
 
-        <!-- 提示 -->
-
         <button onclick="event.stopPropagation();nextImage()" class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center text-white/60 hover:text-white text-5xl z-10 rounded-full hover:bg-white/10 transition opacity-0 md:opacity-100" id="lightbox-next">&rsaquo;</button>
 
-        <!-- 标题 -->
-
         <div id="lightbox-counter" class="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/50 text-sm font-mono"></div>
-
-        <!-- 键盘提示 -->
 
         <div id="lightbox-touch" class="absolute inset-0 z-[-1]"></div>
 
@@ -2115,7 +2371,7 @@ function clearRecentlyViewed(){
 
     <!-- 页面浮动工具栏区域 -->
 
-    <div id="mobile-sticky-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-40 md:hidden translate-y-full transition-transform duration-300 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
+    <div id="mobile-sticky-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:hidden translate-y-full transition-transform duration-300 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] safe-bottom">
 
         <div class="flex items-center gap-3">
 
@@ -2149,7 +2405,7 @@ function clearRecentlyViewed(){
 
     <!-- 页面快捷键导航 -->
 
-    <div id="compare-floating-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-40 hidden shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
+    <div id="compare-floating-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-30 hidden shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
 
         <div class="max-w-7xl mx-auto flex items-center gap-3">
 
@@ -2844,6 +3100,16 @@ function clearRecentlyViewed(){
         el.className='flex justify-end';
         el.innerHTML='<div class="max-w-[75%] bg-primary-600 text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-sm leading-relaxed">'+escHtml(msg)+'<div class="text-[10px] text-white/60 text-right mt-1">'+ts+'</div></div>';
         c.appendChild(el);c.scrollTop=c.scrollHeight;if(ip)ip.value='';
+        // 发送到后端
+        var productId = {{ $product->id ?? 'null' }};
+        var sellerId = _chatSellerId || {{ $product->creator->id ?? 'null' }};
+        if (productId && sellerId) {
+            fetch('/contact-seller', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content||''},
+                body: JSON.stringify({product_id:productId, seller_id:sellerId, message:msg})
+            }).catch(function(){});
+        }
         setTimeout(function(){
             var r=document.createElement('div');
             r.className='flex justify-start';

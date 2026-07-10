@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * 工作流实例
  *
  * 一次工作流的具体执行记录，包含上下文数据、当前状态和执行结果。
+ *
+ * @mixin IdeHelperWorkflowInstance
  */
 class WorkflowInstance extends Model
 {

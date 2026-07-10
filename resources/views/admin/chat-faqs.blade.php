@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>FAQ 管理 - 互物通</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/public.css'])
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans antialiased">
     <div class="max-w-4xl mx-auto px-4 py-8">

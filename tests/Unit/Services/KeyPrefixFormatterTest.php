@@ -7,7 +7,7 @@ use App\Models\License;
 use App\Models\Tenant;
 use App\Services\KeyGenerator;
 use App\Services\KeyPrefixFormatter;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class KeyPrefixFormatterTest extends TestCase

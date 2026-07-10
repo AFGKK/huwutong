@@ -7,6 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Models\TaxExemptCertificate;
 use App\Models\TaxRate;
 use App\Services\TaxCalculatorService;
+use App\Services\Tax\TaxProviderService;
+use App\Services\Tax\ChinaEInvoiceService;
+use App\Models\Invoice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,6 +17,8 @@ class TaxController extends Controller
 {
     public function __construct(
         protected TaxCalculatorService $taxService,
+        protected TaxProviderService $taxProvider,
+        protected ChinaEInvoiceService $einvoiceService,
     ) {}
 
     /**
@@ -262,6 +267,125 @@ class TaxController extends Controller
             'active_rates' => $activeRates,
             'eu_countries' => $euRates,
             'pending_certificates' => $pendingCerts,
+        ]);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 税务提供商接口
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * 通过外部提供商计算税额
+     */
+    public function providerCalculate(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0',
+            'country_code' => 'required|string|size:2',
+            'region_code' => 'nullable|string|max:10',
+            'is_b2b' => 'sometimes|boolean',
+            'currency' => 'sometimes|string|size:3',
+            'customer_id' => 'sometimes|integer',
+        ]);
+
+        $result = $this->taxProvider->calculate(
+            $validated['amount'],
+            $validated['country_code'],
+            $validated
+        );
+
+        return ApiResponse::success($result);
+    }
+
+    /**
+     * 税务提供商状态
+     */
+    public function providerStatus(): JsonResponse
+    {
+        $providers = [];
+        foreach (['local', 'taxjar', 'stripe', 'avalara'] as $p) {
+            $config = config("tax-automation.{$p}", []);
+            $providers[$p] = [
+                'enabled' => $p === 'local' ? true : ($config['enabled'] ?? false),
+                'configured' => $p === 'local' ? true : !empty($config['api_key'] ?? $config['secret_key'] ?? $config['account_id'] ?? ''),
+            ];
+        }
+
+        $einvoice = new ChinaEInvoiceService();
+
+        return ApiResponse::success([
+            'providers' => $providers,
+            'default_provider' => config('tax-automation.default_provider', 'local'),
+            'china_einvoice_configured' => $einvoice->isConfigured(),
+            'seller_info' => [
+                'country' => config('tax-automation.seller.country_code'),
+                'vat_number' => config('tax-automation.seller.vat_number'),
+                'eu_vat_number' => config('tax-automation.seller.eu_vat_number'),
+            ],
+        ]);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 中国电子发票
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * 开具电子发票
+     */
+    public function issueEInvoice(Request $request, Invoice $invoice): JsonResponse
+    {
+        if (!$this->einvoiceService->isConfigured()) {
+            return ApiResponse::error('电子发票服务未配置', 400);
+        }
+
+        $result = $this->einvoiceService->issueInvoice($invoice, $request->all());
+
+        if ($result['success']) {
+            return ApiResponse::success($result, '电子发票开具成功');
+        }
+
+        return ApiResponse::error($result['error'] ?? '开票失败', 500);
+    }
+
+    /**
+     * 开具红字发票（冲红）
+     */
+    public function issueCreditNote(Request $request, Invoice $invoice): JsonResponse
+    {
+        if (!$this->einvoiceService->isConfigured()) {
+            return ApiResponse::error('电子发票服务未配置', 400);
+        }
+
+        $amount = $request->input('amount', $invoice->amount);
+        $reason = $request->input('reason', '销售退回');
+
+        $result = $this->einvoiceService->issueCreditNote($invoice, (float) $amount, $reason);
+
+        if ($result['success']) {
+            return ApiResponse::success($result, '红字发票开具成功');
+        }
+
+        return ApiResponse::error($result['error'] ?? '冲红失败', 500);
+    }
+
+    /**
+     * 查询电子发票状态
+     */
+    public function queryEInvoice(string $invoiceNo): JsonResponse
+    {
+        $result = $this->einvoiceService->queryInvoice($invoiceNo);
+        return ApiResponse::success($result);
+    }
+
+    /**
+     * 电子发票服务状态
+     */
+    public function eInvoiceStatus(): JsonResponse
+    {
+        return ApiResponse::success([
+            'configured' => $this->einvoiceService->isConfigured(),
+            'provider' => config('tax-automation.china_einvoice.fapiao_tong.provider', 'fapiaotong'),
+            'taxpayer_id' => config('tax-automation.china_einvoice.fapiao_tong.taxpayer_id'),
         ]);
     }
 }

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperAutomationActionLog
+ */
 class AutomationActionLog extends Model
 {
     protected $table = 'automation_action_logs';

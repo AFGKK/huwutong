@@ -9,7 +9,7 @@ use App\Models\Tenant;
 use App\Models\TimeRestrictionConfig;
 use App\Models\TimeRestrictionLog;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class TimeRestrictionApiTest extends TestCase

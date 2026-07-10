@@ -97,16 +97,32 @@ fi
 echo ""
 echo ">>> [4/4] 重启服务..."
 cd "${BASE_DIR}"
-if [ -f "docker-compose.yml" ]; then
-    docker compose up -d --force-recreate
+
+COMPOSE_FILE="docker-compose.yml"
+if [ -f ".env" ]; then
+    if grep -q '^DB_CONNECTION=mysql' .env 2>/dev/null; then
+        COMPOSE_FILE="docker-compose.mysql.yml"
+    elif grep -q '^DB_CONNECTION=pgsql' .env 2>/dev/null && [ -f "docker-compose.pgsql.yml" ]; then
+        COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
+    fi
+fi
+
+if [ -f "${COMPOSE_FILE}" ]; then
+    docker compose -f "${COMPOSE_FILE}" up -d --force-recreate
     sleep 5
-    docker compose ps
+    docker compose -f "${COMPOSE_FILE}" ps
 fi
 
 # 执行后置更新脚本
 if [ -f "${TMP_DIR}/scripts/post-update.sh" ]; then
     print_info "执行后置更新脚本..."
-    bash "${TMP_DIR}/scripts/post-update.sh"
+    COMPOSE_FILE="${COMPOSE_FILE}" bash "${TMP_DIR}/scripts/post-update.sh"
+fi
+
+# 更新包内附带迁移时执行
+if [ -d "${TMP_DIR}/database/migrations" ] && [ -f "${COMPOSE_FILE}" ]; then
+  print_info "运行数据库迁移..."
+  docker compose -f "${COMPOSE_FILE}" exec -T api php artisan migrate --force || print_warn "迁移未完成"
 fi
 
 cd "${SCRIPT_DIR}"

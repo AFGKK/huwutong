@@ -6,7 +6,7 @@ use App\Models\EventDelivery;
 use App\Models\WebhookEndpoint;
 use App\Models\WebhookEvent;
 use App\Services\WebhookService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;

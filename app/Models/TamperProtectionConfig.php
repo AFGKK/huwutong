@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperTamperProtectionConfig
+ */
 class TamperProtectionConfig extends Model
 {
     protected $table = 'tamper_protection_configs';

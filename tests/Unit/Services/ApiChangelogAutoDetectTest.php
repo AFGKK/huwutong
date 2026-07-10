@@ -7,7 +7,7 @@ use App\Models\ApiDocEndpoint;
 use App\Models\ApiEndpointSnapshot;
 use App\Models\ApiVersion;
 use App\Services\ApiDocsService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ApiChangelogAutoDetectTest extends TestCase

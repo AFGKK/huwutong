@@ -4,10 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperPoll
+ */
 class Poll extends Model
 {
     protected $fillable = [
-        'conversation_id', 'creator_id', 'question', 'type',
+        'oa_article_id', 'conversation_id', 'creator_id', 'question', 'type',
         'is_anonymous', 'is_hide_results', 'max_choices',
         'expires_at', 'is_closed', 'closed_at',
     ];

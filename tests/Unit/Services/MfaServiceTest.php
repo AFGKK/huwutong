@@ -8,7 +8,7 @@ use App\Models\User;
 use App\Services\MfaService;
 use Database\Factories\TenantFactory;
 use Database\Factories\UserFactory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class MfaServiceTest extends TestCase

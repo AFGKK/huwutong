@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperAuditArchiveRecord
+ */
 class AuditArchiveRecord extends Model
 {
     protected $table = 'audit_archive_records';

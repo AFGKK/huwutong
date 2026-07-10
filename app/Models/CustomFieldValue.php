@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * 通用自定义字段值（多态关联 License/Customer/Product）
+ *
+ * @mixin IdeHelperCustomFieldValue
  */
 class CustomFieldValue extends Model
 {

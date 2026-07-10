@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\TenantTeamController;
 use App\Http\Controllers\Api\TransferController;
 use App\Http\Controllers\Api\WithdrawalController;
+use App\Http\Controllers\Api\CustomerAnalyticsController;
 use Illuminate\Support\Facades\Route;
 
 // ========================
@@ -86,8 +87,10 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::get('/portal/earnings/commissions', [EarningsPortalController::class, 'commissions']);
     Route::get('/portal/earnings/channels', [EarningsPortalController::class, 'withdrawalChannels']);
     Route::post('/portal/earnings/save-account', [EarningsPortalController::class, 'saveAccount']);
+    Route::post('/portal/earnings/channels/account', [EarningsPortalController::class, 'saveAccount']);
     Route::delete('/portal/earnings/accounts/{channel}', [EarningsPortalController::class, 'deleteAccount']);
-    Route::match(['get', 'post'], '/portal/earnings/preferences', [EarningsPortalController::class, 'preferences']);
+    Route::delete('/portal/earnings/channels/account/{channel}', [EarningsPortalController::class, 'deleteAccount']);
+    Route::match(['get', 'post', 'put'], '/portal/earnings/preferences', [EarningsPortalController::class, 'preferences']);
     Route::match(['get', 'post'], '/portal/earnings/tax-info', [EarningsPortalController::class, 'taxInfo']);
     Route::get('/portal/earnings/settlement-calendar', [EarningsPortalController::class, 'settlementCalendar']);
     Route::get('/portal/earnings/export', [EarningsPortalController::class, 'exportCommissions']);
@@ -131,7 +134,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::post('/portal/feedback/{feedback}/vote', [FeedbackController::class, 'vote'])->whereNumber('feedback');
 
     // ── GDPR 请求 ──
-    Route::post('/gdpr/requests', [GdprComplianceController::class, 'store']);
+    Route::post('/gdpr/requests', [GdprComplianceController::class, 'submitRequest']);
 
     // ── 计费/套餐 ──
     Route::get('/billing/plans/public', [BillingController::class, 'plans']);
@@ -142,4 +145,16 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::get('/billing/payment-methods', [PaymentMethodController::class, 'index']);
     Route::post('/billing/payment-methods', [PaymentMethodController::class, 'store']);
     Route::delete('/billing/payment-methods/{id}', [PaymentMethodController::class, 'destroy'])->whereNumber('id');
+
+    // ── 客户自助分析仪表盘 ──
+    Route::prefix('/analytics')->group(function () {
+        Route::get('/overview', [CustomerAnalyticsController::class, 'overview']);
+        Route::get('/license-trend', [CustomerAnalyticsController::class, 'licenseTrend']);
+        Route::get('/license-distribution', [CustomerAnalyticsController::class, 'licenseDistribution']);
+        Route::get('/spend-trend', [CustomerAnalyticsController::class, 'spendTrend']);
+        Route::get('/device-trend', [CustomerAnalyticsController::class, 'deviceTrend']);
+        Route::get('/top-licenses', [CustomerAnalyticsController::class, 'topLicenses']);
+        Route::get('/health-score', [CustomerAnalyticsController::class, 'healthScore']);
+        Route::get('/export/{type}', [CustomerAnalyticsController::class, 'export'])->whereIn('type', ['licenses', 'devices', 'orders']);
+    });
 });

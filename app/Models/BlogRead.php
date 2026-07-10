@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperBlogRead
+ */
 class BlogRead extends Model
 {
     protected $fillable = ['blog_id', 'user_id', 'ip'];

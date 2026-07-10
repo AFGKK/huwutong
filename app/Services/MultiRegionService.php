@@ -398,7 +398,7 @@ class MultiRegionService
             }
 
             // 写入新表
-            $healthLog = \App\Models\RegionHealthLog::on('mysql')->create([ // 使用默认连接
+            $healthLog = RegionHealthLog::create([
                 'region_key' => $deployment->region_key,
                 'is_healthy' => $isHealthy,
                 'response_time_ms' => $responseTime,
@@ -426,7 +426,7 @@ class MultiRegionService
      */
     public function getRegionHealthTrend(string $regionKey, int $hours = 24): Collection
     {
-        return \App\Models\RegionHealthLog::on('mysql')
+        return RegionHealthLog::query()
             ->where('region_key', $regionKey)
             ->where('checked_at', '>=', now()->subHours($hours))
             ->orderBy('checked_at')
@@ -460,7 +460,7 @@ class MultiRegionService
                     $isHealthy = false;
                 }
 
-                $healthLog = \App\Models\RegionHealthLog::on('mysql')->create([
+                $healthLog = RegionHealthLog::create([
                     'region_key' => $target->region_key,
                     'is_healthy' => $isHealthy,
                     'response_time_ms' => $responseTime,
@@ -740,17 +740,17 @@ class MultiRegionService
 
         $recentHealthChecks = RegionHealthLog::whereIn('data_center_id', $dcs->pluck('id'))
             ->where('checked_at', '>=', now()->subHours(24))
-            ->selectRaw('data_center_id, COUNT(*) as checks, AVG(latency_ms) as avg_latency, SUM(CASE WHEN is_healthy = 0 THEN 1 ELSE 0 END) as failures')
+            ->selectRaw('data_center_id, COUNT(*) as checks, AVG(latency_ms) as avg_latency, SUM(CASE WHEN '.db_is_false('is_healthy').' THEN 1 ELSE 0 END) as failures')
             ->groupBy('data_center_id')
             ->get()
             ->keyBy('data_center_id');
 
         // M3-52 区域部署状态
         $regionDeployments = RegionDeployment::orderBy('region_key')->get();
-        $regionHealthSummaries = \App\Models\RegionHealthLog::on('mysql')
+        $regionHealthSummaries = RegionHealthLog::query()
             ->whereIn('region_key', $regionDeployments->pluck('region_key'))
             ->where('checked_at', '>=', now()->subHours(24))
-            ->selectRaw('region_key, COUNT(*) as checks, AVG(response_time_ms) as avg_response_time, SUM(CASE WHEN is_healthy = 0 THEN 1 ELSE 0 END) as failures')
+            ->selectRaw('region_key, COUNT(*) as checks, AVG(response_time_ms) as avg_response_time, SUM(CASE WHEN '.db_is_false('is_healthy').' THEN 1 ELSE 0 END) as failures')
             ->groupBy('region_key')
             ->get()
             ->keyBy('region_key');

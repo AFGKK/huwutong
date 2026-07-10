@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("HWT License SDK for .NET (C#) - M2-21")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+31f92968d56df63a3e1d9ec0c131d5ac02403cf1")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f75c417b9cf5810dacbe6f8556f2f94f6ed202f7")]
 [assembly: System.Reflection.AssemblyProductAttribute("HuwutongSdk")]
 [assembly: System.Reflection.AssemblyTitleAttribute("HuwutongSdk")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

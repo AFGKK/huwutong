@@ -8,7 +8,7 @@ use App\Models\UsageAggregate;
 use App\Models\UsageRecord;
 use App\Models\User;
 use App\Services\EndpointUsageAnalyticsService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 

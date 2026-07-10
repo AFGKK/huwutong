@@ -225,7 +225,7 @@ const kbLoading = ref(false)
 const kbRunning = ref(false)
 
 function sourceLabel(s) {
-  return { rag_chat:'AI客服', handoff:'人工客服', forum_post:'论坛', im_chat:'群聊' }[s] || s
+  return { rag_chat:'AI客服', handoff:'人工客服', forum_post:'广场', im_chat:'群聊' }[s] || s
 }
 function confidenceType(v) { return v > 0.7 ? 'success' : v > 0.4 ? 'warning' : 'danger' }
 

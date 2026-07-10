@@ -5,7 +5,7 @@ namespace Tests\Unit\Services;
 use App\Models\BlogPost;
 use App\Models\RssFeed;
 use App\Services\BlogService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class BlogServiceTest extends TestCase

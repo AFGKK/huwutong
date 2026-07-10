@@ -9,7 +9,7 @@ use App\Models\LicenseMergeJob;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\LicenseMergeService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class LicenseMergeTest extends TestCase

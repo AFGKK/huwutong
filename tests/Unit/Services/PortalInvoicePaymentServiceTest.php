@@ -9,7 +9,7 @@ use App\Models\User;
 use App\Services\Payment\MockPaymentGateway;
 use App\Services\PaymentManager;
 use App\Services\PortalInvoicePaymentService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class PortalInvoicePaymentServiceTest extends TestCase

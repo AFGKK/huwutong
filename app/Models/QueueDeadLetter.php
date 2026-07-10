@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperQueueDeadLetter
+ */
 class QueueDeadLetter extends Model
 {
     protected $table = 'queue_dead_letters';

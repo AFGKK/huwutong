@@ -7,7 +7,7 @@ use App\Models\Product;
 use App\Models\Tenant;
 use App\Services\FingerprintService;
 use App\Services\KeyGenerator;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\LicenseActivationHelpers;
 use Tests\TestCase;
@@ -46,6 +46,9 @@ class IdempotencyTest extends TestCase
             'expires_at' => now()->addYear(),
             'metadata' => ['signature_secret' => 'test-activation-secret'],
         ]);
+
+        $this->activationTenantId = $this->tenant->id;
+        $this->activationProductId = $this->product->id;
 
         $this->deviceComponents = [
             'mac' => '00:1A:2B:3C:4D:5E',

@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $cache_key_hash
  * @property string $status active|expired|invalidated|tampered
  * @property bool $is_offline
+ * @mixin IdeHelperSdkCacheRecord
  */
 class SdkCacheRecord extends Model
 {

@@ -4,7 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Contracts\CloudStorage;
 use App\Services\StaticAssetCdnService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Mockery;
 use Tests\TestCase;
 

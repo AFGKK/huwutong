@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ApiVersion;
 use App\Models\ApiVersionCall;
 use App\Models\ApiVersionRoute;
+use App\Support\DbSql;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -247,11 +248,23 @@ class ApiVersionManagerService
         $path = $request->path();
 
         try {
-            DB::statement("
-                INSERT INTO api_version_calls (api_version_id, tenant_id, method, path, call_count, call_date, created_at, updated_at)
-                VALUES (?, ?, ?, ?, 1, ?, NOW(), NOW())
-                ON DUPLICATE KEY UPDATE call_count = call_count + 1, updated_at = NOW()
-            ", [$apiVersion->id, $tenantId, $method, $path, $today]);
+            $now = DbSql::now();
+            if (DbSql::driver() === 'pgsql') {
+                DB::statement(
+                    "INSERT INTO api_version_calls (api_version_id, tenant_id, method, path, call_count, call_date, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, 1, ?, {$now}, {$now})
+                     ON CONFLICT (api_version_id, tenant_id, method, path, call_date)
+                     DO UPDATE SET call_count = api_version_calls.call_count + 1, updated_at = {$now}",
+                    [$apiVersion->id, $tenantId, $method, $path, $today]
+                );
+            } else {
+                DB::statement(
+                    "INSERT INTO api_version_calls (api_version_id, tenant_id, method, path, call_count, call_date, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, 1, ?, {$now}, {$now})
+                     ON DUPLICATE KEY UPDATE call_count = call_count + 1, updated_at = {$now}",
+                    [$apiVersion->id, $tenantId, $method, $path, $today]
+                );
+            }
         } catch (\Exception $e) {
             // Log silently, don't break the request
             logger()->warning('Failed to record API version call', [

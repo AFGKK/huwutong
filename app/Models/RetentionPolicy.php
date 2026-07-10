@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperRetentionPolicy
+ */
 class RetentionPolicy extends Model
 {
     protected $fillable = [

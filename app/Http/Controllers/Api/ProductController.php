@@ -45,9 +45,11 @@ class ProductController extends Controller
         // Clear any default ordering
         $query->reorder();
 
+        $activeSku = db_is_true('is_active');
+
         match ($field) {
-            'price' => $query->orderByRaw('COALESCE((SELECT MIN(price) FROM product_skus WHERE product_id = products.id AND is_active = 1), 999999) ' . ($direction === 'asc' ? 'ASC' : 'DESC')),
-            'sold_total' => $query->orderByRaw('COALESCE((SELECT SUM(sold_count) FROM product_skus WHERE product_id = products.id AND is_active = 1), 0) DESC'),
+            'price' => $query->orderByRaw('COALESCE((SELECT MIN(price) FROM product_skus WHERE product_id = products.id AND '.$activeSku.'), 999999) '.($direction === 'asc' ? 'ASC' : 'DESC')),
+            'sold_total' => $query->orderByRaw('COALESCE((SELECT SUM(sold_count) FROM product_skus WHERE product_id = products.id AND '.$activeSku.'), 0) DESC'),
             'name' => $query->orderBy('name', $direction),
             default => $query->latest('products.created_at'),
         };

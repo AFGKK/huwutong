@@ -28,15 +28,27 @@ class ApiVersionMiddleware
     {
         $path = $request->path();
 
-        // 跳过非 API 路径
-        if (!str_starts_with($path, 'api/')) {
+        // 跳过非 API 路径、健康探针（不应依赖 DB）
+        if (! str_starts_with($path, 'api/')) {
+            return $next($request);
+        }
+
+        if (preg_match('#^api/health/(live|ready|status)$#', $path)) {
             return $next($request);
         }
 
         // 测试环境或无 API 版本记录时，自动跳过版本检查
-        if (ApiVersion::count() === 0) {
+        try {
+            if (ApiVersion::count() === 0) {
+                $request->attributes->set('api_version', 'v1');
+                $request->attributes->set('api_version_id', null);
+
+                return $next($request);
+            }
+        } catch (\Throwable) {
             $request->attributes->set('api_version', 'v1');
             $request->attributes->set('api_version_id', null);
+
             return $next($request);
         }
 

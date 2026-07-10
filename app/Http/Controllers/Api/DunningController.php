@@ -63,7 +63,7 @@ class DunningController extends Controller
             });
         }
 
-        $items = $query->orderByRaw("FIELD(status, 'pending', 'in_progress', 'failed', 'resolved')")
+        $items = $query->orderByRaw("CASE status WHEN 'pending' THEN 1 WHEN 'in_progress' THEN 2 WHEN 'failed' THEN 3 WHEN 'resolved' THEN 4 END")
             ->orderBy('next_action_at')
             ->paginate($request->input('per_page', 20));
 

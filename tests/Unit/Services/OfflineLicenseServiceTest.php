@@ -8,7 +8,7 @@ use App\Models\Product;
 use App\Models\Tenant;
 use App\Services\OfflineLicenseService;
 use App\Services\OfflineVerifier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class OfflineLicenseServiceTest extends TestCase

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * 加密设置、备份记录、渗透测试报告等。
  *
  * @m3-69 CompliancePack
+ * @mixin IdeHelperComplianceEvidence
  */
 class ComplianceEvidence extends Model
 {

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class RenewalReminderLogFactory extends Factory
@@ -11,7 +12,7 @@ class RenewalReminderLogFactory extends Factory
     public function definition(): array
     {
         return [
-            'tenant_id' => 1,
+            'tenant_id' => Tenant::factory(),
             'subscription_id' => \App\Models\Subscription::factory(),
             'customer_id' => \App\Models\Customer::factory(),
             'channel' => 'mail',

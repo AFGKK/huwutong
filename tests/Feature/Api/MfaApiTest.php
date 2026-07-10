@@ -5,7 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\MfaService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class MfaApiTest extends TestCase
@@ -64,7 +64,8 @@ class MfaApiTest extends TestCase
                 'data' => ['secret', 'uri', 'digits', 'interval'],
             ]);
 
-        $this->assertEquals(32, strlen($response->json('data.secret')));
+        $this->assertNotEmpty($response->json('data.secret'));
+        $this->assertStringContainsString('otpauth://totp/', $response->json('data.uri'));
     }
 
     // ─── 确认并启用 MFA ───

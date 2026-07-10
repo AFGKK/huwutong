@@ -4,7 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -206,6 +206,7 @@ class PermissionApiTest extends TestCase
 
         // 刷新权限缓存后再验证
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+        app(PermissionRegistrar::class)->setPermissionsTeamId($this->tenant->id);
         $this->user->fresh()->load('roles');
 
         if ($response->status() !== 200) {
@@ -213,6 +214,11 @@ class PermissionApiTest extends TestCase
         }
 
         $response->assertStatus(200);
-        $this->assertTrue($this->user->hasRole('assign-test'));
+        $this->assertDatabaseHas('model_has_roles', [
+            'role_id' => $role->id,
+            'model_id' => $this->user->id,
+            'model_type' => User::class,
+            'tenant_id' => $this->tenant->id,
+        ]);
     }
 }

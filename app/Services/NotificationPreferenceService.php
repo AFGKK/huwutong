@@ -6,7 +6,6 @@ use App\Models\NotificationPreference;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class NotificationPreferenceService
@@ -264,7 +263,7 @@ class NotificationPreferenceService
         if (!empty($filters['channel'])) {
             $channel = $filters['channel'];
             $query->where(function (Builder $q) use ($channel) {
-                $q->whereRaw("JSON_EXTRACT(`types`, '$.\"$.\"{$channel}\"') IS NOT NULL");
+                $q->whereRaw(db_json_key_exists('types', $channel));
             });
         }
 

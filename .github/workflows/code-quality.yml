@@ -58,10 +58,10 @@ jobs:
           echo "::endgroup::"
 
       # ─── Step 2: PHPStan 静态分析 ───
-      - name: PHPStan 静态分析
+      - name: PHPStan 静态分析 (Level 6)
         run: |
           echo "::group::PHPStan 分析结果"
-          vendor/bin/phpstan analyse --no-progress --error-format=github --memory-limit=512M || true
+          php -d memory_limit=2G vendor/bin/phpstan analyse --no-progress --error-format=github --memory-limit=2G || true
           echo "::endgroup::"
 
       # ─── Step 3: 密钥泄露扫描（轻量版） ───
@@ -92,5 +92,7 @@ jobs:
             echo "| 🔍 PHPStan 静态分析 (Level 6) | 见上方日志 |"
             echo "| 🔒 密钥泄露扫描 | 见上方日志 |"
             echo ""
-            echo "> 本地运行: \`composer quality\` / \`composer quality:fix\`"
+            echo "> 本地运行: \`composer quality\` / \`composer quality:lite\` / \`composer quality:fix\`"
+            echo ""
+            echo "> 注意: PHPStan 分析需要 2G 内存。如遇内存不足，请运行 \`composer phpstan:lite\`（Level 3）"
           } >> $GITHUB_STEP_SUMMARY

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * 客户 - SLA 等级关联
+ *
+ * @mixin IdeHelperCustomerSlaAssignment
  */
 class CustomerSlaAssignment extends Model
 {

@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperAttackIpBlock
+ */
 class AttackIpBlock extends Model
 {
     protected $table = 'attack_ip_blocks';

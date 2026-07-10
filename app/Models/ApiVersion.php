@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * API 版本定义
+ *
+ * @mixin IdeHelperApiVersion
  */
 class ApiVersion extends Model
 {

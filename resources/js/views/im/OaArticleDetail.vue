@@ -4,7 +4,7 @@
         <div class="oa-article-topbar" :class="{ 'topbar-hidden': topbarHidden }">
             <div class="topbar-left">
                 <el-button text size="small" @click="goBack">
-                    <el-icon><ArrowLeft /></el-icon> 返回
+                    <el-icon><ArrowLeft /></el-icon> 返回互物号
                 </el-button>
                 <el-divider direction="vertical" />
                 <span v-if="article" class="topbar-acc-name">{{ article.account?.name }}</span>
@@ -32,11 +32,11 @@
                     <template #dropdown>
                         <el-dropdown-menu>
                             <el-dropdown-item command="chat">💬 好友/聊天</el-dropdown-item>
-                            <el-dropdown-item command="plaza">🌐 广场</el-dropdown-item>
+                            <el-dropdown-item command="plaza">🌐 社区</el-dropdown-item>
                             <el-dropdown-item command="channel">📡 圈子</el-dropdown-item>
-                            <el-dropdown-item command="wechat" divided>💚 微信 🪙+1</el-dropdown-item>
-                            <el-dropdown-item command="weibo">🔴 微博 🪙+1</el-dropdown-item>
-                            <el-dropdown-item command="copy">🔗 复制链接 🪙+1</el-dropdown-item>
+                            <el-dropdown-item command="wechat" divided>💚 微信 <PointsIcon :size="14" />+1</el-dropdown-item>
+                            <el-dropdown-item command="weibo">🔴 微博 <PointsIcon :size="14" />+1</el-dropdown-item>
+                            <el-dropdown-item command="copy">🔗 复制链接 <PointsIcon :size="14" />+1</el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
                 </el-dropdown>
@@ -85,7 +85,34 @@
                 </header>
 
                 <div v-if="getCoverImage(article)" class="oa-article-cover">
-                    <img :src="getCoverImage(article)" alt="封面图" />
+                    <img :src="getCoverImage(article)" :alt="(article.title || '文章') + ' - 封面图'" />
+                </div>
+
+                <!-- 🔒 付费墙 -->
+                <div v-if="article.is_paid && !article.has_purchased" class="oa-paywall">
+                    <div class="oa-paywall-blur" v-if="article.content_preview">
+                        <div class="oa-paywall-preview">{{ article.content_preview }}...</div>
+                    </div>
+                    <div class="oa-paywall-overlay">
+                        <div class="oa-paywall-icon">🔒</div>
+                        <h3 class="oa-paywall-title">付费文章</h3>
+                        <p class="oa-paywall-desc">阅读全部内容需解锁</p>
+                        <div class="oa-paywall-price">
+                            <PointsIcon v-if="article.price_type === 'points'" :size="26" /> {{ article.price_type === 'points' ? article.price + ' 积分' : '¥' + article.price }}
+                        </div>
+                        <template v-if="isLoggedIn">
+                            <el-button type="warning" size="large" :loading="purchasingArticle" @click="purchaseArticle">
+                                <PointsIcon :size="18" v-if="article.price_type === 'points'" /> {{ article.price_type === 'points' ? '积分解锁' : '💳 支付解锁' }}
+                            </el-button>
+                            <p v-if="article.price_type === 'points' && userBalance >= 0" class="oa-paywall-balance">
+                                当前余额：<PointsIcon :size="14" /> {{ userBalance }} 积分
+                                <span v-if="userBalance < article.price" style="color:#f56c6c">（不足）</span>
+                            </p>
+                        </template>
+                        <template v-else>
+                            <el-button type="primary" size="large" @click="redirectToLogin">登录后解锁</el-button>
+                        </template>
+                    </div>
                 </div>
 
                 <!-- 目录导航 -->
@@ -100,7 +127,10 @@
                     </div>
                 </div>
 
-                <div class="oa-article-content" v-html="article.content" @click="onArticleContentClick" ref="contentRef"></div>
+                <div class="oa-article-content" v-html="article.content" @click="onArticleContentClick" ref="contentRef" v-if="!article.is_paid || article.has_purchased"></div>
+                <div v-else-if="article.content_preview" class="oa-article-content oa-content-locked">
+                    <p style="color:#999;text-align:center;padding:20px">🔒 付费内容已隐藏，请解锁后阅读</p>
+                </div>
 
                 <!-- 多图展示 -->
                 <div v-if="article.images?.length" class="oa-article-images">
@@ -125,7 +155,7 @@
                         {{ article.is_favorited ? '⭐' : '☆' }} 收藏
                     </el-button>
                     <el-button text type="warning" @click="openTipDialog" title="打赏">
-                        🪙 打赏
+                        <PointsIcon :size="16" /> 打赏
                     </el-button>
                     <el-button v-if="(article.author?.id || article.user_id) !== myId" text type="warning" @click="isLoggedIn ? reportArticle() : redirectToLogin()">
                         ⚠️ 举报
@@ -166,15 +196,28 @@
                 <div class="oa-article-comments">
                     <h3>💬 评论 ({{ article.comments?.length || 0 }})</h3>
                     <div v-if="isLoggedIn" class="oa-comment-input">
-                        <div style="display:flex;gap:6px;margin-bottom:6px">
-                            <el-button size="small" text @click="toggleEmojiPicker" title="表情" style="padding:0 6px">😊</el-button>
-                            <el-button size="small" text @click="insertCommentImage" title="图片" style="padding:0 6px">🖼️</el-button>
-                            <el-button size="small" text @click="uploadCommentImage" title="上传图片" style="padding:0 6px">📁</el-button>
+                        <div style="display:flex;gap:8px;align-items:flex-start">
+                            <el-avatar :size="32" :src="currentUserAvatar" style="flex-shrink:0">{{ myId ? '?' : '' }}</el-avatar>
+                            <div style="flex:1">
+                                <div style="display:flex;gap:6px;margin-bottom:6px">
+                                    <el-button size="small" text @click="toggleEmojiPicker" title="表情" style="padding:0 6px">😊</el-button>
+                                    <el-button size="small" text @click="insertCommentImage" title="图片" style="padding:0 6px">🖼️</el-button>
+                                    <el-button size="small" text @click="uploadCommentImage" title="上传图片" style="padding:0 6px">📁</el-button>
+                                </div>
+                                <el-input v-model="newCommentText" type="textarea" :rows="2" placeholder="写下你的评论..." maxlength="1000" @focus="loadOaAiSuggestions" />
+                        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+                            <span v-for="(sg, si) in oaAiSuggestions" :key="si"
+                                class="px-2.5 py-1 text-xs rounded-full border border-gray-200 text-gray-500 cursor-pointer hover:bg-primary-50 hover:border-primary-300 hover:text-primary-600 transition"
+                                @click="newCommentText = sg; oaAiSuggestions = []">
+                                🤖 {{ sg }}
+                            </span>
+                            <el-button v-if="oaAiSuggestions.length" size="small" text @click="oaAiSuggestions = []" style="font-size:11px">取消</el-button>
                         </div>
-                        <el-input v-model="newCommentText" type="textarea" :rows="2" placeholder="写下你的评论..." maxlength="1000" />
                         <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
                             <input v-if="showCommentImageInput" v-model="commentImageUrl" placeholder="输入图片URL..." size="small" style="flex:1;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px" />
                             <el-button size="small" type="primary" :loading="submittingComment" @click="submitComment">发表评论</el-button>
+                        </div>
+                            </div>
                         </div>
                     </div>
                     <div v-else class="oa-comment-login-tip" style="text-align:center;padding:20px;background:#f9f9f9;border-radius:8px;margin-bottom:12px">
@@ -215,13 +258,15 @@
                                 </div>
                                 <div v-if="c.replies?.length" class="oa-comment-replies">
                                     <div v-for="r in c.replies" :key="r.id" class="oa-comment-reply">
+                                        <el-avatar :size="20" :src="r.user?.avatar_url" style="flex-shrink:0;vertical-align:middle">{{ r.user?.name?.charAt(0) || '?' }}</el-avatar>
                                         <span class="oa-reply-author">{{ r.user?.name }}：</span>
                                         <span class="oa-reply-text">{{ r.content }}</span>
                                         <span class="oa-comment-time">{{ formatTime(r.created_at) }}</span>
                                     </div>
                                 </div>
                                 <!-- 回复输入框 -->
-                                <div v-if="replyingTo === c.id" class="oa-reply-box" style="margin-top:8px;display:flex;gap:6px">
+                                <div v-if="replyingTo === c.id" class="oa-reply-box" style="margin-top:8px;display:flex;gap:6px;align-items:center">
+                                    <el-avatar :size="24" :src="currentUserAvatar" style="flex-shrink:0">{{ myId ? '?' : '' }}</el-avatar>
                                     <el-input v-model="replyText" placeholder="输入回复..." size="small" style="flex:1" maxlength="1000" />
                                     <el-button size="small" type="primary" :loading="replying" @click="submitReply(c)">发送</el-button>
                                     <el-button size="small" @click="replyingTo = null">取消</el-button>
@@ -251,9 +296,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox, ElImageViewer } from 'element-plus';
+import PointsIcon from '@/components/PointsIcon.vue';
 import { ArrowLeft, Share, Loading, ZoomIn, ArrowDown } from '@element-plus/icons-vue';
 import apiClient from '@/api/client';
 import TipDialog from '@/components/TipDialog.vue';
@@ -282,6 +328,7 @@ const showCommentImageInput = ref(false);
 const commentImageUrl = ref('');
 const myId = ref(0);
 const isLoggedIn = ref(false);
+const currentUserAvatar = ref('');
 const fontSizeIndex = ref(1);
 const fontSizes = [14, 15, 16, 18, 20, 24];
 const showToc = ref(true);
@@ -302,6 +349,16 @@ const speechRate = ref(1);
 const oaReactions = ref(JSON.parse(localStorage.getItem('oaCommentReactions') || '{}'));
 const showTipDialog = ref(false);
 const showPoints = ref(false);
+
+// ── 付费文章 ──
+const purchasingArticle = ref(false);
+const userBalance = ref(-1);
+
+// ── 阅读行为追踪 ──
+const readStartTime = ref(null)
+const maxScrollDepth = ref(0)
+const readTrackingTimer = ref(null)
+const readReported = ref(false)
 
 const readingTime = computed(() => {
   const text = article.value ? stripHtml(article.value.content) : '';
@@ -366,7 +423,7 @@ function goBack() {
     if (window.history.length > 1) {
         router.back();
     } else {
-        router.push('/user-chat');
+        router.push('/channels');
     }
 }
 
@@ -401,6 +458,20 @@ function scrollToHeading(idx) {
 
 function onArticleContentClick(event) {
     const target = event.target
+
+    // 投票选项点击
+    const pollOption = target.closest('[data-poll-option]')
+    if (pollOption) {
+        const pollId = parseInt(pollOption.dataset.pollId)
+        const optionId = parseInt(pollOption.dataset.pollOptionId)
+        if (pollId && optionId && isLoggedIn.value) {
+            handlePollVote(pollId, [optionId])
+        } else if (!isLoggedIn.value) {
+            redirectToLogin()
+        }
+        return
+    }
+
     // 图片点击 → 灯箱预览
     if (target?.tagName === 'IMG' && target.closest('.oa-article-content')) {
         previewImageUrl.value = target.src
@@ -425,6 +496,14 @@ function onArticleScroll() {
     const scrollTop = window.scrollY || document.documentElement.scrollTop
     const scrollHeight = document.documentElement.scrollHeight - window.innerHeight
     readingProgress.value = scrollHeight > 0 ? Math.min(100, Math.round(scrollTop / scrollHeight * 100)) : 0
+    // 追踪最大滚动深度
+    if (readingProgress.value > maxScrollDepth.value) {
+        maxScrollDepth.value = readingProgress.value
+        // 每10%上报一次
+        if (maxScrollDepth.value % 10 === 0 && maxScrollDepth.value > 0 && !readReported.value) {
+            reportReadBehavior()
+        }
+    }
     // 滚动隐藏顶栏
     if (scrollTop > 100) {
         topbarHidden.value = scrollTop > lastScrollTop.value
@@ -434,17 +513,99 @@ function onArticleScroll() {
     lastScrollTop.value = scrollTop
 }
 
+// ── 阅读行为上报 ──
+function reportReadBehavior() {
+    if (!article.value?.id || !isLoggedIn.value || readReported.value) return
+    readReported.value = true
+    const duration = readStartTime.value ? Math.round((Date.now() - readStartTime.value) / 1000) : 0
+    const completed = maxScrollDepth.value >= 90
+    const data = {
+        read_duration: duration,
+        scroll_depth: maxScrollDepth.value,
+        completed: completed,
+    }
+    apiClient.post('/official-accounts/articles/' + article.value.id + '/read-behavior', data).catch(() => {})
+}
+
+// 离开页面时最后上报一次
+onBeforeUnmount(() => {
+    if (readStartTime.value && !readReported.value) {
+        reportReadBehavior()
+    }
+    if (readTrackingTimer.value) clearInterval(readTrackingTimer.value)
+})
+
 async function loadArticle() {
     try {
         const id = route.params.id;
         const r = await apiClient.get('/official-accounts/articles/' + id);
         article.value = r.data?.data || null;
         if (article.value?.title) {
-            document.title = article.value.title + ' - ' + (article.value.account?.name || 'HWT');
+            const title = article.value.title + ' - ' + (article.value.account?.name || 'HWT');
+            const desc = article.value.summary || stripHtml(article.value.content).slice(0, 160);
+            document.title = title;
+
+            // 更新 description
             let meta = document.querySelector('meta[name="description"]');
             if (!meta) { meta = document.createElement('meta'); meta.name = 'description'; document.head.appendChild(meta); }
-            meta.content = article.value.summary || stripHtml(article.value.content).slice(0, 160);
+            meta.content = desc;
+
+            // 更新 og:title / og:description
+            const setMeta = (prop, content) => {
+                if (!content) return;
+                let el = document.querySelector('meta[' + prop + ']');
+                if (!el) { el = document.createElement('meta'); el.setAttribute(prop.split('=')[0], prop.split('=')[1] || ''); document.head.appendChild(el); }
+                el.content = content;
+            };
+            setMeta('property="og:title"', title);
+            setMeta('property="og:description"', desc);
+            setMeta('name="twitter:title"', title);
+            setMeta('name="twitter:description"', desc);
+            if (article.value.cover_image) {
+                setMeta('property="og:image"', article.value.cover_image);
+                setMeta('name="twitter:image"', article.value.cover_image);
+            }
+
+            // 更新 JSON-LD 结构化数据
+            let script = document.getElementById('seo-ld-json');
+            if (!script) {
+                script = document.createElement('script');
+                script.id = 'seo-ld-json';
+                script.type = 'application/ld+json';
+                document.head.appendChild(script);
+            }
+            script.textContent = JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'Article',
+                'headline': article.value.title,
+                'description': desc,
+                'image': article.value.cover_image || null,
+                'datePublished': article.value.published_at || null,
+                'author': { '@type': 'Person', 'name': article.value.author?.name || '匿名' },
+                'publisher': { '@type': 'Organization', 'name': article.value.account?.name || '互物号' },
+                'mainEntityOfPage': { '@type': 'WebPage', '@id': window.location.href },
+            });
         }
+
+        // 阅读行为追踪：记录开始时间
+        if (article.value?.id && isLoggedIn.value) {
+            readStartTime.value = Date.now()
+            maxScrollDepth.value = 0
+            readReported.value = false
+            // 每30秒自动上报一次进度
+            if (readTrackingTimer.value) clearInterval(readTrackingTimer.value)
+            readTrackingTimer.value = setInterval(() => {
+                if (article.value?.id && isLoggedIn.value && !readReported.value) {
+                    const duration = Math.round((Date.now() - readStartTime.value) / 1000)
+                    apiClient.post('/official-accounts/articles/' + article.value.id + '/read-behavior', {
+                        read_duration: duration,
+                        scroll_depth: maxScrollDepth.value,
+                        completed: maxScrollDepth.value >= 90,
+                    }).catch(() => {})
+                }
+            }, 30000)
+        }
+
         // 提取目录 + 图片懒加载 + 代码语言标签
         if (article.value?.content) {
             const div = document.createElement('div');
@@ -499,6 +660,19 @@ async function loadArticle() {
                     el.style.cssText = 'border:1px solid #e4e7ed;border-radius:8px;padding:16px;margin:12px 0;background:#fff;';
                 }
             });
+            // 投票卡片渲染
+            div.querySelectorAll('[data-type="poll-card"]').forEach(el => {
+                const pollId = el.getAttribute('data-poll-id')
+                if (!pollId) return
+                const cached = pollResults.value[pollId]
+                if (cached) {
+                    // 已有投票结果，直接渲染带结果
+                    renderPollWithResults(el, cached)
+                } else {
+                    // 未投票，渲染可点击选项
+                    renderPollOptions(el, pollId)
+                }
+            });
             const headings = div.querySelectorAll('h1, h2, h3');
             tocItems.value = Array.from(headings).map(h => ({
                 level: parseInt(h.tagName[1]),
@@ -506,9 +680,142 @@ async function loadArticle() {
             }));
             article.value.content = div.innerHTML;
         }
+
+        // 如果是付费文章，获取用户余额
+        if (article.value?.is_paid && isLoggedIn.value) {
+            try {
+                const bal = await apiClient.get('/points/balance');
+                userBalance.value = bal.data?.data?.balance || 0;
+            } catch { /* ignore */ }
+        }
+
+        // 加载文章投票数据
+        if (article.value?.id && isLoggedIn.value) {
+            try {
+                const pollsRes = await apiClient.get('/official-accounts/articles/' + article.value.id + '/polls')
+                const polls = pollsRes.data?.data || []
+                polls.forEach(p => { pollResults.value[p.id] = p })
+            } catch { /* ignore */ }
+        }
     } catch {
         ElMessage.error('文章加载失败');
     }
+}
+
+// ── 付费文章购买 ──
+async function purchaseArticle() {
+    if (!article.value?.id) return;
+    purchasingArticle.value = true;
+    try {
+        const r = await apiClient.post('/official-accounts/articles/' + article.value.id + '/purchase');
+        if (r.data?.success) {
+            ElMessage.success('🎉 已解锁！');
+            // 重新加载文章获取完整内容
+            await loadArticle();
+        } else {
+            ElMessage.error(r.data?.error?.message || '解锁失败');
+        }
+    } catch (e) {
+        const msg = e.response?.data?.error?.message || e.response?.data?.message || '解锁失败';
+        if (msg.includes('余额不足')) {
+            ElMessage.warning('🪙 积分不足，请先获取积分');
+        } else {
+            ElMessage.error(msg);
+        }
+    } finally {
+        purchasingArticle.value = false;
+    }
+}
+
+// ── 投票 ──
+const pollResults = ref({})
+async function handlePollVote(pollId, optionIds) {
+    try {
+        const r = await apiClient.post('/official-accounts/polls/' + pollId + '/vote', { option_ids: optionIds })
+        const data = r.data?.data
+        if (data) {
+            pollResults.value[pollId] = data
+            // 更新文章内容中的投票显示
+            updatePollDisplay(pollId, data)
+            ElMessage.success('投票成功')
+        }
+    } catch (e) {
+        ElMessage.error(e.response?.data?.message || '投票失败')
+    }
+}
+function updatePollDisplay(pollId, data) {
+    const container = document.querySelector(`[data-poll-id="${pollId}"]`)
+    if (!container) return
+    const total = data.total_votes || 0
+    const myVotes = data.my_votes || []
+    container.querySelectorAll('[data-poll-option]').forEach(el => {
+        const oid = parseInt(el.dataset.pollOptionId)
+        const opt = (data.options || []).find(o => o.id === oid)
+        if (!opt) return
+        const pct = opt.percentage || 0
+        const count = opt.votes_count || 0
+        const isMine = myVotes.includes(oid)
+        el.style.cursor = 'default'
+        el.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin:4px 0;background:#f0f5ff;border-radius:6px;font-size:14px;color:#303133;position:relative;overflow:hidden;${isMine ? 'border:1px solid #409eff;font-weight:600' : ''}">
+            <div style="position:absolute;top:0;left:0;height:100%;background:rgba(64,158,255,0.12);transition:width 0.5s;width:${pct}%"></div>
+            <span style="width:16px;height:16px;border-radius:50%;background:#409eff;color:#fff;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;position:relative">${isMine ? '✓' : ''}</span>
+            <span style="flex:1;position:relative">${opt.label}</span>
+            <span style="font-size:13px;font-weight:600;color:#409eff;position:relative">${pct}%</span>
+            <span style="font-size:11px;color:#909399;position:relative">${count}票</span>
+        </div>`
+    })
+    const footer = container.querySelector('.poll-footer')
+    if (footer) footer.textContent = `共 ${total} 人参与 · ${data.type === 'multiple' ? '多选' : '单选'}`
+}
+
+// ── 投票卡片渲染辅助 ──
+function renderPollWithResults(el, data) {
+    const total = data.total_votes || 0
+    const myVotes = data.my_votes || []
+    const opts = (data.options || []).map(opt => {
+        const pct = opt.percentage || 0
+        const isMine = myVotes.includes(opt.id)
+        return `<div data-poll-option style="cursor:default;margin:4px 0">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f0f5ff;border-radius:6px;font-size:14px;color:#303133;position:relative;overflow:hidden;${isMine ? 'border:1px solid #409eff;font-weight:600' : ''}">
+                <div style="position:absolute;top:0;left:0;height:100%;background:rgba(64,158,255,0.12);transition:width 0.5s;width:${pct}%"></div>
+                <span style="width:16px;height:16px;border-radius:50%;background:#409eff;color:#fff;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;position:relative">${isMine ? '✓' : ''}</span>
+                <span style="flex:1;position:relative">${opt.label}</span>
+                <span style="font-size:13px;font-weight:600;color:#409eff;position:relative">${pct}%</span>
+                <span style="font-size:11px;color:#909399;position:relative">${opt.votes_count || 0}票</span>
+            </div>
+        </div>`
+    }).join('')
+    el.innerHTML = `<div style="padding:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span style="font-size:20px">📊</span>
+            <span style="font-size:15px;font-weight:600;color:#303133">${data.question}</span>
+        </div>
+        <div>${opts}</div>
+        <div class="poll-footer" style="font-size:12px;color:#909399;margin-top:10px;text-align:center">共 ${total} 人参与 · ${data.type === 'multiple' ? '多选' : '单选'}</div>
+    </div>`
+}
+function renderPollOptions(el, pollId) {
+    el.setAttribute('data-poll-id', pollId)
+    const question = el.getAttribute('data-poll-question') || '投票'
+    const type = el.getAttribute('data-poll-type') || 'single'
+    const totalVotes = parseInt(el.getAttribute('data-poll-total') || '0')
+    // 解析选项
+    let options = []
+    try { options = JSON.parse(el.getAttribute('data-poll-options') || '[]') } catch {}
+    const optsHtml = options.map((o, i) =>
+        `<div data-poll-option data-poll-id="${pollId}" data-poll-option-id="${o.id || i}" style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin:4px 0;background:#f5f7fa;border-radius:6px;cursor:pointer;font-size:14px;color:#303133;transition:all .15s" onmouseover="this.style.background='#e8edf5'" onmouseout="this.style.background='#f5f7fa'">
+            <span style="width:16px;height:16px;border-radius:50%;border:2px solid #c0c4cc;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">${type === 'multiple' ? '<span style="font-size:10px">✓</span>' : ''}</span>
+            <span style="flex:1">${o.label || o}</span>
+        </div>`
+    ).join('')
+    el.innerHTML = `<div style="padding:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span style="font-size:20px">📊</span>
+            <span style="font-size:15px;font-weight:600;color:#303133">${question}</span>
+        </div>
+        <div>${optsHtml}</div>
+        <div class="poll-footer" style="font-size:12px;color:#909399;margin-top:10px;text-align:center">共 ${totalVotes} 人参与 · ${type === 'multiple' ? '多选' : '单选'}</div>
+    </div>`
 }
 
 async function handleLike() {
@@ -777,6 +1084,25 @@ function redirectToLogin() {
     window.location.href = '/login';
 }
 
+// ── AI 评论建议 ──
+const oaAiSuggestions = ref([])
+let oaAiTimer = null
+async function loadOaAiSuggestions() {
+    if (oaAiSuggestions.value.length || !article.value?.content) return
+    clearTimeout(oaAiTimer)
+    oaAiTimer = setTimeout(async () => {
+        try {
+            const content = (article.value.content || '').replace(/<[^>]*>/g, '').substring(0, 300)
+            const h = { Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
+            const res = await apiClient.post('/user-chat/ai-conversation', {
+                message: '你是一个文章评论助手。请针对以下文章内容，生成3条简短友好的评论建议（每条不超过20字），用中文，用|分隔，直接返回结果不要多余文字。\n\n' + content
+            }, { headers: h })
+            const reply = res.data?.data?.reply || ''
+            oaAiSuggestions.value = reply.split('|').filter(Boolean).map(s => s.trim()).slice(0, 3)
+        } catch { /* ignore */ }
+    }, 300)
+}
+
 onMounted(async () => {
     window.addEventListener('scroll', onArticleScroll)
     try {
@@ -784,16 +1110,18 @@ onMounted(async () => {
         const user = userRes.data?.data || {};
         myId.value = user.id || 0;
         isLoggedIn.value = !!user.id;
+        currentUserAvatar.value = user.avatar_url || '';
     } catch {
         isLoggedIn.value = false;
         myId.value = 0;
+        currentUserAvatar.value = '';
     }
     await loadArticle();
 });
 </script>
 
 <style scoped>
-.oa-article-page { min-height: 100vh; background: #fff; display: flex; flex-direction: column; }
+.oa-article-page { min-height: 100vh; background: #fff; display: flex; flex-direction: column; padding-top: 71px; }
 .oa-article-page a { text-decoration: none !important; }
 .chat-dark-mode .oa-article-page { background: #12121e; }
 .oa-article-topbar {
@@ -819,7 +1147,7 @@ onMounted(async () => {
 .oa-article-cover img { width: 100%; max-height: 400px; object-fit: cover; display: block; }
 .oa-article-content { font-size: 16px; line-height: 1.9; color: #333; }
 .chat-dark-mode .oa-article-content { color: #ccc; }
-.oa-article-content img { max-width: 100%; border-radius: 6px; margin: 16px 0; }
+.oa-article-content img { max-width: 100%; border-radius: 6px; margin: 16px auto; display: block; }
 .oa-article-content pre { background: #1e1e1e; color: #d4d4d4; padding: 16px 44px 16px 16px; border-radius: 6px; overflow-x: auto; font-size: 13px; line-height: 1.5; position: relative; }
 .oa-article-content pre::after { content: '📋'; position: absolute; top: 6px; right: 8px; font-size: 14px; cursor: pointer; opacity: 0; transition: opacity .2s; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,.1); line-height: 1.4; pointer-events: none; }
 .oa-article-content pre:hover::after { opacity: .85; }
@@ -835,6 +1163,19 @@ onMounted(async () => {
 .oa-article-content .code-runner-pre { padding: 8px 12px; margin: 0; background: transparent !important; color: #d4d4d4 !important; font-family: 'Fira Code', Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
 .oa-article-content .hljs-string { color: #ce9178; }
 .oa-article-content .hljs-number { color: #b5cea8; }
+
+/* ── 付费墙 ── */
+.oa-paywall { position: relative; margin: 24px 0; border-radius: 12px; overflow: hidden; background: #f9f9f9; border: 1px solid #e8e8e8; }
+.oa-paywall-blur { overflow: hidden; max-height: 120px; position: relative; }
+.oa-paywall-blur::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: linear-gradient(transparent, #f9f9f9); }
+.oa-paywall-preview { padding: 16px 20px; font-size: 14px; line-height: 1.8; color: #999; filter: blur(6px); user-select: none; }
+.oa-paywall-overlay { position: relative; text-align: center; padding: 24px 20px 32px; }
+.oa-paywall-icon { font-size: 48px; margin-bottom: 8px; }
+.oa-paywall-title { font-size: 20px; font-weight: 700; color: #303133; margin-bottom: 4px; }
+.oa-paywall-desc { font-size: 13px; color: #909399; margin-bottom: 16px; }
+.oa-paywall-price { font-size: 28px; font-weight: 800; color: #e6a23c; margin-bottom: 20px; }
+.oa-paywall-balance { font-size: 12px; color: #909399; margin-top: 8px; }
+.oa-content-locked { opacity: 0.5; filter: grayscale(0.3); }
 .oa-article-content .hljs-comment { color: #6a9955; font-style: italic; }
 .oa-article-content .hljs-built_in { color: #4ec9b0; }
 .oa-article-content .hljs-title { color: #dcdcaa; }

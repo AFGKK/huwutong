@@ -16,6 +16,33 @@ Route::get('/metrics', [MetricsController::class, 'index']);
 Route::get('/sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'index']);
 Route::get('/robots.txt', \App\Http\Controllers\RobotsController::class);
 
+// ── 互物号文章 SEO ──
+Route::get('/oa-article/{id}', function (int $id) {
+    $article = \App\Models\OaArticle::where('status', 'published')
+        ->with('author:id,name,avatar', 'account:id,name,avatar,description')
+        ->findOrFail($id);
+
+    $title = ($article->title ?? '文章') . ' - ' . ($article->account->name ?? '互物号');
+    $description = $article->summary
+        ? mb_substr($article->summary, 0, 160)
+        : mb_substr(strip_tags($article->content ?? ''), 0, 160);
+    $ogImage = $article->cover_image;
+    $canonical = url('/oa-article/' . $article->id);
+    $tags = $article->tags ?? [];
+
+    return view('public-spa', [
+        'title'               => $title,
+        'description'         => $description,
+        'og_image'            => $ogImage,
+        'og_type'             => 'article',
+        'canonical'           => $canonical,
+        'article_published_time' => $article->published_at?->toIso8601String(),
+        'article_author'      => $article->author->name ?? '',
+        'article_section'     => $article->account->name ?? '',
+        'article_tags'        => $tags,
+    ]);
+})->whereNumber('id');
+
 // ========================
 // security.txt 标准文件 (RFC 9116) — 必须在 SPA 路由之前
 // ========================
@@ -72,6 +99,7 @@ Route::get('/compare', function () {
 Route::get('/products', [\App\Http\Controllers\Public\PublicPageController::class, 'products']);
 Route::get('/products/{slug}', [\App\Http\Controllers\Public\PublicPageController::class, 'products']);
 Route::get('/compare-products', [\App\Http\Controllers\Public\PublicPageController::class, 'compareProducts']);
+Route::post('/contact-seller', [\App\Http\Controllers\Public\PublicPageController::class, 'contactSeller']);
 
 // 公司信息页
 Route::view('/about', 'public.about')->name('about');
@@ -96,6 +124,9 @@ Route::get('/blog/{slug}', function ($slug) {
 Route::get('/help', function () {
     return view('public.help');
 });
+Route::get('/help/{id}', function ($id) {
+    return view('public.help', ['slug' => $id]);
+})->whereNumber('id');
 
 // 互物库 — 统一搜索引擎
 Route::get('/search', function () {
@@ -149,6 +180,103 @@ Route::get('/ref/{slug}', function (string $slug) {
     ]);
 });
 
+// 推广点击追踪中间页 - 记录点击后跳转到目标URL
+Route::get('/go/{creative}', function (\App\Models\AffiliateCreative $creative) {
+    if (!$creative->is_active) {
+        return redirect('/');
+    }
+
+    $campaign = $creative->campaign;
+    if (!$campaign || $campaign->status !== 'active') {
+        return redirect('/');
+    }
+
+    $ref = request()->query('ref', '');
+
+    // 预算检查：预算耗尽时停止追踪
+    $budgetRemaining = ($campaign->budget_deposited ?? 0) - ($campaign->budget_used ?? 0);
+    $budgetExhausted = $budgetRemaining <= 0 && ($campaign->budget_deposited ?? 0) > 0;
+
+    if (!$budgetExhausted) {
+        $agent = null;
+        if ($ref) {
+            $tracking = \App\Models\RegistrationTracking::where('invite_code', $ref)->first();
+            $agent = $tracking ? \App\Models\Agent::find($tracking->agent_id) : null;
+        }
+
+        // 记录点击
+        $platformShareRate = $campaign->platform_share_rate ?? 0;
+        \App\Models\AffiliateClick::create([
+            'agent_id' => $agent?->id,
+            'campaign_id' => $campaign->id,
+            'creative_id' => $creative->id,
+            'referral_code' => $ref,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'referrer_url' => request()->header('referer'),
+            'landing_url' => $creative->url ?: url("/ref/{$campaign->slug}"),
+            'commission_amount' => $creative->commission_amount,
+            'commission_rate' => $creative->commission_rate,
+            'platform_share_rate' => $platformShareRate,
+            'utm_params' => request()->only(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']),
+        ]);
+
+        // CPC 计费：每次点击扣费
+        if ($campaign->billing_mode === 'cpc' && $campaign->cost_per_click > 0) {
+            $campaign->increment('budget_used', $campaign->cost_per_click);
+        }
+    }
+
+    // 构建目标URL（追加 ref 参数）
+    $targetUrl = $creative->url ?: url("/ref/{$campaign->slug}");
+    if ($ref) {
+        $separator = str_contains($targetUrl, '?') ? '&' : '?';
+        $targetUrl .= $separator . 'ref=' . urlencode($ref);
+    }
+
+    return redirect($targetUrl);
+});
+
+// 推广展示追踪（CPM 计费用 / 图片像素方式调用）
+Route::get('/impression/{creative}', function (\App\Models\AffiliateCreative $creative) {
+    if (!$creative->is_active) return response('', 204);
+
+    $campaign = $creative->campaign;
+    if (!$campaign || $campaign->status !== 'active' || $campaign->billing_mode !== 'cpm') {
+        return response('', 204);
+    }
+
+    // 预算检查
+    $budgetRemaining = ($campaign->budget_deposited ?? 0) - ($campaign->budget_used ?? 0);
+    if ($budgetRemaining <= 0 && ($campaign->budget_deposited ?? 0) > 0) {
+        return response('', 204);
+    }
+
+    // 记录展示
+    \App\Models\AffiliateClick::create([
+        'campaign_id' => $campaign->id,
+        'creative_id' => $creative->id,
+        'ip_address' => request()->ip(),
+        'user_agent' => request()->userAgent(),
+        'referrer_url' => request()->header('referer'),
+        'utm_params' => request()->only(['utm_source', 'utm_medium', 'utm_campaign']),
+    ]);
+
+    // CPM 计费：每1000次展示扣费（使用缓存计数）
+    $cacheKey = "cpm_impression_{$campaign->id}";
+    $count = (int) \Illuminate\Support\Facades\Cache::get($cacheKey, 0) + 1;
+    \Illuminate\Support\Facades\Cache::put($cacheKey, $count, now()->addDay());
+    if ($count % 1000 === 0 && $campaign->cost_per_impression > 0) {
+        $campaign->increment('budget_used', $campaign->cost_per_impression);
+    }
+
+    // 返回 1x1 透明 GIF 用于图片像素追踪
+    return response(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), 200, [
+        'Content-Type' => 'image/gif',
+        'Cache-Control' => 'no-store, no-cache, must-revalidate',
+    ]);
+});
+
 // Vue 管理后台 SPA（所有 /admin/* 路由指向 admin Blade 模板）
 Route::get('/admin/{path?}', function () {
     return view('admin');
@@ -160,6 +288,28 @@ Route::get('/login', function () {
 })->name('login');
 
 // Vue 管理后台 SPA（开发模式下 Vite base URL 路径）
+// 公开 SPA 页面 - 使用带官网导航的布局
+Route::get('/build/community', function () {
+    return view('public-spa', ['title' => '社区 - 互物通']);
+});
+Route::get('/build/community/{path?}', function () {
+    return view('public-spa', ['title' => '社区 - 互物通']);
+})->where('path', '.*');
+Route::get('/build/channels', function () {
+    return view('public-spa', ['title' => '互物号 - 互物通']);
+});
+Route::get('/build/channels/{path?}', function () {
+    return view('public-spa', ['title' => '互物号 - 互物通']);
+})->where('path', '.*');
+Route::get('/build/oa-article/{id}', function (int $id) {
+    $article = \App\Models\OaArticle::find($id);
+    return view('public-spa', [
+        'title' => ($article?->title ?? '文章') . ' - ' . ($article?->account?->name ?? '互物号'),
+    ]);
+})->whereNumber('id');
+Route::get('/build/plaza/{path?}', function () {
+    return view('public-spa', ['title' => '广场 - 互物通']);
+})->where('path', '.*');
 Route::get('/build/{path?}', function () {
     return view('admin');
 })->where('path', '.*');

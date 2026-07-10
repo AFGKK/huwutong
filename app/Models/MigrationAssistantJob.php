@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperMigrationAssistantJob
+ */
 class MigrationAssistantJob extends Model
 {
     protected $table = 'migration_assistant_jobs';

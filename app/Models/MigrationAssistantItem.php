@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperMigrationAssistantItem
+ */
 class MigrationAssistantItem extends Model
 {
     protected $table = 'migration_assistant_items';

@@ -9,7 +9,7 @@ use App\Models\SecuritySopTemplate;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\SecurityCenterService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SecuritySopTest extends TestCase

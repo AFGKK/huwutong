@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperLicenseWatermark
+ */
 class LicenseWatermark extends Model
 {
     protected $table = 'license_watermarks';

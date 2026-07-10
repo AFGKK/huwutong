@@ -25,11 +25,22 @@ function processQueue(error, token = null) {
     failedQueue = [];
 }
 
-// 强制登出
+// 强制登出（跳过公开页面的重定向）
+const PUBLIC_ROUTES = ['Login', 'Register', 'ForgotPassword', 'Appeal', 'StatusPage', 'Community', 'Channels', 'UserProfile', 'PlazaDetail', 'InteractiveDemo', 'OaArticleDetail', 'OaEditor'];
 function forceLogout(message = '登录已过期，请重新登录') {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user');
-    // 避免重复跳转
+    // 避免在公开页面强制跳转登录
+    const currentRoute = router.currentRoute?.value;
+    const routeName = currentRoute?.name;
+    const routePath = String(currentRoute?.path || '');
+    if (routeName && PUBLIC_ROUTES.includes(routeName)) {
+        return; // 公开页面不跳转，仅清除 token
+    }
+    // fallback：按路径匹配，防止路由名匹配失败
+    if (routePath.startsWith('/oa-editor') || routePath.startsWith('/oa-article/')) {
+        return;
+    }
     if (router.currentRoute?.value?.name !== 'Login') {
         router.push('/login');
     }

@@ -15,9 +15,11 @@ RUN apk add --no-cache \
     libzip-dev \
     libxml2-dev \
     libsodium-dev \
+    postgresql-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
     pdo_mysql \
+    pdo_pgsql \
     mbstring \
     bcmath \
     gd \

@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Services\CircuitBreakerService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 

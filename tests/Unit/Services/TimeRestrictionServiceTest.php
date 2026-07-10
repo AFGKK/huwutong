@@ -10,7 +10,7 @@ use App\Models\TimeRestrictionConfig;
 use App\Models\TimeRestrictionLog;
 use App\Services\TimeRestrictionService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 
 class TimeRestrictionServiceTest extends TestCase
 {

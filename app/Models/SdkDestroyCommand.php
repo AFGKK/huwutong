@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array|null $dispatched_instances
  * @property array|null $confirmed_instances
  * @property int $affected_count
+ * @mixin IdeHelperSdkDestroyCommand
  */
 class SdkDestroyCommand extends Model
 {

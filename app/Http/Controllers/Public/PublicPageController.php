@@ -3,9 +3,14 @@
 namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
+use App\Models\Coupon;
+use App\Models\FlashSale;
+use App\Models\PreSaleCampaign;
 use App\Models\PricingPlan;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\ProductSku;
+use App\Models\Promotion;
 use App\Models\WishlistItem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,8 +66,16 @@ class PublicPageController extends Controller
         // 产品详情页
         if ($slug) {
             $product = Product::where('slug', $slug)
-                ->where('is_active', true)
-                ->with(['category', 'specGroups.specs', 'featureFlags', 'creator:id,name,avatar,region,phone'])
+                ->where('is_active', true);
+            
+            // PostgreSQL 严格类型：id 是 bigint，只有传入数字时才按 ID 查找
+            if (is_numeric($slug)) {
+                $product->orWhere(function($q) use ($slug) {
+                    $q->where('id', $slug)->where('is_active', true);
+                });
+            }
+            
+            $product = $product->with(['category', 'specGroups.specs', 'featureFlags', 'creator:id,name,avatar,region,phone'])
                 ->withCount('licenses')
                 ->firstOrFail();
 
@@ -105,7 +118,39 @@ class PublicPageController extends Controller
             // 获取公开站点设置（含聊天开关等）
             $_siteSettings = \App\Models\SiteSetting::getPublic();
 
-            return view('public.product-detail', compact('product', 'pricingPlans', 'skus', 'relatedProducts', '_wishlistCount', '_siteSettings'));
+            // ── 加载促销/优惠券/秒杀/预售数据 ──
+            $activePromotions = Promotion::active()
+                ->where(function($q) use ($product) {
+                    $q->whereJsonContains('applicable_products', $product->id)
+                      ->orWhereNull('applicable_products');
+                })
+                ->limit(3)
+                ->get();
+
+            $activeCoupons = Coupon::valid()
+                ->where(function($q) use ($product) {
+                    $q->whereJsonContains('applicable_products', (string)$product->id)
+                      ->orWhereNull('applicable_products');
+                })
+                ->limit(3)
+                ->get();
+
+            $flashSale = FlashSale::whereHas('sku', fn($q) => $q->where('product_id', $product->id))
+                ->where('status', 'active')
+                ->where('start_time', '<=', now())
+                ->where('end_time', '>=', now())
+                ->with('sku')
+                ->first();
+
+            $preSale = PreSaleCampaign::where('product_id', $product->id)
+                ->where('status', 'active')
+                ->first();
+
+            return view('public.product-detail', compact(
+                'product', 'pricingPlans', 'skus', 'relatedProducts',
+                '_wishlistCount', '_siteSettings',
+                'activePromotions', 'activeCoupons', 'flashSale', 'preSale'
+            ));
         }
 
         // 产品列表页
@@ -296,11 +341,55 @@ class PublicPageController extends Controller
         }
 
         // Collection sorting (returns new sorted collection)
+        $userId = auth()->id();
+        $aiScores = [];
+        $cfScores = [];
+        $seqScores = [];
+        if ($sort === 'ai' && $userId) {
+            try {
+                $aiService = app(\App\Services\AiRecommendationService::class);
+                $aiScores = $aiService->recommendProducts($userId, 50);
+            } catch (\Exception $e) { $aiScores = []; }
+        } elseif ($sort === 'collaborative' && $userId) {
+            try {
+                $aiService = app(\App\Services\AiRecommendationService::class);
+                $cfScores = $aiService->productCollaborativeFiltering($userId, 30);
+            } catch (\Exception $e) { $cfScores = []; }
+        } elseif ($sort === 'sequence' && $userId) {
+            try {
+                $seqService = app(\App\Services\BehaviorSequenceService::class);
+                $seqScores = $seqService->predictNextProduct($userId, 20);
+            } catch (\Exception $e) { $seqScores = []; }
+        }
+
         $sorted = match ($sort) {
             'price' => $allProducts->sortBy('lowest_price'),
             '-price' => $allProducts->sortByDesc('lowest_price'),
             '-sold_total' => $allProducts->sortByDesc('sold_total'),
             'name' => $allProducts->sortBy('name'),
+            'recommended' => $allProducts->sortByDesc(function($p) {
+                $score = $p->sold_total * 2 + $p->sales_count + ($p->avg_rating ?? 0) * 10;
+                if ($p->is_featured) $score += 50;
+                if ($p->created_at && $p->created_at->gt(now()->subDays(7))) $score += 20;
+                return $score;
+            }),
+            'ai' => $allProducts->sortByDesc(function($p) use ($aiScores) {
+                $score = $p->sold_total + $p->sales_count + ($p->avg_rating ?? 0) * 5;
+                if ($p->is_featured) $score += 30;
+                if (isset($aiScores[$p->id])) $score += $aiScores[$p->id] * 100;
+                if ($p->created_at && $p->created_at->gt(now()->subDays(3))) $score += 15;
+                return $score;
+            }),
+            'collaborative' => $allProducts->sortByDesc(function($p) use ($cfScores) {
+                $score = $p->sold_total + $p->sales_count + ($p->avg_rating ?? 0) * 5;
+                if (isset($cfScores[$p->id])) $score += $cfScores[$p->id] * 10;
+                return $score;
+            }),
+            'sequence' => $allProducts->sortByDesc(function($p) use ($seqScores) {
+                $score = $p->sold_total + $p->sales_count + ($p->avg_rating ?? 0) * 2;
+                if (isset($seqScores[$p->id])) $score += $seqScores[$p->id] * 20;
+                return $score;
+            }),
             default => $allProducts->sortByDesc('created_at'),
         };
         $sorted = $sorted->values();
@@ -411,6 +500,49 @@ class PublicPageController extends Controller
      *
      * POST /api/public/enterprise-contact
      */
+    /**
+     * 联系卖家 - 发送咨询消息
+     *
+     * POST /contact-seller
+     */
+    public function contactSeller(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'product_id' => 'required|integer|exists:products,id',
+            'seller_id' => 'required|integer|exists:users,id',
+            'message' => 'required|string|max:2000',
+            'name' => 'nullable|string|max:100',
+            'email' => 'nullable|email|max:255',
+        ]);
+
+        // 创建咨询工单/通知卖家
+        try {
+            // 记录咨询到数据库或发送通知
+            \Illuminate\Support\Facades\Log::info('卖家咨询', [
+                'product_id' => $validated['product_id'],
+                'seller_id' => $validated['seller_id'],
+                'message' => $validated['message'],
+                'from_name' => $validated['name'] ?? '匿名用户',
+                'from_email' => $validated['email'] ?? '',
+                'ip' => $request->ip(),
+            ]);
+
+            // 这里可以扩展：创建工单、发送邮件通知、推送 IM 消息等
+            // 例如: Ticket::create([...]) 或 Notification::send(...)
+
+            return response()->json([
+                'success' => true,
+                'message' => '消息已发送，卖家将尽快回复您',
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('联系卖家失败: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => '消息发送失败，请稍后重试',
+            ], 500);
+        }
+    }
+
     public function enterpriseContact(Request $request): JsonResponse
     {
         $validated = $request->validate([

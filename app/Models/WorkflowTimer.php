@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * 工作流定时器
  *
  * 用于延迟执行、超时检测、重试调度等时间相关操作。
+ *
+ * @mixin IdeHelperWorkflowTimer
  */
 class WorkflowTimer extends Model
 {

@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use App\Models\NotificationPreference;
 use App\Models\User;
 use App\Services\NotificationPreferenceService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class NotificationPreferenceServiceTest extends TestCase

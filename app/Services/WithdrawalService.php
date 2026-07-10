@@ -90,6 +90,12 @@ class WithdrawalService
             throw new \RuntimeException("{$channel}渠道今日已用 ¥{$dailyUsed}，剩余可用 ¥" . max(0, $dailyLimit - $dailyUsed));
         }
 
+        // 获取收益账户并校验余额（优先于风控，返回更明确的用户提示）
+        $account = $this->resolveEarningsAccount($user);
+        if ((float) $account->available_balance < $amount) {
+            throw new \RuntimeException('可提现余额不足');
+        }
+
         // 提现前风控检查 (M2-127b)
         $agent = Agent::firstOrCreate(
             ['user_id' => $user->id],
@@ -102,12 +108,6 @@ class WithdrawalService
         $riskCheck = $this->riskGuard->preWithdrawalCheck($agent, $amount, $channel);
         if (!$riskCheck['passed']) {
             throw new \RuntimeException('风控检查未通过：' . implode('；', $riskCheck['reasons']));
-        }
-
-        // 获取收益账户
-        $account = $this->resolveEarningsAccount($user);
-        if ((float) $account->available_balance < $amount) {
-            throw new \RuntimeException('可提现余额不足');
         }
 
         // 计算手续费

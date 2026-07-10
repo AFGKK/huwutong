@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * 状态事件/事故
+ *
+ * @mixin IdeHelperStatusIncident
  */
 class StatusIncident extends Model
 {

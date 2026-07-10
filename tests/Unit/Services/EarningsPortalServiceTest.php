@@ -7,7 +7,7 @@ use App\Models\EarningsAccount;
 use App\Models\User;
 use App\Models\Withdrawal;
 use App\Services\WithdrawalService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class EarningsPortalServiceTest extends TestCase

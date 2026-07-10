@@ -8,7 +8,7 @@ use App\Models\Product;
 use App\Models\Tenant;
 use App\Services\DeviceLimiter;
 use App\Services\KeyGenerator;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 

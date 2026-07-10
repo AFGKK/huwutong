@@ -8,7 +8,7 @@ use App\Models\TenantInvitation;
 use App\Models\TenantMember;
 use App\Models\User;
 use App\Services\TenantTeamService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 

@@ -6,7 +6,7 @@ use App\Models\RenewalEscalation;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class RetentionApiTest extends TestCase

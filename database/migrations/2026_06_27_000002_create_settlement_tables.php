@@ -70,7 +70,10 @@ return new class extends Migration
                 $table->decimal('net_amount', 14, 2);
                 $table->string('status');
                 $table->timestamps();
-                $table->index(['settleable_type', 'settleable_id']);
+                // PostgreSQL 的 morphs() 已自动创建此索引
+                if (Schema::getConnection()->getDriverName() !== 'pgsql') {
+                    $table->index(['settleable_type', 'settleable_id']);
+                }
                 $table->index('settlement_batch_id');
             });
         }
@@ -91,7 +94,7 @@ return new class extends Migration
                 $table->timestamp('collected_at')->nullable();
                 $table->timestamps();
                 $table->index(['tenant_id', 'fee_type']);
-                $table->index(['feeable_type', 'feeable_id']);
+                // $table->index(['feeable_type', 'feeable_id']); // 由 nullableMorphs 自动创建
             });
         }
 

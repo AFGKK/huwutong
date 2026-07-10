@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperPricingExperimentEvent
+ */
 class PricingExperimentEvent extends Model
 {
     protected $table = 'pricing_experiment_events';

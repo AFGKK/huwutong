@@ -9,7 +9,7 @@ use App\Models\Tenant;
 use App\Services\FeatureFlagService;
 use App\Services\OpenFeature\EvaluationContext;
 use App\Services\OpenFeature\OpenFeatureProvider;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class OpenFeatureProviderTest extends TestCase

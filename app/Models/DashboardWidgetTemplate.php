@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperDashboardWidgetTemplate
+ */
 class DashboardWidgetTemplate extends Model
 {
     protected $table = 'dashboard_widget_templates';

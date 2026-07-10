@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Carbon|null $expires_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
+ * @mixin IdeHelperOfflineActivation
  */
 class OfflineActivation extends Model
 {

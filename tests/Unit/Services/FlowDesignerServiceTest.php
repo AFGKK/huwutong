@@ -9,7 +9,7 @@ use App\Models\WorkflowDesign;
 use App\Models\WorkflowEdge;
 use App\Models\WorkflowNode;
 use App\Services\FlowDesignerService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class FlowDesignerServiceTest extends TestCase

@@ -6,12 +6,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @mixin IdeHelperLicense
+ */
 class License extends Model
 {
     use HasFactory, SoftDeletes, \App\Models\Concerns\HasTags, \App\Models\Concerns\TrackDataLineage;
 
     protected $fillable = [
-        'tenant_id', 'product_id', 'customer_id', 'subscription_id', 'license_key',
+        'tenant_id', 'product_id', 'sku_id', 'customer_id', 'subscription_id', 'license_key',
         'type', 'status', 'activated_at', 'expires_at',
         'seats', 'max_devices', 'metadata',
         'watermark_key', 'signature_version', 'integrity_hash',

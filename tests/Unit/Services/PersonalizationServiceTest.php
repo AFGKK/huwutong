@@ -10,7 +10,7 @@ use App\Models\User;
 use App\Models\UserBehavior;
 use App\Models\UserPreference;
 use App\Services\PersonalizationService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class PersonalizationServiceTest extends TestCase

@@ -5,6 +5,7 @@ node_modules/
 /public/storage
 /storage/*.key
 .env
+.env.testing
 .env.*.php
 .DS_Store
 Thumbs.db
@@ -51,3 +52,16 @@ vitest.config.*.timestamp-*
 /.phpunit.result.cache
 storage/framework/cache/phpstan/
 rector.php
+
+# Large test output files
+phpunit_results.txt
+test_unit_full.txt
+full_test_log.txt
+test_unit_full.txt
+full_test_log.txt
+phpunit_output.txt
+junit_unit.xml
+# IDE Helper
+_ide_helper.php
+_ide_helper_models.php
+_ide_helper_meta.txt

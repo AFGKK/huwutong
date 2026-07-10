@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperQuotaPlan
+ */
 class QuotaPlan extends Model
 {
     protected $table = 'quota_plans';

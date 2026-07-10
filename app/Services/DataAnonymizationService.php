@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\DataAnonymizationRule;
 use App\Models\DataExportTask;
+use App\Support\DbSql;
 use Faker\Factory as FakerFactory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -205,11 +206,9 @@ class DataAnonymizationService
 
         $allExcluded = array_merge($excludeTables, $schemaOnlyTables, $truncateTables);
 
-        $tables = DB::connection($connection)->select('SHOW TABLES');
-        $key = "Tables_in_" . DB::connection($connection)->getDatabaseName();
-        $tableNames = array_map(fn($t) => $t->$key ?? current((array) $t), $tables);
+        $tableNames = DbSql::listTableNames($connection);
 
-        return array_values(array_filter($tableNames, fn($t) => ! in_array($t, $allExcluded)));
+        return array_values(array_filter($tableNames, fn ($t) => ! in_array($t, $allExcluded)));
     }
 
     /**

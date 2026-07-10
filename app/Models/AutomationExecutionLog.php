@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperAutomationExecutionLog
+ */
 class AutomationExecutionLog extends Model
 {
     protected $table = 'automation_execution_logs';

@@ -7,7 +7,7 @@ use App\Models\Tenant;
 use App\Models\WebhookEndpoint;
 use App\Models\WebhookEvent;
 use App\Services\WebhookService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 

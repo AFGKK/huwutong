@@ -7,7 +7,7 @@ use App\Models\MonthlyRevenueSnapshot;
 use App\Models\MrrChangeDetail;
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class MrrWaterfallApiTest extends TestCase

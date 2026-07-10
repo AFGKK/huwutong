@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperLlmFallbackEvent
+ */
 class LlmFallbackEvent extends Model
 {
     protected $fillable = [

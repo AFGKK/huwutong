@@ -108,7 +108,7 @@ class ApiImpactAnalyzerService
         // 月度趋势
         $monthlyTrend = ApiVersionCall::where('api_version_id', $versionId)
             ->where('call_date', '>=', $since)
-            ->selectRaw("DATE_FORMAT(call_date, '%Y-%m') as month, SUM(call_count) as total_calls")
+            ->selectRaw(db_date_format('call_date', '%Y-%m').' as month, SUM(call_count) as total_calls')
             ->groupBy('month')
             ->orderBy('month')
             ->get();

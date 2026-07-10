@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperChatFaq
+ */
 class ChatFaq extends Model
 {
     protected $fillable = ['question', 'answer', 'icon', 'sort_order', 'is_active'];

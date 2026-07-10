@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * 系统检查记录
+ *
+ * @mixin IdeHelperStatusUptimeRecord
  */
 class StatusUptimeRecord extends Model
 {

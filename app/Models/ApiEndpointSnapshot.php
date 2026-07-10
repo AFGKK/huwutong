@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperApiEndpointSnapshot
+ */
 class ApiEndpointSnapshot extends Model
 {
     protected $table = 'api_endpoint_snapshots';

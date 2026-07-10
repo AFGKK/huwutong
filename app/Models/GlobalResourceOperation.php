@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperGlobalResourceOperation
+ */
 class GlobalResourceOperation extends Model
 {
     protected $fillable = [

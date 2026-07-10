@@ -7,7 +7,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\FineGrainedApiKeyService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 

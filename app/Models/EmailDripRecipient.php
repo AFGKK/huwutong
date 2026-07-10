@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperEmailDripRecipient
+ */
 class EmailDripRecipient extends Model
 {
     protected $table = 'email_drip_recipients';

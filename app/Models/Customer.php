@@ -5,12 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperCustomer
+ */
 class Customer extends Model
 {
     use HasFactory, \App\Models\Concerns\HasTags, \App\Models\Concerns\TrackDataLineage;
 
     protected $fillable = [
         'tenant_id', 'user_id', 'type', 'level', 'status',
+        'region', 'channel',
         'lifecycle_stage', 'stage_entered_at',
         'prepaid_balance', 'credit_limit', 'credit_used', 'billing_method',
         'merged_into_customer_id', 'merge_count',
@@ -56,6 +60,11 @@ class Customer extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function getNameAttribute(): ?string
+    {
+        return $this->user?->name;
     }
 
     public function licenses()

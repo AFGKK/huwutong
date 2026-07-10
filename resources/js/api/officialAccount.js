@@ -1,7 +1,7 @@
 import apiClient from './client'
 
 export default {
-  // 公众号列表/发现
+  // 互物号列表/发现
   list(params) { return apiClient.get('/official-accounts', { params }) },
   search(params) { return apiClient.get('/official-accounts/search', { params }) },
   categories() { return apiClient.get('/official-accounts/categories') },
@@ -16,7 +16,7 @@ export default {
   myOwnedAccounts() { return apiClient.get('/official-accounts/my-owned') },
   myFavoriteArticles() { return apiClient.get('/official-accounts/my-favorite-articles') },
 
-  // 公众号管理
+  // 互物号管理
   create(data) { return apiClient.post('/official-accounts', data) },
   update(id, data) { return apiClient.put(`/official-accounts/${id}`, data) },
   editInfo(id) { return apiClient.get(`/official-accounts/${id}/edit-info`) },

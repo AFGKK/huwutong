@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * 监控组件
+ *
+ * @mixin IdeHelperStatusComponent
  */
 class StatusComponent extends Model
 {

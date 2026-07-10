@@ -222,7 +222,10 @@ class TicketService
             'closed' => Ticket::where('status', 'closed')->count(),
             'urgent' => Ticket::where('priority', 'urgent')->whereIn('status', ['open', 'replied'])->count(),
             'sla_breached' => Ticket::whereIn('status', ['open', 'replied'])->whereNotNull('sla_due_at')->where('sla_due_at', '<', now())->count(),
-            'avg_response_minutes' => Ticket::whereNotNull('first_response_at')->avg('first_response_at') ? 0 : 0,
+            'avg_response_minutes' => (float) (Ticket::query()
+                ->whereNotNull('first_response_at')
+                ->selectRaw('AVG(EXTRACT(EPOCH FROM (first_response_at - created_at)) / 60) as avg_minutes')
+                ->value('avg_minutes') ?? 0),
             'satisfaction_score' => round(TicketSatisfaction::avg('score') ?? 0, 1),
         ];
     }

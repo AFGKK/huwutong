@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperSslCertificate
+ */
 class SslCertificate extends Model
 {
     protected $fillable = [

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
  * Blog/Changelog 邮件订阅模型
  *
  * @m3-57 DevBlog
+ * @mixin IdeHelperBlogSubscription
  */
 class BlogSubscription extends Model
 {

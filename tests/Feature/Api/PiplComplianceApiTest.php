@@ -8,7 +8,7 @@ use App\Models\Dpia;
 use App\Models\PersonalDataInventory;
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class PiplComplianceApiTest extends TestCase

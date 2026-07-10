@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @mixin IdeHelperEnterpriseContract
+ */
 class EnterpriseContract extends Model
 {
     use SoftDeletes;

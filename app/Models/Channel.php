@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperChannel
+ */
 class Channel extends Model
 {
     protected $fillable = ['category_id', 'name', 'slug', 'description', 'type', 'created_by', 'icon', 'avatar', 'is_active', 'last_message_at'];

@@ -40,7 +40,7 @@ class AgentManagerService
 
         // 月趋势 (近6月)
         $monthlyTrend = CommissionSettlement::selectRaw(
-            "DATE_FORMAT(created_at, '%Y-%m') as month, SUM(amount) as total"
+            db_date_format('created_at', '%Y-%m').' as month, SUM(amount) as total'
         )
             ->where('created_at', '>=', now()->subMonths(6))
             ->groupBy('month')
@@ -188,7 +188,7 @@ class AgentManagerService
 
         // 月度业绩
         $monthlyStats = CommissionSettlement::selectRaw(
-            "DATE_FORMAT(created_at, '%Y-%m') as month, SUM(amount) as amount, COUNT(*) as count"
+            db_date_format('created_at', '%Y-%m').' as month, SUM(amount) as amount, COUNT(*) as count'
         )
             ->where('agent_id', $agentId)
             ->where('created_at', '>=', now()->subMonths(12))
@@ -212,9 +212,9 @@ class AgentManagerService
     public function getPerformanceReport(int $agentId, string $period = 'monthly'): array
     {
         $groupBy = match ($period) {
-            'daily' => "DATE_FORMAT(created_at, '%Y-%m-%d')",
-            'yearly' => "DATE_FORMAT(created_at, '%Y')",
-            default => "DATE_FORMAT(created_at, '%Y-%m')",
+            'daily' => db_date_format('created_at', '%Y-%m-%d'),
+            'yearly' => db_date_format('created_at', '%Y'),
+            default => db_date_format('created_at', '%Y-%m'),
         };
 
         $data = CommissionSettlement::selectRaw("{$groupBy} as period, SUM(amount) as amount, COUNT(*) as count")

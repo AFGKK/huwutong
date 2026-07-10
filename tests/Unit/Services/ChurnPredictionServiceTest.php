@@ -8,7 +8,7 @@ use App\Models\ChurnPrediction;
 use App\Models\Customer;
 use App\Models\Tenant;
 use App\Services\ChurnPredictionService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 
 class ChurnPredictionServiceTest extends TestCase
 {

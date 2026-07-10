@@ -624,7 +624,7 @@ class UserInteractionController extends Controller
         // 最爱时段
         $hourly = \App\Models\BlogRead::where('user_id', $user->id)
             ->whereBetween('created_at', [$currentStart, $currentEnd])
-            ->selectRaw('HOUR(created_at) as hour, COUNT(*) as count')
+            ->selectRaw(db_hour('created_at').' as hour, COUNT(*) as count')
             ->groupBy('hour')
             ->pluck('count', 'hour');
 

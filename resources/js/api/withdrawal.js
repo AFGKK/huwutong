@@ -49,10 +49,10 @@ export default {
 
   // ── 用户端 ──
   myWithdrawals(params = {}) {
-    return client.get('/withdrawals', { params });
+    return client.get('/withdrawals/my', { params });
   },
   myStats() {
-    return client.get('/withdrawals/stats');
+    return client.get('/withdrawals/my/stats');
   },
   userChannels() {
     return client.get('/withdrawals/channels');

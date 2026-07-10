@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * 代理商等级变更历史 (M3-04)
+ *
+ * @mixin IdeHelperAgentTierHistory
  */
 class AgentTierHistory extends Model
 {

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperConversationParticipant
+ */
 class ConversationParticipant extends Model
 {
     protected $fillable = ['conversation_id', 'user_id', 'role', 'unread_count', 'last_read_at', 'is_pinned', 'is_muted', 'deleted_at', 'slow_mode_until', 'archived_at', 'is_hidden', 'hidden_at'];

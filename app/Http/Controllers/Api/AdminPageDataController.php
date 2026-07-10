@@ -4,22 +4,37 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Models\License;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 /**
- * 新增后台页面的占位数据接口
- * 返回空/示例数据，消除 404 错误
+ * 后台页面数据接口
  */
 class AdminPageDataController extends Controller
 {
     // ─── 产品使用分析 ───
     public function productAnalyticsSummary(): JsonResponse
     {
+        $totalProducts = Product::count();
+        $totalLicenses = License::count();
+        $activeLicenses = License::where('status', 'active')->count();
+        $newLicensesPeriod = License::where('created_at', '>=', now()->subDays(30))->count();
+        $totalDevices = DB::table('devices')->count();
+
         return ApiResponse::success([
-            'total_products' => 0, 'total_licenses' => 0, 'active_licenses' => 0,
-            'new_licenses_period' => 0, 'activation_rate' => 0, 'total_devices' => 0, 'period_days' => 30,
+            'total_products' => $totalProducts,
+            'total_licenses' => $totalLicenses,
+            'active_licenses' => $activeLicenses,
+            'new_licenses_period' => $newLicensesPeriod,
+            'activation_rate' => $totalLicenses > 0 ? round($activeLicenses / $totalLicenses * 100, 1) : 0,
+            'total_devices' => $totalDevices,
+            'period_days' => 30,
         ]);
     }
     public function productAnalyticsRanking(): JsonResponse { return ApiResponse::success([]); }
@@ -33,9 +48,28 @@ class AdminPageDataController extends Controller
     // ─── 电商数据分析 ───
     public function ecommerceSummary(): JsonResponse
     {
+        $totalRevenue = Order::where('status', 'paid')->sum('total_amount');
+        $totalOrders = Order::count();
+        $totalCustomers = User::count();
+        $newCustomers = User::where('created_at', '>=', now()->subDays(30))->count();
+        $avgOrderValue = $totalOrders > 0 ? round($totalRevenue / $totalOrders, 2) : 0;
+        $lastMonthRevenue = Order::where('status', 'paid')
+            ->where('created_at', '>=', now()->subDays(60))
+            ->where('created_at', '<', now()->subDays(30))
+            ->sum('total_amount');
+        $revenueGrowth = $lastMonthRevenue > 0 ? round(($totalRevenue - $lastMonthRevenue) / $lastMonthRevenue * 100, 1) : 0;
+        $prevOrders = Order::where('created_at', '>=', now()->subDays(60))
+            ->where('created_at', '<', now()->subDays(30))->count();
+        $orderGrowth = $prevOrders > 0 ? round(($totalOrders - $prevOrders) / $prevOrders * 100, 1) : 0;
+
         return ApiResponse::success([
-            'total_revenue' => 0, 'total_orders' => 0, 'total_customers' => 0,
-            'new_customers' => 0, 'avg_order_value' => 0, 'revenue_growth' => 0, 'order_growth' => 0,
+            'total_revenue' => $totalRevenue,
+            'total_orders' => $totalOrders,
+            'total_customers' => $totalCustomers,
+            'new_customers' => $newCustomers,
+            'avg_order_value' => $avgOrderValue,
+            'revenue_growth' => $revenueGrowth,
+            'order_growth' => $orderGrowth,
         ]);
     }
     public function ecommerceComparison(): JsonResponse
@@ -60,9 +94,27 @@ class AdminPageDataController extends Controller
     public function preSaleDetail($id): JsonResponse { return ApiResponse::success(null); }
 
     // ─── 秒杀/抢购 ───
-    public function flashSaleDashboard(): JsonResponse { return ApiResponse::success(['total' => 0, 'active' => 0, 'today_sales' => 0, 'today_revenue' => 0]); }
-    public function flashSaleList(): JsonResponse { return ApiResponse::success([]); }
-    public function flashSaleDetail($id): JsonResponse { return ApiResponse::success(null); }
+    public function flashSaleDashboard(): JsonResponse {
+        $now = now();
+        return ApiResponse::success([
+            'total' => \App\Models\FlashSale::count(),
+            'active' => \App\Models\FlashSale::where('status', 'active')->where('start_time', '<=', $now)->where('end_time', '>=', $now)->count(),
+            'scheduled' => \App\Models\FlashSale::where('status', 'active')->where('start_time', '>', $now)->count(),
+            'totalOrders' => \App\Models\FlashSaleOrder::count(),
+            'paidOrders' => \App\Models\FlashSaleOrder::whereNotNull('paid_at')->count(),
+            'today_sales' => \App\Models\FlashSaleOrder::whereDate('created_at', today())->count(),
+            'today_revenue' => 0,
+        ]);
+    }
+    public function flashSaleList(Request $request): JsonResponse {
+        $query = \App\Models\FlashSale::with('sku.product:id,name');
+        $sales = $query->orderBy('created_at', 'desc')->paginate($request->input('per_page', 20));
+        return ApiResponse::success($sales);
+    }
+    public function flashSaleDetail($id): JsonResponse {
+        $sale = \App\Models\FlashSale::with('sku.product')->find($id);
+        return ApiResponse::success($sale);
+    }
 
     // ─── 二级市场转售 ───
     public function resaleDashboard(): JsonResponse { return ApiResponse::success(['total_listings' => 0, 'active_listings' => 0, 'total_sold' => 0, 'total_volume' => 0]); }
@@ -169,8 +221,14 @@ class AdminPageDataController extends Controller
 
         // 秒杀/抢购
         Route::get('/admin/flash-sale/dashboard', [$c, 'flashSaleDashboard']);
+        Route::get('/admin/flash-sale/list', [$c, 'flashSaleList']);
         Route::get('/admin/flash-sale', [$c, 'flashSaleList']);
         Route::get('/admin/flash-sale/{id}', [$c, 'flashSaleDetail']);
+
+        // 秒杀/抢购 CRUD 操作（使用专用控制器）
+        Route::post('/admin/flash-sale/create', [\App\Http\Controllers\Api\FlashSaleController::class, 'store']);
+        Route::post('/admin/flash-sale/{id}/status', [\App\Http\Controllers\Api\FlashSaleController::class, 'updateStatus']);
+        Route::post('/admin/flash-sale/{id}/release-expired', [\App\Http\Controllers\Api\FlashSaleController::class, 'releaseExpired']);
 
         // 二级市场转售
         Route::get('/admin/resale/dashboard', [$c, 'resaleDashboard']);

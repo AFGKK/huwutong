@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * AI 知识库自增长服务
  *
- * 从客服对话、AI 聊天、论坛帖子等来源自动提取知识，
+ * 从客服对话、AI 聊天、广场帖子等来源自动提取知识，
  * 经 LLM 蒸馏去重后生成 KB 文章草稿供人工审核。
  */
 class KbAutoGrowService
@@ -138,7 +138,7 @@ class KbAutoGrowService
     }
 
     /**
-     * 扫描论坛高赞帖子
+     * 扫描广场高赞帖子
      */
     protected function scanForumPost(int $limit, float $minConfidence): int
     {

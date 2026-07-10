@@ -188,7 +188,7 @@ class ChurnPredictionService
     {
         $results = ChurnPrediction::where('tenant_id', $tenantId)
             ->where('predicted_at', '>=', now()->subMonths($months))
-            ->selectRaw("strftime('%Y-%m', predicted_at) as month, COALESCE(risk_level, 'unknown') as level, COUNT(*) as total")
+            ->selectRaw(db_date_format('predicted_at', '%Y-%m')." as month, COALESCE(risk_level, 'unknown') as level, COUNT(*) as total")
             ->groupBy('month', 'level')
             ->orderBy('month')
             ->get();

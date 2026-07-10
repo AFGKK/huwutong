@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperMarketplaceCategory
+ */
 class MarketplaceCategory extends Model
 {
     protected $table = 'marketplace_categories';

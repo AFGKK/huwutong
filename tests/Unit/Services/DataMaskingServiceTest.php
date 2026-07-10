@@ -4,7 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\User;
 use App\Services\DataMaskingService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class DataMaskingServiceTest extends TestCase

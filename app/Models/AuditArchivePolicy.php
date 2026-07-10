@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperAuditArchivePolicy
+ */
 class AuditArchivePolicy extends Model
 {
     protected $table = 'audit_archive_policies';

@@ -277,7 +277,7 @@ class SdkIntegrityService
         $last24hFailed = SdkIntegrityCheck::failed()->where('checked_at', '>=', now()->subDay())->count();
 
         // 按语言统计
-        $byLanguage = SdkIntegrityCheck::selectRaw('language, COUNT(*) as total, SUM(CASE WHEN passed = 1 THEN 1 ELSE 0 END) as passed')
+        $byLanguage = SdkIntegrityCheck::selectRaw('language, COUNT(*) as total, SUM(CASE WHEN '.db_is_true('passed').' THEN 1 ELSE 0 END) as passed')
             ->groupBy('language')
             ->get()
             ->keyBy('language');

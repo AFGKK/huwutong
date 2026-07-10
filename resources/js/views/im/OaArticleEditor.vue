@@ -4,7 +4,7 @@
         <div class="editor-topbar">
             <div class="topbar-left">
                 <el-button text size="small" @click="handleClose">
-                    <el-icon><ArrowLeft /></el-icon> 返回列表
+                    <el-icon><ArrowLeft /></el-icon> 返回互物号
                 </el-button>
                 <el-divider direction="vertical" />
                 <span class="topbar-title">
@@ -14,6 +14,7 @@
             </div>
             <div class="topbar-right">
                 <el-button size="small" text @click="previewVisible = true">👁️ 预览</el-button>
+                <el-button size="small" text @click="openDistributeDialog" :disabled="!articleForm.content || articleForm.content.length < 20">📡 跨平台分发</el-button>
                 <el-button size="small" text @click="saveDraft">💾 存草稿</el-button>
                 <el-dropdown trigger="click" @command="handlePublishAction">
                     <el-button size="small" type="primary">
@@ -50,6 +51,14 @@
                         </div>
                         <el-switch v-model="articleForm.is_original" active-text="原创" size="small" style="margin-left:4px" />
                         <el-switch v-model="articleForm.allow_comments" active-text="允许评论" size="small" />
+                        <el-switch v-model="articleForm.is_paid" active-text="付费阅读" size="small" style="margin-left:4px" @change="onPaidToggle" />
+                        <template v-if="articleForm.is_paid">
+                            <el-input-number v-model="articleForm.price" :min="1" :max="99999" size="small" style="width:100px" />
+                            <el-select v-model="articleForm.price_type" size="small" style="width:90px">
+                                <el-option value="points"><span style="display:inline-flex;align-items:center;gap:4px"><PointsIcon :size="16" /> 积分</span></el-option>
+                                <el-option label="💰 金额" value="money" />
+                            </el-select>
+                        </template>
                         <el-date-picker v-model="articleForm.scheduled_at" type="datetime" placeholder="定时发布（选填）" size="small" style="width:180px" :disabled-date="d => d <= new Date()" format="YYYY-MM-DD HH:mm" value-format="YYYY-MM-DD HH:mm:ss" clearable />
                     </div>
                 </div>
@@ -139,9 +148,26 @@
                                 <el-dropdown-item command="product">🏷️ 商城产品</el-dropdown-item>
                                 <el-dropdown-item command="affiliate">🤝 分销联盟推荐</el-dropdown-item>
                                 <el-dropdown-item command="ad">📢 广告位</el-dropdown-item>
+                                <el-dropdown-item command="poll">📊 投票/问卷</el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
                     </el-dropdown>
+                    <el-dropdown trigger="click" @command="handleAiAction">
+                        <el-button size="small" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none">🤖 AI 工具 <el-icon><ArrowDown /></el-icon></el-button>
+                        <template #dropdown>
+                            <el-dropdown-menu>
+                                <el-dropdown-item command="assistant">💬 AI 助手</el-dropdown-item>
+                                <el-dropdown-item command="create">✍️ AI 创作</el-dropdown-item>
+                                <el-dropdown-item divided command="typo">✏️ 错别字识别</el-dropdown-item>
+                                <el-dropdown-item command="improve">💡 改进建议</el-dropdown-item>
+                                <el-dropdown-item command="polish">✨ AI 润色</el-dropdown-item>
+                                <el-dropdown-item command="summary">📝 AI 摘要</el-dropdown-item>
+                            </el-dropdown-menu>
+                        </template>
+                    </el-dropdown>
+                    <el-divider direction="vertical" />
+                    <el-button size="small" @click="showEmojiDialog = true" title="插入表情">😊</el-button>
+                    <el-button size="small" @click="showHelpDialog = true" title="快捷键帮助">⌨️</el-button>
                     <el-divider direction="vertical" />
                     <el-button size="small" :type="showSearch ? 'primary' : 'default'" @click="toggleSearch" title="搜索替换">🔍 搜索</el-button>
                     <el-button size="small" @click="showTemplateDialog = true" title="文章模板">📋 模板</el-button>
@@ -187,6 +213,9 @@
                     <div class="footer-left">
                         <span class="footer-stat">📝 {{ wordCount }} 字</span>
                         <span class="footer-stat">⏱️ 约 {{ readingTime }} 分钟</span>
+                        <span v-if="scanningContent" class="footer-stat" style="color:#e6a23c">🔄 扫描中...</span>
+                        <span v-else-if="scanResult?.hasSensitive" class="footer-stat" style="color:#f56c6c;cursor:pointer" @click="showScanWarning = true">⚠️ 发现 {{ scanResult.matched.length }} 处敏感词</span>
+                        <span v-else-if="scanResult" class="footer-stat" style="color:#67c23a">✅ 内容合规</span>
                     </div>
                     <div class="footer-right">
                         <span v-if="draftSaved" class="draft-saved">💾 已自动保存</span>
@@ -306,40 +335,106 @@
                             </div>
                         </div>
                     </el-tab-pane>
-                    <!-- 广告 -->
+                    <!-- 广告+推广素材 -->
                     <el-tab-pane label="📢 广告" name="ads" lazy>
-                        <div class="sidebar-list">
-                            <div class="sidebar-item" @click="insertAdBanner('banner')">
-                                <div class="item-img"><span>📢</span></div>
-                                <div class="item-info">
-                                    <div class="item-name">横幅广告</div>
-                                    <div class="item-desc">728×90 横幅</div>
+                        <div class="sidebar-section">
+                            <div style="font-weight:600;font-size:13px;color:#303133;margin-bottom:4px;display:flex;align-items:center;gap:6px">
+                                🏆 推广活动素材
+                                <span style="font-size:11px;font-weight:400;color:#909399;margin-left:auto">{{ promoCampaigns.length }}个活动</span>
+                            </div>
+                            <p style="font-size:11px;color:#909399;margin:0 0 10px 0">含佣金提成，插入文章后通过您的内容推广</p>
+                            <div v-if="promoCampaigns.length" class="promo-ads-list">
+                                <div v-for="camp in promoCampaigns" :key="camp.id" class="promo-camp-item" style="margin-bottom:8px;border:1px solid #ebeef5;border-radius:10px;overflow:hidden">
+                                    <div @click="togglePromoCamp(camp.id)" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:linear-gradient(135deg,#f8f9fb,#f0f2f5);cursor:pointer;transition:background .2s"
+                                        @mouseenter="$event.target.style.background='linear-gradient(135deg,#eef0f5,#e8eaf0)'"
+                                        @mouseleave="$event.target.style.background='linear-gradient(135deg,#f8f9fb,#f0f2f5)'">
+                                        <div style="display:flex;align-items:center;gap:8px">
+                                            <span style="font-size:16px">{{ {referral:'🤝',commission:'💰',reward:'🎁',rebate:'💸'}[camp.type] || '📢' }}</span>
+                                            <div>
+                                                <div style="font-weight:600;font-size:13px;color:#303133">{{ camp.name }}</div>
+                                                <div style="font-size:11px;color:#909399;display:flex;gap:8px;margin-top:1px">
+                                                    <span>{{ campTypeLabel(camp.type) }}</span>
+                                                    <span v-if="camp.reward_first">佣金{{ camp.reward_first }}%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span style="transition:transform .25s;font-size:10px;color:#909399" :style="{transform:expandedPromoCamp===camp.id?'rotate(180deg)':''}">▼</span>
+                                    </div>
+                                    <div v-if="expandedPromoCamp===camp.id" style="padding:4px 8px 8px">
+                                        <div v-for="cr in promoCampCreatives" :key="cr.id" @click="promptAdWidth(cr, camp)"
+                                            style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid #f0f0f0;border-radius:8px;margin-bottom:4px;cursor:pointer;background:#fff;transition:all .15s"
+                                            @mouseenter="$event.target.style.borderColor='#c6e2ff';$event.target.style.boxShadow='0 2px 8px rgba(64,158,255,0.1)'"
+                                            @mouseleave="$event.target.style.borderColor='#f0f0f0';$event.target.style.boxShadow='none'">
+                                            <div v-if="cr.image_url" style="width:48px;height:48px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#f5f5f5;border:1px solid #f0f0f0">
+                                                <img :src="cr.image_url" style="width:100%;height:100%;object-fit:cover" loading="lazy" />
+                                            </div>
+                                            <div v-else style="width:48px;height:48px;border-radius:8px;flex-shrink:0;background:linear-gradient(135deg,#f0f5ff,#e6f0ff);display:flex;align-items:center;justify-content:center;font-size:20px;border:1px solid #e0e8f5">
+                                                {{ cr.type==='video'?'🎬':cr.type==='qr_code'?'📱':cr.type==='coupon'?'🏷️':'📝' }}
+                                            </div>
+                                            <div style="flex:1;min-width:0">
+                                                <div style="font-size:13px;font-weight:500;color:#303133;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ cr.name }}</div>
+                                                <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+                                                    <span style="font-size:10px;background:#ecf5ff;color:#409eff;padding:1px 6px;border-radius:3px">{{ adStyleTag(cr).label }}</span>
+                                                    <span style="font-size:11px;color:#e6a23c;font-weight:500">{{ adEarnings(cr, camp) }}</span>
+                                                </div>
+                                            </div>
+                                            <span style="font-size:14px;color:#409eff;flex-shrink:0;background:#ecf5ff;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center">+</span>
+                                        </div>
+                                        <div v-if="!promoCampCreatives.length" style="text-align:center;padding:16px;color:#909399;font-size:12px">
+                                            📭 暂无素材，请前往推广活动添加
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="sidebar-item" @click="insertAdBanner('rectangle')">
-                                <div class="item-img"><span>📐</span></div>
-                                <div class="item-info">
-                                    <div class="item-name">矩形广告</div>
-                                    <div class="item-desc">300×250 矩形</div>
-                                </div>
-                            </div>
-                            <div class="sidebar-item" @click="insertAdBanner('custom')">
-                                <div class="item-img"><span>✏️</span></div>
-                                <div class="item-info">
-                                    <div class="item-name">自定义广告</div>
-                                    <div class="item-desc">自定义尺寸和链接</div>
-                                </div>
+                            <div v-else style="text-align:center;padding:24px 0;color:#909399">
+                                <div style="font-size:36px;margin-bottom:8px">📢</div>
+                                <div style="font-size:13px">暂无推广活动</div>
+                                <div style="font-size:11px;margin-top:4px">创建推广活动后，广告素材将在此显示</div>
                             </div>
                         </div>
                     </el-tab-pane>
                     <!-- SEO -->
                     <el-tab-pane label="🔍 SEO" name="seo" lazy>
+                        <!-- 综合评分 -->
+                        <div style="text-align:center;padding:12px 0 8px">
+                            <div style="display:inline-flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:50%;border:4px solid;margin:0 auto"
+                                :style="{borderColor:seoScore>=80?'#67c23a':seoScore>=50?'#e6a23c':'#f56c6c',color:seoScore>=80?'#67c23a':seoScore>=50?'#e6a23c':'#f56c6c'}">
+                                <span style="font-size:26px;font-weight:700">{{ seoScore }}</span>
+                            </div>
+                            <div style="font-size:11px;color:#909399;margin-top:6px">
+                                {{ seoScore>=80?'🟢 优秀':seoScore>=50?'🟡 一般':'🔴 需优化' }}
+                            </div>
+                        </div>
+
+                        <!-- 各项评分 -->
+                        <div style="padding:0 4px">
+                            <div v-for="item in seoChecks" :key="item.label" style="margin-bottom:8px">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+                                    <span style="font-size:12px;color:#606266">{{ item.icon }} {{ item.label }}</span>
+                                    <span style="font-size:11px" :style="{color:item.score>=80?'#67c23a':item.score>=50?'#e6a23c':'#f56c6c'}">{{ item.score }}分</span>
+                                </div>
+                                <div style="height:5px;background:#e8e8e8;border-radius:3px;overflow:hidden">
+                                    <div :style="{width:item.score+'%',background:item.score>=80?'#67c23a':item.score>=50?'#e6a23c':'#f56c6c',height:'100%',borderRadius:'3px',transition:'width .4s'}"></div>
+                                </div>
+                                <div v-if="item.tip" style="font-size:10px;color:#f56c6c;margin-top:2px">⚠ {{ item.tip }}</div>
+                            </div>
+                        </div>
+
+                        <el-divider style="margin:10px 0" />
+
+                        <!-- 表单字段 -->
                         <el-form label-position="top" size="small">
                             <el-form-item label="Meta 标题">
-                                <el-input v-model="seoMetaTitle" placeholder="SEO标题..." maxlength="70" />
+                                <el-input v-model="seoMetaTitle" placeholder="SEO标题（50-70字符最佳）..." maxlength="70" />
+                                <div style="font-size:10px;margin-top:2px" :style="{color:seoMetaTitle.length>=50&&seoMetaTitle.length<=70?'#67c23a':seoMetaTitle.length>0?'#e6a23c':'#909399'}">
+                                    {{ seoMetaTitle.length }}/70 字符 {{ seoMetaTitle.length>=50&&seoMetaTitle.length<=70?'✅':seoMetaTitle.length>0?'⚠ 建议50-70字符':'请输入' }}
+                                </div>
                             </el-form-item>
                             <el-form-item label="Meta 描述">
-                                <el-input v-model="seoMetaDescription" type="textarea" :rows="3" placeholder="SEO描述..." maxlength="160" />
+                                <el-input v-model="seoMetaDescription" type="textarea" :rows="3" placeholder="SEO描述（120-160字符最佳）..." maxlength="160" />
+                                <div style="font-size:10px;margin-top:2px" :style="{color:seoMetaDescription.length>=120&&seoMetaDescription.length<=160?'#67c23a':seoMetaDescription.length>0?'#e6a23c':'#909399'}">
+                                    {{ seoMetaDescription.length }}/160 字符
+                                </div>
                             </el-form-item>
                             <el-form-item label="标签">
                                 <el-select v-model="articleTags" multiple filterable allow-create default-first-option
@@ -531,6 +626,129 @@
             </template>
         </el-dialog>
 
+        <!-- ── 广告卡片尺寸选择器 ── -->
+        <el-dialog v-model="adWidthDialog" title="📐 插入广告卡片" width="520px" top="15vh" :close-on-click-modal="false">
+            <div v-if="pendingCreative" style="margin-bottom:14px">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f5f7fa;border-radius:8px;margin-bottom:10px">
+                    <div v-if="pendingCreative.image_url" style="width:40px;height:40px;border-radius:6px;overflow:hidden;flex-shrink:0"><img :src="pendingCreative.image_url" style="width:100%;height:100%;object-fit:cover" /></div>
+                    <div v-else style="width:40px;height:40px;border-radius:6px;background:#e8ecf1;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📢</div>
+                    <div>
+                        <div style="font-weight:600;font-size:14px;color:#303133">{{ pendingCreative.name }}</div>
+                        <div style="font-size:11px;color:#e6a23c;font-weight:500" v-if="pendingCampaign">{{ adEarnings(pendingCreative, pendingCampaign) }}</div>
+                    </div>
+                </div>
+                <!-- 👀 实时预览 -->
+                <div style="background:#fafbfc;border:1px dashed #d9dde3;border-radius:8px;padding:12px;text-align:center">
+                    <div style="font-size:11px;color:#909399;margin-bottom:8px">👀 实时预览</div>
+                    <div :style="{width:adWidth==='custom'?adWidthCustom||'100%':adWidth,maxWidth:'100%',margin:'0 auto',textAlign:'left'}">
+                        <div v-if="adStyle==='auto'?adStyleTag(pendingCreative).type==='style1':adStyle==='style1'"
+                            style="display:flex;gap:10px;align-items:stretch;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:#fff">
+                            <div v-if="pendingCreative.image_url" style="width:100px;min-height:72px;flex-shrink:0;background:#f3f4f6"><img :src="pendingCreative.image_url" style="width:100%;height:100%;object-fit:cover" /></div>
+                            <div style="flex:1;padding:10px;display:flex;flex-direction:column;justify-content:center">
+                                <div style="font-weight:600;font-size:13px;color:#1f2937">{{ pendingCreative.name }}</div>
+                                <div v-if="pendingCreative.content" style="font-size:11px;color:#6b7280;margin-top:4px;line-height:1.5">{{ pendingCreative.content.substring(0,60) }}{{ pendingCreative.content.length>60?'...':'' }}</div>
+                                <div style="margin-top:6px"><span style="display:inline-block;padding:3px 12px;background:#409eff;color:#fff;font-size:11px;border-radius:5px;font-weight:500">了解详情 →</span></div>
+                            </div>
+                        </div>
+                        <div v-else-if="adStyle==='auto'?adStyleTag(pendingCreative).type==='style2':adStyle==='style2'"
+                            style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:#fff">
+                            <div v-if="pendingCreative.image_url" style="width:100%;height:110px;overflow:hidden;background:#f3f4f6"><img :src="pendingCreative.image_url" style="width:100%;height:100%;object-fit:cover" /></div>
+                            <div style="padding:12px;text-align:center">
+                                <div style="font-weight:700;font-size:14px;color:#1f2937">{{ pendingCreative.name }}</div>
+                                <div style="margin-top:8px"><span style="display:inline-block;padding:5px 20px;background:linear-gradient(135deg,#409eff,#66b1ff);color:#fff;font-size:12px;border-radius:16px;font-weight:600">立即了解</span></div>
+                            </div>
+                        </div>
+                        <div v-else-if="adStyle==='auto'?adStyleTag(pendingCreative).type==='style3':adStyle==='style3'"
+                            style="display:flex;gap:8px;padding:10px 12px;border-radius:8px;background:linear-gradient(135deg,#f0f5ff,#e6f0ff);border-left:4px solid #409eff">
+                            <div style="flex:1">
+                                <div style="font-weight:600;font-size:13px;color:#1f2937">{{ pendingCreative.name }}</div>
+                                <div v-if="pendingCreative.content" style="font-size:11px;color:#6b7280;margin-top:3px;line-height:1.5">{{ pendingCreative.content.substring(0,50) }}{{ pendingCreative.content.length>50?'...':'' }}</div>
+                                <div style="margin-top:5px;font-size:11px;color:#409eff;font-weight:600">了解更多 →</div>
+                            </div>
+                        </div>
+                        <div v-else
+                            style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;background:#f5f7fa;border:1px solid #e5e7eb">
+                            <div style="display:flex;align-items:center;gap:6px"><span style="font-size:14px">🔗</span><span style="font-size:13px;font-weight:500;color:#374151">{{ pendingCreative.name }}</span></div>
+                            <span style="font-size:11px;color:#409eff;font-weight:600">查看</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-bottom:14px">
+                <div style="font-size:13px;font-weight:600;color:#303133;margin-bottom:8px">🎨 卡片样式</div>
+                <el-radio-group v-model="adStyle" size="small">
+                    <el-radio-button value="auto">✨ 自动</el-radio-button>
+                    <el-radio-button value="style1">🖼️ 图文混排</el-radio-button>
+                    <el-radio-button value="style2">📷 大图CTA</el-radio-button>
+                    <el-radio-button value="style3">📝 色条文本</el-radio-button>
+                    <el-radio-button value="style4">🔗 简洁链接</el-radio-button>
+                </el-radio-group>
+            </div>
+            <div style="margin-bottom:10px">
+                <div style="font-size:13px;font-weight:600;color:#303133;margin-bottom:8px">📏 显示宽度</div>
+                <el-radio-group v-model="adWidth" size="small">
+                    <el-radio-button value="100%">全宽 100%</el-radio-button>
+                    <el-radio-button value="75%">75% 留白</el-radio-button>
+                    <el-radio-button value="50%">50% 紧凑</el-radio-button>
+                    <el-radio-button value="custom">✏️ 自定义</el-radio-button>
+                </el-radio-group>
+                <el-input v-if="adWidth==='custom'" v-model="adWidthCustom" placeholder="如 400px 或 60%" size="small" style="width:160px;margin-top:8px" clearable />
+            </div>
+            <div v-if="pendingCreative?.commission_rate || pendingCampaign?.reward_first" style="font-size:12px;color:#e6a23c;background:#fefce8;padding:6px 10px;border-radius:6px;margin-top:4px">
+                💰 通过此广告促成的订单，您将获得 <strong>{{ pendingCreative?.commission_rate || pendingCampaign?.reward_first || 0 }}%</strong> 佣金提成
+            </div>
+            <template #footer>
+                <el-button size="small" @click="adWidthDialog=false">取消</el-button>
+                <el-button size="small" type="primary" @click="confirmAdWidth">✅ 插入广告</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- 📊 投票/问卷对话框 -->
+        <el-dialog v-model="showPollDialog" title="📊 插入投票/问卷" width="480px" top="18vh" :close-on-click-modal="false">
+            <div style="margin-bottom:12px">
+                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">问题 *</label>
+                <el-input v-model="pollForm.question" placeholder="输入投票问题..." maxlength="500" />
+            </div>
+            <div style="margin-bottom:12px">
+                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">类型</label>
+                <el-radio-group v-model="pollForm.type">
+                    <el-radio value="single">单选</el-radio>
+                    <el-radio value="multiple">多选</el-radio>
+                </el-radio-group>
+            </div>
+            <div style="margin-bottom:8px">
+                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">选项 *</label>
+                <div v-for="(opt, idx) in pollForm.options" :key="idx" style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                    <el-input v-model="pollForm.options[idx]" :placeholder="'选项 ' + (idx + 1)" size="small" maxlength="200" style="flex:1" />
+                    <el-button v-if="pollForm.options.length > 2" size="small" text type="danger" @click="removePollOption(idx)">✕</el-button>
+                </div>
+                <el-button v-if="pollForm.options.length < 20" size="small" text type="primary" @click="addPollOption">+ 添加选项</el-button>
+            </div>
+            <template #footer>
+                <el-button size="small" @click="showPollDialog = false">取消</el-button>
+                <el-button size="small" type="primary" :loading="creatingPoll" @click="insertPollCard">插入投票</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ⚠️ 敏感词警告对话框 -->
+        <el-dialog v-model="showScanWarning" title="🛡️ 内容合规提醒" width="450px" top="22vh" :close-on-click-modal="false">
+            <div style="text-align:center;margin-bottom:12px">
+                <span style="font-size:48px">⚠️</span>
+                <p style="color:#f56c6c;font-size:14px;font-weight:500;margin:8px 0">检测到以下敏感词，建议修改后重新扫描：</p>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px">
+                <el-tag v-for="word in (scanResult?.matched || [])" :key="word" type="danger" size="small" closable @close="removeSensitiveWord(word)">
+                    {{ word }}
+                </el-tag>
+            </div>
+            <p style="font-size:11px;color:#909399;text-align:center">🔄 点击标签可标记已处理，修改后重新扫描</p>
+            <template #footer>
+                <el-button size="small" @click="scanArticleContent">🔄 重新扫描</el-button>
+                <el-button size="small" @click="showScanWarning = false">继续编辑</el-button>
+                <el-button size="small" type="danger" @click="forcePublishHandler">⚠ 忽略警告，直接发布</el-button>
+            </template>
+        </el-dialog>
+
         <!-- Emoji 选择器对话框 -->
         <el-dialog v-model="showEmojiDialog" title="😊 插入表情" width="420px">
             <div class="emoji-grid">
@@ -616,13 +834,69 @@
                 <el-button v-if="aiCreateResult" size="small" type="success" @click="insertAiCreate">📥 插入到编辑器</el-button>
             </template>
         </el-dialog>
+
+        <!-- 📡 跨平台分发对话框 -->
+        <el-dialog v-model="showDistributeDialog" title="📡 跨平台分发" width="520px" top="15vh" :close-on-click-modal="false" @open="loadDistributePlatforms">
+            <div v-if="!distPlatforms.length" class="text-center py-6">
+                <div style="font-size:40px;margin-bottom:10px">📡</div>
+                <p style="color:#909399;font-size:13px;margin-bottom:6px">尚未绑定任何外部平台账号</p>
+                <p style="color:#c0c4cc;font-size:11px">请在「互物号管理 → 跨平台分发」中绑定微信、微博等平台</p>
+                <el-button size="small" type="primary" style="margin-top:12px" @click="goToChannelDistribution">🔗 前往绑定平台</el-button>
+            </div>
+            <div v-else>
+                <div style="margin-bottom:14px">
+                    <p style="font-size:13px;color:#606266;margin-bottom:4px">选择要同步的平台，一键将文章分发到外部平台：</p>
+                </div>
+                <div class="space-y-3 mb-4">
+                    <div v-for="pa in distPlatforms" :key="pa.id"
+                        class="flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all"
+                        :class="{
+                            'border-blue-400 bg-blue-50': pa._selected,
+                            'border-gray-200 bg-white hover:border-gray-300': !pa._selected,
+                            'opacity-60': pa._status === 'success' || pa._status === 'distributing'
+                        }"
+                        @click="pa._status !== 'success' && pa._status !== 'distributing' && (pa._selected = !pa._selected)">
+                        <div class="flex items-center gap-3">
+                            <el-checkbox v-model="pa._selected" :disabled="pa._status === 'success' || pa._status === 'distributing'" @click.stop />
+                            <div class="w-9 h-9 rounded-full flex items-center justify-center text-lg"
+                                :style="{ background: { wechat_mp: '#e6f7e6', weibo: '#fde8e8', zhihu: '#e6f0ff', toutiao: '#fff3e0', other: '#f0f0f0' }[pa.platform] || '#f0f0f0' }">
+                                {{ { wechat_mp: '💚', weibo: '🔴', zhihu: '🔵', toutiao: '🟠', other: '🌐' }[pa.platform] || '🌐' }}
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-gray-900">{{ pa.platform_user_name || pa.label || pa.platform }}</div>
+                                <div class="text-xs text-gray-400">{{ { wechat_mp: '微信公众号', weibo: '微博', zhihu: '知乎', toutiao: '今日头条', other: '其他' }[pa.platform] || pa.platform }}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <span v-if="pa._status === 'success'" class="text-xs text-green-500 font-medium">✅ 已分发</span>
+                            <span v-else-if="pa._status === 'failed'" class="text-xs text-red-400 font-medium">❌ 失败</span>
+                            <span v-else-if="pa._status === 'distributing'" class="text-xs text-amber-500">🔄 分发中...</span>
+                            <span v-else class="text-xs text-gray-300">待分发</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- 分发结果摘要 -->
+                <div v-if="distributeStats.total > 0" class="mb-3 p-3 rounded-lg text-sm" :class="distributeStats.failed > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'">
+                    {{ distributeStats.total }} 个平台：{{ distributeStats.success }} 成功{{ distributeStats.failed > 0 ? '，' + distributeStats.failed + ' 失败' : '' }}
+                    <span v-if="distributeStats.pending > 0">，{{ distributeStats.pending }} 待分发</span>
+                </div>
+            </div>
+            <template #footer>
+                <el-button size="small" @click="showDistributeDialog = false; loadArticleDistributions()">关闭</el-button>
+                <el-button size="small" type="primary" :loading="distributing" :disabled="!distPlatforms.some(p => p._selected)" @click="distributeToSelected">
+                    🚀 一键分发到 {{ distPlatforms.filter(p => p._selected).length }} 个平台
+                </el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
 <script setup>
+// Ad features: promo campaigns, creative browser, live preview, ad styles
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import PointsIcon from '@/components/PointsIcon.vue';
 import { ArrowLeft, ArrowDown, UploadFilled, Loading } from '@element-plus/icons-vue';
 import { useEditor, EditorContent, Node, Mark, mergeAttributes } from '@tiptap/vue-3';
 import { StarterKit } from '@tiptap/starter-kit';
@@ -926,6 +1200,22 @@ const affiliatePage = ref(1);
 const affiliateHasMore = ref(false);
 const affiliateTotal = ref(0);
 const mediaList = ref([]);
+
+// ── 推广活动广告 ──
+const promoCampaigns = ref([])
+const promoCampCreatives = ref([])
+const expandedPromoCamp = ref(null)
+const adWidthDialog = ref(false)
+const adWidth = ref('100%')
+const adWidthCustom = ref('')
+const adStyle = ref('auto')
+const pendingCreative = ref(null)
+const pendingCampaign = ref(null)
+
+// ── 投票/问卷 ──
+const showPollDialog = ref(false)
+const pollForm = ref({ question: '', type: 'single', options: ['', ''] })
+const creatingPoll = ref(false)
 const myAccounts = ref([]);
 const articleTags = ref([]);
 const seoMetaTitle = ref('');
@@ -1137,6 +1427,9 @@ const articleForm = reactive({
     images: [],
     is_original: false,
     allow_comments: true,
+    is_paid: false,
+    price: 10,
+    price_type: 'points',
     scheduled_at: '',
 });
 
@@ -1144,6 +1437,12 @@ const targetAccount = computed(() => {
     if (!articleForm.account_id || !myAccounts.value.length) return null;
     return myAccounts.value.find(a => a.id === articleForm.account_id);
 });
+
+function onPaidToggle() {
+    if (articleForm.is_paid && articleForm.price <= 0) {
+        articleForm.price = 10;
+    }
+}
 
 const draftKey = computed(() => `oa_editor_draft_${route.query.id || 'new'}`);
 
@@ -1156,6 +1455,216 @@ const wordCount = computed(() => {
 });
 
 const readingTime = computed(() => Math.max(1, Math.round(wordCount.value / 300)));
+
+// ── SEO 诊断评分 ──
+const seoContentText = computed(() => (articleForm.content || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' '))
+const seoImageCount = computed(() => (articleForm.content || '').match(/<img[^>]*>/gi)?.length || 0)
+const seoImageAltCount = computed(() => (articleForm.content || '').match(/<img[^>]*alt="[^"]+"/gi)?.length || 0)
+const seoLinkCount = computed(() => (articleForm.content || '').match(/<a\s[^>]*href="[^"]*"/gi)?.length || 0)
+const seoKeywordDensity = computed(() => {
+    const text = seoContentText.value.toLowerCase()
+    if (!text || !articleForm.title.value) return 0
+    const keywords = articleForm.title.value.replace(/[，,。.！!？?、\s]/g, ' ').split(' ').filter(k => k.length >= 2)
+    if (!keywords.length) return 0
+    const mainKeyword = keywords[0].toLowerCase()
+    const count = (text.match(new RegExp(mainKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length
+    return Math.min(100, Math.round((count / Math.max(1, text.length / 500)) * 100))
+})
+const seoChecks = computed(() => {
+    const title = articleForm.title.value || ''
+    const desc = seoMetaDescription.value || ''
+    const content = seoContentText.value
+    const imgCount = seoImageCount.value
+    const altCount = seoImageAltCount.value
+    const linkCount = seoLinkCount.value
+    const kwDensity = seoKeywordDensity.value
+    const items = [
+        { icon: '📝', label: '标题长度', score: 0, tip: '' },
+        { icon: '📄', label: '描述长度', score: 0, tip: '' },
+        { icon: '📖', label: '内容长度', score: 0, tip: '' },
+        { icon: '🔑', label: '关键词密度', score: 0, tip: '' },
+        { icon: '🖼️', label: '图片 Alt', score: 0, tip: '' },
+        { icon: '🔗', label: '内链数量', score: 0, tip: '' },
+        { icon: '🏷️', label: '标签数量', score: 0, tip: '' },
+        { icon: '📋', label: '摘要质量', score: 0, tip: '' },
+    ]
+    // 标题 50-70 最佳
+    const tLen = title.length
+    items[0].score = tLen >= 50 && tLen <= 70 ? 100 : tLen >= 30 && tLen < 50 ? 70 : tLen > 70 ? 60 : tLen > 0 ? 30 : 0
+    if (tLen === 0) items[0].tip = '请输入标题'
+    else if (tLen < 30) items[0].tip = '标题过短，建议30-70字'
+    else if (tLen > 70) items[0].tip = '标题过长，建议≤70字'
+    // 描述 120-160 最佳
+    const dLen = desc.length
+    items[1].score = dLen >= 120 && dLen <= 160 ? 100 : dLen >= 80 && dLen < 120 ? 70 : dLen > 160 ? 60 : dLen > 0 ? 30 : 0
+    if (dLen === 0) items[1].tip = '请输入Meta描述'
+    // 内容长度
+    const cLen = content.length
+    items[2].score = cLen >= 1000 ? 100 : cLen >= 500 ? 80 : cLen >= 200 ? 50 : cLen > 0 ? 25 : 0
+    if (cLen > 0 && cLen < 500) items[2].tip = '建议500字以上'
+    // 关键词密度 1-3%
+    items[3].score = kwDensity >= 1 && kwDensity <= 3 ? 100 : kwDensity > 3 ? 70 : kwDensity > 0 ? 40 : 0
+    if (kwDensity > 3) items[3].tip = '关键词密度偏高'
+    else if (kwDensity > 0 && kwDensity < 1) items[3].tip = '关键词密度偏低'
+    // 图片 Alt
+    items[4].score = imgCount === 0 ? 50 : altCount >= imgCount ? 100 : altCount > 0 ? Math.round(50 + (altCount/imgCount)*50) : 0
+    if (imgCount > 0 && altCount < imgCount) items[4].tip = altCount + '/' + imgCount + ' 张图未设Alt'
+    // 内链
+    items[5].score = linkCount >= 3 ? 100 : linkCount >= 1 ? 60 : 0
+    if (linkCount < 1 && cLen > 400) items[5].tip = '建议添加2-3个内链'
+    // 标签
+    const tagCount = articleTags.value.length
+    items[6].score = tagCount >= 5 ? 100 : tagCount >= 3 ? 80 : tagCount >= 1 ? 50 : 0
+    if (tagCount < 3) items[6].tip = '建议添加3-5个标签'
+    // 摘要
+    const summary = articleForm.summary || ''
+    items[7].score = summary.length >= 80 ? 100 : summary.length >= 40 ? 70 : summary.length > 0 ? 40 : 0
+    if (!summary) items[7].tip = '建议填写文章摘要'
+    return items
+})
+const seoScore = computed(() => {
+    const checks = seoChecks.value
+    if (!checks.length) return 0
+    return Math.round(checks.reduce((s, c) => s + c.score, 0) / checks.length)
+})
+
+// ── 内容合规扫描 ──
+const scanningContent = ref(false);
+const scanResult = ref(null);
+const showScanWarning = ref(false);
+let scanTimer = null;
+
+function triggerScan() {
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(async () => {
+        const text = (articleForm.title || '') + ' ' + (articleForm.content || '').replace(/<[^>]*>/g, '');
+        if (text.trim().length < 5) { scanResult.value = null; return; }
+        scanningContent.value = true;
+        try {
+            const h = { Authorization: 'Bearer ' + localStorage.getItem('auth_token') };
+            const res = await apiClient.post('/official-accounts/scan-content', { title: articleForm.title, content: articleForm.content }, { headers: h });
+            scanResult.value = res.data?.data || { hasSensitive: false, matched: [] };
+        } catch { scanResult.value = null; }
+        finally { scanningContent.value = false; }
+    }, 800);
+}
+
+// 手动重新扫描
+function scanArticleContent() {
+    scanningContent.value = true;
+    scanResult.value = null;
+    clearTimeout(scanTimer);
+    triggerScan();
+}
+
+// 移除已处理的敏感词
+function removeSensitiveWord(word) {
+    if (!scanResult.value?.matched) return;
+    scanResult.value.matched = scanResult.value.matched.filter(w => w !== word);
+    if (scanResult.value.matched.length === 0) {
+        scanResult.value.hasSensitive = false;
+        showScanWarning.value = false;
+    }
+}
+
+// 忽略警告直接发布
+function forcePublishHandler() {
+    scanResult.value = null; // 清除扫描结果，绕过拦截
+    showScanWarning.value = false;
+    doPublish();
+}
+
+// ── 跨平台分发 ──
+const showDistributeDialog = ref(false);
+const distPlatforms = ref([]);
+const distributing = ref(false);
+const distDistributionRecords = ref([]);
+
+const distributeStats = computed(() => {
+    const ps = distPlatforms.value;
+    return {
+        total: ps.filter(p => p._status && p._status !== 'idle').length,
+        success: ps.filter(p => p._status === 'success').length,
+        failed: ps.filter(p => p._status === 'failed').length,
+        pending: ps.filter(p => p._selected && p._status !== 'success' && p._status !== 'failed').length,
+    };
+});
+
+async function loadDistributePlatforms() {
+    const accountId = articleForm.account_id;
+    if (!accountId) { distPlatforms.value = []; return; }
+    const h = { Authorization: 'Bearer ' + localStorage.getItem('auth_token') };
+    try {
+        const res = await apiClient.get(`/official-accounts/${accountId}/platform-accounts`, { headers: h });
+        const platforms = (res.data?.data || []).map(p => ({ ...p, _selected: false, _status: 'idle' }));
+        distPlatforms.value = platforms;
+        // 加载已有分发记录
+        await loadArticleDistributions();
+    } catch { distPlatforms.value = []; }
+}
+
+async function loadArticleDistributions() {
+    const articleId = route.query.id;
+    if (!articleId) { distDistributionRecords.value = []; return; }
+    const h = { Authorization: 'Bearer ' + localStorage.getItem('auth_token') };
+    try {
+        const res = await apiClient.get(`/official-accounts/articles/${articleId}/distributions`, { headers: h });
+        distDistributionRecords.value = res.data?.data || [];
+        // 回填状态
+        for (const rec of distDistributionRecords.value) {
+            const pa = distPlatforms.value.find(p => p.id === rec.platform_account_id);
+            if (pa) {
+                pa._status = rec.status === 'success' ? 'success' : rec.status === 'failed' ? 'failed' : 'idle';
+                pa._selected = rec.status === 'success';
+            }
+        }
+    } catch { distDistributionRecords.value = []; }
+}
+
+async function distributeToSelected() {
+    const selected = distPlatforms.value.filter(p => p._selected && p._status !== 'success');
+    if (!selected.length) { ElMessage.warning('请选择要分发的平台'); return; }
+    const articleId = route.query.id;
+    if (!articleId) { ElMessage.warning('请先保存/发布文章后再分发'); return; }
+
+    distributing.value = true;
+    const h = { Authorization: 'Bearer ' + localStorage.getItem('auth_token') };
+    let successCount = 0, failCount = 0;
+
+    for (const pa of selected) {
+        pa._status = 'distributing';
+        try {
+            const res = await apiClient.post(`/official-accounts/articles/${articleId}/distribute`, {
+                platform_account_id: pa.id,
+                platform: pa.platform,
+            }, { headers: h });
+            pa._status = 'success';
+            successCount++;
+        } catch (e) {
+            pa._status = 'failed';
+            failCount++;
+        }
+    }
+
+    distributing.value = false;
+    if (successCount > 0 && failCount === 0) {
+        ElMessage.success(`✅ 已成功分发到 ${successCount} 个平台`);
+    } else if (successCount > 0) {
+        ElMessage.warning(`⚠️ ${successCount} 成功，${failCount} 失败`);
+    } else {
+        ElMessage.error('❌ 全部分发失败，请检查平台配置');
+    }
+}
+
+function openDistributeDialog() {
+    showDistributeDialog.value = true;
+}
+
+function goToChannelDistribution() {
+    showDistributeDialog.value = false;
+    const accountId = articleForm.account_id;
+    router.push(accountId ? `/channels?account_id=${accountId}&section=distribution` : '/channels?section=distribution');
+}
 
 const affiliateCategories = computed(() => {
     const cats = new Map();
@@ -1200,12 +1709,45 @@ const filteredAffiliateItems = computed(() => {
     return items;
 });
 
+// ── 投票/问卷卡片 ──
+const PollCard = Node.create({
+    name: 'pollCard',
+    group: 'block',
+    atom: true,
+    draggable: true,
+    addAttributes() {
+        return {
+            pollId: { default: 0 },
+            question: { default: '' },
+            options: { default: [] },
+            type: { default: 'single' },
+            totalVotes: { default: 0 },
+        };
+    },
+    parseHTML() {
+        return [{ tag: 'div[data-type="poll-card"]' }];
+    },
+    renderHTML({ node }) {
+        const a = node.attrs;
+        const opts = (a.options || []).map(o =>
+            '<div style="padding:6px 10px;margin:3px 0;background:#f5f7fa;border-radius:6px;font-size:13px;color:#303133">○ ' + (o.label || o) + '</div>'
+        ).join('');
+        return ['div', { 'data-type': 'poll-card', style: 'border:1px solid #e4e7ed;border-radius:8px;padding:12px;margin:10px 0;background:#fff' },
+            ['div', { style: 'font-weight:600;margin-bottom:8px' }, '📊 ' + a.question],
+            ['div', {}, opts],
+            ['div', { style: 'font-size:11px;color:#909399;margin-top:6px;text-align:center' }, '共 ' + (a.totalVotes || 0) + ' 人参与'],
+        ];
+    },
+});
+
 const editor = useEditor({
     content: '',
     extensions: [
         StarterKit.configure({
             codeBlock: false,
             paragraph: false,
+            link: false,
+            underline: false,
         }),
         CustomParagraph,
         TextStyle,
@@ -1217,6 +1759,7 @@ const editor = useEditor({
         HtmlDiv,
         HtmlSpan,
         ProductCard,
+        PollCard,
         Link.configure({ openOnClick: false, HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' } }),
         CodeBlockLowlight.configure({ lowlight }),
         Placeholder.configure({ placeholder: '开始撰写文章内容...' }),
@@ -1226,11 +1769,12 @@ const editor = useEditor({
     ],
     onUpdate: ({ editor }) => {
         articleForm.content = editor.getHTML();
+        triggerScan();
     },
 });
 
 function handleClose() {
-    const backUrl = articleForm.account_id ? `/user-chat?account_id=${articleForm.account_id}` : '/user-chat';
+    const backUrl = articleForm.account_id ? `/channels?account_id=${articleForm.account_id}` : '/channels';
     if (articleForm.content && articleForm.content.length > 50) {
         ElMessageBox.confirm('有未保存的内容，确定离开吗？', '确认离开').then(() => {
             router.push(backUrl);
@@ -1316,6 +1860,12 @@ async function doSchedule() {
     if (!articleForm.content || articleForm.content.length < 20) { ElMessage.warning('文章内容不能为空'); return; }
     if (!articleForm.scheduled_at) { ElMessage.warning('请选择定时发布时间'); return; }
 
+    // 📋 内容合规预检
+    if (scanResult.value?.hasSensitive) {
+        showScanWarning.value = true;
+        return;
+    }
+
     const payload = {
         title: articleForm.title,
         content: articleForm.content,
@@ -1340,7 +1890,7 @@ async function doSchedule() {
             });
             ElMessage.success('已设置定时发布，将在 ' + articleForm.scheduled_at + ' 自动发布');
         }
-        router.push(`/user-chat?account_id=${articleForm.account_id}`);
+        router.push(`/channels?account_id=${articleForm.account_id}`);
     } catch (e) {
         ElMessage.error(e.response?.data?.message || '提交失败');
     }
@@ -1350,6 +1900,12 @@ async function doPublish() {
     if (!articleForm.account_id) { ElMessage.warning('请选择投稿公众号'); return; }
     if (!articleForm.title.trim()) { ElMessage.warning('请输入文章标题'); return; }
     if (!articleForm.content || articleForm.content.length < 20) { ElMessage.warning('文章内容不能为空'); return; }
+
+    // 📋 内容合规预检
+    if (scanResult.value?.hasSensitive) {
+        showScanWarning.value = true;
+        return;
+    }
 
     const payload = {
         title: articleForm.title,
@@ -1377,7 +1933,7 @@ async function doPublish() {
             });
             ElMessage.success('文章已发布');
         }
-        router.push(`/user-chat?account_id=${articleForm.account_id}`);
+        router.push(`/channels?account_id=${articleForm.account_id}`);
     } catch (e) {
         ElMessage.error(e.response?.data?.message || '提交失败');
     }
@@ -1522,7 +2078,28 @@ function insertEmbedItem(cmd) {
         editor.value.chain().focus().insertContent('<blockquote><p><strong>🤝 推荐产品</strong></p><p>[通过联盟链接购买可享受优惠]</p></blockquote>').run();
     } else if (cmd === 'ad') {
         editor.value.chain().focus().insertContent('<p><strong>📢 广告位</strong> — 可放置自定义广告内容</p>').run();
+    } else if (cmd === 'poll') {
+        showPollDialog.value = true
     }
+}
+
+// ── 投票/问卷 ──
+function addPollOption() { pollForm.value.options.push('') }
+function removePollOption(idx) { pollForm.value.options.splice(idx, 1) }
+function insertPollCard() {
+    if (!pollForm.value.question.trim()) { ElMessage.warning('请输入投票问题'); return }
+    if (pollForm.value.options.filter(o => o.trim()).length < 2) { ElMessage.warning('至少需要2个选项'); return }
+    if (!editor.value) return
+    creatingPoll.value = true
+    const opts = pollForm.value.options.filter(o => o.trim())
+    editor.value.chain().focus().insertContent({
+        type: 'pollCard',
+        attrs: { pollId: 0, question: pollForm.value.question, options: opts.map((o, i) => ({ id: i, label: o })), type: pollForm.value.type, totalVotes: 0 }
+    }).run()
+    showPollDialog.value = false
+    pollForm.value = { question: '', type: 'single', options: ['', ''] }
+    creatingPoll.value = false
+    ElMessage.success('投票已插入')
 }
 
 function setTextColor(color) {
@@ -1797,11 +2374,85 @@ function applyAffiliate() {
     window.open('/build/affiliate-enhanced', '_blank');
 }
 
-async function loadMedia() {
+async function loadPromoCampaigns() {
     try {
-        const res = await apiClient.get('/im/uploads');
-        mediaList.value = res.data?.data || [];
-    } catch { mediaList.value = []; }
+        const res = await apiClient.get('/store-affiliate/campaigns', { params: { status: 'active', per_page: 50 } })
+        promoCampaigns.value = res.data?.data?.data || res.data?.data || []
+    } catch { promoCampaigns.value = [] }
+}
+async function togglePromoCamp(campId) {
+    if (expandedPromoCamp.value === campId) { expandedPromoCamp.value = null; return }
+    expandedPromoCamp.value = campId
+    try {
+        const res = await apiClient.get('/store-affiliate/campaigns/' + campId + '/creatives')
+        promoCampCreatives.value = res.data?.data?.data || res.data?.data || []
+    } catch { promoCampCreatives.value = [] }
+}
+function campTypeLabel(type) {
+    return { referral: '返佣', commission: '佣金', reward: '奖励', rebate: '返现' }[type] || type
+}
+function adStyleTag(cr) {
+    if (cr.image_url && cr.content) return { type: 'style1', label: '图文混排' }
+    if (cr.image_url && !cr.content) return { type: 'style2', label: '大图CTA' }
+    if (cr.content && !cr.image_url) return { type: 'style3', label: '色条文本' }
+    return { type: 'style4', label: '简洁链接' }
+}
+function adEarnings(cr, camp) {
+    const pct = Number(cr.commission_rate) || 0
+    const amt = Number(cr.commission_amount) || 0
+    if (pct > 0) return '佣金 ' + pct + '%' + (amt > 0 ? ' (约¥' + amt + ')' : '')
+    if (amt > 0) return '约¥' + amt
+    const rwd = Number(camp.reward_first) || Number(camp.reward_renewal) || 0
+    return rwd > 0 ? '¥' + rwd : '面议'
+}
+function promptAdWidth(cr, camp) {
+    pendingCreative.value = cr
+    pendingCampaign.value = camp
+    adWidth.value = '100%'
+    adStyle.value = 'auto'
+    adWidthCustom.value = ''
+    adWidthDialog.value = true
+}
+function confirmAdWidth() {
+    if (!pendingCreative.value) return
+    const cr = pendingCreative.value
+    const camp = pendingCampaign.value
+    const style = adStyle.value === 'auto' ? adStyleTag(cr).type : adStyle.value
+    const width = adWidth.value === 'custom' ? adWidthCustom.value : adWidth.value
+    let html = '<div style="margin:16px auto;width:' + width + ';max-width:100%">'
+    if (style === 'style1') {
+        html += '<div style="position:relative;display:flex;gap:12px;align-items:stretch;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#fff;width:100%">' +
+            '<span style="position:absolute;top:8px;right:8px;z-index:1;padding:2px 8px;background:rgba(0,0,0,0.4);color:#fff;font-size:10px;border-radius:4px;line-height:1.4">广告</span>' +
+            (cr.image_url ? '<div style="width:120px;min-height:90px;flex-shrink:0"><img src="' + cr.image_url + '" style="width:100%;height:100%;object-fit:cover" /></div>' : '') +
+            '<div style="flex:1;padding:12px;display:flex;flex-direction:column;justify-content:center"><div style="font-weight:600;font-size:14px;margin-bottom:4px">' + (cr.name || '推广') + '</div>' +
+            (cr.content ? '<div style="font-size:12px;color:#6b7280;line-height:1.5">' + cr.content.substring(0, 80) + '</div>' : '') +
+            '<div style="margin-top:8px"><span style="display:inline-block;padding:4px 14px;background:#409eff;color:#fff;font-size:12px;border-radius:6px;font-weight:500">了解详情 →</span></div></div></div>'
+    } else if (style === 'style2') {
+        html += '<div style="position:relative;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#fff;width:100%">' +
+            '<span style="position:absolute;top:8px;right:8px;z-index:1;padding:2px 8px;background:rgba(0,0,0,0.4);color:#fff;font-size:10px;border-radius:4px;line-height:1.4">广告</span>' +
+            (cr.image_url ? '<div style="width:100%;height:140px;overflow:hidden"><img src="' + cr.image_url + '" style="width:100%;height:100%;object-fit:cover" /></div>' : '') +
+            '<div style="padding:14px;text-align:center"><div style="font-weight:700;font-size:15px;margin-bottom:8px">' + (cr.name || '推广') + '</div>' +
+            '<span style="display:inline-block;padding:6px 24px;background:linear-gradient(135deg,#409eff,#66b1ff);color:#fff;font-size:13px;border-radius:20px;font-weight:600">立即了解</span></div></div>'
+    } else if (style === 'style3') {
+        html += '<div style="position:relative;display:flex;gap:10px;padding:12px 14px;border-radius:10px;background:linear-gradient(135deg,#f0f5ff,#e6f0ff);border-left:4px solid #409eff;width:100%">' +
+            '<span style="position:absolute;top:8px;right:8px;z-index:1;padding:2px 8px;background:rgba(0,0,0,0.35);color:#fff;font-size:10px;border-radius:4px;line-height:1.4">广告</span>' +
+            '<div style="flex:1"><div style="font-weight:600;font-size:14px;margin-bottom:4px">' + (cr.name || '推广') + '</div>' +
+            (cr.content ? '<div style="font-size:12px;color:#6b7280;line-height:1.5">' + cr.content.substring(0, 60) + '</div>' : '') +
+            '<div style="margin-top:6px;font-size:12px;color:#409eff;font-weight:600">了解更多 →</div></div></div>'
+    } else {
+        html += '<div style="position:relative;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:8px;background:#f5f7fa;border:1px solid #e5e7eb;width:100%">' +
+            '<span style="position:absolute;top:6px;right:8px;z-index:1;padding:1px 7px;background:rgba(0,0,0,0.3);color:#fff;font-size:10px;border-radius:3px;line-height:1.4">广告</span>' +
+            '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">🔗</span><span style="font-size:13px;font-weight:500">' + (cr.name || '推广链接') + '</span></div>' +
+            '<span style="font-size:12px;color:#409eff;font-weight:600">查看</span></div>'
+    }
+    html += '</div>'
+    editor.value?.chain().focus().insertContent(html).run()
+    adWidthDialog.value = false
+    pendingCreative.value = null
+}
+
+async function loadMedia() {
+    mediaList.value = [];
 }
 
 // ── HTML 源码编辑 ──
@@ -2231,6 +2882,7 @@ onMounted(() => {
     loadMyAccounts();
     loadProducts();
     loadAffiliates();
+    loadPromoCampaigns();
     loadMedia();
     // 预选从 URL 传入的公众号
     if (route.query.account_id) {

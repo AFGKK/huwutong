@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class HeatmapLayerFactory extends Factory
@@ -11,7 +12,7 @@ class HeatmapLayerFactory extends Factory
     public function definition(): array
     {
         return [
-            'tenant_id' => 1,
+            'tenant_id' => Tenant::factory(),
             'name' => $this->faker->words(3, true),
             'slug' => $this->faker->unique()->slug(3),
             'data_source' => $this->faker->randomElement(['license_activations', 'product_usage', 'api_calls', 'revenue']),

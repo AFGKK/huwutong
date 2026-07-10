@@ -50,7 +50,7 @@ class RevenueForecastAiService
         $subscriptionRevenue = Subscription::byTenant($tenantId)
             ->where('created_at', '>=', now()->subMonths($months))
             ->select(
-                DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
+                DB::raw(db_date_format('created_at', '%Y-%m').' as month'),
                 DB::raw('SUM(amount) as revenue'),
                 DB::raw('COUNT(*) as count')
             )
@@ -64,7 +64,7 @@ class RevenueForecastAiService
             ->where('status', 'paid')
             ->where('created_at', '>=', now()->subMonths($months))
             ->select(
-                DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
+                DB::raw(db_date_format('created_at', '%Y-%m').' as month'),
                 DB::raw('SUM(total_amount) as revenue'),
                 DB::raw('COUNT(*) as count')
             )

@@ -23,6 +23,16 @@
                     <el-tag v-else-if="license.type === 'development'" size="small">开发版</el-tag>
                     <span v-else>标准</span>
                 </div>
+                <div class="status-section status-actions">
+                    <div class="status-label">快捷操作</div>
+                    <div class="quick-actions">
+                        <el-button size="small" type="danger" plain v-if="can('revoke')" @click="handleAction('revoke')" :icon="Remove">吊销</el-button>
+                        <el-button size="small" type="warning" plain v-if="can('suspend')" @click="handleAction('suspend')" :icon="VideoPause">暂停</el-button>
+                        <el-button size="small" type="warning" plain v-if="can('freeze')" @click="handleAction('freeze')" :icon="ColdDrink">冻结</el-button>
+                        <el-button size="small" type="success" plain v-if="can('restore')" @click="handleAction('restore')" :icon="Refresh">恢复</el-button>
+                        <el-button size="small" text @click="openEdit" :icon="Edit">编辑</el-button>
+                    </div>
+                </div>
             </div>
             <div class="status-info-bar" v-if="statusInfo">
                 <div class="info-item">
@@ -355,7 +365,7 @@ import TimeRestrictionTab from '@/views/licenses/TimeRestrictionTab.vue';
 import customFieldApi from '@/api/customField';
 import {
     Remove, VideoPause, ColdDrink, Refresh,
-    WarningFilled, Money, Delete,
+    WarningFilled, Money, Delete, Edit,
     Download, Link, CopyDocument,
 } from '@element-plus/icons-vue';
 
@@ -648,6 +658,14 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+.status-section.status-actions {
+    margin-left: auto;
+}
+.quick-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
 }
 .status-label { font-size: 13px; color: #909399; }
 .license-key { font-size: 14px; letter-spacing: 1px; }

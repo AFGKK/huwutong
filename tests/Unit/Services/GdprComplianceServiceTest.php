@@ -7,7 +7,7 @@ use App\Models\DpaSignature;
 use App\Models\GdprDataRequest;
 use App\Models\User;
 use App\Services\GdprComplianceService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 

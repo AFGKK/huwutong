@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Models\Favorite;
+use App\Models\Follow;
 use App\Models\OfficialAccount;
 use App\Models\OaFollower;
 use App\Models\OaArticle;
@@ -26,1093 +28,179 @@ use App\Models\OaCommentLike;
 use App\Models\OaCollection;
 use App\Models\OaReadingListItem;
 use App\Models\OaCategory;
+use App\Models\OaFollowerTag;
+use App\Models\OaFollowerTagRelation;
+use App\Models\OaArticlePurchase;
+use App\Models\OaArticleEarning;
+use App\Models\Poll;
+use App\Models\PollOption;
+use App\Models\PollVote;
+use App\Models\OaPlatformAccount;
+use App\Models\OaArticleDistribution;
+use App\Models\EarningsAccount;
+use App\Models\UserPoint;
 use App\Events\OaArticlePublished;
 use App\Events\OaSubmissionCreated;
+use App\Services\AiRecommendationService;
+use App\Services\BehaviorSequenceService;
+use App\Services\SensitiveWordService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class OfficialAccountController extends Controller
 {
-    // ════════════════════════════════════════════
-    // 公众号发现与关注
-    // ════════════════════════════════════════════
-
-    public function index(): JsonResponse
+    /**
+     * 公开：获取互物号列表
+     * GET /api/official-accounts/public
+     */
+    public function index(Request $request): JsonResponse
     {
-        $myId = auth()->id();
-        $accounts = OfficialAccount::where('status', 'active')
-            ->with('owner:id,name')
-            ->withCount('followers')
-            ->get();
+        $perPage = (int) $request->input('per_page', 20);
+        $sort = $request->input('sort', 'followers');
 
-        $followedIds = \App\Models\Follow::where('user_id', $myId)
-            ->where('followable_type', 'App\\Models\\OfficialAccount')
-            ->whereIn('followable_id', $accounts->pluck('id'))
-            ->pluck('followable_id')
-            ->toArray();
+        $query = OfficialAccount::where('status', 'active');
 
-        return ApiResponse::success(
-            $accounts->map(fn($a) => [
-                'id' => $a->id,
-                'name' => $a->name,
-                'slug' => $a->slug,
-                'description' => $a->description,
-                'avatar' => $a->avatar,
-                'cover_image' => $a->cover_image,
-                'followers_count' => $a->followers_count,
-                'is_following' => in_array($a->id, $followedIds),
-            ])
-        );
-    }
-
-    public function search(Request $request): JsonResponse
-    {
-        $q = $request->input('q', '');
-        $type = $request->input('type', 'all'); // all, account, article
-        $myId = auth()->id();
-
-        $accounts = [];
-        $articles = [];
-        $products = [];
-        $merchants = [];
-
-        if (in_array($type, ['all', 'account', 'merchant'])) {
-            $merchants = OfficialAccount::where('status', 'active')
-                ->whereHas('products')
-                ->when($q, fn($query) => $query->where(function($q2) use ($q) {
-                    $q2->where('name', 'like', "%{$q}%")
-                       ->orWhere('description', 'like', "%{$q}%");
-                }))
-                ->withCount('followers')
-                ->with(['products' => fn($q) => $q->with('skus')->where('is_active', true)->limit(4)])
-                ->limit(10)
-                ->get()
-                ->map(fn($m) => [
-                    'id' => $m->id,
-                    'type' => 'merchant',
-                    'name' => $m->name,
-                    'description' => $m->description,
-                    'avatar' => $m->avatar,
-                    'followers_count' => $m->followers_count,
-                    'is_following' => $m->followers()->where('user_id', $myId)->exists(),
-                    'products' => $m->products->map(fn($p) => [
-                        'id' => $p->id,
-                        'slug' => $p->slug,
-                        'name' => $p->name,
-                        'image_url' => $p->image_url,
-                        'base_price' => $p->base_price,
-                        'sku_price_min' => $p->relationLoaded('skus') && $p->skus->count() > 0 ? (float) $p->skus->min('price') : null,
-                        'sku_price_max' => $p->relationLoaded('skus') && $p->skus->count() > 0 ? (float) $p->skus->max('price') : null,
-                        'description' => $p->description,
-                    ]),
-                ]);
+        // 排序
+        if ($sort === 'articles') {
+            $query->withCount('articles')->orderBy('articles_count', 'desc');
+        } elseif ($sort === 'newest') {
+            $query->latest();
+        } else {
+            $query->withCount('followers')->orderBy('followers_count', 'desc');
         }
 
-        if (in_array($type, ['all', 'account'])) {
-            $accounts = OfficialAccount::where('status', 'active')
-                ->when($q, fn($query) => $query->where(function($q2) use ($q) {
-                    $q2->where('name', 'like', "%{$q}%")
-                       ->orWhere('description', 'like', "%{$q}%");
-                }))
-                ->withCount('followers')
-                ->limit(20)
-                ->get()
-                ->map(fn($a) => [
-                    'id' => $a->id,
-                    'type' => 'account',
-                    'name' => $a->name,
-                    'description' => $a->description,
-                    'avatar' => $a->avatar,
-                    'cover_image' => $a->cover_image,
-                    'followers_count' => $a->followers_count,
-                    'is_following' => $a->followers()->where('user_id', $myId)->exists(),
-                ]);
-        }
+        $accounts = $query->paginate($perPage);
 
-        if (in_array($type, ['all', 'article'])) {
-            $articles = OaArticle::where('status', 'published')
-                ->with('author:id,name,avatar', 'account:id,name,avatar')
-                ->when($q, fn($query) => $query->where(function($q2) use ($q) {
-                    $q2->where('title', 'like', "%{$q}%")
-                       ->orWhere('summary', 'like', "%{$q}%")
-                       ->orWhere('content', 'like', "%{$q}%");
-                }))
-                ->withCount(['likes', 'reads'])
-                ->orderBy('id', 'desc')
-                ->limit(20)
-                ->get()
-                ->map(fn($a) => [
-                    'id' => $a->id,
-                    'type' => 'article',
-                    'title' => $a->title,
-                    'summary' => $a->summary,
-                    'cover_image' => $a->cover_image,
-                    'content' => $a->content,
-                    'account_name' => $a->account?->name,
-                    'account_avatar' => $a->account?->avatar,
-                    'author_name' => $a->author?->name,
-                    'message_type' => $this->detectArticleType($a),
-                    'likes_count' => $a->likes_count,
-                    'reads_count' => $a->reads_count,
-                    'published_at' => $a->published_at,
-                    'is_liked' => $a->likes()->where('user_id', $myId)->exists(),
-                ]);
-        }
-
-        if (in_array($type, ['all', 'product'])) {
-            $products = Product::with('skus')->with('category:id,name')
-                ->where('is_active', true)
-                ->when($q, fn($query) => $query->where(function($q2) use ($q) {
-                    $q2->where('name', 'like', "%{$q}%")
-                       ->orWhere('description', 'like', "%{$q}%");
-                }))
-                ->limit(20)
-                ->get()
-                ->map(fn($p) => [
-                    'id' => $p->id,
-                    'type' => 'product',
-                    'name' => $p->name,
-                    'slug' => $p->slug,
-                    'description' => $p->description,
-                    'image_url' => $p->image_url,
-                    'images' => $p->images,
-                    'base_price' => $p->base_price,
-                    'sku_price_min' => $p->relationLoaded('skus') && $p->skus->count() > 0 ? (float) $p->skus->min('price') : null,
-                    'sku_price_max' => $p->relationLoaded('skus') && $p->skus->count() > 0 ? (float) $p->skus->max('price') : null,
-                    'sales_count' => $p->sales_count,
-                    'tags' => $p->tags,
-                    'category_name' => $p->category?->name,
-                    'is_sellable' => $p->is_sellable,
-                ]);
-        }
-
-        return ApiResponse::success([
-            'accounts' => $accounts,
-            'articles' => $articles,
-            'products' => $products,
-            'merchants' => $merchants,
-            'total' => count($accounts) + count($articles) + count($products) + count($merchants),
-        ]);
-    }
-
-    private function detectArticleType($article): string
-    {
-        $content = strip_tags($article->content ?? '');
-        if (preg_match('/<video[^>]*>/i', $article->content ?? '')) return 'video';
-        if (preg_match('/<audio[^>]*>/i', $article->content ?? '')) return 'audio';
-        // Check for image count in content
-        preg_match_all('/<img[^>]*>/i', $article->content ?? '', $imgMatches);
-        if (count($imgMatches[0] ?? []) > 0) return count($imgMatches[0]) > 1 ? 'multi_image' : 'image';
-        return 'text';
-    }
-
-    public function myAccounts(): JsonResponse
-    {
-        $myId = auth()->id();
-        $followedIds = \App\Models\Follow::where('user_id', $myId)
-            ->where('followable_type', 'App\\Models\\OfficialAccount')
-            ->pluck('followable_id');
-        $accounts = OfficialAccount::whereIn('id', $followedIds)
-            ->where('status', 'active')
-            ->where('owner_id', '!=', $myId)
-            ->withCount(['followers', 'articles' => fn($q) => $q->where('status', 'published')])
-            ->get()
-            ->map(fn($a) => [
-                'id' => $a->id,
-                'name' => $a->name,
-                'slug' => $a->slug,
-                'description' => $a->description,
-                'avatar' => $a->avatar,
-                'cover_image' => $a->cover_image,
-                'followers_count' => $a->followers_count,
-                'articles_count' => $a->articles_count,
-                'is_following' => true,
-                'latest_article' => $a->articles()->where('status', 'published')->latest()->first(),
-            ]);
         return ApiResponse::success($accounts);
     }
 
-    public function follow(int $id): JsonResponse
+    /**
+     * 搜索互物号
+     * GET /api/official-accounts/search
+     */
+    public function search(Request $request): JsonResponse
     {
-        $account = OfficialAccount::where('status', 'active')->findOrFail($id);
-        $myId = auth()->id();
-        $type = 'App\\Models\\OfficialAccount';
+        $q = trim((string) $request->input('q', ''));
 
-        if (\App\Models\Follow::where('user_id', $myId)
-            ->where('followable_type', $type)
-            ->where('followable_id', $id)->exists()) {
-            return ApiResponse::error('ALREADY_FOLLOWING', '已经关注了该公众号');
+        $query = OfficialAccount::where('status', 'active');
+
+        if ($q !== '') {
+            $query->where(function ($builder) use ($q) {
+                $builder->where('name', 'like', "%{$q}%")
+                    ->orWhere('slug', 'like', "%{$q}%")
+                    ->orWhere('description', 'like', "%{$q}%");
+            });
         }
 
-        \App\Models\Follow::create(['user_id' => $myId, 'followable_type' => $type, 'followable_id' => $id]);
-        return ApiResponse::success(null, '关注成功');
+        $accounts = $query->orderByDesc('id')->limit(20)->get(['id', 'name', 'slug', 'avatar', 'description']);
+
+        return ApiResponse::success($accounts);
     }
 
-    public function unfollow(int $id): JsonResponse
-    {
-        $myId = auth()->id();
-        $type = 'App\\Models\\OfficialAccount';
-        \App\Models\Follow::where('user_id', $myId)
-            ->where('followable_type', $type)
-            ->where('followable_id', $id)->delete();
-        return ApiResponse::success(null, '已取消关注');
-    }
-
-    // ════════════════════════════════════════════
-    // 文章管理
-    // ════════════════════════════════════════════
-
-    public function articles(int $accountId, Request $request): JsonResponse
-    {
-        $account = OfficialAccount::findOrFail($accountId);
-        $isOwner = $account->owner_id === auth()->id();
-
-        $query = OaArticle::where('account_id', $accountId)
-            ->with('author:id,name,avatar')
-            ->withCount(['likes', 'reads', 'shares', 'comments' => fn($q) => $q->whereNull('parent_id')->where('status', 'approved'), 'favorites']);
-
-        // 非号主只能看到已发布的文章
-        if (!$isOwner) {
-            $query->where('status', 'published');
-        } elseif ($status = $request->input('status')) {
-            // 号主可按状态筛选
-            $query->where('status', $status);
-        }
-
-        if ($beforeId = $request->input('before_id')) {
-            $query->where('id', '<', $beforeId);
-        }
-
-        // 排序
-        $query->orderBy('is_pinned', 'desc');
-        if ($request->input('sort') === 'hot') {
-            $query->orderBy('reads_count', 'desc')->orderBy('id', 'desc');
-        } else {
-            $query->orderBy('id', 'desc');
-        }
-
-        $articles = $query->paginate(min($request->input('per_page', 20), 50));
-
-        $myId = auth()->id();
-        // 预加载当前用户的点赞记录
-        $likedIds = \App\Models\Like::where('user_id', $myId)
-            ->where('likeable_type', 'App\\Models\\OaArticle')
-            ->whereIn('likeable_id', $articles->pluck('id'))
-            ->pluck('likeable_id')
-            ->toArray();
-        $favIds = \App\Models\Favorite::where('user_id', $myId)
-            ->where('favorable_type', 'App\\Models\\OaArticle')
-            ->whereIn('favorable_id', $articles->pluck('id'))
-            ->pluck('favorable_id')
-            ->toArray();
-        // 当前用户已读文章
-        $readIds = \App\Models\OaArticleRead::where('user_id', $myId)
-            ->whereIn('article_id', $articles->pluck('id'))
-            ->distinct('article_id')
-            ->pluck('article_id')
-            ->toArray();
-        // 阅读清单
-        $readingListIds = OaReadingListItem::where('user_id', $myId)
-            ->whereIn('article_id', $articles->pluck('id'))
-            ->pluck('article_id')
-            ->toArray();
-
-        $articles->getCollection()->transform(fn($a) => [
-            'id' => $a->id,
-            'title' => $a->title,
-            'summary' => $a->summary,
-            'cover_image' => $a->cover_image,
-            'author' => $a->author ? [
-                'id' => $a->author->id,
-                'name' => $a->author->name,
-                'avatar' => $a->author->avatar
-                    ? (str_starts_with($a->author->avatar, 'http') ? $a->author->avatar : asset('storage/' . $a->author->avatar))
-                    : null,
-            ] : null,
-            'tags' => $a->tags,
-            'is_pinned' => $a->is_pinned,
-            'is_original' => $a->is_original,
-            'is_read' => in_array($a->id, $readIds),
-            'in_reading_list' => in_array($a->id, $readingListIds),
-            'collection_id' => $a->collection_id,
-            'allow_comments' => $a->allow_comments,
-            'images' => $a->images,
-            'published_at' => $a->published_at,
-            'edited_at' => $a->edited_at,
-            'likes_count' => $a->likes_count,
-            'reads_count' => $a->reads_count,
-            'shares_count' => $a->shares_count,
-            'comments_count' => $a->comments_count ?? 0,
-            'favorites_count' => $a->favorites_count ?? 0,
-            'is_liked' => in_array($a->id, $likedIds),
-            'is_favorited' => in_array($a->id, $favIds),
-        ]);
-
-        return ApiResponse::paginated($articles);
-    }
-
-    public function articleDetail(int $id): JsonResponse
+    /**
+     * 公开：文章详情
+     * GET /api/official-accounts/articles/{articleId}
+     */
+    public function articleDetail(int $articleId): JsonResponse
     {
         $article = OaArticle::where('status', 'published')
-            ->with('author:id,name,avatar', 'account:id,name,avatar,description')
-            ->withCount(['likes', 'reads', 'shares'])
-            ->findOrFail($id);
+            ->with('account:id,name,slug,avatar,description')
+            ->find($articleId);
 
-        // 记录阅读
-        OaArticleRead::create([
-            'article_id' => $id,
-            'user_id' => auth()->id(),
-            'ip' => request()->ip(),
-        ]);
-
-        $myId = auth()->id();
-
-        // 推荐相关文章（同标签 + 同账号最新）
-        $related = [];
-        if ($article->tags) {
-            $related = OaArticle::where('id', '!=', $id)
-                ->where('status', 'published')
-                ->where('account_id', $article->account_id)
-                ->where(function($q) use ($article) {
-                    foreach ($article->tags as $tag) {
-                        $q->orWhereJsonContains('tags', $tag);
-                    }
-                })
-                ->take(3)
-                ->get(['id', 'title', 'summary', 'cover_image', 'published_at'])
-                ->toArray();
-        }
-        // 补充推荐文章（如果不够3篇）
-        if (count($related) < 3) {
-            $extra = OaArticle::where('id', '!=', $id)
-                ->where('status', 'published')
-                ->where('account_id', $article->account_id)
-                ->whereNotIn('id', array_column($related, 'id'))
-                ->latest('published_at')
-                ->take(3 - count($related))
-                ->get(['id', 'title', 'summary', 'cover_image', 'published_at'])
-                ->toArray();
-            $related = array_merge($related, $extra);
+        if (! $article) {
+            return ApiResponse::notFound('文章不存在');
         }
 
-        // 读者也在读（读了这篇文章的人还读了哪些）
-        $alsoRead = [];
-        $readerIds = OaArticleRead::where('article_id', $id)
-            ->whereNotNull('user_id')
-            ->distinct('user_id')
-            ->pluck('user_id')
-            ->take(20)
-            ->toArray();
-
-        if (!empty($readerIds)) {
-            $alsoReadArticleIds = OaArticleRead::whereIn('user_id', $readerIds)
-                ->where('article_id', '!=', $id)
-                ->distinct('article_id')
-                ->pluck('article_id')
-                ->take(10)
-                ->toArray();
-
-            if (!empty($alsoReadArticleIds)) {
-                $alsoRead = OaArticle::whereIn('id', $alsoReadArticleIds)
-                    ->where('status', 'published')
-                    ->with('account:id,name')
-                    ->take(4)
-                    ->get(['id', 'title', 'cover_image', 'account_id', 'published_at'])
-                    ->toArray();
-            }
-        }
-
-        // 上一篇 / 下一篇
-        $prev = OaArticle::where('account_id', $article->account_id)
-            ->where('status', 'published')
-            ->where('published_at', '<', $article->published_at ?? $article->created_at)
-            ->orderBy('published_at', 'desc')
-            ->first(['id', 'title']);
-
-        $next = OaArticle::where('account_id', $article->account_id)
-            ->where('status', 'published')
-            ->where('published_at', '>', $article->published_at ?? $article->created_at)
-            ->orderBy('published_at', 'asc')
-            ->first(['id', 'title']);
-
-        // 评论
-        $comments = OaComment::with(['user:id,name,avatar,region', 'replies.user:id,name,avatar,region'])
-            ->where('article_id', $id)
-            ->whereNull('parent_id')
-            ->where('status', 'approved')
-            ->orderBy('is_pinned', 'desc')
-            ->orderBy('id', 'desc')
-            ->take(50)
-            ->get()
-            ->map(function ($c) use ($myId) {
-                $c->user && $c->user->avatar && $c->user->avatar = (str_starts_with($c->user->avatar, 'http') ? $c->user->avatar : asset('storage/' . $c->user->avatar));
-                $c->replies && $c->replies->each(fn($r) => $r->user && $r->user->avatar && $r->user->avatar = (str_starts_with($r->user->avatar, 'http') ? $r->user->avatar : asset('storage/' . $r->user->avatar)));
-                $c->likes_count = $c->likes()->count();
-                $c->is_liked = $c->isLikedBy($myId);
-                return $c;
-            });
-
-        return ApiResponse::success([
-            'id' => $article->id,
-            'title' => $article->title,
-            'content' => $article->content,
-            'summary' => $article->summary,
-            'cover_image' => $article->cover_image,
-            'author' => $article->author ? [
-                'id' => $article->author->id,
-                'name' => $article->author->name,
-                'avatar' => $article->author->avatar
-                    ? (str_starts_with($article->author->avatar, 'http') ? $article->author->avatar : asset('storage/' . $article->author->avatar))
-                    : null,
-            ] : null,
-            'account' => $article->account ? [
-                'id' => $article->account->id,
-                'name' => $article->account->name,
-                'avatar' => $article->account->avatar
-                    ? (str_starts_with($article->account->avatar, 'http') ? $article->account->avatar : asset('storage/' . $article->account->avatar))
-                    : null,
-                'description' => $article->account->description,
-            ] : null,
-            'tags' => $article->tags,
-            'is_pinned' => $article->is_pinned,
-            'is_original' => $article->is_original,
-            'collection_id' => $article->collection_id,
-            'allow_comments' => $article->allow_comments,
-            'images' => $article->images,
-            'published_at' => $article->published_at,
-            'likes_count' => $article->likes_count,
-            'reads_count' => $article->reads_count + 1,
-            'shares_count' => $article->shares_count,
-            'is_liked' => $myId ? $article->isLikedBy($myId) : false,
-            'is_favorited' => $myId ? \App\Models\Favorite::where('user_id', $myId)
-                ->where('favorable_type', 'App\\Models\\OaArticle')
-                ->where('favorable_id', $id)->exists() : false,
-            'is_following' => $myId ? \App\Models\Follow::where('user_id', $myId)
-                ->where('followable_type', 'App\\Models\\OfficialAccount')
-                ->where('followable_id', $article->account_id)->exists() : false,
-            'related_articles' => $related,
-            'also_read_articles' => $alsoRead,
-            'prev_article' => $prev ? ['id' => $prev->id, 'title' => $prev->title] : null,
-            'next_article' => $next ? ['id' => $next->id, 'title' => $next->title] : null,
-            'comments' => $comments,
-        ]);
+        return ApiResponse::success($article);
     }
 
-    // ── 公开评论列表（无需登录） ──
-    public function articleCommentsPublic(int $id): JsonResponse
+    /**
+     * 公开：获取所有文章
+     * GET /api/official-accounts/public/articles
+     */
+    public function allArticles(Request $request): JsonResponse
     {
-        $article = OaArticle::where('status', 'published')->findOrFail($id);
+        $perPage = (int) $request->input('per_page', 20);
 
-        $comments = OaComment::with(['user:id,name,avatar,region', 'replies.user:id,name,avatar,region'])
-            ->where('article_id', $id)
-            ->whereNull('parent_id')
-            ->where('status', 'approved')
-            ->orderBy('is_pinned', 'desc')
-            ->orderBy('id', 'desc')
-            ->paginate(20);
+        $articles = OaArticle::where('status', 'published')
+            ->with('account:id,name,slug,avatar,description')
+            ->latest()
+            ->paginate($perPage);
 
-        // 处理头像URL
-        $comments->getCollection()->transform(function ($c) {
-            $c->user && $c->user->avatar && $c->user->avatar = (str_starts_with($c->user->avatar, 'http') ? $c->user->avatar : asset('storage/' . $c->user->avatar));
-            $c->replies && $c->replies->each(fn($r) => $r->user && $r->user->avatar && $r->user->avatar = (str_starts_with($r->user->avatar, 'http') ? $r->user->avatar : asset('storage/' . $r->user->avatar)));
-            $c->likes_count = $c->likes()->count();
-            $c->is_liked = false; // 游客无点赞状态
-            return $c;
-        });
-
-        return ApiResponse::paginated($comments);
+        return ApiResponse::success($articles);
     }
 
-    public function toggleFavorite(int $articleId): JsonResponse
-    {
-        $article = OaArticle::where('status', 'published')->findOrFail($articleId);
-        $myId = auth()->id();
-        $type = 'App\\Models\\OaArticle';
-        $existing = \App\Models\Favorite::where('user_id', $myId)
-            ->where('favorable_type', $type)
-            ->where('favorable_id', $articleId)->first();
-        if ($existing) {
-            $existing->delete();
-            return ApiResponse::success(['favorited' => false], '已取消收藏');
-        }
-        \App\Models\Favorite::create(['user_id' => $myId, 'favorable_type' => $type, 'favorable_id' => $articleId]);
-    return ApiResponse::success(['favorited' => true], '已收藏');
-}
-
-// ── 我收藏的文章列表 ──
-public function myFavoriteArticles(): JsonResponse
-{
-    $favorites = \App\Models\OaFavorite::with(['article' => fn($q) => $q->with('account:id,name,avatar'), 'article.author:id,name,avatar'])
-        ->where('user_id', auth()->id())
-        ->orderBy('id', 'desc')
-        ->paginate(20);
-    return ApiResponse::paginated($favorites);
-}
-
-    // ── 我点赞的文章列表 ──
-    public function myLikedArticles(): JsonResponse
-    {
-        $likes = OaArticleLike::with(['article' => fn($q) => $q->with('account:id,name,avatar'), 'article.author:id,name,avatar'])
-            ->where('user_id', auth()->id())
-            ->orderBy('id', 'desc')
-            ->paginate(20);
-        return ApiResponse::paginated($likes);
-    }
-
-    public function addComment(int $articleId, Request $request): JsonResponse
-    {
-        $request->validate(['content' => 'required|string|max:1000', 'image' => 'nullable|string|max:500']);
-        $article = OaArticle::with('account')->where('status', 'published')->findOrFail($articleId);
-        // 号主评论自动通过，其余需要审核
-        $isOwner = $article->account->owner_id === auth()->id();
-        $comment = OaComment::create([
-            'article_id' => $articleId,
-            'user_id' => auth()->id(),
-            'content' => $request->input('content'),
-            'image' => $request->input('image'),
-            'status' => $isOwner ? 'approved' : 'pending',
-        ]);
-        return ApiResponse::success($comment->load('user:id,name,avatar'), $isOwner ? '评论成功' : '评论已提交，等待审核', 201);
-    }
-
-    public function toggleCommentLike(int $commentId): JsonResponse
-    {
-        $comment = OaComment::findOrFail($commentId);
-        $myId = auth()->id();
-        $existing = OaCommentLike::where('comment_id', $commentId)->where('user_id', $myId)->first();
-        if ($existing) {
-            $existing->delete();
-            return ApiResponse::success(['liked' => false, 'likes_count' => $comment->likes()->count()]);
-        }
-        OaCommentLike::create(['comment_id' => $commentId, 'user_id' => $myId]);
-        return ApiResponse::success(['liked' => true, 'likes_count' => $comment->likes()->count()]);
-    }
-
-    public function togglePinComment(int $commentId): JsonResponse
-    {
-        $comment = OaComment::with('article')->findOrFail($commentId);
-        // Only account owner can pin
-        $account = OfficialAccount::where('owner_id', auth()->id())
-            ->where('id', $comment->article->account_id)->first();
-        if (!$account) {
-            return ApiResponse::error('无权操作', 403);
-        }
-        $comment->update(['is_pinned' => !$comment->is_pinned]);
-        return ApiResponse::success(['is_pinned' => $comment->fresh()->is_pinned]);
-    }
-
-    public function toggleLike(int $id): JsonResponse
-    {
-        $article = OaArticle::where('status', 'published')->findOrFail($id);
-        $myId = auth()->id();
-        $type = 'App\\Models\\OaArticle';
-        $like = \App\Models\Like::where('user_id', $myId)
-            ->where('likeable_type', $type)
-            ->where('likeable_id', $id)->first();
-        if ($like) {
-            $like->delete();
-            return ApiResponse::success(['liked' => false], '已取消点赞');
-        }
-        \App\Models\Like::create(['user_id' => $myId, 'likeable_type' => $type, 'likeable_id' => $id]);
-    return ApiResponse::success(['liked' => true], '点赞成功');
-}
-
-public function shareArticle(Request $request, int $id): JsonResponse
-{
-    $article = OaArticle::with('account:id,name')->where('status', 'published')->findOrFail($id);
-    $myId = auth()->id();
-        $platform = $request->input('platform', 'im');
-        $target = $request->input('target'); // chat, plaza, channel, wechat, weibo
-
-        // 记录分享
-        OaArticleShare::create([
-            'article_id' => $id,
-            'user_id' => $myId,
-            'platform' => $platform,
-        ]);
-
-        // 分享到聊天
-        if ($target === 'chat') {
-            $convId = $request->input('conversation_id');
-            if (!$convId) return ApiResponse::error('缺少会话ID');
-
-            $isParticipant = ConversationParticipant::where('conversation_id', $convId)
-                ->where('user_id', $myId)->whereNull('deleted_at')->exists();
-            if (!$isParticipant) return ApiResponse::error('你不是目标会话的参与者', 403);
-
-            $shareUrl = url('/articles/' . $id);
-            $content = '📰 推荐一篇文章：' . $article->title . "\n" . $shareUrl;
-
-            ConversationMessage::create([
-                'conversation_id' => $convId,
-                'sender_id' => $myId,
-                'message_type' => 'text',
-                'content' => $content,
-                'metadata' => [
-                    'from_oa_share' => true,
-                    'article_id' => $id,
-                    'article_title' => $article->title,
-                    'account_name' => $article->account?->name,
-                ],
-                'client_msg_id' => 'oashare-' . uniqid(),
-            ]);
-        }
-
-        // 分享到广场
-        if ($target === 'plaza') {
-            $shareUrl = url('/articles/' . $id);
-            ForumPost::create([
-                'user_id' => $myId,
-                'content' => '📰 推荐文章：' . $article->title . "\n\n" . ($article->summary ?? '') . "\n\n🔗 " . $shareUrl,
-                'images' => $article->cover_image ? [$article->cover_image] : null,
-                'title' => null,
-            ]);
-        }
-
-        // 分享到圈子
-        if ($target === 'channel') {
-            $channelId = $request->input('channel_id');
-            if (!$channelId) return ApiResponse::error('缺少圈子ID');
-
-            $shareUrl = url('/articles/' . $id);
-            $content = '📰 推荐文章：' . $article->title . "\n" . $shareUrl;
-
-            \App\Models\ChannelMessage::create([
-                'channel_id' => $channelId,
-                'user_id' => $myId,
-                'content' => $content,
-                'message_type' => 'text',
-            ]);
-        }
-
-        // 微信/微博 — 返回前端自行处理（通过 URL 分享或复制链接）
-        $shareUrl = url('/articles/' . $id);
-        $shareText = '推荐一篇文章：' . $article->title;
-
-        return ApiResponse::success([
-            'share_url' => $shareUrl,
-            'share_text' => $shareText,
-            'target' => $target,
-        ], '分享成功');
-    }
-
-    // ════════════════════════════════════════════
-    // 投稿系统
-    // ════════════════════════════════════════════
-
-    public function submitArticle(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'account_id' => 'required|integer|exists:official_accounts,id',
-            'title' => 'required|string|max:200',
-            'content' => 'required|string',
-            'cover_image' => 'nullable|string|max:500',
-            'images' => 'nullable|array',
-            'summary' => 'nullable|string|max:300',
-            'is_original' => 'boolean',
-            'allow_comments' => 'boolean',
-            'tags' => 'nullable|array',
-            'seo_title' => 'nullable|string|max:70',
-            'seo_description' => 'nullable|string|max:160',
-        ]);
-
-        $submission = OaSubmission::create([
-            'account_id' => $validated['account_id'],
-            'user_id' => auth()->id(),
-            'title' => $validated['title'],
-            'content' => $validated['content'],
-            'cover_image' => $validated['cover_image'] ?? null,
-            'summary' => $validated['summary'] ?? null,
-        ]);
-
-        // 触发 AI 自动审核
-        OaSubmissionCreated::dispatch($submission);
-
-        return ApiResponse::success($submission, '投稿已提交，等待审核', 201);
-    }
-
-    public function mySubmissions(): JsonResponse
-    {
-        $submissions = OaSubmission::with('account:id,name,avatar')
-            ->where('user_id', auth()->id())
-            ->orderBy('id', 'desc')
-            ->paginate(20);
-        return ApiResponse::paginated($submissions);
-    }
-
-    public function pendingSubmissions(int $accountId): JsonResponse
-    {
-        $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($accountId);
-        $submissions = OaSubmission::with('user:id,name,avatar')
-            ->where('account_id', $accountId)
-            ->where('status', 'pending')
-            ->orderBy('id', 'desc')
-            ->paginate(20);
-        $stats = [
-            'pending' => OaSubmission::where('account_id', $accountId)->where('status', 'pending')->count(),
-            'approved' => OaSubmission::where('account_id', $accountId)->where('status', 'approved')->count(),
-            'rejected' => OaSubmission::where('account_id', $accountId)->where('status', 'rejected')->count(),
-        ];
-        return ApiResponse::success([
-            'submissions' => $submissions->items(),
-            'stats' => $stats,
-            'pagination' => [
-                'current_page' => $submissions->currentPage(),
-                'last_page' => $submissions->lastPage(),
-                'total' => $submissions->total(),
-                'per_page' => $submissions->perPage(),
-            ],
-        ]);
-    }
-
-    public function reviewSubmission(int $id, Request $request): JsonResponse
-    {
-        $submission = OaSubmission::with('account')->findOrFail($id);
-        $account = $submission->account;
-
-        if ($account->owner_id !== auth()->id()) {
-            return ApiResponse::error('FORBIDDEN', '你不是该公众号的所有者', 403);
-        }
-
-        $action = $request->input('action');
-
-        if ($action === 'approve') {
-            $submission->update(['status' => 'approved', 'reviewer_id' => auth()->id(), 'reviewed_at' => now()]);
-
-            // 创建正式文章
-            $article = OaArticle::create([
-                'account_id' => $submission->account_id,
-                'author_id' => $submission->user_id,
-                'title' => $submission->title,
-                'content' => $submission->content,
-                'cover_image' => $submission->cover_image,
-                'summary' => $submission->summary,
-                'status' => 'published',
-                'source_submission_id' => $submission->id,
-                'published_at' => now(),
-            ]);
-
-            // 触发 AI 自动评论
-            OaArticlePublished::dispatch($article);
-
-            return ApiResponse::success($article, '投稿已通过并发布');
-        }
-
-        if ($action === 'reject') {
-            $submission->update([
-                'status' => 'rejected',
-                'reviewer_id' => auth()->id(),
-                'reviewed_at' => now(),
-                'reject_reason' => $request->input('reject_reason', '未通过审核'),
-            ]);
-            return ApiResponse::success($submission, '已拒绝投稿');
-        }
-
-        return ApiResponse::error('INVALID_ACTION', '无效操作', 400);
-    }
-
-    // ════════════════════════════════════════════
-    // 管理端
-    // ════════════════════════════════════════════
-
-    public function store(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:100',
-            'description' => 'nullable|string|max:500',
-            'avatar' => 'nullable|string|max:500',
-            'cover_image' => 'nullable|string|max:500',
-            'category_id' => 'nullable|integer|exists:oa_categories,id',
-        ]);
-
-        $slug = Str::slug($validated['name']);
-        $baseSlug = $slug;
-        $counter = 1;
-        while (OfficialAccount::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $counter++;
-        }
-
-        $account = OfficialAccount::create([
-            'name' => $validated['name'],
-            'slug' => $slug,
-            'description' => $validated['description'] ?? '',
-            'avatar' => $validated['avatar'] ?? null,
-            'cover_image' => $validated['cover_image'] ?? null,
-            'category_id' => $validated['category_id'] ?? null,
-            'owner_id' => auth()->id(),
-        ]);
-
-        // 创建者自动关注
-        OaFollower::create(['account_id' => $account->id, 'user_id' => auth()->id()]);
-
-        return ApiResponse::success($account->load('category'), '公众号已创建', 201);
-    }
-
-    public function update(int $id, Request $request): JsonResponse
-    {
-        $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($id);
-
-        $data = $request->only(['description', 'avatar', 'cover_image']);
-
-        // 名称修改：每年最多3次
-        if ($request->has('name') && $request->input('name') !== $account->name) {
-            $settings = $account->settings ?? [];
-            $nameUpdates = $settings['name_updates'] ?? [];
-            // 过滤出本年内的修改记录
-            $yearAgo = now()->subYear();
-            $recentUpdates = array_filter($nameUpdates, fn($ts) => $ts >= $yearAgo->timestamp);
-            if (count($recentUpdates) >= 3) {
-                return ApiResponse::error('公众号名称每年仅能修改3次', 422);
-            }
-            $data['name'] = $request->input('name');
-            $recentUpdates[] = now()->timestamp;
-            $settings['name_updates'] = $recentUpdates;
-            $data['settings'] = $settings;
-        }
-
-        $account->update($data);
-        return ApiResponse::success($account->fresh()->load('category'), '已更新');
-    }
-
-    public function editInfo(int $id): JsonResponse
-    {
-        $account = OfficialAccount::where('owner_id', auth()->id())->with('category')->findOrFail($id);
-        $settings = $account->settings ?? [];
-        $nameUpdates = $settings['name_updates'] ?? [];
-        $yearAgo = now()->subYear();
-        $recentUpdates = array_filter($nameUpdates, fn($ts) => $ts >= $yearAgo->timestamp);
-        return ApiResponse::success([
-            'id' => $account->id,
-            'name' => $account->name,
-            'slug' => $account->slug,
-            'description' => $account->description,
-            'avatar' => $account->avatar,
-            'cover_image' => $account->cover_image,
-            'category' => $account->category,
-            'category_id' => $account->category_id,
-            'name_change_count' => count($recentUpdates),
-            'name_change_limit' => 3,
-        ]);
-    }
-
-    public function dashboard(int $id): JsonResponse
-    {
-        $account = OfficialAccount::withCount([
-            'followers',
-            'articles' => fn($q) => $q->where('status', 'published'),
-        ])->findOrFail($id);
-
-        $totalLikes = \App\Models\Like::where('likeable_type', 'App\\Models\\OaArticle')
-            ->whereHasMorph('likeable', [\App\Models\OaArticle::class], fn($q) => $q->where('account_id', $id))->count();
-        $totalReads = OaArticleRead::whereHas('article', fn($q) => $q->where('account_id', $id))->count();
-        $totalShares = OaArticleShare::whereHas('article', fn($q) => $q->where('account_id', $id))->count();
-        $totalComments = OaComment::whereHas('article', fn($q) => $q->where('account_id', $id))
-            ->whereNull('parent_id')->count();
-
-        $pendingSubmissions = OaSubmission::where('account_id', $id)
-            ->where('status', 'pending')->count();
-
-        $todayFollowers = \App\Models\Follow::where('followable_type', 'App\\Models\\OfficialAccount')
-            ->where('followable_id', $id)
-            ->whereDate('created_at', today())->count();
-
-        $isOwner = auth()->id() === $account->owner_id;
-
-        // ── 增长趋势数据 ──
-        $articleIds = OaArticle::where('account_id', $id)->pluck('id');
-        $days = 14;
-        $followerTrend = [];
-        $readTrend = [];
-        $shareTrend = [];
-        $likeTrend = [];
-
-        for ($i = $days - 1; $i >= 0; $i--) {
-            $date = today()->subDays($i);
-            $dateStr = $date->format('Y-m-d');
-
-            $followerTrend[] = [
-                'date' => $dateStr,
-                'count' => \App\Models\Follow::where('followable_type', 'App\\Models\\OfficialAccount')
-                    ->where('followable_id', $id)
-                    ->whereDate('created_at', $date)->count(),
-                'cumulative' => \App\Models\Follow::where('followable_type', 'App\\Models\\OfficialAccount')
-                    ->where('followable_id', $id)
-                    ->whereDate('created_at', '<=', $date)->count(),
-            ];
-
-            $readTrend[] = [
-                'date' => $dateStr,
-                'count' => OaArticleRead::whereIn('article_id', $articleIds)
-                    ->whereDate('created_at', $date)->count(),
-            ];
-
-            $shareTrend[] = [
-                'date' => $dateStr,
-                'count' => OaArticleShare::whereIn('article_id', $articleIds)
-                    ->whereDate('created_at', $date)->count(),
-            ];
-
-            $likeTrend[] = [
-                'date' => $dateStr,
-                'count' => \App\Models\Like::where('likeable_type', 'App\\Models\\OaArticle')
-                    ->whereIn('likeable_id', $articleIds)
-                    ->whereDate('created_at', $date)->count(),
-            ];
-        }
-
-        $yesterdayReads = $readTrend[count($readTrend) - 2]['count'] ?? 0;
-        $readChangeRate = $yesterdayReads > 0
-            ? round((($todayFollowers - $yesterdayReads) / $yesterdayReads) * 100, 1)
-            : 0;
-
-        return ApiResponse::success([
-            'followers_count' => $account->followers_count,
-            'articles_count' => $account->articles_count,
-            'total_likes' => $totalLikes,
-            'total_reads' => $totalReads,
-            'total_shares' => $totalShares,
-            'total_comments' => $totalComments,
-            'pending_submissions' => $pendingSubmissions,
-            'today_new_followers' => $todayFollowers,
-            'yesterday_reads' => $yesterdayReads,
-            'read_change_rate' => $readChangeRate,
-            'trends' => [
-                'followers' => $followerTrend,
-                'reads' => $readTrend,
-                'shares' => $shareTrend,
-                'likes' => $likeTrend,
-            ],
-            'is_owner' => $isOwner,
-        ]);
-    }
-
-    // ── 评论管理 ──
-    public function comments(int $id): JsonResponse
-    {
-        $account = OfficialAccount::findOrFail($id);
-        $articleIds = OaArticle::where('account_id', $id)->pluck('id');
-
-        $comments = OaComment::with(['user:id,name,avatar,region', 'article:id,title', 'replies.user:id,name,avatar,region'])
-            ->whereIn('article_id', $articleIds)
-            ->whereNull('parent_id')
-            ->orderBy('id', 'desc')
-            ->paginate(20)
-            ->through(function ($c) {
-                $c->user && $c->user->avatar && $c->user->avatar = (str_starts_with($c->user->avatar, 'http') ? $c->user->avatar : asset('storage/' . $c->user->avatar));
-                $c->replies && $c->replies->each(fn($r) => $r->user && $r->user->avatar && $r->user->avatar = (str_starts_with($r->user->avatar, 'http') ? $r->user->avatar : asset('storage/' . $r->user->avatar)));
-                return $c;
-            });
-
-        return ApiResponse::paginated($comments);
-    }
-
-    public function replyComment(int $commentId, Request $request): JsonResponse
-    {
-        $request->validate(['content' => 'required|string|max:1000']);
-        $parent = OaComment::with('article')->findOrFail($commentId);
-        $reply = OaComment::create([
-            'article_id' => $parent->article_id,
-            'user_id' => auth()->id(),
-            'content' => $request->input('content'),
-            'parent_id' => $parent->id,
-            'status' => 'approved',
-        ]);
-        return ApiResponse::success($reply->load('user:id,name,avatar'), '回复成功', 201);
-    }
-
-    public function deleteComment(int $commentId): JsonResponse
-    {
-        $comment = OaComment::with('article')->findOrFail($commentId);
-        // 号主可删除，作者可删除自己的
-        $account = OfficialAccount::where('owner_id', auth()->id())
-            ->where('id', $comment->article->account_id)->first();
-        if (!$account && $comment->user_id !== auth()->id()) {
-            return ApiResponse::error('无权删除', 403);
-        }
-        $comment->replies()->delete();
-        $comment->delete();
-        return ApiResponse::success(null, '已删除');
-    }
-
-    public function approveComment(int $commentId): JsonResponse
-    {
-        $comment = OaComment::with('article.account')->findOrFail($commentId);
-        if ($comment->article->account->owner_id !== auth()->id()) {
-            return ApiResponse::error('无权操作', 403);
-        }
-        $comment->update(['status' => 'approved']);
-        return ApiResponse::success($comment->fresh(), '评论已通过');
-    }
-
-    public function rejectComment(int $commentId): JsonResponse
-    {
-        $comment = OaComment::with('article.account')->findOrFail($commentId);
-        if ($comment->article->account->owner_id !== auth()->id()) {
-            return ApiResponse::error('无权操作', 403);
-        }
-        $comment->update(['status' => 'rejected']);
-        return ApiResponse::success($comment->fresh(), '评论已拒绝');
-    }
-
-    // ── 分类列表 ──
+    /**
+     * 公开：获取分类列表
+     * GET /api/official-accounts/public/categories
+     */
     public function categories(): JsonResponse
     {
-        $categories = OaCategory::where('is_active', true)
+        $categories = \App\Models\OaCategory::where('is_active', true)
             ->orderBy('sort_order')
-            ->get();
+            ->get(['id', 'name', 'icon']);
+
         return ApiResponse::success($categories);
     }
 
-    // ── 头像上传 ──
-    public function uploadAvatar(Request $request): JsonResponse
-    {
-        $request->validate(['file' => 'required|image|max:2048']);
-        $path = $request->file('file')->store('oa-avatars', 'public');
-        $url = asset('storage/' . $path);
-        return ApiResponse::success(['url' => $url], '上传成功');
-    }
-
-    // ── 管理员：全部分类（含禁用） ──
-    public function allCategories(): JsonResponse
-    {
-        $categories = OaCategory::withCount('accounts')->orderBy('sort_order')->get();
-        return ApiResponse::success($categories);
-    }
-
-    public function createCategory(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:50',
-            'icon' => 'nullable|string|max:50',
-            'sort_order' => 'nullable|integer|min:0',
-        ]);
-        $cat = OaCategory::create($validated);
-        return ApiResponse::success($cat, '分类已创建', 201);
-    }
-
-    public function updateCategory(int $id, Request $request): JsonResponse
-    {
-        $cat = OaCategory::findOrFail($id);
-        $cat->update($request->only(['name', 'icon', 'sort_order', 'is_active']));
-        return ApiResponse::success($cat->fresh(), '已更新');
-    }
-
-    public function deleteCategory(int $id): JsonResponse
-    {
-        $cat = OaCategory::findOrFail($id);
-        if ($cat->accounts()->count() > 0) {
-            return ApiResponse::error('该分类下有公众号，无法删除', 422);
-        }
-        $cat->delete();
-        return ApiResponse::success(null, '已删除');
-    }
-
-    public function myOwnedAccounts(): JsonResponse
+    function myOwnedAccounts(): JsonResponse
     {
         $accounts = OfficialAccount::where('owner_id', auth()->id())
             ->withCount(['followers', 'articles' => fn($q) => $q->where('status', 'published')])
-            ->get();
+            ->get()
+            ->map(function ($account) {
+                $articleIds = OaArticle::where('account_id', $account->id)->pluck('id');
+
+                $totalReads = OaArticleRead::whereIn('article_id', $articleIds)->count();
+                $totalLikes = \App\Models\Like::where('likeable_type', 'App\\Models\\OaArticle')
+                    ->whereIn('likeable_id', $articleIds)->count();
+
+                // 近7天 vs 前7天
+                $reads7d = OaArticleRead::whereIn('article_id', $articleIds)
+                    ->where('created_at', '>=', now()->subDays(7))->count();
+                $readsPrev7d = OaArticleRead::whereIn('article_id', $articleIds)
+                    ->whereBetween('created_at', [now()->subDays(14), now()->subDays(7)])->count();
+                $likes7d = \App\Models\Like::where('likeable_type', 'App\\Models\\OaArticle')
+                    ->whereIn('likeable_id', $articleIds)
+                    ->where('created_at', '>=', now()->subDays(7))->count();
+                $likesPrev7d = \App\Models\Like::where('likeable_type', 'App\\Models\\OaArticle')
+                    ->whereIn('likeable_id', $articleIds)
+                    ->whereBetween('created_at', [now()->subDays(14), now()->subDays(7)])->count();
+
+                // 近7天每日阅读趋势
+                $readsTrend = [];
+                for ($i = 6; $i >= 0; $i--) {
+                    $date = today()->subDays($i);
+                    $readsTrend[] = [
+                        'date' => $date->format('m/d'),
+                        'count' => OaArticleRead::whereIn('article_id', $articleIds)
+                            ->whereDate('created_at', $date)->count(),
+                    ];
+                }
+
+                return [
+                    'id' => $account->id,
+                    'name' => $account->name,
+                    'slug' => $account->slug,
+                    'status' => $account->status,
+                    'description' => $account->description,
+                    'avatar' => $account->avatar,
+                    'category_id' => $account->category_id,
+                    'followers_count' => $account->followers_count,
+                    'articles_count' => $account->articles_count,
+                    'total_reads' => $totalReads,
+                    'total_likes' => $totalLikes,
+                    'reads_7d' => $reads7d,
+                    'likes_7d' => $likes7d,
+                    'reads_growth' => $readsPrev7d > 0 ? round(($reads7d - $readsPrev7d) / $readsPrev7d * 100) : ($reads7d > 0 ? 100 : 0),
+                    'likes_growth' => $likesPrev7d > 0 ? round(($likes7d - $likesPrev7d) / $likesPrev7d * 100) : ($likes7d > 0 ? 100 : 0),
+                    'reads_trend' => $readsTrend,
+                    'is_verified' => $account->is_verified,
+                    'verified_info' => $account->is_verified ? ($account->settings['verified_info'] ?? null) : null,
+                ];
+            });
+
         return ApiResponse::success($accounts);
     }
 
@@ -1133,9 +221,14 @@ public function shareArticle(Request $request, int $id): JsonResponse
         return ApiResponse::paginated($query->paginate($request->input('per_page', 20)));
     }
 
-    public function createArticle(int $accountId, Request $request): JsonResponse
+    public function createArticle(int $id, Request $request): JsonResponse
     {
-        $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($accountId);
+        $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($id);
+
+        if ($account->status !== 'active') {
+            $msg = $account->status === 'pending' ? '该互物号正在审核中，审核通过后才能发布文章' : '该互物号已被禁用，无法发布文章';
+            return ApiResponse::error('ACCOUNT_NOT_ACTIVE', $msg, 422);
+        }
 
         $validated = $request->validate([
             'title' => 'required|string|max:200',
@@ -1160,7 +253,7 @@ public function shareArticle(Request $request, int $id): JsonResponse
         }
 
         $article = OaArticle::create([
-            'account_id' => $accountId,
+            'account_id' => $id,
             'author_id' => auth()->id(),
             'title' => $validated['title'],
             'content' => $validated['content'],
@@ -1227,6 +320,80 @@ public function shareArticle(Request $request, int $id): JsonResponse
             ->findOrFail($id);
         $article->update(['is_pinned' => !$article->is_pinned]);
         return ApiResponse::success(['is_pinned' => $article->fresh()->is_pinned], '已更新');
+    }
+
+    // ── 更新阅读行为数据 ──
+    public function updateReadBehavior(int $articleId, Request $request): JsonResponse
+    {
+        $request->validate([
+            'read_duration' => 'nullable|integer|min:0|max:86400',
+            'scroll_depth'  => 'nullable|integer|min:0|max:100',
+            'completed'     => 'nullable|boolean',
+        ]);
+
+        $userId = auth()->id();
+        if (!$userId) return ApiResponse::error('请先登录', 401);
+
+        $read = OaArticleRead::where('article_id', $articleId)
+            ->where('user_id', $userId)
+            ->latest()
+            ->first();
+
+        if (!$read) return ApiResponse::error('未找到阅读记录', 404);
+
+        $update = [];
+        if ($request->has('read_duration')) $update['read_duration'] = $request->input('read_duration');
+        if ($request->has('scroll_depth'))  $update['scroll_depth'] = $request->input('scroll_depth');
+        if ($request->has('completed'))     $update['completed'] = $request->boolean('completed');
+
+        if (!empty($update)) {
+            $read->update($update);
+        }
+
+        return ApiResponse::success(null, '已记录');
+    }
+
+    // ── 文章阅读留存曲线 ──
+    public function articleRetention(int $articleId): JsonResponse
+    {
+        $article = OaArticle::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))
+            ->findOrFail($articleId);
+
+        // 滚动深度分布
+        $scrollBuckets = [
+            '0-25%'  => OaArticleRead::where('article_id', $articleId)->where('scroll_depth', '>=', 0)->where('scroll_depth', '<=', 25)->count(),
+            '25-50%' => OaArticleRead::where('article_id', $articleId)->where('scroll_depth', '>', 25)->where('scroll_depth', '<=', 50)->count(),
+            '50-75%' => OaArticleRead::where('article_id', $articleId)->where('scroll_depth', '>', 50)->where('scroll_depth', '<=', 75)->count(),
+            '75-100%'=> OaArticleRead::where('article_id', $articleId)->where('scroll_depth', '>', 75)->count(),
+        ];
+
+        // 阅读时长分布（秒）
+        $durationBuckets = [
+            '<10s'  => OaArticleRead::where('article_id', $articleId)->where('read_duration', '>=', 0)->where('read_duration', '<', 10)->count(),
+            '10-30s'=> OaArticleRead::where('article_id', $articleId)->where('read_duration', '>=', 10)->where('read_duration', '<', 30)->count(),
+            '30-60s'=> OaArticleRead::where('article_id', $articleId)->where('read_duration', '>=', 30)->where('read_duration', '<', 60)->count(),
+            '1-3m'  => OaArticleRead::where('article_id', $articleId)->where('read_duration', '>=', 60)->where('read_duration', '<', 180)->count(),
+            '3m+'   => OaArticleRead::where('article_id', $articleId)->where('read_duration', '>=', 180)->count(),
+        ];
+
+        // 完读率 = completed / 总记录
+        $totalReads = OaArticleRead::where('article_id', $articleId)->count();
+        $completedCount = OaArticleRead::where('article_id', $articleId)->where('completed', true)->count();
+        $completionRate = $totalReads > 0 ? round(($completedCount / $totalReads) * 100, 1) : 0;
+
+        // 平均阅读时长
+        $avgDuration = (float) OaArticleRead::where('article_id', $articleId)
+            ->whereNotNull('read_duration')
+            ->avg('read_duration');
+
+        return ApiResponse::success([
+            'scroll_distribution' => $scrollBuckets,
+            'duration_distribution' => $durationBuckets,
+            'completion_rate'    => $completionRate,
+            'completed_count'    => $completedCount,
+            'total_reads'        => $totalReads,
+            'avg_read_duration'  => round($avgDuration, 1),
+        ]);
     }
 
     public function articleStats(int $articleId): JsonResponse
@@ -1325,7 +492,7 @@ public function shareArticle(Request $request, int $id): JsonResponse
             'is_active' => 'nullable|boolean',
         ]);
 
-        // 校验：父菜单必须在同一个公众号下
+        // 校验：父菜单必须在同一个互物号下
         if (!empty($validated['parent_id'])) {
             $parent = OaMenu::where('account_id', $accountId)->findOrFail($validated['parent_id']);
             if ($parent->parent_id !== null) {
@@ -1617,7 +784,7 @@ public function shareArticle(Request $request, int $id): JsonResponse
 
     public function sendMessage(int $accountId, Request $request): JsonResponse
     {
-        // 关注者发送消息给公众号（无需号主权限）
+        // 关注者发送消息给互物号（无需号主权限）
         $account = OfficialAccount::findOrFail($accountId);
 
         $validated = $request->validate([
@@ -1883,12 +1050,87 @@ public function shareArticle(Request $request, int $id): JsonResponse
             'id' => $a->id,
             'title' => $a->title,
             'summary' => $a->summary,
-            'cover_image' => $a->cover_image,
+            'cover_image' => $this->normalizeOaUrl($a->cover_image),
             'reads_count' => $a->reads_count,
             'likes_count' => $a->likes_count,
             'published_at' => $a->published_at,
             'account' => $a->account ? ['id' => $a->account->id, 'name' => $a->account->name, 'avatar' => $a->account->avatar ? (str_starts_with($a->account->avatar, 'http') ? $a->account->avatar : asset('storage/' . $a->account->avatar)) : null] : null,
         ]));
+    }
+
+    // ── 推荐互物号（按关注数排序） ──
+    public function recommendedChannels(): JsonResponse
+    {
+        $myId = auth()->id();
+
+        $channels = OfficialAccount::query()
+            ->withCount('followers')
+            ->withCount(['articles' => fn($q) => $q->where('status', 'published')])
+            ->orderBy('followers_count', 'desc')
+            ->limit(6)
+            ->get()
+            ->map(fn($ch) => [
+                'id' => $ch->id,
+                'name' => $ch->name,
+                'avatar' => $ch->avatar ? (str_starts_with($ch->avatar, 'http') ? $ch->avatar : asset('storage/' . $ch->avatar)) : null,
+                'description' => $ch->description,
+                'category' => $ch->category?->name,
+                'is_verified' => (bool)$ch->is_verified,
+                'verified_info' => $ch->is_verified ? ($ch->settings['verified_info'] ?? null) : null,
+                'followers_count' => $ch->followers_count,
+                'articles_count' => $ch->articles_count,
+                'is_following' => $myId ? \App\Models\Follow::where('user_id', $myId)
+                    ->where('followable_type', 'App\\Models\\OfficialAccount')
+                    ->where('followable_id', $ch->id)->exists() : false,
+            ]);
+
+        return ApiResponse::success($channels);
+    }
+
+    // ── 热门标签 ──
+    public function popularTags(): JsonResponse
+    {
+        $articles = OaArticle::where('status', 'published')
+            ->whereNotNull('tags')
+            ->select('tags')
+            ->limit(200)
+            ->get();
+
+        $tagCounts = [];
+        foreach ($articles as $a) {
+            if ($a->tags && is_array($a->tags)) {
+                foreach ($a->tags as $tag) {
+                    $tagCounts[$tag] = ($tagCounts[$tag] ?? 0) + 1;
+                }
+            }
+        }
+        arsort($tagCounts);
+        $tags = array_slice($tagCounts, 0, 20);
+
+        return ApiResponse::success(array_map(fn($count, $name) => [
+            'name' => $name,
+            'count' => $count,
+        ], $tags, array_keys($tags)));
+    }
+
+    // ── 文章内容合规预检 ──
+    public function scanContent(Request $request): JsonResponse
+    {
+        $request->validate([
+            'title'   => 'nullable|string|max:500',
+            'content' => 'nullable|string',
+        ]);
+
+        $text = ($request->input('title') ?? '') . "\n" . strip_tags($request->input('content') ?? '');
+        $text = mb_substr($text, 0, 50000);
+
+        $result = app(SensitiveWordService::class)->check($text);
+
+        return ApiResponse::success([
+            'hasSensitive' => $result['hasSensitive'],
+            'matched'      => $result['matched'],
+            'totalChecked' => mb_strlen($text),
+        ]);
     }
 
     // ── 个性化推荐 ──
@@ -1965,7 +1207,7 @@ public function shareArticle(Request $request, int $id): JsonResponse
 
     // ── 文章合集管理 ──
 
-    // 获取公众号的所有合集
+    // 获取互物号的所有合集
     public function collections(int $accountId): JsonResponse
     {
         $account = OfficialAccount::findOrFail($accountId);
@@ -2148,5 +1390,587 @@ public function shareArticle(Request $request, int $id): JsonResponse
         $item = OaReadingListItem::where('user_id', auth()->id())->findOrFail($id);
         $item->update($request->only(['notes', 'sort_order']));
         return ApiResponse::success($item, '已更新');
+    }
+
+    // ════════════════════════════════════════════
+    // 付费文章
+    // ════════════════════════════════════════════
+
+    // 购买/解锁付费文章
+    public function purchaseArticle(int $articleId): JsonResponse
+    {
+        $article = OaArticle::where('status', 'published')->findOrFail($articleId);
+        if (!$article->is_paid) {
+            return ApiResponse::error('NOT_PAID_ARTICLE', '该文章无需付费', 400);
+        }
+
+        $userId = auth()->id();
+
+        // 已经购买过
+        if ($article->isPurchasedBy($userId)) {
+            return ApiResponse::success(null, '已解锁');
+        }
+
+        // 号主免费
+        if ($article->account && $article->account->owner_id === $userId) {
+            OaArticlePurchase::create([
+                'article_id' => $articleId,
+                'user_id'    => $userId,
+                'price'      => $article->price,
+                'price_type' => $article->price_type,
+                'status'     => 'completed',
+            ]);
+            return ApiResponse::success(null, '已解锁（号主免费）');
+        }
+
+        $price = (float) $article->price;
+        if ($price <= 0) {
+            return ApiResponse::error('INVALID_PRICE', '价格无效', 400);
+        }
+
+        if ($article->price_type === 'points') {
+            // 积分支付
+            $spent = UserPoint::spend($userId, $price, "付费解锁文章: {$article->title}");
+            if (!$spent) {
+                return ApiResponse::error('积分余额不足', 400);
+            }
+
+            // 给文章作者增加积分（扣除平台手续费10%）
+            $authorId = $article->author_id;
+            if ($authorId && $authorId !== $userId) {
+                $authorPoints = (int) floor($price * 0.9);
+                if ($authorPoints > 0) {
+                    UserPoint::earn($authorId, $authorPoints, "文章被打赏: {$article->title}");
+                }
+            }
+
+            OaArticlePurchase::create([
+                'article_id' => $articleId,
+                'user_id'    => $userId,
+                'price'      => $price,
+                'price_type' => 'points',
+                'status'     => 'completed',
+            ]);
+
+            return ApiResponse::success(null, '🎉 已解锁，积分已扣除');
+        }
+
+        // 金额支付（返回支付链接，前端跳转）
+        if ($article->price_type === 'money') {
+            // 检查作者是否有收益账户，没有则自动创建
+            $authorId = $article->author_id;
+            if ($authorId) {
+                EarningsAccount::firstOrCreate(
+                    ['user_id' => $authorId, 'type' => 'agent'],
+                    ['pending_balance' => 0, 'available_balance' => 0, 'total_withdrawn' => 0, 'status' => 'active']
+                );
+            }
+
+            $platformFee = round($price * 0.1, 2);
+            $netAmount = round($price - $platformFee, 2);
+
+            // 记录购买（状态 pending，待支付确认后改为 completed）
+            $purchase = OaArticlePurchase::create([
+                'article_id' => $articleId,
+                'user_id'    => $userId,
+                'price'      => $price,
+                'price_type' => 'money',
+                'status'     => 'pending',
+            ]);
+
+            // 记录待结算收益
+            OaArticleEarning::create([
+                'article_id'     => $articleId,
+                'buyer_id'       => $userId,
+                'author_id'      => $authorId,
+                'price'          => $price,
+                'price_type'     => 'money',
+                'platform_fee'   => $platformFee,
+                'net_amount'     => $netAmount,
+                'status'         => 'pending',
+                'purchase_table' => 'oa_article_purchases',
+                'purchase_id'    => $purchase->id,
+            ]);
+
+            // 生成支付单号（对接支付网关时使用）
+            $tradeNo = 'OA' . date('YmdHis') . str_pad(mt_rand(0, 9999), 4, '0', STR_PAD_LEFT);
+
+            return ApiResponse::success([
+                'purchase_id' => $purchase->id,
+                'trade_no'    => $tradeNo,
+                'price'       => $price,
+                'price_type'  => 'money',
+                'status'      => 'pending',
+                'fee'         => $platformFee,
+                'net_amount'  => $netAmount,
+                'message'     => '订单已创建，请完成支付',
+                // 接入支付网关后返回支付链接
+                // 'pay_url'  => $payUrl,
+            ], '订单已创建');
+        }
+
+        return ApiResponse::error('UNSUPPORTED_PRICE_TYPE', '不支持的支付类型', 400);
+    }
+
+    // 检查当前用户是否已购买文章
+    public function articlePurchaseStatus(int $articleId): JsonResponse
+    {
+        $article = OaArticle::findOrFail($articleId);
+        $userId = auth()->id();
+
+        if (!$article->is_paid) {
+            return ApiResponse::success(['is_paid' => false, 'purchased' => null]);
+        }
+
+        $purchased = $article->isPurchasedBy($userId);
+        $isOwner = $article->account && $article->account->owner_id === $userId;
+
+        return ApiResponse::success([
+            'is_paid'     => true,
+            'purchased'   => $purchased || $isOwner,
+            'price'       => (float) $article->price,
+            'price_type'  => $article->price_type,
+            'balance'     => $userId ? (float) optional(UserPoint::where('user_id', $userId)->first())->balance : 0,
+        ]);
+    }
+
+    // ── 作者收益查询 ──
+    public function myArticleEarnings(): JsonResponse
+    {
+        $userId = auth()->id();
+
+        $stats = [
+            'total_points'   => (float) OaArticleEarning::where('author_id', $userId)
+                ->where('price_type', 'points')->sum('net_amount'),
+            'total_money'    => (float) OaArticleEarning::where('author_id', $userId)
+                ->where('price_type', 'money')->where('status', 'settled')->sum('net_amount'),
+            'pending_money'  => (float) OaArticleEarning::where('author_id', $userId)
+                ->where('price_type', 'money')->where('status', 'pending')->sum('net_amount'),
+            'purchase_count' => OaArticleEarning::where('author_id', $userId)->count(),
+        ];
+
+        $earningsAccount = EarningsAccount::where('user_id', $userId)
+            ->where('type', 'agent')->first()
+            ?? EarningsAccount::where('user_id', $userId)
+                ->where('type', 'oa_article')->first();
+        $stats['earnings_account'] = $earningsAccount ? [
+            'available_balance' => (float) $earningsAccount->available_balance,
+            'pending_balance'   => (float) $earningsAccount->pending_balance,
+        ] : null;
+
+        $recent = OaArticleEarning::where('author_id', $userId)
+            ->with('article:id,title')->with('buyer:id,name')
+            ->latest()->take(20)->get()
+            ->map(fn($e) => [
+                'id'            => $e->id,
+                'article_title' => $e->article?->title,
+                'buyer_name'    => $e->buyer?->name,
+                'price'         => (float) $e->price,
+                'net_amount'    => (float) $e->net_amount,
+                'price_type'    => $e->price_type,
+                'status'        => $e->status,
+                'created_at'    => $e->created_at,
+            ]);
+
+        return ApiResponse::success(['stats' => $stats, 'recent' => $recent]);
+    }
+
+    // ── 作者申请提现 ──
+    public function requestEarningsWithdrawal(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount'           => 'required|numeric|min:1|max:999999',
+            'channel'          => 'required|string|in:bank,alipay,wechat',
+            'channel_account'  => 'nullable|string|max:200',
+            'bank_name'        => 'nullable|string|max:100',
+            'bank_account_name' => 'nullable|string|max:100',
+            'bank_account_no'  => 'nullable|string|max:50',
+            'alipay_account'   => 'nullable|string|max:100',
+            'wechat_account'   => 'nullable|string|max:100',
+        ]);
+
+        $userId = auth()->id();
+        $earningsAccount = EarningsAccount::where('user_id', $userId)
+            ->where('type', 'agent')->first()
+            ?? EarningsAccount::where('user_id', $userId)
+                ->where('type', 'oa_article')->first();
+
+        if (!$earningsAccount || $earningsAccount->available_balance < $validated['amount']) {
+            return ApiResponse::error('可提现余额不足', 400);
+        }
+
+        $fee = round($validated['amount'] * 0.01, 2);
+        $netAmount = round($validated['amount'] - $fee, 2);
+
+        $withdrawal = \App\Models\Withdrawal::create([
+            'earnings_account_id' => $earningsAccount->id,
+            'user_id'             => $userId,
+            'amount'              => $validated['amount'],
+            'fee'                 => $fee,
+            'net_amount'          => $netAmount,
+            'channel'             => $validated['channel'],
+            'channel_account'     => $validated['channel_account'] ?? null,
+            'bank_name'           => $validated['bank_name'] ?? null,
+            'bank_account_name'   => $validated['bank_account_name'] ?? null,
+            'bank_account_no'     => $validated['bank_account_no'] ?? null,
+            'alipay_account'      => $validated['alipay_account'] ?? null,
+            'wechat_account'      => $validated['wechat_account'] ?? null,
+            'status'              => 'pending_review',
+        ]);
+
+        $earningsAccount->decrement('available_balance', $validated['amount']);
+        $earningsAccount->increment('frozen_amount', $validated['amount']);
+
+        return ApiResponse::success($withdrawal, '提现申请已提交，等待审核');
+    }
+
+    // ── 我的提现记录 ──
+    public function myEarningsWithdrawals(): JsonResponse
+    {
+        $earningsAccount = EarningsAccount::where('user_id', auth()->id())
+            ->where('type', 'agent')->first()
+            ?? EarningsAccount::where('user_id', auth()->id())
+                ->where('type', 'oa_article')->first();
+        if (!$earningsAccount) {
+            return ApiResponse::success(['data' => []]);
+        }
+        $withdrawals = \App\Models\Withdrawal::where('earnings_account_id', $earningsAccount->id)
+            ->latest()->paginate(20);
+        return ApiResponse::paginated($withdrawals);
+    }
+
+    // ════════════════════════════════════════════
+    // 文章投票/问卷
+    // ════════════════════════════════════════════
+
+    // 创建文章投票
+    public function createArticlePoll(int $articleId, Request $request): JsonResponse
+    {
+        $article = OaArticle::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))
+            ->findOrFail($articleId);
+
+        $validated = $request->validate([
+            'question'     => 'required|string|max:500',
+            'type'         => 'required|in:single,multiple',
+            'options'      => 'required|array|min:2|max:20',
+            'options.*'    => 'required|string|max:200',
+            'max_choices'  => 'nullable|integer|min:1|max:20',
+            'is_hide_results' => 'nullable|boolean',
+        ]);
+
+        $poll = Poll::create([
+            'oa_article_id'   => $articleId,
+            'creator_id'      => auth()->id(),
+            'question'        => $validated['question'],
+            'type'            => $validated['type'],
+            'max_choices'     => $validated['max_choices'] ?? 1,
+            'is_hide_results' => $validated['is_hide_results'] ?? false,
+        ]);
+
+        foreach ($validated['options'] as $i => $label) {
+            PollOption::create([
+                'poll_id'    => $poll->id,
+                'label'      => $label,
+                'sort_order' => $i,
+            ]);
+        }
+
+        return ApiResponse::success(
+            $poll->load('options'),
+            '投票已创建',
+            201
+        );
+    }
+
+    // 获取文章的所有投票
+    public function articlePolls(int $articleId): JsonResponse
+    {
+        OaArticle::findOrFail($articleId);
+
+        $polls = Poll::where('oa_article_id', $articleId)
+            ->with(['options' => fn($q) => $q->withCount('votes')->orderBy('sort_order')])
+            ->orderBy('id')
+            ->get()
+            ->map(function ($poll) {
+                $totalVotes = $poll->options->sum('votes_count');
+                $myVote = auth()->id()
+                    ? PollVote::where('poll_id', $poll->id)
+                        ->where('user_id', auth()->id())
+                        ->pluck('option_id')
+                        ->toArray()
+                    : [];
+
+                return [
+                    'id'           => $poll->id,
+                    'question'     => $poll->question,
+                    'type'         => $poll->type,
+                    'max_choices'  => $poll->max_choices,
+                    'is_hide_results' => (bool) $poll->is_hide_results,
+                    'is_closed'    => (bool) $poll->is_closed,
+                    'my_votes'     => $myVote,
+                    'total_votes'  => $totalVotes,
+                    'options'      => $poll->options->map(fn($o) => [
+                        'id'         => $o->id,
+                        'label'      => $o->label,
+                        'votes_count' => $o->votes_count,
+                        'percentage' => $totalVotes > 0 ? round(($o->votes_count / $totalVotes) * 100, 1) : 0,
+                    ]),
+                    'created_at'   => $poll->created_at,
+                ];
+            });
+
+        return ApiResponse::success($polls);
+    }
+
+    // 投票
+    public function votePoll(int $pollId, Request $request): JsonResponse
+    {
+        $poll = Poll::findOrFail($pollId);
+        if ($poll->is_closed) {
+            return ApiResponse::error('POLL_CLOSED', '投票已结束', 400);
+        }
+
+        $validated = $request->validate([
+            'option_ids' => 'required|array|min:1',
+            'option_ids.*' => 'integer|exists:poll_options,id',
+        ]);
+
+        $userId = auth()->id();
+
+        // 检查选项是否属于该投票
+        $validOptionIds = PollOption::where('poll_id', $pollId)->pluck('id')->toArray();
+        $submittedIds = $validated['option_ids'];
+        foreach ($submittedIds as $oid) {
+            if (!in_array($oid, $validOptionIds)) {
+                return ApiResponse::error('INVALID_OPTION', '无效的投票选项', 400);
+            }
+        }
+
+        // 检查最大选择数
+        if ($poll->type === 'single' && count($submittedIds) > 1) {
+            return ApiResponse::error('单选投票只能选择一个选项', 400);
+        }
+        if (count($submittedIds) > ($poll->max_choices ?? 1)) {
+            return ApiResponse::error('最多选择 ' . ($poll->max_choices ?? 1) . ' 项', 400);
+        }
+
+        // 清除旧投票
+        PollVote::where('poll_id', $pollId)->where('user_id', $userId)->delete();
+
+        // 记录新投票
+        foreach ($submittedIds as $oid) {
+            PollVote::create([
+                'poll_id'   => $pollId,
+                'option_id' => $oid,
+                'user_id'   => $userId,
+            ]);
+        }
+
+        // 返回最新结果
+        $polls = $this->articlePolls($poll->oa_article_id);
+        // 从原始响应中提取数据
+        $data = $polls->getData();
+        $targetPoll = collect($data->data)->firstWhere('id', $pollId);
+
+        return ApiResponse::success($targetPoll, '投票成功');
+    }
+
+    // ════════════════════════════════════════════
+    // 跨平台分发
+    // ════════════════════════════════════════════
+
+    // 获取互物号的平台账号列表
+    public function platformAccounts(int $accountId): JsonResponse
+    {
+        $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($accountId);
+        $accounts = OaPlatformAccount::where('account_id', $accountId)->where('is_active', true)->get();
+        return ApiResponse::success($accounts);
+    }
+
+    // 绑定平台账号
+    public function storePlatformAccount(int $accountId, Request $request): JsonResponse
+    {
+        $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($accountId);
+        $validated = $request->validate([
+            'platform' => 'required|string|in:wechat_mp,weibo,zhihu,toutiao,other|max:50',
+            'label' => 'nullable|string|max:100',
+            'app_id' => 'nullable|string|max:100',
+            'app_secret' => 'nullable|string|max:500',
+            'platform_user_id' => 'nullable|string|max:100',
+            'platform_user_name' => 'nullable|string|max:100',
+        ]);
+        $validated['account_id'] = $accountId;
+        $platformAccount = OaPlatformAccount::create($validated);
+        return ApiResponse::success($platformAccount, '平台账号已绑定', 201);
+    }
+
+    // 更新平台账号
+    public function updatePlatformAccount(int $platformId, Request $request): JsonResponse
+    {
+        $pa = OaPlatformAccount::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))->findOrFail($platformId);
+        $pa->update($request->only(['label', 'app_id', 'app_secret', 'platform_user_id', 'platform_user_name', 'is_active']));
+        return ApiResponse::success($pa->fresh(), '已更新');
+    }
+
+    // 删除平台账号
+    public function deletePlatformAccount(int $platformId): JsonResponse
+    {
+        $pa = OaPlatformAccount::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))->findOrFail($platformId);
+        $pa->distributions()->delete();
+        $pa->delete();
+        return ApiResponse::success(null, '平台账号已删除');
+    }
+
+    // 分发文章到指定平台
+    public function distributeArticle(int $articleId, Request $request): JsonResponse
+    {
+        $article = OaArticle::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))->findOrFail($articleId);
+        $validated = $request->validate([
+            'platform_account_id' => 'required|integer|exists:oa_platform_accounts,id',
+            'platform' => 'required|string|max:50',
+        ]);
+        $pa = OaPlatformAccount::where('id', $validated['platform_account_id'])
+            ->where('account_id', $article->account_id)->firstOrFail();
+
+        // 创建分发记录
+        $dist = OaArticleDistribution::create([
+            'article_id' => $articleId,
+            'platform_account_id' => $pa->id,
+            'platform' => $validated['platform'],
+            'status' => 'pending',
+        ]);
+
+        // 模拟分发（实际需对接各平台 API）
+        try {
+            // TODO: 对接各平台 API 进行实际分发
+            // 微信: 使用公众号素材接口
+            // 微博: 使用微博内容发布接口
+            $dist->update([
+                'status' => 'success',
+                'external_id' => 'mock_' . $dist->id,
+                'external_url' => url('/oa-article/' . $articleId),
+                'published_at' => now(),
+            ]);
+            return ApiResponse::success($dist->fresh(), '已分发到 ' . $pa->platform_user_name ?: $validated['platform']);
+        } catch (\Exception $e) {
+            $dist->update(['status' => 'failed', 'error_message' => $e->getMessage()]);
+            return ApiResponse::error('DISTRIBUTE_FAILED', '分发失败: ' . $e->getMessage(), 500);
+        }
+    }
+
+    // 获取文章分发记录
+    public function articleDistributions(int $articleId): JsonResponse
+    {
+        $article = OaArticle::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))->findOrFail($articleId);
+        $dists = OaArticleDistribution::where('article_id', $articleId)
+            ->with('platformAccount:id,platform,platform_user_name,platform_avatar,label')
+            ->latest()->get();
+        return ApiResponse::success($dists);
+    }
+
+    // ════════════════════════════════════════════
+    // 粉丝标签系统
+    // ════════════════════════════════════════════
+
+    // 获取账号的所有标签
+    public function followerTags(int $accountId): JsonResponse
+    {
+        $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($accountId);
+        $tags = OaFollowerTag::where('account_id', $accountId)
+            ->withCount('relations')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+        return ApiResponse::success($tags);
+    }
+
+    // 创建标签
+    public function createFollowerTag(int $accountId, Request $request): JsonResponse
+    {
+        $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($accountId);
+        $validated = $request->validate([
+            'name'  => 'required|string|max:50',
+            'color' => 'nullable|string|max:20',
+        ]);
+        $validated['account_id'] = $accountId;
+        $validated['color'] ??= '#409eff';
+        $maxSort = OaFollowerTag::where('account_id', $accountId)->max('sort_order') ?? 0;
+        $validated['sort_order'] = $maxSort + 1;
+        $tag = OaFollowerTag::create($validated);
+        return ApiResponse::success($tag, '标签已创建', 201);
+    }
+
+    // 更新标签
+    public function updateFollowerTag(int $tagId, Request $request): JsonResponse
+    {
+        $tag = OaFollowerTag::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))
+            ->findOrFail($tagId);
+        $validated = $request->validate([
+            'name'       => 'sometimes|string|max:50',
+            'color'      => 'nullable|string|max:20',
+            'sort_order' => 'nullable|integer|min:0',
+        ]);
+        $tag->update($validated);
+        return ApiResponse::success($tag->fresh(), '标签已更新');
+    }
+
+    // 删除标签
+    public function deleteFollowerTag(int $tagId): JsonResponse
+    {
+        $tag = OaFollowerTag::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))
+            ->findOrFail($tagId);
+        OaFollowerTagRelation::where('tag_id', $tagId)->delete();
+        $tag->delete();
+        return ApiResponse::success(null, '标签已删除');
+    }
+
+    // 给粉丝打标签
+    public function assignFollowerTags(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'follower_id' => 'required|integer|exists:follows,id',
+            'tag_ids'     => 'required|array',
+            'tag_ids.*'   => 'integer|exists:oa_follower_tags,id',
+        ]);
+        $followerId = $validated['follower_id'];
+        // 验证该 follower 属于当前用户管理的账号
+        $follower = \App\Models\Follow::with('followable')->findOrFail($followerId);
+        if (!$follower->followable || $follower->followable->owner_id !== auth()->id()) {
+            return ApiResponse::error('FORBIDDEN', '无权操作该粉丝', 403);
+        }
+        // 清除旧标签再重新分配
+        OaFollowerTagRelation::where('follower_id', $followerId)->delete();
+        $relations = [];
+        foreach ($validated['tag_ids'] as $tagId) {
+            $relations[] = OaFollowerTagRelation::create([
+                'tag_id'      => $tagId,
+                'follower_id' => $followerId,
+            ]);
+        }
+        return ApiResponse::success($relations, '标签已更新');
+    }
+
+    // 获取粉丝的标签
+    public function followerTagRelations(int $followerId): JsonResponse
+    {
+        $follower = \App\Models\Follow::with('followable')->findOrFail($followerId);
+        if (!$follower->followable || $follower->followable->owner_id !== auth()->id()) {
+            return ApiResponse::error('FORBIDDEN', '无权查看', 403);
+        }
+        $tagIds = OaFollowerTagRelation::where('follower_id', $followerId)
+            ->pluck('tag_id');
+        $tags = OaFollowerTag::whereIn('id', $tagIds)->get();
+        return ApiResponse::success($tags);
+    }
+
+    // 按标签统计粉丝
+    public function followerTagStats(int $accountId): JsonResponse
+    {
+        $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($accountId);
+        $tags = OaFollowerTag::where('account_id', $accountId)
+            ->withCount('relations')
+            ->orderBy('relations_count', 'desc')
+            ->get();
+        return ApiResponse::success($tags);
     }
 }

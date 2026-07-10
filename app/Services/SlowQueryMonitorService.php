@@ -43,7 +43,7 @@ class SlowQueryMonitorService
 
         // 趋势（按分钟统计过去 N 分钟）
         $trend = SlowQueryLog::where('occurred_at', '>=', $since)
-            ->selectRaw("DATE_FORMAT(occurred_at, '%Y-%m-%d %H:%i') as minute, COUNT(*) as count")
+            ->selectRaw(db_date_format('occurred_at', '%Y-%m-%d %H:%i').' as minute, COUNT(*) as count')
             ->groupBy('minute')
             ->orderBy('minute')
             ->get();

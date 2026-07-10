@@ -15,7 +15,7 @@ use App\Services\EventBus;
 use Database\Factories\LicenseFactory;
 use Database\Factories\ProductFactory;
 use Database\Factories\TenantFactory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Bus;

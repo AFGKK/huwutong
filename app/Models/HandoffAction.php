@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * 客服操作日志
+ *
+ * @mixin IdeHelperHandoffAction
  */
 class HandoffAction extends Model
 {

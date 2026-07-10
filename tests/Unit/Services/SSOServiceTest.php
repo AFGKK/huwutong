@@ -7,7 +7,7 @@ use App\Models\SsoProvider;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\SSOService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SSOServiceTest extends TestCase

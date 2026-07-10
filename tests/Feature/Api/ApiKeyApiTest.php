@@ -5,7 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\ApiKey;
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ApiKeyApiTest extends TestCase
@@ -46,7 +46,7 @@ class ApiKeyApiTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
-        $response->assertJsonStructure(['data' => [['id', 'key_id', 'name', 'is_active']]]);
+        $response->assertJsonStructure(['data' => ['keys' => [['id', 'key_id', 'name', 'is_active']]]]);
     }
 
     public function test_store_creates_key(): void
@@ -68,9 +68,11 @@ class ApiKeyApiTest extends TestCase
         $response->assertStatus(422);
     }
 
-    public function test_store_limits_to_10_keys(): void
+    public function test_store_limits_to_max_keys(): void
     {
-        for ($i = 0; $i < 10; $i++) {
+        $maxKeys = ApiKey::TIER_LIMITS['standard']['max_keys'];
+
+        for ($i = 0; $i < $maxKeys; $i++) {
             ApiKey::create([
                 'tenant_id' => $this->tenant->id,
                 'key_id' => "ak_$i",
@@ -79,11 +81,10 @@ class ApiKeyApiTest extends TestCase
             ]);
         }
 
-        $response = $this->postJson('/api/api-keys', ['name' => '第11个'], $this->authHeaders());
+        $response = $this->postJson('/api/api-keys', ['name' => '超出限额'], $this->authHeaders());
 
         $response->assertStatus(422);
         $response->assertJsonPath('error.code', 'MAX_KEYS_REACHED');
-        $response->assertJsonPath('error.message', '最多可创建 10 个 API 密钥');
     }
 
     public function test_show_returns_key(): void
@@ -135,7 +136,7 @@ class ApiKeyApiTest extends TestCase
         $response = $this->deleteJson("/api/api-keys/{$apiKey->id}", [], $this->authHeaders());
 
         $response->assertStatus(200);
-        $this->assertDatabaseMissing('api_keys', ['id' => $apiKey->id]);
+        $this->assertSoftDeleted('api_keys', ['id' => $apiKey->id]);
     }
 
     public function test_show_returns_403_for_other_tenant(): void

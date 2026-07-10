@@ -23,9 +23,15 @@ return new class extends Migration
         }
 
         // 索引单独添加，避免 deleted_at 不存在时失败
-        $indexes = collect(Schema::getConnection()->select('SHOW INDEX FROM conversation_messages'))
-            ->pluck('Key_name')->unique();
-        if (! $indexes->contains('idx_expires_cleanup') && Schema::hasColumn('conversation_messages', 'expires_at')) {
+        $driver = Schema::getConnection()->getDriverName();
+        if ($driver === 'pgsql') {
+            $existingIndexes = collect(Schema::getConnection()->select("SELECT indexname FROM pg_indexes WHERE tablename = 'conversation_messages'"))
+                ->pluck('indexname')->unique();
+        } else {
+            $existingIndexes = collect(Schema::getConnection()->select('SHOW INDEX FROM conversation_messages'))
+                ->pluck('Key_name')->unique();
+        }
+        if (! $existingIndexes->contains('idx_expires_cleanup') && Schema::hasColumn('conversation_messages', 'expires_at')) {
             Schema::table('conversation_messages', function (Blueprint $table) {
                 if (Schema::hasColumn('conversation_messages', 'deleted_at')) {
                     $table->index(['expires_at', 'deleted_at'], 'idx_expires_cleanup');

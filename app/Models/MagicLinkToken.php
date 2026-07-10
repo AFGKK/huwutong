@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperMagicLinkToken
+ */
 class MagicLinkToken extends Model
 {
     protected $fillable = [

@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * 支持批量激活/续期/导出/挂起/吊销/删除/变更计划等操作
  * 包含筛选条件、操作参数、执行进度、结果统计
+ *
+ * @mixin IdeHelperBatchJob
  */
 class BatchJob extends Model
 {

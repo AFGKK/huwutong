@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperE2eeSession
+ */
 class E2eeSession extends Model
 {
     protected $fillable = ['user_id', 'conversation_id', 'session_key', 'ratchet_step', 'status'];

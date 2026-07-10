@@ -48,7 +48,7 @@ class SiteSettingsSeeder extends Seeder
             // 社交
             ['group' => 'social', 'key' => 'social_github', 'value' => '', 'type' => 'text', 'description' => 'GitHub 链接', 'is_public' => true],
             ['group' => 'social', 'key' => 'social_twitter', 'value' => '', 'type' => 'text', 'description' => 'Twitter 链接', 'is_public' => true],
-            ['group' => 'social', 'key' => 'social_wechat', 'value' => '', 'type' => 'text', 'description' => '微信公众号', 'is_public' => true],
+            ['group' => 'social', 'key' => 'social_wechat', 'value' => '', 'type' => 'text', 'description' => '微信互物号', 'is_public' => true],
 
             // 存储配置
             ['group' => 'storage', 'key' => 'upload_max_size', 'value' => '10', 'type' => 'select', 'description' => '上传文件大小限制 (MB)', 'options' => ['2','5','10','20','50','100'], 'is_public' => true],

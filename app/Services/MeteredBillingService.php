@@ -6,6 +6,9 @@ use App\Models\Invoice;
 use App\Models\InvoiceLineItem;
 use App\Models\License;
 use App\Models\MeteredPrice;
+use App\Models\MeteredBillingAlert;
+use App\Models\MeteredAlertHistory;
+use App\Models\MeteredAutoSwitchRule;
 use App\Models\Subscription;
 use App\Models\UsageAggregate;
 use App\Services\UsageMeterService;
@@ -339,14 +342,14 @@ class MeteredBillingService
         // 最近用量计费发票
         $recentInvoices = Invoice::where('tenant_id', $tenantId)
             ->where('billing_reason', 'metered_usage')
-            ->with('customer:id,name', 'lineItems')
+            ->with('customer:id,user_id', 'customer.user:id,name', 'lineItems')
             ->latest()
             ->take(10)
             ->get()
             ->map(fn($inv) => [
                 'id' => $inv->id,
                 'invoice_no' => $inv->invoice_no,
-                'customer_name' => $inv->customer?->name,
+                'customer_name' => $inv->customer?->user?->name,
                 'amount' => $inv->amount,
                 'status' => $inv->status,
                 'paid' => $inv->paid,
@@ -394,5 +397,189 @@ class MeteredBillingService
             ->count() + 1;
 
         return "INV-MT-{$date}-{$tenantId}-" . str_pad($seq, 4, '0', STR_PAD_LEFT);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 超额预警
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * 检查并触发所有超额预警
+     */
+    public function evaluateAlerts(int $tenantId): array
+    {
+        $triggered = [];
+        $alerts = MeteredBillingAlert::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->get();
+
+        foreach ($alerts as $alert) {
+            try {
+                $currentValue = $this->getAlertMetricValue($alert);
+                $shouldTrigger = $this->shouldTriggerAlert($alert, $currentValue);
+
+                if ($shouldTrigger) {
+                    $this->fireAlert($alert, $currentValue);
+                    $triggered[] = [
+                        'alert_id' => $alert->id,
+                        'name' => $alert->name,
+                        'current_value' => $currentValue,
+                        'threshold' => $alert->threshold_value,
+                    ];
+                }
+            } catch (\Exception $e) {
+                Log::warning("Alert eval failed: {$alert->id}", ['error' => $e->getMessage()]);
+            }
+        }
+        return $triggered;
+    }
+
+    protected function getAlertMetricValue(MeteredBillingAlert $alert): float
+    {
+        $query = UsageAggregate::where('tenant_id', $alert->tenant_id)
+            ->where('metric_key', $alert->metric_key);
+
+        if ($alert->subscription_id) {
+            $query->whereHas('license.subscription', fn($q) => $q->where('id', $alert->subscription_id));
+        }
+
+        $periodStart = match ($alert->window_type) {
+            'daily' => now()->startOfDay(),
+            'monthly' => now()->startOfMonth(),
+            'billing_period' => $this->getPeriodStart($alert->subscription),
+            default => now()->startOfMonth(),
+        };
+
+        return (float) $query->where('period_start', '>=', $periodStart)->sum('total_quantity');
+    }
+
+    protected function shouldTriggerAlert(MeteredBillingAlert $alert, float $currentValue): bool
+    {
+        if ($alert->threshold_type === 'percentage' && $alert->percentage) {
+            $ratio = ($currentValue / max($alert->threshold_value, 1)) * 100;
+            return $alert->direction === 'above' ? $ratio >= $alert->percentage : $ratio <= $alert->percentage;
+        }
+        return $alert->direction === 'above'
+            ? $currentValue >= $alert->threshold_value
+            : $currentValue <= $alert->threshold_value;
+    }
+
+    protected function fireAlert(MeteredBillingAlert $alert, float $currentValue): void
+    {
+        $channels = $alert->notify_channels ?? ['email'];
+        foreach ($channels as $channel) {
+            try {
+                MeteredAlertHistory::create([
+                    'alert_id' => $alert->id,
+                    'tenant_id' => $alert->tenant_id,
+                    'metric_key' => $alert->metric_key,
+                    'current_value' => $currentValue,
+                    'threshold_value' => $alert->threshold_value,
+                    'channel' => $channel,
+                    'status' => 'sent',
+                    'message' => "{$alert->name}: 当前 {$currentValue}, 阈值 {$alert->threshold_value}",
+                    'triggered_at' => now(),
+                ]);
+            } catch (\Exception $e) {
+                Log::error("Alert fire failed", ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
+            }
+        }
+        $alert->update(['last_triggered_at' => now()]);
+    }
+
+    protected function getPeriodStart(?Subscription $subscription): Carbon
+    {
+        if (!$subscription) return now()->startOfMonth();
+        return $subscription->last_billed_at ?? $subscription->starts_at ?? now()->startOfMonth();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 自动切换套餐
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * 评估自动切换套餐规则
+     */
+    public function evaluateAutoSwitchRules(int $tenantId): array
+    {
+        $recommendations = [];
+        $rules = MeteredAutoSwitchRule::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->get();
+
+        foreach ($rules as $rule) {
+            try {
+                $trend = $this->getUsageTrend($rule);
+                $shouldSwitch = $this->shouldAutoSwitch($rule, $trend);
+
+                if ($shouldSwitch) {
+                    $sub = $rule->subscription;
+                    $recommendations[] = [
+                        'rule_id' => $rule->id,
+                        'rule_name' => $rule->name,
+                        'subscription_id' => $rule->subscription_id,
+                        'current_plan' => $sub?->pricing_plan_slug,
+                        'target_plan' => $rule->target_plan_slug,
+                        'action' => $rule->action,
+                        'requires_confirmation' => $rule->require_confirmation,
+                        'usage_trend' => $trend,
+                        'evaluated_at' => now()->toDateTimeString(),
+                    ];
+                    $rule->update(['last_evaluated_at' => now()]);
+
+                    if (!$rule->require_confirmation) {
+                        $sub?->update(['pricing_plan_slug' => $rule->target_plan_slug]);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning("Auto-switch eval failed: {$rule->id}", ['error' => $e->getMessage()]);
+            }
+        }
+        return $recommendations;
+    }
+
+    protected function getUsageTrend(MeteredAutoSwitchRule $rule): array
+    {
+        $days = $rule->condition_days;
+        $startDate = now()->subDays($days);
+
+        $aggregates = UsageAggregate::where('tenant_id', $rule->tenant_id)
+            ->where('metric_key', $rule->metric_key)
+            ->where('period_start', '>=', $startDate)
+            ->when($rule->subscription_id, fn($q) => $q->whereHas('license.subscription', fn($sq) => $sq->where('id', $rule->subscription_id)))
+            ->orderBy('period_start')
+            ->get();
+
+        $total = $aggregates->sum('total_quantity');
+        return [
+            'total' => (int) $total,
+            'daily_avg' => $days > 0 ? round($total / $days, 2) : 0,
+            'days' => $days,
+            'consecutive_high_days' => $this->countConsecutiveHighDays($aggregates, $rule->condition_value),
+        ];
+    }
+
+    protected function shouldAutoSwitch(MeteredAutoSwitchRule $rule, array $trend): bool
+    {
+        return match ($rule->condition_type) {
+            'usage_consecutive' => ($trend['consecutive_high_days'] ?? 0) >= $rule->condition_days,
+            'usage_average' => ($trend['daily_avg'] ?? 0) >= $rule->condition_value,
+            default => false,
+        };
+    }
+
+    protected function countConsecutiveHighDays($aggregates, float $threshold): int
+    {
+        $maxRun = 0;
+        $currentRun = 0;
+        foreach ($aggregates as $agg) {
+            if ($agg->total_quantity >= $threshold) {
+                $currentRun++;
+                $maxRun = max($maxRun, $currentRun);
+            } else {
+                $currentRun = 0;
+            }
+        }
+        return $maxRun;
     }
 }

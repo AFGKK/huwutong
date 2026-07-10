@@ -42,9 +42,11 @@
       <el-table :data="sales" stripe v-loading="salesLoading">
         <el-table-column label="名称" prop="name" min-width="160" />
         <el-table-column label="SKU" width="100">{{ row => row.sku?.id }}</el-table-column>
-        <el-table-column label="原价" width="80" align="center">¥{{ row => (row.original_price / 100).toFixed(2) }}</el-table-column>
-        <el-table-column label="秒杀价" width="80" align="center">
-          <template #default="{ row }"><span class="text-danger">¥{{ (row.flash_price / 100).toFixed(2) }}</span></template>
+        <el-table-column label="原价" width="90" align="center">
+          <template #default="{ row }">¥{{ ((row.original_price || 0) / 100).toFixed(2) }}</template>
+        </el-table-column>
+        <el-table-column label="秒杀价" width="90" align="center">
+          <template #default="{ row }"><span class="text-danger">¥{{ ((row.flash_price || 0) / 100).toFixed(2) }}</span></template>
         </el-table-column>
         <el-table-column label="库存" prop="stock" width="60" align="center" />
         <el-table-column label="每人限购" prop="max_per_user" width="80" align="center" />
@@ -78,8 +80,8 @@
           <el-select v-model="form.sku_id" filterable style="width:100%"><el-option v-for="s in skus" :key="s.id" :label="`#${s.id} - ${s.product_name || ''}`" :value="s.id" /></el-select>
         </el-form-item>
         <el-row :gutter="12">
-          <el-col :span="12"><el-form-item label="原价(分)"><el-input-number v-model="form.original_price" :min="1" style="width:100%" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="秒杀价(分)"><el-input-number v-model="form.flash_price" :min="1" style="width:100%" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="原价"><el-input-number v-model="form.original_price" :min="1" style="width:100%" /><div class="text-[10px] text-gray-400 mt-1">单位：分（如 ¥199 → 19900）</div></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="秒杀价"><el-input-number v-model="form.flash_price" :min="1" style="width:100%" /><div class="text-[10px] text-gray-400 mt-1">单位：分</div></el-form-item></el-col>
         </el-row>
         <el-row :gutter="12">
           <el-col :span="12"><el-form-item label="库存"><el-input-number v-model="form.stock" :min="1" style="width:100%" /></el-form-item></el-col>
@@ -140,8 +142,8 @@ async function loadSales() {
 
 async function loadSkus() {
   try {
-    const res = await import('@/api/shop').then(m => m.default.listSkus?.() || { data: [] });
-    skus.value = res.data?.data || [];
+    const res = await import('@/api/shop').then(m => m.default.getSkus?.({ per_page: 999 }));
+    skus.value = res?.data?.data || [];
   } catch {}
 }
 

@@ -9,7 +9,7 @@ use App\Models\PrepaidBalance;
 use App\Models\PrepaidTransaction;
 use App\Models\Tenant;
 use App\Services\PrepaidBalanceService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class PrepaidBalanceServiceTest extends TestCase

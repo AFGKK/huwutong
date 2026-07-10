@@ -9,7 +9,7 @@ use App\Models\ProcessingActivityRecord;
 use App\Models\SubProcessorAssessment;
 use App\Models\User;
 use App\Services\GdprEnhancementService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class GdprEnhancementServiceTest extends TestCase
@@ -105,7 +105,7 @@ class GdprEnhancementServiceTest extends TestCase
         $this->service->createDpia(['title' => 'A', 'processing_type' => 'x']);
         $this->service->createDpia(['title' => 'B', 'processing_type' => 'x']);
         $dpia = DpiaRecord::first();
-        $dpia->update(['status' => 'approved', 'reviewed_by' => 1, 'reviewed_at' => now()]);
+        $dpia->update(['status' => 'approved', 'reviewed_by' => auth()->id(), 'reviewed_at' => now()]);
 
         $stats = $this->service->getDpiaStats();
         $this->assertEquals(2, $stats['total']);

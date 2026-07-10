@@ -10,7 +10,7 @@ use App\Models\ResaleTransaction;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\ResaleService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ResaleServiceTest extends TestCase
@@ -19,6 +19,7 @@ class ResaleServiceTest extends TestCase
 
     protected ResaleService $service;
     protected Tenant $tenant;
+    protected User $admin;
     protected Customer $seller;
     protected License $license;
 
@@ -28,12 +29,12 @@ class ResaleServiceTest extends TestCase
 
         // OwnershipTransferService 需要这些
         $this->tenant = Tenant::factory()->create();
-        $admin = User::factory()->create(['tenant_id' => $this->tenant->id]);
+        $this->admin = User::factory()->create(['tenant_id' => $this->tenant->id]);
         $product = Product::factory()->create();
 
         $this->seller = Customer::factory()->create([
             'tenant_id' => $this->tenant->id,
-            'user_id' => $admin->id,
+            'user_id' => $this->admin->id,
         ]);
 
         $this->license = License::factory()->create([
@@ -132,7 +133,7 @@ class ResaleServiceTest extends TestCase
         );
 
         $this->service->publishListing($listing->id);
-        $reviewed = $this->service->reviewListing($listing->id, 1, 'approve', '审核通过');
+        $reviewed = $this->service->reviewListing($listing->id, $this->admin->id, 'approve', '审核通过');
 
         $this->assertEquals(ResaleListing::STATUS_ACTIVE, $reviewed->status);
         $this->assertNotNull($reviewed->reviewed_at);
@@ -149,7 +150,7 @@ class ResaleServiceTest extends TestCase
         );
 
         $this->service->publishListing($listing->id);
-        $reviewed = $this->service->reviewListing($listing->id, 1, 'reject', '信息不完整');
+        $reviewed = $this->service->reviewListing($listing->id, $this->admin->id, 'reject', '信息不完整');
 
         $this->assertEquals(ResaleListing::STATUS_DRAFT, $reviewed->status);
         $this->assertEquals('信息不完整', $reviewed->review_notes);

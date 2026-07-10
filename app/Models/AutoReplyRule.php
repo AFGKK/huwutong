@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperAutoReplyRule
+ */
 class AutoReplyRule extends Model
 {
     protected $fillable = ['name', 'trigger_type', 'trigger_value', 'match_mode', 'reply_content', 'agent_group_id', 'priority', 'match_count', 'is_active'];

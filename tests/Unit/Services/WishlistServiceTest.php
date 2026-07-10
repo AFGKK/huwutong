@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Models\WishlistGroup;
 use App\Models\WishlistItem;
 use App\Services\WishlistService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class WishlistServiceTest extends TestCase

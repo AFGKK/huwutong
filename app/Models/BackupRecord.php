@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * 备份记录
+ *
+ * @mixin IdeHelperBackupRecord
  */
 class BackupRecord extends Model
 {

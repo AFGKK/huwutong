@@ -158,8 +158,8 @@
                 </div>
             </el-tab-pane>
 
-            <!-- OA 公众号分类管理 -->
-            <el-tab-pane label="📢 公众号分类" name="oaCats">
+            <!-- OA 互物号分类管理 -->
+            <el-tab-pane label="📢 互物号分类" name="oaCats">
                 <div class="tab-content">
                     <div class="toolbar">
                         <el-button size="small" type="primary" @click="openNewOaCat">新建分类</el-button>
@@ -172,7 +172,7 @@
                         <el-table-column label="状态" width="70">
                             <template #default="{row}"><el-tag :type="row.is_active ? 'success' : 'danger'" size="small">{{ row.is_active ? '启用' : '禁用' }}</el-tag></template>
                         </el-table-column>
-                        <el-table-column label="公众号数" width="80"><template #default="{row}">{{ row.accounts_count || 0 }}</template></el-table-column>
+                        <el-table-column label="互物号数" width="80"><template #default="{row}">{{ row.accounts_count || 0 }}</template></el-table-column>
                         <el-table-column label="操作" width="140">
                             <template #default="{row}">
                                 <el-button size="small" text @click="editOaCat(row)">编辑</el-button>
@@ -399,7 +399,7 @@ async function resolveReport(id) {
     } catch { /* cancelled */ }
 }
 
-// ── OA 公众号分类管理 ──
+// ── OA 互物号分类管理 ──
 const oaCats = ref([])
 const loadingOaCats = ref(false)
 const showOaCatDialog = ref(false)

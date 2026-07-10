@@ -8,6 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('products', 'category_id')) {
+            return;
+        }
         Schema::table('products', function (Blueprint $table) {
             $table->foreignId('category_id')->nullable()->constrained('product_categories')->nullOnDelete()->after('slug')->comment('所属分类');
         });

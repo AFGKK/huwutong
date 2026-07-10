@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * API 版本路由映射
+ *
+ * @mixin IdeHelperApiVersionRoute
  */
 class ApiVersionRoute extends Model
 {

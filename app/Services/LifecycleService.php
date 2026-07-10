@@ -216,7 +216,7 @@ class LifecycleService
         // 各阶段平均停留天数
         $avgDuration = CustomerLifecycleStage::where('tenant_id', $tenantId)
             ->whereNotNull('exited_at')
-            ->selectRaw("stage, AVG(julianday(exited_at) - julianday(entered_at)) as avg_days")
+            ->selectRaw('stage, AVG('.db_date_diff('exited_at', 'entered_at').') as avg_days')
             ->groupBy('stage')
             ->get()
             ->pluck('avg_days', 'stage')

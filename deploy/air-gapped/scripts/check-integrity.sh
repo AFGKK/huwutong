@@ -56,9 +56,38 @@ check "SHA256SUMS 存在" "[ -f '${BASE_DIR}/SHA256SUMS' ]" "warn"
 check "MANIFEST 存在" "[ -f '${BASE_DIR}/MANIFEST' ]" "warn"
 check ".env 存在" "[ -f '${BASE_DIR}/.env' ]"
 check "docker-compose.yml 存在" "[ -f '${BASE_DIR}/docker-compose.yml' ]" "warn"
+check "docker-compose.pgsql.yml 存在" "[ -f '${BASE_DIR}/docker-compose.pgsql.yml' ]" "warn"
+check "docker-compose.mysql.yml 存在 (遗留)" "[ -f '${BASE_DIR}/docker-compose.mysql.yml' ]" "warn"
+check "默认栈标记 (STACK.default)" "[ -f '${BASE_DIR}/STACK.default' ]" "warn"
+
+if [ -f "${BASE_DIR}/STACK.default" ]; then
+    DEFAULT_STACK=$(tr -d '\r\n' < "${BASE_DIR}/STACK.default")
+    echo -e "  ${INFO} 包默认数据库栈: ${DEFAULT_STACK}"
+fi
+
+if [ -f "${BASE_DIR}/.env" ]; then
+    DB_CONN=$(grep -E '^DB_CONNECTION=' "${BASE_DIR}/.env" | cut -d= -f2 | tr -d '\r')
+    if [ "${DB_CONN}" = "pgsql" ]; then
+        check ".env 与 PG compose 一致" "[ -f '${BASE_DIR}/docker-compose.yml' ]"
+    elif [ "${DB_CONN}" = "mysql" ]; then
+        check ".env 与 MySQL compose 一致" "[ -f '${BASE_DIR}/docker-compose.mysql.yml' ]"
+    fi
+fi
 check "docker-images 目录存在" "[ -d '${BASE_DIR}/docker-images' ]"
 check "scripts 目录存在" "[ -d '${BASE_DIR}/scripts' ]"
 check "config 目录存在" "[ -d '${BASE_DIR}/config' ]" "warn"
+check "PG 数据包 (可选)" "[ -f '${BASE_DIR}/data/pgsql/huwutong.sql.gz' ]" "warn"
+check "MySQL 数据包 (可选)" "[ -f '${BASE_DIR}/data/mysql/huwutong.sql.gz' ]" "warn"
+
+if [ -f "${BASE_DIR}/data/pgsql/manifest.txt" ]; then
+    echo -e "  ${INFO} PG 数据元数据:"
+    sed 's/^/    /' "${BASE_DIR}/data/pgsql/manifest.txt"
+fi
+
+if [ -f "${BASE_DIR}/data/mysql/manifest.txt" ]; then
+    echo -e "  ${INFO} MySQL 数据元数据:"
+    sed 's/^/    /' "${BASE_DIR}/data/mysql/manifest.txt"
+fi
 
 # ---------- Docker 镜像检查 ----------
 echo ""
@@ -101,7 +130,7 @@ fi
 echo ""
 echo ">>> 部署脚本检查..."
 
-for script in deploy-offline.sh import-license.sh check-integrity.sh; do
+for script in deploy-offline.sh import-license.sh check-integrity.sh use-stack.sh import-pgsql-data.sh export-pgsql-data.sh import-mysql-data.sh export-mysql-data.sh bootstrap-mysql.sh bootstrap-pgsql.sh; do
     script_path="${BASE_DIR}/scripts/${script}"
     check "脚本 ${script} 存在" "[ -f '${script_path}' ]"
     check "脚本 ${script} 可执行" "[ -x '${script_path}' ]" "warn"

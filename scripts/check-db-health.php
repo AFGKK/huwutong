@@ -1,8 +1,10 @@
 <?php
-require __DIR__ . '/../vendor/autoload.php';
-$app = require __DIR__ . '/../bootstrap/app.php';
+
+require __DIR__.'/../vendor/autoload.php';
+$app = require __DIR__.'/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
+use App\Support\DbSql;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -10,25 +12,29 @@ $issues = [];
 $warnings = [];
 $ok = [];
 
-echo "=== huwutong 数据库健康检查 ===\n\n";
+$driver = DB::connection()->getDriverName();
+$connectionName = config('database.default');
+$dbConfig = config("database.connections.{$connectionName}", []);
+$dbName = $dbConfig['database'] ?? 'unknown';
+
+echo "=== huwutong 数据库健康检查 ({$driver}) ===\n\n";
 
 // 1. 连接
 try {
     DB::connection()->getPdo();
-    $ok[] = 'MySQL 连接正常 (数据库: ' . config('database.connections.mysql.database') . ')';
+    $ok[] = strtoupper($driver).' 连接正常 (数据库: '.$dbName.')';
 } catch (Throwable $e) {
-    $issues[] = 'MySQL 连接失败: ' . $e->getMessage();
-    foreach ($issues as $i) echo "❌ {$i}\n";
+    $issues[] = '数据库连接失败: '.$e->getMessage();
+    foreach ($issues as $i) {
+        echo "❌ {$i}\n";
+    }
     exit(1);
 }
 
 // 2. 表 & 迁移
-$dbName = config('database.connections.mysql.database');
-$tableKey = 'Tables_in_' . $dbName;
-$tables = DB::select('SHOW TABLES');
-$tableCount = count($tables);
+$tableCount = count(DbSql::listTableNames());
 $migRan = DB::table('migrations')->count();
-$migFiles = count(glob(__DIR__ . '/../database/migrations/*.php'));
+$migFiles = count(glob(__DIR__.'/../database/migrations/*.php'));
 $pending = $migFiles - $migRan;
 
 $ok[] = "共 {$tableCount} 张表";
@@ -49,35 +55,50 @@ $usersNoRole = DB::table('users as u')
     ->count();
 
 $ok[] = "用户 {$userCount} 个";
-if ($usersNoTenant > 0) $warnings[] = "{$usersNoTenant} 个用户无 tenant_id";
-if ($usersNoRole > 0) $warnings[] = "{$usersNoRole} 个用户未分配角色";
+if ($usersNoTenant > 0) {
+    $warnings[] = "{$usersNoTenant} 个用户无 tenant_id";
+}
+if ($usersNoRole > 0) {
+    $warnings[] = "{$usersNoRole} 个用户未分配角色";
+}
 
 // 4. site_settings
 $settingCount = DB::table('site_settings')->count();
-$dupKeys = DB::table('site_settings')->select('key', DB::raw('count(*) as c'))->groupBy('key')->having('c', '>', 1)->count();
+$dupKeys = DB::table('site_settings')->select('key')->groupBy('key')->havingRaw('count(*) > 1')->count();
 $emptySwitch = DB::table('site_settings')->where('type', 'switch')->where(function ($q) {
     $q->whereNull('value')->orWhere('value', '');
 })->count();
 $invalidType = DB::table('site_settings')->whereNotIn('type', ['text', 'textarea', 'image', 'color', 'switch', 'select', 'password'])->count();
 
-$ok[] = "site_settings {$settingCount} 项 / " . DB::table('site_settings')->distinct()->count('group') . " 分组";
-if ($dupKeys > 0) $issues[] = "site_settings 有 {$dupKeys} 个重复 key";
-if ($emptySwitch > 0) $warnings[] = "site_settings 有 {$emptySwitch} 个 switch 值为空";
-if ($invalidType > 0) $warnings[] = "site_settings 有 {$invalidType} 项 type 非标准 (前端可能显示异常)";
+$ok[] = "site_settings {$settingCount} 项 / ".DB::table('site_settings')->distinct()->count('group').' 分组';
+if ($dupKeys > 0) {
+    $issues[] = "site_settings 有 {$dupKeys} 个重复 key";
+}
+if ($emptySwitch > 0) {
+    $warnings[] = "site_settings 有 {$emptySwitch} 个 switch 值为空";
+}
+if ($invalidType > 0) {
+    $warnings[] = "site_settings 有 {$invalidType} 项 type 非标准 (前端可能显示异常)";
+}
 
 // 5. 孤儿记录
 if (Schema::hasTable('licenses') && Schema::hasTable('customers')) {
     $orphanLic = DB::table('licenses as l')
         ->leftJoin('customers as c', 'l.customer_id', '=', 'c.id')
         ->whereNotNull('l.customer_id')->whereNull('c.id')->count();
-    if ($orphanLic > 0) $issues[] = "licenses 表有 {$orphanLic} 条孤儿记录 (customer 不存在)";
-    else $ok[] = 'licenses 外键引用正常';
+    if ($orphanLic > 0) {
+        $issues[] = "licenses 表有 {$orphanLic} 条孤儿记录 (customer 不存在)";
+    } else {
+        $ok[] = 'licenses 外键引用正常';
+    }
 }
 if (Schema::hasTable('users') && Schema::hasTable('tenants')) {
     $orphanUser = DB::table('users as u')
         ->leftJoin('tenants as t', 'u.tenant_id', '=', 't.id')
         ->whereNotNull('u.tenant_id')->whereNull('t.id')->count();
-    if ($orphanUser > 0) $issues[] = "users 表有 {$orphanUser} 条 tenant 引用无效";
+    if ($orphanUser > 0) {
+        $issues[] = "users 表有 {$orphanUser} 条 tenant 引用无效";
+    }
 }
 
 // 6. AI 同步
@@ -96,53 +117,88 @@ if (Schema::hasTable('llm_providers')) {
 // 7. 页面
 if (Schema::hasTable('pages')) {
     $draft = DB::table('pages')->where('status', '!=', 'published')->count();
-    if ($draft > 0) $warnings[] = "pages 有 {$draft} 页未发布";
-    else $ok[] = 'pages 4 页均已发布';
+    if ($draft > 0) {
+        $warnings[] = "pages 有 {$draft} 页未发布";
+    } else {
+        $ok[] = 'pages 均已发布';
+    }
 }
 
-// 8. 缺失的表 (迁移未跑导致)
-$expectedMissing = [];
-foreach (['audit_action_dicts'] as $t) {
-    if (!Schema::hasTable($t)) $expectedMissing[] = $t;
-}
-if (!empty($expectedMissing) && $pending > 0) {
-    $warnings[] = '表不存在 (可能因迁移未执行): ' . implode(', ', $expectedMissing);
+// 8. PG 全文索引
+if ($driver === 'pgsql' && Schema::hasTable('conversation_messages')) {
+    $fts = DB::select("
+        SELECT indexname FROM pg_indexes
+        WHERE schemaname = 'public' AND tablename = 'conversation_messages'
+          AND indexname = 'conversation_messages_content_fts'
+    ");
+    if ($fts) {
+        $ok[] = 'conversation_messages 全文索引就绪';
+    } else {
+        $warnings[] = '缺少 conversation_messages_content_fts，请运行 php artisan migrate';
+    }
 }
 
-// 9. 空配置表 (重置后正常)
+// 9. pgvector
+if ($driver === 'pgsql') {
+    try {
+        $hasVector = DB::selectOne("SELECT 1 FROM pg_extension WHERE extname = 'vector'");
+        if ($hasVector) {
+            $ok[] = 'pgvector 扩展已安装';
+        } else {
+            $warnings[] = 'pgvector 扩展未安装';
+        }
+    } catch (Throwable $e) {
+        $warnings[] = 'pgvector 检查失败: '.$e->getMessage();
+    }
+}
+
+// 10. 空配置表 (重置后正常)
 $emptyConfig = [];
 foreach (['sso_providers', 'cors_configs', 'feature_flags', 'announce_banners', 'webhook_endpoints'] as $t) {
     if (Schema::hasTable($t) && DB::table($t)->count() === 0) {
         $emptyConfig[] = $t;
     }
 }
-if (!empty($emptyConfig)) {
-    $warnings[] = '以下配置表为空 (重置后正常，按需填写): ' . implode(', ', $emptyConfig);
+if (! empty($emptyConfig)) {
+    $warnings[] = '以下配置表为空 (重置后正常，按需填写): '.implode(', ', $emptyConfig);
 }
 
-// 10. 字符集
-$charset = DB::select("SELECT DEFAULT_CHARACTER_SET_NAME, DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?", [$dbName]);
-if (!empty($charset)) {
-    $cs = $charset[0];
-    $ok[] = "字符集 {$cs->DEFAULT_CHARACTER_SET_NAME} / {$cs->DEFAULT_COLLATION_NAME}";
+// 11. 编码 / 字符集
+if ($driver === 'pgsql') {
+    $encoding = DB::selectOne('SELECT pg_encoding_to_char(encoding) AS enc FROM pg_database WHERE datname = current_database()');
+    if ($encoding?->enc) {
+        $ok[] = "数据库编码 {$encoding->enc}";
+    }
+} elseif ($driver === 'mysql') {
+    $charset = DB::select('SELECT DEFAULT_CHARACTER_SET_NAME, DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?', [$dbName]);
+    if (! empty($charset)) {
+        $cs = $charset[0];
+        $ok[] = "字符集 {$cs->DEFAULT_CHARACTER_SET_NAME} / {$cs->DEFAULT_COLLATION_NAME}";
+    }
 }
 
 // 输出
 echo "--- 正常 ---\n";
-foreach ($ok as $o) echo "✅ {$o}\n";
-
-if (!empty($warnings)) {
-    echo "\n--- 警告 (建议处理) ---\n";
-    foreach ($warnings as $w) echo "⚠️  {$w}\n";
+foreach ($ok as $o) {
+    echo "✅ {$o}\n";
 }
 
-if (!empty($issues)) {
+if (! empty($warnings)) {
+    echo "\n--- 警告 (建议处理) ---\n";
+    foreach ($warnings as $w) {
+        echo "⚠️  {$w}\n";
+    }
+}
+
+if (! empty($issues)) {
     echo "\n--- 错误 (需修复) ---\n";
-    foreach ($issues as $i) echo "❌ {$i}\n";
+    foreach ($issues as $i) {
+        echo "❌ {$i}\n";
+    }
 }
 
 echo "\n--- 汇总 ---\n";
-echo "错误: " . count($issues) . " | 警告: " . count($warnings) . " | 正常: " . count($ok) . "\n";
+echo '错误: '.count($issues).' | 警告: '.count($warnings).' | 正常: '.count($ok)."\n";
 
 if (count($issues) === 0 && count($warnings) <= 2) {
     echo "\n结论: 数据库整体可用，无严重结构性问题。\n";

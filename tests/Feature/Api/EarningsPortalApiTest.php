@@ -7,7 +7,7 @@ use App\Models\Commission;
 use App\Models\EarningsAccount;
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class EarningsPortalApiTest extends TestCase

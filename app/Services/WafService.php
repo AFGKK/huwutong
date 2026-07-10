@@ -387,15 +387,17 @@ class WafService
     {
         $start = now()->subDays($days)->startOfDay();
 
+        $dateExpr = db_date_format('created_at', '%Y-%m-%d');
+
         $logs = WafAttackLog::where('created_at', '>=', $start)
             ->select(
-                DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d') as date"),
+                DB::raw("$dateExpr as date"),
                 DB::raw('COUNT(*) as total'),
                 DB::raw("SUM(CASE WHEN action_taken = 'block' THEN 1 ELSE 0 END) as blocked"),
                 DB::raw("SUM(CASE WHEN action_taken = 'challenge' THEN 1 ELSE 0 END) as challenged"),
                 DB::raw("SUM(CASE WHEN action_taken = 'log' THEN 1 ELSE 0 END) as detected")
             )
-            ->groupBy(DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d')"))
+            ->groupBy(DB::raw($dateExpr))
             ->orderBy('date')
             ->get()
             ->toArray();

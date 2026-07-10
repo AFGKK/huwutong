@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperCrmEntityMapping
+ */
 class CrmEntityMapping extends Model
 {
     protected $table = 'crm_entity_mappings';

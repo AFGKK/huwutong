@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/**
+ * @mixin IdeHelperLike
+ */
 class Like extends Model
 {
     protected $fillable = ['user_id', 'likeable_type', 'likeable_id'];

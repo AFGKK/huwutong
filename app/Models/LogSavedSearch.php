@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperLogSavedSearch
+ */
 class LogSavedSearch extends Model
 {
     protected $fillable = ['name', 'filters', 'is_shared', 'created_by'];

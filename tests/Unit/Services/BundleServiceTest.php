@@ -8,7 +8,7 @@ use App\Models\ProductBundle;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BundleService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class BundleServiceTest extends TestCase
@@ -196,8 +196,10 @@ class BundleServiceTest extends TestCase
         ProductBundle::create(['name' => 'B2', 'slug' => 'b2', 'bundle_price' => 200, 'is_active' => true]);
         ProductBundle::create(['name' => 'B3', 'slug' => 'b3', 'bundle_price' => 300, 'is_active' => false]);
 
+        $bundle = ProductBundle::where('slug', 'b1')->firstOrFail();
+
         BundlePurchase::create([
-            'product_bundle_id' => 1,
+            'product_bundle_id' => $bundle->id,
             'tenant_id' => $this->tenant->id,
             'customer_id' => $this->customer->id,
             'order_no' => 'BND-TEST-001',

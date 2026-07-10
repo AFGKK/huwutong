@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperConversionFunnelSummary
+ */
 class ConversionFunnelSummary extends Model
 {
     protected $table = 'conversion_funnel_summaries';

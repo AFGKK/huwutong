@@ -123,12 +123,28 @@ class StoreAffiliateController extends Controller
                 'total_orders' => 0, 'total_commission' => 0,
                 'pending_commission' => 0, 'month_commission' => 0,
                 'trend' => [], 'product_ranking' => [],
+                'agent_id' => null,
             ]);
         }
 
         return ApiResponse::success(
-            $this->storeAffiliateService->getDashboard($agent->id)
+            array_merge(
+                $this->storeAffiliateService->getDashboard($agent->id),
+                ['agent_id' => $agent->id, 'agent_code' => $agent->agent_code]
+            )
         );
+    }
+
+    /**
+     * 获取当前用户的推广员信息
+     */
+    public function myAgent(Request $request): JsonResponse
+    {
+        $agent = Agent::where('user_id', $request->user()->id)->first();
+        if (!$agent) {
+            return ApiResponse::success(null);
+        }
+        return ApiResponse::success($agent);
     }
 
     /**
@@ -236,14 +252,30 @@ class StoreAffiliateController extends Controller
      */
     public function clickLogs(Request $request): JsonResponse
     {
-        $agent = Agent::where('user_id', $request->user()->id)->first();
-        if (!$agent) {
-            return ApiResponse::paginated(new \Illuminate\Pagination\LengthAwarePaginator([], 0, 20));
+        $query = AffiliateClick::with('campaign')
+            ->orderBy('created_at', 'desc');
+
+        // 管理员查看全部，普通用户只看自己的
+        $user = $request->user();
+        $isAdmin = $user->hasRole(['super-admin', 'admin', 'tenant-admin']);
+        if (!$isAdmin) {
+            $agent = Agent::where('user_id', $user->id)->first();
+            if (!$agent) {
+                return ApiResponse::paginated(new \Illuminate\Pagination\LengthAwarePaginator([], 0, 20));
+            }
+            $query->where('agent_id', $agent->id);
         }
 
-        $query = AffiliateClick::with('campaign')
-            ->where('agent_id', $agent->id)
-            ->orderBy('created_at', 'desc');
+        // 筛选条件
+        if ($request->filled('campaign_id')) {
+            $query->where('campaign_id', $request->input('campaign_id'));
+        }
+        if ($request->filled('agent_id')) {
+            $query->where('agent_id', $request->input('agent_id'));
+        }
+        if ($request->filled('converted')) {
+            $query->where('converted', $request->boolean('converted'));
+        }
 
         $clicks = $query->paginate($request->input('per_page', 20));
 
@@ -332,6 +364,7 @@ class StoreAffiliateController extends Controller
             'slug' => 'nullable|string|max:100|unique:affiliate_campaigns,slug',
             'description' => 'nullable|string',
             'type' => 'required|string|in:referral,commission,reward,rebate',
+            'billing_mode' => 'nullable|string|in:cpa,cpc,cpm',
             'status' => 'nullable|string|in:draft,active,paused,completed',
             'starts_at' => 'nullable|date',
             'ends_at' => 'nullable|date|after:starts_at',
@@ -339,11 +372,15 @@ class StoreAffiliateController extends Controller
             'reward_renewal' => 'nullable|numeric|min:0',
             'reward_upgrade' => 'nullable|numeric|min:0',
             'budget_total' => 'nullable|numeric|min:0',
+            'cost_per_click' => 'nullable|numeric|min:0',
+            'cost_per_impression' => 'nullable|numeric|min:0',
+            'platform_share_rate' => 'nullable|numeric|min:0|max:100',
             'max_participants' => 'nullable|integer|min:1',
         ])->validate();
 
         $campaign = AffiliateCampaign::create(array_merge($validated, [
             'slug' => $validated['slug'] ?? (str()->slug($validated['name']) ?: 'campaign-' . strtolower(substr(md5($validated['name'] . time()), 0, 12))),
+            'billing_mode' => $validated['billing_mode'] ?? 'cpa',
             'status' => $validated['status'] ?? 'draft',
             'created_by' => $request->user()->id,
         ]));
@@ -361,6 +398,7 @@ class StoreAffiliateController extends Controller
             'slug' => 'nullable|string|max:100|unique:affiliate_campaigns,slug,' . $campaign->id,
             'description' => 'nullable|string',
             'type' => 'sometimes|string|in:referral,commission,reward,rebate',
+            'billing_mode' => 'nullable|string|in:cpa,cpc,cpm',
             'status' => 'nullable|string|in:draft,active,paused,completed',
             'starts_at' => 'nullable|date',
             'ends_at' => 'nullable|date|after:starts_at',
@@ -368,6 +406,9 @@ class StoreAffiliateController extends Controller
             'reward_renewal' => 'nullable|numeric|min:0',
             'reward_upgrade' => 'nullable|numeric|min:0',
             'budget_total' => 'nullable|numeric|min:0',
+            'cost_per_click' => 'nullable|numeric|min:0',
+            'cost_per_impression' => 'nullable|numeric|min:0',
+            'platform_share_rate' => 'nullable|numeric|min:0|max:100',
             'max_participants' => 'nullable|integer|min:1',
         ])->validate();
 
@@ -556,16 +597,26 @@ class StoreAffiliateController extends Controller
     public function storeCreative(Request $request, AffiliateCampaign $campaign): JsonResponse
     {
         $validated = Validator::make($request->all(), [
-            'type' => 'required|in:banner,landing_page,link,coupon,qr_code',
+            'type' => 'required|in:banner,image,video,text,landing_page,link,coupon,qr_code',
             'name' => 'required|string|max:100',
             'url' => 'nullable|string|max:500',
             'content' => 'nullable|string',
             'image_url' => 'nullable|string|max:500',
             'utm_params' => 'nullable|array',
             'is_active' => 'nullable|boolean',
+            'commission_amount' => 'nullable|numeric|min:0|max:99999999.99',
+            'commission_rate' => 'nullable|numeric|min:0|max:100',
         ])->validate();
 
         $validated['campaign_id'] = $campaign->id;
+        // 管理员直接创建=已审核，用户提交=待审核
+        $user = $request->user();
+        if ($user && $user->hasRole('super-admin')) {
+            $validated['status'] = 'approved';
+        } else {
+            $validated['status'] = 'pending';
+            $validated['created_by'] = $user?->id;
+        }
 
         $creative = AffiliateCreative::create($validated);
 
@@ -580,13 +631,15 @@ class StoreAffiliateController extends Controller
     public function updateCreative(Request $request, AffiliateCampaign $campaign, AffiliateCreative $creative): JsonResponse
     {
         $validated = Validator::make($request->all(), [
-            'type' => 'sometimes|in:banner,landing_page,link,coupon,qr_code',
+            'type' => 'sometimes|in:banner,image,video,text,landing_page,link,coupon,qr_code',
             'name' => 'sometimes|string|max:100',
             'url' => 'nullable|string|max:500',
             'content' => 'nullable|string',
             'image_url' => 'nullable|string|max:500',
             'utm_params' => 'nullable|array',
             'is_active' => 'nullable|boolean',
+            'commission_amount' => 'nullable|numeric|min:0|max:99999999.99',
+            'commission_rate' => 'nullable|numeric|min:0|max:100',
         ])->validate();
 
         $creative->update($validated);
@@ -626,5 +679,168 @@ class StoreAffiliateController extends Controller
             ]);
 
         return ApiResponse::success($stats);
+    }
+
+    /**
+     * 审核素材（管理端）
+     *
+     * POST /api/store-affiliate/campaigns/{campaign}/creatives/{creative}/review
+     */
+    public function reviewCreative(Request $request, AffiliateCampaign $campaign, AffiliateCreative $creative): JsonResponse
+    {
+        $validated = Validator::make($request->all(), [
+            'action' => 'required|in:approved,rejected',
+            'review_notes' => 'nullable|string|max:500',
+        ])->validate();
+
+        $creative->update([
+            'status' => $validated['action'],
+            'review_notes' => $validated['review_notes'] ?? null,
+            'reviewed_at' => now(),
+        ]);
+
+        $msg = $validated['action'] === 'approved' ? '素材已审核通过' : '素材已驳回';
+        return ApiResponse::success($creative->fresh(), $msg);
+    }
+
+    /**
+     * 所有待审核/已驳回素材（管理端）
+     *
+     * GET /api/store-affiliate/pending-creatives?status=pending|rejected
+     */
+    public function pendingCreatives(Request $request): JsonResponse
+    {
+        $status = $request->input('status', 'pending');
+        $creatives = AffiliateCreative::where('status', $status)
+            ->with(['campaign', 'creator'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($request->input('per_page', 50));
+
+        return ApiResponse::paginated($creatives);
+    }
+
+    /**
+     * 重新提交审核（将已驳回素材改为待审核）
+     *
+     * POST /api/store-affiliate/creatives/{creative}/resubmit
+     */
+    public function resubmitCreative(AffiliateCreative $creative): JsonResponse
+    {
+        if ($creative->status !== 'rejected') {
+            return ApiResponse::error('只有已驳回的素材才能重新提交');
+        }
+        $creative->update([
+            'status' => 'pending',
+            'review_notes' => null,
+            'reviewed_at' => null,
+        ]);
+        return ApiResponse::success($creative->fresh(), '素材已重新提交审核');
+    }
+
+    /**
+     * 用户提交素材（门户端）
+     *
+     * POST /api/store-affiliate/creatives/submit
+     */
+    public function submitCreative(Request $request): JsonResponse
+    {
+        $validated = Validator::make($request->all(), [
+            'campaign_id' => 'required|exists:affiliate_campaigns,id',
+            'type' => 'required|in:banner,image,video,text,landing_page,link,coupon,qr_code',
+            'name' => 'required|string|max:100',
+            'url' => 'nullable|string|max:500',
+            'content' => 'nullable|string',
+            'image_url' => 'nullable|string|max:500',
+        ])->validate();
+
+        $validated['status'] = 'pending';
+        $validated['created_by'] = $request->user()->id;
+
+        $creative = AffiliateCreative::create($validated);
+
+        return ApiResponse::success($creative, '素材已提交，等待审核');
+    }
+
+    /**
+     * 申请成为推广员
+     *
+     * POST /api/store-affiliate/apply-agent
+     */
+    public function applyAgent(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $existing = Agent::where('user_id', $user->id)->first();
+        if ($existing) {
+            return ApiResponse::error('ALREADY_AGENT', '您已经是推广员（状态：' . $existing->status . '）');
+        }
+
+        $agent = Agent::create([
+            'user_id' => $user->id,
+            'agent_code' => 'AF' . strtoupper(substr(md5($user->id . time()), 0, 8)),
+            'level' => 'basic',
+            'status' => 'pending',
+            'commission_rate' => config('affiliate.default_commission_rate', 10),
+        ]);
+
+        return ApiResponse::success($agent, '申请已提交，等待管理员审核');
+    }
+
+    /**
+     * 待审核推广员列表
+     *
+     * GET /api/store-affiliate/pending-agents
+     */
+    public function pendingAgents(): JsonResponse
+    {
+        $agents = Agent::where('status', 'pending')
+            ->with('user:id,name,email')
+            ->orderBy('created_at', 'desc')
+            ->paginate(50);
+
+        return ApiResponse::paginated($agents);
+    }
+
+    /**
+     * 审核推广员
+     *
+     * POST /api/store-affiliate/agents/{agent}/review
+     */
+    public function reviewAgent(Request $request, Agent $agent): JsonResponse
+    {
+        $validated = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'action' => 'required|in:approved,rejected',
+            'notes' => 'nullable|string|max:500',
+        ])->validate();
+
+        if ($validated['action'] === 'approved') {
+            $agent->update([
+                'status' => 'active',
+                'approved_at' => now(),
+            ]);
+            $msg = '推广员已审核通过';
+        } else {
+            $agent->update([
+                'status' => 'rejected',
+                'notes' => $validated['notes'] ?? null,
+            ]);
+            $msg = '推广员申请已驳回';
+        }
+
+        return ApiResponse::success($agent->fresh(), $msg);
+    }
+
+    /**
+     * 我提交的素材（门户端）
+     *
+     * GET /api/store-affiliate/my-creatives
+     */
+    public function myCreatives(Request $request): JsonResponse
+    {
+        $creatives = AffiliateCreative::where('created_by', $request->user()->id)
+            ->with('campaign')
+            ->orderBy('created_at', 'desc')
+            ->paginate($request->input('per_page', 20));
+
+        return ApiResponse::paginated($creatives);
     }
 }

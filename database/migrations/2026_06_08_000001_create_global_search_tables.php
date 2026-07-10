@@ -27,7 +27,7 @@ return new class extends Migration
             $table->index(['tenant_id', 'resource_type']);
             $table->index(['tenant_id', 'title']);
             $table->index(['tenant_id', 'identifier']);
-            // fullText 全文索引（MySQL only，SQLite 测试环境跳过）
+            // fullText 全文索引（MySQL/PostgreSQL 支持，SQLite 跳过）
             if (config('database.default') !== 'sqlite' && DB::connection()->getDriverName() !== 'sqlite') {
                 $table->fullText(['title', 'content'], 'search_ft');
             }

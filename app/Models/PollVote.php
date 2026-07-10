@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperPollVote
+ */
 class PollVote extends Model
 {
     protected $fillable = ['poll_id', 'option_id', 'user_id', 'rank'];

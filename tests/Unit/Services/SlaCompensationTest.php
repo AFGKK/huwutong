@@ -8,7 +8,7 @@ use App\Models\SlaContract;
 use App\Models\SlaMetric;
 use App\Services\SlaService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class SlaCompensationTest extends TestCase

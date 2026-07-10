@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * 代理商等级晋升规则 (M3-04)
+ *
+ * @mixin IdeHelperAgentTierRule
  */
 class AgentTierRule extends Model
 {

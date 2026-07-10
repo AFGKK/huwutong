@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @mixin IdeHelperTicket
+ */
 class Ticket extends Model
 {
     use HasFactory, SoftDeletes, \App\Models\Concerns\HasTags;

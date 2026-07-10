@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperSmtpDeliveryLog
+ */
 class SmtpDeliveryLog extends Model
 {
     protected $fillable = [

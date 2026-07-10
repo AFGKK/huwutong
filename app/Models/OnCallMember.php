@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperOnCallMember
+ */
 class OnCallMember extends Model
 {
     protected $fillable = ['schedule_id', 'user_id', 'sort_order', 'weight', 'is_active'];

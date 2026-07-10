@@ -41,7 +41,7 @@ class AiAutoOperateCommand extends Command
         $labels = [
             'messages' => '💬 IM 消息',
             'channel_messages' => '📢 频道消息',
-            'forum_posts' => '📝 论坛帖子',
+            'forum_posts' => '📝 广场帖子',
         ];
 
         foreach ($results as $key => $counts) {

@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperMigrationImportRow
+ */
 class MigrationImportRow extends Model
 {
     protected $table = 'migration_import_rows';

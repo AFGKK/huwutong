@@ -8,7 +8,7 @@ use App\Models\License;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\DeviceLifecycleService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class DeviceLifecycleTest extends TestCase
@@ -17,6 +17,7 @@ class DeviceLifecycleTest extends TestCase
 
     protected DeviceLifecycleService $service;
     protected Tenant $tenant;
+    protected License $license;
     protected Device $device;
     protected User $user;
 
@@ -27,11 +28,11 @@ class DeviceLifecycleTest extends TestCase
         $this->tenant = Tenant::factory()->create();
         $this->user = User::factory()->create(['tenant_id' => $this->tenant->id]);
 
-        $license = License::factory()->create();
+        $this->license = License::factory()->create(['tenant_id' => $this->tenant->id]);
 
         $this->device = Device::create([
             'tenant_id' => $this->tenant->id,
-            'license_id' => $license->id,
+            'license_id' => $this->license->id,
             'fingerprint' => 'test-fp-' . uniqid(),
             'platform' => 'windows',
             'os_version' => '10.0',
@@ -79,7 +80,7 @@ class DeviceLifecycleTest extends TestCase
         $this->device->update(['trust_score' => 0, 'license_id' => null, 'is_blacklisted' => false]);
         $this->assertEquals('new', $this->service->determineStageFromScore($this->device->fresh()));
 
-        $this->device->update(['trust_score' => 0, 'license_id' => 1, 'is_blacklisted' => false]);
+        $this->device->update(['trust_score' => 0, 'license_id' => $this->license->id, 'is_blacklisted' => false]);
         $this->assertEquals('onboarding', $this->service->determineStageFromScore($this->device->fresh()));
 
         $this->device->update(['trust_score' => 30, 'is_blacklisted' => false]);

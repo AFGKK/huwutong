@@ -5,6 +5,9 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperNotificationPreference
+ */
 class NotificationPreference extends Model
 {
     protected $table = 'notification_preferences';

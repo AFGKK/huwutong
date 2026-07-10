@@ -49,9 +49,15 @@ class SecurityHeadersMiddleware
         }
 
         // ─── CORS 头（通过 CorsManagerService 从数据库读取） ───
-        $corsHeaders = $this->corsManager->buildHeaders($request);
-        foreach ($corsHeaders as $key => $value) {
-            $response->headers->set($key, $value);
+        try {
+            $corsHeaders = $this->corsManager->buildHeaders($request);
+            foreach ($corsHeaders as $key => $value) {
+                $response->headers->set($key, $value);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('SecurityHeadersMiddleware: CORS header build failed', [
+                'message' => $e->getMessage(),
+            ]);
         }
 
         // Vary: Origin — 当 ACAC 为特定 origin 时，CDN 需要此头
@@ -61,9 +67,19 @@ class SecurityHeadersMiddleware
         }
 
         // ─── CSP（通过 CspManagerService 从数据库读取） ───
-        $cspHeaders = $this->cspManager->buildHeaders($request);
-        foreach ($cspHeaders as $key => $value) {
-            $response->headers->set($key, $value);
+        try {
+            $cspHeaders = $this->cspManager->buildHeaders($request);
+            foreach ($cspHeaders as $key => $value) {
+                $response->headers->set($key, $value);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('SecurityHeadersMiddleware: CSP header build failed', [
+                'message' => $e->getMessage(),
+            ]);
+            $response->headers->set(
+                'Content-Security-Policy',
+                "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' *; frame-ancestors 'none'; base-uri 'self'",
+            );
         }
 
         // ─── 动态安全响应头（从缓存读取配置，支持后台管理） ───
@@ -101,6 +117,15 @@ class SecurityHeadersMiddleware
                 if (! $response->headers->has('Cache-Control')) {
                     $response->headers->set('Cache-Control', $config['cache_control'] ?? 'no-store, no-cache, must-revalidate');
                 }
+            }
+        } else {
+            $response->headers->set('X-Frame-Options', 'DENY');
+            $response->headers->set('X-Content-Type-Options', 'nosniff');
+            $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+            $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+            $response->headers->set('X-XSS-Protection', '1; mode=block');
+            if (! $response->headers->has('Cache-Control')) {
+                $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate');
             }
         }
 

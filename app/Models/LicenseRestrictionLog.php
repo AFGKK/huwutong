@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $country
  * @property string|null $reason
  * @property array|null $context
+ * @mixin IdeHelperLicenseRestrictionLog
  */
 class LicenseRestrictionLog extends Model
 {

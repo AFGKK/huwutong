@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class DeployJobFactory extends Factory
@@ -11,9 +12,17 @@ class DeployJobFactory extends Factory
     public function definition(): array
     {
         return [
-            'tenant_id' => 1,
-            'deploy_environment_id' => \App\Models\DeployEnvironment::factory(),
-            'deploy_release_id' => \App\Models\DeployRelease::factory(),
+            'tenant_id' => Tenant::factory(),
+            'deploy_environment_id' => function (array $attributes) {
+                return \App\Models\DeployEnvironment::factory()->create([
+                    'tenant_id' => $attributes['tenant_id'],
+                ])->id;
+            },
+            'deploy_release_id' => function (array $attributes) {
+                return \App\Models\DeployRelease::factory()->create([
+                    'tenant_id' => $attributes['tenant_id'],
+                ])->id;
+            },
             'type' => 'full',
             'status' => 'pending',
             'steps' => [

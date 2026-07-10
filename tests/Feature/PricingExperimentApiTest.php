@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Models\PricingExperiment;
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -93,8 +93,8 @@ class PricingExperimentApiTest extends TestCase
     /** @test */
     public function can_get_experiment_stats()
     {
-        PricingExperiment::create(['name' => 'S1', 'slug' => 's1-' . Str::random(4), 'status' => 'running', 'traffic_split' => 50, 'starts_at' => now(), 'created_by' => $this->user->id]);
-        PricingExperiment::create(['name' => 'S2', 'slug' => 's2-' . Str::random(4), 'status' => 'draft', 'traffic_split' => 50, 'created_by' => $this->user->id]);
+        PricingExperiment::create(['tenant_id' => 1, 'name' => 'S1', 'slug' => 's1-' . Str::random(4), 'status' => 'running', 'traffic_split' => 50, 'starts_at' => now(), 'created_by' => $this->user->id]);
+        PricingExperiment::create(['tenant_id' => 1, 'name' => 'S2', 'slug' => 's2-' . Str::random(4), 'status' => 'draft', 'traffic_split' => 50, 'created_by' => $this->user->id]);
 
         $response = $this->getJson('/api/admin/pricing/dynamic/experiment-stats');
 
@@ -136,6 +136,7 @@ class PricingExperimentApiTest extends TestCase
     public function can_get_recommendations()
     {
         PricingExperiment::create([
+            'tenant_id' => 1,
             'name' => 'Rec1',
             'slug' => 'rec1-' . Str::random(4),
             'status' => 'completed',

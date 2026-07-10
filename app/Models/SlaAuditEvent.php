@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * SLA 事件审计日志
+ *
+ * @mixin IdeHelperSlaAuditEvent
  */
 class SlaAuditEvent extends Model
 {

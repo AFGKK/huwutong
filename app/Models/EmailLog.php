@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Str;
 
+/**
+ * @mixin IdeHelperEmailLog
+ */
 class EmailLog extends Model
 {
     protected $fillable = [

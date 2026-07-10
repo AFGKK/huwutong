@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperEmailDripSequence
+ */
 class EmailDripSequence extends Model
 {
     protected $table = 'email_drip_sequences';

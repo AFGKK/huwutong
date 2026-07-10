@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * API 版本调用统计
+ *
+ * @mixin IdeHelperApiVersionCall
  */
 class ApiVersionCall extends Model
 {

@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\Refund;
 use App\Models\Subscription;
 use App\Models\SubscriptionAgent;
+use App\Support\DbSql;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -27,16 +28,7 @@ class RevenueDashboardService
      */
     protected function dateFormatSql(string $column, string $format): string
     {
-        $driver = DB::connection()->getDriverName();
-
-        if ($driver === 'sqlite') {
-            // SQLite: strftime('%Y-%m', column)
-            $sqliteFormat = str_replace(['%Y', '%m', '%d'], ['%Y', '%m', '%d'], $format);
-            return "strftime('{$sqliteFormat}', {$column})";
-        }
-
-        // MySQL / MariaDB
-        return "DATE_FORMAT({$column}, '{$format}')";
+        return DbSql::dateFormat($column, $format);
     }
 
     /**
@@ -44,13 +36,7 @@ class RevenueDashboardService
      */
     protected function dateDiffSql(string $end, string $start): string
     {
-        $driver = DB::connection()->getDriverName();
-
-        if ($driver === 'sqlite') {
-            return "julianday({$end}) - julianday({$start})";
-        }
-
-        return "DATEDIFF({$end}, {$start})";
+        return DbSql::dateDiff($end, $start);
     }
     /**
      * 平台收益总览

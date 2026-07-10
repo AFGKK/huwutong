@@ -11,16 +11,16 @@ export default {
     return client.get('/portal/earnings/channels');
   },
   saveAccount(channel, accountInfo) {
-    return client.post('/portal/earnings/channels/account', { channel, account_info: accountInfo });
+    return client.post('/portal/earnings/save-account', { channel, account_info: accountInfo });
   },
   deleteAccount(channel) {
-    return client.delete(`/portal/earnings/channels/account/${channel}`);
+    return client.delete(`/portal/earnings/accounts/${channel}`);
   },
   getPreferences() {
     return client.get('/portal/earnings/preferences');
   },
   savePreferences(data) {
-    return client.put('/portal/earnings/preferences', data);
+    return client.post('/portal/earnings/preferences', data);
   },
 
   // ── M3-74 补充 ──
@@ -34,6 +34,6 @@ export default {
     return client.get('/portal/earnings/settlement-calendar');
   },
   exportCommissions(params = {}) {
-    return client.get('/portal/earnings/commissions/export', { params, responseType: 'blob' });
+    return client.get('/portal/earnings/export', { params, responseType: 'blob' });
   },
 };

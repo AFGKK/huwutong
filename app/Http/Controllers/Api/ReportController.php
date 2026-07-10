@@ -123,8 +123,9 @@ class ReportController extends Controller
             ->whereNotNull('paid_at');
 
         if ($period === 'monthly') {
+            $periodExpr = db_date_format('paid_at', '%Y-%m');
             $trend = $query->selectRaw(
-                "DATE_FORMAT(paid_at, '%Y-%m') as period,
+                "{$periodExpr} as period,
                  SUM(amount) as revenue,
                  SUM(COALESCE(discount_amount, 0)) as discounts,
                  COUNT(*) as invoice_count"
@@ -231,9 +232,10 @@ class ReportController extends Controller
             ->get();
 
         // 近期取消趋势
+        $cancelMonthExpr = db_date_format('canceled_at', '%Y-%m');
         $cancelTrend = Subscription::whereNotNull('canceled_at')
             ->where('canceled_at', '>=', now()->subMonths(6))
-            ->selectRaw("DATE_FORMAT(canceled_at, '%Y-%m') as month, COUNT(*) as count")
+            ->selectRaw("{$cancelMonthExpr} as month, COUNT(*) as count")
             ->groupBy('month')
             ->orderBy('month')
             ->get();
@@ -247,7 +249,7 @@ class ReportController extends Controller
 
         // 平均订阅时长（活跃订阅）
         $avgLifetime = Subscription::whereIn('status', ['active', 'grace'])
-            ->selectRaw('AVG(DATEDIFF(COALESCE(ends_at, NOW()), created_at)) as avg_days')
+            ->selectRaw('AVG('.db_date_diff('COALESCE(ends_at, NOW())', 'created_at').') as avg_days')
             ->value('avg_days');
 
         return response()->json([

@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Subscription billing model
  *
  * 订阅计费核心模型，管理订阅生命周期、自动续费、宽限期等
+ *
+ * @mixin IdeHelperSubscription
  */
 class Subscription extends Model
 {

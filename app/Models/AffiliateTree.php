@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
  * 多级推广关系链 (M3-05)
  *
  * 记录代理之间的上下级关系及分成比例。
+ *
+ * @mixin IdeHelperAffiliateTree
  */
 class AffiliateTree extends Model
 {

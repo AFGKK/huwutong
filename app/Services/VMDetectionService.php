@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Device;
+use App\Support\DbSql;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -63,8 +64,10 @@ class VMDetectionService
                 ->count();
 
             // 按虚拟化类型统计
-            $typeStats = Device::where('is_vm', true)
-                ->selectRaw('JSON_UNQUOTE(JSON_EXTRACT(vm_info, "$.type")) as vm_type, COUNT(*) as total')
+        $vmTypeExpr = DbSql::jsonExtract('vm_info', 'type');
+
+        $typeStats = Device::where('is_vm', true)
+            ->selectRaw("{$vmTypeExpr} as vm_type, COUNT(*) as total")
                 ->groupBy('vm_type')
                 ->get()
                 ->pluck('total', 'vm_type')

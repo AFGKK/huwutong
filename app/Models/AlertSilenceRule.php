@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperAlertSilenceRule
+ */
 class AlertSilenceRule extends Model
 {
     protected $fillable = [

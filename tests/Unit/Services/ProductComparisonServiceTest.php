@@ -7,7 +7,7 @@ use App\Models\ProductSpecGroup;
 use App\Models\ProductSpec;
 use App\Models\ProductSpecValue;
 use App\Services\ProductComparisonService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class ProductComparisonServiceTest extends TestCase

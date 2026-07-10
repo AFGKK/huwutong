@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperDashboardWidgetCache
+ */
 class DashboardWidgetCache extends Model
 {
     protected $table = 'dashboard_widget_caches';

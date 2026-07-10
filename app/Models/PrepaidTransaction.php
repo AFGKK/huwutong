@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperPrepaidTransaction
+ */
 class PrepaidTransaction extends Model
 {
     protected $fillable = [

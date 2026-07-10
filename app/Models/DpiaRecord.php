@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * DPIA — 数据保护影响评估
+ *
+ * @mixin IdeHelperDpiaRecord
  */
 class DpiaRecord extends Model
 {

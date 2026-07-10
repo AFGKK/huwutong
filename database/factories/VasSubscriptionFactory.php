@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Tenant;
 use App\Models\VasService;
 use App\Models\VasSubscription;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -13,7 +14,7 @@ class VasSubscriptionFactory extends Factory
     public function definition(): array
     {
         return [
-            'tenant_id' => 1,
+            'tenant_id' => Tenant::factory(),
             'vas_service_id' => VasService::factory(),
             'status' => 'active',
             'start_date' => now()->format('Y-m-d'),

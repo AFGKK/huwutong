@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * 佣金计划
  *
  * 定义一套佣金规则，包含多条计划明细（不同产品×等级组合）。
+ *
+ * @mixin IdeHelperCommissionPlan
  */
 class CommissionPlan extends Model
 {

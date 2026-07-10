@@ -1097,6 +1097,10 @@ class AuthController extends Controller
 
     protected function formatUser(User $user): array
     {
+        // 设置团队/租户上下文，确保能正确读取角色
+        app(\Spatie\Permission\PermissionRegistrar::class)
+            ->setPermissionsTeamId($user->tenant_id ?? 1);
+
         $data = $user->toArray();
 
         // 移除敏感字段
@@ -1110,6 +1114,7 @@ class AuthController extends Controller
         $data['has_phone'] = ! empty($user->phone);
         $data['email_verified'] = $user->email_verified_at !== null;
         $data['phone_verified'] = $user->phone_verified_at !== null;
+        $data['roles'] = $user->getRoleNames();
 
         return $data;
     }

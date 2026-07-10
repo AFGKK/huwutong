@@ -8,7 +8,7 @@ use App\Models\Product;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\AuditService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class AuditLogApiTest extends TestCase

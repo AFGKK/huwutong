@@ -269,6 +269,811 @@
 			"type": "shell",
 			"command": "php artisan migrate --path=database/migrations/2026_06_27_000006_create_marketplace_rollout_tables.php",
 			"group": "build"
+		},
+		{
+			"label": "serve",
+			"type": "shell",
+			"command": "D:\\phpEnv\\php\\php-8.3\\php.exe artisan serve --port=8000",
+			"isBackground": true,
+			"group": "none"
+		},
+		{
+			"label": "Run IM Tests",
+			"type": "shell",
+			"command": "D:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"vendor/bin/phpunit",
+				"tests/Feature/Api/ImChatTest.php",
+				"--colors=never"
+			],
+			"group": "test"
+		},
+		{
+			"label": "Run IM Tests",
+			"type": "shell",
+			"command": "D:\\phpEnv\\php\\php-8.3\\php.exe vendor/bin/phpunit tests/Feature/Api/ImChatTest.php --verbose 2>&1 | tee D:\\phpEnv\\www\\88.huwutong.com\\im_test_full.log"
+		},
+		{
+			"label": "Run IM Tests",
+			"type": "shell",
+			"command": "D:\\phpEnv\\php\\php-8.3\\php.exe vendor/bin/phpunit tests/Feature/Api/ImChatTest.php",
+			"group": "test"
+		},
+		{
+			"label": "Run reactions migration",
+			"type": "shell",
+			"command": "php artisan migrate --path=database/migrations/2026_07_03_000001_create_forum_reactions_table.php"
+		},
+		{
+			"label": "clean build",
+			"type": "shell",
+			"command": "del /q public\\build\\assets\\Index-*.css public\\build\\assets\\app-*.css public\\build\\manifest.json 2>nul & node --max-old-space-size=4096 node_modules/vite/bin/vite.js build"
+		},
+		{
+			"label": "clean build2",
+			"type": "shell",
+			"command": "Remove-Item -Force public\\build\\assets\\Index-*.css,public\\build\\assets\\app-*.css,public\\build\\manifest.json -ErrorAction SilentlyContinue; node --max-old-space-size=4096 node_modules/vite/bin/vite.js build"
+		},
+		{
+			"label": "Check build",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-r",
+				"file_put_contents('_check_result.txt', json_encode(['manifest_exists' => file_exists('public/build/manifest.json'), 'time' => date('Y-m-d H:i:s'), 'build_log' => file_exists('_vite_build_log.txt')])); echo 'done';"
+			]
+		},
+		{
+			"label": "Check build",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_check_manifest.php"
+			]
+		},
+		{
+			"label": "Check manifest",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_check_manifest.php"
+			]
+		},
+		{
+			"label": "Check build log",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-r",
+				"$c = file_get_contents('d:\\phpEnv\\www\\88.huwutong.com\\_vite_log.txt'); echo substr($c, -200);"
+			]
+		},
+		{
+			"label": "Check vite log",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_read_vite_log.php"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--max-old-space-size=4096",
+				"node_modules/vite/bin/vite.js",
+				"build"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--max-old-space-size=4096",
+				"node_modules/vite/bin/vite.js",
+				"build"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--max-old-space-size=4096",
+				"node_modules/vite/bin/vite.js",
+				"build"
+			]
+		},
+		{
+			"label": "Run migration",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"artisan",
+				"migrate",
+				"--path=database/migrations/2026_07_04_000001_create_oa_follower_tags_tables.php"
+			]
+		},
+		{
+			"label": "Run follower tags migration",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"artisan",
+				"migrate",
+				"--path=database/migrations/2026_07_04_000001_create_oa_follower_tags_tables.php"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--max-old-space-size=4096",
+				"node_modules/vite/bin/vite.js",
+				"build"
+			]
+		},
+		{
+			"label": "Verify tables",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"-r",
+				"echo json_encode(Schema::hasTable('oa_follower_tags') && Schema::hasTable('oa_follower_tag_relations') ? 'TABLES_EXIST' : 'MISSING');",
+				"d:\\phpEnv\\www\\88.huwutong.com\\artisan",
+				"tinker",
+				"--execute=echo json_encode(['tags'=>Schema::hasTable(\"oa_follower_tags\"),'relations'=>Schema::hasTable(\"oa_follower_tag_relations\")])"
+			]
+		},
+		{
+			"label": "Check tables",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"artisan",
+				"tinker",
+				"--execute=echo json_encode(['tags'=>Schema::hasTable('oa_follower_tags'),'relations'=>Schema::hasTable('oa_follower_tag_relations')]);"
+			]
+		},
+		{
+			"label": "Check tables",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_check_tables.php"
+			]
+		},
+		{
+			"label": "Run paywall migration",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"artisan",
+				"migrate",
+				"--path=database/migrations/2026_07_04_000002_add_paid_fields_to_oa_articles.php"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--max-old-space-size=4096",
+				"node_modules/vite/bin/vite.js",
+				"build"
+			]
+		},
+		{
+			"label": "Verify DB columns",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"artisan",
+				"tinker",
+				"--execute=echo json_encode([Schema::hasColumn('oa_articles','is_paid'), Schema::hasTable('oa_article_purchases')]);"
+			]
+		},
+		{
+			"label": "Run earnings migration",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"artisan",
+				"migrate",
+				"--path=database/migrations/2026_07_04_000003_create_oa_article_earnings_table.php"
+			]
+		},
+		{
+			"label": "Run earnings migration",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"artisan",
+				"migrate",
+				"--path=database/migrations/2026_07_04_000003_create_oa_article_earnings_table.php"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--max-old-space-size=4096",
+				"node_modules/vite/bin/vite.js",
+				"build"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--max-old-space-size=4096",
+				"node_modules/vite/bin/vite.js",
+				"build"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--max-old-space-size=4096",
+				"node_modules/vite/bin/vite.js",
+				"build"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--max-old-space-size=4096",
+				"node_modules/vite/bin/vite.js",
+				"build"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--max-old-space-size=4096",
+				"node_modules/vite/bin/vite.js",
+				"build"
+			]
+		},
+		{
+			"label": "Build frontend",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--max-old-space-size=4096",
+				"node_modules/vite/bin/vite.js",
+				"build"
+			]
+		},
+		{
+			"label": "Fix SDK tables",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"_fix_sdk_tables_v2.php"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Test SDK fix",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"_test_sdk_fix.php"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Test SDK fix",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _test_sdk_fix.php"
+		},
+		{
+			"label": "Clean test files",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"del _check_sdk_tables.php _run_sdk_migrations.php _fix_sdk_tables.php _fix_sdk_tables_v2.php _test_sdk_fix.php _debug_sdk.php _test_sdk.php"
+			]
+		},
+		{
+			"label": "Clean test files",
+			"type": "shell",
+			"command": "del",
+			"args": [
+				"_check_sdk_tables.php",
+				"_run_sdk_migrations.php",
+				"_fix_sdk_tables.php",
+				"_fix_sdk_tables_v2.php",
+				"_test_sdk_fix.php",
+				"_debug_sdk.php",
+				"_test_sdk.php"
+			]
+		},
+		{
+			"label": "Test SDK API",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _test_sdk_api.php"
+		},
+		{
+			"label": "Test SDK API",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"_test_sdk_api.php"
+			],
+			"group": "build"
+		},
+		{
+			"label": "SDK comprehensive test",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"_test_sdk_comprehensive.php"
+			],
+			"group": "build"
+		},
+		{
+			"label": "SDK comprehensive test",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _test_sdk_comprehensive.php"
+		},
+		{
+			"label": "Clean test files",
+			"type": "shell",
+			"command": "del _test_sdk_api.php _test_sdk_comprehensive.php"
+		},
+		{
+			"label": "Clean test files",
+			"type": "shell",
+			"command": "del",
+			"args": [
+				"_test_sdk_api.php",
+				"_test_sdk_comprehensive.php"
+			]
+		},
+		{
+			"label": "Check SDK tables",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _chk_sdk.php"
+		},
+		{
+			"label": "Check SDK cache tables",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _chk_sdk.php"
+		},
+		{
+			"label": "Check SDK tables",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _chk_sdk.php"
+		},
+		{
+			"label": "Check SDK tables",
+			"type": "shell",
+			"command": "del _chk_sdk.php"
+		},
+		{
+			"label": "Fix SDK cache tables",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _fix_sdk_cache.php"
+		},
+		{
+			"label": "Fix SDK cache tables",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _fix_sdk_cache.php",
+			"group": "build"
+		},
+		{
+			"label": "Fix SDK cache tables",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _fix_sdk_cache.php 2>&1"
+		},
+		{
+			"label": "Verify tables",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe -r \"echo file_exists('_fix_sdk_cache.php')?'EXISTS':'GONE';\""
+		},
+		{
+			"label": "Get PostgreSQL counts",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_get_pg_counts.php"
+			]
+		},
+		{
+			"label": "Run seed test",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_seed_test.php"
+			]
+		},
+		{
+			"label": "Describe DB tables",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe d:\\phpEnv\\www\\88.huwutong.com\\_describe_tables.php"
+		},
+		{
+			"label": "Run tmp chk",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_tmp_chk.php"
+			]
+		},
+		{
+			"label": "Run tmp_chk.php",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_tmp_chk.php"
+			]
+		},
+		{
+			"label": "Run seed test",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe d:\\phpEnv\\www\\88.huwutong.com\\_run_seed_wrapper.php"
+		},
+		{
+			"label": "Run seed test and capture",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_capture_seed.php"
+			]
+		},
+		{
+			"label": "Data Audit",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_data_audit.php"
+			]
+		},
+		{
+			"label": "Run DB checks",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_db_checks_runner.php"
+			]
+		},
+		{
+			"label": "Run missing data check",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"_chk_missing.php"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Run tmp_routes",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_tmp_routes.php"
+			]
+		},
+		{
+			"label": "Run route check",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_chk_route.php"
+			]
+		},
+		{
+			"label": "Final verify",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"_final_verify.php"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Run route check2",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_chk_routes2.php"
+			]
+		},
+		{
+			"label": "Check community route",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"artisan",
+				"route:list",
+				"--path=build/community"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Run quick diag",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_quick_diag.php"
+			]
+		},
+		{
+			"label": "Kill PHP and test community",
+			"type": "shell",
+			"command": "taskkill /F /IM php.exe 2>nul & ping 127.0.0.1 -n 4 > nul & echo PHP_KILLED"
+		},
+		{
+			"label": "Test community fix",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/c",
+				"d:\\phpEnv\\www\\88.huwutong.com\\_test_fix.cmd"
+			]
+		},
+		{
+			"label": "Test Laravel server",
+			"type": "shell",
+			"command": "curl.exe -s -o nul -w \"%{http_code}\" http://127.0.0.1:8000/build/community"
+		},
+		{
+			"label": "Test Laravel server",
+			"type": "shell",
+			"command": "curl.exe -s -o d:\\phpEnv\\www\\88.huwutong.com\\_hwt_curl_out.txt -w \"%{http_code}\" http://127.0.0.1:8000/build/community"
+		},
+		{
+			"label": "Check portal routes",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"-f",
+				"_chk_portal_routes.php",
+				">",
+				"_portal_routes_output2.txt"
+			]
+		},
+		{
+			"label": "Test admin pages",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"_test_admin_full.php"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Test admin API routes",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _test_admin_apis.php",
+			"args": [],
+			"group": "build"
+		},
+		{
+			"label": "Test admin APIs",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _test_admin_apis.php",
+			"group": "build"
+		},
+		{
+			"label": "Fix telescope seq",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _fix_seq.php",
+			"group": "build"
+		},
+		{
+			"label": "Fix telescope seq v2",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _fix_seq.php",
+			"group": "build"
+		},
+		{
+			"label": "Deep admin API test",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _deep_admin_test.php",
+			"group": "build"
+		},
+		{
+			"label": "Deep admin API test",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _deep_admin_test.php",
+			"group": "build"
+		},
+		{
+			"label": "Verify fix and check response data",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _verify_fix.php",
+			"group": "build"
+		},
+		{
+			"label": "Verify fix",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _verify_fix.php",
+			"group": "build"
+		},
+		{
+			"label": "Run final check",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_final_check2.php"
+			]
+		},
+		{
+			"label": "Check Laravel log",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/c",
+				"type d:\\phpEnv\\www\\88.huwutong.com\\storage\\logs\\laravel.log"
+			]
+		},
+		{
+			"label": "Clear log",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/c",
+				"cd /d d:\\phpEnv\\www\\88.huwutong.com && copy nul storage\\logs\\laravel.log"
+			]
+		},
+		{
+			"label": "Final check",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe",
+			"args": [
+				"d:\\phpEnv\\www\\88.huwutong.com\\_final_check2.php"
+			]
+		},
+		{
+			"label": "Check log",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/c",
+				"dir d:\\phpEnv\\www\\88.huwutong.com\\storage\\logs\\laravel.log"
+			]
+		},
+		{
+			"label": "Test IM APIs",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _test_im_apis.php",
+			"group": "build"
+		},
+		{
+			"label": "Test IM APIs",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _test_im_apis.php",
+			"group": "build"
+		},
+		{
+			"label": "Deep IM check",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _deep_im_check.php",
+			"group": "build"
+		},
+		{
+			"label": "Deep IM check",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _deep_im_check.php",
+			"group": "build"
+		},
+		{
+			"label": "Verify handoff fix",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _verify_handoff.php",
+			"group": "build"
+		},
+		{
+			"label": "Scan IM PgSQL",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe d:\\phpEnv\\www\\88.huwutong.com\\_scan_im_pgsql.php",
+			"group": "none"
+		},
+		{
+			"label": "Test all IM APIs deep",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _test_im_deep.php",
+			"args": [],
+			"group": "build"
+		},
+		{
+			"label": "Test all IM APIs deep",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _test_im_deep.php",
+			"group": "build"
+		},
+		{
+			"label": "Run handoff test",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe d:\\phpEnv\\www\\88.huwutong.com\\_run_all.php",
+			"group": "test"
+		},
+		{
+			"label": "Clean temp files",
+			"type": "shell",
+			"command": "del",
+			"args": [
+				"/f",
+				"/q",
+				"d:\\phpEnv\\www\\88.huwutong.com\\_run_all.php",
+				"d:\\phpEnv\\www\\88.huwutong.com\\_clear_log.php",
+				"d:\\phpEnv\\www\\88.huwutong.com\\_test_handoff_final.php",
+				"d:\\phpEnv\\www\\88.huwutong.com\\_hft_result.txt"
+			]
+		},
+		{
+			"label": "Clean temp files",
+			"type": "shell",
+			"command": "Remove-Item d:\\phpEnv\\www\\88.huwutong.com\\_run_all.php,d:\\phpEnv\\www\\88.huwutong.com\\_clear_log.php,d:\\phpEnv\\www\\88.huwutong.com\\_test_handoff_final.php,d:\\phpEnv\\www\\88.huwutong.com\\_hft_result.txt -Force -ErrorAction SilentlyContinue; Write-Output 'Temp files cleaned'"
+		},
+		{
+			"label": "Check log size",
+			"type": "shell",
+			"command": "cmd.exe /c if exist d:\\phpEnv\\www\\88.huwutong.com\\storage\\logs\\laravel.log (echo EXISTS) else (echo NOT FOUND)",
+			"group": "build"
+		},
+		{
+			"label": "Clean IM test files",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _clean_im.php",
+			"group": "build"
+		},
+		{
+			"label": "Test IM admin full",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _test_im_all.php",
+			"group": "build"
+		},
+		{
+			"label": "Clean IM test",
+			"type": "shell",
+			"command": "del d:\\phpEnv\\www\\88.huwutong.com\\_test_im_all.php d:\\phpEnv\\www\\88.huwutong.com\\_im_test_output.txt d:\\phpEnv\\www\\88.huwutong.com\\_clean_im.php d:\\phpEnv\\www\\88.huwutong.com\\_im_all_results.txt 2>nul & echo done",
+			"group": "build"
+		},
+		{
+			"label": "UserChat deep test",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _chk_userchat.php",
+			"group": "build"
+		},
+		{
+			"label": "UserChat deep test",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _chk_userchat.php",
+			"group": "build"
+		},
+		{
+			"label": "UserChat deep test",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _chk_userchat.php",
+			"group": "build"
+		},
+		{
+			"label": "IM chat test",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe _run_im_check.php",
+			"group": "build"
+		},
+		{
+			"label": "Add deleted_at migration",
+			"type": "shell",
+			"command": "d:\\phpEnv\\php\\php-8.3\\php.exe artisan make:migration add_deleted_at_to_user_conversations_table --table=user_conversations",
+			"group": "build"
 		}
 	]
 }

@@ -1,12 +1,12 @@
 <template>
     <div class="oa-panel">
         <div class="sidebar-header">
-            <h3>📢 公众号</h3>
+            <h3>📢 互物号</h3>
             <div class="sidebar-header-actions">
                 <el-button size="small" text @click="emit('openDiscover')" title="发现">
                     <el-icon><Search /></el-icon>
                 </el-button>
-                <el-button size="small" text @click="showCreateDialog = true" title="创建公众号">
+                <el-button size="small" text @click="showCreateDialog = true" title="创建互物号">
                     <el-icon><Plus /></el-icon>
                 </el-button>
                 <el-button size="small" text @click="loadData" title="刷新">
@@ -15,7 +15,7 @@
             </div>
         </div>
 
-        <!-- 已关注的公众号 -->
+        <!-- 已关注的互物号 -->
         <div class="oa-section">
             <div class="oa-section-title" @click="showFollowed = !showFollowed">
                 <el-icon><ArrowRight v-if="!showFollowed" /><ArrowDown v-else /></el-icon>
@@ -31,7 +31,7 @@
                     <div class="oa-info">
                         <div class="oa-name">{{ acc.name }}</div>
                         <div class="oa-meta">
-                            <span class="oa-followers">👥 {{ acc.followers_count || 0 }}</span>
+                            <span class="oa-followers"><el-icon style="vertical-align:middle"><User /></el-icon> {{ acc.followers_count || 0 }}</span>
                             <span class="oa-articles-count">📄 {{ acc.articles_count || 0 }}</span>
                         </div>
                         <div v-if="acc.latest_article" class="oa-latest">
@@ -45,15 +45,15 @@
                         </el-button>
                     </div>
                 </div>
-                <div v-if="!myAccounts.length && !loading" class="empty-hint">还没有关注公众号</div>
+                <div v-if="!myAccounts.length && !loading" class="empty-hint">还没有关注互物号</div>
             </div>
         </div>
 
-        <!-- 我的公众号（我创建的） -->
+        <!-- 我的互物号（我创建的） -->
         <div class="oa-section">
             <div class="oa-section-title" @click="showOwned = !showOwned">
                 <el-icon><ArrowRight v-if="!showOwned" /><ArrowDown v-else /></el-icon>
-                <span>👑 我的公众号</span>
+                <span>👑 我的互物号</span>
                 <span class="oa-count">{{ ownedAccounts.length }}</span>
             </div>
             <div v-show="showOwned" class="oa-list">
@@ -65,7 +65,7 @@
                     <div class="oa-info">
                         <div class="oa-name">{{ acc.name }}</div>
                         <div class="oa-meta">
-                            <span>👥 {{ acc.followers_count || 0 }} 粉丝</span>
+                            <span><el-icon style="vertical-align:middle"><User /></el-icon> {{ acc.followers_count || 0 }} 粉丝</span>
                             <span>📄 {{ acc.articles_count || 0 }} 文章</span>
                             <el-tag v-if="acc.pending_count > 0" type="danger" size="small" style="margin-left:auto">
                                 {{ acc.pending_count }} 待审核
@@ -79,9 +79,9 @@
                         <el-icon><Setting /></el-icon>
                     </el-button>
                 </div>
-                <div v-if="!ownedAccounts.length" class="empty-hint">还没有创建公众号</div>
+                <div v-if="!ownedAccounts.length" class="empty-hint">还没有创建互物号</div>
             </div>
-            <!-- 我的投稿折叠在公众号内部 -->
+            <!-- 我的投稿折叠在互物号内部 -->
             <div class="oa-sub-section">
                 <div class="oa-sub-title" @click="showMySubmissions = !showMySubmissions">
                     <el-icon><ArrowRight v-if="!showMySubmissions" /><ArrowDown v-else /></el-icon>
@@ -126,7 +126,7 @@
                         <el-tag v-if="acc.pending_count > 0" type="danger" size="small">{{ acc.pending_count }}</el-tag>
                     </div>
                 </template>
-                <div v-else class="empty-hint">你还没有创建公众号</div>
+                <div v-else class="empty-hint">你还没有创建互物号</div>
             </div>
         </div>
 
@@ -207,8 +207,8 @@
             </div>
         </div>
 
-        <!-- 编辑公众号对话框 -->
-        <el-dialog v-model="showEditDialog" title="公众号设置" width="420px" :close-on-click-modal="false">
+        <!-- 编辑互物号对话框 -->
+        <el-dialog v-model="showEditDialog" title="互物号设置" width="420px" :close-on-click-modal="false">
             <el-form :model="editForm" label-width="70px" size="small">
                 <el-form-item label="头像">
                     <div class="avatar-upload-row">
@@ -225,13 +225,13 @@
                     </div>
                 </el-form-item>
                 <el-form-item label="名称" required>
-                    <el-input v-model="editForm.name" placeholder="公众号名称" maxlength="100" />
+                    <el-input v-model="editForm.name" placeholder="互物号名称" maxlength="100" />
                     <div style="font-size:11px;color:#999;margin-top:2px">
                         每年可修改 {{ editForm.name_change_limit }} 次，已用 {{ editForm.name_change_count }} 次
                     </div>
                 </el-form-item>
                 <el-form-item label="简介">
-                    <el-input v-model="editForm.description" type="textarea" :rows="2" placeholder="公众号简介（不限制修改次数）" maxlength="500" />
+                    <el-input v-model="editForm.description" type="textarea" :rows="2" placeholder="互物号简介（不限制修改次数）" maxlength="500" />
                 </el-form-item>
                 <el-form-item label="分类">
                     <el-input :model-value="editForm.category?.name || '未设置'" disabled size="small">
@@ -246,15 +246,15 @@
             </template>
         </el-dialog>
 
-        <!-- 创建公众号对话框 -->
-        <el-dialog v-model="showCreateDialog" title="创建公众号" width="420px" :close-on-click-modal="false">
+        <!-- 创建互物号对话框 -->
+        <el-dialog v-model="showCreateDialog" title="创建互物号" width="420px" :close-on-click-modal="false">
             <el-form :model="createForm" label-width="70px" size="small">
                 <el-form-item label="名称" required>
-                    <el-input v-model="createForm.name" placeholder="公众号名称" maxlength="100" />
+                    <el-input v-model="createForm.name" placeholder="互物号名称" maxlength="100" />
                     <div style="font-size:11px;color:#999;margin-top:2px">创建后每年仅可修改3次</div>
                 </el-form-item>
                 <el-form-item label="描述">
-                    <el-input v-model="createForm.description" type="textarea" :rows="2" placeholder="公众号简介" maxlength="500" />
+                    <el-input v-model="createForm.description" type="textarea" :rows="2" placeholder="互物号简介" maxlength="500" />
                     <div style="font-size:11px;color:#999;margin-top:2px">简介不限制修改次数</div>
                 </el-form-item>
                 <el-form-item label="分类">
@@ -289,7 +289,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Plus, Search, RefreshLeft, ArrowRight, ArrowDown, Close, Setting } from '@element-plus/icons-vue'
+import { Plus, Search, RefreshLeft, ArrowRight, ArrowDown, Close, Setting, User } from '@element-plus/icons-vue'
 import apiClient from '@/api/client'
 
 const emit = defineEmits(['selectAccount', 'viewSubmission', 'viewPendingReviews', 'openDiscover', 'refreshUnread', 'viewOaArticle'])
@@ -351,7 +351,7 @@ async function loadData() {
         mySubmissions.value = subRes.data?.data || []
         ownedAccounts.value = (ownedRes.data?.data || []).map(a => ({ ...a, pending_count: 0 }))
         categories.value = catRes.data?.data || []
-        // 获取每个公众号的待审核数
+        // 获取每个互物号的待审核数
         for (const acc of ownedAccounts.value) {
             try {
                 const pRes = await apiClient.get(`/official-accounts/${acc.id}/submissions/pending`)
@@ -395,7 +395,7 @@ async function doCreate() {
     creating.value = true
     try {
         await apiClient.post('/official-accounts', { ...createForm.value })
-        ElMessage.success('公众号已创建')
+        ElMessage.success('互物号已创建')
         showCreateDialog.value = false
         createForm.value = { name: '', description: '', avatar: '', category_id: null }
         await loadData()
@@ -426,7 +426,7 @@ async function loadCategories() {
     try { const r = await apiClient.get('/official-accounts/categories'); categories.value = r.data?.data || [] } catch { categories.value = [] }
 }
 
-// ── 编辑公众号 ──
+// ── 编辑互物号 ──
 const showEditDialog = ref(false)
 const editForm = ref({ name: '', description: '', avatar: '', category: null, category_id: null, name_change_count: 0, name_change_limit: 3 })
 const editAccountId = ref(null)

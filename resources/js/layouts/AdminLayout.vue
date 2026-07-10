@@ -1,10 +1,18 @@
 <template>
     <div class="app-container">
         <el-container class="h-screen">
+            <!-- 📱 移动端侧边栏遮罩层 -->
+            <div
+                v-if="isMobile && mobileDrawerOpen"
+                class="mobile-overlay"
+                @click="closeMobileDrawer"
+                role="presentation"
+            />
+
             <!-- 侧边栏 (WCAG: role=navigation, aria-label) -->
             <el-aside
                 :width="sidebarStore.sidebarCollapsed ? '64px' : '240px'"
-                class="app-sidebar"
+                :class="['app-sidebar', { 'mobile-sidebar': isMobile, 'mobile-sidebar-open': mobileDrawerOpen }]"
                 role="navigation"
                 aria-label="主导航"
             >
@@ -53,7 +61,7 @@
                     >
                     <template v-for="group in menuGroups" :key="group.label">
                         <el-sub-menu
-                            v-if="!sidebarStore.sidebarCollapsed && group.items.length > 1"
+                            v-if="!sidebarStore.sidebarCollapsed && visibleItems(group.items).length > 1"
                             :index="group.label"
                             role="none"
                         >
@@ -62,7 +70,7 @@
                                 <span>{{ group.label }}</span>
                             </template>
                             <el-menu-item
-                                v-for="item in group.items"
+                                v-for="item in visibleItems(group.items)"
                                 :key="item.path"
                                 :index="item.path"
                                 role="menuitem"
@@ -74,7 +82,7 @@
                         </el-sub-menu>
                         <template v-else>
                             <el-menu-item
-                                v-for="item in group.items"
+                                v-for="item in visibleItems(group.items)"
                                 :key="item.path"
                                 :index="item.path"
                                 role="menuitem"
@@ -94,7 +102,22 @@
                 <!-- 顶部导航 (WCAG: role=banner, aria-label) -->
                 <el-header class="app-header" role="banner" aria-label="顶部工具栏">
                     <div class="header-left">
+                        <!-- 📱 移动端菜单按钮 -->
                         <el-button
+                            v-if="isMobile"
+                            text
+                            @click="toggleMobileDrawer"
+                            aria-label="打开/关闭菜单"
+                            class="mobile-menu-btn"
+                        >
+                            <el-icon :size="22" aria-hidden="true">
+                                <Fold v-if="!mobileDrawerOpen" />
+                                <Expand v-else />
+                            </el-icon>
+                        </el-button>
+                        <!-- 💻 桌面端折叠按钮 -->
+                        <el-button
+                            v-else
                             text
                             @click="sidebarStore.toggleSidebar"
                             :aria-label="sidebarStore.sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'"
@@ -209,8 +232,8 @@
             </el-container>
         </el-container>
         <LiveChat />
-        <FeedbackButton />
-        <CookieConsent />
+        <FeedbackButton v-if="false" />
+        <CookieConsent v-if="false" />
         <PwaInstallPrompt />
     </div>
 </template>
@@ -220,7 +243,7 @@ import LiveChat from '@/components/LiveChat.vue';
 import FeedbackButton from '@/components/FeedbackButton.vue';
 import GlobalSearchBar from '@/components/GlobalSearchBar.vue';
 import PwaInstallPrompt from '@/components/PwaInstallPrompt.vue';
-import { ref, computed, onErrorCaptured } from 'vue';
+import { ref, computed, onErrorCaptured, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
@@ -300,6 +323,12 @@ function clearImpersonateState() {
     localStorage.removeItem('impersonate_target');
 }
 
+/** 根据用户角色过滤菜单项 */
+function visibleItems(items) {
+    if (authStore.isAdmin) return items
+    return items.filter(item => !item.adminOnly)
+}
+
 async function handleStopImpersonate() {
     if (!impersonateToken.value) return;
     try {
@@ -324,6 +353,7 @@ const menuGroups = [
             { path: '/license-key-prefix', title: 'License Key 前缀', icon: EditPen },
             { path: '/license-templates', title: 'License 模板', icon: List },
             { path: '/license-trash', title: 'License 回收站', icon: Delete },
+            { path: '/license-compliance', title: '📋 合规审计报告', icon: Document },
             { path: '/license-snapshot', title: 'License 快照', icon: Timer },
             { path: '/license-approval', title: 'License 审批', icon: CircleCheck },
             { path: '/license-merge', title: 'License 继承/合并', icon: Connection },
@@ -380,9 +410,11 @@ const menuGroups = [
             { path: '/refunds', title: '退款管理', icon: Money },
             { path: '/points', title: '积分管理', icon: Coin },
             { path: '/usage-meter', title: '用量计量', icon: DataBoard },
+            { path: '/metered-billing', title: '按量计费深度', icon: TrendCharts },
             { path: '/currency', title: '多币种定价', icon: Coin },
             { path: '/billing/retention', title: '续费流水线', icon: Connection },
             { path: '/tax', title: '税务管理', icon: Document },
+            { path: '/china-invoice', title: '🧾 中国电子发票', icon: Document },
             { path: '/license-files', title: 'License 文件分发', icon: Upload },
         ],
     },
@@ -400,7 +432,7 @@ const menuGroups = [
             { path: '/crm', title: 'CRM 客户分析', icon: DataBoard },
             { path: '/product-analytics', title: '产品使用分析', icon: DataBoard },
             { path: '/conversion-funnel', title: '转化漏斗', icon: TrendCharts },
-            { path: '/email-drip', title: '邮件营销', icon: Promotion },
+            { path: '/email', title: '📧 邮件管理', icon: Message },
         ],
     },
     {
@@ -409,7 +441,7 @@ const menuGroups = [
             { path: '/ecommerce-dashboard', title: '电商数据看板', icon: TrendCharts },
             { path: '/ecommerce-analytics', title: '电商数据分析', icon: DataBoard },
             { path: '/auto-invoice', title: '自动开票', icon: PriceTag },
-            { path: '/affiliate', title: '联盟推广', icon: Connection },
+            { path: '/affiliate', title: '联盟推广', icon: Connection, adminOnly: true },
             { path: '/scheduled-promotion', title: '定时促销', icon: Timer },
             { path: '/inventory', title: '库存管理', icon: Goods },
             { path: '/product-sku', title: 'SKU 商品规格', icon: Goods },
@@ -447,6 +479,9 @@ const menuGroups = [
             { path: '/developer-earnings', title: '开发者收益', icon: Money },
             { path: '/marketplace-push', title: '市场推送', icon: Bell },
             { path: '/marketplace-security', title: '内容安全', icon: WarningFilled },
+            { path: '/moments', title: '社区管理', icon: ChatDotSquare },
+            { path: '/official-accounts', title: '互物号管理', icon: Monitor },
+            { path: '/articles/manage', title: '文章审核', icon: Document },
             { path: '/marketplace-rollout', title: '灰度发布', icon: SwitchFilled },
             { path: '/api-key-audit', title: 'API 密钥审计', icon: Reading },
             { path: '/quota', title: '限流配额管理', icon: TrendCharts },
@@ -458,23 +493,19 @@ const menuGroups = [
             { path: '/text-to-sql', title: 'Text-to-SQL 安全', icon: Monitor },
             { path: '/diagnostic', title: 'AI 错误诊断', icon: MagicStick },
             { path: '/ai-ops', title: 'AI 运营分析', icon: MagicStick },
-            { path: '/sdk', title: 'SDK 开发工具包', icon: Connection },
+            { path: '/sdk-manager', title: '📦 SDK 管理', icon: Connection },
+            { path: '/update-manager', title: '🔄 更新管理', icon: Upload },
             { path: '/blog', title: 'Blog / Changelog', icon: Document },
             { path: '/prompt-templates', title: 'Prompt 模板管理', icon: EditPen },
             { path: '/code-sandbox', title: '代码沙箱', icon: Monitor },
             { path: '/meilisearch', title: 'Meilisearch 搜索', icon: Search },
             { path: '/api-keys', title: 'API 密钥管理', icon: Key },
-            { path: '/updates', title: '更新包分发', icon: Upload },
-            { path: '/update-signer', title: '更新签名与灰度', icon: Connection },
-            { path: '/update-cdn', title: 'CDN 分发', icon: Connection },
             { path: '/playground', title: 'API Playground', icon: Monitor },
             { path: '/telemetry', title: 'SDK Telemetry', icon: Monitor },
             { path: '/error-codes', title: '错误码参考', icon: WarningFilled },
-            { path: '/sdk-version', title: 'SDK版本兼容', icon: CollectionTag },
+            { path: '/ci-cd', title: '🔑 CI/CD 自动授权', icon: Connection },
             { path: '/compat-test', title: '兼容性测试', icon: Connection },
             { path: '/certification', title: '开发者认证', icon: CollectionTag },
-            { path: '/sdk-integrity', title: 'SDK完整性自检', icon: Lock },
-            { path: '/sdk-cache', title: 'SDK本地缓存', icon: Timer },
             { path: '/migration-assistant', title: 'AI 迁移助手', icon: Connection },
             { path: '/migration-enhancement', title: '竞品迁移工具', icon: Connection },
             { path: '/sandbox', title: '开发者沙箱', icon: EditPen },
@@ -483,6 +514,20 @@ const menuGroups = [
             { path: '/api-impact', title: 'API 变更影响', icon: Connection },
             { path: '/knowledge-base', title: '帮助中心', icon: Reading },
             { path: '/tutorials', title: '入门教程', icon: Reading },
+            { path: '/cloud-marketplace', title: '☁️ 云市场集成', icon: Connection },
+            { path: '/accounting', title: '📊 会计系统集成', icon: Coin },
+            { path: '/bi-export', title: '📈 BI 数据仓库导出', icon: DataBoard },
+        ],
+    },
+    {
+        label: '个人中心', icon: 'User',
+        items: [
+            { path: '/account/profile', title: '账户中心', icon: User },
+            { path: '/account/binding', title: '账号绑定', icon: Link },
+            { path: '/account/login-history', title: '登录历史', icon: TrendCharts },
+            { path: '/account/passkey', title: 'Passkey 管理', icon: Key },
+            { path: '/invite-codes', title: '邀请码', icon: Key },
+            { path: '/mfa', title: 'MFA 设置', icon: Lock },
         ],
     },
     {
@@ -499,6 +544,7 @@ const menuGroups = [
             { path: '/cookie-consent', title: 'Cookie 管理', icon: Bell },
             { path: '/rate-limits', title: '限流规则', icon: Monitor },
             { path: '/sso', title: '单点登录', icon: Link },
+            { path: '/enterprise-sso', title: '🔐 企业 SSO 深度', icon: Link },
             { path: '/embedded-widget', title: '嵌入式 Widget', icon: Monitor },
             { path: '/oauth', title: 'OAuth 登录', icon: Link },
             { path: '/cors-configs', title: 'CORS 配置', icon: Connection },
@@ -514,24 +560,15 @@ const menuGroups = [
             { path: '/settlement', title: '财务结算', icon: DataBoard },
             { path: '/agent-manager', title: '代理商管理', icon: UserFilled },
             { path: '/channel', title: '渠道合作伙伴', icon: Link },
-            { path: '/invite-codes', title: '邀请码管理', icon: Key },
             { path: '/portal-branding', title: '门户品牌化', icon: EditPen },
-            { path: '/legal-consents', title: '协议管理', icon: Document },
-            { path: '/gdpr-compliance', title: 'GDPR 合规', icon: ScaleToOriginal },
-            { path: '/compliance', title: 'SOC 2 / ISO 27001', icon: DocumentChecked },
-            { path: '/gdpr-enhancement', title: 'GDPR 增强', icon: SetUp },
-            { path: '/pipl-compliance', title: 'PIPL 合规', icon: DocumentChecked },
-            { path: '/ai-compliance', title: 'AI 合规(ISO 42001)', icon: SetUp },
-            { path: '/data-residency', title: '数据本地化', icon: Connection },
-            { path: '/data-anonymization', title: '数据匿名化导出', icon: Download },
+            { path: '/compliance-center', title: '📋 合规中心', icon: DocumentChecked },
+            { path: '/data-management', title: '📊 数据管理', icon: Connection },
             { path: '/demo-booking', title: 'Demo 预约', icon: Timer },
             { path: '/case-studies', title: '客户案例', icon: DataBoard },
             { path: '/compare-page', title: '竞品对比', icon: TrendCharts },
             { path: '/account-deletions', title: '注销审核', icon: Delete },
-            { path: '/mfa', title: 'MFA 设置', icon: Lock },
             { path: '/domains', title: '自定义域名', icon: Link },
             { path: '/domain-overview', title: '域名管理总览', icon: Monitor },
-            { path: '/account/binding', title: '账号绑定', icon: Link },
             { path: '/trials', title: '试用管理', icon: Timer },
             { path: '/offline', title: '离线 License', icon: Connection },
             { path: '/air-gapped', title: '气隙部署', icon: Lock },
@@ -545,11 +582,9 @@ const menuGroups = [
     {
         label: '安全与监控', icon: 'Lock',
         items: [
-            { path: '/audit-governance', title: '审计治理中心', icon: DataBoard },
+            { path: '/audit', title: '📋 审计中心', icon: DataBoard },
             { path: '/log-archiver', title: '日志归档存储', icon: Coin },
             { path: '/log-aggregation', title: '日志平台', icon: DataBoard },
-            { path: '/retention-audit', title: '数据保留审计', icon: Timer },
-            { path: '/audit-visualization', title: '审计可视化分析', icon: TrendCharts },
             { path: '/alerting', title: '智能告警中心', icon: WarningFilled },
             { path: '/watermark-tamper', title: '暗水印与防篡改', icon: Lock },
             { path: '/collaboration', title: '团队协作中心', icon: ChatDotSquare },
@@ -568,29 +603,17 @@ const menuGroups = [
             { path: '/honeypot', title: '主动蜜罐防御', icon: WarningFilled },
             { path: '/tenant-isolation', title: '租户隔离管理', icon: Lock },
             { path: '/automation', title: '自动化规则引擎', icon: Setting },
-            { path: '/audit-logs', title: '审计日志', icon: Document },
-            { path: '/audit-retention', title: '日志导出与保留', icon: Setting },
-            { path: '/audit-export', title: '审计导出中心', icon: Download },
             { path: '/custom-fields', title: '自定义字段', icon: EditPen },
             { path: '/merkle-chain', title: 'Merkle 验证链', icon: Connection },
-            { path: '/webhook-endpoints', title: 'Webhook 端点', icon: Link },
-            { path: '/webhook-simulator', title: 'Webhook 模拟器', icon: Connection },
-            { path: '/webhook-filter', title: 'Webhook 过滤器', icon: Connection },
+            { path: '/webhooks', title: 'Webhook 管理', icon: Link },
             { path: '/siem-export', title: 'SIEM 日志导出', icon: DataBoard },
-            { path: '/audit-archive', title: '审计日志归档', icon: Wallet },
             { path: '/footer-nav', title: '页脚导航配置', icon: Link },
-            { path: '/webhook-events', title: 'Webhook 事件', icon: Promotion },
-            { path: '/webhook-monitor', title: 'Webhook 监控', icon: DataBoard },
-            { path: '/webhook-replay', title: 'Webhook 回放', icon: Refresh },
             { path: '/zapier', title: 'Zapier/Make 集成', icon: Connection },
             { path: '/health', title: '系统健康', icon: Monitor },
             { path: '/deps-security', title: '依赖安全', icon: Lock },
             { path: '/account/login-history', title: '登录历史', icon: TrendCharts },
             { path: '/account/passkey', title: 'Passkey 管理', icon: Key },
-            { path: '/email-tracking', title: '邮件追踪', icon: TrendCharts },
-            { path: '/email-dashboard', title: '邮件投递面板', icon: Message },
-            { path: '/email-drip', title: '邮件营销 Drip', icon: Message },
-            { path: '/email-templates', title: '邮件模板', icon: Message },
+
             { path: '/apm', title: 'APM 监控', icon: DataAnalysis },
             { path: '/slow-query-monitor', title: '慢查询监控', icon: Monitor },
             { path: '/db-read-write', title: '读写分离', icon: Connection },
@@ -608,9 +631,7 @@ const menuGroups = [
             { path: '/feature-adoption', title: '功能使用率追踪', icon: TrendCharts },
             { path: '/scheduled-notification', title: '批量通知定时发送', icon: Timer },
             { path: '/quota-alert', title: '用量配额预警', icon: WarningFilled },
-            { path: '/customer-smtp', title: 'SMTP 配置', icon: Connection },
-            { path: '/smtp-fallback', title: 'SMTP 降级', icon: Refresh },
-            { path: '/email-whitelabel', title: '邮件白标', icon: UploadFilled },
+
             { path: '/seat-pool', title: '并发License浮动', icon: Connection },
             { path: '/circuit-breaker', title: '断路器监控', icon: Monitor },
             { path: '/chaos-engineering', title: '混沌工程', icon: WarnTriangleFilled },
@@ -618,7 +639,7 @@ const menuGroups = [
             { path: '/secrets', title: '密钥管理', icon: Lock },
             { path: '/hsm', title: 'HSM 签名', icon: Key },
             { path: '/cloud-upload', title: '云文件存储', icon: UploadFilled },
-            { path: '/regional-compliance', title: '多区域合规', icon: List },
+
             { path: '/vm-detection', title: '虚拟环境检测', icon: Monitor },
             { path: '/redis-ha', title: 'Redis 高可用', icon: DataAnalysis },
             { path: '/waf', title: 'WAF 基础防护', icon: WarningFilled },
@@ -670,6 +691,38 @@ function handleCommand(command) {
     } else if (command === 'stop-impersonate') {
         handleStopImpersonate();
     }
+}
+
+// ─── 📱 移动端响应式 ──────────────────────────────────────────
+const isMobile = ref(window.innerWidth < 768);
+const mobileDrawerOpen = ref(false);
+
+function onResize() {
+    const mobile = window.innerWidth < 768;
+    if (mobile !== isMobile.value) {
+        isMobile.value = mobile;
+        if (mobile) {
+            sidebarStore.sidebarCollapsed = true;
+            mobileDrawerOpen.value = false;
+        }
+    }
+}
+
+onMounted(() => window.addEventListener('resize', onResize));
+onUnmounted(() => window.removeEventListener('resize', onResize));
+
+function toggleMobileDrawer() {
+    mobileDrawerOpen.value = !mobileDrawerOpen.value;
+    if (mobileDrawerOpen.value) {
+        sidebarStore.sidebarCollapsed = false;
+    } else {
+        sidebarStore.sidebarCollapsed = true;
+    }
+}
+
+function closeMobileDrawer() {
+    mobileDrawerOpen.value = false;
+    sidebarStore.sidebarCollapsed = true;
 }
 </script>
 
@@ -796,5 +849,51 @@ function handleCommand(command) {
 
 .ml-1 {
     margin-left: 4px;
+}
+
+/* ─── 📱 移动端响应式 ──────────────────────────────────────── */
+.mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+.mobile-sidebar {
+    position: fixed !important;
+    top: 0;
+    left: -280px;
+    z-index: 1000;
+    transition: left 0.3s ease !important;
+    height: 100vh !important;
+}
+
+.mobile-sidebar-open {
+    left: 0 !important;
+}
+
+.mobile-menu-btn {
+    margin-left: 0 !important;
+}
+
+@media (max-width: 768px) {
+    .app-main {
+        padding: 12px !important;
+    }
+
+    .app-header {
+        padding: 0 12px !important;
+    }
+
+    .header-right .mr-4 {
+        margin-right: 8px !important;
+    }
+
+    .user-info .ml-2 {
+        display: none;
+    }
 }
 </style>

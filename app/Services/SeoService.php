@@ -101,9 +101,9 @@ class SeoService
             ];
         }
 
-        // KB Articles
-        $articles = KbArticle::where('tenant_id', $tenantId)
-            ->where('status', 'published')
+        // KB Articles（全局知识库，无 tenant_id）
+        $articles = KbArticle::query()
+            ->published()
             ->get(['id', 'slug', 'title', 'updated_at']);
         foreach ($articles as $article) {
             $meta = $this->getMetadataFor($article);

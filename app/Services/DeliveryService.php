@@ -109,6 +109,7 @@ class DeliveryService
                 'tenant_id' => $order->tenant_id,
                 'customer_id' => $order->customer_id,
                 'product_id' => $productId,
+                'sku_id' => $sku?->id,
                 'license_key' => $this->generateLicenseKey(),
                 'status' => 'active',
                 'activated_at' => now(),

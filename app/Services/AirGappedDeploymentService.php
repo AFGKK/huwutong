@@ -385,7 +385,7 @@ class AirGappedDeploymentService
      */
     protected function checkRequiredExtensions(): array
     {
-        $required = ['sodium', 'json', 'mbstring', 'pdo_mysql', 'redis', 'fileinfo', 'bcmath'];
+        $required = ['sodium', 'json', 'mbstring', 'pdo_pgsql', 'pdo_mysql', 'redis', 'fileinfo', 'bcmath'];
         $result = [];
 
         foreach ($required as $ext) {
@@ -577,10 +577,24 @@ class AirGappedDeploymentService
         // pre-update.sh
         file_put_contents("{$scriptsDir}/pre-update.sh", <<<'SCRIPT'
 #!/bin/bash
-# 更新前置脚本
-echo "[PRE-UPDATE] 开始更新前的准备工作..."
-# 备份数据库
-# mysqldump -h localhost -u root -p${DB_PASSWORD} ${DB_DATABASE} > /tmp/pre-update-backup.sql
+set -euo pipefail
+echo "[PRE-UPDATE] 备份数据库..."
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
+if [ -f .env ]; then
+    set -a
+    source <(grep -E '^[A-Z_]+=' .env | sed 's/\r$//')
+    set +a
+fi
+mkdir -p backups
+if grep -q '^DB_CONNECTION=pgsql' .env 2>/dev/null; then
+    docker compose -f "${COMPOSE_FILE}" exec -T postgres \
+        pg_dump -U "${DB_USERNAME:-postgres}" "${DB_DATABASE:-huwutong}" \
+        | gzip > "backups/pre-update-$(date +%Y%m%d_%H%M%S).sql.gz" || true
+elif grep -q '^DB_CONNECTION=mysql' .env 2>/dev/null; then
+    docker compose -f "${COMPOSE_FILE:-docker-compose.mysql.yml}" exec -T mysql \
+        mysqldump -u root -p"${DB_PASSWORD}" --single-transaction "${DB_DATABASE:-huwutong}" \
+        | gzip > "backups/pre-update-$(date +%Y%m%d_%H%M%S).sql.gz" || true
+fi
 SCRIPT
         );
 

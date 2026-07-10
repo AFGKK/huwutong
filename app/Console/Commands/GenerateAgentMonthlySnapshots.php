@@ -6,6 +6,7 @@ use App\Models\Agent;
 use App\Models\AgentMonthlySnapshot;
 use App\Models\CommissionSettlement;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class GenerateAgentMonthlySnapshots extends Command
 {
@@ -22,12 +23,14 @@ class GenerateAgentMonthlySnapshots extends Command
         $count = 0;
 
         foreach ($agents as $agent) {
+            $dateExpr = db_date_format('created_at', '%Y-%m');
+
             $revenue = CommissionSettlement::where('agent_id', $agent->id)
-                ->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$yearMonth])
+                ->whereRaw("{$dateExpr} = ?", [$yearMonth])
                 ->sum('amount');
 
             $countCommissions = CommissionSettlement::where('agent_id', $agent->id)
-                ->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$yearMonth])
+                ->whereRaw("{$dateExpr} = ?", [$yearMonth])
                 ->count();
 
             AgentMonthlySnapshot::updateOrCreate(

@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperCardConversionTracking
+ */
 class CardConversionTracking extends Model
 {
     protected $table = 'card_conversion_tracking';

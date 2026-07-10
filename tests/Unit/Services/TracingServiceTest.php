@@ -5,7 +5,7 @@ namespace Tests\Unit\Services;
 use App\Models\ApmRequest;
 use App\Models\Tenant;
 use App\Services\TracingService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class TracingServiceTest extends TestCase

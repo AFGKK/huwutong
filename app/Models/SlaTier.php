@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * SLA 等级定义
  *
  * 定义不同客户等级对应的：API限流、验证性能、设备上限、客服SLA、安全合规
+ *
+ * @mixin IdeHelperSlaTier
  */
 class SlaTier extends Model
 {

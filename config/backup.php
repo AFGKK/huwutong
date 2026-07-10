@@ -23,6 +23,10 @@ return [
         // MySQL 导出命令路径
         'mysqldump_path' => env('MYSQLDUMP_PATH', 'mysqldump'),
 
+        // PostgreSQL 导出/恢复命令路径
+        'pg_dump_path' => env('PG_DUMP_PATH', 'pg_dump'),
+        'psql_path' => env('PSQL_PATH', 'psql'),
+
         // 保留天数
         'retention_days' => (int) env('BACKUP_RETENTION_DAYS', 30),
 

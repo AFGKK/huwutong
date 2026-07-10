@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperRegistrationPortalConfig
+ */
 class RegistrationPortalConfig extends Model
 {
     protected $table = 'registration_portal_configs';

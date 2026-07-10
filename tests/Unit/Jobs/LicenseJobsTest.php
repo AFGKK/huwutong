@@ -7,7 +7,7 @@ use App\Jobs\ExpireLicenseJob;
 use App\Models\License;
 use App\Models\Tenant;
 use App\Services\LicenseService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;

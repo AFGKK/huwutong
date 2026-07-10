@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperGeoLookup
+ */
 class GeoLookup extends Model
 {
     protected $primaryKey = 'ip_address';

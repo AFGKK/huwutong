@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperAuditAnalysisSummary
+ */
 class AuditAnalysisSummary extends Model
 {
     protected $table = 'audit_analysis_summaries';

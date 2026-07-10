@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/**
+ * @mixin IdeHelperCrossSellRecommendation
+ */
 class CrossSellRecommendation extends Model
 {
     protected $table = 'cross_sell_recommendations';

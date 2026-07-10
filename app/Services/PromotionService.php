@@ -162,7 +162,7 @@ class PromotionService
 
     public function listContracts(array $filters = [], int $perPage = 20)
     {
-        $query = EnterpriseContract::with(['customer:id,name', 'creator:id,name'])
+        $query = EnterpriseContract::with(['customer:id,user_id', 'customer.user:id,name', 'creator:id,name'])
             ->orderBy('created_at', 'desc');
         if (!empty($filters['status'])) $query->where('status', $filters['status']);
         if (!empty($filters['customer_id'])) $query->where('customer_id', $filters['customer_id']);

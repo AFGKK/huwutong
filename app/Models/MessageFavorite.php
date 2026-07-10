@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperMessageFavorite
+ */
 class MessageFavorite extends Model
 {
     protected $fillable = ['user_id', 'message_id'];

@@ -10,7 +10,7 @@ use App\Models\RegionHealthLog;
 use App\Models\RegionSyncLog;
 use App\Models\Tenant;
 use App\Services\MultiRegionService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 

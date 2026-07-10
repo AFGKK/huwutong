@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperSecretScanLog
+ */
 class SecretScanLog extends Model
 {
     protected $fillable = [

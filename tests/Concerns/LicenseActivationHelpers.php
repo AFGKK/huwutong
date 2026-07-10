@@ -9,6 +9,30 @@ namespace Tests\Concerns;
  */
 trait LicenseActivationHelpers
 {
+    /** @var int|null 激活请求默认 tenant_id */
+    protected ?int $activationTenantId = null;
+
+    /** @var int|null 激活请求默认 product_id */
+    protected ?int $activationProductId = null;
+
+    /**
+     * 合并 License 激活所需的 tenant/product 上下文
+     */
+    protected function activationBody(array $data = []): array
+    {
+        $context = [];
+
+        if ($this->activationTenantId !== null && ! array_key_exists('tenant_id', $data)) {
+            $context['tenant_id'] = $this->activationTenantId;
+        }
+
+        if ($this->activationProductId !== null && ! array_key_exists('product_id', $data)) {
+            $context['product_id'] = $this->activationProductId;
+        }
+
+        return array_merge($context, $data);
+    }
+
     /**
      * 生成测试用的 Nonce（UUID v4 格式）
      */
@@ -84,6 +108,7 @@ trait LicenseActivationHelpers
      */
     protected function securePostJson(string $uri, array $data = [], array $options = []): \Illuminate\Testing\TestResponse
     {
+        $data = $this->activationBody($data);
         $path = parse_url($uri, PHP_URL_PATH) ?: $uri;
         $secret = $options['secret'] ?? null;
         $securityHeaders = $this->activationHeaders('POST', $path, $data, $secret);

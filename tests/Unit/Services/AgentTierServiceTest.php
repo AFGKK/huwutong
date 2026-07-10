@@ -7,7 +7,7 @@ use App\Models\AgentTierDefinition;
 use App\Models\AgentTierHistory;
 use App\Models\AgentTierRule;
 use App\Services\AgentTierService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class AgentTierServiceTest extends TestCase

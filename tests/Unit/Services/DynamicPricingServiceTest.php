@@ -6,7 +6,7 @@ use App\Models\DynamicPricingRule;
 use App\Models\PricingPlan;
 use App\Models\PricingTier;
 use App\Services\DynamicPricingService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 

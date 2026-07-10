@@ -7,7 +7,7 @@ use App\Models\DataProcessingAgreement;
 use App\Models\GdprDataRequest;
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 

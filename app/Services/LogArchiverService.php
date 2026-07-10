@@ -413,7 +413,7 @@ class LogArchiverService
         $totalLogs = AuditArchiveRecord::sum('archived_logs') ?? 0;
 
         $monthlyStats = AuditArchiveRecord::selectRaw(
-            "DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count, SUM(file_size_bytes) as size, SUM(archived_logs) as logs"
+            db_date_format('created_at', '%Y-%m').' as month, COUNT(*) as count, SUM(file_size_bytes) as size, SUM(archived_logs) as logs'
         )->groupBy('month')->orderByDesc('month')->limit(12)->get();
 
         return [

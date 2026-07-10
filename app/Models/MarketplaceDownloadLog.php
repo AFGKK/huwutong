@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperMarketplaceDownloadLog
+ */
 class MarketplaceDownloadLog extends Model
 {
     protected $table = 'marketplace_download_logs';

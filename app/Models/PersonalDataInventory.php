@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
  * 个人信息分类分级清单 (PIPL)
  *
  * 记录每个字段的分类（一般/敏感/私密）和分级（L1-L4）
+ *
+ * @mixin IdeHelperPersonalDataInventory
  */
 class PersonalDataInventory extends Model
 {

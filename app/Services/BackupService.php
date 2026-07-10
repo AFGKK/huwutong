@@ -26,11 +26,13 @@ class BackupService
     {
         $this->acquireLock();
 
+        $connection = $this->resolveDatabaseConnection();
+
         $record = BackupRecord::create([
             'name' => $customName ?? 'db_backup_' . now()->format('Y-m-d_Hi'),
             'type' => 'database',
             'status' => 'running',
-            'database' => config('database.connections.mysql.database'),
+            'database' => $connection['database'],
             'excluded_tables' => config('backup.database.exclude_tables', []),
         ]);
 
@@ -38,20 +40,28 @@ class BackupService
 
         try {
             $config = config('backup.database');
-            $connection = config('database.connections.mysql');
 
             $host = $connection['host'];
-            $port = $connection['port'] ?? 3306;
+            $port = $connection['port'];
             $db = $connection['database'];
             $user = $connection['username'];
             $pass = $connection['password'];
+            $driver = $connection['driver'];
 
             // 排除表
             $excludeTables = $config['exclude_tables'] ?? [];
             $ignoreArgs = '';
-            foreach ($excludeTables as $table) {
-                if (! empty($table)) {
-                    $ignoreArgs .= " --ignore-table={$db}.{$table}";
+            if ($driver === 'pgsql') {
+                foreach ($excludeTables as $table) {
+                    if (! empty($table)) {
+                        $ignoreArgs .= ' --exclude-table='.escapeshellarg($table);
+                    }
+                }
+            } else {
+                foreach ($excludeTables as $table) {
+                    if (! empty($table)) {
+                        $ignoreArgs .= " --ignore-table={$db}.{$table}";
+                    }
                 }
             }
 
@@ -69,26 +79,46 @@ class BackupService
                 mkdir($backupDir, 0755, true);
             }
 
-            // 构建 mysqldump 命令
-            $cmd = sprintf(
-                '%s --host=%s --port=%s --user=%s --password=%s %s --single-transaction --quick --skip-lock-tables %s | gzip -%d > %s',
-                escapeshellcmd($config['mysqldump_path']),
-                escapeshellarg($host),
-                escapeshellarg($port),
-                escapeshellarg($user),
-                escapeshellarg($pass),
-                escapeshellarg($db),
-                $ignoreArgs,
-                $compress,
-                escapeshellarg($tempPath)
-            );
+            if ($driver === 'pgsql') {
+                $pgDump = escapeshellcmd($config['pg_dump_path'] ?? 'pg_dump');
+                $cmd = sprintf(
+                    '%s --host=%s --port=%s --username=%s --dbname=%s --no-owner --no-acl %s | gzip -%d > %s',
+                    $pgDump,
+                    escapeshellarg($host),
+                    escapeshellarg((string) $port),
+                    escapeshellarg($user),
+                    escapeshellarg($db),
+                    $ignoreArgs,
+                    $compress,
+                    escapeshellarg($tempPath)
+                );
+                $failMessage = 'pg_dump 执行失败';
+                putenv('PGPASSWORD='.$pass);
+            } else {
+                $cmd = sprintf(
+                    '%s --host=%s --port=%s --user=%s --password=%s %s --single-transaction --quick --skip-lock-tables %s | gzip -%d > %s',
+                    escapeshellcmd($config['mysqldump_path']),
+                    escapeshellarg($host),
+                    escapeshellarg((string) $port),
+                    escapeshellarg($user),
+                    escapeshellarg($pass),
+                    escapeshellarg($db),
+                    $ignoreArgs,
+                    $compress,
+                    escapeshellarg($tempPath)
+                );
+                $failMessage = 'mysqldump 执行失败';
+            }
 
             $output = [];
             $returnCode = 0;
             exec($cmd, $output, $returnCode);
+            if ($driver === 'pgsql') {
+                putenv('PGPASSWORD');
+            }
 
             if ($returnCode !== 0) {
-                throw new \RuntimeException('mysqldump 执行失败: ' . implode("\n", $output));
+                throw new \RuntimeException($failMessage.': '.implode("\n", $output));
             }
 
             if (! file_exists($tempPath)) {
@@ -379,30 +409,50 @@ class BackupService
             throw new \RuntimeException('备份文件不存在');
         }
 
-        $connection = config('database.connections.mysql');
+        $connection = $this->resolveDatabaseConnection();
+        $config = config('backup.database');
         $host = $connection['host'];
-        $port = $connection['port'] ?? 3306;
+        $port = $connection['port'];
         $db = $connection['database'];
         $user = $connection['username'];
         $pass = $connection['password'];
+        $driver = $connection['driver'];
 
-        // 解压并导入
-        $cmd = sprintf(
-            'gunzip -c %s | mysql --host=%s --port=%s --user=%s --password=%s %s',
-            escapeshellarg($filePath),
-            escapeshellarg($host),
-            escapeshellarg($port),
-            escapeshellarg($user),
-            escapeshellarg($pass),
-            escapeshellarg($db)
-        );
+        if ($driver === 'pgsql') {
+            $psql = escapeshellcmd($config['psql_path'] ?? 'psql');
+            $cmd = sprintf(
+                'gunzip -c %s | %s --host=%s --port=%s --username=%s --dbname=%s',
+                escapeshellarg($filePath),
+                $psql,
+                escapeshellarg($host),
+                escapeshellarg((string) $port),
+                escapeshellarg($user),
+                escapeshellarg($db)
+            );
+            $failMessage = 'PostgreSQL 数据库恢复失败';
+            putenv('PGPASSWORD='.$pass);
+        } else {
+            $cmd = sprintf(
+                'gunzip -c %s | mysql --host=%s --port=%s --user=%s --password=%s %s',
+                escapeshellarg($filePath),
+                escapeshellarg($host),
+                escapeshellarg((string) $port),
+                escapeshellarg($user),
+                escapeshellarg($pass),
+                escapeshellarg($db)
+            );
+            $failMessage = '数据库恢复失败';
+        }
 
         $output = [];
         $returnCode = 0;
         exec($cmd, $output, $returnCode);
+        if ($driver === 'pgsql') {
+            putenv('PGPASSWORD');
+        }
 
         if ($returnCode !== 0) {
-            throw new \RuntimeException('数据库恢复失败: ' . implode("\n", $output));
+            throw new \RuntimeException($failMessage.': '.implode("\n", $output));
         }
 
         Log::warning('数据库已从备份恢复', [
@@ -555,5 +605,25 @@ class BackupService
             $i++;
         }
         return round($bytes, 2) . ' ' . $units[$i];
+    }
+
+    /**
+     * @return array{name: string, driver: string, host: string, port: int|string, database: string, username: string, password: string}
+     */
+    protected function resolveDatabaseConnection(): array
+    {
+        $name = (string) config('database.default', 'mysql');
+        $connection = config("database.connections.{$name}", []);
+        $driver = $connection['driver'] ?? 'mysql';
+
+        return [
+            'name' => $name,
+            'driver' => $driver,
+            'host' => $connection['host'] ?? '127.0.0.1',
+            'port' => $connection['port'] ?? ($driver === 'pgsql' ? 5432 : 3306),
+            'database' => $connection['database'] ?? '',
+            'username' => $connection['username'] ?? '',
+            'password' => $connection['password'] ?? '',
+        ];
     }
 }

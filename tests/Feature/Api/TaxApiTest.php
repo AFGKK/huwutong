@@ -6,7 +6,7 @@ use App\Models\TaxExemptCertificate;
 use App\Models\TaxRate;
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class TaxApiTest extends TestCase
@@ -110,7 +110,7 @@ class TaxApiTest extends TestCase
         ], $this->authHeaders());
 
         $response->assertStatus(200);
-        $response->assertJsonPath('data.rate', 0.15);
+        $this->assertEquals(0.15, (float) $response->json('data.rate'));
         $response->assertJsonPath('data.is_active', false);
     }
 

@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
  * 数据导出任务记录 (M2-139)
  *
  * 记录每个导出/匿名化任务的执行情况。
+ *
+ * @mixin IdeHelperDataExportTask
  */
 class DataExportTask extends Model
 {

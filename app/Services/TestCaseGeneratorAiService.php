@@ -139,13 +139,14 @@ class TestCaseGeneratorAiService
         $method = strtolower($endpoint->method);
         $path = $endpoint->path;
         $testName = "test_{$method}_" . $this->pathToName($path);
+        $testDesc = $endpoint->summary ?: "{$endpoint->method} {$endpoint->path}";
 
         $phpTest = <<<PHP
 <?php
 
 uses(Tests\TestCase::class);
 
-it('{$endpoint->summary ?: "{$endpoint->method} {$endpoint->path}"}', function () {
+it('{$testDesc}', function () {
     \$response = \$this->{$method}Json('{$path}', [
         // 请根据实际参数填充
     ]);

@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperAlertIntegration
+ */
 class AlertIntegration extends Model
 {
     protected $table = 'alert_integrations';

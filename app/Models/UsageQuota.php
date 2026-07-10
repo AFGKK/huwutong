@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * 用量配额
  *
  * 定义 License/产品维度的用量上限，支持不同时间窗（总/日/月）和超额策略。
+ *
+ * @mixin IdeHelperUsageQuota
  */
 class UsageQuota extends Model
 {

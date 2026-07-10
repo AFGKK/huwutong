@@ -247,10 +247,10 @@ class TemporalWorkflowService
                     ->where('status', 'failed')->count(),
             ],
             'by_workflow' => WorkflowInstance::selectRaw(
-                'workflow_name, COUNT(*) as total, 
-                 SUM(CASE WHEN status = "running" THEN 1 ELSE 0 END) as running,
-                 SUM(CASE WHEN status = "failed" THEN 1 ELSE 0 END) as failed,
-                 SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed'
+                "workflow_name, COUNT(*) as total, 
+                 SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) as running,
+                 SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+                 SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed"
             )->groupBy('workflow_name')->get(),
             'recent_failures' => WorkflowInstance::where('status', 'failed')
                 ->orderBy('updated_at', 'desc')
@@ -268,10 +268,10 @@ class TemporalWorkflowService
         $since = now()->subDays($days)->startOfDay();
 
         $daily = WorkflowInstance::selectRaw(
-            'DATE(created_at) as date, 
+            "DATE(created_at) as date, 
              COUNT(*) as total,
-             SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed,
-             SUM(CASE WHEN status = "failed" THEN 1 ELSE 0 END) as failed'
+             SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+             SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed"
         )->where('created_at', '>=', $since)
             ->groupBy('date')
             ->orderBy('date')

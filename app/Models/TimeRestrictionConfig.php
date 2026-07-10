@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * - 时区感知
  * - 宽限机制
  * - IP 白名单例外
+ *
+ * @mixin IdeHelperTimeRestrictionConfig
  */
 class TimeRestrictionConfig extends Model
 {

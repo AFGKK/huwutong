@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperApiSdkConfig
+ */
 class ApiSdkConfig extends Model
 {
     protected $table = 'api_sdk_configs';

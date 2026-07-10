@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * M2-129 增强：members 含 invited_via/permissions/joined_at 字段。
  * 角色体系：admin(管理员) / finance(财务) / developer(开发者) / readonly(只读)
+ *
+ * @mixin IdeHelperTenantMember
  */
 class TenantMember extends Model
 {

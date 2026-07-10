@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * 批量操作快照（用于撤销回滚）
+ *
+ * @mixin IdeHelperBatchSnapshot
  */
 class BatchSnapshot extends Model
 {

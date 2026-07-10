@@ -9,7 +9,7 @@ use App\Models\RevenueRecognitionSchedule;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Services\RevenueRecognitionService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class RevenueRecognitionServiceTest extends TestCase
@@ -246,9 +246,9 @@ class RevenueRecognitionServiceTest extends TestCase
 
         $schedule = $this->service->createSchedule($invoice);
 
-        // 确认几期
-        $this->service->processRecognition(now()->addMonths(1));
-        $this->assertEquals(200, (float) $schedule->fresh()->recognized_amount); // 2 periods * ~100
+        // 确认第一期
+        $this->service->processRecognition(\Carbon\Carbon::parse($invoice->paid_at));
+        $this->assertEquals(200, (float) $schedule->fresh()->recognized_amount);
 
         // 重算
         $recomputed = $this->service->recomputeSchedule($schedule->id);
@@ -260,6 +260,7 @@ class RevenueRecognitionServiceTest extends TestCase
     public function it_exports_asc606_csv(): void
     {
         $this->service->createSchedule($this->invoice);
+        $this->service->processRecognition(now());
 
         $csv = $this->service->exportASC606Csv(
             $this->tenant->id,

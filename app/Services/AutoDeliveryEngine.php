@@ -128,6 +128,7 @@ class AutoDeliveryEngine
                 'tenant_id' => $order->tenant_id,
                 'customer_id' => $order->customer_id,
                 'product_id' => $productId,
+                'sku_id' => $sku?->id,
                 'license_key' => $licenseKey,
                 'type' => $sku?->item_type ?? 'standard',
                 'status' => 'active',

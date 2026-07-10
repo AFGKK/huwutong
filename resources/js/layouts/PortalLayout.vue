@@ -15,7 +15,10 @@
                 <div class="brand">
                     <img v-if="branding.logo_url" :src="branding.logo_url" alt="Logo" class="brand-logo-img" />
                     <el-icon v-else :size="28" :color="branding.primary_color || '#409eff'" aria-hidden="true"><Key /></el-icon>
-                    <span class="brand-text" v-if="!sidebarCollapsed">{{ branding.brand_name || '互物通 客户门户' }}</span>
+                    <div v-if="!sidebarCollapsed" class="brand-text-wrap">
+                        <span class="brand-text">{{ branding.brand_name || '互物通 客户门户' }}</span>
+                        <span v-if="branding.brand_slogan" class="brand-slogan">{{ branding.brand_slogan }}</span>
+                    </div>
                 </div>
             </div>
             <div class="header-right">
@@ -112,6 +115,10 @@
                         <el-icon><TrendCharts /></el-icon>
                         <template #title>用量统计</template>
                     </el-menu-item>
+                    <el-menu-item index="/portal/analytics">
+                        <el-icon><DataAnalysis /></el-icon>
+                        <template #title>分析仪表盘</template>
+                    </el-menu-item>
                     <el-menu-item index="/portal/license-health">
                         <el-icon><CircleCheck /></el-icon>
                         <template #title>健康评分</template>
@@ -177,6 +184,9 @@
                         <template #title>API Keys</template>
                     </el-menu-item>
                 </el-menu>
+                <div v-if="branding.links.length" class="sidebar-links">
+                    <a v-for="link in branding.links" :key="link.url" :href="link.url" class="sidebar-link" target="_blank">{{ link.label }}</a>
+                </div>
             </aside>
 
             <!-- 移动端侧栏遮罩 -->
@@ -195,6 +205,18 @@
                 </div>
             </main>
         </div>
+        <!-- 门户底部 -->
+        <footer class="portal-footer" v-if="branding.footer_text || branding.social_links.length">
+            <div class="footer-inner">
+                <div v-if="branding.social_links.length" class="footer-social">
+                    <a v-for="s in branding.social_links" :key="s.url" :href="s.url" target="_blank" class="social-link" :title="s.label">
+                        <img v-if="s.icon" :src="s.icon" class="social-icon" />
+                        <span v-else>{{ s.label }}</span>
+                    </a>
+                </div>
+                <span v-if="branding.footer_text" class="footer-text">{{ branding.footer_text }}</span>
+            </div>
+        </footer>
     </div>
 </template>
 
@@ -232,6 +254,10 @@ const branding = reactive({
     sidebar_bg_color: '#304156',
     sidebar_text_color: '#bfcbd9',
     logo_url: '',
+    brand_slogan: '',
+    footer_text: '',
+    links: [],
+    social_links: [],
 });
 
 const portalStyle = computed(() => ({
@@ -280,6 +306,10 @@ async function loadBranding() {
             branding.sidebar_bg_color = config.sidebar_bg_color || '#304156';
             branding.sidebar_text_color = config.sidebar_text_color || '#bfcbd9';
             branding.logo_url = config.logo_url || '';
+            branding.brand_slogan = config.brand_slogan || '';
+            branding.footer_text = config.footer_text || '';
+            branding.links = config.links || [];
+            branding.social_links = config.social_links || [];
 
             // 更新页面标题
             if (config.brand_name) {
@@ -372,6 +402,20 @@ onMounted(() => {
     font-weight: 600;
     color: var(--brand-text, #303133);
 }
+.brand-text-wrap { display: flex; flex-direction: column; line-height: 1.3; }
+.brand-slogan { font-size: 11px; color: #999; font-weight: 400; }
+
+.sidebar-links { padding: 8px 12px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 8px; }
+.sidebar-link { display: block; padding: 4px 8px; font-size: 12px; color: var(--brand-sidebar-text, #bfcbd9); text-decoration: none; border-radius: 4px; transition: all 0.2s; }
+.sidebar-link:hover { color: var(--brand-primary, #409eff); background: rgba(255,255,255,0.05); }
+
+.portal-footer { border-top: 1px solid #e4e7ed; padding: 16px 24px; }
+.footer-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.footer-social { display: flex; align-items: center; gap: 12px; }
+.social-link { color: #909399; text-decoration: none; font-size: 13px; transition: color 0.2s; }
+.social-link:hover { color: var(--brand-primary, #409eff); }
+.social-icon { width: 20px; height: 20px; }
+.footer-text { font-size: 12px; color: #c0c4cc; }
 
 .header-right {
     display: flex;

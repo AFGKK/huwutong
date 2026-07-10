@@ -7,7 +7,7 @@ use App\Models\Invoice;
 use App\Models\License;
 use App\Models\CustomerDataExport;
 use App\Services\CustomerDataExportService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class CustomerDataExportServiceTest extends TestCase

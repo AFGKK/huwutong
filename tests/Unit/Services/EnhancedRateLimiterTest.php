@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Services\EnhancedRateLimiter;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 

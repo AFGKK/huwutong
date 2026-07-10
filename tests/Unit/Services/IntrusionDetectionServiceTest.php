@@ -8,7 +8,7 @@ use App\Models\SecurityEvent;
 use App\Models\Tenant;
 use App\Services\IntrusionDetectionService;
 use App\Services\SecurityCenterService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class IntrusionDetectionServiceTest extends TestCase

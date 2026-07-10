@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperLegalConsent
+ */
 class LegalConsent extends Model
 {
     protected $fillable = [

@@ -4,7 +4,7 @@ namespace Tests\Feature\Http\Controllers\Api;
 
 use App\Models\AnnounceBanner;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class AnnounceBannerControllerTest extends TestCase
@@ -97,7 +97,7 @@ class AnnounceBannerControllerTest extends TestCase
         $response = $this->actingAs($this->admin)->postJson('/api/announce-banners', []);
 
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['title']);
+        $this->assertArrayHasKey('title', $response->json('error.details') ?? []);
     }
 
     public function test_show_returns_banner()

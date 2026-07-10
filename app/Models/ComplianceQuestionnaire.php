@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * 存储 SOC2/ISO27001 预填审计问卷的问题模板和客户响应。
  *
  * @m3-69 CompliancePack
+ * @mixin IdeHelperComplianceQuestionnaire
  */
 class ComplianceQuestionnaire extends Model
 {
@@ -46,6 +47,8 @@ class ComplianceQuestionnaire extends Model
 
 /**
  * 问卷响应
+ *
+ * @mixin IdeHelperComplianceQuestionnaireResponse
  */
 class ComplianceQuestionnaireResponse extends Model
 {

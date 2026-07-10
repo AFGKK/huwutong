@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @mixin IdeHelperAgentGroup
+ */
 class AgentGroup extends Model
 {
     protected $fillable = ['name', 'description', 'color', 'sort_order', 'is_active'];

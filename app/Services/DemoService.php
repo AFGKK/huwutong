@@ -293,7 +293,7 @@ class DemoService
         }
 
         // 浏览器分布
-        $browsers = DemoSession::selectRaw('SUBSTRING_INDEX(user_agent, " ", 1) as browser, COUNT(*) as count')
+        $browsers = DemoSession::selectRaw(db_substring_index('user_agent', ' ', 1).' as browser, COUNT(*) as count')
             ->whereNotNull('user_agent')
             ->groupBy('browser')
             ->orderBy('count', 'desc')

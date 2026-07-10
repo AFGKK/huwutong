@@ -7,6 +7,7 @@ use App\Models\License;
 use App\Models\LicenseAnalyticsEvent;
 use App\Models\Product;
 use App\Models\UsageAggregate;
+use App\Support\DbSql;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -389,11 +390,7 @@ class ProductAnalyticsService
      */
     protected function dateFormatMonth(string $column): string
     {
-        $driver = DB::connection()->getDriverName();
-        if ($driver === 'sqlite') {
-            return "strftime('%Y-%m', {$column})";
-        }
-        return "DATE_FORMAT({$column}, '%Y-%m')";
+        return DbSql::dateFormat($column, '%Y-%m');
     }
 
     /**

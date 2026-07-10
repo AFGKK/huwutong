@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperFriendGroup
+ */
 class FriendGroup extends Model
 {
     protected $fillable = ['user_id', 'name', 'sort_order'];

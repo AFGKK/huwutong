@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperRegionalComplianceLog
+ */
 class RegionalComplianceLog extends Model
 {
     protected $table = 'regional_compliance_logs';

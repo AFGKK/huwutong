@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperMonthlyRevenueSnapshot
+ */
 class MonthlyRevenueSnapshot extends Model
 {
     protected $fillable = [

@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * 代理/分销商
  *
  * 一个用户最多可成为一个代理。代理拥有多个下级客户和推广链接。
+ *
+ * @mixin IdeHelperAgent
  */
 class Agent extends Model
 {

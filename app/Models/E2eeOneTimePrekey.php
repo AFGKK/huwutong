@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperE2eeOneTimePrekey
+ */
 class E2eeOneTimePrekey extends Model
 {
     protected $fillable = ['user_id', 'key_id', 'public_key', 'is_used', 'used_at'];

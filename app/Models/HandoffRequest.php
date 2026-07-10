@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * 支持两种来源：
  * - AI客服对话 (conversation_id → rag_conversations)
  * - 在线客服对话 (live_chat_conversation_id → live_chat_conversations)
+ *
+ * @mixin IdeHelperHandoffRequest
  */
 class HandoffRequest extends Model
 {

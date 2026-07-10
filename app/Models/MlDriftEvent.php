@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperMlDriftEvent
+ */
 class MlDriftEvent extends Model
 {
     protected $table = 'ml_drift_events';

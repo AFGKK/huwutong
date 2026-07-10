@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
  * 开发者认证权益模型 (M3-58)
  *
  * 每个认证等级关联的权益
+ *
+ * @mixin IdeHelperCertificationBenefit
  */
 class CertificationBenefit extends Model
 {

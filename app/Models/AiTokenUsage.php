@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/**
+ * @mixin IdeHelperAiTokenUsage
+ */
 class AiTokenUsage extends Model
 {
     protected $table = 'ai_token_usages';

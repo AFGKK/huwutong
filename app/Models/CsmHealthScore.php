@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperCsmHealthScore
+ */
 class CsmHealthScore extends Model
 {
     protected $table = 'csm_health_scores';

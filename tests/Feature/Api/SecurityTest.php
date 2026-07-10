@@ -11,7 +11,7 @@ use Database\Factories\LicenseFactory;
 use Database\Factories\ProductFactory;
 use Database\Factories\TenantFactory;
 use Database\Factories\UserFactory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\Concerns\LicenseActivationHelpers;
 use Tests\TestCase;
@@ -72,6 +72,9 @@ class SecurityTest extends TestCase
         $this->userB = User::factory()->create([
             'tenant_id' => $this->tenantB->id,
         ]);
+
+        $this->activationTenantId = $this->tenantA->id;
+        $this->activationProductId = $this->product->id;
     }
 
     // =====================================================
@@ -85,7 +88,10 @@ class SecurityTest extends TestCase
         $secret = 'secret-a-12345';
         $nonce = '550e8400-e29b-41d4-a716-111111111111';
         $timestamp = (string) time();
-        $body = ['license_key' => $licenseKey, 'fingerprint' => 'fp-replay-test'];
+        $body = $this->activationBody([
+            'license_key' => $licenseKey,
+            'fingerprint' => 'fp-replay-test',
+        ]);
 
         $headers = $this->fixedActivationHeaders('POST', '/api/license/activate', $body, $secret, $nonce, $timestamp);
 
@@ -485,10 +491,10 @@ class SecurityTest extends TestCase
     public function test_idempotency_prevents_duplicate_activation(): void
     {
         $secret = 'secret-a-12345';
-        $body = [
+        $body = $this->activationBody([
             'license_key' => $this->licenseA->license_key,
             'fingerprint' => 'fp-idempotent-safe',
-        ];
+        ]);
 
         $idempotencyKey = 'test-idemp-key-' . uniqid();
 

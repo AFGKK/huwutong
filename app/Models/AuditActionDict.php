@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperAuditActionDict
+ */
 class AuditActionDict extends Model
 {
     protected $table = 'audit_action_dict';

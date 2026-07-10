@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * M2-73 审计归档取回请求
+ *
+ * @mixin IdeHelperAuditArchiveRestoreRequest
  */
 class AuditArchiveRestoreRequest extends Model
 {

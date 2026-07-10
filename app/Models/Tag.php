@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
+/**
+ * @mixin IdeHelperTag
+ */
 class Tag extends Model
 {
     use HasFactory, SoftDeletes;

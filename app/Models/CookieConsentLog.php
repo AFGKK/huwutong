@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin IdeHelperCookieConsentLog
+ */
 class CookieConsentLog extends Model
 {
     protected $table = 'cookie_consent_logs';

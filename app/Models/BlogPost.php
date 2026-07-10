@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
+/**
+ * @mixin IdeHelperBlogPost
+ */
 class BlogPost extends Model
 {
     use SoftDeletes;

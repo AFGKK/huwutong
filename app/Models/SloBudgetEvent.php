@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperSloBudgetEvent
+ */
 class SloBudgetEvent extends Model
 {
     public $timestamps = false;

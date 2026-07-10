@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperIsolationAuditLog
+ */
 class IsolationAuditLog extends Model
 {
     protected $table = 'isolation_audit_logs';

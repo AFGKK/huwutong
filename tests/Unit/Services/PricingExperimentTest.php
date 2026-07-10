@@ -9,7 +9,7 @@ use App\Models\PricingExperimentParticipant;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\DynamicPricingService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class PricingExperimentTest extends TestCase
@@ -380,6 +380,11 @@ class PricingExperimentTest extends TestCase
         PricingExperiment::factory()->count(3)->create([
             'tenant_id' => $this->tenant->id,
             'status' => 'completed',
+            'results' => [
+                'significance' => ['significant' => true],
+                'treatment' => ['conversion_rate' => 0.12, 'avg_revenue' => 120],
+                'control' => ['conversion_rate' => 0.10, 'avg_revenue' => 100],
+            ],
         ]);
 
         $result = $this->service->generateExperimentRecommendations($this->tenant->id);

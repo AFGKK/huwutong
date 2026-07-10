@@ -46,22 +46,30 @@ export default defineConfig(({ mode }) => {
         },
         build: {
             chunkSizeWarningLimit: 1000,
+            target: 'es2020',
+            cssMinify: 'esbuild',
+            minify: 'esbuild',
             rollupOptions: {
                 output: {
                     manualChunks(id) {
                         if (id.includes('node_modules')) {
-                            // 拆分大 vendor 包
                             if (id.includes('element-plus') || id.includes('element-plus')) {
                                 return 'vendor-element';
                             }
                             if (id.includes('echarts') || id.includes('zrender')) {
                                 return 'vendor-echarts';
                             }
-                            if (id.includes('vue') && id.includes('router')) {
+                            if (id.includes('tiptap') || id.includes('prosemirror')) {
+                                return 'vendor-editor';
+                            }
+                            if ((id.includes('vue') && id.includes('router')) || id.includes('pinia')) {
                                 return 'vendor-vue';
                             }
                             if (id.includes('@vueuse')) {
                                 return 'vendor-vueuse';
+                            }
+                            if (id.includes('xlsx') || id.includes('excel')) {
+                                return 'vendor-xlsx';
                             }
                             return 'vendor';
                         }

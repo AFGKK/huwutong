@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @mixin IdeHelperAgentGroupMember
+ */
 class AgentGroupMember extends Model
 {
     protected $fillable = ['group_id', 'user_id', 'role'];

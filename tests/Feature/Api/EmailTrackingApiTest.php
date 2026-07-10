@@ -5,7 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\EmailLog;
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class EmailTrackingApiTest extends TestCase

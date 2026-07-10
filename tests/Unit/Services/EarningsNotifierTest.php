@@ -13,7 +13,7 @@ use App\Models\User;
 use App\Services\EarningsNotifier;
 use App\Services\NotificationService;
 use App\Services\MultiChannelNotifier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;

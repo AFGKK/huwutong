@@ -7,7 +7,7 @@ use App\Models\CrossBorderPayment;
 use App\Models\CurrencyConversionLog;
 use App\Models\Tenant;
 use App\Services\CrossBorderService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
 class CrossBorderServiceTest extends TestCase

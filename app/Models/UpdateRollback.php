@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * M2-15 更新回滚记录
+ *
+ * @mixin IdeHelperUpdateRollback
  */
 class UpdateRollback extends Model
 {

@@ -189,8 +189,8 @@ class PaymentService
         $trends = Payment::select(
             DB::raw('DATE(created_at) as date'),
             DB::raw('COUNT(*) as total'),
-            DB::raw('SUM(CASE WHEN status = "completed" THEN amount ELSE 0 END) as revenue'),
-            DB::raw('COUNT(CASE WHEN status = "completed" THEN 1 END) as completed_count')
+            DB::raw('SUM(CASE WHEN status = \'completed\' THEN amount ELSE 0 END) as revenue'),
+            DB::raw('COUNT(CASE WHEN status = \'completed\' THEN 1 END) as completed_count')
         )
             ->where('created_at', '>=', $start)
             ->groupBy(DB::raw('DATE(created_at)'))

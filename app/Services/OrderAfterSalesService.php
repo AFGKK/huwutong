@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Ticket;
 use App\Models\TicketReply;
 use App\Models\User;
+use App\Support\DbSql;
 use App\Services\TicketService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -237,12 +238,12 @@ class OrderAfterSalesService
             'open' => (clone $query)->whereIn('status', ['open', 'in_progress'])->count(),
             'resolved' => (clone $query)->where('status', 'resolved')->count(),
             'closed' => (clone $query)->where('status', 'closed')->count(),
-            'by_reason' => (clone $query)->selectRaw("metadata->>'$.reason' as reason, COUNT(*) as count")
+            'by_reason' => (clone $query)->selectRaw(DbSql::jsonExtract('metadata', 'reason').' as reason, COUNT(*) as count')
                 ->groupBy('reason')->pluck('count', 'reason')->toArray(),
             'by_priority' => (clone $query)->selectRaw('priority, COUNT(*) as count')
                 ->groupBy('priority')->pluck('count', 'priority')->toArray(),
             'avg_response_time' => (clone $query)->whereNotNull('first_response_at')
-                ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, first_response_at)) as avg_mins')
+                ->selectRaw('AVG('.DbSql::timestampDiff('MINUTE', 'created_at', 'first_response_at').') as avg_mins')
                 ->value('avg_mins'),
         ];
     }
