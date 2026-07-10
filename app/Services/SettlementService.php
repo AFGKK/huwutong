@@ -117,7 +117,10 @@ class SettlementService
      */
     public function createCycle(array $data): SettlementCycle
     {
-        return SettlementCycle::create($data);
+        return SettlementCycle::create([
+            'status' => 'pending',
+            ...$data,
+        ]);
     }
 
     /**
