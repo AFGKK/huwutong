@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DeviceTrustController;
 use App\Http\Controllers\Api\MfaController;
 use App\Http\Controllers\Api\SSOController;
 use App\Http\Controllers\Api\LegalConsentController;
@@ -85,11 +86,11 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::post('/admin/sessions/terminate-user/{userId}', [AuthController::class, 'adminTerminateUserSessions'])->whereNumber('userId');
 
         // Device trust
-        Route::post('/devices/trust', [AuthController::class, 'trustDevice']);
-        Route::get('/devices/trusted', [AuthController::class, 'trustedDevices']);
-        Route::delete('/devices/trusted/{deviceId}', [AuthController::class, 'removeTrustedDevice'])->whereNumber('deviceId');
-        Route::delete('/devices/trusted', [AuthController::class, 'clearTrustedDevices']);
-        Route::post('/devices/check', [AuthController::class, 'checkDevice']);
+        Route::post('/devices/trust', [DeviceTrustController::class, 'trust']);
+        Route::get('/devices/trusted', [DeviceTrustController::class, 'index']);
+        Route::delete('/devices/trusted/{trustedDevice}', [DeviceTrustController::class, 'destroy'])->whereNumber('trustedDevice');
+        Route::delete('/devices/trusted', [DeviceTrustController::class, 'clearAll']);
+        Route::post('/devices/check', [DeviceTrustController::class, 'checkDevice']);
 
         // Password policy & account lock management
         Route::get('/password-policy/config', [PasswordPolicyController::class, 'getConfig']);

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\CrlController;
+use App\Http\Controllers\Api\FilePreviewController;
 use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\HeatmapController;
 use App\Http\Controllers\Api\HsmController;
@@ -795,3 +796,6 @@ Route::prefix('admin/sla-probes')->group(function () {
 Route::get('/admin/revoked-tokens', [TokenController::class, 'adminRevokedTokens']);
 Route::post('/admin/tokens/{tokenId}/revoke', [TokenController::class, 'adminRevokeToken'])->whereNumber('tokenId');
 Route::post('/admin/users/{userId}/tokens/revoke-all', [TokenController::class, 'adminRevokeUserTokens'])->whereNumber('userId');
+
+// ── 文件预览 ──
+Route::post('/files/preview', [FilePreviewController::class, 'preview']);

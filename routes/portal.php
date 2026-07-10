@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\TenantTeamController;
 use App\Http\Controllers\Api\TransferController;
 use App\Http\Controllers\Api\WithdrawalController;
 use App\Http\Controllers\Api\CustomerAnalyticsController;
+use App\Http\Controllers\Api\Portal\LicenseHealthController;
 use Illuminate\Support\Facades\Route;
 
 // ========================
@@ -173,6 +174,11 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::get('/billing/payment-methods', [PaymentMethodController::class, 'index']);
     Route::post('/billing/payment-methods', [PaymentMethodController::class, 'store']);
     Route::delete('/billing/payment-methods/{id}', [PaymentMethodController::class, 'destroy'])->whereNumber('id');
+
+    // ── License 健康评分 ──
+    Route::get('/portal/license-health/dashboard', [LicenseHealthController::class, 'dashboard']);
+    Route::get('/portal/license-health', [LicenseHealthController::class, 'index']);
+    Route::get('/portal/license-health/{licenseId}', [LicenseHealthController::class, 'show'])->whereNumber('licenseId');
 
     // ── 客户自助分析仪表盘 ──
     Route::prefix('/analytics')->group(function () {

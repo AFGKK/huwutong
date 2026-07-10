@@ -44,9 +44,9 @@ class ImChatTest extends TestCase
         return ['Authorization' => 'Bearer ' . $token];
     }
 
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
-    // 1. 浼氳瘽绠＄悊
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+    // ─────────────────────────────────────────
+    // 1. 会话管理
+    // ─────────────────────────────────────────
 
     /** @test */
     public function create_conversation_requires_participants()
@@ -152,20 +152,20 @@ class ImChatTest extends TestCase
         $r->assertStatus(200)->assertJsonPath('success', true);
     }
 
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
-    // 2. 鏂囦欢浼犺緭鍔╂墜
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+    // ─────────────────────────────────────────
+    // 2. 文件传输助手
+    // ─────────────────────────────────────────
 
     /** @test */
     public function user_can_create_self_conversation()
     {
         $r = $this->postJson('/api/user-chat/self-conversation', [], $this->headers($this->tokenA));
-        $this->assertContains($r->status(), [200, 500]); // 渚濊禆 user_conversations.deleted_at 鍒?
+        $this->assertContains($r->status(), [200, 500]); // 依赖 user_conversations.deleted_at 列
     }
 
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
-    // 3. 濂藉弸绯荤粺
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+    // ─────────────────────────────────────────
+    // 3. 好友系统
+    // ─────────────────────────────────────────
 
     /** @test */
     public function send_friend_request()
@@ -253,9 +253,9 @@ class ImChatTest extends TestCase
         }
     }
 
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
-    // 4. 娑堟伅鎿嶄綔
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+    // ─────────────────────────────────────────
+    // 4. 消息操作
+    // ─────────────────────────────────────────
 
     private function setupFriendsAndConversation(): int
     {
@@ -271,10 +271,10 @@ class ImChatTest extends TestCase
     {
         Event::fake();
         $cid = $this->setupFriendsAndConversation();
-        $r = $this->postJson("/api/user-chat/conversations/{$cid}/messages", ['content' => '浣犲ソ', 'message_type' => 'text'], $this->headers($this->tokenA));
+        $r = $this->postJson("/api/user-chat/conversations/{$cid}/messages", ['content' => '你好', 'message_type' => 'text'], $this->headers($this->tokenA));
         $this->assertContains($r->status(), [200, 201]);
         $r->assertJsonPath('success', true);
-        $this->assertDatabaseHas('conversation_messages', ['conversation_id' => $cid, 'sender_id' => $this->userA->id, 'content' => '浣犲ソ']);
+        $this->assertDatabaseHas('conversation_messages', ['conversation_id' => $cid, 'sender_id' => $this->userA->id, 'content' => '你好']);
     }
 
     /** @test */
@@ -292,7 +292,7 @@ class ImChatTest extends TestCase
     {
         Event::fake();
         $cid = $this->setupFriendsAndConversation();
-        $msg = ConversationMessage::create(['conversation_id' => $cid, 'sender_id' => $this->userA->id, 'message_type' => 'text', 'content' => '鎾ゅ洖']);
+        $msg = ConversationMessage::create(['conversation_id' => $cid, 'sender_id' => $this->userA->id, 'message_type' => 'text', 'content' => '撤回']);
         $r = $this->postJson("/api/user-chat/messages/{$msg->id}/recall", [], $this->headers($this->tokenA));
         $r->assertStatus(200);
         $this->assertDatabaseHas('conversation_messages', ['id' => $msg->id, 'is_recalled' => true]);
@@ -324,12 +324,12 @@ class ImChatTest extends TestCase
     public function add_reaction()
     {
         $cid = $this->setupFriendsAndConversation();
-        $msg = ConversationMessage::create(['conversation_id' => $cid, 'sender_id' => $this->userA->id, 'message_type' => 'text', 'content' => '娑堟伅']);
-        $r = $this->postJson("/api/user-chat/messages/{$msg->id}/reactions", ['reaction' => '馃憤'], $this->headers($this->tokenB));
+        $msg = ConversationMessage::create(['conversation_id' => $cid, 'sender_id' => $this->userA->id, 'message_type' => 'text', 'content' => '消息']);
+        $r = $this->postJson("/api/user-chat/messages/{$msg->id}/reactions", ['reaction' => '👍'], $this->headers($this->tokenB));
         // Could be 200, 201, or 500 (Pusher error in test env)
         $this->assertTrue(in_array($r->status(), [200, 201, 500]), 'Status was: ' . $r->status() . ' body: ' . substr($r->getContent(), 0, 200));
         if ($r->status() < 500) {
-            $this->assertDatabaseHas('message_reactions', ['message_id' => $msg->id, 'user_id' => $this->userB->id, 'reaction' => '馃憤']);
+            $this->assertDatabaseHas('message_reactions', ['message_id' => $msg->id, 'user_id' => $this->userB->id, 'reaction' => '👍']);
         }
     }
 
@@ -345,7 +345,7 @@ class ImChatTest extends TestCase
     public function favorite_message()
     {
         $cid = $this->setupFriendsAndConversation();
-        $msg = ConversationMessage::create(['conversation_id' => $cid, 'sender_id' => $this->userA->id, 'message_type' => 'text', 'content' => '鏀惰棌']);
+        $msg = ConversationMessage::create(['conversation_id' => $cid, 'sender_id' => $this->userA->id, 'message_type' => 'text', 'content' => '收藏']);
         $r = $this->postJson("/api/user-chat/messages/{$msg->id}/favorite", [], $this->headers($this->tokenB));
         $this->assertTrue(in_array($r->status(), [200, 201, 500]), 'Status was: ' . $r->status() . ' body: ' . substr($r->getContent(), 0, 200));
     }
@@ -354,7 +354,7 @@ class ImChatTest extends TestCase
     public function pin_message()
     {
         $cid = $this->setupFriendsAndConversation();
-        $msg = ConversationMessage::create(['conversation_id' => $cid, 'sender_id' => $this->userA->id, 'message_type' => 'text', 'content' => '缃《']);
+        $msg = ConversationMessage::create(['conversation_id' => $cid, 'sender_id' => $this->userA->id, 'message_type' => 'text', 'content' => '置顶']);
         $r = $this->postJson("/api/user-chat/messages/{$msg->id}/pin", [], $this->headers($this->tokenA));
         $r->assertStatus(200);
         $this->assertDatabaseHas('conversation_messages', ['id' => $msg->id, 'is_pinned' => true]);
@@ -363,9 +363,9 @@ class ImChatTest extends TestCase
         $this->assertDatabaseHas('conversation_messages', ['id' => $msg->id, 'is_pinned' => false]);
     }
 
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
-    // 5. 榛戝悕鍗?
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+    // ─────────────────────────────────────────
+    // 5. 黑名单
+    // ─────────────────────────────────────────
 
     /** @test */
     public function block_and_unblock()
@@ -381,9 +381,9 @@ class ImChatTest extends TestCase
         $r->assertStatus(200);
     }
 
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
-    // 6. 鍦ㄧ嚎鐘舵€?
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+    // ─────────────────────────────────────────
+    // 6. 在线状态
+    // ─────────────────────────────────────────
 
     /** @test */
     public function heartbeat()
@@ -399,9 +399,9 @@ class ImChatTest extends TestCase
         $r->assertStatus(200);
     }
 
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
-    // 7. 缇ょ粍绠＄悊
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+    // ─────────────────────────────────────────
+    // 7. 群组管理
+    // ─────────────────────────────────────────
 
     /** @test */
     public function create_group()
@@ -449,9 +449,9 @@ class ImChatTest extends TestCase
         $r->assertStatus(200);
     }
 
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
-    // 8. 缇ゅ叕鍛?
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+    // ─────────────────────────────────────────
+    // 8. 群公告
+    // ─────────────────────────────────────────
 
     /** @test */
     public function create_announcement()
@@ -462,7 +462,7 @@ class ImChatTest extends TestCase
         ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userB->id, 'role' => 'member']);
 
         $r = $this->postJson('/api/user-chat/announcements', [
-            'conversation_id' => $conv->id, 'title' => '閫氱煡', 'content' => '鍐呭',
+            'conversation_id' => $conv->id, 'title' => '通知', 'content' => '内容',
         ], $this->headers($this->tokenA));
         $this->assertTrue(in_array($r->status(), [200, 201, 500]), 'Status was: ' . $r->status() . ' body: ' . substr($r->getContent(), 0, 200));
 
@@ -470,9 +470,9 @@ class ImChatTest extends TestCase
         $r->assertStatus(200);
     }
 
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
-    // 9. 闅愮璁剧疆
-    // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲
+    // ─────────────────────────────────────────
+    // 9. 隐私设置
+    // ─────────────────────────────────────────
 
     /** @test */
     public function privacy_settings()

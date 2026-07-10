@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\BlogCommentController;
 use App\Http\Controllers\Api\MeilisearchController;
 use App\Http\Controllers\Api\AnnounceBannerController;
 use App\Http\Controllers\Api\CookieConsentController;
+use App\Http\Controllers\Api\DemoController;
 use App\Http\Controllers\Api\KbController;
 use App\Http\Controllers\Api\RagController;
 use App\Http\Controllers\Api\ChatController;
@@ -301,4 +302,16 @@ Route::prefix('official-accounts')->group(function () {
 // ── 公开 Bot Webhook ──
 Route::prefix('bots')->group(function () {
     Route::post('/webhook', [\App\Http\Controllers\Api\BotController::class, 'webhook'])->withoutMiddleware(['auth:sanctum']);
+});
+
+// ── 产品交互式演示（公开） ──
+Route::prefix('demo')->group(function () {
+    Route::post('/start', [DemoController::class, 'start']);
+    Route::get('/data', [DemoController::class, 'data']);
+    Route::post('/step', [DemoController::class, 'step']);
+    Route::post('/action', [DemoController::class, 'action']);
+    Route::post('/heartbeat', [DemoController::class, 'heartbeat']);
+    Route::post('/extend', [DemoController::class, 'extend']);
+    Route::post('/complete', [DemoController::class, 'complete']);
+    Route::post('/register', [DemoController::class, 'register']);
 });

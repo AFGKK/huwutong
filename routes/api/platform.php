@@ -15,9 +15,11 @@ use App\Http\Controllers\Api\ComparePageController;
 use App\Http\Controllers\Api\CrossBorderController;
 use App\Http\Controllers\Api\CustomerAuditLogController;
 use App\Http\Controllers\Api\CustomerClusteringController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DataResidencyController;
 use App\Http\Controllers\Api\DeletionController;
 use App\Http\Controllers\Api\DemoBookingController;
+use App\Http\Controllers\Api\DemoController;
 use App\Http\Controllers\Api\EarningNotificationController;
 use App\Http\Controllers\Api\EcommerceAnalyticsController;
 use App\Http\Controllers\Api\EcommerceAPIController;
@@ -558,3 +560,31 @@ $shopRoutes = function () {
 };
 Route::prefix('shop')->group($shopRoutes);
 Route::prefix('api/shop')->group($shopRoutes);
+
+// ── 演示管理（后台） ──
+Route::prefix('admin/demo')->group(function () {
+    Route::get('/analytics', [DemoController::class, 'analytics']);
+    Route::get('/config', [DemoController::class, 'getConfig']);
+    Route::put('/config', [DemoController::class, 'updateConfig']);
+    Route::get('/embed-code', [DemoController::class, 'embedCode']);
+    Route::get('/sessions', [DemoController::class, 'sessions']);
+});
+
+// ── 自定义仪表盘 ──
+Route::prefix('admin/custom-dashboards')->group(function () {
+    Route::get('/overview', [DashboardController::class, 'overview']);
+    Route::get('/widget-templates', [DashboardController::class, 'widgetTemplates']);
+    Route::get('/', [DashboardController::class, 'index']);
+    Route::post('/', [DashboardController::class, 'store']);
+    Route::get('/{id}', [DashboardController::class, 'show'])->whereNumber('id');
+    Route::put('/{dashboard}', [DashboardController::class, 'update']);
+    Route::delete('/{dashboard}', [DashboardController::class, 'destroy']);
+    Route::post('/{dashboard}/set-default', [DashboardController::class, 'setDefault']);
+    Route::post('/{dashboard}/duplicate', [DashboardController::class, 'duplicate']);
+    Route::post('/{dashboard}/widgets', [DashboardController::class, 'storeWidget']);
+    Route::post('/{dashboard}/widgets/reorder', [DashboardController::class, 'reorderWidgets']);
+    Route::put('/widgets/{widget}', [DashboardController::class, 'updateWidget']);
+    Route::delete('/widgets/{widget}', [DashboardController::class, 'destroyWidget']);
+    Route::get('/widgets/{widget}/data', [DashboardController::class, 'getWidgetData']);
+    Route::post('/widgets/{widget}/refresh', [DashboardController::class, 'refreshWidgetData']);
+});

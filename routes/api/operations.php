@@ -8,7 +8,9 @@ use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\BlueGreenController;
 use App\Http\Controllers\Api\CustomerSmtpController;
 use App\Http\Controllers\Api\QueueMonitorController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RevenueDashboardController;
+use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SecurityCenterController;
 use App\Http\Controllers\Api\SecuritySopController;
 use App\Http\Controllers\Api\WafController;
@@ -216,4 +218,18 @@ Route::middleware(['ability:admin,super-admin'])->prefix('admin/alerting')->grou
     Route::get('/event-stats', [AlertingController::class, 'eventStats']);
     Route::get('/metric-types', [AlertingController::class, 'metricTypes']);
     Route::get('/severities', [AlertingController::class, 'severities']);
+});
+
+// ── 全局快捷搜索 ──
+Route::get('/search', [SearchController::class, 'search']);
+
+// ── 报表分析 ──
+Route::prefix('reports')->group(function () {
+    Route::get('/dashboard', [ReportController::class, 'dashboard']);
+    Route::get('/revenue-trend', [ReportController::class, 'revenueTrend']);
+    Route::get('/mrr-trend', [ReportController::class, 'mrrTrend']);
+    Route::get('/subscription-analytics', [ReportController::class, 'subscriptionAnalytics']);
+    Route::get('/plan-distribution', [ReportController::class, 'planDistribution']);
+    Route::get('/customer-ltv', [ReportController::class, 'customerLifetimeValue']);
+    Route::get('/churn-analysis', [ReportController::class, 'churnAnalysis']);
 });

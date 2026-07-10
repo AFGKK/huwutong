@@ -33,7 +33,7 @@ use App\Http\Controllers\Api\TracingController;
 use App\Http\Controllers\Api\TransferController;
 use App\Http\Controllers\Api\VasAdminController;
 use App\Http\Controllers\Api\WebhookSimulatorController;
-use App\Http\Controllers\Api\WorkflowDashboardController;
+use App\Http\Controllers\Api\WorkflowController;
 use App\Http\Controllers\Api\ZapierController;
 
 // ── 更新日志 ──
@@ -359,17 +359,21 @@ Route::prefix('admin/compliance-ai')->group(function () {
     Route::get('/reports/{complianceAiReport}', [ComplianceReportAiController::class, 'show']);
 });
 
-// ── 工作流面板 ──
+// ── 工作流引擎（Temporal） ──
 Route::prefix('admin/workflows')->group(function () {
-    Route::get('/dashboard', [WorkflowDashboardController::class, 'overview']);
-    Route::get('/definitions', [WorkflowDashboardController::class, 'definitions']);
-    Route::get('/instances', [WorkflowDashboardController::class, 'instances']);
-    Route::get('/stats', [WorkflowDashboardController::class, 'stats']);
-    Route::get('/config', [WorkflowDashboardController::class, 'stepDefinitions']);
-    Route::get('/{id}', [WorkflowDashboardController::class, 'show'])->whereNumber('id');
-    Route::get('/{id}/progress', [WorkflowDashboardController::class, 'show'])->whereNumber('id');
-    Route::get('/{id}/saga', [WorkflowDashboardController::class, 'show'])->whereNumber('id');
-    Route::post('/{id}/cancel', [WorkflowDashboardController::class, 'cancel'])->whereNumber('id');
+    Route::get('/dashboard', [WorkflowController::class, 'dashboard']);
+    Route::get('/definitions', [WorkflowController::class, 'definitions']);
+    Route::get('/instances', [WorkflowController::class, 'instances']);
+    Route::get('/stats', [WorkflowController::class, 'stats']);
+    Route::get('/config', [WorkflowController::class, 'config']);
+    Route::get('/failed-steps', [WorkflowController::class, 'failedSteps']);
+    Route::post('/batch-retry', [WorkflowController::class, 'batchRetry']);
+    Route::post('/start', [WorkflowController::class, 'startWorkflow']);
+    Route::get('/{instance}', [WorkflowController::class, 'show'])->whereNumber('instance');
+    Route::get('/{instance}/progress', [WorkflowController::class, 'progress'])->whereNumber('instance');
+    Route::get('/{instance}/saga', [WorkflowController::class, 'sagaStatus'])->whereNumber('instance');
+    Route::post('/{instance}/cancel', [WorkflowController::class, 'cancel'])->whereNumber('instance');
+    Route::post('/{instance}/retry', [WorkflowController::class, 'retry'])->whereNumber('instance');
 });
 
 // ── 账单历史（门户，管理端也可访问） ──

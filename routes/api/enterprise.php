@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuditRetentionPolicyController;
+use App\Http\Controllers\Api\AutoRenewalController;
 use App\Http\Controllers\Api\BundleController;
 use App\Http\Controllers\Api\BusinessMetricsController;
 use App\Http\Controllers\Api\CacheInvalidationController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Api\DataLineageController;
 use App\Http\Controllers\Api\DataRetentionController;
 use App\Http\Controllers\Api\DeployController;
 use App\Http\Controllers\Api\DunningController;
+use App\Http\Controllers\Api\EnterpriseSsoController;
 use App\Http\Controllers\Api\MarketingCampaignController;
 use App\Http\Controllers\Api\PostmanController;
 use App\Http\Controllers\Api\SystemHealthController;
@@ -366,3 +368,39 @@ $dataAnonymizationRoutes = function () {
 };
 Route::prefix('data-anonymization')->group($dataAnonymizationRoutes);
 Route::prefix('api/data-anonymization')->group($dataAnonymizationRoutes);
+
+// ── 企业 SSO ──
+Route::prefix('admin/enterprise-sso')->group(function () {
+    Route::get('/stats', [EnterpriseSsoController::class, 'stats']);
+    Route::get('/idps', [EnterpriseSsoController::class, 'idps']);
+    Route::post('/idps', [EnterpriseSsoController::class, 'storeIdp']);
+    Route::put('/idps/{enterpriseIdp}', [EnterpriseSsoController::class, 'updateIdp']);
+    Route::delete('/idps/{enterpriseIdp}', [EnterpriseSsoController::class, 'destroyIdp']);
+    Route::get('/idps/{enterpriseIdp}/sp-metadata', [EnterpriseSsoController::class, 'spMetadata']);
+    Route::post('/parse-metadata', [EnterpriseSsoController::class, 'parseMetadata']);
+    Route::get('/idps/{enterpriseIdp}/domains', [EnterpriseSsoController::class, 'domainRoutes']);
+    Route::post('/idps/{enterpriseIdp}/domains', [EnterpriseSsoController::class, 'storeDomainRoute']);
+    Route::delete('/domains/{idpDomainRoute}', [EnterpriseSsoController::class, 'destroyDomainRoute']);
+    Route::get('/idps/{enterpriseIdp}/group-mappings', [EnterpriseSsoController::class, 'groupMappings']);
+    Route::post('/idps/{enterpriseIdp}/group-mappings', [EnterpriseSsoController::class, 'storeGroupMapping']);
+    Route::get('/idps/{enterpriseIdp}/jit-rules', [EnterpriseSsoController::class, 'jitRules']);
+    Route::post('/idps/{enterpriseIdp}/jit-rules', [EnterpriseSsoController::class, 'storeJitRule']);
+    Route::post('/idps/{enterpriseIdp}/health-check', [EnterpriseSsoController::class, 'healthCheck']);
+    Route::post('/resolve-domain', [EnterpriseSsoController::class, 'resolveDomain']);
+});
+
+// ── 自动续费管理 ──
+Route::prefix('admin/auto-renewal')->group(function () {
+    Route::get('/dashboard', [AutoRenewalController::class, 'dashboard']);
+    Route::get('/plans', [AutoRenewalController::class, 'plans']);
+    Route::post('/plans', [AutoRenewalController::class, 'storePlan']);
+    Route::put('/plans/{plan}', [AutoRenewalController::class, 'updatePlan']);
+    Route::get('/subscriptions', [AutoRenewalController::class, 'subscriptions']);
+    Route::post('/subscriptions/{subscription}/renew', [AutoRenewalController::class, 'renew']);
+    Route::post('/subscriptions/{subscription}/upgrade', [AutoRenewalController::class, 'upgrade']);
+    Route::post('/subscriptions/{subscription}/downgrade', [AutoRenewalController::class, 'downgrade']);
+    Route::post('/subscriptions/{subscription}/cancel', [AutoRenewalController::class, 'cancel']);
+    Route::post('/subscriptions/{subscription}/pause', [AutoRenewalController::class, 'pause']);
+    Route::post('/subscriptions/{subscription}/resume', [AutoRenewalController::class, 'resume']);
+    Route::get('/subscriptions/{subscription}/attempts', [AutoRenewalController::class, 'attempts']);
+});
