@@ -1090,8 +1090,8 @@ async function reportPost(post) {
         }).then(r => r.value)
         if (!reason) return
         await apiClient.post('/user-chat/reports', {
-            target_type: 'moment',
-            target_id: post.id,
+            reportable_type: 'forum_post',
+            reportable_id: post.id,
             reason,
         }, { headers: { Authorization: 'Bearer ' + localStorage.getItem('auth_token') } })
         ElMessage.success('举报已提交，感谢您的反馈')

@@ -19,11 +19,17 @@ use App\Models\ConversationMessage;
 use App\Services\PostModerationService;
 use App\Models\ConversationParticipant;
 use App\Models\EarningsAccount;
+use App\Models\UserConversation;
+use App\Services\UserChatConversationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MomentController extends Controller
 {
+    public function __construct(
+        protected UserChatConversationService $chatConversations,
+    ) {}
+
     // ── 广场列表（全系统公开·小红书信息流） ──
     public function index(Request $request): JsonResponse
     {
@@ -993,19 +999,19 @@ class MomentController extends Controller
 
         $content = '🌐 广场帖子：' . ($post->user->name ?? '用户') . ' — ' . mb_substr($post->content, 0, 100);
 
-        ConversationMessage::create([
-            'conversation_id' => $targetConvId,
-            'sender_id' => $myId,
-            'message_type' => 'text',
-            'content' => $content,
-            'metadata' => [
+        $conv = UserConversation::findOrFail($targetConvId);
+        $this->chatConversations->pushTextMessage(
+            $conv,
+            $myId,
+            $content,
+            [
                 'from_plaza' => true,
                 'plaza_post_id' => $post->id,
                 'plaza_author' => $post->user->name ?? '用户',
                 'plaza_content' => mb_substr($post->content, 0, 200),
             ],
-            'client_msg_id' => 'plaza-' . uniqid(),
-        ]);
+            'plaza-' . uniqid()
+        );
 
         return ApiResponse::success(null, '已转发');
     }

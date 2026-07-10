@@ -39,17 +39,26 @@ use App\Models\OaPlatformAccount;
 use App\Models\OaArticleDistribution;
 use App\Models\EarningsAccount;
 use App\Models\UserPoint;
+use App\Models\UserConversation;
+use App\Models\Channel;
+use App\Models\ChannelMember;
 use App\Events\OaArticlePublished;
 use App\Events\OaSubmissionCreated;
 use App\Services\AiRecommendationService;
 use App\Services\BehaviorSequenceService;
 use App\Services\SensitiveWordService;
+use App\Services\UserChatConversationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class OfficialAccountController extends Controller
 {
+    protected const OA_MORPH = 'App\\Models\\OfficialAccount';
+
+    public function __construct(
+        protected UserChatConversationService $chatConversations,
+    ) {}
     /**
      * 公开：获取互物号列表
      * GET /api/official-accounts/public
@@ -144,7 +153,7 @@ class OfficialAccountController extends Controller
         return ApiResponse::success($categories);
     }
 
-    function myOwnedAccounts(): JsonResponse
+    public function myOwnedAccounts(): JsonResponse
     {
         $accounts = OfficialAccount::where('owner_id', auth()->id())
             ->withCount(['followers', 'articles' => fn($q) => $q->where('status', 'published')])
@@ -1972,5 +1981,248 @@ class OfficialAccountController extends Controller
             ->orderBy('relations_count', 'desc')
             ->get();
         return ApiResponse::success($tags);
+    }
+
+    // ════════════════════════════════════════════
+    // 关注 / 文章互动 / 分享
+    // ════════════════════════════════════════════
+
+    public function myFollowedIds(): JsonResponse
+    {
+        $ids = Follow::where('user_id', auth()->id())
+            ->where('followable_type', self::OA_MORPH)
+            ->pluck('followable_id');
+
+        return ApiResponse::success($ids);
+    }
+
+    public function myAccounts(): JsonResponse
+    {
+        $ids = Follow::where('user_id', auth()->id())
+            ->where('followable_type', self::OA_MORPH)
+            ->pluck('followable_id');
+
+        $accounts = OfficialAccount::whereIn('id', $ids)
+            ->where('status', 'active')
+            ->orderByDesc('id')
+            ->get();
+
+        return ApiResponse::success($accounts);
+    }
+
+    public function articles(int $id, Request $request): JsonResponse
+    {
+        $account = OfficialAccount::where('status', 'active')->findOrFail($id);
+
+        $query = OaArticle::where('account_id', $account->id)
+            ->where('status', 'published')
+            ->with('account:id,name,slug,avatar');
+
+        if ($request->input('sort') === 'hot') {
+            $query->withCount('likes')->orderByDesc('likes_count')->orderByDesc('id');
+        } else {
+            $query->orderByDesc('is_pinned')->orderByDesc('published_at')->orderByDesc('id');
+        }
+
+        return ApiResponse::paginated($query->paginate((int) $request->input('per_page', 20)));
+    }
+
+    public function follow(int $id): JsonResponse
+    {
+        $account = OfficialAccount::where('status', 'active')->findOrFail($id);
+        $userId = auth()->id();
+
+        if ((int) $account->owner_id === (int) $userId) {
+            return ApiResponse::error('INVALID', '不能关注自己的互物号', 422);
+        }
+
+        $existing = Follow::where('user_id', $userId)
+            ->where('followable_type', self::OA_MORPH)
+            ->where('followable_id', $account->id)
+            ->first();
+
+        if ($existing) {
+            return ApiResponse::success(['following' => true], '已关注');
+        }
+
+        Follow::create([
+            'user_id' => $userId,
+            'followable_type' => self::OA_MORPH,
+            'followable_id' => $account->id,
+        ]);
+
+        return ApiResponse::success(['following' => true], '关注成功');
+    }
+
+    public function unfollow(int $id): JsonResponse
+    {
+        Follow::where('user_id', auth()->id())
+            ->where('followable_type', self::OA_MORPH)
+            ->where('followable_id', $id)
+            ->delete();
+
+        return ApiResponse::success(['following' => false], '已取消关注');
+    }
+
+    public function toggleLike(int $articleId): JsonResponse
+    {
+        $article = OaArticle::where('status', 'published')->findOrFail($articleId);
+        $userId = auth()->id();
+
+        $existing = OaArticleLike::whereUserId($userId)->whereArticleId($article->id)->first();
+
+        if ($existing) {
+            $existing->delete();
+
+            return ApiResponse::success(['liked' => false]);
+        }
+
+        OaArticleLike::create([
+            'user_id' => $userId,
+            'likeable_id' => $article->id,
+        ]);
+
+        return ApiResponse::success(['liked' => true]);
+    }
+
+    public function toggleFavorite(int $articleId): JsonResponse
+    {
+        $article = OaArticle::where('status', 'published')->findOrFail($articleId);
+        $userId = auth()->id();
+
+        $existing = OaFavorite::whereUserId($userId)->whereArticleId($article->id)->first();
+
+        if ($existing) {
+            $existing->delete();
+
+            return ApiResponse::success(['favorited' => false]);
+        }
+
+        OaFavorite::create([
+            'user_id' => $userId,
+            'favorable_id' => $article->id,
+        ]);
+
+        return ApiResponse::success(['favorited' => true]);
+    }
+
+    public function myFavoriteArticles(Request $request): JsonResponse
+    {
+        $articleIds = OaFavorite::whereUserId(auth()->id())->pluck('favorable_id');
+
+        $query = OaArticle::whereIn('id', $articleIds)
+            ->where('status', 'published')
+            ->with('account:id,name,slug,avatar')
+            ->orderByDesc('published_at');
+
+        return ApiResponse::paginated($query->paginate((int) $request->input('per_page', 20)));
+    }
+
+    public function myLikedArticles(Request $request): JsonResponse
+    {
+        $articleIds = OaArticleLike::whereUserId(auth()->id())->pluck('likeable_id');
+
+        $query = OaArticle::whereIn('id', $articleIds)
+            ->where('status', 'published')
+            ->with('account:id,name,slug,avatar')
+            ->orderByDesc('published_at');
+
+        return ApiResponse::paginated($query->paginate((int) $request->input('per_page', 20)));
+    }
+
+    public function share(int $articleId, Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'target' => 'required|in:plaza,chat,channel,copy,wechat,weibo',
+            'conversation_id' => 'required_if:target,chat|integer|exists:user_conversations,id',
+            'channel_id' => 'required_if:target,channel|integer|exists:channels,id',
+        ]);
+
+        $article = OaArticle::with('account:id,name,slug,avatar')->findOrFail($articleId);
+        $userId = auth()->id();
+        $target = $validated['target'];
+        $shareUrl = url('/build/oa-article/' . $article->id);
+        $shareText = ($article->account?->name ? '【' . $article->account->name . '】' : '') . $article->title;
+
+        OaArticleShare::create([
+            'article_id' => $article->id,
+            'user_id' => $userId,
+            'platform' => $target,
+        ]);
+
+        if ($target === 'plaza') {
+            $content = "📢 分享自互物号「{$article->account?->name}」\n{$article->title}\n" . mb_substr(strip_tags((string) $article->summary ?: $article->content), 0, 300);
+
+            ForumPost::create([
+                'user_id' => $userId,
+                'title' => mb_substr($article->title, 0, 200),
+                'content' => $content,
+                'images' => $article->cover_image ? [$article->cover_image] : null,
+                'status' => 'published',
+                'template' => 'discuss',
+            ]);
+
+            return ApiResponse::success(null, '已分享到广场');
+        }
+
+        if ($target === 'chat') {
+            $convId = (int) $validated['conversation_id'];
+            $isParticipant = ConversationParticipant::where('conversation_id', $convId)
+                ->where('user_id', $userId)
+                ->whereNull('deleted_at')
+                ->exists();
+
+            if (! $isParticipant) {
+                return ApiResponse::error('FORBIDDEN', '你不是目标会话的参与者', 403);
+            }
+
+            $conv = UserConversation::findOrFail($convId);
+            $this->chatConversations->pushTextMessage(
+                $conv,
+                $userId,
+                '📢 互物号文章：' . $article->title,
+                [
+                    'from_oa_article' => true,
+                    'article_id' => $article->id,
+                    'account_id' => $article->account_id,
+                    'account_name' => $article->account?->name,
+                    'share_url' => $shareUrl,
+                ],
+                'oa-share-' . uniqid()
+            );
+
+            return ApiResponse::success(null, '已分享到聊天');
+        }
+
+        if ($target === 'channel') {
+            $channelId = (int) $validated['channel_id'];
+            $isMember = ChannelMember::where('channel_id', $channelId)
+                ->where('user_id', $userId)
+                ->exists();
+
+            if (! $isMember) {
+                return ApiResponse::error('FORBIDDEN', '你不是该圈子成员', 403);
+            }
+
+            ChannelMessage::create([
+                'channel_id' => $channelId,
+                'user_id' => $userId,
+                'content' => '📢 互物号文章：' . $article->title . ' ' . $shareUrl,
+                'message_type' => 'text',
+                'metadata' => [
+                    'from_oa_article' => true,
+                    'article_id' => $article->id,
+                    'account_id' => $article->account_id,
+                    'share_url' => $shareUrl,
+                ],
+            ]);
+
+            return ApiResponse::success(null, '已分享到圈子');
+        }
+
+        return ApiResponse::success([
+            'share_text' => $shareText,
+            'share_url' => $shareUrl,
+        ]);
     }
 }
