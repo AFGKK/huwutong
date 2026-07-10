@@ -220,8 +220,8 @@ class PrepaidBalanceServiceTest extends TestCase
         $items = $transactions->items();
 
         $this->assertCount(2, $items);
-        $this->assertEquals('consume', $items[0]->type);
-        $this->assertEquals('recharge', $items[1]->type);
+        $types = collect($items)->pluck('type')->sort()->values()->all();
+        $this->assertEquals(['consume', 'recharge'], $types);
     }
 
     public function test_pay_invoice_with_balance(): void

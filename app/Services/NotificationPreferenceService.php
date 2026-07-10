@@ -284,7 +284,9 @@ class NotificationPreferenceService
     public function getStats(): array
     {
         $totalUsers = User::count();
-        $usersWithPreferences = NotificationPreference::count();
+        $usersWithPreferences = NotificationPreference::query()
+            ->distinct()
+            ->count('user_id');
 
         $channelEnabled = ['mail' => 0, 'sms' => 0, 'database' => 0];
         $channelTotal = ['mail' => 0, 'sms' => 0, 'database' => 0];

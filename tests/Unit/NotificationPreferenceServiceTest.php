@@ -171,13 +171,19 @@ class NotificationPreferenceServiceTest extends TestCase
     /** @test */
     public function it_returns_stats()
     {
+        $usersBefore = User::count();
+        $prefsBefore = NotificationPreference::count();
+
         $this->service->initializeDefaults($this->user);
 
         $stats = $this->service->getStats();
 
-        $this->assertEquals(1, $stats['total_users']);
-        $this->assertEquals(1, $stats['users_with_preferences']);
-        $this->assertEquals(100.0, $stats['coverage_percentage']);
+        $this->assertEquals($usersBefore, $stats['total_users']);
+        $this->assertEquals($prefsBefore + 1, $stats['users_with_preferences']);
+        $this->assertEquals(
+            round(($prefsBefore + 1) / max(1, $usersBefore) * 100, 1),
+            $stats['coverage_percentage']
+        );
         $this->assertArrayHasKey('mail', $stats['channels']);
         $this->assertArrayHasKey('sms', $stats['channels']);
         $this->assertArrayHasKey('database', $stats['channels']);

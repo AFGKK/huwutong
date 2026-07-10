@@ -285,9 +285,7 @@ class MfaController extends Controller
             'mfa_code' => 'required|string',
         ]);
 
-        $user = User::where('email', $data['email'] ?? null)
-            ->orWhere('phone', $data['phone'] ?? null)
-            ->first();
+        $user = $this->resolveLoginUser($data);
 
         if (! $user || ! \Illuminate\Support\Facades\Hash::check($data['password'], $user->password)) {
             return ApiResponse::error('AUTH_FAILED', '账号或密码错误', 401);
@@ -328,9 +326,7 @@ class MfaController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $data['email'] ?? null)
-            ->orWhere('phone', $data['phone'] ?? null)
-            ->first();
+        $user = $this->resolveLoginUser($data);
 
         if (! $user || ! \Illuminate\Support\Facades\Hash::check($data['password'], $user->password)) {
             return ApiResponse::error('AUTH_FAILED', '账号或密码错误', 401);
@@ -343,5 +339,21 @@ class MfaController extends Controller
             'mfa_enabled' => $user->mfa_enabled,
             'mfa_setup_required' => $requiresMfa && ! $user->mfa_enabled,
         ]);
+    }
+
+    /**
+     * 按邮箱或手机号解析登录用户（避免 orWhere(null) 匹配所有空手机号用户）
+     */
+    private function resolveLoginUser(array $data): ?User
+    {
+        if (! empty($data['email'])) {
+            return User::where('email', $data['email'])->first();
+        }
+
+        if (! empty($data['phone'])) {
+            return User::where('phone', $data['phone'])->first();
+        }
+
+        return null;
     }
 }

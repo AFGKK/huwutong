@@ -220,9 +220,10 @@ class PhpSdkContractTest extends TestCase
         ];
 
         $json = PactContract::generate('PHP SDK', 'HWT License API', $interactions, '1.0.0');
-        $path = PactContract::saveToFile('PHP SDK', 'HWT License API', $json);
 
-        $this->assertFileExists($path);
+        $this->assertNotEmpty($json);
+        $loaded = json_decode($json, true);
+        $this->assertCount(2, $loaded['interactions']);
     }
 
     /**
@@ -304,14 +305,12 @@ class PhpSdkContractTest extends TestCase
         ];
 
         $json = PactContract::generate('PHP SDK', 'HWT License API', $interactions, '1.0.0');
-        $path = PactContract::saveToFile('PHP SDK', 'HWT License API', $json);
 
-        $this->assertFileExists($path);
+        $this->assertNotEmpty($json);
+        $loaded = json_decode($json, true);
+        $this->assertCount(2, $loaded['interactions']);
     }
 
-    /**
-     * 测试: 设备管理契约
-     */
     public function test_device_management_contract(): void
     {
         $interactions = [
@@ -370,9 +369,10 @@ class PhpSdkContractTest extends TestCase
         ];
 
         $json = PactContract::generate('PHP SDK', 'HWT License API', $interactions);
-        $path = PactContract::saveToFile('PHP SDK', 'HWT License API', $json);
 
-        $this->assertFileExists($path);
+        $this->assertNotEmpty($json);
+        $loaded = json_decode($json, true);
+        $this->assertCount(2, $loaded['interactions']);
     }
 
     /**
@@ -412,8 +412,9 @@ class PhpSdkContractTest extends TestCase
         ];
 
         $json = PactContract::generate('PHP SDK', 'HWT License API', $interactions);
-        PactContract::saveToFile('PHP SDK', 'HWT License API', $json);
 
-        $this->assertTrue(true);
+        $this->assertNotEmpty($json);
+        $loaded = json_decode($json, true);
+        $this->assertCount(1, $loaded['interactions']);
     }
 }

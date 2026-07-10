@@ -100,6 +100,10 @@ class SloBudgetService
         $apmQuery = ApmRequest::where('created_at', '>=', $from)
             ->where('created_at', '<=', $to);
 
+        if ($definition->tenant_id) {
+            $apmQuery->where('tenant_id', $definition->tenant_id);
+        }
+
         $total = (clone $apmQuery)->count();
 
         // 根据SLI类型判断"good"请求

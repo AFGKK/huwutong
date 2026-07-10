@@ -15,17 +15,23 @@
     },
     "interactions": [
         {
-            "description": "查询客户列表",
-            "providerState": "存在多个客户",
+            "description": "成功激活 License",
+            "providerState": "存在有效的 License 和未绑定设备",
             "request": {
-                "method": "GET",
-                "path": "/api/customers",
-                "query": "page=1&per_page=15",
+                "method": "POST",
+                "path": "/api/license/activate",
+                "query": null,
                 "headers": {
                     "Accept": "application/json",
+                    "Content-Type": "application/json",
                     "Authorization": "Bearer $API_TOKEN"
                 },
-                "body": null,
+                "body": {
+                    "license_key": "HWT-ENT-2024-ABCD-1234-EFGH",
+                    "device_fingerprint": "2:a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b",
+                    "device_name": "生产服务器-01",
+                    "platform": "linux"
+                },
                 "matchingRules": []
             },
             "response": {
@@ -35,23 +41,111 @@
                 },
                 "body": {
                     "success": true,
-                    "data": [
-                        {
-                            "id": 1,
-                            "name": "互物通科技",
-                            "email": "contact@huwutong.com",
-                            "status": "active",
-                            "licenses_count": 5,
-                            "created_at": "2026-01-01T10:00:00+08:00"
+                    "data": {
+                        "id": 1,
+                        "license_key": "HWT-ENT-2024-ABCD-1234-EFGH",
+                        "status": "active",
+                        "activated_at": "2026-06-13T10:00:00+08:00",
+                        "expires_at": "2027-06-13T10:00:00+08:00",
+                        "device": {
+                            "id": 42,
+                            "fingerprint": "2:a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b",
+                            "name": "生产服务器-01",
+                            "platform": "linux",
+                            "is_trusted": true
                         }
-                    ],
-                    "meta": {
-                        "current_page": 1,
-                        "last_page": 1,
-                        "per_page": 15,
-                        "total": 1
                     },
-                    "message": "ok"
+                    "message": "激活成功"
+                },
+                "matchingRules": {
+                    "$.body.data.id": {
+                        "pact:matcher:type": "type",
+                        "value": 1
+                    },
+                    "$.body.data.activated_at": {
+                        "pact:matcher:type": "timestamp"
+                    },
+                    "$.body.data.expires_at": {
+                        "pact:matcher:type": "timestamp"
+                    },
+                    "$.body.data.device.id": {
+                        "pact:matcher:type": "type",
+                        "value": 1
+                    }
+                }
+            }
+        },
+        {
+            "description": "License 已过期激活失败",
+            "providerState": "License 已过期",
+            "request": {
+                "method": "POST",
+                "path": "/api/license/activate",
+                "query": null,
+                "headers": {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer $API_TOKEN"
+                },
+                "body": {
+                    "license_key": "HWT-ENT-2023-EXPR-9876-DCBA",
+                    "device_fingerprint": "2:f1e2d3c4b5a69788796a5b4c3d2e1f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d",
+                    "device_name": "过期设备",
+                    "platform": "windows"
+                },
+                "matchingRules": []
+            },
+            "response": {
+                "status": 400,
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "body": {
+                    "success": false,
+                    "error": {
+                        "code": "LICENSE_EXPIRED",
+                        "message": "License 已过期，请续期",
+                        "details": {
+                            "expired_at": "2026-01-01T00:00:00+08:00"
+                        }
+                    }
+                },
+                "matchingRules": []
+            }
+        },
+        {
+            "description": "License Key 格式无效",
+            "providerState": "任意状态",
+            "request": {
+                "method": "POST",
+                "path": "/api/license/activate",
+                "query": null,
+                "headers": {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer $API_TOKEN"
+                },
+                "body": {
+                    "license_key": "invalid-key-format",
+                    "device_fingerprint": "2:0000000000000000000000000000000000000000000000000000000000000000",
+                    "device_name": "测试设备",
+                    "platform": "unknown"
+                },
+                "matchingRules": []
+            },
+            "response": {
+                "status": 422,
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "body": {
+                    "success": false,
+                    "message": "验证失败",
+                    "errors": {
+                        "license_key": [
+                            "License Key 格式无效"
+                        ]
+                    }
                 },
                 "matchingRules": []
             }
