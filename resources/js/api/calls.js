@@ -16,8 +16,11 @@ export default {
   signal(id, data) {
     return apiClient.post(`/calls/${id}/signal`, data)
   },
-  signalPoll(id) {
-    return apiClient.get(`/calls/${id}/signal-poll`)
+  incoming() {
+    return apiClient.get('/calls/incoming')
+  },
+  signalPoll(id, type) {
+    return apiClient.get(`/calls/${id}/signal-poll`, { params: { type } })
   },
   history() {
     return apiClient.get('/calls/history')

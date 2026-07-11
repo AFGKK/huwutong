@@ -16,6 +16,7 @@ class UserPrivacySetting extends Model
         'show_online_status',
         'show_read_receipt',
         'allow_stranger_message',
+        'dm_policy',
         'privacy_pin',
     ];
 
@@ -26,6 +27,12 @@ class UserPrivacySetting extends Model
     ];
 
     const FRIEND_ADD_POLICIES = ['everyone' => '所有人', 'need_question' => '需回答问题', 'nobody' => '不允许'];
+
+    const DM_POLICIES = [
+        'everyone' => '所有人可私信（陌生人进消息请求）',
+        'followers_only' => '仅关注的人可私信',
+        'closed' => '关闭私信',
+    ];
 
     public function user(): BelongsTo
     {

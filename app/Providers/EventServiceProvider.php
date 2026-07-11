@@ -29,6 +29,9 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\ChannelMessageSent::class => [
             \App\Listeners\AiModerateChannelMessage::class,
         ],
+        \App\Events\ChatMessageSent::class => [
+            \App\Listeners\SendDmMessageNotification::class,
+        ],
         \App\Events\OaSubmissionCreated::class => [
             \App\Listeners\AiReviewSubmission::class,
         ],

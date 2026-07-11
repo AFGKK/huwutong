@@ -14,6 +14,8 @@ export default defineConfig({
         baseURL: process.env.BASE_URL || 'http://localhost:8000',
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
+        // 避免 SW 将 /api/ 请求绕过 Playwright route mock
+        serviceWorkers: 'block',
     },
     projects: [
         {

@@ -13,7 +13,7 @@ return [
     // 默认过期策略
     'default_ttl' => [
         // 普通文本消息默认保留天数（null = 永不过期）
-        'text' => env('MESSAGE_EXPIRY_TEXT_DAYS', null),
+        'text' => env('MESSAGE_EXPIRY_TEXT_DAYS', 180),
         // 图片消息保留天数
         'image' => env('MESSAGE_EXPIRY_IMAGE_DAYS', null),
         // 文件消息保留天数

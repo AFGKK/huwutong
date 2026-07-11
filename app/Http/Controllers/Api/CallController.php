@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\CallIncoming;
 use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\ConversationMessage;
@@ -89,6 +90,16 @@ class CallController extends Controller
             'message_type' => 'text',
             'client_msg_id' => 'call-' . uniqid(),
         ]);
+
+        $caller = auth()->user();
+        event(new CallIncoming(
+            $callLog->id,
+            $myId,
+            $caller->name ?? '未知',
+            $calleeId,
+            $callLog->call_type,
+            $convId,
+        ));
 
         return ApiResponse::success([
             'call_id' => $callLog->id,
@@ -189,9 +200,20 @@ class CallController extends Controller
             return ApiResponse::error('FORBIDDEN', '你不是通话参与者', 403);
         }
 
-        // 存储信令（使用 Redis/缓存更合适，这里用文件 DB 简化）
         $signalKey = "call_signal_{$callId}_{$request->input('type')}";
-        \Illuminate\Support\Facades\Cache::put($signalKey, $request->input('data'), now()->addMinutes(5));
+        $type = $request->input('type');
+        $payload = $request->input('data');
+
+        if ($type === 'ice_candidate') {
+            $queue = \Illuminate\Support\Facades\Cache::get($signalKey, []);
+            if (!is_array($queue)) {
+                $queue = [];
+            }
+            $queue[] = $payload;
+            \Illuminate\Support\Facades\Cache::put($signalKey, $queue, now()->addMinutes(5));
+        } else {
+            \Illuminate\Support\Facades\Cache::put($signalKey, $payload, now()->addMinutes(5));
+        }
 
         return ApiResponse::success(null, '信令已发送');
     }
@@ -204,14 +226,53 @@ class CallController extends Controller
         $request->validate(['type' => 'required|in:offer,answer,ice_candidate']);
 
         $signalKey = "call_signal_{$callId}_{$request->input('type')}";
+        $type = $request->input('type');
         $data = \Illuminate\Support\Facades\Cache::get($signalKey);
+
+        if ($type === 'ice_candidate' && is_array($data) && count($data) > 0) {
+            $candidate = array_shift($data);
+            if (empty($data)) {
+                \Illuminate\Support\Facades\Cache::forget($signalKey);
+            } else {
+                \Illuminate\Support\Facades\Cache::put($signalKey, $data, now()->addMinutes(5));
+            }
+
+            return ApiResponse::success(['type' => $type, 'data' => $candidate]);
+        }
 
         if ($data) {
             \Illuminate\Support\Facades\Cache::forget($signalKey);
-            return ApiResponse::success(['type' => $request->input('type'), 'data' => $data]);
+            return ApiResponse::success(['type' => $type, 'data' => $data]);
         }
 
         return ApiResponse::success(null, '无新信令');
+    }
+
+    /**
+     * 被叫方查询当前来电（轮询降级）
+     */
+    public function pendingIncoming(): JsonResponse
+    {
+        $myId = auth()->id();
+
+        $call = \App\Models\CallLog::with('caller:id,name')
+            ->where('callee_id', $myId)
+            ->where('status', 'calling')
+            ->orderByDesc('created_at')
+            ->first();
+
+        if (!$call) {
+            return ApiResponse::success(null, '无来电');
+        }
+
+        return ApiResponse::success([
+            'call_id' => $call->id,
+            'caller_id' => $call->caller_id,
+            'caller_name' => $call->caller->name ?? '未知',
+            'call_type' => $call->call_type,
+            'conversation_id' => $call->conversation_id,
+            'status' => $call->status,
+        ]);
     }
 
     /**

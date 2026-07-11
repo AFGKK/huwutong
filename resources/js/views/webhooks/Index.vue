@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, defineAsyncComponent } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
@@ -50,12 +50,12 @@ const router = useRouter();
 
 const activeTab = ref(route.query.tab || 'monitor');
 
-const WebhookMonitor = () => import('@/views/webhook-monitor/Index.vue');
-const WebhookEndpoints = () => import('@/views/webhook/Endpoints.vue');
-const WebhookEvents = () => import('@/views/webhooks/Events.vue');
-const WebhookReplay = () => import('@/views/webhook/Index.vue');
-const WebhookSimulator = () => import('@/views/webhook/simulator/Index.vue');
-const WebhookFilter = () => import('@/views/webhook-filter/Index.vue');
+const WebhookMonitor = defineAsyncComponent(() => import('@/views/webhook-monitor/Index.vue'));
+const WebhookEndpoints = defineAsyncComponent(() => import('@/views/webhook/Endpoints.vue'));
+const WebhookEvents = defineAsyncComponent(() => import('@/views/webhooks/Events.vue'));
+const WebhookReplay = defineAsyncComponent(() => import('@/views/webhook/Index.vue'));
+const WebhookSimulator = defineAsyncComponent(() => import('@/views/webhook/simulator/Index.vue'));
+const WebhookFilter = defineAsyncComponent(() => import('@/views/webhook-filter/Index.vue'));
 
 function onTabChange(tab) {
     router.replace({ query: { tab } });

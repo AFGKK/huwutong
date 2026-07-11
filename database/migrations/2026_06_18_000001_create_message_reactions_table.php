@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (! Schema::hasTable('conversation_messages') || Schema::hasTable('message_reactions')) {
+        if (Schema::hasTable('message_reactions')) {
             return;
         }
 

@@ -290,7 +290,7 @@
                                         <span class="text-primary-600 font-bold text-[10px]" @if($product->creator->avatar_url) style="display:none" @endif>{{ mb_substr($product->creator->name, 0, 1) }}</span>
                                     </div>
                                     <span class="text-xs text-gray-400">{{ $product->creator->name }}</span>
-                                    <button onclick="event.preventDefault();event.stopPropagation();openSellerChat({{ $product->creator->id }},'{{ str_replace("'","\\'",$product->creator->name) }}','{{ $product->creator->avatar_url ?: '' }}')" class="chat-seller-btn ml-1 inline-flex items-center gap-0.5 text-[10px] text-primary-500 bg-primary-50/60 hover:bg-primary-100 px-1.5 py-0.5 rounded-full transition" title="在线咨询">
+                                    <button onclick="event.preventDefault();event.stopPropagation();openSellerChat({{ $product->creator->id }},{{ $product->id }})" class="chat-seller-btn ml-1 inline-flex items-center gap-0.5 text-[10px] text-primary-500 bg-primary-50/60 hover:bg-primary-100 px-1.5 py-0.5 rounded-full transition" title="在线咨询">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
                                         客服
                                     </button>
@@ -574,7 +574,7 @@
 
                     const creatorHtml = p.creator
                         ? `<div class="flex items-center gap-2 mb-2"><div class="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 bg-primary-50 flex items-center justify-center">${p.creator.avatar_url ? `<img src="${p.creator.avatar_url}" alt="" class="w-full h-full object-cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" loading="lazy">` : ''}<span class="text-primary-600 font-bold text-[10px]"${p.creator.avatar_url ? ' style="display:none"' : ''}>${(p.creator.name || '?')[0]}</span></div><span class="text-xs text-gray-400">${p.creator.name}</span>
-                        <button onclick="event.preventDefault();event.stopPropagation();openSellerChat(${p.creator.id},'${(p.creator.name||'').replace(/'/g,"\\'")}','${p.creator.avatar_url||''}')" class="chat-seller-btn ml-1 inline-flex items-center gap-0.5 text-[10px] text-primary-500 bg-primary-50/60 hover:bg-primary-100 px-1.5 py-0.5 rounded-full transition" title="在线咨询"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>客服</button></div>`
+                        <button onclick="event.preventDefault();event.stopPropagation();openSellerChat(${p.creator.id},${p.id})" class="chat-seller-btn ml-1 inline-flex items-center gap-0.5 text-[10px] text-primary-500 bg-primary-50/60 hover:bg-primary-100 px-1.5 py-0.5 rounded-full transition" title="在线咨询"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>客服</button></div>`
                         : '';
 
                     const isWishlisted = wishlistedIds.has(p.id);
@@ -879,82 +879,19 @@
     <a href="/help" class="fixed bottom-32 right-4 md:right-8 w-14 h-14 rounded-full bg-primary-600 text-white flex items-center justify-center z-50 shadow-lg hover:bg-primary-700 hover:scale-110 transition-all duration-300" aria-label="联系客服" title="联系客服">
         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
     </a>
-</body>
-    // 打开指定商家聊天
-    function openSellerChat(sellerId, sellerName, sellerAvatar) {
-        _chatSellerId = sellerId;
-        _chatSellerName = sellerName || '在线客服';
-        _chatSellerAvatar = sellerAvatar || '';
-        // 更新聊天标题
-        var nameEl = document.getElementById('chat-seller-name');
-        var avatarEl = document.getElementById('chat-seller-avatar-el');
-        if (nameEl) nameEl.textContent = _chatSellerName;
-        if (avatarEl) {
-            if (_chatSellerAvatar) {
-                avatarEl.innerHTML = '<img src="'+_chatSellerAvatar+'" alt="" class="w-full h-full rounded-full object-cover" onerror="this.style.display=\'none\';this.textContent=\''+_chatSellerName.charAt(0)+'\'">';
-            } else {
-                avatarEl.textContent = _chatSellerName.charAt(0);
-            }
+
+    <script>
+    // 打开指定商家私信（跳转 IM）
+    function openSellerChat(sellerId, productId) {
+        var token = localStorage.getItem('auth_token');
+        var url = '/build/user-chat?seller_id=' + encodeURIComponent(sellerId);
+        if (productId) url += '&product_id=' + encodeURIComponent(productId);
+        if (!token) {
+            window.location.href = '/build/login?redirect=' + encodeURIComponent(url);
+            return;
         }
-        // 清空旧消息
-        var c = document.getElementById('chat-messages');
-        if (c) {
-            var emptyState = c.querySelector('div.text-center');
-            if (emptyState && c.children.length === 1) {
-                // keep empty state
-            } else {
-                c.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm"><svg class="w-10 h-10 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg><p>开始与 '+_chatSellerName+' 对话</p></div>';
-            }
-            _lastMsgDate = '';
-        }
-        // 打开对话框
-        toggleChat();
+        window.location.href = url;
     }
-
-    // 切换聊天对话框
-    function toggleChat() {
-        var d = document.getElementById('im-chat-dialog');
-        var b = document.getElementById('im-chat-btn');
-        if (!d) return;
-        var h = d.classList.contains('hidden');
-        if (h) {
-            d.classList.remove('hidden');
-            if (b) b.style.display = 'none';
-            var ip = d.querySelector('#chat-input');
-            if (ip) ip.focus();
-        } else {
-            d.classList.add('hidden');
-            if (b) b.style.display = 'flex';
-            // 关闭弹出面板
-            var ep = document.getElementById('emoji-picker');
-            if (ep) ep.classList.add('hidden');
-        }
-    }
-
-    // 发送消息
-    function sendChatMessage() {
-        var ip = document.getElementById('chat-input');
-        var msg = (ip ? ip.value : '').trim();
-        if (!msg) { showChatToast('请输入消息'); return; }
-        var c = document.getElementById('chat-messages');
-        if (!c) return;
-        var d = new Date();
-        var ts = d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
-        addTimeSeparator(d);        // 发送到后端
-        var productId = document.querySelector('[data-product-id]')?.getAttribute('data-product-id');
-        var sellerId = _chatSellerId;
-        if (productId && sellerId) {
-            fetch('/contact-seller', {
-                method: 'POST',
-                headers: {'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content||''},
-                body: JSON.stringify({product_id:parseInt(productId), seller_id:sellerId, message:msg})
-            }).catch(function(){});
-        }        // 用户消息
-        var el = document.createElement('div');
-        el.className = 'flex justify-end';
-        el.innerHTML = '<div class="max-w-[75%] bg-primary-600 text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-sm leading-relaxed">'+escHtml(msg)+'<div class="flex items-center justify-end gap-1 mt-1"><span class="text-[10px] text-white/60">'+ts+'</span><span class="text-[10px] text-white/40">已发送</span></div></div>';
-        c.appendChild(el);
-        c.scrollTop = c.scrollHeight;
-
+    </script>
 </body>
 </html>

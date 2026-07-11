@@ -96,12 +96,15 @@ class ImEnhanceController extends Controller
     public function tagAssign(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'conversation_type' => 'required|string|in:live_chat,handoff',
+            'conversation_type' => 'required|string|in:live_chat,handoff,user_chat',
             'conversation_id' => 'required|integer',
             'tag_ids' => 'required|array',
             'tag_ids.*' => 'exists:conversation_tags,id',
         ]);
-        \DB::table('conversation_tag_assignments')->where($validated['conversation_type'], $validated['conversation_id'])->delete();
+        \DB::table('conversation_tag_assignments')
+            ->where('conversation_type', $validated['conversation_type'])
+            ->where('conversation_id', $validated['conversation_id'])
+            ->delete();
         foreach ($validated['tag_ids'] as $tagId) {
             \DB::table('conversation_tag_assignments')->insert([
                 'conversation_type' => $validated['conversation_type'],

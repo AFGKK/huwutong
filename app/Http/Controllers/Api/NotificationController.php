@@ -191,6 +191,8 @@ class NotificationController extends Controller
             'channels.in_app' => 'boolean',
             'channels.email' => 'boolean',
             'types' => 'sometimes|array',
+            'quiet_hours_start' => 'nullable|string|max:5',
+            'quiet_hours_end' => 'nullable|string|max:5',
         ]);
 
         $user = $request->user();
@@ -204,6 +206,13 @@ class NotificationController extends Controller
         if (isset($validated['types'])) {
             $types = array_merge($prefs->types ?? [], $validated['types']);
             $prefs->types = $types;
+        }
+
+        if (array_key_exists('quiet_hours_start', $validated)) {
+            $prefs->quiet_hours_start = $validated['quiet_hours_start'];
+        }
+        if (array_key_exists('quiet_hours_end', $validated)) {
+            $prefs->quiet_hours_end = $validated['quiet_hours_end'];
         }
 
         $prefs->save();

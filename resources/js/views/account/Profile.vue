@@ -214,6 +214,11 @@
         </el-row>
             </el-tab-pane>
 
+            <!-- ═══ 积分签到 ═══ -->
+            <el-tab-pane label="📅 积分签到" name="points">
+                <PointsDaily />
+            </el-tab-pane>
+
             <!-- ═══ 我的互动 ═══ -->
             <el-tab-pane label="💬 我的互动" name="interactions">
                 <UserInteractions />
@@ -224,12 +229,17 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Loading } from '@element-plus/icons-vue';
 import profileApi from '@/api/profile';
 import { useAuthStore } from '@/stores/auth';
 import { getSecurityScore, getPreferences, savePreferences } from '@/api/interaction';
 import UserInteractions from './UserInteractions.vue';
+import PointsDaily from './PointsDaily.vue';
+
+const route = useRoute();
+const profileTabs = ['profile', 'points', 'interactions'];
 
 const authStore = useAuthStore();
 
@@ -400,6 +410,10 @@ function gotoUrl(url) {
 }
 
 onMounted(() => {
+    const tab = String(route.query.tab || '');
+    if (profileTabs.includes(tab)) {
+        activeTab.value = tab;
+    }
     loadUser();
     loadSecurityScore();
     loadPreferences();

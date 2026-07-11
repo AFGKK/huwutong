@@ -58,6 +58,7 @@ async function tryRefreshToken() {
         });
         if (res.success && res.data?.token) {
             localStorage.setItem('auth_token', res.data.token);
+            import('@/echo').then(({ refreshEchoAuthHeaders }) => refreshEchoAuthHeaders()).catch(() => {});
             return res.data.token;
         }
         return null;
@@ -90,6 +91,11 @@ apiClient.interceptors.response.use(
         const data = error.response?.data;
         const originalRequest = error.config;
 
+        // 401 — 后台轮询类请求：不触发全局登出（如通知未读数、心跳）
+        if (status === 401 && originalRequest.silentAuth) {
+            return Promise.reject(error);
+        }
+
         // 401 — 尝试静默刷新
         if (status === 401 && !originalRequest._retry) {
             // 防止刷新 Token 本身也触发刷新
@@ -116,6 +122,7 @@ apiClient.interceptors.response.use(
                 if (newToken) {
                     processQueue(null, newToken);
                     originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                    import('@/echo').then(({ refreshEchoAuthHeaders }) => refreshEchoAuthHeaders()).catch(() => {});
                     return apiClient(originalRequest);
                 }
 

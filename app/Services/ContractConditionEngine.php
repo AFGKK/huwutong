@@ -128,19 +128,23 @@ class ContractConditionEngine
         $timezone = $condition['timezone'] ?? 'UTC';
 
         $now = now()->setTimezone($timezone);
-        $currentDayOfWeek = (int)$now->format('N'); // 1=Mon, 7=Sun
-        $currentTime = $now->format('H:i');
+        $currentDayOfWeek = isset($context['current_day'])
+            ? (int) $context['current_day']
+            : (int) $now->format('N'); // 1=Mon, 7=Sun
+        $currentTime = $context['current_time'] ?? $now->format('H:i');
 
         // 检查星期
-        if (!in_array($currentDayOfWeek, $days)) {
-            return $operator === 'not_in' || $operator === 'neq';
+        if (!in_array($currentDayOfWeek, $days, true)) {
+            return in_array($operator, ['not_in', 'neq'], true);
         }
 
-        if ($operator === 'in' || $operator === 'eq') {
-            return $currentTime >= $startTime && $currentTime <= $endTime;
-        }
+        $inWindow = $currentTime >= $startTime && $currentTime <= $endTime;
 
-        return $this->evaluateGenericOperator($currentTime, [$startTime, $endTime], $operator);
+        return match ($operator) {
+            'in', 'eq', 'between' => $inWindow,
+            'not_in', 'neq' => !$inWindow,
+            default => $this->evaluateGenericOperator($currentTime, [$startTime, $endTime], $operator),
+        };
     }
 
     /**

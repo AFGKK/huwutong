@@ -8,6 +8,10 @@ use App\Models\UserConversation;
 use App\Models\ConversationParticipant;
 use App\Models\ConversationMessage;
 use App\Models\UserFriend;
+use App\Models\Product;
+use App\Models\UserPrivacySetting;
+use App\Models\CallLog;
+use App\Events\CallIncoming;
 use Tests\Concerns\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
@@ -37,6 +41,10 @@ class ImChatTest extends TestCase
         $this->tokenA = $this->userA->createToken('test-token', ['*'])->plainTextToken;
         $this->tokenB = $this->userB->createToken('test-token', ['*'])->plainTextToken;
         $this->tokenC = $this->userC->createToken('test-token', ['*'])->plainTextToken;
+
+        UserPrivacySetting::defaultFor($this->userA->id)->update(['dm_policy' => 'everyone']);
+        UserPrivacySetting::defaultFor($this->userB->id)->update(['dm_policy' => 'everyone']);
+        UserPrivacySetting::defaultFor($this->userC->id)->update(['dm_policy' => 'everyone']);
     }
 
     protected function headers(string $token): array
@@ -161,6 +169,17 @@ class ImChatTest extends TestCase
     {
         $r = $this->postJson('/api/user-chat/self-conversation', [], $this->headers($this->tokenA));
         $this->assertContains($r->status(), [200, 500]); // 依赖 user_conversations.deleted_at 列
+    }
+
+    /** @test */
+    public function ai_conversation_is_not_labeled_as_file_transfer_assistant()
+    {
+        $ai = $this->postJson('/api/user-chat/ai-conversation', [], $this->headers($this->tokenA));
+        $this->assertContains($ai->getStatusCode(), [200, 201]);
+        $ai->assertJsonPath('data.is_ai_assistant', true);
+        $ai->assertJsonPath('data.is_self', false);
+        $this->assertNotEquals('📁 文件传输助手', $ai->json('data.name'));
+        $this->assertEquals('ai', $ai->json('data.type'));
     }
 
     // ─────────────────────────────────────────
@@ -536,6 +555,226 @@ class ImChatTest extends TestCase
             'user_conversation_id' => $conv->id,
             'user_id' => $this->userC->id,
         ]);
+    }
+
+    /** @test */
+    public function seller_inquiry_opens_private_chat_without_friendship()
+    {
+        Event::fake();
+
+        $seller = $this->userB;
+        $product = Product::factory()->create([
+            'user_id' => $seller->id,
+            'name' => 'Consult Product',
+            'is_active' => true,
+        ]);
+
+        $r = $this->postJson('/api/user-chat/seller-inquiry', [
+            'seller_id' => $seller->id,
+            'product_id' => $product->id,
+        ], $this->headers($this->tokenA));
+
+        $r->assertStatus(201)->assertJsonPath('success', true);
+        $convId = $r->json('data.conversation.id');
+        $this->assertNotNull($convId);
+        $this->assertDatabaseHas('conversation_messages', [
+            'conversation_id' => $convId,
+            'sender_id' => $this->userA->id,
+            'message_type' => 'card',
+        ]);
+
+        $msg = $this->postJson("/api/user-chat/conversations/{$convId}/messages", [
+            'content' => '这款有优惠吗？',
+            'message_type' => 'text',
+            'product_id' => $product->id,
+        ], $this->headers($this->tokenA));
+
+        $this->assertContains($msg->status(), [200, 201]);
+        $this->assertDatabaseHas('conversation_messages', [
+            'conversation_id' => $convId,
+            'sender_id' => $this->userA->id,
+            'content' => '这款有优惠吗？',
+        ]);
+    }
+
+    /** @test */
+    public function user_can_export_conversation_as_html()
+    {
+        $conv = UserConversation::create(['type' => 'private', 'name' => '导出测试', 'created_by' => $this->userA->id]);
+        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userA->id, 'role' => 'member']);
+        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userB->id, 'role' => 'member']);
+        ConversationMessage::create([
+            'conversation_id' => $conv->id,
+            'sender_id' => $this->userA->id,
+            'message_type' => 'text',
+            'content' => '导出内容',
+        ]);
+
+        $response = $this->getJson("/api/user-chat/conversations/{$conv->id}/export", $this->headers($this->tokenA));
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('导出内容', $response->getContent());
+        $this->assertStringContainsString('导出测试', $response->getContent());
+    }
+
+    /** @test */
+    public function participant_can_send_typing_indicator()
+    {
+        $conv = UserConversation::create(['type' => 'private', 'created_by' => $this->userA->id]);
+        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userA->id, 'role' => 'member']);
+        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userB->id, 'role' => 'member']);
+
+        $response = $this->postJson("/api/user-chat/conversations/{$conv->id}/typing", [], $this->headers($this->tokenA));
+
+        $response->assertStatus(200)->assertJsonPath('success', true);
+    }
+
+    // ─────────────────────────────────────────
+    // 音视频通话
+    // ─────────────────────────────────────────
+
+    /** @test */
+    public function user_can_initiate_audio_call()
+    {
+        Event::fake([CallIncoming::class]);
+
+        $response = $this->postJson('/api/calls/call', [
+            'callee_id' => $this->userB->id,
+            'call_type' => 'audio',
+        ], $this->headers($this->tokenA));
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.callee_id', $this->userB->id)
+            ->assertJsonPath('data.status', 'calling');
+
+        $this->assertDatabaseHas('call_logs', [
+            'caller_id' => $this->userA->id,
+            'callee_id' => $this->userB->id,
+            'status' => 'calling',
+        ]);
+
+        Event::assertDispatched(CallIncoming::class);
+    }
+
+    /** @test */
+    public function callee_can_poll_pending_incoming_call()
+    {
+        $call = CallLog::create([
+            'caller_id' => $this->userA->id,
+            'callee_id' => $this->userB->id,
+            'call_type' => 'video',
+            'status' => 'calling',
+            'started_at' => now(),
+        ]);
+
+        $response = $this->getJson('/api/calls/incoming', $this->headers($this->tokenB));
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.call_id', $call->id)
+            ->assertJsonPath('data.caller_id', $this->userA->id)
+            ->assertJsonPath('data.call_type', 'video');
+    }
+
+    /** @test */
+    public function callee_can_accept_incoming_call()
+    {
+        $call = CallLog::create([
+            'caller_id' => $this->userA->id,
+            'callee_id' => $this->userB->id,
+            'call_type' => 'audio',
+            'status' => 'calling',
+            'started_at' => now(),
+        ]);
+
+        $response = $this->postJson("/api/calls/{$call->id}/respond", [
+            'action' => 'accept',
+        ], $this->headers($this->tokenB));
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'connected');
+
+        $this->assertDatabaseHas('call_logs', ['id' => $call->id, 'status' => 'connected']);
+    }
+
+    // ─────────────────────────────────────────
+    // Live Chat
+    // ─────────────────────────────────────────
+
+    /** @test */
+    public function user_can_create_live_chat_conversation()
+    {
+        $response = $this->postJson('/api/live-chat/conversations', [], $this->headers($this->tokenA));
+
+        $this->assertContains($response->status(), [200, 201]);
+        $response->assertJsonPath('success', true)
+            ->assertJsonStructure(['data' => ['id', 'session_id', 'status']]);
+    }
+
+    /** @test */
+    public function user_can_send_live_chat_message()
+    {
+        $create = $this->postJson('/api/live-chat/conversations', [], $this->headers($this->tokenA));
+        $convId = $create->json('data.id');
+
+        $response = $this->postJson("/api/live-chat/conversations/{$convId}/messages", [
+            'content' => 'hello, need help',
+        ], $this->headers($this->tokenA));
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data' => ['message']]);
+    }
+
+    /** @test */
+    public function admin_can_access_live_chat_dashboard()
+    {
+        $response = $this->getJson('/api/live-chat/admin/dashboard', $this->headers($this->tokenA));
+
+        $response->assertStatus(200)->assertJsonPath('success', true);
+    }
+
+    /** @test */
+    public function call_participants_can_exchange_webrtc_signals()
+    {
+        $call = CallLog::create([
+            'caller_id' => $this->userA->id,
+            'callee_id' => $this->userB->id,
+            'call_type' => 'audio',
+            'status' => 'calling',
+            'started_at' => now(),
+        ]);
+
+        $offer = ['type' => 'offer', 'sdp' => 'mock-offer-sdp'];
+        $this->postJson("/api/calls/{$call->id}/signal", [
+            'type' => 'offer',
+            'data' => $offer,
+        ], $this->headers($this->tokenA))->assertStatus(200);
+
+        $poll = $this->getJson("/api/calls/{$call->id}/signal-poll?type=offer", $this->headers($this->tokenB));
+        $poll->assertStatus(200)
+            ->assertJsonPath('data.data.type', 'offer')
+            ->assertJsonPath('data.data.sdp', 'mock-offer-sdp');
+
+        $answer = ['type' => 'answer', 'sdp' => 'mock-answer-sdp'];
+        $this->postJson("/api/calls/{$call->id}/signal", [
+            'type' => 'answer',
+            'data' => $answer,
+        ], $this->headers($this->tokenB))->assertStatus(200);
+
+        $answerPoll = $this->getJson("/api/calls/{$call->id}/signal-poll?type=answer", $this->headers($this->tokenA));
+        $answerPoll->assertStatus(200)->assertJsonPath('data.data.sdp', 'mock-answer-sdp');
+
+        $ice = ['candidate' => 'mock-ice-1'];
+        $this->postJson("/api/calls/{$call->id}/signal", [
+            'type' => 'ice_candidate',
+            'data' => $ice,
+        ], $this->headers($this->tokenA))->assertStatus(200);
+
+        $icePoll = $this->getJson("/api/calls/{$call->id}/signal-poll?type=ice_candidate", $this->headers($this->tokenB));
+        $icePoll->assertStatus(200)->assertJsonPath('data.data.candidate', 'mock-ice-1');
     }
 }
 

@@ -42,6 +42,7 @@ export const useAuthStore = defineStore('auth', {
                 this.token = token;
                 localStorage.setItem('auth_token', token);
                 localStorage.setItem('user', JSON.stringify(user));
+                import('@/echo').then(({ refreshEchoAuthHeaders }) => refreshEchoAuthHeaders()).catch(() => {});
                 ElMessage.success('登录成功');
                 return true;
             } catch (e) {

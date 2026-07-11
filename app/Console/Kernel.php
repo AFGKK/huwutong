@@ -22,6 +22,12 @@ class Kernel extends ConsoleKernel
             ->everyMinute()
             ->withoutOverlapping()
             ->appendOutputTo(storage_path('logs/plaza-scheduler.log'));
+
+        // 私信留存清理 - 每天凌晨执行
+        $schedule->command('dm:prune-retention')
+            ->dailyAt('03:30')
+            ->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/dm-retention.log'));
     }
 
     /**

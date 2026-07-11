@@ -88,7 +88,9 @@
             <el-table-column label="评分" width="60">
               <template #default="{ row }">{{ row.rating ? row.rating + '⭐' : '—' }}</template>
             </el-table-column>
-            <el-table-column label="创建时间" width="160">{{ formatTime(row.created_at) }}</el-table-column>
+            <el-table-column label="创建时间" width="160">
+              <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
+            </el-table-column>
           </el-table>
           <div class="pagination-wrap" v-if="convPagination.total > convPagination.per_page">
             <el-pagination
@@ -129,8 +131,8 @@ async function refreshAll() {
       liveChatApi.getDashboard(),
       liveChatApi.getPendingHandoffs(),
     ]);
-    stats.value = dashRes.data;
-    pendingHandoffs.value = handoffRes.data || [];
+    stats.value = dashRes.data?.data || {};
+    pendingHandoffs.value = handoffRes.data?.data || [];
   } finally { loading.value = false; }
   loadConversations();
 }
@@ -139,8 +141,13 @@ async function loadConversations() {
   convLoading.value = true;
   try {
     const res = await liveChatApi.listConversations({ ...convFilter, page: convPagination.current_page });
-    conversations.value = res.data.data || [];
-    Object.assign(convPagination, res.data);
+    const pageData = res.data?.data || {};
+    conversations.value = pageData.data || [];
+    Object.assign(convPagination, {
+      current_page: pageData.current_page || 1,
+      per_page: pageData.per_page || 20,
+      total: pageData.total || 0,
+    });
   } finally { convLoading.value = false; }
 }
 

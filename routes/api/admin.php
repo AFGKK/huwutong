@@ -1029,10 +1029,16 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         // 🆕 用户 P2P 聊天系统
         Route::prefix('user-chat')->group(function () {
             Route::post('/conversations', [UserChatController::class, 'createConversation']);
+            Route::post('/seller-inquiry', [UserChatController::class, 'startSellerInquiry']);
             Route::get('/conversations', [UserChatController::class, 'myConversations']);
+            Route::get('/message-requests', [UserChatController::class, 'messageRequests']);
+            Route::post('/message-requests/{id}/accept', [UserChatController::class, 'acceptMessageRequest'])->whereNumber('id');
+            Route::post('/message-requests/{id}/reject', [UserChatController::class, 'rejectMessageRequest'])->whereNumber('id');
             Route::post('/conversations/{id}/messages', [UserChatController::class, 'sendMessage'])->whereNumber('id');
             Route::get('/conversations/{id}/messages', [UserChatController::class, 'getMessages'])->whereNumber('id');
             Route::post('/conversations/{id}/read', [UserChatController::class, 'markRead'])->whereNumber('id');
+            Route::post('/conversations/{id}/typing', [UserChatController::class, 'typing'])->whereNumber('id');
+            Route::post('/conversations/{id}/unread', [UserChatController::class, 'markUnread'])->whereNumber('id');
             Route::post('/conversations/{id}/pin', [UserChatController::class, 'togglePin'])->whereNumber('id');
             Route::post('/conversations/{id}/mute', [UserChatController::class, 'toggleMute'])->whereNumber('id');
             Route::delete('/conversations/{id}', [UserChatController::class, 'deleteConversation'])->whereNumber('id');
@@ -1153,6 +1159,7 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
             Route::post('/conversations/{conv}/send-coupon-card', [UserChatController::class, 'sendCouponCard'])->whereNumber('conv');
             Route::post('/conversations/{conv}/send-todo-card', [UserChatController::class, 'sendTodoCard'])->whereNumber('conv');
             Route::post('/card-callback', [UserChatController::class, 'cardCallback']);
+            Route::get('/conversations/{conv}/export', [UserChatController::class, 'exportConversation'])->whereNumber('conv');
             Route::get('/messages/sync', [UserChatController::class, 'syncMessages']);
             Route::get('/messages/search-fulltext', [UserChatController::class, 'searchMessagesFulltext']);
             Route::post('/messages/{message}/transcribe', [UserChatController::class, 'transcribeVoice'])->whereNumber('message');
@@ -2351,6 +2358,7 @@ Route::prefix('threads')->middleware(['auth:sanctum'])->group(function () {
 
 // ── 音视频通话 ──
 Route::prefix('calls')->middleware(['auth:sanctum'])->group(function () {
+    Route::get('/incoming', [CallController::class, 'pendingIncoming']);
     Route::post('/call', [CallController::class, 'call']);
     Route::post('/{id}/respond', [CallController::class, 'respond'])->whereNumber('id');
     Route::post('/{id}/end', [CallController::class, 'end'])->whereNumber('id');

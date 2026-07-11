@@ -110,7 +110,7 @@ const routes = [
     { path: '/ai-chat', redirect: '/im' },
     { path: '/handoff', redirect: '/im' },
     { path: '/handoff/:id', redirect: '/im' },
-    { path: '/live-chat', redirect: '/im' },
+    { path: '/live-chat', redirect: { path: '/im', query: { tab: 'liveChat' } } },
     { path: '/teams-notifier', redirect: '/im-integration' },
     {
         path: '/',
@@ -299,12 +299,6 @@ const routes = [
                 name: 'LocalProxy',
                 component: () => import('@/views/local-proxy/Index.vue'),
                 meta: { title: '本地License代理', icon: 'Connection' },
-            },
-            {
-                path: 'license-analytics',
-                name: 'LicenseAnalytics',
-                component: () => import('@/views/license-analytics/Index.vue'),
-                meta: { title: 'License使用分析', icon: 'DataBoard' },
             },
             {
                 path: 'heatmap',
@@ -547,7 +541,7 @@ const routes = [
                 meta: { title: '队列死信监控', icon: 'Monitor' },
             },
             // ── 在线客服管理（已合并到客服工作台） ──
-            { path: 'live-chat', redirect: '/im' },
+            { path: 'live-chat', redirect: { path: '/im', query: { tab: 'liveChat' } } },
             // ── Trial→付费转化漏斗 (M2-101) ──
             {
                 path: 'conversion-funnel',
@@ -829,12 +823,6 @@ const routes = [
                 name: 'ApiPlayground',
                 component: () => import('@/views/playground/Index.vue'),
                 meta: { title: 'API Playground', icon: 'Monitor' },
-            },
-            {
-                path: 'custom-fields',
-                name: 'CustomFields',
-                component: () => import('@/views/custom-fields/Index.vue'),
-                meta: { title: '自定义字段', icon: 'Edit' },
             },
             {
                 path: 'deps-security',
@@ -1479,7 +1467,7 @@ const routes = [
                 path: 'account/profile',
                 name: 'AccountProfile',
                 component: () => import('@/views/account/Profile.vue'),
-                meta: { title: '个人资料', icon: 'User' },
+                meta: { title: '账户中心', icon: 'User' },
             },
             {
                 path: 'account/binding',
@@ -1979,9 +1967,9 @@ const routes = [
             // ── 客户分级 SLA (M2-31) ──
             {
                 path: 'sla',
-                name: 'SlaTier',
+                name: 'SlaTracking',
                 component: () => import('@/views/sla/Index.vue'),
-                meta: { title: 'SLA 等级', icon: 'Odometer' },
+                meta: { title: 'SLA 追踪', icon: 'Timer' },
             },
             // ── 计费管理 ──
             {
@@ -2240,13 +2228,6 @@ const routes = [
                 component: () => import('@/views/ids/Index.vue'),
                 meta: { title: 'IDS/IPS 入侵检测', icon: 'Monitor' },
             },
-            // ── SLA 追踪 ──
-            {
-                path: 'sla',
-                name: 'SlaTracking',
-                component: () => import('@/views/sla/Index.vue'),
-                meta: { title: 'SLA 追踪', icon: 'DataBoard' },
-            },
             // ── 智能告警 ──
             {
                 path: 'alerting',
@@ -2307,7 +2288,7 @@ const routes = [
                 path: 'custom-fields',
                 name: 'CustomFields',
                 component: () => import('@/views/system/CustomFields.vue'),
-                meta: { title: '自定义字段', icon: 'List' },
+                meta: { title: '自定义字段', icon: 'EditPen' },
             },
             // ── 数据导出管理 M3-30 ──
             {
@@ -2615,14 +2596,14 @@ router.beforeEach((to, from, next) => {
     // 租户选择页需要已登录
     if (to.name === 'TenantSelect') {
         if (!auth.isLoggedIn) {
-            return next('/login');
+            return next({ path: '/login', query: { redirect: to.fullPath } });
         }
         return next();
     }
 
     // 检查认证
     if (!auth.isLoggedIn) {
-        return next('/login');
+        return next({ path: '/login', query: { redirect: to.fullPath } });
     }
 
     // 如果是多租户用户且没有选择租户，跳转到租户选择页

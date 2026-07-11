@@ -31,7 +31,7 @@ class NotificationPreferenceServiceTest extends TestCase
         $result = $this->service->getPreferences($this->user);
         $preferences = $result['preferences'];
 
-        $this->assertCount(21, $preferences); // 3 channels * 7 categories
+        $this->assertCount(24, $preferences); // 3 channels × 8 categories
         $this->assertEquals('mail', $preferences[0]['channel']);
         $this->assertEquals('license_expiry', $preferences[0]['category']);
         $this->assertTrue($preferences[0]['enabled']);

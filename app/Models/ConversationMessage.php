@@ -78,4 +78,8 @@ class ConversationMessage extends Model
     public function conversation(): BelongsTo { return $this->belongsTo(UserConversation::class, 'conversation_id'); }
     public function sender(): BelongsTo { return $this->belongsTo(User::class, 'sender_id'); }
     public function replyTo(): BelongsTo { return $this->belongsTo(self::class, 'reply_to_id'); }
+    public function reactions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(MessageReaction::class, 'message_id');
+    }
 }

@@ -456,6 +456,12 @@ class GdprComplianceService
 
             // 9. Device 设备指纹
             $customerId = $customer?->id;
+            // 12. IM 私信数据清理
+            $imResults = app(UserChatCleanupService::class)->cleanupForDeletedUser($user);
+            if (! empty($imResults)) {
+                $results = array_merge($results, $imResults);
+            }
+
             if ($customerId) {
                 $devicesUpdated = Device::whereHas('license', function ($q) use ($customerId) {
                     $q->where('customer_id', $customerId);

@@ -51,23 +51,30 @@ export function getMockLicenses(count = 5) {
 }
 
 /**
- * 生成模拟单个 License 详情
+ * 生成模拟单个 License 详情（与 GET /api/licenses/{id} 响应结构一致）
  */
 export function getMockLicenseDetail(id = 1) {
     const now = Date.now();
-    return {
+    const iso = (offsetMs) => new Date(now + offsetMs).toISOString();
+
+    const license = {
         id,
         license_key: 'HWT-12345-67890-ABCDE-FGHIJ',
+        product_id: 1,
+        customer_id: 1,
         product: { id: 1, name: '企业版 License', version: '3.2.1' },
         customer: { id: 1, name: '互物通科技', email: 'contact@huwutong.com' },
         status: 'active',
+        type: 'enterprise',
         plan: 'enterprise',
         seats: 50,
+        max_devices: 10,
         used_seats: 23,
-        activated_at: now - 86400000 * 90,
-        expires_at: now + 86400000 * 275,
-        created_at: now - 86400000 * 100,
-        updated_at: now - 86400000 * 2,
+        activated_at: iso(-86400000 * 90),
+        expires_at: iso(86400000 * 275),
+        created_at: iso(-86400000 * 100),
+        updated_at: iso(-86400000 * 2),
+        tags: [],
         features: [
             { code: 'multi_tenant', name: '多租户支持', enabled: true },
             { code: 'audit_log', name: '审计日志', enabled: true },
@@ -75,13 +82,53 @@ export function getMockLicenseDetail(id = 1) {
             { code: 'api_access', name: 'API 访问', enabled: true },
         ],
         devices: [
-            { id: 1, name: '生产服务器-01', ip: '192.168.1.100', last_seen: now - 3600000 },
-            { id: 2, name: '生产服务器-02', ip: '192.168.1.101', last_seen: now - 7200000 },
+            {
+                id: 1,
+                fingerprint: 'fp-prod-server-01',
+                hostname: '生产服务器-01',
+                platform: 'linux',
+                trust_score: 92,
+                last_activated_at: iso(-3600000),
+            },
+            {
+                id: 2,
+                fingerprint: 'fp-prod-server-02',
+                hostname: '生产服务器-02',
+                platform: 'linux',
+                trust_score: 85,
+                last_activated_at: iso(-7200000),
+            },
         ],
         activations: [
-            { id: 1, device_name: '生产服务器-01', activated_at: now - 86400000 * 80, status: 'active' },
-            { id: 2, device_name: '生产服务器-02', activated_at: now - 86400000 * 60, status: 'active' },
+            {
+                id: 1,
+                device_fingerprint: 'fp-prod-server-01',
+                ip_address: '192.168.1.100',
+                action: 'activate',
+                created_at: iso(-86400000 * 80),
+            },
+            {
+                id: 2,
+                device_fingerprint: 'fp-prod-server-02',
+                ip_address: '192.168.1.101',
+                action: 'activate',
+                created_at: iso(-86400000 * 60),
+            },
         ],
+    };
+
+    return {
+        license,
+        status_info: {
+            current_status: 'active',
+            is_usable: true,
+            is_terminal: false,
+            is_expired: false,
+            available_transitions: ['suspended', 'frozen'],
+            device_count: license.devices.length,
+            max_devices: license.max_devices,
+        },
+        deliverables: [],
     };
 }
 
@@ -308,6 +355,51 @@ export function getMockAuditLogs() {
 }
 
 /**
+ * 获取模拟 IM 会话列表
+ */
+export function getMockImConversations(userId = 1) {
+    const now = new Date().toISOString();
+    return [
+        {
+            id: 101,
+            name: 'UserB',
+            type: 'private',
+            unread_count: 2,
+            is_pinned: false,
+            is_muted: false,
+            updated_at: now,
+            last_message: { content: '你好，在吗？', sender_name: 'UserB', created_at: now },
+            participants: [{ id: userId, name: '管理员' }, { id: 2, name: 'UserB' }],
+        },
+        {
+            id: 102,
+            name: '产品讨论群',
+            type: 'group',
+            unread_count: 0,
+            is_pinned: true,
+            is_muted: false,
+            updated_at: now,
+            last_message: { content: '明天开会', sender_name: 'Alice', created_at: now },
+            participants: [{ id: userId, name: '管理员' }],
+            my_role: 'owner',
+        },
+    ];
+}
+
+/**
+ * 获取模拟 Live Chat 仪表盘
+ */
+export function getMockLiveChatDashboard() {
+    return {
+        active: 3,
+        waiting: 1,
+        closed_today: 5,
+        avg_rating: 4.2,
+        pending_handoffs: 2,
+    };
+}
+
+/**
  * 在页面上设置 API 拦截 mock
  * 拦截所有 /api/ 请求并返回模拟数据
  */
@@ -332,14 +424,44 @@ export async function setupApiMocks(page, options = {}) {
         mockSandboxInfo = getMockSandboxInfo(),
         mockStagingInfo = getMockStagingInfo(),
         mockAuditLogs = getMockAuditLogs(),
+        mockImConversations = getMockImConversations(mockUser.id),
+        mockLiveChatDashboard = getMockLiveChatDashboard(),
     } = options;
 
     await page.route('**/api/**', async (route) => {
         const url = route.request().url();
         const method = route.request().method();
 
+        // ── 通知（布局 CriticalNotificationDialog 会请求，必须 mock 避免 401 登出）──
+        if (url.includes('/api/notifications')) {
+            const isUnreadCount = url.includes('unread-count');
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    data: isUnreadCount
+                        ? { count: 0, critical_count: 0 }
+                        : { data: [], current_page: 1, per_page: 15, total: 0 },
+                    message: 'ok',
+                }),
+            });
+        }
+
+        if (url.includes('/api/token/refresh')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    data: { token: 'e2e-test-token-refreshed' },
+                    message: 'ok',
+                }),
+            });
+        }
+
         // ── 认证相关 ──
-        if (url.includes('/api/user') && method === 'GET') {
+        if ((url.endsWith('/api/user') || url.includes('/api/user?')) && method === 'GET') {
             return await route.fulfill({
                 status: 200,
                 contentType: 'application/json',
@@ -396,16 +518,26 @@ export async function setupApiMocks(page, options = {}) {
             });
         }
         if (url.includes('/api/licenses') && method === 'GET') {
+            if (url.match(/\/api\/licenses\/\d+\/notes/)) {
+                return await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ success: true, data: [], message: 'ok' }),
+                });
+            }
             // 是列表还是详情？
-            const match = url.match(/\/api\/licenses\/(\d+)/);
+            const match = url.match(/\/api\/licenses\/(\d+)(?:\?|$)/);
             if (match) {
-                // 详情
+                const licenseId = parseInt(match[1]);
+                const detail = mockLicenseDetail.license
+                    ? { ...mockLicenseDetail, license: { ...mockLicenseDetail.license, id: licenseId } }
+                    : { license: { ...mockLicenseDetail, id: licenseId }, status_info: null, deliverables: [] };
                 return await route.fulfill({
                     status: 200,
                     contentType: 'application/json',
                     body: JSON.stringify({
                         success: true,
-                        data: { ...mockLicenseDetail, id: parseInt(match[1]) },
+                        data: detail,
                         message: 'ok',
                     }),
                 });
@@ -664,12 +796,182 @@ export async function setupApiMocks(page, options = {}) {
             });
         }
 
+        // ── IM 即时通讯 ──
+        if (url.match(/\/api\/user-chat\/conversations\/?(\?|$)/) && method === 'GET') {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, data: mockImConversations, message: 'ok' }),
+            });
+        }
+        if (url.includes('/api/user-chat/')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, data: [], message: 'ok' }),
+            });
+        }
+        if (url.includes('/api/calls/incoming')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, data: null, message: '无来电' }),
+            });
+        }
+        if (url.includes('/api/live-chat/admin/dashboard')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, data: mockLiveChatDashboard, message: 'ok' }),
+            });
+        }
+        if (url.includes('/api/live-chat/admin/pending-handoffs')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, data: [], message: 'ok' }),
+            });
+        }
+        if (url.includes('/api/live-chat/admin/conversations')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    data: { data: [], current_page: 1, per_page: 20, total: 0 },
+                    message: 'ok',
+                }),
+            });
+        }
+
+        if (url.includes('/api/handoffs/queue') || url.includes('/api/handoff/conversations') || url.includes('/api/handoff/queue-stats')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    data: url.includes('queue-stats')
+                        ? { total_queued: 0, urgent_queued: 0, avg_wait_formatted: '—', online_agents: 1, active: 0, today_count: 0 }
+                        : [],
+                    message: 'ok',
+                }),
+            });
+        }
+
+        if (url.includes('/api/chat/') || url.includes('/api/rag/') || url.includes('/api/settings')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    data: url.includes('stats')
+                        ? { total_conversations: 0, total_messages: 0, satisfaction_rate: 0, helpful_count: 0, unhelpful_count: 0, total_documents: 0 }
+                        : (url.includes('handoff-config') ? { enabled: true, auto_handoff: true } : {}),
+                    message: 'ok',
+                }),
+            });
+        }
+
         // ── 广播认证 ──
-        if (url.includes('/api/broadcasting/auth')) {
+        if (url.includes('/api/broadcasting/auth') || url.includes('/broadcasting/auth')) {
             return await route.fulfill({
                 status: 200,
                 contentType: 'application/json',
                 body: JSON.stringify({ auth: 'mock-auth-signature' }),
+            });
+        }
+
+        // ── Webhook 端点 ──
+        if (url.includes('/api/webhook-endpoints/event-types')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    data: [
+                        { value: 'license.created', label: 'License 创建' },
+                        { value: 'license.expired', label: 'License 过期' },
+                    ],
+                    message: 'ok',
+                }),
+            });
+        }
+        if (url.includes('/api/webhook-endpoints')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(paginated([
+                    {
+                        id: 1,
+                        name: '生产环境推送',
+                        url: 'https://api.example.com/webhooks/hwt',
+                        events: ['license.created'],
+                        is_active: true,
+                        is_paused: false,
+                        events_count: 12,
+                    },
+                ])),
+            });
+        }
+
+        // ── Webhook 监控 ──
+        if (url.includes('/api/admin/webhook-monitor/')) {
+            const emptyPaged = { data: [], current_page: 1, per_page: 20, total: 0 };
+            const overview = {
+                endpoints_total: 1,
+                active_endpoints: 1,
+                paused_endpoints: 0,
+                today_total: 5,
+                today_delivered: 4,
+                today_failed: 1,
+                today_pending: 0,
+                today_success_rate: 80,
+                hourly_failure_rate: 0,
+                hourly_total: 2,
+                hourly_failed: 0,
+            };
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    data: url.includes('overview') ? overview : emptyPaged,
+                    message: 'ok',
+                }),
+            });
+        }
+
+        // ── License 自定义字段 / 时段限制 / 标签 ──
+        if (url.includes('/api/admin/custom-fields/licenses/')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, data: [], message: 'ok' }),
+            });
+        }
+        if (url.includes('/api/admin/licenses/') && url.includes('/time-restriction')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    data: url.includes('/logs') ? paginated([]) : null,
+                    message: 'ok',
+                }),
+            });
+        }
+        if (url.includes('/api/admin/time-restriction')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, data: {}, message: 'ok' }),
+            });
+        }
+        if (url.includes('/api/tags')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, data: [], message: 'ok' }),
             });
         }
 
@@ -702,23 +1004,23 @@ export async function navigateAsLoggedIn(page, url, options = {}) {
         roles = ['super-admin', 'admin'],
     } = options;
 
-    // 先打开登录页让 Vue 初始化
+    const mockUser = getMockUser(email, name);
+    mockUser.roles = roles;
+
+    // 先注册 API mock，避免首屏请求打到真实后端触发 401
+    await setupApiMocks(page, { mockUser, ...options });
+
+    // 打开登录页让 Vue 初始化
     await page.goto(adminUrl('/admin/login'));
     await page.waitForTimeout(500);
 
     // 设置 localStorage 模拟登录
-    const mockUser = getMockUser(email, name);
-    mockUser.roles = roles;
     await page.evaluate((user) => {
         localStorage.setItem('auth_token', 'e2e-test-token');
         localStorage.setItem('user', JSON.stringify(user));
     }, mockUser);
 
-    // 设置 API mock
-    await setupApiMocks(page, { mockUser, ...options });
-
     // 导航到目标页
-    await page.goto(adminUrl(url));
-    // 等待页面初始化（缩短等待时间，让测试自己判断内容）
-    await page.waitForTimeout(2000);
+    await page.goto(adminUrl(url), { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
 }

@@ -12,11 +12,13 @@ use App\Models\ProductCategory;
 use App\Models\ProductSku;
 use App\Models\Promotion;
 use App\Models\WishlistItem;
+use App\Services\UserChatConversationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\View\View;
+use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * 公开营销页面控制器 (M1.4-49/50)
@@ -505,7 +507,7 @@ class PublicPageController extends Controller
      *
      * POST /contact-seller
      */
-    public function contactSeller(Request $request): JsonResponse
+    public function contactSeller(Request $request, UserChatConversationService $chatService): JsonResponse
     {
         $validated = $request->validate([
             'product_id' => 'required|integer|exists:products,id',
@@ -515,20 +517,58 @@ class PublicPageController extends Controller
             'email' => 'nullable|email|max:255',
         ]);
 
-        // 创建咨询工单/通知卖家
+        $product = Product::find($validated['product_id']);
+        if ($product && (int) $product->user_id !== (int) $validated['seller_id']) {
+            return response()->json([
+                'success' => false,
+                'message' => '商品与卖家信息不匹配',
+            ], 422);
+        }
+
+        $user = null;
+        if ($token = $request->bearerToken()) {
+            $user = PersonalAccessToken::findToken($token)?->tokenable;
+        }
+
+        if ($user && (int) $user->id !== (int) $validated['seller_id']) {
+            try {
+                $conv = $chatService->findOrCreatePrivateConversation((int) $user->id, (int) $validated['seller_id']);
+                if ($product) {
+                    $chatService->pushProductCard(
+                        $conv,
+                        (int) $user->id,
+                        $product,
+                        '【商品咨询】' . $product->name,
+                        'contact-seller-' . $conv->id . '-' . $validated['product_id'],
+                        ['source' => 'contact_seller', 'product_id' => $validated['product_id']]
+                    );
+                }
+                $prefix = $product ? '【商品咨询：' . $product->name . '】' . "\n" : '';
+                $chatService->pushTextMessage($conv, (int) $user->id, $prefix . $validated['message'], [
+                    'product_id' => $validated['product_id'],
+                    'source' => 'contact_seller',
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => '消息已发送，卖家将尽快回复您',
+                    'conversation_id' => $conv->id,
+                    'redirect' => '/build/user-chat?seller_id=' . $validated['seller_id'] . '&product_id=' . $validated['product_id'],
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('联系卖家 IM 失败: ' . $e->getMessage());
+            }
+        }
+
         try {
-            // 记录咨询到数据库或发送通知
             \Illuminate\Support\Facades\Log::info('卖家咨询', [
                 'product_id' => $validated['product_id'],
                 'seller_id' => $validated['seller_id'],
                 'message' => $validated['message'],
-                'from_name' => $validated['name'] ?? '匿名用户',
-                'from_email' => $validated['email'] ?? '',
+                'from_name' => $validated['name'] ?? ($user?->name ?? '匿名用户'),
+                'from_email' => $validated['email'] ?? ($user?->email ?? ''),
                 'ip' => $request->ip(),
             ]);
-
-            // 这里可以扩展：创建工单、发送邮件通知、推送 IM 消息等
-            // 例如: Ticket::create([...]) 或 Notification::send(...)
 
             return response()->json([
                 'success' => true,

@@ -52,11 +52,12 @@ let pollTimer = null;
 
 async function checkCriticalNotifications() {
     try {
-        const { data: res } = await request.get('/notifications/unread-count');
+        const { data: res } = await request.get('/notifications/unread-count', { silentAuth: true });
         if (res?.data?.critical_count > 0 || res?.critical_count > 0) {
             // 有未读关键通知，获取第一条
             const { data: listRes } = await request.get('/notifications', {
-                params: { per_page: 1, type: 'app_suspended,app_force_update', unread: true }
+                params: { per_page: 1, type: 'app_suspended,app_force_update', unread: true },
+                silentAuth: true,
             });
             const items = listRes?.data?.data || listRes?.data || [];
             if (items.length > 0) {
@@ -70,7 +71,7 @@ async function checkCriticalNotifications() {
 async function acknowledge() {
     if (notification.value) {
         try {
-            await request.post(`/notifications/${notification.value.id}/read`);
+            await request.post(`/notifications/${notification.value.id}/read`, null, { silentAuth: true });
         } catch { /* ignore */ }
     }
     visible.value = false;

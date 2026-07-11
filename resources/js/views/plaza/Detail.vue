@@ -360,8 +360,7 @@ function goBack() {
 }
 
 function goTag(slug) {
-  // 返回社区并按标签筛选
-  window.location.href = '/build/user-chat?tag=' + slug
+  window.location.href = '/build/community?tag=' + encodeURIComponent(slug)
 }
 
 function toggleFontSize() { fontSizeIndex.value = (fontSizeIndex.value + 1) % fontSizes.length; fontSize.value = fontSizes[fontSizeIndex.value] }
@@ -525,9 +524,10 @@ function handleShareCommand(cmd) {
       ElMessage.success('✅ 链接已复制，粘贴到聊天窗口发送')
     })
   } else if (cmd === 'circle') {
-    // 转发到动态/圈子
-    const text = encodeURIComponent(shareTitle + '\n' + url)
-    window.open('/build/user-chat?share=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title))
+    navigator.clipboard.writeText(url).then(() => {
+      ElMessage.success('链接已复制，可到社区发帖分享')
+    })
+    window.open('/build/community', '_blank')
   } else {
     ElMessage.info('💚 请截图后分享到微信')
   }

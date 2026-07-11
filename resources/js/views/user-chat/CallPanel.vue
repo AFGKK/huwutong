@@ -33,13 +33,12 @@
 
                 <!-- 视频区域 -->
                 <div v-if="callType === 'video'" class="call-video-area">
-                    <div class="remote-video">
+                    <video ref="remoteVideoRef" autoplay playsinline class="remote-video-el"></video>
+                    <div v-if="!hasRemoteMedia" class="remote-video-fallback">
                         <div class="remote-avatar-large">{{ callPartner?.name?.charAt(0) || '?' }}</div>
                         <div class="remote-name">{{ callPartner?.name || '对方' }}</div>
                     </div>
-                    <div class="local-video">
-                        <div class="local-avatar-small">{{ myName?.charAt(0) || '我' }}</div>
-                    </div>
+                    <video ref="localVideoRef" autoplay playsinline muted class="local-video-el"></video>
                 </div>
 
                 <!-- 语音区域 -->
@@ -79,6 +78,7 @@
                 </div>
             </template>
         </div>
+        <audio ref="remoteAudioRef" autoplay playsinline></audio>
     </div>
 </template>
 
@@ -86,14 +86,15 @@
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Phone, Microphone, Mute, Bell, MuteNotification, Minus, Close } from '@element-plus/icons-vue'
-import apiClient from '@/utils/request'
+import callsApi from '@/api/calls'
 
 const props = defineProps({
-    modelValue: { type: String, default: 'idle' }, // idle | calling | ringing | connected | ended
-    callType: { type: String, default: 'audio' }, // audio | video
+    modelValue: { type: String, default: 'idle' },
+    callType: { type: String, default: 'audio' },
     callPartner: { type: Object, default: () => null },
     conversationId: { type: Number, default: null },
     myName: { type: String, default: '' },
+    myId: { type: Number, default: 0 },
 })
 const emit = defineEmits(['update:modelValue', 'call-ended'])
 
@@ -106,10 +107,21 @@ const minimized = ref(false)
 const muted = ref(false)
 const speakerOn = ref(false)
 const callTimer = ref('')
+const hasRemoteMedia = ref(false)
+const localVideoRef = ref(null)
+const remoteVideoRef = ref(null)
+const remoteAudioRef = ref(null)
+
 let timerInterval = null
-let callStartTime = null
-let pollInterval = null
+let statusPollInterval = null
+let signalPollInterval = null
 let currentCallId = ref(null)
+let callRole = null
+let peerConnection = null
+let localStream = null
+let remoteDescriptionSet = false
+
+const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }]
 
 const callStatusText = computed(() => {
     switch (callState.value) {
@@ -121,82 +133,201 @@ const callStatusText = computed(() => {
     }
 })
 
-// 发起呼叫
 async function startCall(calleeId, type, convId) {
     try {
-        const res = await apiClient.post('/calls/call', {
+        const res = await callsApi.call({
             callee_id: calleeId,
             call_type: type,
             conversation_id: convId,
         })
         const data = res.data?.data || {}
         currentCallId.value = data.call_id
+        callRole = 'caller'
         callState.value = 'calling'
-        callStartTime = Date.now()
-        // 轮询对方是否接听
-        startPolling(data.call_id)
+        startStatusPolling(data.call_id)
+        await setupWebRTC('caller')
     } catch (e) {
         ElMessage.error(e.response?.data?.message || '呼叫失败')
         callState.value = 'idle'
     }
 }
 
-// 接听通话
 async function answerCall() {
     if (!currentCallId.value) return
     try {
-        await apiClient.post(`/calls/${currentCallId.value}/respond`, { action: 'accept' })
+        await callsApi.respond(currentCallId.value, { action: 'accept' })
         callState.value = 'connected'
-        callStartTime = Date.now()
         startTimer()
-        stopPolling()
+        stopStatusPolling()
+        callRole = 'callee'
+        await setupWebRTC('callee')
     } catch (e) {
         ElMessage.error(e.response?.data?.message || '接听失败')
     }
 }
 
-// 结束通话
 async function endCall() {
-    stopPolling()
+    stopStatusPolling()
+    stopSignalPolling()
     stopTimer()
+    cleanupWebRTC()
+
     if (currentCallId.value) {
         try {
-            await apiClient.post(`/calls/${currentCallId.value}/end`)
+            if (callState.value === 'ringing') {
+                await callsApi.respond(currentCallId.value, { action: 'reject' })
+            } else {
+                await callsApi.end(currentCallId.value)
+            }
         } catch { /* ignore */ }
     }
+
     callState.value = 'ended'
     setTimeout(() => {
         callState.value = 'idle'
         currentCallId.value = null
+        callRole = null
         minimized.value = false
+        hasRemoteMedia.value = false
         emit('call-ended')
     }, 1500)
 }
 
-// 轮询呼叫状态（呼叫方用）
-function startPolling(callId) {
-    pollInterval = setInterval(async () => {
+function startStatusPolling(callId) {
+    statusPollInterval = setInterval(async () => {
         try {
-            const res = await apiClient.get(`/calls/${callId}/status`)
+            const res = await callsApi.status(callId)
             const status = res.data?.data?.status
             if (status === 'connected') {
                 callState.value = 'connected'
                 startTimer()
-                stopPolling()
-            } else if (status === 'rejected' || status === 'ended') {
+                stopStatusPolling()
+            } else if (status === 'rejected') {
                 ElMessage.info('对方拒绝了通话')
-                endCall()
+                await endCall()
+            } else if (status === 'ended') {
+                ElMessage.info('通话已结束')
+                await endCall()
             }
-        } catch { stopPolling() }
+        } catch { stopStatusPolling() }
     }, 2000)
 }
-function stopPolling() {
-    if (pollInterval) { clearInterval(pollInterval); pollInterval = null }
+
+function stopStatusPolling() {
+    if (statusPollInterval) { clearInterval(statusPollInterval); statusPollInterval = null }
 }
 
-// 通话计时
+function startSignalPolling(types) {
+    stopSignalPolling()
+    signalPollInterval = setInterval(async () => {
+        if (!currentCallId.value) return
+        for (const type of types) {
+            try {
+                const res = await callsApi.signalPoll(currentCallId.value, type)
+                const payload = res.data?.data
+                if (payload?.data) {
+                    await handleRemoteSignal(type, payload.data)
+                }
+            } catch { /* ignore */ }
+        }
+    }, 1500)
+}
+
+function stopSignalPolling() {
+    if (signalPollInterval) { clearInterval(signalPollInterval); signalPollInterval = null }
+}
+
+async function setupWebRTC(role) {
+    if (!currentCallId.value || typeof RTCPeerConnection === 'undefined') return
+
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: props.callType === 'video',
+        })
+        if (props.callType === 'video' && localVideoRef.value) {
+            localVideoRef.value.srcObject = localStream
+        }
+    } catch (e) {
+        console.warn('[Call] getUserMedia failed:', e.message)
+    }
+
+    peerConnection = new RTCPeerConnection({ iceServers: ICE_SERVERS })
+    remoteDescriptionSet = false
+
+    if (localStream) {
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream))
+    }
+
+    peerConnection.ontrack = (event) => {
+        const stream = event.streams?.[0]
+        if (!stream) return
+        hasRemoteMedia.value = true
+        if (props.callType === 'video' && remoteVideoRef.value) {
+            remoteVideoRef.value.srcObject = stream
+        } else if (remoteAudioRef.value) {
+            remoteAudioRef.value.srcObject = stream
+        }
+    }
+
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate && currentCallId.value) {
+            callsApi.signal(currentCallId.value, {
+                type: 'ice_candidate',
+                data: event.candidate.toJSON(),
+            }).catch(() => {})
+        }
+    }
+
+    if (role === 'caller') {
+        const offer = await peerConnection.createOffer()
+        await peerConnection.setLocalDescription(offer)
+        await callsApi.signal(currentCallId.value, { type: 'offer', data: offer })
+        startSignalPolling(['answer', 'ice_candidate'])
+    } else {
+        startSignalPolling(['offer', 'ice_candidate'])
+    }
+}
+
+async function handleRemoteSignal(type, data) {
+    if (!peerConnection) return
+
+    if (type === 'offer') {
+        if (remoteDescriptionSet) return
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data))
+        remoteDescriptionSet = true
+        const answer = await peerConnection.createAnswer()
+        await peerConnection.setLocalDescription(answer)
+        await callsApi.signal(currentCallId.value, { type: 'answer', data: answer })
+    } else if (type === 'answer') {
+        if (remoteDescriptionSet) return
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data))
+        remoteDescriptionSet = true
+    } else if (type === 'ice_candidate') {
+        try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(data))
+        } catch { /* ignore duplicate/stale candidates */ }
+    }
+}
+
+function cleanupWebRTC() {
+    stopSignalPolling()
+    if (peerConnection) {
+        peerConnection.close()
+        peerConnection = null
+    }
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop())
+        localStream = null
+    }
+    if (localVideoRef.value) localVideoRef.value.srcObject = null
+    if (remoteVideoRef.value) remoteVideoRef.value.srcObject = null
+    if (remoteAudioRef.value) remoteAudioRef.value.srcObject = null
+    remoteDescriptionSet = false
+}
+
 function startTimer() {
-    callStartTime = Date.now()
+    const callStartTime = Date.now()
     timerInterval = setInterval(() => {
         const sec = Math.floor((Date.now() - callStartTime) / 1000)
         const m = Math.floor(sec / 60)
@@ -204,25 +335,35 @@ function startTimer() {
         callTimer.value = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
     }, 1000)
 }
+
 function stopTimer() {
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null }
+    callTimer.value = ''
 }
 
-function toggleMute() { muted.value = !muted.value }
+function toggleMute() {
+    muted.value = !muted.value
+    localStream?.getAudioTracks().forEach(track => { track.enabled = !muted.value })
+}
 
-// 供父组件调用的方法
 function handleIncomingCall(callId, caller, type) {
     currentCallId.value = callId
+    callRole = 'callee'
     callState.value = 'ringing'
-    // 启动轮询检测对方取消
-    startPolling(callId)
+    startStatusPolling(callId)
 }
 
 defineExpose({ startCall, handleIncomingCall })
 
+watch(() => props.callType, () => {
+    hasRemoteMedia.value = false
+})
+
 onUnmounted(() => {
-    stopPolling()
+    stopStatusPolling()
+    stopSignalPolling()
     stopTimer()
+    cleanupWebRTC()
 })
 </script>
 
@@ -238,12 +379,12 @@ onUnmounted(() => {
 .minibar-timer { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .call-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid #f0f0f0; background: #fafafa; }
 .call-header-title { font-size: 14px; font-weight: 600; }
-.call-video-area { position: relative; height: 240px; background: #1a1a2e; display: flex; align-items: center; justify-content: center; }
-.remote-video { text-align: center; color: #fff; }
-.remote-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #409eff, #66b1ff); display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; margin: 0 auto 12px; }
+.call-video-area { position: relative; height: 240px; background: #1a1a2e; overflow: hidden; }
+.remote-video-el { width: 100%; height: 100%; object-fit: cover; background: #1a1a2e; }
+.remote-video-fallback { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; pointer-events: none; }
+.remote-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #409eff, #66b1ff); display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; margin-bottom: 12px; }
 .remote-name { font-size: 16px; }
-.local-video { position: absolute; bottom: 12px; right: 12px; width: 80px; height: 120px; background: #2a2a4a; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px solid #409eff; }
-.local-avatar-small { width: 36px; height: 36px; border-radius: 50%; background: #67c23a; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #fff; }
+.local-video-el { position: absolute; bottom: 12px; right: 12px; width: 80px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #409eff; background: #2a2a4a; z-index: 2; }
 .call-audio-area { text-align: center; padding: 32px 20px; }
 .audio-avatar-wrap { margin-bottom: 12px; }
 .audio-avatar-large { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #409eff, #66b1ff); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: #fff; margin: 0 auto; }

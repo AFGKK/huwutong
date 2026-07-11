@@ -118,6 +118,17 @@ class HandoffRequest extends Model
         return $this->liveChatConversation ?? $this->userChatConversation ?? $this->conversation;
     }
 
+    public function isUserChatSource(): bool
+    {
+        return $this->user_conversation_id !== null
+            || (($this->metadata['source'] ?? null) === 'user_chat');
+    }
+
+    public function dmConversationId(): ?int
+    {
+        return $this->metadata['dm_conversation_id'] ?? null;
+    }
+
     /**
      * 转接原因标签
      */

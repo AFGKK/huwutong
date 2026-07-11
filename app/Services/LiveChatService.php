@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\HandoffRequest;
 use App\Models\LiveChatConversation;
 use App\Models\LiveChatMessage;
-use App\Models\HandoffRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -50,19 +50,54 @@ class LiveChatService
 
         $result = ['message' => $message, 'reply' => null, 'handoff' => false];
 
-        // AI 自动回复
-        if ($senderType === 'user' && config('live-chat.ai.enabled', true)) {
-            $conversation->touch();
-            $reply = $this->getAiResponse($conversation, $content);
-            $result['reply'] = $reply;
+        if ($senderType === 'user') {
+            $handoff = $this->getActiveHandoff($conversation);
+            if ($handoff) {
+                $this->handoffService->sendCustomerMessage(
+                    $handoff,
+                    $content,
+                    $senderId ?? $conversation->user_id
+                );
 
-            // 判断是否需要转人工
-            if ($this->shouldHandoff($conversation)) {
-                $result['handoff'] = $this->createHandoff($conversation, 'AI无法解决');
+                return [
+                    'message' => $message,
+                    'reply' => null,
+                    'handoff' => $this->formatHandoffPayload($handoff),
+                ];
+            }
+
+            // AI 自动回复
+            if (config('live-chat.ai.enabled', true)) {
+                $conversation->touch();
+                $reply = $this->getAiResponse($conversation, $content);
+                $result['reply'] = $reply;
+
+                // 判断是否需要转人工
+                if ($this->shouldHandoff($conversation)) {
+                    $created = $this->createHandoff($conversation, 'AI无法解决');
+                    $result['handoff'] = $this->formatHandoffPayload($created);
+                }
             }
         }
 
         return $result;
+    }
+
+    protected function getActiveHandoff(LiveChatConversation $conversation): ?HandoffRequest
+    {
+        return HandoffRequest::where('live_chat_conversation_id', $conversation->id)
+            ->whereIn('status', ['queued', 'assigned', 'in_progress'])
+            ->latest('id')
+            ->first();
+    }
+
+    protected function formatHandoffPayload(HandoffRequest $handoff): array
+    {
+        return [
+            'id' => $handoff->id,
+            'status' => $handoff->status,
+            'queue_position' => $handoff->queue_position,
+        ];
     }
 
     /**

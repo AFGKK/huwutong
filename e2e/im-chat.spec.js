@@ -1,58 +1,51 @@
 import { test, expect } from '@playwright/test';
-import { navigateAsLoggedIn, getMockUser, adminUrl } from './helpers.js';
+import { navigateAsLoggedIn, getMockImConversations, adminUrl } from './helpers.js';
 
 test.describe.configure({ mode: 'serial' });
 
+const adminUser = {
+    email: 'admin@huwutong.com',
+    name: '管理员',
+    roles: ['super-admin', 'admin'],
+};
+
 test.describe('IM 即时通讯', () => {
 
-    test('1. IM 聊天页面可加载', async ({ page }) => {
-        await navigateAsLoggedIn(page, '/admin/user-chat', {
-            email: 'admin@huwutong.com',
-            name: '管理员',
-            roles: ['super-admin', 'admin'],
-        });
+    test('1. IM 中心在线客服 Tab 可加载', async ({ page }) => {
+        await navigateAsLoggedIn(page, '/admin/im?tab=liveChat', adminUser);
 
-        await expect(page.locator('body')).not.toContainText('Loading', { timeout: 10000 });
+        await expect(page.locator('.live-chat-admin')).toBeVisible({ timeout: 15000 });
+        await expect(page.locator('text=在线客服管理')).toBeVisible();
+        await expect(page.locator('.stat-label', { hasText: '活跃会话' })).toBeVisible();
     });
 
-    test('2. 会话列表可见', async ({ page }) => {
-        await navigateAsLoggedIn(page, '/admin/user-chat', {
-            email: 'admin@huwutong.com',
-            name: '管理员',
-            roles: ['super-admin', 'admin'],
-        });
+    test('2. 客服工作台排队 Tab 可加载', async ({ page }) => {
+        await navigateAsLoggedIn(page, '/admin/im?tab=agentWorkspace', adminUser);
 
-        // 侧栏至少应该有一个会话列表容器
-        const sidebar = page.locator('.conversation-list, .sidebar, [class*="conv"]').first();
-        await expect(sidebar).toBeVisible({ timeout: 8000 });
+        await expect(page.locator('.queue-layout')).toBeVisible({ timeout: 15000 });
+        await expect(page.locator('.queue-section-title', { hasText: '等待中' })).toBeVisible();
     });
 
-    test('3. 好友列表选项卡可点击', async ({ page }) => {
-        await navigateAsLoggedIn(page, '/admin/user-chat', {
-            email: 'admin@huwutong.com',
-            name: '管理员',
-            roles: ['super-admin', 'admin'],
+    test.describe('私信页（大组件懒加载）', () => {
+        test.setTimeout(120000);
+
+        test('3. IM 聊天页面可加载', async ({ page }) => {
+            await navigateAsLoggedIn(page, '/admin/user-chat', adminUser);
+            await page.waitForLoadState('networkidle');
+
+            await expect(page).toHaveURL(/user-chat/, { timeout: 15000 });
+            await expect(page.locator('.user-chat-page, .chat-layout, .conversation-list').first()).toBeVisible({ timeout: 90000 });
         });
 
-        // 点击「好友」Tab
-        const friendTab = page.locator('text=好友, text=联系人').first();
-        if (await friendTab.isVisible()) {
-            await friendTab.click();
-            await page.waitForTimeout(1000);
-        }
-    });
+        test('4. 会话列表展示模拟数据', async ({ page }) => {
+            await navigateAsLoggedIn(page, '/admin/user-chat', adminUser);
+            await page.waitForLoadState('networkidle');
 
-    test('4. 搜索用户功能可用', async ({ page }) => {
-        await navigateAsLoggedIn(page, '/admin/user-chat', {
-            email: 'admin@huwutong.com',
-            name: '管理员',
-            roles: ['super-admin', 'admin'],
+            const convList = page.locator('.conversation-list');
+            await expect(convList).toBeVisible({ timeout: 90000 });
+
+            const mockConvs = getMockImConversations();
+            await expect(page.locator('.conv-name', { hasText: mockConvs[0].name })).toBeVisible({ timeout: 30000 });
         });
-
-        const searchInput = page.locator('input[placeholder*="搜索"]').first();
-        if (await searchInput.isVisible()) {
-            await searchInput.fill('test');
-            await page.waitForTimeout(1000);
-        }
     });
 });

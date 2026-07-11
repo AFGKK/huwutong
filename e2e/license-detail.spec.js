@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateAsLoggedIn, getMockLicenses, getMockLicenseDetail } from './helpers.js';
+import { navigateAsLoggedIn, getMockLicenses, getMockLicenseDetail, adminUrl } from './helpers.js';
 
 /**
  * License 详情与激活管理 E2E 测试

@@ -34,6 +34,7 @@ class NotificationPreference extends Model
         'payment' => '支付通知',
         'security' => '安全提醒',
         'system' => '系统公告',
+        'im_message' => '私信消息',
         'promotion' => '营销推广',
         'commission' => '佣金通知',
     ];

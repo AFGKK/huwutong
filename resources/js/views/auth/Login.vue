@@ -151,7 +151,7 @@
 
 <script setup>
 import { reactive, ref, onMounted, computed, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { UserFilled, Lock, Key, Loading, CircleCheck, Link, Camera, Promotion, Warning } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
@@ -159,6 +159,7 @@ import apiClient from '@/api/client';
 import QRCode from 'qrcode';
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 const formRef = ref(null);
 const loadingBranding = ref(true);
@@ -275,13 +276,21 @@ async function loadOAuthProviders() {
   } catch { /* ignore */ }
 }
 
+function loginRedirectPath() {
+  const redirect = route.query.redirect;
+  if (typeof redirect === 'string' && redirect.startsWith('/')) {
+    return redirect;
+  }
+  return '/dashboard';
+}
+
 async function handleLogin() {
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) return;
 
   const success = await authStore.login(form);
   if (success) {
-    router.push('/dashboard');
+    router.push(loginRedirectPath());
   }
 }
 
@@ -370,7 +379,7 @@ async function handlePasskeyLogin() {
       const { user, token } = vr.data;
       authStore.user = user; authStore.token = token;
       localStorage.setItem('auth_token', token); localStorage.setItem('user', JSON.stringify(user));
-      ElMessage.success('Passkey 登录成功'); router.push('/dashboard');
+      ElMessage.success('Passkey 登录成功'); router.push(loginRedirectPath());
     }
   } catch (e) {
     if (e.name === 'NotAllowedError') {
@@ -403,7 +412,7 @@ async function createQrSession() {
           clearInterval(qrPollTimer); qrPollTimer = null;
           authStore.user = r.data.user; authStore.token = r.data.token;
           localStorage.setItem('auth_token', r.data.token); localStorage.setItem('user', JSON.stringify(r.data.user));
-          ElMessage.success('扫码登录成功'); router.push('/dashboard');
+          ElMessage.success('扫码登录成功'); router.push(loginRedirectPath());
         } else if (r.data?.status === 'expired') {
           clearInterval(qrPollTimer); qrPollTimer = null;
           ElMessage.warning('二维码已过期'); qrSessionId.value = null; qrImageUrl.value = null;

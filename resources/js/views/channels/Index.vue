@@ -2865,7 +2865,7 @@ function createArticle(ch) {
 }
 
 function openChat(ch) {
-    window.open(`/build/user-chat?account_id=${ch.id}`, '_blank')
+    window.open('/build/user-chat', '_blank')
 }
 
 function appealChannel(ch) {

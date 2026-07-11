@@ -69,7 +69,10 @@
                                     <div class="queue-avatar">{{ (item.customer?.user?.name || '?').charAt(0) }}</div>
                                 </div>
                                 <div class="queue-item-body">
-                                    <div class="queue-item-name">{{ item.customer?.user?.name || '未知用户' }}</div>
+                                    <div class="queue-item-name">
+                                        {{ queueItemName(item) }}
+                                        <el-tag v-if="isLiveChatHandoff(item)" size="small" type="warning" style="margin-left:4px">在线客服</el-tag>
+                                    </div>
                                     <div class="queue-item-meta">
                                         <span class="queue-priority" :class="'badge-' + (item.priority || 'normal')">
                                             {{ item.priority === 'urgent' ? '紧急' : item.priority === 'high' ? '高' : item.priority === 'medium' ? '中' : '低' }}
@@ -101,17 +104,7 @@
                             </div>
                             <div v-if="!activeConversations.length && !loadingQueue" class="empty-section"><el-empty description="暂无进行中" :image-size="40" /></div>
                         </div>
-                        <!-- ── 待转人工 ── -->
-                        <div class="queue-section" style="margin-top:8px" v-if="pendingHandoffs.length">
-                            <div class="queue-section-title">📨 待转人工 <el-tag size="small" type="warning">{{ pendingHandoffs.length }}</el-tag></div>
-                            <div v-for="h in pendingHandoffs" :key="h.id" class="queue-item">
-                                <div class="queue-item-body">
-                                    <div class="queue-item-name">{{ h.reason || '待处理' }}</div>
-                                    <div class="queue-item-meta"><span class="queue-time">{{ formatTime(h.handoff_at) }}</span></div>
-                                </div>
-                                <el-button size="small" type="primary" @click.stop="acceptHandoff(h)">接单</el-button>
-                            </div>
-                        </div>
+                        <!-- 待转人工已合并到「等待中」队列 -->
                     </div>
 
                     <!-- ── 聊天面板 ── -->
@@ -160,6 +153,16 @@
                                     </div>
                                 </el-collapse-item>
                             </el-collapse>
+                        </div>
+
+                        <!-- 私信转接提示 -->
+                        <div v-if="isUserChatHandoffActive" class="dm-handoff-notice">
+                            <el-alert type="success" :closable="false" show-icon>
+                                <template #title>
+                                    此转接来自用户私信，回复将发送至私信会话
+                                    <router-link v-if="dmConversationLink" :to="dmConversationLink" class="dm-link">在私信中查看 →</router-link>
+                                </template>
+                            </el-alert>
                         </div>
 
                         <!-- AI 上下文 -->
@@ -441,7 +444,6 @@ const activeAgentTab = ref('queue');
 // ── 排队队列 ──
 const queue = ref([]);
 const activeConversations = ref([]);
-const pendingHandoffs = ref([]);
 const loadingQueue = ref(false);
 
 async function loadQueue() {
@@ -466,11 +468,9 @@ async function loadQueue() {
             stats.queueTotal = queue.value.length;
             stats.activeChats = activeConversations.value.length;
         }
-        pendingHandoffs.value = queue.value.filter(q => q.status === 'pending' || q.priority === 'urgent').slice(0, 5);
     } catch {
         queue.value = [];
         activeConversations.value = [];
-        pendingHandoffs.value = [];
     } finally {
         loadingQueue.value = false;
     }
@@ -493,16 +493,39 @@ function formatTime(dateStr) {
 }
 
 function sourceLabel(src) {
-    const labels = { portal: '客户门户', widget: '网站挂件', api: 'API 接入', chat: 'IM 聊天', 'live-chat': '在线客服' };
+    const labels = { portal: '客户门户', widget: '网站挂件', api: 'API 接入', chat: 'IM 聊天', 'live-chat': '在线客服', user_chat: '用户私信' };
     return labels[src] || src || '未知';
 }
 
+function queueItemName(item) {
+    if (item.live_chat_conversation_id || item.metadata?.source === 'live_chat') {
+        return item.user?.name
+            || item.live_chat_conversation?.session_id
+            || item.conversation_context?.session_id
+            || '在线客服访客';
+    }
+    return item.user?.name || item.customer?.user?.name || item.metadata?.conversation_name || '未知用户';
+}
+
+function isLiveChatHandoff(item) {
+    return !!(item.live_chat_conversation_id || item.metadata?.source === 'live_chat');
+}
+
+function isUserChatHandoff(conv) {
+    return !!(conv?.user_conversation_id || conv?.metadata?.source === 'user_chat');
+}
+
 const selectedCustomer = ref(null);
-const selectedCustomerName = computed(() => selectedCustomer.value?.customer?.user?.name || selectedCustomer.value?.name || '');
+const selectedCustomerName = computed(() => selectedCustomer.value?.customer?.user?.name || selectedCustomer.value?.user?.name || selectedCustomer.value?.name || '');
 
 // ── 聊天面板 ──
 const activeChatConv = ref(null);
-const activeChatConvName = computed(() => activeChatConv.value?.customer?.user?.name || activeChatConv.value?.name || '客户');
+const activeChatConvName = computed(() => activeChatConv.value?.user?.name || activeChatConv.value?.customer?.user?.name || activeChatConv.value?.name || '客户');
+const isUserChatHandoffActive = computed(() => isUserChatHandoff(activeChatConv.value));
+const dmConversationLink = computed(() => {
+    const dmId = activeChatConv.value?.dm_conversation_id || activeChatConv.value?.metadata?.dm_conversation_id;
+    return dmId ? { path: '/user-chat', query: { conv: dmId } } : null;
+});
 const visitorInfo = ref(null);
 
 async function loadVisitorInfo() {
@@ -529,7 +552,25 @@ async function loadChatMessages(convId) {
     loadingMessages.value = true;
     try {
         const res = await handoffApi.show(convId);
-        chatMessages.value = res.data?.data?.messages || res.data?.data || [];
+        const data = res.data?.data || {};
+        activeChatConv.value = { ...activeChatConv.value, ...data };
+        if (isUserChatHandoff(data)) {
+            const dmId = data.dm_conversation_id || data.metadata?.dm_conversation_id;
+            if (dmId) {
+                const dmRes = await apiClient.get(`/user-chat/conversations/${dmId}/messages`, { params: { per_page: 50 } });
+                const dmMsgs = dmRes.data?.data || [];
+                chatMessages.value = dmMsgs.map(m => ({
+                    id: m.id,
+                    content: m.content,
+                    sender_type: m.sender_id === data.assigned_to ? 'agent' : (m.message_type === 'system' ? 'system' : 'customer'),
+                    created_at: m.created_at,
+                })).reverse();
+            } else {
+                chatMessages.value = [];
+            }
+        } else {
+            chatMessages.value = data.messages || [];
+        }
         await nextTick();
         if (msgContainer.value) msgContainer.value.scrollTop = msgContainer.value.scrollHeight;
     } catch {
@@ -545,6 +586,9 @@ async function sendChatMessage() {
     try {
         await handoffApi.agentSend(activeChatConv.value.id, content);
         newMessage.value = '';
+        if (isUserChatHandoffActive.value) {
+            ElMessage.success('已发送至用户私信');
+        }
         await loadChatMessages(activeChatConv.value.id);
     } catch (e) {
         ElMessage.error(e.response?.data?.message || '发送失败');
@@ -577,15 +621,6 @@ async function handleAcceptConv() {
     }
 }
 
-async function acceptHandoff(h) {
-    try {
-        await handoffApi.accept(h.id);
-        ElMessage.success('已接单');
-        await loadQueue();
-    } catch (e) {
-        ElMessage.error(e.response?.data?.message || '接单失败');
-    }
-}
 
 function selectQueueItem(item) {
     selectedCustomer.value = item;

@@ -408,12 +408,14 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Picture, VideoCamera, ArrowDown, Search, Female, Document } from '@element-plus/icons-vue'
 import PointsIcon from '@/components/PointsIcon.vue';
 import draggable from 'vuedraggable'
 import apiClient from '@/api/client.js'
 
+const route = useRoute()
 const isLoggedIn = !!localStorage.getItem('auth_token')
 const myId = isLoggedIn ? (JSON.parse(localStorage.getItem('user') || '{}')?.id || 0) : 0
 const isAdmin = isLoggedIn ? (JSON.parse(localStorage.getItem('user') || '{}')?.roles || []).some(r => r === 'admin' || r?.name === 'admin') : false
@@ -1110,6 +1112,8 @@ function viewUser(user) {
 
 // ── Init ──
 onMounted(() => {
+    const tag = String(route.query.tag || '')
+    if (tag) tagFilter.value = tag
     loadPosts()
     loadSidebarData()
 })

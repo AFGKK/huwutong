@@ -354,6 +354,10 @@
                 </div>
             </el-tab-pane>
 
+            <el-tab-pane label="💬 在线客服" name="liveChat">
+                <LiveChatAdmin />
+            </el-tab-pane>
+
             <el-tab-pane label="👨‍💼 客服工作台" name="agentWorkspace">
                 <AgentWorkspace />
             </el-tab-pane>
@@ -406,11 +410,14 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from 'vue';
+import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Promotion, Search, Refresh, UserFilled, MagicStick } from '@element-plus/icons-vue';
 import apiClient from '@/utils/request';
 import AgentWorkspace from './AgentWorkspace.vue';
+import LiveChatAdmin from '../live-chat/Index.vue';
 
+const route = useRoute();
 const activeTab = ref('ai-chat');
 const faqIframe = ref(null);
 
@@ -681,6 +688,9 @@ async function saveHandoffConfig() {
 }
 
 onMounted(() => {
+    if (route.query.tab) {
+        activeTab.value = String(route.query.tab);
+    }
     loadStats();
     loadChatWidgetConfig();
     loadAsrConfig();

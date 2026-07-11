@@ -174,14 +174,18 @@ async function handleSend() {
         }
 
         if (data?.handoff) {
+            const handoffId = data.handoff.id || data.handoff;
             handoffNotice.value = {
-                handoff_id: data.handoff.id || data.handoff,
+                handoff_id: handoffId,
                 queue_position: data.handoff.queue_position || null,
             };
             messages.value.push({
                 role: 'assistant',
                 content: '⏳ 正在为您转接人工客服，请稍候...',
             });
+            if (handoffId) {
+                startHandoffPolling(handoffId);
+            }
         }
     } catch {
         messages.value.push({

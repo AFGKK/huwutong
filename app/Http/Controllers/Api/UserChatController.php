@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\ChatMessageSent;
+use App\Events\ChatTyping;
 use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\ConversationMessage;
@@ -25,14 +26,18 @@ use App\Models\AnnouncementRead;
 use App\Models\GroupInvite;
 use App\Models\SensitiveWord;
 use App\Models\CardConversionTracking;
+use App\Models\Product;
 use App\Services\SensitiveWordService;
 use App\Services\LinkPreviewService;
 use App\Services\LlmService;
 use App\Services\TranslationEngineService;
 use App\Services\SemanticCacheService;
+use App\Services\UserChatConversationService;
+use App\Services\UserChatPolicyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserChatController extends Controller
@@ -52,6 +57,7 @@ class UserChatController extends Controller
         sort($allIds);
 
         // 单聊：查找是否已有会话
+        $privateEval = null;
         if (count($allIds) === 2) {
             $existing = DB::table('conversation_participants AS cp1')
                 ->join('conversation_participants AS cp2', 'cp1.conversation_id', '=', 'cp2.conversation_id')
@@ -67,6 +73,13 @@ class UserChatController extends Controller
             if ($existing) {
                 return ApiResponse::success($this->loadConversation($existing->id));
             }
+
+            $otherUserId = $allIds[0] === $myId ? $allIds[1] : $allIds[0];
+            $policy = app(UserChatPolicyService::class);
+            $privateEval = $policy->evaluatePrivateMessage($myId, $otherUserId);
+            if (! $privateEval['allowed']) {
+                return ApiResponse::error($privateEval['reason'] ?? '无法发起私信');
+            }
         }
 
         // 创建新会话
@@ -77,10 +90,56 @@ class UserChatController extends Controller
 
         foreach ($allIds as $uid) {
             $role = ($uid === $myId && count($allIds) > 2) ? 'creator' : 'member';
-            ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $uid, 'role' => $role]);
+            $attrs = ['conversation_id' => $conv->id, 'user_id' => $uid, 'role' => $role];
+            if (count($allIds) === 2 && $uid !== $myId && ! empty($privateEval['requires_request'])) {
+                $attrs['request_status'] = 'pending';
+            }
+            ConversationParticipant::create($attrs);
         }
 
         return ApiResponse::success($this->loadConversation($conv->id), '会话已创建', 201);
+    }
+
+    public function messageRequests(): JsonResponse
+    {
+        $participations = ConversationParticipant::where('user_id', auth()->id())
+            ->where('request_status', 'pending')
+            ->whereNull('deleted_at')
+            ->with(['conversation.participants.user:id,name,avatar', 'conversation.lastMessage.sender:id,name,avatar'])
+            ->orderByDesc('id')
+            ->get();
+
+        return ApiResponse::success(
+            $participations->map(fn ($p) => $this->formatConversationItem($p))->filter()->values()
+        );
+    }
+
+    public function acceptMessageRequest(int $convId): JsonResponse
+    {
+        if (! app(UserChatPolicyService::class)->acceptMessageRequest($convId, auth()->id())) {
+            return ApiResponse::error('消息请求不存在或已处理', 404);
+        }
+
+        return ApiResponse::success($this->loadConversation($convId), '已接受消息请求');
+    }
+
+    public function rejectMessageRequest(int $convId, Request $request): JsonResponse
+    {
+        $myId = auth()->id();
+        if (! ConversationParticipant::where('conversation_id', $convId)->where('user_id', $myId)->where('request_status', 'pending')->exists()) {
+            return ApiResponse::error('消息请求不存在或已处理', 404);
+        }
+
+        app(UserChatPolicyService::class)->rejectMessageRequest($convId, $myId);
+
+        if ($request->boolean('block')) {
+            $otherId = ConversationParticipant::where('conversation_id', $convId)->where('user_id', '!=', $myId)->value('user_id');
+            if ($otherId) {
+                $this->blockUserInternal($myId, (int) $otherId);
+            }
+        }
+
+        return ApiResponse::success(null, '已拒绝消息请求');
     }
 
     /**
@@ -88,55 +147,94 @@ class UserChatController extends Controller
      */
     public function myConversations(): JsonResponse
     {
-        $myId = auth()->id();
-        $participations = ConversationParticipant::where('user_id', $myId)
+        $participations = ConversationParticipant::where('user_id', auth()->id())
             ->whereNull('deleted_at')
             ->with(['conversation.lastMessage.sender:id,name,avatar', 'conversation.participants.user:id,name,avatar'])
             ->orderBy('is_pinned', 'desc')
             ->orderBy('updated_at', 'desc')
             ->get();
 
-        $result = $participations->map(function ($p) {
-            $conv = $p->conversation;
-            if (!$conv) return null;
-            $otherUsers = $conv->participants->filter(fn($cp) => $cp->user_id !== auth()->id())->pluck('user');
-            $isSelfConv = $conv->participants->count() === 1 && $conv->participants->first()?->user_id === auth()->id();
-            return [
-                'id' => $conv->id,
-                'type' => $conv->type,
-                'name' => $isSelfConv ? '📁 文件传输助手' : ($conv->type === 'private' ? ($otherUsers->first()?->name ?? '用户') : $conv->name),
-                'avatar' => $conv->type === 'private' ? ($otherUsers->first()?->avatar_url ?? '') : '',
-                'last_message' => $conv->lastMessage ? [
-                    'content' => $conv->lastMessage->content,
-                    'sender_name' => $conv->lastMessage->sender?->name ?? '',
-                    'created_at' => $conv->lastMessage->created_at,
-                ] : null,
-                'unread_count' => $p->unread_count,
-                'is_pinned' => $p->is_pinned,
-                'is_muted' => $p->is_muted,
-                'is_archived' => !is_null($p->archived_at),
-                'is_hidden' => $p->is_hidden,
-                'my_role' => $p->role,
-                'updated_at' => $conv->updated_at,
-                'participants' => $conv->participants->map(fn($cp) => [
-                    'id' => $cp->user_id,
-                    'name' => $cp->user?->name ?? '',
-                    'avatar' => $cp->user?->avatar_url ?? '',
-                ]),
-            ];
-        })->filter()->values();
-
-        return ApiResponse::success($result);
+        return ApiResponse::success($participations->map(fn ($p) => $this->formatConversationItem($p))->filter()->values());
     }
 
-    /**
-     * 获取或创建文件传输助手（与自己的会话）
-     */
+    protected function formatConversationItem(ConversationParticipant $p): ?array
+    {
+        $conv = $p->conversation;
+        if (! $conv) {
+            return null;
+        }
+        $myId = auth()->id();
+        $otherUsers = $conv->participants->filter(fn ($cp) => $cp->user_id !== $myId)->pluck('user');
+        $isSelfConv = $conv->type === 'private'
+            && $conv->participants->count() === 1
+            && $conv->participants->first()?->user_id === $myId;
+
+        return [
+            'id' => $conv->id,
+            'type' => $conv->type,
+            'name' => $isSelfConv ? '📁 文件传输助手' : ($conv->type === 'private' ? ($otherUsers->first()?->name ?? '用户') : ($conv->type === 'ai' ? ($conv->name ?: 'AI 助手') : $conv->name)),
+            'avatar' => $conv->type === 'private' ? ($otherUsers->first()?->avatar_url ?? '') : '',
+            'is_self' => $isSelfConv,
+            'is_ai_assistant' => $conv->type === 'ai',
+            'last_message' => $conv->lastMessage ? [
+                'content' => $conv->lastMessage->content,
+                'sender_name' => $conv->lastMessage->sender?->name ?? '',
+                'created_at' => $conv->lastMessage->created_at,
+            ] : null,
+            'unread_count' => $p->unread_count,
+            'is_pinned' => $p->is_pinned,
+            'is_muted' => $p->is_muted,
+            'is_archived' => ! is_null($p->archived_at),
+            'is_hidden' => $p->is_hidden,
+            'request_status' => $p->request_status,
+            'is_message_request' => $p->request_status === 'pending',
+            'my_role' => $p->role,
+            'permissions' => $conv->getEffectivePermissions(),
+            'can_send_file' => $conv->type !== 'group' || $conv->userCan('send_file', $myId),
+            'can_send_card' => $conv->type !== 'group' || $conv->userCan('send_card', $myId),
+            'can_pin_message' => $conv->type !== 'group' || $conv->userCan('pin_message', $myId),
+            'updated_at' => $conv->updated_at,
+            'participants' => $conv->participants->map(fn ($cp) => [
+                'id' => $cp->user_id,
+                'name' => $cp->user?->name ?? '',
+                'avatar' => $cp->user?->avatar_url ?? '',
+            ]),
+        ];
+    }
+
+    protected function validateDmMessageLimits(array $validated): ?JsonResponse
+    {
+        $textMax = (int) config('dm.text_max_length', 2000);
+        $imageMax = (int) config('dm.image_max_count', 9);
+
+        if (($validated['message_type'] ?? 'text') === 'text' && ! empty($validated['content'])) {
+            if (mb_strlen($validated['content']) > $textMax) {
+                return ApiResponse::error("消息内容不能超过 {$textMax} 字");
+            }
+        }
+
+        $attachments = $validated['attachments'] ?? [];
+        $imageCount = ($validated['message_type'] ?? 'text') === 'image' ? 1 : 0;
+        foreach ($attachments as $att) {
+            $mime = $att['mime'] ?? $att['type'] ?? '';
+            $name = $att['name'] ?? '';
+            if (str_starts_with((string) $mime, 'image/')
+                || preg_match('/\.(jpe?g|png|gif|webp|bmp)$/i', $name)) {
+                $imageCount++;
+            }
+        }
+
+        if ($imageCount > $imageMax) {
+            return ApiResponse::error("单次最多发送 {$imageMax} 张图片");
+        }
+
+        return null;
+    }
+
     public function selfConversation(): JsonResponse
     {
         $myId = auth()->id();
 
-        // 查找已有的单人会话
         $existingConv = DB::table('conversation_participants')
             ->select('conversation_id')
             ->where('conversation_participants.user_id', $myId)
@@ -151,54 +249,58 @@ class UserChatController extends Controller
             return ApiResponse::success($this->loadConversation($existingConv));
         }
 
-        // 创建新的单人会话
-        $conv = UserConversation::create([
-            'type' => 'private',
-            'created_by' => $myId,
-        ]);
+        $conv = UserConversation::create(['type' => 'private', 'created_by' => $myId]);
         ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $myId]);
 
         return ApiResponse::success($this->loadConversation($conv->id), '文件传输助手已创建', 201);
     }
 
-    /**
-     * 发送消息
-     */
     public function sendMessage(int $convId, Request $request): JsonResponse
     {
         $conv = UserConversation::findOrFail($convId);
         $myId = auth()->id();
+        $policy = app(UserChatPolicyService::class);
+        $otherParticipant = null;
+        $privateEval = null;
 
-        // 验证是否参与者
         $isParticipant = ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', $myId)->whereNull('deleted_at')->exists();
-        if (!$isParticipant) {
+        if (! $isParticipant) {
             return ApiResponse::error('你不是该会话的参与者');
         }
 
-        // 群聊权限校验
         if ($conv->type === 'group') {
             $messageType = $request->input('message_type', 'text');
-            if (in_array($messageType, ['file', 'image', 'voice']) && !$conv->userCan('send_file', $myId)) {
+            if (in_array($messageType, ['file', 'image', 'voice']) && ! $conv->userCan('send_file', $myId)) {
                 return ApiResponse::error('你没有权限在此群发送文件');
             }
-            if ($messageType === 'card' && !$conv->userCan('send_card', $myId)) {
+            if ($messageType === 'card' && ! $conv->userCan('send_card', $myId)) {
                 return ApiResponse::error('你没有权限在此群发送卡片');
             }
         }
 
-        // 私聊检查是否为好友
         if ($conv->type === 'private') {
             $otherParticipant = ConversationParticipant::where('conversation_id', $convId)
-                ->where('user_id', '!=', $myId)->first();
+                ->where('user_id', '!=', $myId)
+                ->whereNull('deleted_at')
+                ->first();
+
             if ($otherParticipant) {
-                $isFriend = UserFriend::where('status', 'accepted')
-                    ->where(function ($q) use ($myId, $otherParticipant) {
-                        $q->where(['requester_id' => $myId, 'addressee_id' => $otherParticipant->user_id])
-                          ->orWhere(['requester_id' => $otherParticipant->user_id, 'addressee_id' => $myId]);
-                    })->exists();
-                if (!$isFriend) {
-                    return ApiResponse::error('请先添加对方为好友');
+                $productId = $request->integer('product_id') ?: null;
+                $privateEval = $policy->evaluatePrivateMessage($myId, $otherParticipant->user_id, $productId);
+                if (! $privateEval['allowed']) {
+                    return ApiResponse::error($privateEval['reason'] ?? '无法发送私信');
+                }
+
+                $myParticipant = ConversationParticipant::where('conversation_id', $convId)
+                    ->where('user_id', $myId)
+                    ->whereNull('deleted_at')
+                    ->first();
+                if ($myParticipant?->request_status === 'pending') {
+                    $policy->acceptMessageRequest($convId, $myId);
+                }
+                if ($otherParticipant->request_status === 'rejected' && empty($privateEval['seller_inquiry'])) {
+                    return ApiResponse::error('对方已拒绝你的消息请求');
                 }
             }
         }
@@ -214,7 +316,7 @@ class UserChatController extends Controller
         }
 
         $validated = $request->validate([
-            'content' => 'required_if:message_type,text|string|max:10000',
+            'content' => 'required_if:message_type,text|string|max:' . config('dm.text_max_length', 2000),
             'message_type' => 'nullable|string|in:text,image,file,voice,contact,location',
             'attachments' => 'nullable|array',
             'reply_to_id' => 'nullable|exists:conversation_messages,id',
@@ -222,7 +324,13 @@ class UserChatController extends Controller
             'confirmed' => 'nullable|boolean',
             'expires_in_minutes' => 'nullable|integer|min:1|max:43200',
             'expires_at' => 'nullable|date|after:now',
+            'product_id' => 'nullable|integer|exists:products,id',
         ]);
+
+        $limitError = $this->validateDmMessageLimits($validated);
+        if ($limitError) {
+            return $limitError;
+        }
 
         $validated['message_type'] ??= 'text';
         $validated['conversation_id'] = $convId;
@@ -370,6 +478,18 @@ class UserChatController extends Controller
             }
         }
 
+        if ($conv->type === 'private' && $otherParticipant) {
+            $privateEval ??= $policy->evaluatePrivateMessage(
+                $myId,
+                $otherParticipant->user_id,
+                $request->integer('product_id') ?: null
+            );
+            if (! empty($privateEval['requires_request'])) {
+                $policy->markRecipientRequestPending($convId, $otherParticipant->user_id);
+            }
+            $policy->applyHarassmentCheck($myId, $otherParticipant->user_id, $convId);
+        }
+
         return ApiResponse::success($msg->load('sender:id,name,avatar'), '消息已发送', 201);
     }
 
@@ -382,17 +502,104 @@ class UserChatController extends Controller
         $perPage = min((int) $request->input('per_page', 50), 200);
         $beforeId = $request->input('before_id');
 
-        $query = ConversationMessage::with('sender:id,name,avatar')
+        $with = ['sender:id,name,avatar'];
+        if (Schema::hasTable('message_reactions')) {
+            $with[] = 'reactions.user:id,name';
+        }
+
+        $query = ConversationMessage::with($with)
             ->where('conversation_id', $convId)
-            ->whereNull('deleted_at');
+            ->whereNull('deleted_at')
+            ->where('created_at', '>=', now()->subDays((int) config('dm.retention_days', 180)));
 
         if ($beforeId) {
             $query->where('id', '<', $beforeId);
         }
 
         $messages = $query->orderBy('id', 'desc')->paginate($perPage);
+        $myId = auth()->id();
+
+        $messages->getCollection()->transform(function (ConversationMessage $msg) use ($myId) {
+            $raw = $msg->relationLoaded('reactions') ? $msg->reactions : collect();
+            $msg->unsetRelation('reactions');
+            $msg->setAttribute('reactions', $this->formatMessageReactions($raw, $myId));
+
+            return $msg;
+        });
 
         return ApiResponse::paginated($messages);
+    }
+
+    /**
+     * 导出会话聊天记录（HTML）
+     */
+    public function exportConversation(int $convId): \Illuminate\Http\Response
+    {
+        $myId = auth()->id();
+        ConversationParticipant::where('conversation_id', $convId)
+            ->where('user_id', $myId)
+            ->whereNull('deleted_at')
+            ->firstOrFail();
+
+        $conv = UserConversation::findOrFail($convId);
+        $messages = ConversationMessage::with('sender:id,name')
+            ->where('conversation_id', $convId)
+            ->whereNull('deleted_at')
+            ->where('created_at', '>=', now()->subDays((int) config('dm.retention_days', 180)))
+            ->orderBy('id')
+            ->get();
+
+        $title = e($conv->name ?: "会话 #{$convId}");
+        $html = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>{$title}</title>";
+        $html .= "<style>body{font-family:sans-serif;max-width:800px;margin:auto;padding:20px}.msg{margin:12px 0;padding:10px;border-radius:8px}.self{background:#e8f8e8;text-align:right}.other{background:#f5f7fa}.system{background:#fafafa;color:#999;text-align:center;font-size:12px}.meta{font-size:11px;color:#999;margin-bottom:4px}</style></head><body>";
+        $html .= "<h2>{$title}</h2><p>导出时间: " . now()->toDateTimeString() . " | 消息数: {$messages->count()}</p><hr>";
+
+        foreach ($messages as $msg) {
+            $role = $msg->sender_id === $myId ? 'self' : ($msg->message_type === 'system' ? 'system' : 'other');
+            $sender = e($msg->sender?->name ?? '系统');
+            $content = nl2br(e($msg->content ?? ''));
+            $html .= "<div class='msg {$role}'>";
+            $html .= "<div class='meta'>{$sender} · {$msg->created_at}</div>";
+            $html .= "<div>{$content}</div>";
+            $html .= '</div>';
+        }
+
+        $html .= '</body></html>';
+
+        $filename = 'user-chat-' . $convId . '-' . now()->format('Ymd') . '.html';
+
+        return response($html, 200, [
+            'Content-Type' => 'text/html; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * 正在输入状态（广播给其他参与者）
+     */
+    public function typing(int $convId): JsonResponse
+    {
+        $myId = auth()->id();
+        ConversationParticipant::where('conversation_id', $convId)
+            ->where('user_id', $myId)
+            ->whereNull('deleted_at')
+            ->firstOrFail();
+
+        $participantIds = ConversationParticipant::where('conversation_id', $convId)
+            ->whereNull('deleted_at')
+            ->pluck('user_id')
+            ->all();
+
+        $user = auth()->user();
+        broadcast(new ChatTyping(
+            $convId,
+            $myId,
+            $user?->name ?? '用户',
+            true,
+            $participantIds,
+        ));
+
+        return ApiResponse::success(null);
     }
 
     /**
@@ -406,7 +613,40 @@ class UserChatController extends Controller
 
         $participant->update(['unread_count' => 0, 'last_read_at' => now()]);
 
+        if (UserPrivacySetting::defaultFor($myId)->show_read_receipt) {
+            ConversationMessage::where('conversation_id', $convId)
+                ->where('sender_id', '!=', $myId)
+                ->whereNull('deleted_at')
+                ->whereIn('deliver_status', ['sent', 'delivered'])
+                ->update(['deliver_status' => 'read', 'read_at' => now()]);
+        }
+
         return ApiResponse::success(null, '已标记已读');
+    }
+
+    /**
+     * 标记未读
+     */
+    public function markUnread(int $convId): JsonResponse
+    {
+        $myId = auth()->id();
+        $participant = ConversationParticipant::where('conversation_id', $convId)
+            ->where('user_id', $myId)
+            ->whereNull('deleted_at')
+            ->firstOrFail();
+
+        $unreadCount = ConversationMessage::where('conversation_id', $convId)
+            ->where('sender_id', '!=', $myId)
+            ->whereNull('deleted_at')
+            ->where('created_at', '>=', now()->subDays((int) config('dm.retention_days', 180)))
+            ->count();
+
+        $participant->update([
+            'unread_count' => max(1, $unreadCount),
+            'last_read_at' => null,
+        ]);
+
+        return ApiResponse::success(['unread_count' => $participant->unread_count], '已标记未读');
     }
 
     /**
@@ -868,17 +1108,23 @@ class UserChatController extends Controller
     {
         $reactions = MessageReaction::where('message_id', $messageId)
             ->with('user:id,name')
-            ->get()
+            ->get();
+
+        return ApiResponse::success($this->formatMessageReactions($reactions, auth()->id()));
+    }
+
+    protected function formatMessageReactions($reactions, int $myId): array
+    {
+        return collect($reactions)
             ->groupBy('reaction')
-            ->map(fn($items, $emoji) => [
+            ->map(fn ($items, $emoji) => [
                 'emoji' => $emoji,
                 'count' => $items->count(),
-                'users' => $items->pluck('user.name'),
-                'me' => $items->contains('user_id', auth()->id()),
+                'users' => $items->pluck('user.name')->filter()->values()->all(),
+                'me' => $items->contains('user_id', $myId),
             ])
-            ->values();
-
-        return ApiResponse::success($reactions);
+            ->values()
+            ->all();
     }
 
     public function addReaction(int $messageId, Request $request): JsonResponse
@@ -966,23 +1212,28 @@ class UserChatController extends Controller
 
     public function blockUser(int $userId): JsonResponse
     {
-        if ($userId === auth()->id()) return ApiResponse::error('不能拉黑自己');
+        if ($userId === auth()->id()) {
+            return ApiResponse::error('不能拉黑自己');
+        }
 
-        $user = User::findOrFail($userId);
+        User::findOrFail($userId);
+        $this->blockUserInternal(auth()->id(), $userId);
 
-        // 更新好友关系为 blocked
-        UserFriend::where(function ($q) use ($userId) {
-            $q->where(['requester_id' => auth()->id(), 'addressee_id' => $userId])
-              ->orWhere(['requester_id' => $userId, 'addressee_id' => auth()->id()]);
+        return ApiResponse::success(null, '已拉黑用户');
+    }
+
+    protected function blockUserInternal(int $blockerId, int $blockedUserId): void
+    {
+        UserFriend::where(function ($q) use ($blockerId, $blockedUserId) {
+            $q->where(['requester_id' => $blockerId, 'addressee_id' => $blockedUserId])
+                ->orWhere(['requester_id' => $blockedUserId, 'addressee_id' => $blockerId]);
         })->delete();
 
         UserFriend::create([
-            'requester_id' => auth()->id(),
-            'addressee_id' => $userId,
+            'requester_id' => $blockerId,
+            'addressee_id' => $blockedUserId,
             'status' => 'blocked',
         ]);
-
-        return ApiResponse::success(null, '已拉黑用户');
     }
 
     public function unblockUser(int $userId): JsonResponse
@@ -1014,7 +1265,7 @@ class UserChatController extends Controller
             ->where('sender_id', auth()->id())
             ->firstOrFail();
 
-        $validated = $request->validate(['content' => 'required|string|max:10000']);
+        $validated = $request->validate(['content' => 'required|string|max:' . config('dm.text_max_length', 2000)]);
         $msg->update(['content' => $validated['content'], 'is_edited' => true]);
 
         return ApiResponse::success($msg->fresh(), '消息已编辑');
@@ -1916,10 +2167,21 @@ class UserChatController extends Controller
         $conv = UserConversation::with(['participants.user:id,name,avatar', 'lastMessage.sender:id,name'])->findOrFail($id);
         $myId = auth()->id();
         $otherUsers = $conv->participants->filter(fn($p) => $p->user_id !== $myId)->pluck('user');
+        $isSelfConv = $conv->type === 'private'
+            && $conv->participants->count() === 1
+            && $conv->participants->first()?->user_id === $myId;
         return [
             'id' => $conv->id,
             'type' => $conv->type,
-            'name' => $conv->type === 'private' ? ($otherUsers->first()?->name ?? '用户') : $conv->name,
+            'name' => $isSelfConv ? '📁 文件传输助手' : ($conv->type === 'private' ? ($otherUsers->first()?->name ?? '用户') : ($conv->type === 'ai' ? ($conv->name ?: 'AI 助手') : $conv->name)),
+            'is_self' => $isSelfConv,
+            'is_ai_assistant' => $conv->type === 'ai',
+            'last_message' => $conv->lastMessage ? [
+                'content' => $conv->lastMessage->content,
+                'sender_name' => $conv->lastMessage->sender?->name ?? '',
+                'created_at' => $conv->lastMessage->created_at,
+            ] : null,
+            'updated_at' => $conv->updated_at,
             'participants' => $conv->participants->map(fn($p) => [
                 'id' => $p->user_id, 'name' => $p->user?->name ?? '', 'avatar' => $p->user?->avatar_url ?? '',
             ]),
@@ -1957,6 +2219,10 @@ class UserChatController extends Controller
             'description' => $validated['description'] ?? null,
         ]);
 
+        if ($validated['reportable_type'] === 'user') {
+            $this->blockUserInternal(auth()->id(), (int) $validated['reportable_id']);
+        }
+
         return ApiResponse::success($report, '举报已提交，感谢您的反馈', 201);
     }
 
@@ -1984,22 +2250,36 @@ class UserChatController extends Controller
     public function markDelivered(Request $request): JsonResponse
     {
         $ids = $request->input('message_ids', []);
-        if (empty($ids)) return ApiResponse::success(null);
-        ConversationMessage::whereIn('id', $ids)->where('sender_id', '!=', auth()->id())
+        if (empty($ids)) {
+            return ApiResponse::success(null);
+        }
+
+        ConversationMessage::whereIn('id', $ids)
+            ->where('sender_id', '!=', auth()->id())
             ->where('deliver_status', 'sent')
             ->update(['deliver_status' => 'delivered', 'delivered_at' => now()]);
+
         return ApiResponse::success(null);
     }
 
     // ── 标记消息已读（扩展版） ──
     public function markMessagesRead(Request $request): JsonResponse
     {
+        if (! UserPrivacySetting::defaultFor(auth()->id())->show_read_receipt) {
+            return ApiResponse::success(null);
+        }
+
         $convId = $request->input('conversation_id');
         $ids = $request->input('message_ids', []);
-        if (empty($ids) || !$convId) return ApiResponse::success(null);
-        ConversationMessage::whereIn('id', $ids)->where('conversation_id', $convId)
+        if (empty($ids) || ! $convId) {
+            return ApiResponse::success(null);
+        }
+
+        ConversationMessage::whereIn('id', $ids)
+            ->where('conversation_id', $convId)
             ->where('sender_id', '!=', auth()->id())
             ->update(['deliver_status' => 'read', 'read_at' => now()]);
+
         return ApiResponse::success(null);
     }
 
@@ -2016,7 +2296,17 @@ class UserChatController extends Controller
             'show_online_status' => 'sometimes|boolean',
             'show_read_receipt' => 'sometimes|boolean',
             'allow_stranger_message' => 'sometimes|boolean',
+            'dm_policy' => 'sometimes|in:everyone,followers_only,closed',
         ]);
+
+        if (isset($validated['dm_policy'])) {
+            $validated['allow_stranger_message'] = $validated['dm_policy'] === UserChatPolicyService::DM_EVERYONE;
+        } elseif (isset($validated['allow_stranger_message'])) {
+            $validated['dm_policy'] = $validated['allow_stranger_message']
+                ? UserChatPolicyService::DM_EVERYONE
+                : UserChatPolicyService::DM_FOLLOWERS_ONLY;
+        }
+
         $settings = UserPrivacySetting::defaultFor(auth()->id());
         $settings->update($validated);
         return ApiResponse::success($settings->fresh(), '隐私设置已更新');
@@ -2394,7 +2684,10 @@ class UserChatController extends Controller
     // ── SRCH-001/SRCH-004: 全文搜索 ──
     public function searchMessagesFulltext(Request $request): JsonResponse
     {
-        $request->validate(['q' => 'required|string|min:1|max:100']);
+        $request->validate([
+            'q' => 'required|string|min:1|max:100',
+            'sender_id' => 'nullable|integer|exists:users,id',
+        ]);
 
         $myId = auth()->id();
 
@@ -2403,18 +2696,40 @@ class UserChatController extends Controller
         $messageType = $request->input('message_type');
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
+        $senderId = $request->input('sender_id') ? (int) $request->input('sender_id') : null;
         $perPage = min((int) $request->input('per_page', 20), 50);
+        $retentionDays = (int) config('dm.retention_days', 180);
 
         // 获取用户可访问的会话
         $convIds = ConversationParticipant::where('user_id', $myId)->whereNull('deleted_at')->pluck('conversation_id');
 
+        if ($senderId && $senderId !== $myId) {
+            $allowedSender = ConversationMessage::whereIn('conversation_id', $convIds)
+                ->where('sender_id', $senderId)
+                ->exists()
+                || UserFriend::where('status', 'accepted')
+                    ->where(function ($q) use ($myId, $senderId) {
+                        $q->where(fn ($q2) => $q2->where('requester_id', $myId)->where('addressee_id', $senderId))
+                            ->orWhere(fn ($q2) => $q2->where('requester_id', $senderId)->where('addressee_id', $myId));
+                    })
+                    ->exists();
+            if (! $allowedSender) {
+                return ApiResponse::error('无权按该发送人搜索');
+            }
+        }
+
         $query = ConversationMessage::whereIn('conversation_id', $convIds)
             ->whereNull('deleted_at')
+            ->where('created_at', '>=', now()->subDays($retentionDays))
             ->whereRaw(db_full_text_match('content'), [db_full_text_bind($q.'*')]);
 
         // SRCH-004: 限定当前会话
         if ($convId && in_array($convId, $convIds->toArray())) {
             $query->where('conversation_id', $convId);
+        }
+
+        if ($senderId) {
+            $query->where('sender_id', $senderId);
         }
 
         // 按消息类型过滤
@@ -2430,9 +2745,27 @@ class UserChatController extends Controller
             $query->whereDate('created_at', '<=', $dateTo);
         }
 
-        $results = $query->with('sender:id,name')
+        $results = $query->with(['sender:id,name', 'conversation:id,type,name'])
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
+
+        $results->getCollection()->transform(function (ConversationMessage $msg) use ($myId) {
+            $conv = $msg->conversation;
+            $convName = $conv?->name ?? '会话';
+            if ($conv && $conv->type === 'private') {
+                $other = ConversationParticipant::where('conversation_id', $conv->id)
+                    ->where('user_id', '!=', $myId)
+                    ->whereNull('deleted_at')
+                    ->with('user:id,name')
+                    ->first();
+                $convName = $other?->user?->name ?? '用户';
+            }
+
+            return array_merge($msg->toArray(), [
+                'conversation_name' => $convName,
+                'sender_name' => $msg->sender?->name ?? '',
+            ]);
+        });
 
         return ApiResponse::paginated($results);
     }
@@ -2932,8 +3265,63 @@ class UserChatController extends Controller
         }
     }
 
+    // ── 商品咨询：联系卖家 → 私信 ──
+    public function startSellerInquiry(Request $request, UserChatConversationService $chatService): JsonResponse
+    {
+        $validated = $request->validate([
+            'seller_id' => 'required|integer|exists:users,id',
+            'product_id' => 'required|integer|exists:products,id',
+            'message' => 'nullable|string|max:500',
+        ]);
+
+        $myId = auth()->id();
+        $sellerId = (int) $validated['seller_id'];
+        $productId = (int) $validated['product_id'];
+
+        if ($sellerId === $myId) {
+            return ApiResponse::error('不能向自己咨询商品');
+        }
+
+        $product = Product::findOrFail($productId);
+        if ((int) $product->user_id !== $sellerId) {
+            return ApiResponse::error('商品与卖家信息不匹配', 422);
+        }
+
+        $eval = app(UserChatPolicyService::class)->evaluatePrivateMessage($myId, $sellerId, $productId);
+        if (! $eval['allowed']) {
+            return ApiResponse::error($eval['reason'] ?? '无法联系卖家');
+        }
+
+        $conv = $chatService->findOrCreatePrivateConversation($myId, $sellerId);
+        $traceId = 'seller-inquiry-' . $conv->id . '-' . $productId;
+
+        $cardMsg = $chatService->pushProductCard(
+            $conv,
+            $myId,
+            $product,
+            '【商品咨询】' . $product->name,
+            $traceId,
+            ['source' => 'contact_seller', 'product_id' => $productId]
+        );
+
+        $textMsg = null;
+        $intro = trim($validated['message'] ?? '');
+        if ($intro !== '') {
+            $textMsg = $chatService->pushTextMessage($conv, $myId, $intro, [
+                'product_id' => $productId,
+                'source' => 'contact_seller',
+            ]);
+        }
+
+        return ApiResponse::success([
+            'conversation' => $this->loadConversation($conv->id),
+            'product_card_message_id' => $cardMsg->id,
+            'text_message_id' => $textMsg?->id,
+        ], '已打开卖家私信', 201);
+    }
+
     // ── 发送商品卡片消息 ──
-    public function sendProductCard(int $convId, Request $request): JsonResponse
+    public function sendProductCard(int $convId, Request $request, UserChatConversationService $chatService): JsonResponse
     {
         $validated = $request->validate([
             'product_id' => 'required|integer|exists:products,id',
@@ -2941,47 +3329,53 @@ class UserChatController extends Controller
             'trace_id' => 'nullable|string|max:64',
         ]);
 
-        $product = \App\Models\Product::findOrFail($validated['product_id']);
+        $myId = auth()->id();
+        $conv = UserConversation::findOrFail($convId);
+        $isParticipant = ConversationParticipant::where('conversation_id', $convId)
+            ->where('user_id', $myId)
+            ->whereNull('deleted_at')
+            ->exists();
+        if (! $isParticipant) {
+            return ApiResponse::error('你不是该会话的参与者');
+        }
+
+        $product = Product::findOrFail($validated['product_id']);
         $traceId = $validated['trace_id'] ?? ('card-' . uniqid());
 
-        // 构建卡片 JSON
-        $cardData = [
-            'type' => 'product_card',
-            'product' => [
-                'id' => $product->id,
-                'name' => $product->name,
-                'description' => mb_substr($product->description ?? '', 0, 200),
-                'price' => $product->base_price,
-                'image_url' => $product->image_url,
-                'deep_link' => "im://product?id={$product->id}",
-                'action_url' => "/build/products/{$product->id}",
-                'action_label' => '查看详情',
-            ],
-        ];
-
-        $msg = ConversationMessage::create([
-            'conversation_id' => $convId,
-            'sender_id' => auth()->id(),
-            'content' => $validated['content'] ?? "推荐产品：{$product->name}",
-            'message_type' => 'card',
-            'metadata' => $cardData,
-            'client_msg_id' => 'card-' . uniqid(),
-        ]);
-
-        UserConversation::where('id', $convId)->update(['last_message_at' => now()]);
-
-        // 记录发送事件
-        try {
-            CardConversionTracking::create([
-                'trace_id' => $traceId,
-                'card_type' => 'product_card',
-                'message_id' => $msg->id,
-                'sender_id' => auth()->id(),
-                'event' => 'send',
-            ]);
-        } catch (\Exception $e) {
-            // 追踪记录失败不影响主流程
+        if ($conv->type === 'group' && ! $conv->userCan('send_card', $myId)) {
+            return ApiResponse::error('你没有权限在此群发送卡片');
         }
+
+        if ($conv->type === 'private') {
+            $otherParticipant = ConversationParticipant::where('conversation_id', $convId)
+                ->where('user_id', '!=', $myId)
+                ->whereNull('deleted_at')
+                ->first();
+            if ($otherParticipant) {
+                if ((int) $product->user_id !== (int) $otherParticipant->user_id) {
+                    return ApiResponse::error('只能向卖家发送其本人的商品卡片');
+                }
+                $eval = app(UserChatPolicyService::class)->evaluatePrivateMessage(
+                    $myId,
+                    $otherParticipant->user_id,
+                    $product->id
+                );
+                if (! $eval['allowed']) {
+                    return ApiResponse::error($eval['reason'] ?? '无法发送私信');
+                }
+                if ($otherParticipant->request_status === 'rejected' && empty($eval['seller_inquiry'])) {
+                    return ApiResponse::error('对方已拒绝你的消息请求');
+                }
+            }
+        }
+
+        $msg = $chatService->pushProductCard(
+            $conv,
+            $myId,
+            $product,
+            $validated['content'] ?? null,
+            $traceId
+        );
 
         return ApiResponse::success(
             $msg->load('sender:id,name')->setAttribute('trace_id', $traceId),

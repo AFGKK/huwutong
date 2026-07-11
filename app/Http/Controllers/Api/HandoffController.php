@@ -80,6 +80,8 @@ class HandoffController extends Controller
                     'status' => $handoff->status,
                     'queue_position' => $handoff->queue_position,
                     'assigned_agent' => $handoff->assignee?->only(['id', 'name']),
+                    'user_conversation_id' => $handoff->user_conversation_id,
+                    'dm_conversation_id' => $handoff->dmConversationId(),
                     'context' => $handoff->conversation_context,
                 ],
             ], 201);
@@ -117,6 +119,8 @@ class HandoffController extends Controller
                 'queue_position' => $handoff->queue_position,
                 'wait_time_formatted' => $handoff->waitTimeFormatted(),
                 'assignee' => $handoff->assignee?->only(['id', 'name']),
+                'user_conversation_id' => $handoff->user_conversation_id,
+                'dm_conversation_id' => $handoff->dmConversationId(),
                 'messages' => $handoff->messages,
                 'assigned_at' => $handoff->assigned_at?->toIso8601String(),
                 'accepted_at' => $handoff->accepted_at?->toIso8601String(),
@@ -234,15 +238,20 @@ class HandoffController extends Controller
 
         try {
             $handoff = $this->handoffService->accept($handoff, $request->user());
+            $handoff->load([
+                'customer.user:id,name,email',
+                'messages',
+                'conversation',
+                'userChatConversation',
+                'user:id,name',
+            ]);
+            $data = $handoff->toArray();
+            $data['dm_conversation_id'] = $handoff->dmConversationId();
 
             return response()->json([
                 'success' => true,
                 'message' => '已接受转接',
-                'data' => $handoff->load([
-                    'customer.user:id,name,email',
-                    'messages',
-                    'conversation',
-                ]),
+                'data' => $data,
             ]);
         } catch (\RuntimeException $e) {
             return response()->json([
@@ -448,7 +457,9 @@ class HandoffController extends Controller
             'ticket',
         ]);
 
-        return response()->json(['success' => true, 'data' => $handoff]);
+        return response()->json(['success' => true, 'data' => array_merge($handoff->toArray(), [
+            'dm_conversation_id' => $handoff->dmConversationId(),
+        ])]);
     }
 
     /**
