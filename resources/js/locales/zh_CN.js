@@ -11305,6 +11305,7 @@ export default {
             status: '状态: {status}',
             auto_reply: '自动回复',
             manage_auto_reply: '管理回复规则',
+            more: '更多',
         },
         status: {
             online: '在线',
@@ -11441,6 +11442,7 @@ export default {
             export: '导出聊天',
             summarize: '总结',
             moderator: 'AI 主持',
+            more: '更多',
         },
         tags: {
             assign: '分配标签',

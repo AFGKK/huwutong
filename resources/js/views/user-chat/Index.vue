@@ -1,8 +1,6 @@
 <template>
     <div class="user-chat-page">
         <div class="chat-layout">
-            <div v-if="isMobile && activeConv" class="mobile-overlay" @click="activeConv = null"></div>
-
             <!-- 左侧面板 -->
             <div class="chat-sidebar" :class="{ 'sidebar-hidden': isMobile && activeConv }">
                 <div class="sidebar-tabs">
@@ -43,12 +41,6 @@
                         <el-tag v-if="echoStatus === 'disabled'" size="small" type="warning" class="echo-status-tag" :title="t('user_chat_page.echo.disabled_title')">{{ t('user_chat_page.echo.disabled') }}</el-tag>
                         <el-tag v-else-if="echoStatus === 'offline'" size="small" type="info" class="echo-status-tag" :title="t('user_chat_page.echo.offline_title')">{{ t('user_chat_page.echo.offline') }}</el-tag>
                         <div class="sidebar-header-actions">
-                            <el-button size="small" text @click="showBlockedList = true" :title="t('user_chat_page.toolbar.blocked')"><el-icon><RemoveFilled /></el-icon></el-button>
-                            <el-button size="small" text @click="showSensitiveWords = true" :title="t('user_chat_page.toolbar.sensitive_words')"><el-icon><EditPen /></el-icon></el-button>
-                            <el-button size="small" text @click="showDndSettings = true" :title="t('user_chat_page.toolbar.dnd')"><el-icon><MuteNotification /></el-icon></el-button>
-                            <el-button size="small" text @click="showPrivacySettings = true" :title="t('user_chat_page.toolbar.privacy')"><el-icon><Lock /></el-icon></el-button>
-                            <el-button size="small" text @click="showDashboard = true" :title="t('user_chat_page.toolbar.dashboard')"><el-icon><DataBoard /></el-icon></el-button>
-                            <el-button size="small" text @click="showAiFriendAdmin = true" :title="t('user_chat_page.toolbar.ai_friend_admin')"><el-icon><MagicStick /></el-icon></el-button>
                             <el-button size="small" text @click="showSearchPanel = !showSearchPanel" :type="showSearchPanel ? 'primary' : 'default'" :title="t('user_chat_page.toolbar.global_search')"><el-icon><Search /></el-icon></el-button>
                             <el-dropdown trigger="click" @command="openNewChat">
                                 <el-button size="small" type="primary" circle :title="t('user_chat_page.dialogs.new_chat')"><el-icon><Plus /></el-icon></el-button>
@@ -84,6 +76,19 @@
                                             </div>
                                         </el-dropdown-item>
                                         <el-dropdown-item command="goto_auto_reply" style="font-size:12px;color:#909399">{{ t('user_chat_page.toolbar.manage_auto_reply') }}</el-dropdown-item>
+                                    </el-dropdown-menu>
+                                </template>
+                            </el-dropdown>
+                            <el-dropdown trigger="click" @command="onSidebarMoreCommand">
+                                <el-button size="small" text :title="t('user_chat_page.toolbar.more')"><el-icon><MoreFilled /></el-icon></el-button>
+                                <template #dropdown>
+                                    <el-dropdown-menu>
+                                        <el-dropdown-item command="blocked"><el-icon><RemoveFilled /></el-icon> {{ t('user_chat_page.toolbar.blocked') }}</el-dropdown-item>
+                                        <el-dropdown-item command="sensitive_words"><el-icon><EditPen /></el-icon> {{ t('user_chat_page.toolbar.sensitive_words') }}</el-dropdown-item>
+                                        <el-dropdown-item command="dnd"><el-icon><MuteNotification /></el-icon> {{ t('user_chat_page.toolbar.dnd') }}</el-dropdown-item>
+                                        <el-dropdown-item command="privacy"><el-icon><Lock /></el-icon> {{ t('user_chat_page.toolbar.privacy') }}</el-dropdown-item>
+                                        <el-dropdown-item divided command="dashboard"><el-icon><DataBoard /></el-icon> {{ t('user_chat_page.toolbar.dashboard') }}</el-dropdown-item>
+                                        <el-dropdown-item command="ai_friend_admin"><el-icon><MagicStick /></el-icon> {{ t('user_chat_page.toolbar.ai_friend_admin') }}</el-dropdown-item>
                                     </el-dropdown-menu>
                                 </template>
                             </el-dropdown>
@@ -159,7 +164,7 @@
                         <div v-if="!convCategory && !batchMode && !searchKeyword" class="inbox-hub-section">
                             <div class="conv-item inbox-hub-item" @click="openNotifHub('interactions')">
                                 <div class="conv-avatar-wrap">
-                                    <div class="conv-avatar inbox-hub-avatar inbox-hub-avatar-ix">❤</div>
+                                    <div class="conv-avatar inbox-hub-avatar inbox-hub-avatar-ix"><el-icon :size="18"><StarFilled /></el-icon></div>
                                     <span v-if="inboxHub.interaction_count > 0" class="msg-request-dot"></span>
                                 </div>
                                 <div class="conv-info">
@@ -174,7 +179,7 @@
                             </div>
                             <div v-if="inboxHub.system_total > 0 || inboxHub.system_count > 0 || inboxHub.system_preview" class="conv-item inbox-hub-item" @click="openNotifHub('system')">
                                 <div class="conv-avatar-wrap">
-                                    <div class="conv-avatar inbox-hub-avatar inbox-hub-avatar-sys">📢</div>
+                                    <div class="conv-avatar inbox-hub-avatar inbox-hub-avatar-sys"><el-icon :size="18"><Bell /></el-icon></div>
                                     <span v-if="inboxHub.system_count > 0" class="msg-request-dot"></span>
                                 </div>
                                 <div class="conv-info">
@@ -191,7 +196,7 @@
                         <!-- 消息请求独立入口 -->
                         <div v-if="!convCategory && !batchMode && !searchKeyword" class="msg-request-entry conv-item" @click="openMessageRequests">
                             <div class="conv-avatar-wrap">
-                                <div class="conv-avatar msg-request-entry-avatar">✉</div>
+                                <div class="conv-avatar msg-request-entry-avatar"><el-icon :size="18"><Message /></el-icon></div>
                                 <span v-if="messageRequestCount > 0" class="msg-request-dot"></span>
                             </div>
                             <div class="conv-info">
@@ -208,7 +213,7 @@
                         <div v-if="!convCategory && !batchMode && !searchKeyword" class="assistant-pinned-section">
                             <div class="conv-item assistant-pinned-item" :class="{ active: activeConv?.id === fileTransferConv?.id }" @click="openFileTransferAssistant">
                                 <div class="conv-avatar-wrap">
-                                    <div class="conv-avatar assistant-avatar-file">📁</div>
+                                    <div class="conv-avatar assistant-avatar-file"><el-icon :size="18"><Folder /></el-icon></div>
                                 </div>
                                 <div class="conv-info">
                                     <div class="conv-top">
@@ -229,7 +234,7 @@
                                 class="conv-item ai-assistant-item" :class="{ active: activeConv?.id === conv.id }"
                                 @click="onConvClick(conv)">
                                 <div class="conv-avatar-wrap">
-                                    <div class="conv-avatar assistant-avatar-ai">🤖</div>
+                                    <div class="conv-avatar assistant-avatar-ai"><el-icon :size="18"><Cpu /></el-icon></div>
                                 </div>
                                 <div class="conv-info">
                                     <div class="conv-top">
@@ -281,7 +286,7 @@
                     <!-- AI 助手入口（方案 B：仅从好友 Tab 进入） -->
                     <div class="ai-assistant-entry conv-item" @click="openAIChat">
                         <div class="conv-avatar-wrap">
-                            <div class="conv-avatar assistant-avatar-ai">🤖</div>
+                            <div class="conv-avatar assistant-avatar-ai"><el-icon :size="18"><Cpu /></el-icon></div>
                         </div>
                         <div class="conv-info">
                             <div class="conv-top"><span class="conv-name">{{ t('user_chat_page.ai.assistant') }}</span></div>
@@ -295,7 +300,7 @@
                             <div class="conv-avatar-wrap">
                                 <img v-if="f.avatar" :src="f.avatar" class="conv-avatar-img" />
                                 <div v-else class="conv-avatar" style="background:#409eff">{{ f.name?.charAt(0) || 'A' }}</div>
-                                <span class="ai-badge">🤖</span>
+                                <span class="ai-badge"><el-icon :size="10"><Cpu /></el-icon></span>
                             </div>
                             <div class="conv-info">
                                 <div class="conv-top">
@@ -494,20 +499,27 @@
                             <span class="chat-title">{{ activeConv.name }}</span>
                         </div>
                         <div class="chat-actions">
-                            <el-button text size="small" @click="showTagPanel = !showTagPanel" :title="t('user_chat_page.header.tags')" :type="showTagPanel ? 'primary' : 'default'"><el-icon><CollectionTag /></el-icon></el-button>
-                            <el-button v-if="activeConv?.type === 'group'" text size="small" @click="showAnnouncements = true" :title="t('user_chat_page.header.announcements')"><el-icon><Message /></el-icon></el-button>
-                            <el-button v-if="activeConv?.type === 'group'" text size="small" @click="openSlowModeDialog" :title="t('user_chat_page.header.slow_mode')" :type="activeConv.slow_mode_interval > 0 ? 'primary' : 'default'"><el-icon><Timer /></el-icon></el-button>
-                            <el-button v-if="activeConv?.type === 'group'" text size="small" @click="openInviteDialog" :title="t('user_chat_page.header.invite')"><el-icon><Share /></el-icon></el-button>
-                            <el-button v-if="activeConv?.type === 'group'" text size="small" @click="showGroupManage = true" :title="t('user_chat_page.header.group_manage')"><el-icon><Setting /></el-icon></el-button>
-                            <el-button text size="small" @click="togglePin" :title="activeConv.is_pinned ? t('user_chat_page.header.unpin') : t('user_chat_page.header.pin')"><el-icon><StarFilled v-if="activeConv.is_pinned" /><Star v-else /></el-icon></el-button>
-                            <el-button text size="small" @click="toggleMute" :title="activeConv.is_muted ? t('user_chat_page.header.unmute') : t('user_chat_page.header.mute')"><el-icon><Bell v-if="!activeConv.is_muted" /><Mute v-else /></el-icon></el-button>
-                            <el-button text size="small" @click="showA11yPanel = !showA11yPanel" :title="t('user_chat_page.header.a11y')" :type="showA11yPanel ? 'primary' : 'default'"><el-icon><Reading /></el-icon></el-button>
                             <el-button text size="small" @click="startCall('audio')" :title="t('user_chat_page.header.audio_call')"><el-icon><Phone /></el-icon></el-button>
                             <el-button text size="small" @click="startCall('video')" :title="t('user_chat_page.header.video_call')"><el-icon><VideoCamera /></el-icon></el-button>
-                            <el-button text size="small" @click="handleExportConv" :title="t('user_chat_page.header.export')"><el-icon><Download /></el-icon></el-button>
-                            <el-button text size="small" @click="handleSummarize" :title="t('user_chat_page.header.summarize')"><el-icon><MagicStick /></el-icon></el-button>
-                            <el-button v-if="activeConv?.type === 'group'" text size="small" @click="showModerator = true" :title="t('user_chat_page.header.moderator')"><el-icon><Cpu /></el-icon></el-button>
-                            <el-button text size="small" @click="handleDeleteConv"><el-icon><Delete /></el-icon></el-button>
+                            <el-button text size="small" @click="togglePin" :title="activeConv.is_pinned ? t('user_chat_page.header.unpin') : t('user_chat_page.header.pin')"><el-icon><StarFilled v-if="activeConv.is_pinned" /><Star v-else /></el-icon></el-button>
+                            <el-button text size="small" @click="toggleMute" :title="activeConv.is_muted ? t('user_chat_page.header.unmute') : t('user_chat_page.header.mute')"><el-icon><Bell v-if="!activeConv.is_muted" /><Mute v-else /></el-icon></el-button>
+                            <el-button v-if="activeConv?.type === 'group'" text size="small" @click="showGroupManage = true" :title="t('user_chat_page.header.group_manage')"><el-icon><Setting /></el-icon></el-button>
+                            <el-button text size="small" @click="handleDeleteConv" :title="t('actions.delete')"><el-icon><Delete /></el-icon></el-button>
+                            <el-dropdown trigger="click" @command="onChatMoreCommand">
+                                <el-button text size="small" :title="t('user_chat_page.header.more')"><el-icon><MoreFilled /></el-icon></el-button>
+                                <template #dropdown>
+                                    <el-dropdown-menu>
+                                        <el-dropdown-item command="tags"><el-icon><CollectionTag /></el-icon> {{ t('user_chat_page.header.tags') }}</el-dropdown-item>
+                                        <el-dropdown-item v-if="activeConv?.type === 'group'" command="announcements"><el-icon><Message /></el-icon> {{ t('user_chat_page.header.announcements') }}</el-dropdown-item>
+                                        <el-dropdown-item v-if="activeConv?.type === 'group'" command="slow_mode"><el-icon><Timer /></el-icon> {{ t('user_chat_page.header.slow_mode') }}</el-dropdown-item>
+                                        <el-dropdown-item v-if="activeConv?.type === 'group'" command="invite"><el-icon><Share /></el-icon> {{ t('user_chat_page.header.invite') }}</el-dropdown-item>
+                                        <el-dropdown-item divided command="a11y"><el-icon><Reading /></el-icon> {{ t('user_chat_page.header.a11y') }}</el-dropdown-item>
+                                        <el-dropdown-item command="export"><el-icon><Download /></el-icon> {{ t('user_chat_page.header.export') }}</el-dropdown-item>
+                                        <el-dropdown-item command="summarize"><el-icon><MagicStick /></el-icon> {{ t('user_chat_page.header.summarize') }}</el-dropdown-item>
+                                        <el-dropdown-item v-if="activeConv?.type === 'group'" command="moderator"><el-icon><Cpu /></el-icon> {{ t('user_chat_page.header.moderator') }}</el-dropdown-item>
+                                    </el-dropdown-menu>
+                                </template>
+                            </el-dropdown>
                         </div>
                     </div>
                     <div v-if="showTagPanel" class="tag-assign-panel">
@@ -1917,7 +1929,8 @@ import {
     Tickets, DataBoard, Share, Phone, VideoCamera, MuteNotification,
     RefreshLeft, RemoveFilled, EditPen, Timer, Microphone, CaretRight,
     Sunny, MoonNight, Monitor, Location, Select, Warning, Lock,
-    ChatLineSquare, View, Upload, Document, Link, Reading, CopyDocument
+    ChatLineSquare, View, Upload, Document, Link, Reading, CopyDocument,
+    Folder, Cpu, ChatRound, Briefcase, PriceTag, FolderDelete
 } from '@element-plus/icons-vue'
 import apiClient from '@/api/client'
 import { useUserChatMessages } from '@/composables/useUserChatMessages'
@@ -2704,6 +2717,24 @@ function openNewChat(mode) {
     newGroupName.value = ''
     searchedUsers.value = []
     showNewChat.value = true
+}
+function onSidebarMoreCommand(cmd) {
+    if (cmd === 'blocked') showBlockedList.value = true
+    else if (cmd === 'sensitive_words') showSensitiveWords.value = true
+    else if (cmd === 'dnd') showDndSettings.value = true
+    else if (cmd === 'privacy') showPrivacySettings.value = true
+    else if (cmd === 'dashboard') showDashboard.value = true
+    else if (cmd === 'ai_friend_admin') showAiFriendAdmin.value = true
+}
+function onChatMoreCommand(cmd) {
+    if (cmd === 'tags') showTagPanel.value = !showTagPanel.value
+    else if (cmd === 'announcements') showAnnouncements.value = true
+    else if (cmd === 'slow_mode') openSlowModeDialog()
+    else if (cmd === 'invite') openInviteDialog()
+    else if (cmd === 'a11y') showA11yPanel.value = !showA11yPanel.value
+    else if (cmd === 'export') handleExportConv()
+    else if (cmd === 'summarize') handleSummarize()
+    else if (cmd === 'moderator') showModerator.value = true
 }
 function resetNewChat() {
     newChatUserIds.value = []
@@ -4496,7 +4527,7 @@ onUnmounted(() => {
 .im-ext-link { font-size: 12px; color: #409eff; text-decoration: none; padding: 2px 8px; border-radius: 4px; background: #ecf5ff; }
 .im-ext-link:hover { background: #d9ecff; }
 
-.user-chat-page { height: calc(100vh - 140px); position: relative; }
+.user-chat-page { height: calc(100vh - 100px); position: relative; overflow: hidden; }
 .chat-layout { display: flex; height: 100%; border: 1px solid #e4e7ed; border-radius: 6px; overflow: hidden; background: #fff; }
 .chat-sidebar { width: 320px; border-right: 1px solid #e4e7ed; display: flex; flex-direction: column; background: #fafafa; transition: transform 0.3s ease; }
 .chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #fff; }
@@ -4568,21 +4599,6 @@ onUnmounted(() => {
 .msg-image { margin: 4px 0; }
 .chat-image { max-width: 240px; max-height: 200px; border-radius: 6px; cursor: pointer; }
 .chat-video { max-width: 240px; max-height: 200px; border-radius: 6px; }
-/* ── 文件消息 ── */
-.msg-file { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #f5f7fa; border-radius: 6px; cursor: pointer; margin: 4px 0; }
-.chat-dark-mode .msg-file { background: #2a2a3e; }
-.file-icon { font-size: 24px; }
-.file-info { flex: 1; min-width: 0; }
-.file-name { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.file-meta { font-size: 11px; color: #999; }
-/* ── 语音消息 ── */
-.msg-voice-wrap { margin: 4px 0; }
-.msg-voice { display: flex; align-items: center; cursor: pointer; padding: 6px 10px; background: #e8f4fd; border-radius: 20px; max-width: 180px; }
-.msg-voice-self { background: #d9f0ff; }
-.chat-dark-mode .msg-voice { background: #1a3a5c; }
-.voice-wave { display: flex; align-items: center; gap: 1px; flex: 1; height: 24px; }
-.voice-bar { width: 3px; background: #409eff; border-radius: 2px; min-height: 4px; }
-.voice-duration { font-size: 11px; color: #999; margin-left: 6px; white-space: nowrap; }
 /* ── 频道右键菜单 ── */
 .channel-msg-context-menu { background: #fff; border: 1px solid #e4e7ed; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 4px 0; min-width: 120px; z-index: 9999; }
 .channel-msg-context-menu div:hover { background: #f0f0f0; }
@@ -4607,11 +4623,11 @@ onUnmounted(() => {
 .msg-request-entry { background: #fff; }
 .inbox-hub-section { background: #fff; }
 .inbox-hub-item { background: #fff; }
-.inbox-hub-avatar { font-size: 18px; }
+.inbox-hub-avatar { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; }
 .inbox-hub-avatar-ix { background: #ff4d6d !important; }
 .inbox-hub-avatar-sys { background: #409eff !important; }
 .card-kicker { font-size: 11px; color: #909399; margin-bottom: 2px; letter-spacing: 0.02em; }
-.msg-request-entry-avatar { background: #f56c6c !important; font-size: 18px; }
+.msg-request-entry-avatar { background: #f56c6c !important; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; }
 .msg-request-dot { position: absolute; top: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; background: #f56c6c; border: 2px solid #fff; }
 .msg-request-intro { padding: 8px 12px; font-size: 12px; color: #909399; line-height: 1.5; background: #fafafa; border-bottom: 1px solid #f0f0f0; }
 .msg-request-why { font-size: 11px; color: #c0c4cc; margin-top: 2px; }
@@ -4854,9 +4870,11 @@ onUnmounted(() => {
 .self-chat-entry:hover { background: #f0f7ff; }
 .msg-voice { display: flex; align-items: center; cursor: pointer; padding: 6px 10px; border-radius: 8px; background: #f5f7fa; min-width: 160px; max-width: 240px; }
 .msg-voice-self { background: #e6f0ff; }
+.chat-dark-mode .msg-voice { background: #0f3460; }
+.chat-dark-mode .msg-voice-self { background: #1a5276; }
 .voice-wave { display: flex; align-items: center; gap: 1px; flex: 1; height: 30px; }
 .voice-bar { width: 3px; background: #409eff; border-radius: 2px; min-height: 4px; }
-.msg-voice-wrap { display: flex; flex-direction: column; gap: 4px; }
+.msg-voice-wrap { display: flex; flex-direction: column; gap: 4px; margin: 4px 0; }
 .msg-voice-actions { display: flex; align-items: center; gap: 4px; padding-left: 4px; }
 .voice-transcript { display: flex; align-items: flex-start; gap: 4px; font-size: 12px; color: #606266; background: #f5f7fa; padding: 6px 10px; border-radius: 8px; max-width: 280px; line-height: 1.5; word-break: break-all; }
 .voice-duration { font-size: 12px; color: #999; margin-left: 6px; white-space: nowrap; }
@@ -4954,8 +4972,9 @@ onUnmounted(() => {
 .msg-sticker .sticker-img { max-width: 150px; max-height: 150px; object-fit: contain; }
 
 /* 文件消息 */
-.msg-file { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #f5f7fa; border-radius: 8px; cursor: pointer; min-width: 200px; max-width: 280px; transition: background .2s; }
+.msg-file { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #f5f7fa; border-radius: 8px; cursor: pointer; min-width: 200px; max-width: 280px; margin: 4px 0; transition: background .2s; }
 .msg-file:hover { background: #eef0f4; }
+.chat-dark-mode .msg-file { background: #2a2a3e; }
 .msg-file .file-icon { font-size: 28px; line-height: 1; flex-shrink: 0; }
 .msg-file .file-info { flex: 1; min-width: 0; }
 .msg-file .file-name { font-size: 13px; font-weight: 500; color: #303133; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -5046,7 +5065,7 @@ onUnmounted(() => {
 .avatar-option:hover { border-color: #a0cfff; }
 .ai-friend-item { cursor: pointer; }
 .ai-friend-item .conv-avatar-wrap { position: relative; }
-.ai-badge { position: absolute; bottom: -4px; right: -4px; font-size: 12px; line-height: 1; }
+.ai-badge { position: absolute; bottom: -4px; right: -4px; font-size: 12px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: #67c23a; color: #fff; }
 .ai-category-tag { font-size: 11px; padding: 0 6px; background: #ecf5ff; color: #409eff; border-radius: 4px; }
 .sidebar-divider { height: 1px; background: #f0f0f0; margin: 4px 0; }
 .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 8px 0; }
@@ -5088,7 +5107,6 @@ onUnmounted(() => {
 .chat-dark-mode .conv-time { color: #666; }
 .chat-dark-mode .conv-last { color: #999; }
 .chat-dark-mode .msg-bubble { background: #0f3460; color: #e0e0e0; }
-.chat-dark-mode .msg-self .msg-bubble { background: #1a5276; }
 .chat-dark-mode .msg-sender { color: #888; }
 .chat-dark-mode .msg-time { color: #666; }
 .chat-dark-mode .msg-encrypted { color: #666; }
@@ -5116,8 +5134,6 @@ onUnmounted(() => {
 .chat-dark-mode .card-desc { color: #999; }
 .chat-dark-mode .card-value { color: #ccc; }
 .chat-dark-mode .card-btn.default { background: #2a2a4a; color: #ccc; border-color: #3a3a5a; }
-.chat-dark-mode .msg-voice { background: #0f3460; }
-.chat-dark-mode .msg-voice-self { background: #1a5276; }
 .chat-dark-mode .voice-duration { color: #999; }
 .chat-dark-mode .global-search-panel { border-color: #2a2a4a; }
 .chat-dark-mode .search-result-item { border-color: #2a2a4a; }
@@ -5229,38 +5245,8 @@ onUnmounted(() => {
     .sidebar-hidden { display: none; }
     .chat-main { width: 100%; }
     .msg-bubble { max-width: 85%; }
-    .mobile-overlay { display: none; }
 }
-@media (min-width: 768px) { .mobile-overlay { display: none; } .back-btn { display: none; } }
-
-/* ── 客服工作台会话视图 ── */
-.agent-chat-header .agent-customer-avatar {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: #409eff; color: #fff; display: flex;
-    align-items: center; justify-content: center;
-    font-weight: 700; font-size: 16px; margin-right: 8px; flex-shrink: 0;
-}
-.chat-main-split { display: flex; flex: 1; min-height: 0; }
-.chat-main-split .chat-messages-wrap { flex: 1; flex-direction: column; }
-.chat-main-split.with-info .chat-messages-wrap { width: 65%; }
-.agent-customer-info-panel {
-    width: 35%; border-left: 1px solid #e4e7ed;
-    display: flex; flex-direction: column; overflow-y: auto;
-    background: #fafafa;
-}
-.chat-dark-mode .agent-customer-info-panel {
-    border-color: #2a2a4a; background: #1e1e2e;
-}
-.info-panel-header { padding: 12px 16px; font-weight: 600; font-size: 14px; border-bottom: 1px solid #e4e7ed; }
-.chat-dark-mode .info-panel-header { border-color: #2a2a4a; }
-.info-panel-body { padding: 12px 16px; }
-.info-row { display: flex; align-items: center; margin-bottom: 8px; font-size: 13px; }
-.info-label { color: #909399; width: 50px; flex-shrink: 0; }
-.info-value { color: #303133; }
-.chat-dark-mode .info-value { color: #e0e0e0; }
-.info-tags { display: flex; flex-wrap: wrap; gap: 2px; }
-.info-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.agent-input-area .input-action-left .el-button { font-size: 12px; }
+@media (min-width: 768px) { .back-btn { display: none; } }
 
 /* ── 更多 Tab 下拉 ── */
 .more-tab-label { display: inline-flex; align-items: center; gap: 2px; cursor: pointer; font-size: 12px; }
@@ -5272,7 +5258,7 @@ onUnmounted(() => {
 .assistant-section-title { padding: 6px 12px 4px; font-size: 11px; color: #909399; font-weight: 600; }
 .assistant-section-divider { height: 1px; background: #ebeef5; margin: 6px 8px; }
 .assistant-pinned-item, .ai-assistant-item, .ai-assistant-entry { cursor: pointer; }
-.assistant-avatar-file { background: #e8f4ff !important; font-size: 18px; line-height: 36px; text-align: center; }
-.assistant-avatar-ai { background: #f0f9eb !important; font-size: 18px; line-height: 36px; text-align: center; }
+.assistant-avatar-file { background: #e8f4ff !important; color: #409eff; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.assistant-avatar-ai { background: #f0f9eb !important; color: #67c23a; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 .ai-assistant-entry { margin: 8px; border-radius: 8px; border: 1px solid #e4e7ed; background: #fafcff; }
 </style>

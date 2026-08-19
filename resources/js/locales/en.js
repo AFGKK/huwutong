@@ -11697,6 +11697,7 @@ export default {
             status: "Status",
             auto_reply: "Auto-reply",
             manage_auto_reply: "Manage auto-reply rules",
+            more: "More",
         },
         status: {
             online: "Online",
@@ -11833,6 +11834,7 @@ export default {
             export: "Export data",
             summarize: "Summarize",
             moderator: "AI moderator",
+            more: "More",
         },
         tags: {
             assign: "Assign",
