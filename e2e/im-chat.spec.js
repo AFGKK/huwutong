@@ -11,19 +11,18 @@ const adminUser = {
 
 test.describe('IM 即时通讯', () => {
 
-    test('1. IM 中心在线客服 Tab 可加载', async ({ page }) => {
-        await navigateAsLoggedIn(page, '/admin/im?tab=liveChat', adminUser);
+    test('1. IM 中心可加载', async ({ page }) => {
+        await navigateAsLoggedIn(page, '/admin/im', adminUser);
 
-        await expect(page.locator('.live-chat-admin')).toBeVisible({ timeout: 15000 });
-        await expect(page.locator('text=在线客服管理')).toBeVisible();
-        await expect(page.locator('.stat-label', { hasText: '活跃会话' })).toBeVisible();
+        await expect(page.locator('.im-center')).toBeVisible({ timeout: 15000 });
+        await expect(page.locator('.queue-layout')).toHaveCount(0);
     });
 
-    test('2. 客服工作台排队 Tab 可加载', async ({ page }) => {
+    test('2. 客服工作台 Tab 已移除并回落到 AI 对话', async ({ page }) => {
         await navigateAsLoggedIn(page, '/admin/im?tab=agentWorkspace', adminUser);
 
-        await expect(page.locator('.queue-layout')).toBeVisible({ timeout: 15000 });
-        await expect(page.locator('.queue-section-title', { hasText: '等待中' })).toBeVisible();
+        await expect(page.locator('.im-center')).toBeVisible({ timeout: 15000 });
+        await expect(page.locator('.queue-layout')).toHaveCount(0);
     });
 
     test.describe('私信页（大组件懒加载）', () => {

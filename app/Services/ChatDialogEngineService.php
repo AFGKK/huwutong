@@ -118,6 +118,7 @@ class ChatDialogEngineService
 
                 // 尝试用 LLM 生成回答（流式）
                 $llmService = app(LlmService::class);
+                $routing = app(LlmRoutingService::class);
                 $context = $this->buildStreamContext($documents);
 
                 // 从 Prompt 模板中获取 System Prompt
@@ -130,18 +131,21 @@ class ChatDialogEngineService
                     $systemPrompt = "你是一个互物通授权管理系统的智能客服助手。基于以下知识库文档回答问题，要求简洁准确。\n\n{$context}";
                 }
 
-                $streamResult = $llmService->chatStreamed([
+                $stream = $llmService->chatStream([
                     ['role' => 'system', 'content' => $systemPrompt],
                     ['role' => 'user', 'content' => $message],
-                ]);
+                ], $routing->applyDefaults($options));
 
-                if ($streamResult) {
-                    foreach ($streamResult as $chunk) {
-                        $fullResponse .= $chunk;
-                        yield json_encode(['type' => 'chunk', 'data' => $chunk]);
+                foreach ($stream as $chunk) {
+                    $text = is_array($chunk) ? ($chunk['content'] ?? '') : (string) $chunk;
+                    if ($text === '') {
+                        continue;
                     }
-                } else {
-                    // LLM 不支持流式，使用非流式
+                    $fullResponse .= $text;
+                    yield json_encode(['type' => 'chunk', 'data' => $text]);
+                }
+
+                if ($fullResponse === '') {
                     $result = $this->ragService->answer($message, $sessionId, $options);
                     $fullResponse = $result['answer'];
                     yield json_encode(['type' => 'chunk', 'data' => $fullResponse]);
@@ -383,62 +387,36 @@ class ChatDialogEngineService
 
     /**
      * 处理转人工（创建工单）
+     *
+     * 人工客服队列已下线，不再写入 handoff_requests，仅创建工单。
      */
     protected function handleEscalation(RagConversation $conversation, string $message, array $intentResult, float $startTime): array
     {
-        $handoffId = null;
         $ticketId = null;
 
         try {
-            // 使用新的 HandoffService 创建转接请求
-            $handoffService = app(HandoffService::class);
-            $handoff = $handoffService->createHandoff(
-                $conversation,
-                $intentResult['reason'] ?? 'low_confidence',
-                [
-                    'priority' => $intentResult['confidence'] < 0.2 ? 'high' : 'medium',
-                    'user_id' => $conversation->user_id,
+            $ticketService = app(TicketService::class);
+            $ticket = $ticketService->create([
+                'subject' => __('app.api.im.escalate_subject', ['message' => Str::limit($message, 100)]),
+                'description' => "对话来源: 在线客服\n\n" .
+                    "用户问题: {$message}\n\n" .
+                    "对话上下文: " . json_encode($this->getHistory($conversation->session_id, 3), JSON_UNESCAPED_UNICODE),
+                'priority' => 'medium',
+                'source' => 'chat',
+                'metadata' => [
+                    'session_id' => $conversation->session_id,
+                    'conversation_id' => $conversation->id,
                     'intent' => $intentResult['intent'] ?? 'unknown',
-                    'confidence' => $intentResult['confidence'] ?? 0,
-                    'source' => 'chat',
-                ]
-            );
-            $handoffId = $handoff->id;
-        } catch (\Throwable $e) {
-            Log::error('LiveChat: failed to create handoff', [
-                'error' => $e->getMessage(),
+                ],
             ]);
-
-            // 降级：创建工单
-            try {
-                $ticketService = app(TicketService::class);
-                $ticket = $ticketService->create([
-                    'subject' => '在线客服转人工: ' . Str::limit($message, 100),
-                    'description' => "对话来源: 在线客服\n\n" .
-                        "用户问题: {$message}\n\n" .
-                        "对话上下文: " . json_encode($this->getHistory($conversation->session_id, 3), JSON_UNESCAPED_UNICODE),
-                    'priority' => 'medium',
-                    'source' => 'chat',
-                    'metadata' => [
-                        'session_id' => $conversation->session_id,
-                        'conversation_id' => $conversation->id,
-                        'intent' => $intentResult['intent'] ?? 'unknown',
-                    ],
-                ]);
-                $ticketId = $ticket->id;
-            } catch (\Throwable $t) {
-                Log::error('LiveChat: ticket fallback also failed', ['error' => $t->getMessage()]);
-            }
+            $ticketId = $ticket->id;
+        } catch (\Throwable $t) {
+            Log::error('ChatDialog: ticket escalation failed', ['error' => $t->getMessage()]);
         }
 
-        $answer = "您已要求转接人工客服，我们会尽快为您安排。\n\n";
-        if ($handoffId) {
-            $queuedHandoff = \App\Models\HandoffRequest::find($handoffId);
-            $queuePos = $queuedHandoff?->queue_position ?? '—';
-            $answer .= "🔄 您已在转接队列中，位置 #{$queuePos}。\n";
-            $answer .= "如有客服在线，将很快接入您的对话。\n\n";
-        } elseif ($ticketId) {
-            $answer .= "📋 已自动创建工单 #{$ticketId}，客服将尽快回复您。\n\n";
+        $answer = __('app.api.im.escalate_answer');
+        if ($ticketId) {
+            $answer .= __('app.api.im.escalate_ticket', ['id' => $ticketId]);
         }
 
         $response = [
@@ -446,8 +424,8 @@ class ChatDialogEngineService
                 "工作时间：周一至周五 9:00-18:00\n" .
                 "紧急情况请拨打：400-000-0000",
             'actions' => [
-                ['type' => 'escalate_to_human', 'handoff_id' => $handoffId, 'ticket_id' => $ticketId],
-                ['type' => 'open_chat', 'url' => $handoffId ? "/handoff/{$handoffId}" : null],
+                ['type' => 'escalate_to_human', 'handoff_id' => null, 'ticket_id' => $ticketId],
+                ['type' => 'open_chat', 'url' => '/im?tab=ai-chat'],
             ],
             'sources' => [],
         ];
@@ -464,7 +442,7 @@ class ChatDialogEngineService
             'actions' => $response['actions'],
             'response_time_ms' => round($responseTime, 2),
             'escalated' => true,
-            'handoff_id' => $handoffId,
+            'handoff_id' => null,
             'ticket_id' => $ticketId,
         ];
     }

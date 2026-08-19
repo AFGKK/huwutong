@@ -186,11 +186,79 @@ class ImChatDmComplianceTest extends TestCase
     }
 
     /** @test */
+    public function mutual_follow_requires_both_directions(): void
+    {
+        UserPrivacySetting::defaultFor($this->userB->id)->update(['dm_policy' => 'mutual_follow']);
+
+        $r = $this->postJson('/api/user-chat/conversations', [
+            'participant_ids' => [$this->userB->id],
+        ], $this->headers($this->tokenA));
+        $r->assertStatus(400);
+
+        DB::table('forum_follows')->insert([
+            'user_id' => $this->userA->id,
+            'target_user_id' => $this->userB->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $r = $this->postJson('/api/user-chat/conversations', [
+            'participant_ids' => [$this->userB->id],
+        ], $this->headers($this->tokenA));
+        $r->assertStatus(400);
+
+        DB::table('forum_follows')->insert([
+            'user_id' => $this->userB->id,
+            'target_user_id' => $this->userA->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $r = $this->postJson('/api/user-chat/conversations', [
+            'participant_ids' => [$this->userB->id],
+        ], $this->headers($this->tokenA));
+        $this->assertContains($r->status(), [200, 201]);
+    }
+
+    /** @test */
+    public function dm_policy_accepts_mutual_follow(): void
+    {
+        $r = $this->putJson('/api/user-chat/privacy-settings', [
+            'dm_policy' => 'mutual_follow',
+        ], $this->headers($this->tokenA));
+
+        $r->assertStatus(200)->assertJsonPath('data.dm_policy', 'mutual_follow');
+        $this->assertDatabaseHas('user_privacy_settings', [
+            'user_id' => $this->userA->id,
+            'dm_policy' => 'mutual_follow',
+        ]);
+    }
+
+    /** @test */
     public function seller_inquiry_bypasses_friend_requirement(): void
     {
         $product = Product::factory()->create([
             'user_id' => $this->userB->id,
             'name' => 'Test Product',
+            'is_active' => true,
+        ]);
+
+        $r = $this->postJson('/api/user-chat/seller-inquiry', [
+            'seller_id' => $this->userB->id,
+            'product_id' => $product->id,
+        ], $this->headers($this->tokenA));
+
+        $r->assertStatus(201)->assertJsonPath('success', true);
+    }
+
+    /** @test */
+    public function seller_inquiry_bypasses_closed_dm_policy(): void
+    {
+        UserPrivacySetting::defaultFor($this->userB->id)->update(['dm_policy' => 'closed']);
+
+        $product = Product::factory()->create([
+            'user_id' => $this->userB->id,
+            'name' => 'Closed Policy Product',
             'is_active' => true,
         ]);
 

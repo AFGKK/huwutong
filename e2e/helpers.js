@@ -387,19 +387,6 @@ export function getMockImConversations(userId = 1) {
 }
 
 /**
- * 获取模拟 Live Chat 仪表盘
- */
-export function getMockLiveChatDashboard() {
-    return {
-        active: 3,
-        waiting: 1,
-        closed_today: 5,
-        avg_rating: 4.2,
-        pending_handoffs: 2,
-    };
-}
-
-/**
  * 在页面上设置 API 拦截 mock
  * 拦截所有 /api/ 请求并返回模拟数据
  */
@@ -425,7 +412,6 @@ export async function setupApiMocks(page, options = {}) {
         mockStagingInfo = getMockStagingInfo(),
         mockAuditLogs = getMockAuditLogs(),
         mockImConversations = getMockImConversations(mockUser.id),
-        mockLiveChatDashboard = getMockLiveChatDashboard(),
     } = options;
 
     await page.route('**/api/**', async (route) => {
@@ -818,45 +804,6 @@ export async function setupApiMocks(page, options = {}) {
                 body: JSON.stringify({ success: true, data: null, message: '无来电' }),
             });
         }
-        if (url.includes('/api/live-chat/admin/dashboard')) {
-            return await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ success: true, data: mockLiveChatDashboard, message: 'ok' }),
-            });
-        }
-        if (url.includes('/api/live-chat/admin/pending-handoffs')) {
-            return await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ success: true, data: [], message: 'ok' }),
-            });
-        }
-        if (url.includes('/api/live-chat/admin/conversations')) {
-            return await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({
-                    success: true,
-                    data: { data: [], current_page: 1, per_page: 20, total: 0 },
-                    message: 'ok',
-                }),
-            });
-        }
-
-        if (url.includes('/api/handoffs/queue') || url.includes('/api/handoff/conversations') || url.includes('/api/handoff/queue-stats')) {
-            return await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({
-                    success: true,
-                    data: url.includes('queue-stats')
-                        ? { total_queued: 0, urgent_queued: 0, avg_wait_formatted: '—', online_agents: 1, active: 0, today_count: 0 }
-                        : [],
-                    message: 'ok',
-                }),
-            });
-        }
 
         if (url.includes('/api/chat/') || url.includes('/api/rag/') || url.includes('/api/settings')) {
             return await route.fulfill({
@@ -980,6 +927,209 @@ export async function setupApiMocks(page, options = {}) {
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({ success: true, data: [], message: 'ok' }),
+        });
+    });
+
+    // ── 门户品牌化 ──
+    await page.route('**/api/branding*', async (route) => {
+        return await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                data: {
+                    config: {
+                        brand_name: '互物通 客户门户',
+                        primary_color: '#409eff',
+                        sidebar_bg_color: '#304156',
+                        sidebar_text_color: '#bfcbd9',
+                        logo_url: '',
+                        brand_slogan: '企业级授权管理',
+                        footer_text: '',
+                        links: [],
+                        social_links: [],
+                    },
+                },
+            }),
+        });
+    });
+
+    // ── 门户购物车（shop API） ──
+    await page.route(/\/api\/(skus|products\/.*(?:suggest|hot-search-terms|filter-tags|categories|search-history|reviews\/stats))/, async (route) => {
+        const url = route.request().url();
+        if (url.includes('/suggest')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, data: [] }),
+            });
+        }
+        if (url.includes('/hot-search-terms')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, data: ['License', 'API', 'SDK'] }),
+            });
+        }
+        if (url.includes('/filter-tags') || url.includes('/categories') || url.includes('/search-history')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, data: [] }),
+            });
+        }
+        if (url.includes('/reviews/stats')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, data: { avg_rating: 4.5, total_reviews: 12, distribution: { 5: 8, 4: 3, 3: 1, 2: 0, 1: 0 } } }),
+            });
+        }
+        // SKU 列表
+        return await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                data: {
+                    data: [
+                        {
+                            id: 1, product_id: 1, name: '基础版 - 月付', sku_code: 'BASIC-MONTHLY',
+                            price: 99, compare_at_price: 129, stock: 100, sold_count: 42,
+                            billing_cycle: 'monthly', image_url: '',
+                            product: {
+                                id: 1, name: '基础版', description: '适合个人开发者和小型团队',
+                                image_url: '', category: { name: '授权管理' },
+                            },
+                        },
+                    ],
+                    current_page: 1, per_page: 20, total: 1, last_page: 1,
+                },
+            }),
+        });
+    });
+
+    // ── 购物车 ──
+    await page.route(/\/api\/cart/, async (route) => {
+        const url = route.request().url();
+        if (url.includes('/summary')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    data: { item_count: 1, subtotal: 99, final_amount: 99, coupon_code: null, coupon_discount: 0, price_changed: false },
+                }),
+            });
+        }
+        return await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                data: {
+                    items: [{
+                        sku_id: 1, product_id: 1, product_name: '基础版 - 月付', image_url: '',
+                        unit_price: 99, quantity: 2, subtotal: 198, stock: 100,
+                        billing_cycle: 'monthly', price_changed: false,
+                        sku: { price: 99, billing_cycle: 'monthly', version: '1.0' },
+                    }],
+                },
+            }),
+        });
+    });
+
+    // ── 订单 ──
+    await page.route(/\/api\/orders/, async (route) => {
+        const url = route.request().url();
+        const method = route.request().method();
+        if (method === 'GET') {
+            const match = url.match(/\/orders\/(\d+)(?:\?|$)/);
+            if (match) {
+                return await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({
+                        success: true,
+                        data: {
+                            id: parseInt(match[1]), order_no: 'ORD-001', status: 'paid',
+                            created_at: '2026-07-01T10:30:00Z', total_amount: 198, final_amount: 178.2,
+                            payment_method: 'alipay', paid_at: '2026-07-01T10:31:00Z',
+                            items: [{ id: 1, name: '基础版 - 月付', quantity: 2, unit_price: 99, subtotal: 198 }],
+                            deliveries: [],
+                        },
+                    }),
+                });
+            }
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    success: true,
+                    data: [{ id: 1, order_no: 'ORD-001', status: 'paid', created_at: '2026-07-01T10:30:00Z', final_amount: 178.2, items: [{ id: 1, name: '基础版 - 月付', quantity: 2, unit_price: 99 }] }],
+                    meta: { total: 1, current_page: 1, per_page: 20 },
+                }),
+            });
+        }
+        if (method === 'POST' && url.includes('/cancel')) {
+            return await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, message: '已取消' }),
+            });
+        }
+        return await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, data: { id: 101 }, message: 'ok' }),
+        });
+    });
+
+    // ── 退款 ──
+    await page.route(/\/api\/refunds/, async (route) => {
+        return await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, data: { id: 1 }, message: 'ok' }),
+        });
+    });
+
+    // ── 商品评价 ──
+    await page.route(/\/api\/product-reviews/, async (route) => {
+        return await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, data: { id: 1 }, message: 'ok' }),
+        });
+    });
+
+    // ── 商品分类 ──
+    await page.route(/\/api\/product-categories\//, async (route) => {
+        return await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, data: [] }),
+        });
+    });
+
+    // ── 收藏（Wishlist） ──
+    await page.route(/\/api\/wishlist/, async (route) => {
+        return await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, data: [] }),
+        });
+    });
+
+    // ── 支付 ──
+    await page.route(/\/api\/orders\/\d+\/pay/, async (route) => {
+        return await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                data: { payment_url: 'https://pay.example.com/test', order_id: 101 },
+            }),
         });
     });
 }

@@ -19,7 +19,7 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
-// 客服转接对话频道 — 只有转接请求的创建者可以收听
+// HandoffRequest 对话频道（Live Chat 挂件已退役；HandoffMessageSent 仍广播到此频道）
 Broadcast::channel('handoff.{handoffId}', function ($user, $handoffId) {
     $handoff = HandoffRequest::find($handoffId);
     if (! $handoff) {

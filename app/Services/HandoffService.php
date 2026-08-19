@@ -105,7 +105,7 @@ class HandoffService
         }
 
         if ($handoff->assigned_to && $handoff->assigned_to !== $agent->id) {
-            throw new \RuntimeException('该转接已分配给其他客服');
+            throw new \RuntimeException(__('app.api.handoff.already_assigned'));
         }
 
         DB::transaction(function () use ($handoff, $agent) {
@@ -116,13 +116,13 @@ class HandoffService
             $handoff->actions()->create([
                 'user_id' => $agent->id,
                 'action' => 'accept',
-                'note' => '客服接受转接',
+                'note' => __('app.api.handoff.accept_note'),
             ]);
 
             // 发送系统消息
             $handoff->messages()->create([
                 'user_id' => $agent->id,
-                'content' => "您好！我是客服 {$agent->name}，已接过您的对话，请问有什么可以帮您的？",
+                'content' => __('app.api.handoff.welcome', ['name' => $agent->name]),
                 'sender_type' => 'system',
             ]);
         });
@@ -149,11 +149,11 @@ class HandoffService
         }
 
         if ($handoff->status !== 'in_progress') {
-            throw new \RuntimeException('对话未进行中，无法发送消息');
+            throw new \RuntimeException(__('app.api.handoff.not_active'));
         }
 
         if ($handoff->assigned_to !== $agent->id) {
-            throw new \RuntimeException('您不是当前对话的负责人');
+            throw new \RuntimeException(__('app.api.handoff.not_owner'));
         }
 
         $message = $handoff->messages()->create([
@@ -183,7 +183,7 @@ class HandoffService
         }
 
         if (!in_array($handoff->status, ['assigned', 'in_progress'])) {
-            throw new \RuntimeException('当前没有活跃的客服对话');
+            throw new \RuntimeException(__('app.api.handoff.no_active_conv'));
         }
 
         $message = $handoff->messages()->create([
@@ -222,13 +222,13 @@ class HandoffService
             $handoff->actions()->create([
                 'user_id' => $agent->id,
                 'action' => 'close',
-                'note' => $note ?? '客服关闭对话',
+                'note' => $note ?? __('app.api.handoff.close_note'),
             ]);
 
             // 系统消息
             $handoff->messages()->create([
                 'user_id' => null,
-                'content' => '本次客服对话已结束。如果还有问题，欢迎随时联系我们。',
+                'content' => __('app.api.handoff.closing_msg'),
                 'sender_type' => 'system',
             ]);
         });
@@ -263,7 +263,7 @@ class HandoffService
             $handoff->actions()->create([
                 'user_id' => $fromAgent->id,
                 'action' => 'transfer',
-                'note' => $note ?? "转交给 {$toAgent->name}",
+                'note' => $note ?? __('app.api.handoff.transfer_note', ['name' => $toAgent->name]),
                 'metadata' => [
                     'from_agent_id' => $oldAgent?->id,
                     'from_agent_name' => $oldAgent?->name,
@@ -274,7 +274,7 @@ class HandoffService
 
             $handoff->messages()->create([
                 'user_id' => null,
-                'content' => "对话已转交给客服 {$toAgent->name}，请稍候...",
+                'content' => __('app.api.handoff.transfer_msg', ['name' => $toAgent->name]),
                 'sender_type' => 'system',
             ]);
         });
@@ -338,7 +338,7 @@ class HandoffService
     {
         $allowed = ['online', 'away', 'busy', 'offline'];
         if (!in_array($status, $allowed)) {
-            throw new \InvalidArgumentException("无效状态: {$status}");
+            throw new \InvalidArgumentException(__('app.api.handoff.invalid_status', ['status' => $status]));
         }
 
         $agent->update([
@@ -406,15 +406,15 @@ class HandoffService
     public function rateHandoff(HandoffRequest $handoff, int $rating, ?string $comment = null): HandoffRequest
     {
         if ($rating < 1 || $rating > 5) {
-            throw new \InvalidArgumentException('评分必须在 1-5 之间');
+            throw new \InvalidArgumentException(__('app.api.handoff.rating_range'));
         }
 
         if (!in_array($handoff->status, ['resolved', 'closed'])) {
-            throw new \RuntimeException('只能对已结束的对话进行评价');
+            throw new \RuntimeException(__('app.api.handoff.rating_closed_only'));
         }
 
         if ($handoff->rating !== null) {
-            throw new \RuntimeException('该对话已评价过');
+            throw new \RuntimeException(__('app.api.handoff.already_rated'));
         }
 
         $handoff->update([
@@ -566,13 +566,13 @@ class HandoffService
      */
     protected function formatDuration(int $seconds): string
     {
-        if ($seconds < 60) return "{$seconds}秒";
+        if ($seconds < 60) return __('app.api.handoff.duration_sec', ['n' => $seconds]);
         $minutes = intdiv($seconds, 60);
         $secs = $seconds % 60;
-        if ($minutes < 60) return "{$minutes}分{$secs}秒";
+        if ($minutes < 60) return __('app.api.handoff.duration_min', ['m' => $minutes, 's' => $secs]);
         $hours = intdiv($minutes, 60);
         $mins = $minutes % 60;
-        return "{$hours}小时{$mins}分";
+        return __('app.api.handoff.duration_hour', ['h' => $hours, 'm' => $mins]);
     }
 
     // ═══════════════════════════════════════
@@ -643,10 +643,10 @@ class HandoffService
     public function acceptLiveChatHandoff(HandoffRequest $handoff, User $agent): HandoffRequest
     {
         if ($handoff->assigned_to && $handoff->assigned_to !== $agent->id) {
-            throw new \RuntimeException('该转接已分配给其他客服');
+            throw new \RuntimeException(__('app.api.handoff.already_assigned'));
         }
 
-        $welcome = "您好！我是客服 {$agent->name}，已接过您的对话，请问有什么可以帮您的？";
+        $welcome = __('app.api.handoff.welcome', ['name' => $agent->name]);
 
         DB::transaction(function () use ($handoff, $agent, $welcome) {
             $handoff->assignTo($agent);
@@ -655,7 +655,7 @@ class HandoffService
             $handoff->actions()->create([
                 'user_id' => $agent->id,
                 'action' => 'accept',
-                'note' => '客服接受转接',
+                'note' => __('app.api.handoff.accept_note'),
             ]);
 
             // 更新 LiveChat 会话状态
@@ -664,6 +664,24 @@ class HandoffService
                     'assigned_to' => $agent->id,
                     'status' => 'active',
                 ]);
+            }
+
+            if ($handoff->user_id) {
+                try {
+                    $dmConv = $this->resolveDmConversation($handoff, $agent);
+                    $this->persistDmConversationId($handoff, $dmConv->id);
+                    $this->userChatService->pushSystemMessage(
+                        $dmConv,
+                        __('app.api.handoff.welcome_live', ['name' => $agent->name]),
+                        $agent->id,
+                        ['handoff_id' => $handoff->id, 'type' => 'handoff_accept', 'source' => 'live_chat']
+                    );
+                } catch (\Throwable $e) {
+                    Log::warning('Handoff: live-chat DM bridge failed', [
+                        'handoff_id' => $handoff->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             $handoff->messages()->create([
@@ -686,6 +704,12 @@ class HandoffService
         $handoff = $handoff->fresh();
         event(new HandoffMessageSent($handoff, $welcome, 'system'));
 
+        Log::info('Handoff: live-chat accepted', [
+            'handoff_id' => $handoff->id,
+            'agent_id' => $agent->id,
+            'dm_conversation_id' => $handoff->dmConversationId(),
+        ]);
+
         return $handoff;
     }
 
@@ -694,7 +718,7 @@ class HandoffService
      */
     public function closeLiveChatHandoff(HandoffRequest $handoff, User $agent, ?string $note = null): void
     {
-        $closingMessage = '本次客服对话已结束。如果还有问题，欢迎随时联系我们。';
+        $closingMessage = __('app.api.handoff.closing_msg');
 
         DB::transaction(function () use ($handoff, $agent, $note, $closingMessage) {
             $handoff->resolve();
@@ -703,7 +727,7 @@ class HandoffService
             $handoff->actions()->create([
                 'user_id' => $agent->id,
                 'action' => 'close',
-                'note' => $note ?? '客服关闭对话',
+                'note' => $note ?? __('app.api.handoff.close_note'),
             ]);
 
             // 关闭 LiveChat 会话
@@ -736,11 +760,11 @@ class HandoffService
     protected function sendLiveChatAgentMessage(HandoffRequest $handoff, User $agent, string $content): AgentMessage
     {
         if ($handoff->status !== 'in_progress') {
-            throw new \RuntimeException('对话未进行中，无法发送消息');
+            throw new \RuntimeException(__('app.api.handoff.not_active'));
         }
 
         if ($handoff->assigned_to !== $agent->id) {
-            throw new \RuntimeException('您不是当前对话的负责人');
+            throw new \RuntimeException(__('app.api.handoff.not_owner'));
         }
 
         $message = $handoff->messages()->create([
@@ -758,6 +782,18 @@ class HandoffService
             'sent_at' => now(),
         ]);
 
+        if ($dmId = $handoff->dmConversationId()) {
+            $dmConv = UserConversation::find($dmId);
+            if ($dmConv) {
+                $this->userChatService->pushTextMessage(
+                    $dmConv,
+                    $agent->id,
+                    $content,
+                    ['handoff_id' => $handoff->id, 'source' => 'live_chat']
+                );
+            }
+        }
+
         $handoff->touch();
         event(new HandoffMessageSent($handoff, $content, 'agent'));
 
@@ -767,7 +803,7 @@ class HandoffService
     protected function sendLiveChatCustomerMessage(HandoffRequest $handoff, string $content, ?int $userId = null): AgentMessage
     {
         if (!in_array($handoff->status, ['queued', 'assigned', 'in_progress'])) {
-            throw new \RuntimeException('当前没有活跃的客服对话');
+            throw new \RuntimeException(__('app.api.handoff.no_active_conv'));
         }
 
         $message = $handoff->messages()->create([
@@ -777,7 +813,30 @@ class HandoffService
             'is_read' => false,
         ]);
 
+        if ($handoff->live_chat_conversation_id) {
+            LiveChatMessage::create([
+                'conversation_id' => $handoff->live_chat_conversation_id,
+                'sender_type' => 'user',
+                'sender_id' => $userId,
+                'content' => $content,
+                'sent_at' => now(),
+            ]);
+        }
+
+        if ($dmId = $handoff->dmConversationId()) {
+            $dmConv = UserConversation::find($dmId);
+            if ($dmConv && $userId) {
+                $this->userChatService->pushTextMessage(
+                    $dmConv,
+                    $userId,
+                    $content,
+                    ['handoff_id' => $handoff->id, 'source' => 'live_chat']
+                );
+            }
+        }
+
         $handoff->touch();
+        event(new HandoffMessageSent($handoff, $content, 'customer'));
 
         return $message;
     }
@@ -817,7 +876,7 @@ class HandoffService
                     ->exists();
 
                 if (! $isParticipant) {
-                    throw new \RuntimeException('无权转接此会话');
+                    throw new \RuntimeException(__('app.api.handoff.forbidden_transfer'));
                 }
             }
 
@@ -878,7 +937,7 @@ class HandoffService
     public function acceptUserChatHandoff(HandoffRequest $handoff, User $agent): HandoffRequest
     {
         if ($handoff->assigned_to && $handoff->assigned_to !== $agent->id) {
-            throw new \RuntimeException('该转接已分配给其他客服');
+            throw new \RuntimeException(__('app.api.handoff.already_assigned'));
         }
 
         DB::transaction(function () use ($handoff, $agent) {
@@ -891,12 +950,12 @@ class HandoffService
             $handoff->actions()->create([
                 'user_id' => $agent->id,
                 'action' => 'accept',
-                'note' => '客服接受私信转接',
+                'note' => __('app.api.handoff.accept_dm_note'),
             ]);
 
             $this->userChatService->pushSystemMessage(
                 $dmConv,
-                "您好！我是客服 {$agent->name}，已接过您的对话，请问有什么可以帮您的？",
+                __('app.api.handoff.welcome', ['name' => $agent->name]),
                 $agent->id,
                 ['handoff_id' => $handoff->id, 'type' => 'handoff_accept']
             );
@@ -914,11 +973,11 @@ class HandoffService
     protected function sendUserChatAgentMessage(HandoffRequest $handoff, User $agent, string $content): AgentMessage
     {
         if ($handoff->status !== 'in_progress') {
-            throw new \RuntimeException('对话未进行中，无法发送消息');
+            throw new \RuntimeException(__('app.api.handoff.not_active'));
         }
 
         if ($handoff->assigned_to !== $agent->id) {
-            throw new \RuntimeException('您不是当前对话的负责人');
+            throw new \RuntimeException(__('app.api.handoff.not_owner'));
         }
 
         $dmConv = $this->resolveDmConversation($handoff, $agent);
@@ -941,17 +1000,17 @@ class HandoffService
     protected function sendUserChatCustomerMessage(HandoffRequest $handoff, string $content, ?int $userId = null): AgentMessage
     {
         if (! in_array($handoff->status, ['assigned', 'in_progress'])) {
-            throw new \RuntimeException('当前没有活跃的客服对话');
+            throw new \RuntimeException(__('app.api.handoff.no_active_conv'));
         }
 
         $customerId = $userId ?? $handoff->user_id;
         if (! $customerId) {
-            throw new \RuntimeException('无法识别客户身份');
+            throw new \RuntimeException(__('app.api.handoff.unknown_customer'));
         }
 
         $agent = $handoff->assignee;
         if (! $agent) {
-            throw new \RuntimeException('尚未分配客服');
+            throw new \RuntimeException(__('app.api.handoff.no_agent'));
         }
 
         $dmConv = $this->resolveDmConversation($handoff, $agent);
@@ -980,13 +1039,13 @@ class HandoffService
             $handoff->actions()->create([
                 'user_id' => $agent->id,
                 'action' => 'close',
-                'note' => $note ?? '客服关闭对话',
+                'note' => $note ?? __('app.api.handoff.close_note'),
             ]);
 
             $dmConv = $this->resolveDmConversation($handoff, $agent);
             $this->userChatService->pushSystemMessage(
                 $dmConv,
-                '本次客服对话已结束。如果还有问题，欢迎随时联系我们。',
+                __('app.api.handoff.closing_msg'),
                 $agent->id,
                 ['handoff_id' => $handoff->id, 'type' => 'handoff_close']
             );
@@ -1017,7 +1076,7 @@ class HandoffService
             $handoff->actions()->create([
                 'user_id' => $fromAgent->id,
                 'action' => 'transfer',
-                'note' => $note ?? "转交给 {$toAgent->name}",
+                'note' => $note ?? __('app.api.handoff.transfer_note', ['name' => $toAgent->name]),
                 'metadata' => [
                     'from_agent_id' => $oldAgent?->id,
                     'from_agent_name' => $oldAgent?->name,
@@ -1032,7 +1091,7 @@ class HandoffService
 
             $this->userChatService->pushSystemMessage(
                 $dmConv,
-                "对话已转交给客服 {$toAgent->name}，请稍候...",
+                __('app.api.handoff.transfer_msg', ['name' => $toAgent->name]),
                 $fromAgent->id,
                 ['handoff_id' => $handoff->id, 'type' => 'handoff_transfer']
             );
@@ -1049,7 +1108,7 @@ class HandoffService
     {
         $userId = $handoff->user_id;
         if (! $userId) {
-            throw new \RuntimeException('转接缺少用户信息');
+            throw new \RuntimeException(__('app.api.handoff.missing_user'));
         }
 
         if ($dmId = $handoff->dmConversationId()) {

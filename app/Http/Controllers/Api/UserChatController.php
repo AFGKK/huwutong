@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\UserConversation;
 use App\Models\UserFriend;
 use App\Models\UserReport;
+use App\Models\UserDmMute;
 use App\Models\UserPrivacySetting;
 use App\Models\ConversationPoll;
 use App\Models\ConversationPollVote;
@@ -27,6 +28,8 @@ use App\Models\GroupInvite;
 use App\Models\SensitiveWord;
 use App\Models\CardConversionTracking;
 use App\Models\Product;
+use App\Models\Order;
+use App\Models\Ticket;
 use App\Services\SensitiveWordService;
 use App\Services\LinkPreviewService;
 use App\Services\LlmService;
@@ -78,7 +81,7 @@ class UserChatController extends Controller
             $policy = app(UserChatPolicyService::class);
             $privateEval = $policy->evaluatePrivateMessage($myId, $otherUserId);
             if (! $privateEval['allowed']) {
-                return ApiResponse::error($privateEval['reason'] ?? '无法发起私信');
+                return ApiResponse::error($privateEval['reason'] ?? __('app.api.chat.cannot_dm'));
             }
         }
 
@@ -97,7 +100,7 @@ class UserChatController extends Controller
             ConversationParticipant::create($attrs);
         }
 
-        return ApiResponse::success($this->loadConversation($conv->id), '会话已创建', 201);
+        return ApiResponse::success($this->loadConversation($conv->id), __('app.api.chat.conv_created'), 201);
     }
 
     public function messageRequests(): JsonResponse
@@ -117,17 +120,17 @@ class UserChatController extends Controller
     public function acceptMessageRequest(int $convId): JsonResponse
     {
         if (! app(UserChatPolicyService::class)->acceptMessageRequest($convId, auth()->id())) {
-            return ApiResponse::error('消息请求不存在或已处理', 404);
+            return ApiResponse::error(__('app.api.chat.request_missing'), 404);
         }
 
-        return ApiResponse::success($this->loadConversation($convId), '已接受消息请求');
+        return ApiResponse::success($this->loadConversation($convId), __('app.api.chat.request_accepted'));
     }
 
     public function rejectMessageRequest(int $convId, Request $request): JsonResponse
     {
         $myId = auth()->id();
         if (! ConversationParticipant::where('conversation_id', $convId)->where('user_id', $myId)->where('request_status', 'pending')->exists()) {
-            return ApiResponse::error('消息请求不存在或已处理', 404);
+            return ApiResponse::error(__('app.api.chat.request_missing'), 404);
         }
 
         app(UserChatPolicyService::class)->rejectMessageRequest($convId, $myId);
@@ -139,7 +142,7 @@ class UserChatController extends Controller
             }
         }
 
-        return ApiResponse::success(null, '已拒绝消息请求');
+        return ApiResponse::success(null, __('app.api.chat.request_rejected'));
     }
 
     /**
@@ -165,14 +168,26 @@ class UserChatController extends Controller
         }
         $myId = auth()->id();
         $otherUsers = $conv->participants->filter(fn ($cp) => $cp->user_id !== $myId)->pluck('user');
+        $otherParticipant = $conv->participants->first(fn ($cp) => (int) $cp->user_id !== (int) $myId);
         $isSelfConv = $conv->type === 'private'
             && $conv->participants->count() === 1
             && $conv->participants->first()?->user_id === $myId;
+        $isIncomingRequest = $p->request_status === 'pending';
+        $isOutgoingRequest = $conv->type === 'private'
+            && ! $isIncomingRequest
+            && $otherParticipant?->request_status === 'pending';
+        $strangerLimit = null;
+        if ($isIncomingRequest || $isOutgoingRequest) {
+            $senderId = $isOutgoingRequest ? (int) $myId : (int) ($otherParticipant?->user_id ?? 0);
+            if ($senderId > 0) {
+                $strangerLimit = app(UserChatPolicyService::class)->strangerLimitInfo($senderId, (int) $conv->id);
+            }
+        }
 
         return [
             'id' => $conv->id,
             'type' => $conv->type,
-            'name' => $isSelfConv ? '📁 文件传输助手' : ($conv->type === 'private' ? ($otherUsers->first()?->name ?? '用户') : ($conv->type === 'ai' ? ($conv->name ?: 'AI 助手') : $conv->name)),
+            'name' => $isSelfConv ? __('app.api.chat.file_helper_emoji') : ($conv->type === 'private' ? ($otherUsers->first()?->name ?? __('app.api.chat.user')) : ($conv->type === 'ai' ? ($conv->name ?: __('app.api.chat.ai_assistant')) : $conv->name)),
             'avatar' => $conv->type === 'private' ? ($otherUsers->first()?->avatar_url ?? '') : '',
             'is_self' => $isSelfConv,
             'is_ai_assistant' => $conv->type === 'ai',
@@ -187,7 +202,9 @@ class UserChatController extends Controller
             'is_archived' => ! is_null($p->archived_at),
             'is_hidden' => $p->is_hidden,
             'request_status' => $p->request_status,
-            'is_message_request' => $p->request_status === 'pending',
+            'is_message_request' => $isIncomingRequest,
+            'is_outgoing_request' => $isOutgoingRequest,
+            'stranger_limit' => $strangerLimit,
             'my_role' => $p->role,
             'permissions' => $conv->getEffectivePermissions(),
             'can_send_file' => $conv->type !== 'group' || $conv->userCan('send_file', $myId),
@@ -206,10 +223,19 @@ class UserChatController extends Controller
     {
         $textMax = (int) config('dm.text_max_length', 2000);
         $imageMax = (int) config('dm.image_max_count', 9);
+        $stickerMax = (int) config('dm.sticker_max_count', 1);
 
         if (($validated['message_type'] ?? 'text') === 'text' && ! empty($validated['content'])) {
             if (mb_strlen($validated['content']) > $textMax) {
-                return ApiResponse::error("消息内容不能超过 {$textMax} 字");
+                return ApiResponse::error(__('app.api.chat.text_too_long', ['max' => $textMax]));
+            }
+        }
+
+        // Sticker count limit: each sticker message can contain at most N stickers
+        if (($validated['message_type'] ?? '') === 'sticker') {
+            $stickerCount = !empty($validated['metadata']['sticker_id']) ? 1 : 0;
+            if ($stickerCount > $stickerMax) {
+                return ApiResponse::error(__('app.api.sticker.too_many_stickers', ['max' => $stickerMax]));
             }
         }
 
@@ -225,7 +251,7 @@ class UserChatController extends Controller
         }
 
         if ($imageCount > $imageMax) {
-            return ApiResponse::error("单次最多发送 {$imageMax} 张图片");
+            return ApiResponse::error(__('app.api.chat.images_max', ['max' => $imageMax]));
         }
 
         return null;
@@ -252,7 +278,7 @@ class UserChatController extends Controller
         $conv = UserConversation::create(['type' => 'private', 'created_by' => $myId]);
         ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $myId]);
 
-        return ApiResponse::success($this->loadConversation($conv->id), '文件传输助手已创建', 201);
+        return ApiResponse::success($this->loadConversation($conv->id), __('app.api.chat.file_helper_created'), 201);
     }
 
     public function sendMessage(int $convId, Request $request): JsonResponse
@@ -266,16 +292,16 @@ class UserChatController extends Controller
         $isParticipant = ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', $myId)->whereNull('deleted_at')->exists();
         if (! $isParticipant) {
-            return ApiResponse::error('你不是该会话的参与者');
+            return ApiResponse::error(__('app.api.chat.not_participant'));
         }
 
         if ($conv->type === 'group') {
             $messageType = $request->input('message_type', 'text');
             if (in_array($messageType, ['file', 'image', 'voice']) && ! $conv->userCan('send_file', $myId)) {
-                return ApiResponse::error('你没有权限在此群发送文件');
+                return ApiResponse::error(__('app.api.chat.no_file_perm'));
             }
             if ($messageType === 'card' && ! $conv->userCan('send_card', $myId)) {
-                return ApiResponse::error('你没有权限在此群发送卡片');
+                return ApiResponse::error(__('app.api.chat.no_card_perm'));
             }
         }
 
@@ -289,7 +315,7 @@ class UserChatController extends Controller
                 $productId = $request->integer('product_id') ?: null;
                 $privateEval = $policy->evaluatePrivateMessage($myId, $otherParticipant->user_id, $productId);
                 if (! $privateEval['allowed']) {
-                    return ApiResponse::error($privateEval['reason'] ?? '无法发送私信');
+                    return ApiResponse::error($privateEval['reason'] ?? __('app.api.chat.cannot_send_dm'));
                 }
 
                 $myParticipant = ConversationParticipant::where('conversation_id', $convId)
@@ -300,7 +326,7 @@ class UserChatController extends Controller
                     $policy->acceptMessageRequest($convId, $myId);
                 }
                 if ($otherParticipant->request_status === 'rejected' && empty($privateEval['seller_inquiry'])) {
-                    return ApiResponse::error('对方已拒绝你的消息请求');
+                    return ApiResponse::error(__('app.api.chat.dm_rejected'));
                 }
             }
         }
@@ -311,13 +337,13 @@ class UserChatController extends Controller
                 ->where('user_id', $myId)->first();
             if ($participant && $participant->slow_mode_until && $participant->slow_mode_until->isFuture()) {
                 $waitSeconds = now()->diffInSeconds($participant->slow_mode_until);
-                return ApiResponse::error("慢速模式中，请 {$waitSeconds} 秒后再发");
+                return ApiResponse::error(__('app.api.chat.slow_mode', ['n' => $waitSeconds]));
             }
         }
 
         $validated = $request->validate([
             'content' => 'required_if:message_type,text|string|max:' . config('dm.text_max_length', 2000),
-            'message_type' => 'nullable|string|in:text,image,file,voice,contact,location',
+            'message_type' => 'nullable|string|in:text,image,file,voice,contact,location,sticker',
             'attachments' => 'nullable|array',
             'reply_to_id' => 'nullable|exists:conversation_messages,id',
             'client_msg_id' => 'nullable|string|max:64',
@@ -347,7 +373,7 @@ class UserChatController extends Controller
             $existing = ConversationMessage::where('conversation_id', $convId)
                 ->where('client_msg_id', $validated['client_msg_id'])->first();
             if ($existing) {
-                return ApiResponse::success($existing->load('sender:id,name,avatar'), '消息已存在（幂等）');
+                return ApiResponse::success($existing->load('sender:id,name,avatar'), __('app.api.chat.msg_exists'));
             }
         }
 
@@ -490,7 +516,7 @@ class UserChatController extends Controller
             $policy->applyHarassmentCheck($myId, $otherParticipant->user_id, $convId);
         }
 
-        return ApiResponse::success($msg->load('sender:id,name,avatar'), '消息已发送', 201);
+        return ApiResponse::success($msg->load('sender:id,name,avatar'), __('app.api.chat.msg_sent'), 201);
     }
 
     /**
@@ -549,14 +575,14 @@ class UserChatController extends Controller
             ->orderBy('id')
             ->get();
 
-        $title = e($conv->name ?: "会话 #{$convId}");
+        $title = e($conv->name ?: __('app.api.chat.export_conv', ['id' => $convId]));
         $html = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>{$title}</title>";
         $html .= "<style>body{font-family:sans-serif;max-width:800px;margin:auto;padding:20px}.msg{margin:12px 0;padding:10px;border-radius:8px}.self{background:#e8f8e8;text-align:right}.other{background:#f5f7fa}.system{background:#fafafa;color:#999;text-align:center;font-size:12px}.meta{font-size:11px;color:#999;margin-bottom:4px}</style></head><body>";
-        $html .= "<h2>{$title}</h2><p>导出时间: " . now()->toDateTimeString() . " | 消息数: {$messages->count()}</p><hr>";
+        $html .= "<h2>{$title}</h2><p>" . e(__('app.api.chat.export_meta', ['time' => now()->toDateTimeString(), 'count' => $messages->count()])) . "</p><hr>";
 
         foreach ($messages as $msg) {
             $role = $msg->sender_id === $myId ? 'self' : ($msg->message_type === 'system' ? 'system' : 'other');
-            $sender = e($msg->sender?->name ?? '系统');
+            $sender = e($msg->sender?->name ?? __('app.api.chat.system'));
             $content = nl2br(e($msg->content ?? ''));
             $html .= "<div class='msg {$role}'>";
             $html .= "<div class='meta'>{$sender} · {$msg->created_at}</div>";
@@ -594,7 +620,7 @@ class UserChatController extends Controller
         broadcast(new ChatTyping(
             $convId,
             $myId,
-            $user?->name ?? '用户',
+            $user?->name ?? __('app.api.chat.user'),
             true,
             $participantIds,
         ));
@@ -621,7 +647,7 @@ class UserChatController extends Controller
                 ->update(['deliver_status' => 'read', 'read_at' => now()]);
         }
 
-        return ApiResponse::success(null, '已标记已读');
+        return ApiResponse::success(null, __('app.api.chat.marked_read'));
     }
 
     /**
@@ -646,7 +672,7 @@ class UserChatController extends Controller
             'last_read_at' => null,
         ]);
 
-        return ApiResponse::success(['unread_count' => $participant->unread_count], '已标记未读');
+        return ApiResponse::success(['unread_count' => $participant->unread_count], __('app.api.chat.marked_unread'));
     }
 
     /**
@@ -698,7 +724,7 @@ class UserChatController extends Controller
         ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', auth()->id())
             ->update(['deleted_at' => now()]);
-        return ApiResponse::success(null, '会话已删除');
+        return ApiResponse::success(null, __('app.api.chat.conv_deleted'));
     }
 
     // ── 会话归档 ──
@@ -711,7 +737,7 @@ class UserChatController extends Controller
         ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', auth()->id())
             ->update(['archived_at' => now()]);
-        return ApiResponse::success(null, '会话已归档');
+        return ApiResponse::success(null, __('app.api.chat.conv_archived'));
     }
 
     /**
@@ -722,7 +748,7 @@ class UserChatController extends Controller
         ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', auth()->id())
             ->update(['archived_at' => null]);
-        return ApiResponse::success(null, '已取消归档');
+        return ApiResponse::success(null, __('app.api.chat.conv_unarchived'));
     }
 
     /**
@@ -753,7 +779,7 @@ class UserChatController extends Controller
 
         $count = $query->update(['archived_at' => now()]);
 
-        return ApiResponse::success(['archived_count' => $count], "已归档 {$count} 个会话");
+        return ApiResponse::success(['archived_count' => $count], __('app.api.chat.archived_n', ['count' => $count]));
     }
 
     /**
@@ -783,7 +809,7 @@ class UserChatController extends Controller
         ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', auth()->id())
             ->update(['is_hidden' => true, 'hidden_at' => now()]);
-        return ApiResponse::success(null, '会话已隐藏');
+        return ApiResponse::success(null, __('app.api.chat.conv_hidden'));
     }
 
     /**
@@ -794,14 +820,18 @@ class UserChatController extends Controller
         ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', auth()->id())
             ->update(['is_hidden' => false, 'hidden_at' => null]);
-        return ApiResponse::success(null, '已取消隐藏');
+        return ApiResponse::success(null, __('app.api.chat.conv_unhidden'));
     }
 
     /**
-     * 获取隐藏会话列表（需 PIN 验证）
+     * 获取隐藏会话列表（已设置 PIN 时需先验证）
      */
     public function hiddenConversations(): JsonResponse
     {
+        if ($pinError = $this->ensurePrivacyPinVerified()) {
+            return $pinError;
+        }
+
         $convIds = ConversationParticipant::where('user_id', auth()->id())
             ->where('is_hidden', true)
             ->whereNull('deleted_at')
@@ -830,7 +860,7 @@ class UserChatController extends Controller
         $existing = \App\Models\UserPrivacySetting::where('user_id', $myId)->first();
         if ($existing && $existing->privacy_pin) {
             if (empty($validated['current_pin']) || !password_verify($validated['current_pin'], $existing->privacy_pin)) {
-                return ApiResponse::error('PIN_MISMATCH', '当前 PIN 不正确', 422);
+                return ApiResponse::error('PIN_MISMATCH', __('app.api.chat.pin_mismatch'), 422);
             }
         }
 
@@ -839,7 +869,7 @@ class UserChatController extends Controller
             ['privacy_pin' => bcrypt($validated['pin'])]
         );
 
-        return ApiResponse::success(null, '私密空间 PIN 已设置');
+        return ApiResponse::success(null, __('app.api.chat.pin_set'));
     }
 
     /**
@@ -854,11 +884,11 @@ class UserChatController extends Controller
         $setting = \App\Models\UserPrivacySetting::where('user_id', auth()->id())->first();
 
         if (!$setting || !$setting->privacy_pin) {
-            return ApiResponse::error('PIN_NOT_SET', '未设置 PIN', 400);
+            return ApiResponse::error('PIN_NOT_SET', __('app.api.chat.pin_not_set'), 400);
         }
 
         if (!password_verify($validated['pin'], $setting->privacy_pin)) {
-            return ApiResponse::error('PIN_INCORRECT', 'PIN 不正确', 422);
+            return ApiResponse::error('PIN_INCORRECT', __('app.api.chat.pin_incorrect'), 422);
         }
 
         // 保存验证状态到 session（有效期为当前请求）
@@ -867,7 +897,7 @@ class UserChatController extends Controller
         return ApiResponse::success([
             'verified' => true,
             'expires_in' => 3600,
-        ], '验证成功');
+        ], __('app.api.chat.verify_ok'));
     }
 
     /**
@@ -882,6 +912,50 @@ class UserChatController extends Controller
         ]);
     }
 
+    /**
+     * 清除私密空间 PIN
+     */
+    public function removePrivacyPin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'current_pin' => 'required|string|max:20',
+        ]);
+
+        $myId = auth()->id();
+        $setting = \App\Models\UserPrivacySetting::where('user_id', $myId)->first();
+
+        if (!$setting || !$setting->privacy_pin) {
+            return ApiResponse::error('PIN_NOT_SET', __('app.api.chat.pin_not_set'), 400);
+        }
+
+        if (!password_verify($validated['current_pin'], $setting->privacy_pin)) {
+            return ApiResponse::error('PIN_MISMATCH', __('app.api.chat.pin_mismatch'), 422);
+        }
+
+        $setting->update(['privacy_pin' => null]);
+        session()->forget('privacy_pin_verified_' . $myId);
+
+        return ApiResponse::success([
+            'has_pin' => false,
+            'verified' => true,
+        ], __('app.api.chat.pin_cleared'));
+    }
+
+    /**
+     * 已设置 PIN 时要求先完成验证
+     */
+    private function ensurePrivacyPinVerified(): ?JsonResponse
+    {
+        $setting = \App\Models\UserPrivacySetting::where('user_id', auth()->id())->first();
+
+        if ($setting && !empty($setting->privacy_pin)
+            && !session('privacy_pin_verified_' . auth()->id(), false)) {
+            return ApiResponse::error('PIN_REQUIRED', __('app.api.chat.pin_required'), 403);
+        }
+
+        return null;
+    }
+
     // ── 好友系统 ──
 
     /**
@@ -894,7 +968,7 @@ class UserChatController extends Controller
         $targetId = (int) $request->input('user_id');
 
         if ($myId === $targetId) {
-            return ApiResponse::error('SELF_ADD', '不能添加自己为好友');
+            return ApiResponse::error('SELF_ADD', __('app.api.chat.self_add'));
         }
 
         // 检查是否已经是好友
@@ -904,16 +978,16 @@ class UserChatController extends Controller
         })->first();
 
         if ($existing) {
-            if ($existing->status === 'accepted') return ApiResponse::error('ALREADY_FRIENDS', '已经是好友了');
-            if ($existing->status === 'pending') return ApiResponse::error('ALREADY_SENT', '已发送过申请，请等待回复');
-            if ($existing->status === 'blocked') return ApiResponse::error('BLOCKED', '无法发送好友申请');
+            if ($existing->status === 'accepted') return ApiResponse::error('ALREADY_FRIENDS', __('app.api.chat.already_friends'));
+            if ($existing->status === 'pending') return ApiResponse::error('ALREADY_SENT', __('app.api.chat.already_sent'));
+            if ($existing->status === 'blocked') return ApiResponse::error('BLOCKED', __('app.api.chat.blocked_friend'));
             // rejected → 重新发送
             $existing->update(['status' => 'pending']);
-            return ApiResponse::success(null, '好友申请已重新发送');
+            return ApiResponse::success(null, __('app.api.chat.friend_resent'));
         }
 
         UserFriend::create(['requester_id' => $myId, 'addressee_id' => $targetId, 'status' => 'pending']);
-        return ApiResponse::success(null, '好友申请已发送', 201);
+        return ApiResponse::success(null, __('app.api.chat.friend_sent'), 201);
     }
 
     /**
@@ -923,12 +997,12 @@ class UserChatController extends Controller
     {
         $action = $request->input('status', $request->input('action', ''));
         if (!in_array($action, ['accept', 'reject', 'accepted', 'rejected'])) {
-            return ApiResponse::error('INVALID_ACTION', '无效的操作');
+            return ApiResponse::error('INVALID_ACTION', __('app.api.chat.invalid_action'));
         }
         $newStatus = in_array($action, ['accept', 'accepted']) ? 'accepted' : 'rejected';
         $friend = UserFriend::where('id', $friendId)->where('addressee_id', auth()->id())->firstOrFail();
         $friend->update(['status' => $newStatus]);
-        return ApiResponse::success(null, $newStatus === 'accepted' ? '已同意好友申请' : '已拒绝好友申请');
+        return ApiResponse::success(null, $newStatus === 'accepted' ? __('app.api.chat.friend_accepted') : __('app.api.chat.friend_rejected'));
     }
 
     /**
@@ -941,7 +1015,7 @@ class UserChatController extends Controller
                 $q->where('requester_id', auth()->id())->orWhere('addressee_id', auth()->id());
             })->firstOrFail();
         $friend->delete();
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.chat.deleted'));
     }
 
     /**
@@ -989,7 +1063,7 @@ class UserChatController extends Controller
         UserFriend::where('id', $friendId)
             ->where(function ($q) { $q->where('requester_id', auth()->id())->orWhere('addressee_id', auth()->id()); })
             ->firstOrFail()->update(['remark' => $validated['remark']]);
-        return ApiResponse::success(null, '备注已更新');
+        return ApiResponse::success(null, __('app.api.chat.remark_updated'));
     }
 
     // ── 在线状态 ──
@@ -1032,7 +1106,7 @@ class UserChatController extends Controller
     {
         $validated = $request->validate(['name' => 'required|string|max:50']);
         $group = FriendGroup::create(['user_id' => auth()->id(), 'name' => $validated['name']]);
-        return ApiResponse::success($group, '分组已创建', 201);
+        return ApiResponse::success($group, __('app.api.chat.group_created'), 201);
     }
 
     public function myGroups(): JsonResponse
@@ -1044,7 +1118,7 @@ class UserChatController extends Controller
     {
         $group = FriendGroup::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
         $group->update($request->validate(['name' => 'sometimes|string|max:50', 'sort_order' => 'nullable|integer|min:0']));
-        return ApiResponse::success($group->fresh(), '已更新');
+        return ApiResponse::success($group->fresh(), __('app.api.chat.updated'));
     }
 
     public function deleteGroup(int $id): JsonResponse
@@ -1055,7 +1129,7 @@ class UserChatController extends Controller
             ->where(function ($q) { $q->where('requester_id', auth()->id())->orWhere('addressee_id', auth()->id()); })
             ->where('friend_group', $id)
             ->update(['friend_group' => null]);
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.chat.deleted'));
     }
 
     public function setFriendGroup(int $friendId, Request $request): JsonResponse
@@ -1064,7 +1138,7 @@ class UserChatController extends Controller
         UserFriend::where('id', $friendId)
             ->where(function ($q) { $q->where('requester_id', auth()->id())->orWhere('addressee_id', auth()->id()); })
             ->firstOrFail()->update(['friend_group' => $validated['group_id']]);
-        return ApiResponse::success(null, '分组已设置');
+        return ApiResponse::success(null, __('app.api.chat.group_set'));
     }
 
     // ── 增强好友列表（含在线状态+分组） ──
@@ -1140,7 +1214,7 @@ class UserChatController extends Controller
         if ($existing) {
             // 已存在则取消（切换效果）
             $existing->delete();
-            return ApiResponse::success(['action' => 'removed', 'reaction' => $validated['reaction']], '已取消反应');
+            return ApiResponse::success(['action' => 'removed', 'reaction' => $validated['reaction']], __('app.api.chat.reaction_removed'));
         }
 
         MessageReaction::create([
@@ -1149,7 +1223,7 @@ class UserChatController extends Controller
             'reaction' => $validated['reaction'],
         ]);
 
-        return ApiResponse::success(['action' => 'added', 'reaction' => $validated['reaction']], '已添加反应', 201);
+        return ApiResponse::success(['action' => 'added', 'reaction' => $validated['reaction']], __('app.api.chat.reaction_added'), 201);
     }
 
     // ── 消息撤回 ──
@@ -1166,16 +1240,16 @@ class UserChatController extends Controller
 
         // 普通用户只能撤回自己的消息
         if (!$isAdmin && $msg->sender_id !== $myId) {
-            return ApiResponse::error('无权撤回他人的消息');
+            return ApiResponse::error(__('app.api.chat.cannot_recall_others'));
         }
 
         // 普通用户有 2 分钟时间限制，管理员无限制
         if (!$isAdmin && $msg->created_at->diffInMinutes(now()) > 2) {
-            return ApiResponse::error('超过2分钟无法撤回');
+            return ApiResponse::error(__('app.api.chat.recall_timeout'));
         }
 
         if ($msg->is_recalled) {
-            return ApiResponse::error('消息已被撤回');
+            return ApiResponse::error(__('app.api.chat.already_recalled'));
         }
 
         $msg->update(['is_recalled' => true, 'content' => null]);
@@ -1188,7 +1262,7 @@ class UserChatController extends Controller
             $participants->toArray()
         ));
 
-        return ApiResponse::success(null, '消息已撤回');
+        return ApiResponse::success(null, __('app.api.chat.recalled'));
     }
 
     // ── 删除消息 ──
@@ -1200,12 +1274,12 @@ class UserChatController extends Controller
             ->firstOrFail();
 
         if ($msg->deleted_at) {
-            return ApiResponse::error('消息已被删除');
+            return ApiResponse::error(__('app.api.chat.msg_deleted_already'));
         }
 
         $msg->update(['deleted_at' => now(), 'deleted_by' => auth()->id()]);
 
-        return ApiResponse::success(null, '消息已删除');
+        return ApiResponse::success(null, __('app.api.chat.msg_deleted'));
     }
 
     // ── 黑名单 ──
@@ -1213,13 +1287,13 @@ class UserChatController extends Controller
     public function blockUser(int $userId): JsonResponse
     {
         if ($userId === auth()->id()) {
-            return ApiResponse::error('不能拉黑自己');
+            return ApiResponse::error(__('app.api.chat.cannot_block_self'));
         }
 
         User::findOrFail($userId);
         $this->blockUserInternal(auth()->id(), $userId);
 
-        return ApiResponse::success(null, '已拉黑用户');
+        return ApiResponse::success(null, __('app.api.chat.blocked'));
     }
 
     protected function blockUserInternal(int $blockerId, int $blockedUserId): void
@@ -1243,7 +1317,7 @@ class UserChatController extends Controller
             ->where('status', 'blocked')
             ->delete();
 
-        return ApiResponse::success(null, '已取消拉黑');
+        return ApiResponse::success(null, __('app.api.chat.unblocked'));
     }
 
     public function blockedList(): JsonResponse
@@ -1268,7 +1342,7 @@ class UserChatController extends Controller
         $validated = $request->validate(['content' => 'required|string|max:' . config('dm.text_max_length', 2000)]);
         $msg->update(['content' => $validated['content'], 'is_edited' => true]);
 
-        return ApiResponse::success($msg->fresh(), '消息已编辑');
+        return ApiResponse::success($msg->fresh(), __('app.api.chat.msg_edited'));
     }
 
     // ── 收藏消息 ──
@@ -1283,11 +1357,11 @@ class UserChatController extends Controller
 
         if ($existing) {
             $existing->delete();
-            return ApiResponse::success(['favorited' => false], '已取消收藏');
+            return ApiResponse::success(['favorited' => false], __('app.api.chat.unfavorited'));
         }
 
         MessageFavorite::create(['user_id' => $myId, 'message_id' => $messageId]);
-        return ApiResponse::success(['favorited' => true], '已收藏', 201);
+        return ApiResponse::success(['favorited' => true], __('app.api.chat.favorited'), 201);
     }
 
     public function myFavorites(): JsonResponse
@@ -1320,11 +1394,11 @@ class UserChatController extends Controller
 
         if ($existing) {
             $existing->delete();
-            return ApiResponse::success(['pending' => false], '已取消待处理');
+            return ApiResponse::success(['pending' => false], __('app.api.chat.pending_cleared'));
         }
 
         MessagePending::create(['user_id' => $myId, 'message_id' => $messageId]);
-        return ApiResponse::success(['pending' => true], '已标记待处理', 201);
+        return ApiResponse::success(['pending' => true], __('app.api.chat.pending_set'), 201);
     }
 
     // ── 消息置顶 ──
@@ -1337,11 +1411,11 @@ class UserChatController extends Controller
         $isParticipant = ConversationParticipant::where('conversation_id', $msg->conversation_id)
             ->where('user_id', $myId)->exists();
         if (!$isParticipant) {
-            return ApiResponse::error('您不是该会话成员');
+            return ApiResponse::error(__('app.api.chat.not_member'));
         }
 
         if ($msg->is_pinned) {
-            return ApiResponse::error('该消息已置顶');
+            return ApiResponse::error(__('app.api.chat.already_pinned'));
         }
 
         $msg->update([
@@ -1356,10 +1430,10 @@ class UserChatController extends Controller
             'conversation_id' => $msg->conversation_id,
             'sender_id' => $myId,
             'message_type' => 'system',
-            'content' => "📌 {$user->name} 置顶了一条消息",
+            'content' => __('app.api.chat.sys_pinned', ['name' => $user->name]),
         ]);
 
-        return ApiResponse::success($msg, '消息已置顶');
+        return ApiResponse::success($msg, __('app.api.chat.pinned'));
     }
 
     public function unpinMessage(int $messageId): JsonResponse
@@ -1370,11 +1444,11 @@ class UserChatController extends Controller
         $isParticipant = ConversationParticipant::where('conversation_id', $msg->conversation_id)
             ->where('user_id', $myId)->exists();
         if (!$isParticipant) {
-            return ApiResponse::error('您不是该会话成员');
+            return ApiResponse::error(__('app.api.chat.not_member'));
         }
 
         if (!$msg->is_pinned) {
-            return ApiResponse::error('该消息未置顶');
+            return ApiResponse::error(__('app.api.chat.not_pinned'));
         }
 
         $msg->update(['is_pinned' => false, 'pinned_at' => null, 'pinned_by' => null]);
@@ -1384,10 +1458,10 @@ class UserChatController extends Controller
             'conversation_id' => $msg->conversation_id,
             'sender_id' => $myId,
             'message_type' => 'system',
-            'content' => "📌 {$user->name} 取消了消息置顶",
+            'content' => __('app.api.chat.sys_unpinned', ['name' => $user->name]),
         ]);
 
-        return ApiResponse::success($msg, '已取消置顶');
+        return ApiResponse::success($msg, __('app.api.chat.unpinned'));
     }
 
     public function pinnedMessages(int $convId): JsonResponse
@@ -1448,7 +1522,7 @@ class UserChatController extends Controller
     public function muteMember(int $convId, int $userId, Request $request): JsonResponse
     {
         $conv = UserConversation::findOrFail($convId);
-        if ($conv->type !== 'group') return ApiResponse::error('仅群聊支持');
+        if ($conv->type !== 'group') return ApiResponse::error(__('app.api.chat.group_only'));
 
         $myId = auth()->id();
         $myParticipant = ConversationParticipant::where('conversation_id', $convId)
@@ -1460,7 +1534,7 @@ class UserChatController extends Controller
             ->where('user_id', $userId)->firstOrFail();
         $target->update(['is_muted_until' => now()->addMinutes($minutes)]);
 
-        return ApiResponse::success(null, "已禁言 {$minutes} 分钟");
+        return ApiResponse::success(null, __('app.api.chat.muted_n', ['minutes' => $minutes]));
     }
 
     public function unmuteMember(int $convId, int $userId): JsonResponse
@@ -1469,7 +1543,7 @@ class UserChatController extends Controller
             ->where('user_id', $userId)
             ->update(['is_muted_until' => null]);
 
-        return ApiResponse::success(null, '已解除禁言');
+        return ApiResponse::success(null, __('app.api.chat.unmuted'));
     }
 
     /**
@@ -1483,7 +1557,7 @@ class UserChatController extends Controller
         $preview = $service->getPreview($request->input('url'));
 
         if (!$preview) {
-            return ApiResponse::success(['url' => $request->input('url'), 'title' => $request->input('url')], '无法获取预览');
+            return ApiResponse::success(['url' => $request->input('url'), 'title' => $request->input('url')], __('app.api.chat.preview_fail'));
         }
 
         return ApiResponse::success($preview);
@@ -1498,14 +1572,14 @@ class UserChatController extends Controller
     {
         $conv = UserConversation::findOrFail($convId);
         if ($conv->type !== 'group') {
-            return ApiResponse::error('仅群聊支持慢速模式');
+            return ApiResponse::error(__('app.api.chat.slow_group_only'));
         }
 
         // 验证是群成员
         $isMember = ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', auth()->id())->exists();
         if (!$isMember) {
-            return ApiResponse::error('您不是该群成员', 403);
+            return ApiResponse::error(__('app.api.chat.not_group_member'), 403);
         }
 
         $validated = $request->validate([
@@ -1522,7 +1596,7 @@ class UserChatController extends Controller
 
         return ApiResponse::success([
             'slow_mode_interval' => $conv->fresh()->slow_mode_interval,
-        ], $validated['interval'] > 0 ? '慢速模式已开启' : '慢速模式已关闭');
+        ], $validated['interval'] > 0 ? __('app.api.chat.slow_on') : __('app.api.chat.slow_off'));
     }
 
     /**
@@ -1534,7 +1608,7 @@ class UserChatController extends Controller
         $isMember = ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', auth()->id())->exists();
         if (!$isMember) {
-            return ApiResponse::error('您不是该群成员', 403);
+            return ApiResponse::error(__('app.api.chat.not_group_member'), 403);
         }
 
         return ApiResponse::success([
@@ -1558,14 +1632,14 @@ class UserChatController extends Controller
 
         $conv = UserConversation::findOrFail($validated['conversation_id']);
         if ($conv->type !== 'group') {
-            return ApiResponse::error('仅群聊可发布公告');
+            return ApiResponse::error(__('app.api.chat.announce_group_only'));
         }
 
         // 验证用户是群成员
         $isMember = ConversationParticipant::where('conversation_id', $conv->id)
             ->where('user_id', auth()->id())->exists();
         if (!$isMember) {
-            return ApiResponse::error('您不是该群成员', 403);
+            return ApiResponse::error(__('app.api.chat.not_group_member'), 403);
         }
 
         $announcement = Announcement::create([
@@ -1587,13 +1661,13 @@ class UserChatController extends Controller
             'conversation_id' => $conv->id,
             'sender_id' => auth()->id(),
             'message_type' => 'system',
-            'content' => "📢 发布公告：{$validated['title']}",
+            'content' => __('app.api.chat.sys_announce', ['title' => $validated['title']]),
         ]);
         broadcast(new ChatMessageSent($msg))->toOthers();
 
         $conv->update(['last_message_id' => $msg->id, 'last_message_at' => now()]);
 
-        return ApiResponse::success($announcement->load('sender:id,name'), '公告已发布', 201);
+        return ApiResponse::success($announcement->load('sender:id,name'), __('app.api.chat.announce_published'), 201);
     }
 
     /**
@@ -1605,7 +1679,7 @@ class UserChatController extends Controller
         $isMember = ConversationParticipant::where('conversation_id', $conv->id)
             ->where('user_id', auth()->id())->exists();
         if (!$isMember) {
-            return ApiResponse::error('您不是该群成员', 403);
+            return ApiResponse::error(__('app.api.chat.not_group_member'), 403);
         }
 
         $announcements = Announcement::where('conversation_id', $convId)
@@ -1633,11 +1707,11 @@ class UserChatController extends Controller
         $isMember = ConversationParticipant::where('conversation_id', $announcement->conversation_id)
             ->where('user_id', auth()->id())->exists();
         if (!$isMember) {
-            return ApiResponse::error('您不是该群成员', 403);
+            return ApiResponse::error(__('app.api.chat.not_group_member'), 403);
         }
 
         $totalMembers = ConversationParticipant::where('conversation_id', $announcement->conversation_id)->count();
-        $readUsers = $announcement->reads->map(fn($r) => ['id' => $r->user_id, 'name' => $r->user->name ?? '用户', 'read_at' => $r->read_at]);
+        $readUsers = $announcement->reads->map(fn($r) => ['id' => $r->user_id, 'name' => $r->user->name ?? __('app.api.chat.user'), 'read_at' => $r->read_at]);
 
         return ApiResponse::success([
             'id' => $announcement->id,
@@ -1662,7 +1736,7 @@ class UserChatController extends Controller
         $isMember = ConversationParticipant::where('conversation_id', $announcement->conversation_id)
             ->where('user_id', auth()->id())->exists();
         if (!$isMember) {
-            return ApiResponse::error('您不是该群成员', 403);
+            return ApiResponse::error(__('app.api.chat.not_group_member'), 403);
         }
 
         AnnouncementRead::firstOrCreate([
@@ -1670,7 +1744,7 @@ class UserChatController extends Controller
             'user_id' => auth()->id(),
         ], ['read_at' => now()]);
 
-        return ApiResponse::success(null, '已标记已读');
+        return ApiResponse::success(null, __('app.api.chat.marked_read'));
     }
 
     // ── 群邀请 ──
@@ -1684,16 +1758,16 @@ class UserChatController extends Controller
 
         // 权限校验：邀请
         if (!$conv->userCan('invite', auth()->id())) {
-            return ApiResponse::error('你没有权限生成邀请链接');
+            return ApiResponse::error(__('app.api.chat.no_invite_perm'));
         }
         if ($conv->type !== 'group') {
-            return ApiResponse::error('仅群聊可生成邀请');
+            return ApiResponse::error(__('app.api.chat.invite_group_only'));
         }
 
         $isMember = ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', auth()->id())->exists();
         if (!$isMember) {
-            return ApiResponse::error('您不是该群成员', 403);
+            return ApiResponse::error(__('app.api.chat.not_group_member'), 403);
         }
 
         $validated = $request->validate([
@@ -1718,7 +1792,7 @@ class UserChatController extends Controller
             'expires_at' => $invite->expires_at,
             'max_uses' => $invite->max_uses,
             'use_count' => 0,
-        ], '邀请链接已生成', 201);
+        ], __('app.api.chat.invite_created'), 201);
     }
 
     /**
@@ -1730,7 +1804,7 @@ class UserChatController extends Controller
         $isMember = ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', auth()->id())->exists();
         if (!$isMember) {
-            return ApiResponse::error('您不是该群成员', 403);
+            return ApiResponse::error(__('app.api.chat.not_group_member'), 403);
         }
 
         $invites = GroupInvite::where('conversation_id', $convId)
@@ -1753,7 +1827,7 @@ class UserChatController extends Controller
     {
         $invite = GroupInvite::where('token', $token)->with('conversation')->first();
         if (!$invite || !$invite->isValid()) {
-            return ApiResponse::error('邀请链接无效或已过期');
+            return ApiResponse::error(__('app.api.chat.invite_invalid'));
         }
 
         $memberCount = ConversationParticipant::where('conversation_id', $invite->conversation_id)->count();
@@ -1761,7 +1835,7 @@ class UserChatController extends Controller
         return ApiResponse::success([
             'group_name' => $invite->conversation->name,
             'member_count' => $memberCount,
-            'created_by' => $invite->creator->name ?? '未知',
+            'created_by' => $invite->creator->name ?? __('app.api.chat.unknown'),
         ]);
     }
 
@@ -1772,7 +1846,7 @@ class UserChatController extends Controller
     {
         $invite = GroupInvite::where('token', $token)->first();
         if (!$invite || !$invite->isValid()) {
-            return ApiResponse::error('邀请链接无效或已过期');
+            return ApiResponse::error(__('app.api.chat.invite_invalid'));
         }
 
         $convId = $invite->conversation_id;
@@ -1782,7 +1856,7 @@ class UserChatController extends Controller
         $existing = ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', $myId)->exists();
         if ($existing) {
-            return ApiResponse::success(['conversation_id' => $convId], '您已是该群成员');
+            return ApiResponse::success(['conversation_id' => $convId], __('app.api.chat.already_in_group'));
         }
 
         // 加入群聊
@@ -1800,11 +1874,11 @@ class UserChatController extends Controller
             'conversation_id' => $convId,
             'sender_id' => $myId,
             'message_type' => 'system',
-            'content' => "🔗 {$user->name} 通过邀请链接加入群聊",
+            'content' => __('app.api.chat.sys_join_invite', ['name' => $user->name]),
         ]);
         broadcast(new ChatMessageSent($msg))->toOthers();
 
-        return ApiResponse::success(['conversation_id' => $convId], '已加入群聊');
+        return ApiResponse::success(['conversation_id' => $convId], __('app.api.chat.joined_group'));
     }
 
     /**
@@ -1818,12 +1892,12 @@ class UserChatController extends Controller
         $isMember = ConversationParticipant::where('conversation_id', $invite->conversation_id)
             ->where('user_id', auth()->id())->exists();
         if (!$isMember) {
-            return ApiResponse::error('您不是该群成员', 403);
+            return ApiResponse::error(__('app.api.chat.not_group_member'), 403);
         }
 
         $invite->update(['is_active' => false]);
 
-        return ApiResponse::success(null, '邀请已撤销');
+        return ApiResponse::success(null, __('app.api.chat.invite_revoked'));
     }
 
     // ── 入群审批 ──
@@ -1843,21 +1917,21 @@ class UserChatController extends Controller
 
         $conv = UserConversation::findOrFail($convId);
         if ($conv->type !== 'group') {
-            return ApiResponse::error('只有群聊支持入群申请');
+            return ApiResponse::error(__('app.api.chat.join_req_group_only'));
         }
 
         // 已是成员
         $existing = ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', $myId)->exists();
         if ($existing) {
-            return ApiResponse::error('您已是该群成员');
+            return ApiResponse::error(__('app.api.chat.already_in_group'));
         }
 
         // 检查是否有待处理的申请
         $pending = GroupJoinRequest::where('conversation_id', $convId)
             ->where('user_id', $myId)->where('status', 'pending')->exists();
         if ($pending) {
-            return ApiResponse::error('您已提交过申请，请等待审核');
+            return ApiResponse::error(__('app.api.chat.join_req_pending'));
         }
 
         // 如果未开启审批，直接加入
@@ -1866,9 +1940,9 @@ class UserChatController extends Controller
             $user = auth()->user();
             ConversationMessage::create([
                 'conversation_id' => $convId, 'sender_id' => $myId,
-                'message_type' => 'system', 'content' => "🔗 {$user->name} 加入了群聊",
+                'message_type' => 'system', 'content' => __('app.api.chat.sys_joined', ['name' => $user->name]),
             ]);
-            return ApiResponse::success(['conversation_id' => $convId], '已加入群聊');
+            return ApiResponse::success(['conversation_id' => $convId], __('app.api.chat.joined_group'));
         }
 
         $request = GroupJoinRequest::create([
@@ -1877,7 +1951,7 @@ class UserChatController extends Controller
             'message' => $validated['message'],
         ]);
 
-        return ApiResponse::success($request, '入群申请已提交，请等待管理员审核', 201);
+        return ApiResponse::success($request, __('app.api.chat.join_req_submitted'), 201);
     }
 
     /**
@@ -1912,7 +1986,7 @@ class UserChatController extends Controller
         $this->checkGroupAdmin($conv);
 
         if ($joinRequest->status !== 'pending') {
-            return ApiResponse::error('该申请已处理');
+            return ApiResponse::error(__('app.api.chat.join_req_handled'));
         }
 
         $adminId = auth()->id();
@@ -1928,7 +2002,7 @@ class UserChatController extends Controller
                 'conversation_id' => $joinRequest->conversation_id,
                 'sender_id' => $joinRequest->user_id,
                 'message_type' => 'system',
-                'content' => "✅ {$user->name} 通过入群审核加入了群聊",
+                'content' => __('app.api.chat.sys_join_approved', ['name' => $user->name]),
             ]);
 
             $joinRequest->update([
@@ -1937,7 +2011,7 @@ class UserChatController extends Controller
                 'handled_at' => now(),
             ]);
 
-            return ApiResponse::success(null, '已同意该申请');
+            return ApiResponse::success(null, __('app.api.chat.join_req_accepted'));
         } else {
             $joinRequest->update([
                 'status' => 'rejected',
@@ -1945,7 +2019,7 @@ class UserChatController extends Controller
                 'handled_at' => now(),
             ]);
 
-            return ApiResponse::success(null, '已拒绝该申请');
+            return ApiResponse::success(null, __('app.api.chat.join_req_rejected'));
         }
     }
 
@@ -1961,7 +2035,7 @@ class UserChatController extends Controller
 
         return ApiResponse::success([
             'join_approval' => $conv->fresh()->join_approval,
-        ], $conv->join_approval ? '已开启入群审批' : '已关闭入群审批');
+        ], $conv->join_approval ? __('app.api.chat.join_approval_on') : __('app.api.chat.join_approval_off'));
     }
 
     /**
@@ -1999,7 +2073,7 @@ class UserChatController extends Controller
 
         return ApiResponse::success([
             'permissions' => $conv->fresh()->getEffectivePermissions(),
-        ], '群权限已更新');
+        ], __('app.api.chat.group_perms_updated'));
     }
 
     /**
@@ -2008,14 +2082,14 @@ class UserChatController extends Controller
     protected function checkGroupAdmin(UserConversation $conv): void
     {
         if ($conv->type !== 'group') {
-            throw new \RuntimeException('不是群聊');
+            throw new \RuntimeException(__('app.api.chat.not_group'));
         }
 
         $participant = ConversationParticipant::where('conversation_id', $conv->id)
             ->where('user_id', auth()->id())->first();
 
         if (!$participant || !in_array($participant->role, ['creator', 'admin'])) {
-            throw new \RuntimeException('只有群主/管理员可执行此操作');
+            throw new \RuntimeException(__('app.api.chat.admin_only'));
         }
     }
 
@@ -2031,12 +2105,12 @@ class UserChatController extends Controller
 
         $myRole = ConversationParticipant::where('conversation_id', $convId)->where('user_id', $myId)->value('role');
         if (!in_array($myRole, ['creator', 'admin'])) {
-            return ApiResponse::error('仅群主和管理员可踢人', 403);
+            return ApiResponse::error(__('app.api.chat.kick_admin_only'), 403);
         }
 
         $target = ConversationParticipant::where('conversation_id', $convId)->where('user_id', $userId)->first();
         if (!$target || $target->role === 'creator') {
-            return ApiResponse::error('无法踢出群主', 403);
+            return ApiResponse::error(__('app.api.chat.cannot_kick_owner'), 403);
         }
 
         // 直接删除参与者记录
@@ -2047,10 +2121,10 @@ class UserChatController extends Controller
         $kicked = \App\Models\User::find($userId);
         ConversationMessage::create([
             'conversation_id' => $convId, 'sender_id' => $myId, 'message_type' => 'system',
-            'content' => "👢 {$user->name} 将 {$kicked->name} 移出了群聊",
+            'content' => __('app.api.chat.sys_kicked', ['name' => $user->name, 'target' => $kicked->name]),
         ]);
 
-        return ApiResponse::success(null, '已移出群聊');
+        return ApiResponse::success(null, __('app.api.chat.kicked'));
     }
 
     /**
@@ -2062,19 +2136,19 @@ class UserChatController extends Controller
         $myId = auth()->id();
 
         $participant = ConversationParticipant::where('conversation_id', $convId)->where('user_id', $myId)->first();
-        if (!$participant) return ApiResponse::error('您不是群成员', 403);
+        if (!$participant) return ApiResponse::error(__('app.api.chat.not_group_member_short'), 403);
         if ($participant->role === 'creator') {
-            return ApiResponse::error('群主无法退群，请先转让群主', 403);
+            return ApiResponse::error(__('app.api.chat.owner_cannot_leave'), 403);
         }
 
         $participant->delete();
         $user = auth()->user();
         ConversationMessage::create([
             'conversation_id' => $convId, 'sender_id' => $myId, 'message_type' => 'system',
-            'content' => "🚪 {$user->name} 退出了群聊",
+            'content' => __('app.api.chat.sys_left', ['name' => $user->name]),
         ]);
 
-        return ApiResponse::success(null, '已退出群聊');
+        return ApiResponse::success(null, __('app.api.chat.left_group'));
     }
 
     /**
@@ -2089,11 +2163,11 @@ class UserChatController extends Controller
 
         $myPart = ConversationParticipant::where('conversation_id', $convId)->where('user_id', $myId)->first();
         if (!$myPart || $myPart->role !== 'creator') {
-            return ApiResponse::error('仅群主可转让', 403);
+            return ApiResponse::error(__('app.api.chat.transfer_owner_only'), 403);
         }
 
         $newPart = ConversationParticipant::where('conversation_id', $convId)->where('user_id', $newOwnerId)->first();
-        if (!$newPart) return ApiResponse::error('目标用户不是群成员', 404);
+        if (!$newPart) return ApiResponse::error(__('app.api.chat.target_not_member'), 404);
 
         DB::transaction(function () use ($convId, $myId, $newOwnerId) {
             ConversationParticipant::where('conversation_id', $convId)->where('user_id', $myId)->update(['role' => 'member']);
@@ -2103,10 +2177,10 @@ class UserChatController extends Controller
         $newOwner = \App\Models\User::find($newOwnerId);
         ConversationMessage::create([
             'conversation_id' => $convId, 'sender_id' => $myId, 'message_type' => 'system',
-            'content' => "👑 群主已转让给 {$newOwner->name}",
+            'content' => __('app.api.chat.sys_transfer', ['name' => $newOwner->name]),
         ]);
 
-        return ApiResponse::success(null, '群主已转让');
+        return ApiResponse::success(null, __('app.api.chat.owner_transferred'));
     }
 
     /**
@@ -2123,12 +2197,12 @@ class UserChatController extends Controller
 
         $myPart = ConversationParticipant::where('conversation_id', $convId)->where('user_id', $myId)->first();
         if (!$myPart || $myPart->role !== 'creator') {
-            return ApiResponse::error('仅群主可设置管理员', 403);
+            return ApiResponse::error(__('app.api.chat.set_admin_owner_only'), 403);
         }
 
         $target = ConversationParticipant::where('conversation_id', $convId)->where('user_id', $request->input('user_id'))->first();
-        if (!$target) return ApiResponse::error('目标用户不是群成员', 404);
-        if ($target->role === 'creator') return ApiResponse::error('无法修改群主角色', 403);
+        if (!$target) return ApiResponse::error(__('app.api.chat.target_not_member'), 404);
+        if ($target->role === 'creator') return ApiResponse::error(__('app.api.chat.cannot_change_owner_role'), 403);
 
         $newRole = $request->input('is_admin') ? 'admin' : 'member';
         $target->update(['role' => $newRole]);
@@ -2136,10 +2210,10 @@ class UserChatController extends Controller
 
         ConversationMessage::create([
             'conversation_id' => $convId, 'sender_id' => $myId, 'message_type' => 'system',
-            'content' => $request->input('is_admin') ? "🔰 {$user->name} 被设为管理员" : "📋 {$user->name} 被取消管理员",
+            'content' => $request->input('is_admin') ? __('app.api.chat.sys_admin_on', ['name' => $user->name]) : __('app.api.chat.sys_admin_off', ['name' => $user->name]),
         ]);
 
-        return ApiResponse::success(['role' => $newRole], $request->input('is_admin') ? '已设为管理员' : '已取消管理员');
+        return ApiResponse::success(['role' => $newRole], $request->input('is_admin') ? __('app.api.chat.made_admin') : __('app.api.chat.removed_admin'));
     }
 
     /**
@@ -2152,14 +2226,14 @@ class UserChatController extends Controller
 
         $myPart = ConversationParticipant::where('conversation_id', $convId)->where('user_id', $myId)->first();
         if (!$myPart || $myPart->role !== 'creator') {
-            return ApiResponse::error('仅群主可解散群聊', 403);
+            return ApiResponse::error(__('app.api.chat.dissolve_owner_only'), 403);
         }
 
         $conv->update(['deleted_at' => now()]);
         ConversationParticipant::where('conversation_id', $convId)->delete();
         ConversationMessage::where('conversation_id', $convId)->delete();
 
-        return ApiResponse::success(null, '群聊已解散');
+        return ApiResponse::success(null, __('app.api.chat.group_dissolved'));
     }
 
     protected function loadConversation(int $id): array
@@ -2173,7 +2247,7 @@ class UserChatController extends Controller
         return [
             'id' => $conv->id,
             'type' => $conv->type,
-            'name' => $isSelfConv ? '📁 文件传输助手' : ($conv->type === 'private' ? ($otherUsers->first()?->name ?? '用户') : ($conv->type === 'ai' ? ($conv->name ?: 'AI 助手') : $conv->name)),
+            'name' => $isSelfConv ? __('app.api.chat.file_helper_emoji') : ($conv->type === 'private' ? ($otherUsers->first()?->name ?? __('app.api.chat.user')) : ($conv->type === 'ai' ? ($conv->name ?: __('app.api.chat.ai_assistant')) : $conv->name)),
             'is_self' => $isSelfConv,
             'is_ai_assistant' => $conv->type === 'ai',
             'last_message' => $conv->lastMessage ? [
@@ -2208,7 +2282,7 @@ class UserChatController extends Controller
             ->whereIn('status', ['pending', 'investigating'])
             ->first();
         if ($existing) {
-            return ApiResponse::error('您已举报过此内容，正在处理中', 409);
+            return ApiResponse::error(__('app.api.chat.report_exists'), 409);
         }
 
         $report = UserReport::create([
@@ -2223,7 +2297,7 @@ class UserChatController extends Controller
             $this->blockUserInternal(auth()->id(), (int) $validated['reportable_id']);
         }
 
-        return ApiResponse::success($report, '举报已提交，感谢您的反馈', 201);
+        return ApiResponse::success($report, __('app.api.chat.report_submitted'), 201);
     }
 
     public function myReports(Request $request): JsonResponse
@@ -2243,7 +2317,7 @@ class UserChatController extends Controller
             ['user_id' => auth()->id()],
             ['is_online' => $validated['status'] !== 'invisible', 'custom_status' => $validated['status'], 'last_seen_at' => now()]
         );
-        return ApiResponse::success(['status' => $validated['status']], '状态已更新');
+        return ApiResponse::success(['status' => $validated['status']], __('app.api.chat.status_updated'));
     }
 
     // ── MSG-005: 标记消息已送达 ──
@@ -2286,7 +2360,30 @@ class UserChatController extends Controller
     // ── SEC-006: 隐私设置 ──
     public function getPrivacySettings(): JsonResponse
     {
-        return ApiResponse::success(UserPrivacySetting::defaultFor(auth()->id()));
+        $userId = (int) auth()->id();
+        $policy = app(UserChatPolicyService::class);
+        $settings = UserPrivacySetting::defaultFor($userId);
+        $policy->syncDmPolicyFromLegacy($settings);
+        $settings->refresh();
+
+        $mute = UserDmMute::where('user_id', $userId)->first();
+        $dmMute = null;
+        if ($mute && $mute->isActive()) {
+            $dmMute = [
+                'active' => true,
+                'muted_until' => $mute->muted_until?->toIso8601String(),
+                'reason' => $mute->reason,
+                'hours_left' => max(1, (int) now()->diffInHours($mute->muted_until, false)),
+                'message' => $policy->globalMuteMessage($userId),
+            ];
+        }
+
+        return ApiResponse::success(array_merge($settings->toArray(), [
+            'dm_policy' => $policy->getDmPolicy($userId),
+            'dm_mute' => $dmMute,
+            'stranger_message_limit' => UserChatPolicyService::STRANGER_UNREPLIED_LIMIT,
+            'seller_inquiry_exempt' => true,
+        ]));
     }
 
     public function savePrivacySettings(Request $request): JsonResponse
@@ -2296,7 +2393,7 @@ class UserChatController extends Controller
             'show_online_status' => 'sometimes|boolean',
             'show_read_receipt' => 'sometimes|boolean',
             'allow_stranger_message' => 'sometimes|boolean',
-            'dm_policy' => 'sometimes|in:everyone,followers_only,closed',
+            'dm_policy' => 'sometimes|in:everyone,followers_only,mutual_follow,closed',
         ]);
 
         if (isset($validated['dm_policy'])) {
@@ -2307,27 +2404,32 @@ class UserChatController extends Controller
                 : UserChatPolicyService::DM_FOLLOWERS_ONLY;
         }
 
-        $settings = UserPrivacySetting::defaultFor(auth()->id());
+        $settings = UserPrivacySetting::defaultFor((int) auth()->id());
         $settings->update($validated);
-        return ApiResponse::success($settings->fresh(), '隐私设置已更新');
+
+        $response = $this->getPrivacySettings();
+        $payload = $response->getData(true);
+        $payload['message'] = __('app.api.chat.privacy_updated');
+
+        return response()->json($payload);
     }
 
     // ── GRP-004: 群资料管理 ──
     public function updateGroupProfile(int $id, Request $request): JsonResponse
     {
         $conv = UserConversation::findOrFail($id);
-        if ($conv->type !== 'group') return ApiResponse::error('不是群聊', 400);
+        if ($conv->type !== 'group') return ApiResponse::error(__('app.api.chat.not_group'), 400);
         $myId = auth()->id();
         $participant = ConversationParticipant::where('conversation_id', $id)->where('user_id', $myId)->first();
         if (!$participant || !in_array($participant->role, ['creator', 'admin'])) {
-            return ApiResponse::error('无权限', 403);
+            return ApiResponse::error(__('app.api.chat.no_permission'), 403);
         }
         $validated = $request->validate([
             'name' => 'sometimes|string|max:100',
             'description' => 'nullable|string|max:500',
         ]);
         $conv->update($validated);
-        return ApiResponse::success($conv->fresh(), '群资料已更新');
+        return ApiResponse::success($conv->fresh(), __('app.api.chat.group_profile_updated'));
     }
 
     // ── OPR-011: 投票消息 ──
@@ -2343,7 +2445,7 @@ class UserChatController extends Controller
             'expires_at' => 'nullable|date|after:now',
         ]);
         $conv = UserConversation::findOrFail($validated['conversation_id']);
-        if ($conv->type !== 'group') return ApiResponse::error('仅群聊可发起投票', 400);
+        if ($conv->type !== 'group') return ApiResponse::error(__('app.api.chat.poll_group_only'), 400);
         $options = array_map(fn($i, $v) => ['key' => 'opt_'.$i, 'label' => $v], array_keys($validated['options']), $validated['options']);
         $poll = ConversationPoll::create([
             'conversation_id' => $validated['conversation_id'],
@@ -2354,7 +2456,7 @@ class UserChatController extends Controller
             'is_anonymous' => $validated['is_anonymous'] ?? false,
             'expires_at' => $validated['expires_at'] ?? null,
         ]);
-        return ApiResponse::success($poll->load('creator:id,name'), '投票已创建', 201);
+        return ApiResponse::success($poll->load('creator:id,name'), __('app.api.chat.poll_created'), 201);
     }
 
     public function getPoll(int $id): JsonResponse
@@ -2373,31 +2475,31 @@ class UserChatController extends Controller
     {
         $poll = ConversationPoll::findOrFail($id);
         if ($poll->is_closed || ($poll->expires_at && $poll->expires_at->isPast())) {
-            return ApiResponse::error('投票已结束', 400);
+            return ApiResponse::error(__('app.api.chat.poll_ended'), 400);
         }
         if ($poll->hasVoted(auth()->id())) {
-            return ApiResponse::error('您已投过票', 409);
+            return ApiResponse::error(__('app.api.chat.poll_already'), 409);
         }
         $validated = $request->validate(['selected_options' => 'required|array|min:1']);
         $validKeys = collect($poll->options)->pluck('key')->toArray();
         foreach ($validated['selected_options'] as $opt) {
-            if (!in_array($opt, $validKeys)) return ApiResponse::error('无效选项', 422);
+            if (!in_array($opt, $validKeys)) return ApiResponse::error(__('app.api.chat.poll_invalid_option'), 422);
         }
         if ($poll->type === 'single' && count($validated['selected_options']) > 1) {
-            return ApiResponse::error('单选投票只能选一项', 422);
+            return ApiResponse::error(__('app.api.chat.poll_single_only'), 422);
         }
         ConversationPollVote::create([
             'poll_id' => $id, 'user_id' => auth()->id(), 'selected_options' => $validated['selected_options'],
         ]);
-        return ApiResponse::success(null, '投票成功');
+        return ApiResponse::success(null, __('app.api.chat.poll_ok'));
     }
 
     public function closePoll(int $id): JsonResponse
     {
         $poll = ConversationPoll::findOrFail($id);
-        if ($poll->creator_id !== auth()->id()) return ApiResponse::error('仅创建者可关闭', 403);
+        if ($poll->creator_id !== auth()->id()) return ApiResponse::error(__('app.api.chat.poll_close_creator_only'), 403);
         $poll->update(['is_closed' => true]);
-        return ApiResponse::success(null, '投票已关闭');
+        return ApiResponse::success(null, __('app.api.chat.poll_closed'));
     }
 
     // ── AI-001: 智能回复建议（接入真实 LLM） ──
@@ -2407,10 +2509,10 @@ class UserChatController extends Controller
             ->where('sender_id', '!=', auth()->id())
             ->orderBy('created_at', 'desc')->take(10)->get()->reverse();
         if ($messages->isEmpty()) {
-            return ApiResponse::success(['replies' => ['您好，有什么可以帮助您的？', '好的，请稍等', '谢谢']]);
+            return ApiResponse::success(['replies' => [__('app.api.chat.smart_reply_default_1'), __('app.api.chat.smart_reply_default_2'), __('app.api.chat.smart_reply_default_3')]]);
         }
-        $context = $messages->map(fn($m) => ($m->sender?->name ?? '对方').': '.$m->content)->implode("\n");
-        $myName = auth()->user()?->name ?? '我';
+        $context = $messages->map(fn($m) => ($m->sender?->name ?? __('app.api.chat.other_party')).': '.$m->content)->implode("\n");
+        $myName = auth()->user()?->name ?? __('app.api.chat.me');
 
         try {
             $result = $llm->chat([
@@ -2432,8 +2534,8 @@ class UserChatController extends Controller
 
         // 降级：基于关键词生成简单回复
         $lastText = $messages->last()->content ?? '';
-        $fallbacks = ['好的，我明白了', '请稍等，我来处理', '感谢您的反馈'];
-        if (str_contains($lastText, '?')) $fallbacks = ['我来帮您解答', '请详细描述一下', '好的，请稍等'];
+        $fallbacks = [__('app.api.chat.smart_reply_fallback_1'), __('app.api.chat.smart_reply_fallback_2'), __('app.api.chat.smart_reply_fallback_3')];
+        if (str_contains($lastText, '?')) $fallbacks = [__('app.api.chat.smart_reply_q_1'), __('app.api.chat.smart_reply_q_2'), __('app.api.chat.smart_reply_q_3')];
         return ApiResponse::success(['replies' => $fallbacks]);
     }
 
@@ -2443,9 +2545,9 @@ class UserChatController extends Controller
         $limit = 50;
         $messages = ConversationMessage::where('conversation_id', $convId)
             ->whereNull('deleted_at')->orderBy('created_at', 'desc')->take($limit)->get()->reverse();
-        if ($messages->isEmpty()) return ApiResponse::error('暂无消息可总结', 400);
+        if ($messages->isEmpty()) return ApiResponse::error(__('app.api.chat.no_messages_to_summarize'), 400);
 
-        $lines = $messages->map(fn($m) => ($m->sender?->name ?? '用户').': '.$m->content)->implode("\n");
+        $lines = $messages->map(fn($m) => ($m->sender?->name ?? __('app.api.chat.user')).': '.$m->content)->implode("\n");
 
         try {
             $result = $llm->chat([
@@ -2468,7 +2570,7 @@ class UserChatController extends Controller
         // 降级：简单截取
         $text = mb_substr($lines, 0, 200).'…';
         return ApiResponse::success([
-            'summary' => "共 {$messages->count()} 条消息\n\n{$text}",
+            'summary' => __('app.api.chat.summary_fallback', ['count' => $messages->count(), 'text' => $text]),
             'total' => count($messages),
             'from_llm' => false,
         ]);
@@ -2489,7 +2591,7 @@ class UserChatController extends Controller
         // 获取最近上下文
         $recentMessages = ConversationMessage::where('conversation_id', $convId)
             ->whereNull('deleted_at')->orderBy('created_at', 'desc')->take(20)->get()->reverse();
-        $contextLines = $recentMessages->map(fn($m) => ($m->sender?->name ?? '用户').': '.$m->content)->implode("\n");
+        $contextLines = $recentMessages->map(fn($m) => ($m->sender?->name ?? __('app.api.chat.user')).': '.$m->content)->implode("\n");
 
         $systemPrompts = [
             'chat' => '你是一个友好的聊天助手。请根据对话上下文自然地回复用户，回复要简洁有用。',
@@ -2573,9 +2675,23 @@ class UserChatController extends Controller
     }
 
     // ── AI-002: 未读消息摘要 ──
-    public function unreadSummary(LlmService $llm): JsonResponse
+    public function unreadSummary(Request $request, LlmService $llm): JsonResponse
     {
         $myId = auth()->id();
+
+        $totalUnread = (int) ConversationParticipant::where('user_id', $myId)
+            ->whereNull('deleted_at')
+            ->sum('unread_count');
+
+        // 侧栏徽标等轻量轮询：只返回计数，跳过 LLM / 会话摘录
+        if ($request->boolean('lite')) {
+            return ApiResponse::success([
+                'has_unread' => $totalUnread > 0,
+                'total_unread' => $totalUnread,
+                'summary' => null,
+                'conversations' => [],
+            ]);
+        }
 
         // 获取所有有未读消息的会话
         $unreadConvs = \App\Models\ConversationParticipant::where('user_id', $myId)
@@ -2598,14 +2714,13 @@ class UserChatController extends Controller
         if ($unreadConvs->isEmpty()) {
             return ApiResponse::success([
                 'has_unread' => false,
-                'summary' => '没有未读消息',
-                'total_unread' => 0,
+                'summary' => __('app.api.chat.no_unread'),
+                'total_unread' => $totalUnread,
                 'conversations' => [],
             ]);
         }
 
-        $convIds = $unreadConvs->pluck('conversation_id');
-        $totalUnread = $unreadConvs->count();
+        $unreadConvCount = $unreadConvs->count();
 
         // 获取每个会话最近的未读消息（最多取最近3条）
         $convSummaries = [];
@@ -2617,10 +2732,10 @@ class UserChatController extends Controller
             $recentMsgs = ConversationMessage::where('conversation_id', $conv->id)
                 ->when($uc->last_read_at, fn($q) => $q->where('created_at', '>', $uc->last_read_at))
                 ->whereNull('deleted_at')->orderBy('created_at', 'desc')->take(3)->get()->reverse();
-            $snippet = $recentMsgs->map(fn($m) => ($m->sender?->name ?? '用户').': '.$m->content)->implode("\n");
+            $snippet = $recentMsgs->map(fn($m) => ($m->sender?->name ?? __('app.api.chat.user')).': '.$m->content)->implode("\n");
             $convSummaries[] = [
                 'id' => $conv->id,
-                'name' => $conv->name ?? '会话',
+                'name' => $conv->name ?? __('app.api.chat.conversation_label'),
                 'last_message' => $lastMsg?->content ?? '',
                 'snippet' => $snippet,
                 'unread_count' => $recentMsgs->count(),
@@ -2632,12 +2747,12 @@ class UserChatController extends Controller
             $listText = collect($convSummaries)->map(fn($c) => "【{$c['name']}】\n{$c['snippet']}")->implode("\n---\n");
             $result = $llm->chat([
                 ['role' => 'system', 'content' => '你是一个消息摘要助手。根据以下各会话的未读消息，生成一两句话的总体摘要，说明哪些会话有更新、主要内容是什么。回复控制在100字以内。'],
-                ['role' => 'user', 'content' => "以下是有未读消息的会话（共{$totalUnread}个会话）：\n\n{$listText}\n\n请生成总体摘要。"],
+                ['role' => 'user', 'content' => "以下是有未读消息的会话（共{$unreadConvCount}个会话）：\n\n{$listText}\n\n请生成总体摘要。"],
             ], ['temperature' => 0.3], 'unread_summary');
             $aiSummary = $result['content'] ?? '';
-            if (mb_strlen($aiSummary) < 10) $aiSummary = "您有 {$totalUnread} 个会话的未读消息";
+            if (mb_strlen($aiSummary) < 10) $aiSummary = __('app.api.chat.unread_convs', ['n' => $unreadConvCount]);
         } catch (\Throwable $e) {
-            $aiSummary = "您有 {$totalUnread} 个会话的未读消息";
+            $aiSummary = __('app.api.chat.unread_convs', ['n' => $unreadConvCount]);
         }
 
         return ApiResponse::success([
@@ -2714,7 +2829,7 @@ class UserChatController extends Controller
                     })
                     ->exists();
             if (! $allowedSender) {
-                return ApiResponse::error('无权按该发送人搜索');
+                return ApiResponse::error(__('app.api.chat.forbidden_sender_search'));
             }
         }
 
@@ -2751,14 +2866,14 @@ class UserChatController extends Controller
 
         $results->getCollection()->transform(function (ConversationMessage $msg) use ($myId) {
             $conv = $msg->conversation;
-            $convName = $conv?->name ?? '会话';
+            $convName = $conv?->name ?? __('app.api.chat.conversation_label');
             if ($conv && $conv->type === 'private') {
                 $other = ConversationParticipant::where('conversation_id', $conv->id)
                     ->where('user_id', '!=', $myId)
                     ->whereNull('deleted_at')
                     ->with('user:id,name')
                     ->first();
-                $convName = $other?->user?->name ?? '用户';
+                $convName = $other?->user?->name ?? __('app.api.chat.user');
             }
 
             return array_merge($msg->toArray(), [
@@ -2781,11 +2896,11 @@ class UserChatController extends Controller
             ->where('user_id', $myId)
             ->exists();
         if ($msg->sender_id !== $myId && !$isParticipant) {
-            return ApiResponse::forbidden('无权操作此消息');
+            return ApiResponse::forbidden(__('app.api.chat.forbidden_message'));
         }
 
         if ($msg->message_type !== 'voice') {
-            return ApiResponse::error('不是语音消息', 422);
+            return ApiResponse::error(__('app.api.chat.not_voice_message'), 422);
         }
 
         try {
@@ -2799,7 +2914,7 @@ class UserChatController extends Controller
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 400);
         } catch (\Exception $e) {
-            return ApiResponse::error('语音识别失败', 500);
+            return ApiResponse::error(__('app.api.chat.asr_failed'), 500);
         }
     }
 
@@ -2818,12 +2933,12 @@ class UserChatController extends Controller
         // 创建新 AI 会话
         $conv = UserConversation::create([
             'type' => 'ai',
-            'name' => 'AI 助手',
+            'name' => __('app.api.chat.ai_assistant'),
             'created_by' => $myId,
         ]);
         ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $myId, 'role' => 'member']);
 
-        return ApiResponse::success($this->loadConversation($conv->id), 'AI 会话已创建', 201);
+        return ApiResponse::success($this->loadConversation($conv->id), __('app.api.chat.ai_conv_created'), 201);
     }
 
     // ── AI-013: 群聊 @AI ──
@@ -2834,15 +2949,15 @@ class UserChatController extends Controller
 
         $conv = UserConversation::findOrFail($convId);
         if ($conv->type !== 'group') {
-            return ApiResponse::error('仅群聊支持 @AI', 400);
+            return ApiResponse::error(__('app.api.chat.ai_group_only'), 400);
         }
 
         // 获取群上下文（最近 20 条消息 + 群名称）
         $recentMessages = ConversationMessage::where('conversation_id', $convId)
             ->whereNull('deleted_at')->orderBy('created_at', 'desc')->take(20)->get()->reverse();
-        $contextLines = $recentMessages->map(fn($m) => ($m->sender?->name ?? '用户').': '.$m->content)->implode("\n");
+        $contextLines = $recentMessages->map(fn($m) => ($m->sender?->name ?? __('app.api.chat.user')).': '.$m->content)->implode("\n");
 
-        $userName = auth()->user()?->name ?? '用户';
+        $userName = auth()->user()?->name ?? __('app.api.chat.user');
 
         try {
             $result = $llm->chat([
@@ -2850,9 +2965,9 @@ class UserChatController extends Controller
                 ['role' => 'user', 'content' => "群聊上下文：\n{$contextLines}\n\n{$userName} 问：{$validated['message']}"],
             ], ['temperature' => 0.7], 'ai_mention');
 
-            $reply = $result['content'] ?? '抱歉，暂时无法回答';
+            $reply = $result['content'] ?? __('app.api.chat.ai_sorry_reply');
         } catch (\Throwable $e) {
-            $reply = 'AI 暂时不可用，请稍后再试。';
+            $reply = __('app.api.chat.ai_unavailable_reply');
         }
 
         // 保存 AI 回复为系统消息
@@ -2945,7 +3060,7 @@ class UserChatController extends Controller
             ->where('user_id', auth()->id())
             ->update(['last_message_at' => now(), 'last_read_at' => now()]);
 
-        return ApiResponse::success($msg->load('sender:id,name'), '已保存', 201);
+        return ApiResponse::success($msg->load('sender:id,name'), __('app.api.chat.saved'), 201);
     }
 
     // ── AI-015: 自动提取待办/日程 ──
@@ -2953,9 +3068,9 @@ class UserChatController extends Controller
     {
         $messages = ConversationMessage::where('conversation_id', $convId)
             ->whereNull('deleted_at')->orderBy('created_at', 'desc')->take(50)->get()->reverse();
-        if ($messages->isEmpty()) return ApiResponse::error('暂无消息', 400);
+        if ($messages->isEmpty()) return ApiResponse::error(__('app.api.chat.no_messages'), 400);
 
-        $lines = $messages->map(fn($m) => ($m->sender?->name ?? '用户').': '.$m->content)->implode("\n");
+        $lines = $messages->map(fn($m) => ($m->sender?->name ?? __('app.api.chat.user')).': '.$m->content)->implode("\n");
 
         try {
             $result = $llm->chat([
@@ -2984,9 +3099,9 @@ class UserChatController extends Controller
     {
         $messages = ConversationMessage::where('conversation_id', $convId)
             ->whereNull('deleted_at')->orderBy('created_at', 'desc')->take(30)->get()->reverse();
-        if ($messages->isEmpty()) return ApiResponse::error('暂无消息', 400);
+        if ($messages->isEmpty()) return ApiResponse::error(__('app.api.chat.no_messages'), 400);
 
-        $lines = $messages->map(fn($m) => ($m->sender?->name ?? '用户').': '.$m->content)->implode("\n")."\n\n共".count($messages)."条消息";
+        $lines = $messages->map(fn($m) => ($m->sender?->name ?? __('app.api.chat.user')).': '.$m->content)->implode("\n")."\n\n共".count($messages)."条消息";
 
         try {
             $result = $llm->chat([
@@ -3033,28 +3148,28 @@ class UserChatController extends Controller
                 // 基于关键词的快速分类
                 if (preg_match('/退款|投诉|赔偿|差评|故障|无法|坏了|报错/i', $text)) {
                     $category = 'urgent';
-                    $reason = '包含投诉/故障关键词';
+                    $reason = __('app.api.chat.classify_urgent');
                 } elseif (preg_match('/促销|优惠|折扣|买|价格|多少钱|套餐/i', $text)) {
                     $category = 'promotion';
-                    $reason = '包含促销/购买关键词';
+                    $reason = __('app.api.chat.classify_promo');
                 } elseif (preg_match('/你好|在吗|请问|帮忙|谢谢|ok|好的/i', $text)) {
                     $category = 'normal';
-                    $reason = '普通对话';
+                    $reason = __('app.api.chat.classify_normal');
                 } elseif (preg_match('/项目|方案|合同|审批|汇报|开会/i', $text)) {
                     $category = 'work';
-                    $reason = '工作相关';
+                    $reason = __('app.api.chat.classify_work');
                 } elseif (preg_match('/垃圾|广告|退订|spam/i', $text)) {
                     $category = 'spam';
-                    $reason = '疑似垃圾消息';
+                    $reason = __('app.api.chat.classify_spam');
                 } else {
                     $category = 'other';
-                    $reason = '其他';
+                    $reason = __('app.api.chat.classify_other');
                 }
             }
 
             $classified[] = [
                 'id' => $conv->id,
-                'name' => $conv->name ?? '会话',
+                'name' => $conv->name ?? __('app.api.chat.conversation_label'),
                 'last_message' => $lastMsg?->content ?? '',
                 'category' => $category,
                 'reason' => $reason,
@@ -3087,11 +3202,11 @@ class UserChatController extends Controller
         ];
 
         $priority = 'low';
-        $reason = '一般消息';
+        $reason = __('app.api.chat.urgency_general');
         foreach ($urgentPatterns as $pattern => $level) {
             if (preg_match('/'.$pattern.'/i', $text)) {
                 $priority = $level;
-                $reason = '关键词匹配';
+                $reason = __('app.api.chat.urgency_keyword');
                 break;
             }
         }
@@ -3103,7 +3218,7 @@ class UserChatController extends Controller
                 $priorityResult = $this->evaluatePriorityWithLlm($llm, $text);
                 if ($priorityResult !== null) {
                     $priority = $priorityResult;
-                    $reason = 'AI 分析';
+                    $reason = __('app.api.chat.urgency_ai');
                 }
             } catch (\Throwable $e) {
                 // 降级
@@ -3192,7 +3307,7 @@ class UserChatController extends Controller
     public function clearCache(SemanticCacheService $cache): JsonResponse
     {
         $cache->clear('user_chat');
-        return ApiResponse::success(null, '缓存已清除');
+        return ApiResponse::success(null, __('app.api.chat.cache_cleared'));
     }
 
     // ── 产品推荐与商品卡片 ──
@@ -3208,7 +3323,7 @@ class UserChatController extends Controller
             ->get();
 
         if ($products->isEmpty()) {
-            return ApiResponse::success(['recommendations' => [], 'message' => '暂无可推荐产品']);
+            return ApiResponse::success(['recommendations' => [], 'message' => __('app.api.chat.no_products_to_recommend')]);
         }
 
         $productList = $products->map(fn($p) => "- {$p->name}（{$p->base_price}元）：{$p->description}")->implode("\n");
@@ -3252,7 +3367,7 @@ class UserChatController extends Controller
                         'price' => $top->base_price,
                         'image_url' => $top->image_url,
                         'slug' => $top->slug,
-                        'reason' => '热门推荐',
+                        'reason' => __('app.api.chat.hot_recommend'),
                         'deep_link' => "im://product?id={$top->id}",
                         'action_url' => "/build/products/{$top->id}",
                     ];
@@ -3261,7 +3376,7 @@ class UserChatController extends Controller
 
             return ApiResponse::success(['recommendations' => $matched]);
         } catch (\Throwable $e) {
-            return ApiResponse::success(['recommendations' => [], 'message' => '推荐暂时不可用']);
+            return ApiResponse::success(['recommendations' => [], 'message' => __('app.api.chat.recommend_unavailable')]);
         }
     }
 
@@ -3279,17 +3394,17 @@ class UserChatController extends Controller
         $productId = (int) $validated['product_id'];
 
         if ($sellerId === $myId) {
-            return ApiResponse::error('不能向自己咨询商品');
+            return ApiResponse::error(__('app.api.chat.cannot_inquire_self'));
         }
 
         $product = Product::findOrFail($productId);
         if ((int) $product->user_id !== $sellerId) {
-            return ApiResponse::error('商品与卖家信息不匹配', 422);
+            return ApiResponse::error(__('app.api.chat.product_seller_mismatch'), 422);
         }
 
         $eval = app(UserChatPolicyService::class)->evaluatePrivateMessage($myId, $sellerId, $productId);
         if (! $eval['allowed']) {
-            return ApiResponse::error($eval['reason'] ?? '无法联系卖家');
+            return ApiResponse::error($eval['reason'] ?? __('app.api.chat.cannot_contact_seller'));
         }
 
         $conv = $chatService->findOrCreatePrivateConversation($myId, $sellerId);
@@ -3299,7 +3414,7 @@ class UserChatController extends Controller
             $conv,
             $myId,
             $product,
-            '【商品咨询】' . $product->name,
+            __('app.api.chat.product_inquiry_prefix', ['name' => $product->name]),
             $traceId,
             ['source' => 'contact_seller', 'product_id' => $productId]
         );
@@ -3317,7 +3432,7 @@ class UserChatController extends Controller
             'conversation' => $this->loadConversation($conv->id),
             'product_card_message_id' => $cardMsg->id,
             'text_message_id' => $textMsg?->id,
-        ], '已打开卖家私信', 201);
+        ], __('app.api.chat.seller_dm_opened'), 201);
     }
 
     // ── 发送商品卡片消息 ──
@@ -3336,14 +3451,14 @@ class UserChatController extends Controller
             ->whereNull('deleted_at')
             ->exists();
         if (! $isParticipant) {
-            return ApiResponse::error('你不是该会话的参与者');
+            return ApiResponse::error(__('app.api.chat.not_participant'));
         }
 
         $product = Product::findOrFail($validated['product_id']);
         $traceId = $validated['trace_id'] ?? ('card-' . uniqid());
 
         if ($conv->type === 'group' && ! $conv->userCan('send_card', $myId)) {
-            return ApiResponse::error('你没有权限在此群发送卡片');
+            return ApiResponse::error(__('app.api.chat.no_card_perm'));
         }
 
         if ($conv->type === 'private') {
@@ -3353,7 +3468,7 @@ class UserChatController extends Controller
                 ->first();
             if ($otherParticipant) {
                 if ((int) $product->user_id !== (int) $otherParticipant->user_id) {
-                    return ApiResponse::error('只能向卖家发送其本人的商品卡片');
+                    return ApiResponse::error(__('app.api.chat.product_card_seller_only'));
                 }
                 $eval = app(UserChatPolicyService::class)->evaluatePrivateMessage(
                     $myId,
@@ -3361,10 +3476,10 @@ class UserChatController extends Controller
                     $product->id
                 );
                 if (! $eval['allowed']) {
-                    return ApiResponse::error($eval['reason'] ?? '无法发送私信');
+                    return ApiResponse::error($eval['reason'] ?? __('app.api.chat.cannot_send_dm'));
                 }
                 if ($otherParticipant->request_status === 'rejected' && empty($eval['seller_inquiry'])) {
-                    return ApiResponse::error('对方已拒绝你的消息请求');
+                    return ApiResponse::error(__('app.api.chat.dm_rejected'));
                 }
             }
         }
@@ -3379,66 +3494,276 @@ class UserChatController extends Controller
 
         return ApiResponse::success(
             $msg->load('sender:id,name')->setAttribute('trace_id', $traceId),
-            '已发送',
+            __('app.api.chat.sent'),
             201
         );
     }
 
     // ── 发送订单卡片消息 ──
-    public function sendOrderCard(int $convId, Request $request): JsonResponse
+    public function sendOrderCard(int $convId, Request $request, UserChatConversationService $chatService): JsonResponse
     {
         $validated = $request->validate([
-            'order_id' => 'required|string|max:100',
-            'order_number' => 'required|string|max:100',
-            'amount' => 'required|numeric',
-            'status' => 'required|string|max:50',
+            'order_id' => 'nullable|integer|exists:orders,id',
+            'order_no' => 'nullable|string|max:100',
             'content' => 'nullable|string|max:500',
             'trace_id' => 'nullable|string|max:64',
         ]);
-        $traceId = $validated['trace_id'] ?? ('card-' . uniqid());
 
-        $cardData = [
-            'type' => 'order_card',
-            'order' => [
-                'order_id' => $request->input('order_id'),
-                'order_number' => $request->input('order_number'),
-                'amount' => $request->input('amount'),
-                'status' => $request->input('status'),
-                'deep_link' => "im://order?id=" . $request->input('order_id'),
-                'action_url' => "/build/orders/" . $request->input('order_id'),
-                'action_label' => '查看订单',
-            ],
-        ];
-
-        $msg = ConversationMessage::create([
-            'conversation_id' => $convId,
-            'sender_id' => auth()->id(),
-            'content' => $request->input('content') ?? "订单：{$request->input('order_number')}",
-            'message_type' => 'card',
-            'metadata' => $cardData,
-            'client_msg_id' => 'card-' . uniqid(),
-        ]);
-
-        UserConversation::where('id', $convId)->update(['last_message_at' => now()]);
-
-        // 记录发送事件
-        try {
-            CardConversionTracking::create([
-                'trace_id' => $traceId,
-                'card_type' => 'order_card',
-                'message_id' => $msg->id,
-                'sender_id' => auth()->id(),
-                'event' => 'send',
-            ]);
-        } catch (\Exception $e) {
-            // 追踪记录失败不影响主流程
+        if (empty($validated['order_id']) && empty($validated['order_no'])) {
+            return ApiResponse::error(__('app.api.chat.order_id_required'), 422);
         }
+
+        $myId = auth()->id();
+        $access = $this->assertCardSendAccess($convId, $myId);
+        if ($access instanceof JsonResponse) {
+            return $access;
+        }
+        $conv = $access;
+
+        $order = ! empty($validated['order_id'])
+            ? Order::with('items.product:id,user_id')->find($validated['order_id'])
+            : Order::with('items.product:id,user_id')->where('order_no', $validated['order_no'])->first();
+
+        if (! $order) {
+            return ApiResponse::error(__('app.api.chat.order_not_found'), 404);
+        }
+
+        if (! $this->userCanShareOrder($order, $myId)) {
+            return ApiResponse::error(__('app.api.chat.order_card_forbidden'), 403);
+        }
+
+        $otherParticipant = ConversationParticipant::where('conversation_id', $convId)
+            ->where('user_id', '!=', $myId)
+            ->whereNull('deleted_at')
+            ->first();
+        if ($conv->type === 'private' && $otherParticipant) {
+            $involvesOther = $this->userCanShareOrder($order, (int) $otherParticipant->user_id);
+            if ($otherParticipant->request_status === 'rejected' && ! $involvesOther) {
+                return ApiResponse::error(__('app.api.chat.dm_rejected'));
+            }
+        }
+
+        $traceId = $validated['trace_id'] ?? ('card-' . uniqid());
+        $msg = $chatService->pushOrderCard(
+            $conv,
+            $myId,
+            $order,
+            $validated['content'] ?? null,
+            $traceId
+        );
 
         return ApiResponse::success(
             $msg->load('sender:id,name')->setAttribute('trace_id', $traceId),
-            '已发送',
+            __('app.api.chat.sent'),
             201
         );
+    }
+
+    // ── 发送售后/工单卡片 ──
+    public function sendAftersaleCard(int $convId, Request $request, UserChatConversationService $chatService): JsonResponse
+    {
+        $validated = $request->validate([
+            'ticket_id' => 'required|integer|exists:tickets,id',
+            'content' => 'nullable|string|max:500',
+            'trace_id' => 'nullable|string|max:64',
+        ]);
+
+        $myId = auth()->id();
+        $access = $this->assertCardSendAccess($convId, $myId);
+        if ($access instanceof JsonResponse) {
+            return $access;
+        }
+        $conv = $access;
+
+        $ticket = Ticket::find($validated['ticket_id']);
+        if (! $ticket) {
+            return ApiResponse::error(__('app.api.chat.ticket_not_found'), 404);
+        }
+
+        if (! $this->userCanShareTicket($ticket, $myId)) {
+            return ApiResponse::error(__('app.api.chat.aftersale_card_forbidden'), 403);
+        }
+
+        $traceId = $validated['trace_id'] ?? ('card-' . uniqid());
+        $msg = $chatService->pushAftersaleCard(
+            $conv,
+            $myId,
+            $ticket,
+            $validated['content'] ?? null,
+            $traceId
+        );
+
+        return ApiResponse::success(
+            $msg->load('sender:id,name')->setAttribute('trace_id', $traceId),
+            __('app.api.chat.sent'),
+            201
+        );
+    }
+
+    // ── 订单咨询：联系卖家 → 私信并发送订单卡片 ──
+    public function startOrderInquiry(Request $request, UserChatConversationService $chatService): JsonResponse
+    {
+        $validated = $request->validate([
+            'order_id' => 'required|integer|exists:orders,id',
+            'message' => 'nullable|string|max:500',
+        ]);
+
+        $myId = auth()->id();
+        $order = Order::with('items.product:id,user_id')->findOrFail($validated['order_id']);
+
+        if ((int) $order->user_id !== $myId) {
+            return ApiResponse::error(__('app.api.chat.order_card_forbidden'), 403);
+        }
+
+        $sellerId = $this->resolveOrderSellerId($order);
+        if (! $sellerId) {
+            return ApiResponse::error(__('app.api.chat.order_seller_missing'));
+        }
+        if ($sellerId === $myId) {
+            return ApiResponse::error(__('app.api.chat.cannot_inquire_self'));
+        }
+
+        $matchedItem = $order->items->first(fn ($item) => (int) ($item->product?->user_id ?? 0) === $sellerId);
+        $productId = $matchedItem?->product_id ?? $order->items->first()?->product_id;
+
+        $eval = app(UserChatPolicyService::class)->evaluatePrivateMessage($myId, $sellerId, $productId);
+        if (! $eval['allowed']) {
+            return ApiResponse::error($eval['reason'] ?? __('app.api.chat.cannot_contact_seller'));
+        }
+
+        $conv = $chatService->findOrCreatePrivateConversation($myId, $sellerId);
+        $traceId = 'order-inquiry-' . $conv->id . '-' . $order->id;
+
+        $cardMsg = $chatService->pushOrderCard(
+            $conv,
+            $myId,
+            $order,
+            __('app.api.chat.order_inquiry_prefix', ['number' => $order->order_no]),
+            $traceId,
+            ['source' => 'order_inquiry', 'order_id' => $order->id]
+        );
+
+        $textMsg = null;
+        $intro = trim($validated['message'] ?? '');
+        if ($intro !== '') {
+            $textMsg = $chatService->pushTextMessage($conv, $myId, $intro, [
+                'order_id' => $order->id,
+                'source' => 'order_inquiry',
+            ]);
+        }
+
+        return ApiResponse::success([
+            'conversation' => $this->loadConversation($conv->id),
+            'order_card_message_id' => $cardMsg->id,
+            'text_message_id' => $textMsg?->id,
+        ], __('app.api.chat.seller_dm_opened'), 201);
+    }
+
+    // ── 售后咨询：联系处理人 → 私信并发送工单卡片 ──
+    public function startTicketInquiry(Request $request, UserChatConversationService $chatService): JsonResponse
+    {
+        $validated = $request->validate([
+            'ticket_id' => 'required|integer|exists:tickets,id',
+            'message' => 'nullable|string|max:500',
+        ]);
+
+        $myId = auth()->id();
+        $ticket = Ticket::findOrFail($validated['ticket_id']);
+
+        if ((int) $ticket->user_id !== $myId) {
+            return ApiResponse::error(__('app.api.chat.aftersale_card_forbidden'), 403);
+        }
+
+        $agentId = (int) ($ticket->assigned_to ?? 0);
+        if ($agentId <= 0) {
+            return ApiResponse::error(__('app.api.chat.ticket_contact_missing'));
+        }
+        if ($agentId === $myId) {
+            return ApiResponse::error(__('app.api.chat.cannot_inquire_self'));
+        }
+
+        $eval = app(UserChatPolicyService::class)->evaluatePrivateMessage($myId, $agentId, null, true);
+        if (! $eval['allowed']) {
+            return ApiResponse::error($eval['reason'] ?? __('app.api.chat.cannot_contact_seller'));
+        }
+
+        $conv = $chatService->findOrCreatePrivateConversation($myId, $agentId);
+        $traceId = 'ticket-inquiry-' . $conv->id . '-' . $ticket->id;
+
+        $cardMsg = $chatService->pushAftersaleCard(
+            $conv,
+            $myId,
+            $ticket,
+            __('app.api.chat.ticket_inquiry_prefix', ['subject' => $ticket->subject ?: ('#'.$ticket->id)]),
+            $traceId,
+            ['source' => 'ticket_inquiry', 'ticket_id' => $ticket->id]
+        );
+
+        $textMsg = null;
+        $intro = trim($validated['message'] ?? '');
+        if ($intro !== '') {
+            $textMsg = $chatService->pushTextMessage($conv, $myId, $intro, [
+                'ticket_id' => $ticket->id,
+                'source' => 'ticket_inquiry',
+            ]);
+        }
+
+        return ApiResponse::success([
+            'conversation' => $this->loadConversation($conv->id),
+            'aftersale_card_message_id' => $cardMsg->id,
+            'text_message_id' => $textMsg?->id,
+        ], __('app.api.chat.seller_dm_opened'), 201);
+    }
+
+    protected function assertCardSendAccess(int $convId, int $myId): UserConversation|JsonResponse
+    {
+        $conv = UserConversation::findOrFail($convId);
+        $isParticipant = ConversationParticipant::where('conversation_id', $convId)
+            ->where('user_id', $myId)
+            ->whereNull('deleted_at')
+            ->exists();
+        if (! $isParticipant) {
+            return ApiResponse::error(__('app.api.chat.not_participant'));
+        }
+        if ($conv->type === 'group' && ! $conv->userCan('send_card', $myId)) {
+            return ApiResponse::error(__('app.api.chat.no_card_perm'));
+        }
+
+        return $conv;
+    }
+
+    protected function userCanShareOrder(Order $order, int $userId): bool
+    {
+        if ((int) $order->user_id === $userId) {
+            return true;
+        }
+
+        $order->loadMissing('items.product:id,user_id');
+
+        return $order->items
+            ->pluck('product.user_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->contains($userId);
+    }
+
+    protected function resolveOrderSellerId(Order $order): ?int
+    {
+        $order->loadMissing('items.product:id,user_id');
+        foreach ($order->items as $item) {
+            $sellerId = (int) ($item->product?->user_id ?? 0);
+            if ($sellerId > 0) {
+                return $sellerId;
+            }
+        }
+
+        return null;
+    }
+
+    protected function userCanShareTicket(Ticket $ticket, int $userId): bool
+    {
+        return (int) $ticket->user_id === $userId
+            || (int) $ticket->assigned_to === $userId;
     }
 
     // ── 发送自定义卡片消息（审批/待办等） ──
@@ -3495,7 +3820,7 @@ class UserChatController extends Controller
 
         return ApiResponse::success(
             $msg->load('sender:id,name')->setAttribute('trace_id', $traceId),
-            '已发送',
+            __('app.api.chat.sent'),
             201
         );
     }
@@ -3522,7 +3847,7 @@ class UserChatController extends Controller
             'reject_approval' => $this->handleRejectApproval($payload),
             'complete_todo' => $this->handleCompleteTodo($payload),
             'claim_coupon' => $this->handleClaimCoupon($payload, $myId),
-            default => ['success' => true, 'message' => '回调已接收'],
+            default => ['success' => true, 'message' => __('app.api.chat.callback_received')],
         };
 
         // 记录转化追踪事件
@@ -3545,7 +3870,7 @@ class UserChatController extends Controller
 
         $response['trace_id'] = $traceId ?? null;
 
-        return ApiResponse::success($response, $response['message'] ?? '操作成功');
+        return ApiResponse::success($response, $response['message'] ?? __('app.api.chat.operation_ok'));
     }
 
     private function handleApproveApproval(array $payload): array
@@ -3570,14 +3895,14 @@ class UserChatController extends Controller
             }
         }
 
-        return ['success' => true, 'message' => '已批准', 'approval_id' => $approvalId, 'status' => 'approved'];
+        return ['success' => true, 'message' => __('app.api.chat.approved'), 'approval_id' => $approvalId, 'status' => 'approved'];
     }
 
     private function handleRejectApproval(array $payload): array
     {
         $approvalId = $payload['approval_id'] ?? 0;
         $messageId = $payload['message_id'] ?? 0;
-        $reason = $payload['reason'] ?? '未提供原因';
+        $reason = $payload['reason'] ?? __('app.api.chat.reason_not_provided');
         $userId = auth()->id();
 
         if ($messageId) {
@@ -3596,7 +3921,7 @@ class UserChatController extends Controller
             }
         }
 
-        return ['success' => true, 'message' => '已拒绝', 'approval_id' => $approvalId, 'status' => 'rejected'];
+        return ['success' => true, 'message' => __('app.api.chat.rejected'), 'approval_id' => $approvalId, 'status' => 'rejected'];
     }
 
     private function handleCompleteTodo(array $payload): array
@@ -3620,7 +3945,7 @@ class UserChatController extends Controller
             }
         }
 
-        return ['success' => true, 'message' => '已完成', 'todo_id' => $todoId, 'status' => 'completed'];
+        return ['success' => true, 'message' => __('app.api.chat.completed'), 'todo_id' => $todoId, 'status' => 'completed'];
     }
 
     private function handleClaimCoupon(array $payload, int $userId): array
@@ -3644,7 +3969,7 @@ class UserChatController extends Controller
             // ignore
         }
 
-        return ['success' => true, 'message' => '已领取', 'coupon_id' => $couponId];
+        return ['success' => true, 'message' => __('app.api.chat.claimed'), 'coupon_id' => $couponId];
     }
 
     // ── 发送文章卡片 ──
@@ -3669,7 +3994,7 @@ class UserChatController extends Controller
                 'author' => $validated['author'] ?? '',
                 'deep_link' => "im://article?id={$validated['article_id']}",
                 'action_url' => $validated['action_url'] ?? '',
-                'action_label' => '阅读全文',
+                'action_label' => __('app.api.chat.read_full'),
             ],
         ];
 
@@ -3683,7 +4008,7 @@ class UserChatController extends Controller
         ]);
 
         UserConversation::where('id', $convId)->update(['last_message_at' => now()]);
-        return ApiResponse::success($msg->load('sender:id,name'), '已发送', 201);
+        return ApiResponse::success($msg->load('sender:id,name'), __('app.api.chat.sent'), 201);
     }
 
     // ── 发送审批卡片 ──
@@ -3710,22 +4035,22 @@ class UserChatController extends Controller
                 'deep_link' => "im://approval?id={$validated['approval_id']}",
             ],
             'actions' => [
-                ['label' => '✅ 批准', 'action' => 'callback', 'callback_id' => 'approve_approval', 'type' => 'primary', 'payload' => ['approval_id' => $validated['approval_id']]],
-                ['label' => '❌ 拒绝', 'action' => 'callback', 'callback_id' => 'reject_approval', 'type' => 'danger', 'payload' => ['approval_id' => $validated['approval_id']]],
+                ['label' => __('app.api.chat.approve_btn'), 'action' => 'callback', 'callback_id' => 'approve_approval', 'type' => 'primary', 'payload' => ['approval_id' => $validated['approval_id']]],
+                ['label' => __('app.api.chat.reject_btn'), 'action' => 'callback', 'callback_id' => 'reject_approval', 'type' => 'danger', 'payload' => ['approval_id' => $validated['approval_id']]],
             ],
         ];
 
         $msg = ConversationMessage::create([
             'conversation_id' => $convId,
             'sender_id' => auth()->id(),
-            'content' => "[审批] {$validated['title']}",
+            'content' => __('app.api.chat.approval_content', ['title' => $validated['title']]),
             'message_type' => 'card',
             'metadata' => $cardData,
             'client_msg_id' => 'card-' . uniqid(),
         ]);
 
         UserConversation::where('id', $convId)->update(['last_message_at' => now()]);
-        return ApiResponse::success($msg->load('sender:id,name'), '已发送', 201);
+        return ApiResponse::success($msg->load('sender:id,name'), __('app.api.chat.sent'), 201);
     }
 
     // ── 发送优惠券卡片 ──
@@ -3750,21 +4075,21 @@ class UserChatController extends Controller
                 'deep_link' => "im://coupon?id={$validated['coupon_id']}",
             ],
             'actions' => [
-                ['label' => '🎫 立即领取', 'action' => 'callback', 'callback_id' => 'claim_coupon', 'type' => 'primary', 'payload' => ['coupon_id' => $validated['coupon_id']]],
+                ['label' => __('app.api.chat.claim_coupon_btn'), 'action' => 'callback', 'callback_id' => 'claim_coupon', 'type' => 'primary', 'payload' => ['coupon_id' => $validated['coupon_id']]],
             ],
         ];
 
         $msg = ConversationMessage::create([
             'conversation_id' => $convId,
             'sender_id' => auth()->id(),
-            'content' => "[优惠券] {$validated['title']}",
+            'content' => __('app.api.chat.coupon_content', ['title' => $validated['title']]),
             'message_type' => 'card',
             'metadata' => $cardData,
             'client_msg_id' => 'card-' . uniqid(),
         ]);
 
         UserConversation::where('id', $convId)->update(['last_message_at' => now()]);
-        return ApiResponse::success($msg->load('sender:id,name'), '已发送', 201);
+        return ApiResponse::success($msg->load('sender:id,name'), __('app.api.chat.sent'), 201);
     }
 
     // ── 发送待办卡片 ──
@@ -3791,22 +4116,22 @@ class UserChatController extends Controller
                 'deep_link' => "im://todo?id={$validated['todo_id']}",
             ],
             'actions' => [
-                ['label' => '✅ 标记完成', 'action' => 'callback', 'callback_id' => 'complete_todo', 'type' => 'primary', 'payload' => ['todo_id' => $validated['todo_id']]],
-                ['label' => '查看详情', 'action' => 'open_url', 'url' => "im://todo?id={$validated['todo_id']}", 'type' => 'default'],
+                ['label' => __('app.api.chat.mark_done_btn'), 'action' => 'callback', 'callback_id' => 'complete_todo', 'type' => 'primary', 'payload' => ['todo_id' => $validated['todo_id']]],
+                ['label' => __('app.api.chat.view_details'), 'action' => 'open_url', 'url' => "im://todo?id={$validated['todo_id']}", 'type' => 'default'],
             ],
         ];
 
         $msg = ConversationMessage::create([
             'conversation_id' => $convId,
             'sender_id' => auth()->id(),
-            'content' => "[待办] {$validated['title']}",
+            'content' => __('app.api.chat.todo_content', ['title' => $validated['title']]),
             'message_type' => 'card',
             'metadata' => $cardData,
             'client_msg_id' => 'card-' . uniqid(),
         ]);
 
         UserConversation::where('id', $convId)->update(['last_message_at' => now()]);
-        return ApiResponse::success($msg->load('sender:id,name'), '已发送', 201);
+        return ApiResponse::success($msg->load('sender:id,name'), __('app.api.chat.sent'), 201);
     }
 
     // ── 消息转发 ──
@@ -3825,7 +4150,7 @@ class UserChatController extends Controller
         $isParticipant = ConversationParticipant::where('conversation_id', $targetConvId)
             ->where('user_id', $myId)->whereNull('deleted_at')->exists();
         if (!$isParticipant) {
-            return ApiResponse::error('你不是目标会话的参与者');
+            return ApiResponse::error(__('app.api.chat.not_target_participant'));
         }
 
         $messages = ConversationMessage::whereIn('id', $validated['message_ids'])
@@ -3834,7 +4159,7 @@ class UserChatController extends Controller
             ->keyBy('id');
 
         if (count($messages) !== count($validated['message_ids'])) {
-            return ApiResponse::error('部分消息不存在');
+            return ApiResponse::error(__('app.api.chat.some_messages_missing'));
         }
 
         // 单条转发 vs 合并转发
@@ -3848,7 +4173,7 @@ class UserChatController extends Controller
                 'attachments' => $original->attachments,
                 'metadata' => array_merge($original->metadata ?? [], [
                     'forwarded' => true,
-                    'original_sender' => $original->sender?->name ?? '用户',
+                    'original_sender' => $original->sender?->name ?? __('app.api.chat.user'),
                     'original_sender_id' => $original->sender_id,
                     'original_message_id' => $original->id,
                     'original_conversation_id' => $original->conversation_id,
@@ -3858,13 +4183,13 @@ class UserChatController extends Controller
         } else {
             // 合并转发
             $forwardItems = $messages->map(fn($m) => [
-                'sender' => $m->sender?->name ?? '用户',
+                'sender' => $m->sender?->name ?? __('app.api.chat.user'),
                 'content' => match ($m->message_type) {
                     'text' => mb_substr($m->content, 0, 200),
-                    'image' => '[图片]',
-                    'voice' => '[语音]',
-                    'file' => '[文件]',
-                    'card' => '[卡片]',
+                    'image' => __('app.api.chat.type_image'),
+                    'voice' => __('app.api.chat.type_voice'),
+                    'file' => __('app.api.chat.type_file'),
+                    'card' => __('app.api.chat.type_card'),
                     default => '[' . $m->message_type . ']',
                 },
                 'message_type' => $m->message_type,
@@ -3875,7 +4200,7 @@ class UserChatController extends Controller
                 'conversation_id' => $targetConvId,
                 'sender_id' => $myId,
                 'message_type' => 'forward',
-                'content' => "合并转发 {$forwardItems} 条消息",
+                'content' => __('app.api.chat.merge_forward_content', ['count' => count($forwardItems)]),
                 'attachments' => $forwardItems,
                 'metadata' => [
                     'forwarded' => true,
@@ -3890,7 +4215,7 @@ class UserChatController extends Controller
         UserConversation::where('id', $targetConvId)->update(['last_message_at' => now()]);
 
         return ApiResponse::success($newMsg->load('sender:id,name'), 
-            count($messages) === 1 ? '消息已转发' : '合并转发成功',
+            count($messages) === 1 ? __('app.api.chat.message_forwarded') : __('app.api.chat.merge_forward_ok'),
             201);
     }
 
@@ -3914,7 +4239,7 @@ class UserChatController extends Controller
             ->get()
             ->map(fn($c) => [
                 'id' => $c->id,
-                'name' => $c->name ?: $c->participants->filter(fn($p) => $p->user_id !== $myId)->first()?->user?->name ?? '会话',
+                'name' => $c->name ?: $c->participants->filter(fn($p) => $p->user_id !== $myId)->first()?->user?->name ?? __('app.api.chat.conversation_label'),
                 'type' => $c->type,
                 'avatar' => $c->participants->filter(fn($p) => $p->user_id !== $myId)->first()?->user?->avatar ?? '',
             ]);
@@ -3929,18 +4254,18 @@ class UserChatController extends Controller
         $isParticipant = ConversationParticipant::where('conversation_id', $conv->id)
             ->where('user_id', auth()->id())->exists();
         if (!$isParticipant) {
-            return ApiResponse::error('无权访问', 403);
+            return ApiResponse::error(__('app.api.chat.forbidden_access'), 403);
         }
 
         $targetLang = $request->input('target', 'zh-CN');
         $supported = ['zh-CN', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'ru', 'th', 'vi'];
         if (!in_array($targetLang, $supported)) {
-            return ApiResponse::error('不支持的目标语言', 422);
+            return ApiResponse::error(__('app.api.chat.unsupported_target_lang'), 422);
         }
 
         $text = $msg->content;
         if (empty($text)) {
-            return ApiResponse::error('无可翻译的内容', 400);
+            return ApiResponse::error(__('app.api.chat.nothing_to_translate'), 400);
         }
 
         $langNames = [
@@ -3964,7 +4289,7 @@ class UserChatController extends Controller
             ]);
         } catch (\Throwable $e) {
             Log::error('[Translate] ' . $e->getMessage());
-            return ApiResponse::error('翻译失败，请稍后重试', 500);
+            return ApiResponse::error(__('app.api.chat.translate_failed_retry'), 500);
         }
     }
 
@@ -3974,13 +4299,13 @@ class UserChatController extends Controller
         $isParticipant = ConversationParticipant::where('conversation_id', $conv->id)
             ->where('user_id', auth()->id())->exists();
         if (!$isParticipant) {
-            return ApiResponse::error('无权访问', 403);
+            return ApiResponse::error(__('app.api.chat.forbidden_access'), 403);
         }
 
         $targetLang = $request->input('target', 'zh-CN');
         $supported = ['zh-CN', 'en', 'ja', 'ko', 'fr', 'de', 'es'];
         if (!in_array($targetLang, $supported)) {
-            return ApiResponse::error('不支持的目标语言', 422);
+            return ApiResponse::error(__('app.api.chat.unsupported_target_lang'), 422);
         }
 
         // 获取最近 50 条文本消息
@@ -3995,11 +4320,11 @@ class UserChatController extends Controller
             ->values();
 
         if ($messages->isEmpty()) {
-            return ApiResponse::error('没有可翻译的文本消息', 400);
+            return ApiResponse::error(__('app.api.chat.no_text_to_translate'), 400);
         }
 
         // 拼接所有消息
-        $text = $messages->map(fn($m, $i) => "[{$i}] " . ($m->sender?->name ?? '用户') . ": {$m->content}")->implode("\n\n");
+        $text = $messages->map(fn($m, $i) => "[{$i}] " . ($m->sender?->name ?? __('app.api.chat.user')) . ": {$m->content}")->implode("\n\n");
 
         $langNames = ['zh-CN' => '简体中文', 'en' => '英语', 'ja' => '日语', 'ko' => '韩语', 'fr' => '法语', 'de' => '德语', 'es' => '西班牙语'];
 
@@ -4018,7 +4343,7 @@ class UserChatController extends Controller
             ]);
         } catch (\Throwable $e) {
             Log::error('[TranslateConversation] ' . $e->getMessage());
-            return ApiResponse::error('翻译失败', 500);
+            return ApiResponse::error(__('app.api.chat.translate_failed'), 500);
         }
     }
 }

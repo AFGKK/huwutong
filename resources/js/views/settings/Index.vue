@@ -1,12 +1,11 @@
 <template>
     <div class="settings-page">
         <div class="page-header">
-            <h2>系统设置</h2>
+            <h2>{{ t('settings_page.title') }}</h2>
             <div class="header-actions">
-                <!-- 搜索设置 -->
                 <el-input
                     v-model="searchQuery"
-                    placeholder="搜索设置项..."
+                    :placeholder="t('settings_page.search_ph')"
                     clearable
                     prefix-icon="Search"
                     style="width: 280px;"
@@ -30,8 +29,8 @@
                     <el-icon style="margin-right: 4px; vertical-align: middle;"><component :is="groupIcon(group.group)" /></el-icon>
                     {{ group.label }}
                 </el-tag>
-                <el-button size="small" text @click="expandAll">全部展开</el-button>
-                <el-button size="small" text @click="collapseAll">全部收起</el-button>
+                <el-button size="small" text @click="expandAll">{{ t('settings_page.expand_all') }}</el-button>
+                <el-button size="small" text @click="collapseAll">{{ t('settings_page.collapse_all') }}</el-button>
             </div>
 
             <el-form
@@ -54,7 +53,7 @@
                                 {{ group.label }}
                             </span>
                             <span class="group-meta">
-                                <el-tag size="small" type="info" effect="plain">{{ group.settings.length }} 项</el-tag>
+                                <el-tag size="small" type="info" effect="plain">{{ t('settings_page.item_count', { n: group.settings.length }) }}</el-tag>
                                 <el-icon class="group-collapse-icon" :class="{ rotated: expandedGroups.has(group.group) }">
                                     <ArrowDown />
                                 </el-icon>
@@ -112,7 +111,7 @@
                             <div class="image-upload-row">
                                 <el-input
                                     v-model="formData[setting.key]"
-                                    placeholder="输入图片 URL"
+                                    :placeholder="t('settings_page.image_url_ph')"
                                     style="max-width: 400px;"
                                 />
                                 <el-upload
@@ -122,7 +121,7 @@
                                     class="ml-2"
                                 >
                                     <el-button type="primary" :loading="uploadingKey === setting.key">
-                                        <el-icon><Upload /></el-icon> 上传
+                                        <el-icon><Upload /></el-icon> {{ t('actions.upload') }}
                                     </el-button>
                                 </el-upload>
                             </div>
@@ -155,7 +154,7 @@
                         />
 
                         <div v-if="setting.is_public" class="setting-badge">
-                            <el-tag size="small" type="info" effect="plain">公开</el-tag>
+                            <el-tag size="small" type="info" effect="plain">{{ t('settings_page.public_badge') }}</el-tag>
                         </div>
                     </el-form-item>
                 </el-card>
@@ -165,11 +164,11 @@
         <!-- 底部操作栏 -->
         <div class="sticky-footer">
             <div class="footer-inner">
-                <span class="footer-hint">共 {{ allGroupsCount }} 个分组，{{ allSettingsCount }} 项设置</span>
+                <span class="footer-hint">{{ t('settings_page.footer_summary', { groups: allGroupsCount, settings: allSettingsCount }) }}</span>
                 <div>
-                    <el-button @click="resetForm">重置</el-button>
+                    <el-button @click="resetForm">{{ t('actions.reset') }}</el-button>
                     <el-button type="primary" :loading="submitting" @click="submitForm" size="large">
-                        保存设置
+                        {{ t('settings_page.save_settings') }}
                     </el-button>
                 </div>
             </div>
@@ -179,9 +178,12 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Upload, Search, ArrowDown, Setting, TrendCharts, Connection, Wallet, Monitor, Lock, Tools, EditPen, Clock, Bell, DataBoard, Document, Grid, ChatDotSquare, Link, Promotion, Service, Tickets, Iphone, Cpu } from '@element-plus/icons-vue';
 import settingApi from '@/api/setting';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const submitting = ref(false);
@@ -238,6 +240,7 @@ function groupIcon(group) {
         logging: Document, interface: Monitor, oauth: Link,
         seo: TrendCharts, tracking: Promotion, verification: Tickets,
         social: Service, api: Connection, service: Service, legal: Document,
+        wechat: Iphone,
     };
     return map[group] || Setting;
 }
@@ -265,11 +268,11 @@ function onSearchInput() {
 
 function resetForm() {
     loadSettings();
-    ElMessage.info('已重置为保存的值');
+    ElMessage.info(t('settings_page.reset_to_saved'));
 }
 
 const predefineColors = [
-    '#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399',
+    '#0f172a', '#67C23A', '#E6A23C', '#F56C6C', '#909399',
     '#1d1e1f', '#303133', '#606266', '#C0C4CC', '#DCDFE6',
 ];
 
@@ -279,10 +282,10 @@ async function handleUpload(key, file) {
         const { data: res } = await settingApi.uploadImage(key, file);
         if (res.success) {
             formData[key] = res.data.url || res.data.value;
-            ElMessage.success('图片上传成功');
+            ElMessage.success(t('settings_page.upload_ok'));
         }
     } catch {
-        ElMessage.error('图片上传失败');
+        ElMessage.error(t('settings_page.upload_fail'));
     } finally {
         uploadingKey.value = false;
     }
@@ -292,18 +295,24 @@ async function handleUpload(key, file) {
 // 支付网关配置项可见性：关闭的网关隐藏其配置字段
 function isSettingVisible(setting) {
     const key = setting.key;
+    // Live Chat widget removed; hide leftover site keys from admin UI
+    if (key === 'service_chat_enabled' || key === 'chat_widget_enabled' || key.startsWith('chat_widget_')) return false;
     // 支付驱动选择器始终可见
     if (key === 'payment_driver') return true;
     // 各支付网关的启用开关始终可见
-    if (key === 'alipay_enabled' || key === 'wechat_enabled' || key === 'stripe_enabled' || key === 'paypal_enabled') return true;
+    if (key === 'alipay_enabled' || key === 'wechat_enabled' || key === 'stripe_enabled' || key === 'paypal_enabled' || key === 'yipay_enabled') return true;
+    // 微信小程序配置始终可见（属于 wechat 分组，不是 payment 分组）
+    if (key.startsWith('wechat_mini_program_') || key === 'wechat_mini_subscribe_template_id') return true;
     // alipay_* 配置在 alipay 开启时显示
     if (key.startsWith('alipay_')) return !!formData.alipay_enabled;
-    // wechat_* 配置在 wechat 开启时显示
+    // wechat_* 支付配置在 wechat 开启时显示（排除 wechat_mini_program_*）
     if (key.startsWith('wechat_')) return !!formData.wechat_enabled;
     // stripe_* 配置在 stripe 开启时显示
     if (key.startsWith('stripe_')) return !!formData.stripe_enabled;
     // paypal_* 配置在 paypal 开启时显示
     if (key.startsWith('paypal_')) return !!formData.paypal_enabled;
+    // yipay_* 配置在 yipay 开启时显示
+    if (key.startsWith('yipay_')) return !!formData.yipay_enabled;
     return true;
 }
 
@@ -326,7 +335,7 @@ async function loadSettings() {
             }
         }
     } catch {
-        ElMessage.error('加载设置失败');
+        ElMessage.error(t('settings_page.load_fail'));
     } finally {
         loading.value = false;
     }
@@ -346,7 +355,7 @@ async function submitForm() {
             }
         }
         await settingApi.update(settings);
-        ElMessage.success('设置保存成功');
+        ElMessage.success(t('settings_page.save_ok'));
     } catch {
         // handled by interceptor
     } finally {

@@ -18,15 +18,29 @@ class SiteSettingsSeeder extends Seeder
             ['group' => 'general', 'key' => 'site_slogan', 'value' => '让软件授权管理变得简单、安全、可靠', 'type' => 'text', 'description' => '网站标语', 'is_public' => true],
 
             // 品牌
-            ['group' => 'brand', 'key' => 'logo_url', 'value' => '', 'type' => 'image', 'description' => 'Logo 图片 URL', 'is_public' => true],
-            ['group' => 'brand', 'key' => 'favicon_url', 'value' => '', 'type' => 'image', 'description' => 'Favicon URL', 'is_public' => true],
-            ['group' => 'brand', 'key' => 'primary_color', 'value' => '#409EFF', 'type' => 'color', 'description' => '主题色', 'is_public' => true],
+            ['group' => 'brand', 'key' => 'logo_url', 'value' => '/images/logo.svg', 'type' => 'image', 'description' => 'Logo 图片 URL', 'is_public' => true],
+            ['group' => 'brand', 'key' => 'favicon_url', 'value' => '/images/favicon.svg', 'type' => 'image', 'description' => 'Favicon URL', 'is_public' => true],
+            ['group' => 'brand', 'key' => 'primary_color', 'value' => '#0f172a', 'type' => 'color', 'description' => '主题色（官网 / 品牌）', 'is_public' => true],
+            ['group' => 'brand', 'key' => 'page_primary_color', 'value' => '#0f172a', 'type' => 'color', 'description' => '官网页面主题色（与 primary_color 同步）', 'is_public' => true],
             ['group' => 'brand', 'key' => 'footer_copyright', 'value' => '© 2026 互物通. All rights reserved.', 'type' => 'text', 'description' => '页脚版权信息', 'is_public' => true],
 
             // ICP
             ['group' => 'brand', 'key' => 'icp_beian', 'value' => '', 'type' => 'text', 'description' => 'ICP 备案号', 'is_public' => true],
             ['group' => 'brand', 'key' => 'icp_beian_url', 'value' => 'https://beian.miit.gov.cn/', 'type' => 'text', 'description' => 'ICP 备案链接', 'is_public' => true],
             ['group' => 'brand', 'key' => 'police_beian', 'value' => '', 'type' => 'text', 'description' => '公安备案号', 'is_public' => true],
+            ['group' => 'brand', 'key' => 'police_beian_url', 'value' => 'https://www.beian.gov.cn/', 'type' => 'text', 'description' => '公安备案链接', 'is_public' => true],
+            ['group' => 'brand', 'key' => 'gongan_beian', 'value' => '', 'type' => 'text', 'description' => '公安备案号（别名）', 'is_public' => true],
+            ['group' => 'brand', 'key' => 'gongan_beian_url', 'value' => 'https://www.beian.gov.cn/', 'type' => 'text', 'description' => '公安备案链接（别名）', 'is_public' => true],
+
+            // 追踪 / 验证 / 自定义 HTML
+            ['group' => 'tracking', 'key' => 'seo_google_analytics', 'value' => '', 'type' => 'text', 'description' => 'Google Analytics Measurement ID (G-XXXX)', 'is_public' => false],
+            ['group' => 'tracking', 'key' => 'tracking_baidu_id', 'value' => '', 'type' => 'text', 'description' => '百度统计站点 ID', 'is_public' => false],
+            ['group' => 'tracking', 'key' => 'tracking_meta_pixel', 'value' => '', 'type' => 'text', 'description' => 'Meta Pixel ID', 'is_public' => false],
+            ['group' => 'verification', 'key' => 'verify_google', 'value' => '', 'type' => 'text', 'description' => 'Google Search Console 验证码', 'is_public' => false],
+            ['group' => 'verification', 'key' => 'verify_baidu', 'value' => '', 'type' => 'text', 'description' => '百度站长验证码', 'is_public' => false],
+            ['group' => 'verification', 'key' => 'verify_bing', 'value' => '', 'type' => 'text', 'description' => 'Bing Webmaster 验证码', 'is_public' => false],
+            ['group' => 'general', 'key' => 'custom_head_html', 'value' => '', 'type' => 'textarea', 'description' => '自定义 Head HTML', 'is_public' => false],
+            ['group' => 'general', 'key' => 'custom_footer_html', 'value' => '', 'type' => 'textarea', 'description' => '自定义页脚 HTML', 'is_public' => false],
 
             // 联系方式
             ['group' => 'contact', 'key' => 'contact_email', 'value' => 'support@huwutong.com', 'type' => 'text', 'description' => '联系邮箱', 'is_public' => true],
@@ -48,7 +62,8 @@ class SiteSettingsSeeder extends Seeder
             // 社交
             ['group' => 'social', 'key' => 'social_github', 'value' => '', 'type' => 'text', 'description' => 'GitHub 链接', 'is_public' => true],
             ['group' => 'social', 'key' => 'social_twitter', 'value' => '', 'type' => 'text', 'description' => 'Twitter 链接', 'is_public' => true],
-            ['group' => 'social', 'key' => 'social_wechat', 'value' => '', 'type' => 'text', 'description' => '微信互物号', 'is_public' => true],
+            ['group' => 'social', 'key' => 'social_wechat', 'value' => '', 'type' => 'text', 'description' => '微信链接（完整 URL 才在页脚显示图标）', 'is_public' => true],
+            ['group' => 'social', 'key' => 'social_weibo', 'value' => '', 'type' => 'text', 'description' => '微博链接', 'is_public' => true],
 
             // 存储配置
             ['group' => 'storage', 'key' => 'upload_max_size', 'value' => '10', 'type' => 'select', 'description' => '上传文件大小限制 (MB)', 'options' => ['2','5','10','20','50','100'], 'is_public' => true],
@@ -65,7 +80,7 @@ class SiteSettingsSeeder extends Seeder
             ['group' => 'storage', 'key' => 'cloud_storage_path_prefix', 'value' => '', 'type' => 'text', 'description' => '文件路径前缀', 'is_public' => false],
 
             // 短信配置
-            ['group' => 'sms', 'key' => 'sms_driver', 'value' => 'aliyun', 'type' => 'select', 'description' => '短信驱动', 'options' => ['aliyun','tencent'], 'is_public' => false],
+            ['group' => 'sms', 'key' => 'sms_driver', 'value' => 'log', 'type' => 'select', 'description' => '短信驱动（目前支持 log / aliyun）', 'options' => ['log','aliyun'], 'is_public' => false],
             ['group' => 'sms', 'key' => 'sms_aliyun_key', 'value' => '', 'type' => 'password', 'description' => '阿里云 AccessKey', 'is_public' => false],
             ['group' => 'sms', 'key' => 'sms_aliyun_secret', 'value' => '', 'type' => 'password', 'description' => '阿里云 AccessSecret', 'is_public' => false],
             ['group' => 'sms', 'key' => 'sms_aliyun_sign', 'value' => '', 'type' => 'text', 'description' => '阿里云短信签名', 'is_public' => false],
@@ -74,7 +89,7 @@ class SiteSettingsSeeder extends Seeder
             ['group' => 'sms', 'key' => 'sms_tencent_sign', 'value' => '', 'type' => 'text', 'description' => '腾讯云短信签名', 'is_public' => false],
 
             // AI / 大模型配置
-            ['group' => 'ai', 'key' => 'llm_default_provider', 'value' => 'deepseek', 'type' => 'select', 'description' => '默认 AI 提供商', 'options' => ['deepseek','openai','claude','tongyi','wenxin','glm','ollama'], 'is_public' => false],
+            ['group' => 'ai', 'key' => 'llm_default_provider', 'value' => env('LLM_DEFAULT_PROVIDER', filter_var(env('LOCAL_LLM_ENABLED', false), FILTER_VALIDATE_BOOLEAN) ? 'ollama' : 'deepseek'), 'type' => 'select', 'description' => '默认 AI 提供商', 'options' => ['deepseek','openai','claude','tongyi','wenxin','glm','ollama'], 'is_public' => false],
             ['group' => 'ai', 'key' => 'deepseek_api_key', 'value' => '', 'type' => 'password', 'description' => 'DeepSeek API Key', 'is_public' => false],
             ['group' => 'ai', 'key' => 'deepseek_api_base', 'value' => 'https://api.deepseek.com', 'type' => 'text', 'description' => 'DeepSeek API 地址', 'is_public' => false],
             ['group' => 'ai', 'key' => 'openai_api_key', 'value' => '', 'type' => 'password', 'description' => 'OpenAI API Key', 'is_public' => false],
@@ -103,7 +118,7 @@ class SiteSettingsSeeder extends Seeder
             ['group' => 'mail', 'key' => 'mail_from_name', 'value' => '互物通', 'type' => 'text', 'description' => '发件人名称', 'is_public' => false],
 
             // 支付网关配置
-            ['group' => 'payment', 'key' => 'payment_driver', 'value' => 'mock', 'type' => 'select', 'description' => '默认支付驱动', 'options' => ['mock','alipay','wechat','stripe','paypal'], 'is_public' => false],
+            ['group' => 'payment', 'key' => 'payment_driver', 'value' => 'mock', 'type' => 'select', 'description' => '默认支付驱动', 'options' => ['mock','alipay','wechat','stripe','paypal','yipay'], 'is_public' => false],
             ['group' => 'payment', 'key' => 'alipay_enabled', 'value' => '0', 'type' => 'switch', 'description' => '启用支付宝', 'is_public' => false],
             ['group' => 'payment', 'key' => 'alipay_app_id', 'value' => '', 'type' => 'text', 'description' => '支付宝 App ID', 'is_public' => false],
             ['group' => 'payment', 'key' => 'alipay_private_key', 'value' => '', 'type' => 'password', 'description' => '支付宝应用私钥', 'is_public' => false],
@@ -122,6 +137,12 @@ class SiteSettingsSeeder extends Seeder
             ['group' => 'payment', 'key' => 'paypal_client_id', 'value' => '', 'type' => 'text', 'description' => 'PayPal Client ID', 'is_public' => false],
             ['group' => 'payment', 'key' => 'paypal_client_secret', 'value' => '', 'type' => 'password', 'description' => 'PayPal Client Secret', 'is_public' => false],
             ['group' => 'payment', 'key' => 'paypal_mode', 'value' => 'sandbox', 'type' => 'select', 'description' => 'PayPal 模式', 'options' => ['sandbox','live'], 'is_public' => false],
+            ['group' => 'payment', 'key' => 'yipay_enabled', 'value' => '0', 'type' => 'switch', 'description' => '启用易支付', 'is_public' => false],
+            ['group' => 'payment', 'key' => 'yipay_pid', 'value' => '', 'type' => 'text', 'description' => '易支付商户PID', 'is_public' => false],
+            ['group' => 'payment', 'key' => 'yipay_key', 'value' => '', 'type' => 'password', 'description' => '易支付密钥', 'is_public' => false],
+            ['group' => 'payment', 'key' => 'yipay_api_url', 'value' => 'https://pay.example.com/', 'type' => 'text', 'description' => '易支付API地址', 'is_public' => false],
+            ['group' => 'payment', 'key' => 'yipay_notify_url', 'value' => '', 'type' => 'text', 'description' => '易支付回调URL', 'is_public' => false],
+            ['group' => 'payment', 'key' => 'yipay_return_url', 'value' => '', 'type' => 'text', 'description' => '易支付跳转URL', 'is_public' => false],
 
             // 安全策略
             ['group' => 'security', 'key' => 'security_login_max_attempts', 'value' => '5', 'type' => 'text', 'description' => '登录最大失败次数', 'is_public' => false],
@@ -142,7 +163,7 @@ class SiteSettingsSeeder extends Seeder
             ['group' => 'registration', 'key' => 'registration_default_role', 'value' => 'tenant-admin', 'type' => 'select', 'description' => '默认注册角色', 'options' => ['tenant-admin','developer','viewer'], 'is_public' => false],
 
             // 时区/本地化
-            ['group' => 'localization', 'key' => 'default_locale', 'value' => 'zh-CN', 'type' => 'select', 'description' => '默认语言', 'options' => ['zh-CN','en','ja','ko'], 'is_public' => true],
+            ['group' => 'localization', 'key' => 'default_locale', 'value' => 'zh_CN', 'type' => 'select', 'description' => '默认语言', 'options' => ['zh_CN','en'], 'is_public' => true],
             ['group' => 'localization', 'key' => 'default_timezone', 'value' => 'Asia/Shanghai', 'type' => 'text', 'description' => '默认时区', 'is_public' => true],
             ['group' => 'localization', 'key' => 'date_format', 'value' => 'Y-m-d H:i:s', 'type' => 'text', 'description' => '日期格式', 'is_public' => true],
             ['group' => 'localization', 'key' => 'currency_default', 'value' => 'CNY', 'type' => 'select', 'description' => '默认货币', 'options' => ['CNY','USD','EUR','JPY'], 'is_public' => true],
@@ -172,14 +193,10 @@ class SiteSettingsSeeder extends Seeder
             ['group' => 'api', 'key' => 'api_version_default', 'value' => 'v1', 'type' => 'select', 'description' => '默认 API 版本', 'options' => ['v1','v2'], 'is_public' => false],
             ['group' => 'api', 'key' => 'api_docs_enabled', 'value' => '1', 'type' => 'switch', 'description' => '启用 API 文档', 'is_public' => true],
 
-            // 客服设置
-            ['group' => 'service', 'key' => 'service_chat_enabled', 'value' => '1', 'type' => 'switch', 'description' => '启用在线客服', 'is_public' => true],
+            // 客服设置（Live Chat widget 已下线：service_chat_enabled 默认关闭，chat_widget_* 不再入库）
+            ['group' => 'service', 'key' => 'service_chat_enabled', 'value' => '0', 'type' => 'switch', 'description' => '启用在线客服', 'is_public' => true],
             ['group' => 'service', 'key' => 'service_work_hours', 'value' => '周一至周五 9:00-18:00', 'type' => 'text', 'description' => '客服工作时间', 'is_public' => true],
             ['group' => 'service', 'key' => 'service_auto_reply_enabled', 'value' => '1', 'type' => 'switch', 'description' => '启用自动回复', 'is_public' => false],
-            ['group' => 'service', 'key' => 'chat_widget_position', 'value' => 'right', 'type' => 'select', 'options' => ['left', 'right'], 'description' => 'AI 智能客服浮窗位置（左/右）', 'is_public' => true],
-            ['group' => 'service', 'key' => 'chat_widget_bottom', 'value' => '24', 'type' => 'text', 'description' => 'AI 智能客服浮窗距离底部距离（px）', 'is_public' => true],
-            ['group' => 'service', 'key' => 'chat_widget_width', 'value' => '440', 'type' => 'text', 'description' => 'AI 智能客服窗口宽度（px）', 'is_public' => true],
-            ['group' => 'service', 'key' => 'chat_widget_height', 'value' => '640', 'type' => 'text', 'description' => 'AI 智能客服窗口高度（px）', 'is_public' => true],
             ['group' => 'service', 'key' => 'feedback_widget_position', 'value' => 'right', 'type' => 'select', 'options' => ['left', 'right'], 'description' => '反馈浮窗位置（左/右）', 'is_public' => true],
             ['group' => 'service', 'key' => 'feedback_widget_bottom', 'value' => '80', 'type' => 'text', 'description' => '反馈浮窗距离底部距离（px）', 'is_public' => true],
 
@@ -189,10 +206,16 @@ class SiteSettingsSeeder extends Seeder
             ['group' => 'legal', 'key' => 'legal_cookie_policy_url', 'value' => '/cookie-policy', 'type' => 'text', 'description' => 'Cookie 政策 URL', 'is_public' => true],
             ['group' => 'legal', 'key' => 'legal_gdpr_enabled', 'value' => '1', 'type' => 'switch', 'description' => '启用 GDPR 合规', 'is_public' => true],
 
-            // OAuth 补充
-            ['group' => 'oauth', 'key' => 'oauth_alipay_app_id', 'value' => '', 'type' => 'text', 'description' => '支付宝 App ID', 'is_public' => false],
-            ['group' => 'oauth', 'key' => 'oauth_alipay_private_key', 'value' => '', 'type' => 'password', 'description' => '支付宝应用私钥', 'is_public' => false],
-            ['group' => 'oauth', 'key' => 'oauth_alipay_enabled', 'value' => '0', 'type' => 'switch', 'description' => '启用支付宝登录', 'is_public' => false],
+            // OAuth（仅已实现跳转的四平台；Apple/支付宝未实现不入库开关）
+            ['group' => 'oauth', 'key' => 'oauth_wechat_enabled', 'value' => '0', 'type' => 'switch', 'description' => '启用微信登录', 'is_public' => false],
+            ['group' => 'oauth', 'key' => 'oauth_qq_enabled', 'value' => '0', 'type' => 'switch', 'description' => '启用QQ登录', 'is_public' => false],
+            ['group' => 'oauth', 'key' => 'oauth_google_enabled', 'value' => '0', 'type' => 'switch', 'description' => '启用Google登录', 'is_public' => false],
+            ['group' => 'oauth', 'key' => 'oauth_github_enabled', 'value' => '0', 'type' => 'switch', 'description' => '启用GitHub登录', 'is_public' => false],
+
+            // D-31: 微信小程序设置
+            ['group' => 'wechat', 'key' => 'wechat_mini_program_appid', 'value' => '', 'type' => 'text', 'description' => '微信小程序 AppID', 'is_public' => false],
+            ['group' => 'wechat', 'key' => 'wechat_mini_program_secret', 'value' => '', 'type' => 'password', 'description' => '微信小程序 AppSecret', 'is_public' => false],
+            ['group' => 'wechat', 'key' => 'wechat_mini_subscribe_template_id', 'value' => '', 'type' => 'text', 'description' => '小程序过期提醒订阅消息模板ID', 'is_public' => false],
         ];
 
         foreach ($settings as $setting) {

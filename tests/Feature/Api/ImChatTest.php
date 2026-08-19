@@ -510,7 +510,7 @@ class ImChatTest extends TestCase
     // ─────────────────────────────────────────
 
     /** @test */
-    public function user_can_request_handoff_from_user_chat_conversation()
+    public function creating_handoff_is_disabled()
     {
         $conv = UserConversation::create(['type' => 'private', 'created_by' => $this->userA->id]);
         ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userA->id, 'role' => 'member']);
@@ -528,32 +528,12 @@ class ImChatTest extends TestCase
             'reason' => 'user_request',
         ], $this->headers($this->tokenA));
 
-        $response->assertStatus(201)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.status', 'queued');
+        $response->assertStatus(410)
+            ->assertJsonPath('success', false);
 
-        $this->assertDatabaseHas('handoff_requests', [
-            'user_conversation_id' => $conv->id,
-            'user_id' => $this->userA->id,
-            'reason' => 'user_request',
-        ]);
-    }
-
-    /** @test */
-    public function non_participant_cannot_request_handoff_for_conversation()
-    {
-        $conv = UserConversation::create(['type' => 'private', 'created_by' => $this->userA->id]);
-        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userA->id, 'role' => 'member']);
-        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userB->id, 'role' => 'member']);
-
-        $response = $this->postJson('/api/handoff', [
-            'conversation_id' => $conv->id,
-        ], $this->headers($this->tokenC));
-
-        $response->assertStatus(422);
         $this->assertDatabaseMissing('handoff_requests', [
             'user_conversation_id' => $conv->id,
-            'user_id' => $this->userC->id,
+            'user_id' => $this->userA->id,
         ]);
     }
 
@@ -704,36 +684,92 @@ class ImChatTest extends TestCase
     // ─────────────────────────────────────────
 
     /** @test */
-    public function user_can_create_live_chat_conversation()
+    public function live_chat_conversation_api_is_removed()
     {
         $response = $this->postJson('/api/live-chat/conversations', [], $this->headers($this->tokenA));
 
-        $this->assertContains($response->status(), [200, 201]);
-        $response->assertJsonPath('success', true)
-            ->assertJsonStructure(['data' => ['id', 'session_id', 'status']]);
+        $response->assertStatus(404);
     }
 
     /** @test */
-    public function user_can_send_live_chat_message()
+    public function live_chat_message_api_is_removed()
     {
-        $create = $this->postJson('/api/live-chat/conversations', [], $this->headers($this->tokenA));
-        $convId = $create->json('data.id');
-
-        $response = $this->postJson("/api/live-chat/conversations/{$convId}/messages", [
+        $response = $this->postJson('/api/live-chat/conversations/1/messages', [
             'content' => 'hello, need help',
         ], $this->headers($this->tokenA));
 
-        $response->assertStatus(200)
-            ->assertJsonPath('success', true)
-            ->assertJsonStructure(['data' => ['message']]);
+        $response->assertStatus(404);
     }
 
     /** @test */
-    public function admin_can_access_live_chat_dashboard()
+    public function live_chat_admin_dashboard_api_is_removed()
     {
         $response = $this->getJson('/api/live-chat/admin/dashboard', $this->headers($this->tokenA));
 
-        $response->assertStatus(200)->assertJsonPath('success', true);
+        $response->assertStatus(404);
+    }
+
+    /** @test */
+    public function im_dashboard_returns_user_chat_stat_keys()
+    {
+        $conv = UserConversation::create(['type' => 'private', 'created_by' => $this->userA->id]);
+        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userA->id]);
+        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userB->id]);
+        ConversationMessage::create([
+            'conversation_id' => $conv->id,
+            'sender_id' => $this->userA->id,
+            'content' => 'dashboard ping',
+            'message_type' => 'text',
+        ]);
+
+        $response = $this->getJson('/api/im/dashboard', $this->headers($this->tokenA));
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'data' => [
+                    'total_conversations',
+                    'today_messages',
+                    'active_users',
+                    'total_canned',
+                ],
+            ]);
+
+        $this->assertGreaterThanOrEqual(1, $response->json('data.total_conversations'));
+        $this->assertGreaterThanOrEqual(1, $response->json('data.today_messages'));
+        $this->assertArrayNotHasKey('avg_response_time', $response->json('data'));
+        $this->assertArrayNotHasKey('avg_satisfaction', $response->json('data'));
+        $this->assertArrayNotHasKey('pending_handoffs', $response->json('data'));
+    }
+
+    /** @test */
+    public function cs_staff_group_and_auto_reply_apis_are_gone()
+    {
+        $this->getJson('/api/im/groups', $this->headers($this->tokenA))
+            ->assertStatus(410);
+        $this->postJson('/api/im/groups', ['name' => 'cs-desk'], $this->headers($this->tokenA))
+            ->assertStatus(410);
+
+        $this->getJson('/api/im/auto-reply-rules', $this->headers($this->tokenA))
+            ->assertStatus(410);
+        $this->postJson('/api/im/auto-reply-rules', [
+            'name' => 'cs-rule',
+            'reply_content' => 'hi',
+        ], $this->headers($this->tokenA))->assertStatus(410);
+
+        $this->getJson('/api/im/agent-performance', $this->headers($this->tokenA))
+            ->assertStatus(410);
+    }
+
+    /** @test */
+    public function chat_handoff_config_api_is_gone()
+    {
+        $this->getJson('/api/chat/handoff-config', $this->headers($this->tokenA))
+            ->assertStatus(410);
+        $this->postJson('/api/chat/handoff-config', [
+            'confidence_threshold' => 0.35,
+            'timeout_seconds' => 120,
+        ], $this->headers($this->tokenA))->assertStatus(410);
     }
 
     /** @test */
@@ -775,6 +811,37 @@ class ImChatTest extends TestCase
 
         $icePoll = $this->getJson("/api/calls/{$call->id}/signal-poll?type=ice_candidate", $this->headers($this->tokenB));
         $icePoll->assertStatus(200)->assertJsonPath('data.data.candidate', 'mock-ice-1');
+    }
+
+    /** @test */
+    public function unread_summary_lite_returns_unread_count_without_summary()
+    {
+        $created = $this->postJson('/api/user-chat/conversations', [
+            'participant_ids' => [$this->userB->id],
+        ], $this->headers($this->tokenA));
+        $this->assertContains($created->status(), [200, 201]);
+        $convId = $created->json('data.id');
+
+        ConversationParticipant::where('conversation_id', $convId)
+            ->where('user_id', $this->userA->id)
+            ->update(['unread_count' => 3]);
+        ConversationParticipant::where('conversation_id', $convId)
+            ->where('user_id', $this->userB->id)
+            ->update(['unread_count' => 1]);
+
+        $lite = $this->getJson('/api/user-chat/unread-summary?lite=1', $this->headers($this->tokenA));
+        $lite->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.has_unread', true)
+            ->assertJsonPath('data.total_unread', 3)
+            ->assertJsonPath('data.summary', null)
+            ->assertJsonPath('data.conversations', []);
+
+        ConversationParticipant::where('user_id', $this->userA->id)->update(['unread_count' => 0]);
+        $cleared = $this->getJson('/api/user-chat/unread-summary?lite=1', $this->headers($this->tokenA));
+        $cleared->assertStatus(200)
+            ->assertJsonPath('data.has_unread', false)
+            ->assertJsonPath('data.total_unread', 0);
     }
 }
 

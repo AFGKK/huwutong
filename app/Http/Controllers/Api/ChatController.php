@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\SiteSetting;
 use App\Services\ChatDialogEngineService;
 use App\Services\IntentRecognizer;
 use Illuminate\Http\JsonResponse;
@@ -118,7 +117,7 @@ class ChatController extends Controller
             $request->input('satisfied')
         );
 
-        return response()->json(['success' => true, 'message' => '感谢您的反馈']);
+        return response()->json(['success' => true, 'message' => __('app.controller_compat.chat_msg_121')]);
     }
 
     /**
@@ -146,67 +145,26 @@ class ChatController extends Controller
     }
 
     /**
-     * Handoff 转人工规则配置
+     * Handoff 规则配置已退役（IM 已无 Handoff 页；升级时创建工单）
      */
     public function handoffConfig(): JsonResponse
     {
-        $this->authorize('viewAny', \App\Models\RagConversation::class);
-
-        return response()->json([
-            'success' => true,
-            'data' => $this->resolveHandoffConfig(),
-        ]);
+        return $this->handoffConfigRetired();
     }
 
     /**
-     * 保存 Handoff 转人工规则配置
+     * 保存 Handoff 规则配置已退役
      */
     public function saveHandoffConfig(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', \App\Models\RagConversation::class);
-
-        $validated = $request->validate([
-            'confidence_threshold' => 'required|numeric|min:0|max:1',
-            'timeout_seconds' => 'required|integer|min:30|max:300',
-            'escalate_intents' => 'array',
-            'escalate_intents.*' => 'string|max:100',
-        ]);
-
-        SiteSetting::updateOrCreate(
-            ['key' => 'chat_handoff_config'],
-            [
-                'group' => 'ai',
-                'value' => json_encode($validated, JSON_UNESCAPED_UNICODE),
-                'type' => 'json',
-                'description' => 'AI 转人工 Handoff 规则',
-                'is_public' => false,
-            ]
-        );
-
-        return response()->json(['success' => true, 'message' => 'Handoff 配置已保存', 'data' => $validated]);
+        return $this->handoffConfigRetired();
     }
 
-    /**
-     * @return array{confidence_threshold: float, timeout_seconds: int, escalate_intents: array<int, string>}
-     */
-    protected function resolveHandoffConfig(): array
+    protected function handoffConfigRetired(): JsonResponse
     {
-        $defaults = [
-            'confidence_threshold' => 0.35,
-            'timeout_seconds' => 120,
-            'escalate_intents' => ['refund_request', 'complaint'],
-        ];
-
-        $raw = SiteSetting::where('key', 'chat_handoff_config')->value('value');
-        if (! $raw) {
-            return $defaults;
-        }
-
-        $stored = json_decode($raw, true);
-        if (! is_array($stored)) {
-            return $defaults;
-        }
-
-        return array_merge($defaults, $stored);
+        return response()->json([
+            'success' => false,
+            'message' => __('app.api.im.handoff_config_retired'),
+        ], 410);
     }
 }

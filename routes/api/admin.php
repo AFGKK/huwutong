@@ -39,7 +39,6 @@ use App\Http\Controllers\Api\MarketplaceRolloutController;
 use App\Http\Controllers\Api\MarketplaceSecurityController;
 use App\Http\Controllers\Api\DevPortalController;
 use App\Http\Controllers\Api\PaymentCallbackController;
-use App\Http\Controllers\Api\AutoInvoiceController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\RetentionController;
@@ -60,16 +59,14 @@ use App\Http\Controllers\Api\ContentSignatureController;
 use App\Http\Controllers\Api\ContentQualityController;
 use App\Http\Controllers\Api\ElectronicSignatureController;
 use App\Http\Controllers\Api\SelfLearningController;
-use App\Http\Controllers\Api\ImEnhanceController;
+use App\Http\Controllers\Api\ImController;
 use App\Http\Controllers\Api\ImIntegrationController;
 use App\Http\Controllers\Api\UserChatController;
 use App\Http\Controllers\Api\PollController;
 use App\Http\Controllers\Api\AnnouncementReadController;
 use App\Http\Controllers\Api\SlashCommandController;
 use App\Http\Controllers\Api\UserAutoReplyController;
-use App\Http\Controllers\Api\LiveChatController;
 use App\Http\Controllers\Api\AiFriendController;
-use App\Http\Controllers\Api\ImAdminController;
 use App\Http\Controllers\Api\FileUploadController;
 use App\Http\Controllers\Api\ThreadController;
 use App\Http\Controllers\Api\CallController;
@@ -80,7 +77,6 @@ use App\Http\Controllers\Api\StickerController;
 use App\Http\Controllers\Api\EmojiController;
 use App\Http\Controllers\Api\EnterpriseAIController;
 use App\Http\Controllers\Api\CodeSandboxController;
-use App\Http\Controllers\Api\AccessibilityController;
 use App\Http\Controllers\Api\A11yController;
 use App\Http\Controllers\Api\MediaSecurityAIController;
 use App\Http\Controllers\Api\PageController;
@@ -127,8 +123,7 @@ use App\Http\Controllers\Api\BlogCommentController;
 use App\Http\Controllers\Api\PromptTemplateController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\TenantController;
-use App\Http\Controllers\Api\AlertManagerController;
-use App\Http\Controllers\Api\AlertingController;
+use App\Http\Controllers\Api\AlertController;
 use App\Http\Controllers\Api\AnomalyDetectionController;
 use App\Http\Controllers\Api\ApiDocsController;
 use App\Http\Controllers\Api\AuditExportController;
@@ -204,6 +199,7 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::get('/domains/{domain}', [CustomDomainController::class, 'show'])->whereNumber('domain');
         Route::post('/domains/{domain}/verify', [CustomDomainController::class, 'verify'])->whereNumber('domain');
         Route::post('/domains/{domain}/ssl/issue', [CustomDomainController::class, 'issueSsl'])->whereNumber('domain');
+        Route::post('/domains/{domain}/ssl/upload', [CustomDomainController::class, 'uploadSsl'])->whereNumber('domain')->middleware('throttle:5,60');
         Route::get('/domains/{domain}/dns', [CustomDomainController::class, 'dnsInfo'])->whereNumber('domain');
         Route::put('/domains/{domain}/route', [CustomDomainController::class, 'updateRoute'])->whereNumber('domain');
         Route::delete('/domains/{domain}', [CustomDomainController::class, 'destroy'])->whereNumber('domain');
@@ -399,6 +395,14 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::get('/store-affiliate/campaigns/{campaign}/my-link', [StoreAffiliateController::class, 'myCampaignLink']);
         Route::get('/store-affiliate/my-agent', [StoreAffiliateController::class, 'myAgent']);
 
+        // AI 佣金推荐
+        Route::prefix('/store-affiliate/ai')->group(function () {
+            Route::post('/recommend-rate', [StoreAffiliateController::class, 'aiRecommendRate']);
+            Route::post('/batch-recommend', [StoreAffiliateController::class, 'aiBatchRecommend']);
+            Route::get('/campaign-presets', [StoreAffiliateController::class, 'aiCampaignPresets']);
+            Route::get('/efficiency-analysis', [StoreAffiliateController::class, 'aiEfficiencyAnalysis']);
+        });
+
         // Customer management
         Route::get('/customers', [CustomerController::class, 'index']);
         Route::post('/customers', [CustomerController::class, 'store']);
@@ -526,6 +530,7 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
 
         // Notification management
         Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::get('/notifications/interactions', [NotificationController::class, 'interactions']);
         Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
         Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->whereNumber('notification');
         Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
@@ -725,17 +730,17 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
             return \App\Http\ApiResponse::success(['enabled' => $data['enabled']], $data['enabled'] ? '自动续费已开启' : '自动续费已关闭');
         });
 
-        // ── 自助发票 ──
-        Route::get('/auto-invoice/stats', [AutoInvoiceController::class, 'stats']);
-        Route::get('/auto-invoice', [AutoInvoiceController::class, 'index']);
-        Route::get('/auto-invoice/{invoice}', [AutoInvoiceController::class, 'show'])->whereNumber('invoice');
-        Route::get('/auto-invoice/{invoice}/preview', [AutoInvoiceController::class, 'preview'])->whereNumber('invoice');
-        Route::post('/auto-invoice/{order}/generate', [AutoInvoiceController::class, 'generate'])->whereNumber('order');
-        Route::post('/auto-invoice/{invoice}/resend', [AutoInvoiceController::class, 'resend'])->whereNumber('invoice');
-        Route::get('/auto-invoice/titles/list', [AutoInvoiceController::class, 'titles']);
-        Route::post('/auto-invoice/titles', [AutoInvoiceController::class, 'storeTitle']);
-        Route::put('/auto-invoice/titles/{title}', [AutoInvoiceController::class, 'updateTitle'])->whereNumber('title');
-        Route::delete('/auto-invoice/titles/{title}', [AutoInvoiceController::class, 'destroyTitle'])->whereNumber('title');
+        // ── 自助发票（已合并至 BillingController）──
+        Route::get('/auto-invoice/stats', [BillingController::class, 'autoInvoiceStats']);
+        Route::get('/auto-invoice', [BillingController::class, 'tenantInvoices']);
+        Route::get('/auto-invoice/{invoice}', [BillingController::class, 'tenantInvoiceDetail'])->whereNumber('invoice');
+        Route::get('/auto-invoice/{invoice}/preview', [BillingController::class, 'invoicePreview'])->whereNumber('invoice');
+        Route::post('/auto-invoice/{order}/generate', [BillingController::class, 'generateFromOrder'])->whereNumber('order');
+        Route::post('/auto-invoice/{invoice}/resend', [BillingController::class, 'resendInvoice'])->whereNumber('invoice');
+        Route::get('/auto-invoice/titles/list', [BillingController::class, 'invoiceTitles']);
+        Route::post('/auto-invoice/titles', [BillingController::class, 'storeInvoiceTitle']);
+        Route::put('/auto-invoice/titles/{title}', [BillingController::class, 'updateInvoiceTitle'])->whereNumber('title');
+        Route::delete('/auto-invoice/titles/{title}', [BillingController::class, 'destroyInvoiceTitle'])->whereNumber('title');
 
         // Billing 订阅/方案/优惠券管理
         Route::post('/billing/subscriptions/{subscription}/suspend', [BillingController::class, 'suspend'])->whereNumber('subscription');
@@ -846,10 +851,14 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::post('/tickets/check-sla', [TicketController::class, 'checkSla']);
         Route::post('/tickets/categories', [TicketController::class, 'storeCategory']);
         Route::delete('/tickets/categories/{category}', [TicketController::class, 'destroyCategory'])->whereNumber('category');
-        Route::get('/tickets/my', [TicketController::class, 'myTickets']);
+        Route::post('/tickets/batch/close', [TicketController::class, 'batchClose']);
+        Route::post('/tickets/batch/assign', [TicketController::class, 'batchAssign']);
+        Route::post('/tickets/batch/delete', [TicketController::class, 'batchDelete']);
+        Route::get('/tickets/export/csv', [TicketController::class, 'exportCsv']);
 
         // Handoff (客服转接)
         Route::post('/handoff', [HandoffController::class, 'store']);
+        Route::get('/handoff/{handoff}/status', [HandoffController::class, 'status'])->whereNumber('handoff');
         Route::get('/handoff/{handoff}', [HandoffController::class, 'show'])->whereNumber('handoff');
         Route::get('/handoff/{handoff}/messages', [HandoffController::class, 'getMessages'])->whereNumber('handoff');
         Route::post('/handoff/{handoff}/messages', [HandoffController::class, 'sendMessage'])->whereNumber('handoff');
@@ -895,6 +904,7 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::post('/rag/rebuild', [RagController::class, 'rebuildIndex']);
         Route::get('/rag/stats', [RagController::class, 'stats']);
         Route::get('/chat/stats', [ChatController::class, 'stats']);
+        // Retired: IM Handoff tab removed; GET/POST return 410
         Route::get('/chat/handoff-config', [ChatController::class, 'handoffConfig']);
         Route::post('/chat/handoff-config', [ChatController::class, 'saveHandoffConfig']);
 
@@ -929,9 +939,31 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
             Route::post('/indexes/setup', [MeilisearchController::class, 'setupIndex']);
             Route::delete('/indexes', [MeilisearchController::class, 'deleteIndex']);
             Route::post('/sync', [MeilisearchController::class, 'sync']);
+            Route::post('/rebuild', [MeilisearchController::class, 'rebuild']);
             Route::get('/search', [MeilisearchController::class, 'search']);
+            Route::get('/suggest', [MeilisearchController::class, 'suggest']);
+            Route::get('/trending', [MeilisearchController::class, 'trending']);
+            Route::get('/unified-search', [MeilisearchController::class, 'unifiedSearch']);
             Route::post('/clear', [MeilisearchController::class, 'clear']);
             Route::get('/stats', [MeilisearchController::class, 'stats']);
+        });
+
+        // 🆕 全局搜索（GlobalSearchBar 用）
+        Route::prefix('search')->group(function () {
+            Route::get('/', [MeilisearchController::class, 'unifiedSearch']);
+            Route::get('/suggestions', [MeilisearchController::class, 'suggest']);
+            Route::get('/engine-status', [MeilisearchController::class, 'health']);
+            Route::post('/rebuild', [MeilisearchController::class, 'rebuild']);
+            Route::get('/index-status', [MeilisearchController::class, 'health']);
+            Route::get('/dashboard', [MeilisearchController::class, 'health']);
+            Route::get('/recent', [MeilisearchController::class, 'recent']);
+            Route::delete('/recent', [MeilisearchController::class, 'clearRecent']);
+            Route::delete('/recent/{id}', [MeilisearchController::class, 'deleteRecent'])->whereNumber('id');
+            Route::get('/bookmarks', [MeilisearchController::class, 'bookmarks']);
+            Route::post('/bookmarks/toggle', [MeilisearchController::class, 'toggleBookmark']);
+            Route::delete('/bookmarks/{id}', [MeilisearchController::class, 'deleteBookmark'])->whereNumber('id');
+            Route::get('/preferences', [MeilisearchController::class, 'preferences']);
+            Route::put('/preferences', [MeilisearchController::class, 'updatePreferences']);
         });
 
         // 🆕 AI 幻觉检测
@@ -979,46 +1011,47 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
 
         // 🆕 IM 增强功能
         Route::prefix('im')->group(function () {
-            Route::get('/canned-replies', [ImEnhanceController::class, 'cannedIndex']);
-            Route::post('/canned-replies', [ImEnhanceController::class, 'cannedStore']);
-            Route::put('/canned-replies/{id}', [ImEnhanceController::class, 'cannedUpdate'])->whereNumber('id');
-            Route::delete('/canned-replies/{id}', [ImEnhanceController::class, 'cannedDestroy'])->whereNumber('id');
-            Route::get('/tags', [ImEnhanceController::class, 'tagIndex']);
-            Route::post('/tags', [ImEnhanceController::class, 'tagStore']);
-            Route::put('/tags/{id}', [ImEnhanceController::class, 'tagUpdate'])->whereNumber('id');
-            Route::delete('/tags/{id}', [ImEnhanceController::class, 'tagDestroy'])->whereNumber('id');
-            Route::post('/tags/assign', [ImEnhanceController::class, 'tagAssign']);
-            Route::post('/tags/get-assigned', [ImEnhanceController::class, 'tagGetAssigned']);
-            Route::get('/sensitive-words', [ImEnhanceController::class, 'sensitiveIndex']);
-            Route::post('/sensitive-words', [ImEnhanceController::class, 'sensitiveStore']);
-            Route::put('/sensitive-words/{id}', [ImEnhanceController::class, 'sensitiveUpdate'])->whereNumber('id');
-            Route::delete('/sensitive-words/{id}', [ImEnhanceController::class, 'sensitiveDestroy'])->whereNumber('id');
-            Route::post('/sensitive-words/test', [ImEnhanceController::class, 'sensitiveTest']);
-            Route::post('/sensitive-words/import', [ImEnhanceController::class, 'sensitiveImport']);
-            Route::get('/sensitive-words/export', [ImEnhanceController::class, 'sensitiveExport']);
-            Route::get('/groups', [ImEnhanceController::class, 'groupIndex']);
-            Route::post('/groups', [ImEnhanceController::class, 'groupStore']);
-            Route::put('/groups/{id}', [ImEnhanceController::class, 'groupUpdate'])->whereNumber('id');
-            Route::delete('/groups/{id}', [ImEnhanceController::class, 'groupDestroy'])->whereNumber('id');
-            Route::post('/groups/add-member', [ImEnhanceController::class, 'groupAddMember']);
-            Route::delete('/groups/{groupId}/members/{userId}', [ImEnhanceController::class, 'groupRemoveMember'])->whereNumber('groupId')->whereNumber('userId');
-            Route::get('/auto-reply-rules', [ImEnhanceController::class, 'ruleIndex']);
-            Route::post('/auto-reply-rules', [ImEnhanceController::class, 'ruleStore']);
-            Route::put('/auto-reply-rules/{id}', [ImEnhanceController::class, 'ruleUpdate'])->whereNumber('id');
-            Route::delete('/auto-reply-rules/{id}', [ImEnhanceController::class, 'ruleDestroy'])->whereNumber('id');
-            Route::get('/conversations/{id}/export', [ImEnhanceController::class, 'exportConversation'])->whereNumber('id');
-            Route::post('/upload', [ImEnhanceController::class, 'uploadChatFile']);
-            Route::post('/messages/mark-read', [ImEnhanceController::class, 'markAsRead']);
-            Route::post('/conversations/{id}/pin', [ImEnhanceController::class, 'togglePin'])->whereNumber('id');
-            Route::post('/conversations/{id}/mute', [ImEnhanceController::class, 'toggleMute'])->whereNumber('id');
-            Route::delete('/conversations/{id}', [ImEnhanceController::class, 'softDeleteConv'])->whereNumber('id');
-            Route::post('/conversations/{id}/restore', [ImEnhanceController::class, 'restoreConv'])->whereNumber('id');
-            Route::put('/conversations/{id}/draft', [ImEnhanceController::class, 'saveDraft'])->whereNumber('id');
-            Route::get('/messages/search', [ImEnhanceController::class, 'searchMessages']);
-            Route::get('/conversations/unread', [ImEnhanceController::class, 'unreadConversations']);
-            Route::get('/notify-config', [ImEnhanceController::class, 'notifyConfig']);
-            Route::get('/agent-performance', [ImEnhanceController::class, 'agentPerformance']);
-            Route::get('/dashboard', [ImEnhanceController::class, 'imDashboard']);
+            Route::get('/canned-replies', [ImController::class, 'cannedIndex']);
+            Route::post('/canned-replies', [ImController::class, 'cannedStore']);
+            Route::put('/canned-replies/{id}', [ImController::class, 'cannedUpdate'])->whereNumber('id');
+            Route::delete('/canned-replies/{id}', [ImController::class, 'cannedDestroy'])->whereNumber('id');
+            Route::get('/tags', [ImController::class, 'tagIndex']);
+            Route::post('/tags', [ImController::class, 'tagStore']);
+            Route::put('/tags/{id}', [ImController::class, 'tagUpdate'])->whereNumber('id');
+            Route::delete('/tags/{id}', [ImController::class, 'tagDestroy'])->whereNumber('id');
+            Route::post('/tags/assign', [ImController::class, 'tagAssign']);
+            Route::post('/tags/get-assigned', [ImController::class, 'tagGetAssigned']);
+            Route::get('/sensitive-words', [ImController::class, 'sensitiveIndex']);
+            Route::post('/sensitive-words', [ImController::class, 'sensitiveStore']);
+            Route::put('/sensitive-words/{id}', [ImController::class, 'sensitiveUpdate'])->whereNumber('id');
+            Route::delete('/sensitive-words/{id}', [ImController::class, 'sensitiveDestroy'])->whereNumber('id');
+            Route::post('/sensitive-words/test', [ImController::class, 'sensitiveTest']);
+            Route::post('/sensitive-words/import', [ImController::class, 'sensitiveImport']);
+            Route::get('/sensitive-words/export', [ImController::class, 'sensitiveExport']);
+            // Retired CS AgentGroup (410). User groups: /im-admin/groups, /user-chat/groups
+            Route::get('/groups', [ImController::class, 'groupIndex']);
+            Route::post('/groups', [ImController::class, 'groupStore']);
+            Route::put('/groups/{id}', [ImController::class, 'groupUpdate'])->whereNumber('id');
+            Route::delete('/groups/{id}', [ImController::class, 'groupDestroy'])->whereNumber('id');
+            Route::post('/groups/add-member', [ImController::class, 'groupAddMember']);
+            Route::delete('/groups/{groupId}/members/{userId}', [ImController::class, 'groupRemoveMember'])->whereNumber('groupId')->whereNumber('userId');
+            Route::get('/auto-reply-rules', [ImController::class, 'ruleIndex']);
+            Route::post('/auto-reply-rules', [ImController::class, 'ruleStore']);
+            Route::put('/auto-reply-rules/{id}', [ImController::class, 'ruleUpdate'])->whereNumber('id');
+            Route::delete('/auto-reply-rules/{id}', [ImController::class, 'ruleDestroy'])->whereNumber('id');
+            Route::get('/conversations/{id}/export', [ImController::class, 'exportConversation'])->whereNumber('id');
+            Route::post('/upload', [ImController::class, 'uploadChatFile']);
+            Route::post('/messages/mark-read', [ImController::class, 'markAsRead']);
+            Route::post('/conversations/{id}/pin', [ImController::class, 'togglePin'])->whereNumber('id');
+            Route::post('/conversations/{id}/mute', [ImController::class, 'toggleMute'])->whereNumber('id');
+            Route::delete('/conversations/{id}', [ImController::class, 'softDeleteConv'])->whereNumber('id');
+            Route::post('/conversations/{id}/restore', [ImController::class, 'restoreConv'])->whereNumber('id');
+            Route::put('/conversations/{id}/draft', [ImController::class, 'saveDraft'])->whereNumber('id');
+            Route::get('/messages/search', [ImController::class, 'searchMessages']);
+            Route::get('/conversations/unread', [ImController::class, 'unreadConversations']);
+            Route::get('/notify-config', [ImController::class, 'notifyConfig']);
+            Route::get('/agent-performance', [ImController::class, 'agentPerformance']); // retired CS KPI (410)
+            Route::get('/dashboard', [ImController::class, 'imDashboard']);
             Route::post('/slack/test', [ImIntegrationController::class, 'testSlack']);
             Route::post('/dingtalk/test', [ImIntegrationController::class, 'testDingTalk']);
             Route::post('/wecom/test', [ImIntegrationController::class, 'testWeCom']);
@@ -1030,6 +1063,8 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::prefix('user-chat')->group(function () {
             Route::post('/conversations', [UserChatController::class, 'createConversation']);
             Route::post('/seller-inquiry', [UserChatController::class, 'startSellerInquiry']);
+            Route::post('/order-inquiry', [UserChatController::class, 'startOrderInquiry']);
+            Route::post('/ticket-inquiry', [UserChatController::class, 'startTicketInquiry']);
             Route::get('/conversations', [UserChatController::class, 'myConversations']);
             Route::get('/message-requests', [UserChatController::class, 'messageRequests']);
             Route::post('/message-requests/{id}/accept', [UserChatController::class, 'acceptMessageRequest'])->whereNumber('id');
@@ -1051,6 +1086,7 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
             Route::get('/conversations/hidden', [UserChatController::class, 'hiddenConversations']);
             Route::post('/privacy-pin/set', [UserChatController::class, 'setPrivacyPin']);
             Route::post('/privacy-pin/verify', [UserChatController::class, 'verifyPrivacyPin']);
+            Route::post('/privacy-pin/remove', [UserChatController::class, 'removePrivacyPin']);
             Route::get('/privacy-pin/status', [UserChatController::class, 'privacyPinStatus']);
             Route::post('/polls', [PollController::class, 'create']);
             Route::get('/polls/{poll}', [PollController::class, 'show'])->whereNumber('poll');
@@ -1098,6 +1134,9 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
             Route::post('/announcements/{id}/read', [UserChatController::class, 'markAnnouncementRead'])->whereNumber('id');
             Route::get('/announcements/{id}/read-progress', [AnnouncementReadController::class, 'readProgress'])->whereNumber('id');
             Route::get('/announcement-stats', [AnnouncementReadController::class, 'announcementStats']);
+            Route::get('/announcement-reads', [AnnouncementReadController::class, 'index']);
+            Route::post('/announcement-reads', [AnnouncementReadController::class, 'store']);
+            Route::delete('/announcement-reads/{id}', [AnnouncementReadController::class, 'destroy'])->whereNumber('id');
             Route::post('/slash-command', [SlashCommandController::class, 'execute']);
             Route::get('/slash-commands', [SlashCommandController::class, 'commands']);
             Route::get('/auto-reply', [UserAutoReplyController::class, 'index']);
@@ -1151,6 +1190,7 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
             Route::post('/recommend-products', [UserChatController::class, 'recommendProducts']);
             Route::post('/conversations/{conv}/send-product-card', [UserChatController::class, 'sendProductCard'])->whereNumber('conv');
             Route::post('/conversations/{conv}/send-order-card', [UserChatController::class, 'sendOrderCard'])->whereNumber('conv');
+            Route::post('/conversations/{conv}/send-aftersale-card', [UserChatController::class, 'sendAftersaleCard'])->whereNumber('conv');
             Route::post('/conversations/{conv}/send-custom-card', [UserChatController::class, 'sendCustomCard'])->whereNumber('conv');
             Route::post('/messages/forward', [UserChatController::class, 'forwardMessages']);
             Route::get('/conversations/forwardable', [UserChatController::class, 'forwardableConversations']);
@@ -1163,20 +1203,6 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
             Route::get('/messages/sync', [UserChatController::class, 'syncMessages']);
             Route::get('/messages/search-fulltext', [UserChatController::class, 'searchMessagesFulltext']);
             Route::post('/messages/{message}/transcribe', [UserChatController::class, 'transcribeVoice'])->whereNumber('message');
-        });
-
-        // ── 在线客服 Live Chat ──
-        Route::prefix('live-chat')->group(function () {
-            Route::post('/conversations', [LiveChatController::class, 'createConversation']);
-            Route::post('/conversations/{conversation}/messages', [LiveChatController::class, 'sendMessage'])->whereNumber('conversation');
-            Route::get('/conversations/{conversation}/messages', [LiveChatController::class, 'getMessages'])->whereNumber('conversation');
-            Route::post('/conversations/{conversation}/close', [LiveChatController::class, 'closeConversation'])->whereNumber('conversation');
-            Route::middleware('auth:sanctum')->group(function () {
-                Route::get('/admin/dashboard', [LiveChatController::class, 'dashboard']);
-                Route::get('/admin/conversations', [LiveChatController::class, 'conversations']);
-                Route::post('/admin/handoffs/{handoff}/accept', [LiveChatController::class, 'acceptHandoff'])->whereNumber('handoff');
-                Route::get('/admin/pending-handoffs', [LiveChatController::class, 'pendingHandoffs']);
-            });
         });
     }); // end mask
 }); // end auth:sanctum
@@ -1377,7 +1403,13 @@ Route::middleware(['auth:sanctum', 'ability:admin,super-admin', 'tenant'])->pref
     Route::post('/official-accounts/{id}/reject', [OaAdminController::class, 'adminReject'])->whereNumber('id');
     Route::post('/official-accounts/{id}/review-appeal', [OaAdminController::class, 'adminReviewAppeal'])->whereNumber('id');
     Route::post('/official-accounts/{id}/verify', [OaAdminController::class, 'adminVerify'])->whereNumber('id');
-    Route::post('/official-accounts/{id}/review-verify', [OaAdminController::class, 'adminReviewVerify'])->whereNumber('id');
+        Route::post('/official-accounts/{id}/review-verify', [OaAdminController::class, 'adminReviewVerify'])->whereNumber('id');
+
+        // OA 分类管理
+        Route::get('/official-accounts/admin/categories', [OaAdminController::class, 'adminCategories']);
+        Route::post('/official-accounts/admin/categories', [OaAdminController::class, 'adminStoreCategory']);
+        Route::put('/official-accounts/admin/categories/{id}', [OaAdminController::class, 'adminUpdateCategory'])->whereNumber('id');
+        Route::delete('/official-accounts/admin/categories/{id}', [OaAdminController::class, 'adminDestroyCategory'])->whereNumber('id');
     // 文章审核管理
     Route::get('/articles/manage', [OaAdminController::class, 'adminArticles']);
     Route::get('/articles/{id}', [OaAdminController::class, 'adminArticleShow'])->whereNumber('id');
@@ -1393,6 +1425,7 @@ Route::middleware(['auth:sanctum', 'ability:admin,super-admin', 'tenant'])->pref
     Route::get('/appeals', [AdminAppealController::class, 'index']);
     Route::get('/appeals/stats', [AdminAppealController::class, 'stats']);
     Route::get('/appeals/{id}', [AdminAppealController::class, 'show'])->whereNumber('id');
+    Route::post('/appeals/{id}/start-review', [AdminAppealController::class, 'startReview'])->whereNumber('id');
     Route::post('/appeals/{id}/review', [AdminAppealController::class, 'review'])->whereNumber('id');
     // 自定义 Emoji 管理
     Route::get('/emoji', [EmojiController::class, 'index']);
@@ -1411,8 +1444,9 @@ Route::middleware(['auth:sanctum', 'ability:admin,super-admin', 'tenant'])->pref
     Route::delete('/tenants/{tenant}', [TenantController::class, 'destroy'])->whereNumber('tenant');
     Route::post('/tenants/{tenant}/toggle-status', [TenantController::class, 'toggleStatus'])->whereNumber('tenant');
     // 聊天 FAQ 管理
-    Route::get('/chat-faqs', [ChatFaqController::class, 'index']);
+    Route::get('/chat-faqs', [ChatFaqController::class, 'adminIndex']);
     Route::post('/chat-faqs', [ChatFaqController::class, 'store']);
+    Route::post('/chat-faqs/reorder', [ChatFaqController::class, 'reorder']);
     Route::get('/chat-faqs/{faq}', [ChatFaqController::class, 'show']);
     Route::put('/chat-faqs/{faq}', [ChatFaqController::class, 'update']);
     Route::delete('/chat-faqs/{faq}', [ChatFaqController::class, 'destroy']);
@@ -1454,7 +1488,9 @@ Route::prefix('admin/cloud-upload')->middleware(['auth:sanctum', 'ability:admin,
     Route::get('/', [CloudUploadController::class, 'index']);
     Route::get('/dashboard', [CloudUploadController::class, 'dashboard']);
     Route::get('/{cloudUpload}/url', [CloudUploadController::class, 'url']);
+    Route::get('/{id}/preview', [CloudUploadController::class, 'preview']);
     Route::delete('/{cloudUpload}', [CloudUploadController::class, 'destroy']);
+    Route::patch('/{cloudUpload}/visibility', [CloudUploadController::class, 'toggleVisibility']);
 });
 
 // ── 广场系统 ──
@@ -1890,50 +1926,50 @@ Route::middleware(['auth:sanctum'])->prefix('cross-sell')->group(function () {
 
 // ── 告警疲劳管理 (AlertManager) ──
 Route::middleware(['auth:sanctum', 'ability:admin,super-admin'])->prefix('alert-manager')->group(function () {
-    Route::get('/dashboard', [AlertManagerController::class, 'dashboard']);
-    Route::get('/aggregate', [AlertManagerController::class, 'aggregate']);
-    Route::get('/aggregation-groups', [AlertManagerController::class, 'aggregationGroups']);
-    Route::get('/aggregation-groups/{groupKey}', [AlertManagerController::class, 'aggregationDetail']);
-    Route::get('/silence-rules', [AlertManagerController::class, 'listSilenceRules']);
-    Route::post('/silence-rules', [AlertManagerController::class, 'storeSilenceRule']);
-    Route::put('/silence-rules/{id}', [AlertManagerController::class, 'updateSilenceRule'])->whereNumber('id');
-    Route::delete('/silence-rules/{id}', [AlertManagerController::class, 'deleteSilenceRule'])->whereNumber('id');
-    Route::post('/silence-rules/{id}/toggle', [AlertManagerController::class, 'toggleSilenceRule'])->whereNumber('id');
-    Route::get('/fatigue/{ruleId}', [AlertManagerController::class, 'checkFatigue'])->whereNumber('ruleId');
-    Route::post('/auto-downgrade', [AlertManagerController::class, 'autoDowngrade']);
-    Route::get('/fatigue-settings', [AlertManagerController::class, 'listFatigueSettings']);
-    Route::post('/fatigue-settings', [AlertManagerController::class, 'storeFatigueSetting']);
-    Route::put('/fatigue-settings/{id}', [AlertManagerController::class, 'updateFatigueSetting'])->whereNumber('id');
-    Route::delete('/fatigue-settings/{id}', [AlertManagerController::class, 'deleteFatigueSetting'])->whereNumber('id');
-    Route::post('/digest', [AlertManagerController::class, 'generateDigest']);
-    Route::get('/noise-analysis', [AlertManagerController::class, 'noiseAnalysis']);
-    Route::get('/notification-stats', [AlertManagerController::class, 'notificationStats']);
+    Route::get('/dashboard', [AlertController::class, 'managementDashboard']);
+    Route::get('/aggregate', [AlertController::class, 'aggregate']);
+    Route::get('/aggregation-groups', [AlertController::class, 'aggregationGroups']);
+    Route::get('/aggregation-groups/{groupKey}', [AlertController::class, 'aggregationDetail']);
+    Route::get('/silence-rules', [AlertController::class, 'listSilenceRules']);
+    Route::post('/silence-rules', [AlertController::class, 'storeSilenceRule']);
+    Route::put('/silence-rules/{id}', [AlertController::class, 'updateSilenceRule'])->whereNumber('id');
+    Route::delete('/silence-rules/{id}', [AlertController::class, 'deleteSilenceRule'])->whereNumber('id');
+    Route::post('/silence-rules/{id}/toggle', [AlertController::class, 'toggleSilenceRule'])->whereNumber('id');
+    Route::get('/fatigue/{ruleId}', [AlertController::class, 'checkFatigue'])->whereNumber('ruleId');
+    Route::post('/auto-downgrade', [AlertController::class, 'autoDowngrade']);
+    Route::get('/fatigue-settings', [AlertController::class, 'listFatigueSettings']);
+    Route::post('/fatigue-settings', [AlertController::class, 'storeFatigueSetting']);
+    Route::put('/fatigue-settings/{id}', [AlertController::class, 'updateFatigueSetting'])->whereNumber('id');
+    Route::delete('/fatigue-settings/{id}', [AlertController::class, 'deleteFatigueSetting'])->whereNumber('id');
+    Route::post('/digest', [AlertController::class, 'generateDigest']);
+    Route::get('/noise-analysis', [AlertController::class, 'noiseAnalysis']);
+    Route::get('/notification-stats', [AlertController::class, 'notificationStats']);
 });
 
 // ── 智能告警 (Alerting) ──
 Route::middleware(['auth:sanctum', 'ability:admin,super-admin'])->prefix('alerting')->group(function () {
-    Route::get('/dashboard', [AlertingController::class, 'dashboard']);
-    Route::get('/rules', [AlertingController::class, 'rules']);
-    Route::get('/rules/{id}', [AlertingController::class, 'ruleShow'])->whereNumber('id');
-    Route::post('/rules', [AlertingController::class, 'ruleStore']);
-    Route::put('/rules/{alertRule}', [AlertingController::class, 'ruleUpdate']);
-    Route::delete('/rules/{alertRule}', [AlertingController::class, 'ruleDestroy']);
-    Route::get('/channels', [AlertingController::class, 'channels']);
-    Route::post('/channels', [AlertingController::class, 'channelStore']);
-    Route::put('/channels/{alertChannel}', [AlertingController::class, 'channelUpdate']);
-    Route::delete('/channels/{alertChannel}', [AlertingController::class, 'channelDestroy']);
-    Route::post('/channels/{alertChannel}/test', [AlertingController::class, 'testChannel']);
-    Route::get('/escalations', [AlertingController::class, 'escalations']);
-    Route::post('/escalations', [AlertingController::class, 'escalationStore']);
-    Route::put('/escalations/{alertEscalation}', [AlertingController::class, 'escalationUpdate']);
-    Route::delete('/escalations/{id}', [AlertingController::class, 'escalationDestroy'])->whereNumber('id');
-    Route::get('/events', [AlertingController::class, 'events']);
-    Route::get('/events/{id}', [AlertingController::class, 'eventShow'])->whereNumber('id');
-    Route::post('/events/{alertEvent}/acknowledge', [AlertingController::class, 'acknowledgeEvent']);
-    Route::post('/events/{alertEvent}/resolve', [AlertingController::class, 'resolveEvent']);
-    Route::get('/event-stats', [AlertingController::class, 'eventStats']);
-    Route::get('/metric-types', [AlertingController::class, 'metricTypes']);
-    Route::get('/severities', [AlertingController::class, 'severities']);
+    Route::get('/dashboard', [AlertController::class, 'dashboard']);
+    Route::get('/rules', [AlertController::class, 'rules']);
+    Route::get('/rules/{id}', [AlertController::class, 'showRule'])->whereNumber('id');
+    Route::post('/rules', [AlertController::class, 'storeRule']);
+    Route::put('/rules/{alertRule}', [AlertController::class, 'updateRule']);
+    Route::delete('/rules/{alertRule}', [AlertController::class, 'destroyRule']);
+    Route::get('/channels', [AlertController::class, 'channels']);
+    Route::post('/channels', [AlertController::class, 'channelStore']);
+    Route::put('/channels/{alertChannel}', [AlertController::class, 'channelUpdate']);
+    Route::delete('/channels/{alertChannel}', [AlertController::class, 'channelDestroy']);
+    Route::post('/channels/{alertChannel}/test', [AlertController::class, 'testChannel']);
+    Route::get('/escalations', [AlertController::class, 'escalations']);
+    Route::post('/escalations', [AlertController::class, 'escalationStore']);
+    Route::put('/escalations/{alertEscalation}', [AlertController::class, 'escalationUpdate']);
+    Route::delete('/escalations/{id}', [AlertController::class, 'escalationDestroy'])->whereNumber('id');
+    Route::get('/events', [AlertController::class, 'events']);
+    Route::get('/events/{id}', [AlertController::class, 'showAlertingEvent'])->whereNumber('id');
+    Route::post('/events/{alertEvent}/acknowledge', [AlertController::class, 'acknowledgeEvent']);
+    Route::post('/events/{alertEvent}/resolve', [AlertController::class, 'resolveEvent']);
+    Route::get('/event-stats', [AlertController::class, 'eventStats']);
+    Route::get('/metric-types', [AlertController::class, 'metricTypes']);
+    Route::get('/severities', [AlertController::class, 'severities']);
 });
 
 // ── 异常检测 (AnomalyDetection) ──
@@ -2323,21 +2359,21 @@ Route::prefix('ai-friends')->middleware(['auth:sanctum'])->group(function () {
 
 // ── IM 管理后台 ──
 Route::prefix('im-admin')->middleware(['auth:sanctum', 'ability:admin,super-admin'])->group(function () {
-    Route::get('/users', [ImAdminController::class, 'users']);
-    Route::get('/users/{id}', [ImAdminController::class, 'userDetail'])->whereNumber('id');
-    Route::get('/groups', [ImAdminController::class, 'groups']);
-    Route::get('/groups/{id}', [ImAdminController::class, 'groupDetail'])->whereNumber('id');
-    Route::delete('/groups/{id}', [ImAdminController::class, 'dismissGroup'])->whereNumber('id');
-    Route::get('/messages', [ImAdminController::class, 'messageAudit']);
-    Route::delete('/messages/{id}', [ImAdminController::class, 'deleteMessage'])->whereNumber('id');
-    Route::get('/dashboard', [ImAdminController::class, 'dashboard']);
-    Route::get('/reports', [ImAdminController::class, 'reports']);
-    Route::post('/reports/{id}/resolve', [ImAdminController::class, 'resolveReport'])->whereNumber('id');
-    Route::get('/conversations', [ImAdminController::class, 'conversations']);
-    Route::get('/conversations/{id}', [ImAdminController::class, 'conversationDetail'])->whereNumber('id');
-    Route::delete('/conversations/{id}', [ImAdminController::class, 'deleteConversation'])->whereNumber('id');
-    Route::post('/users/{id}/ban', [ImAdminController::class, 'banUser'])->whereNumber('id');
-    Route::post('/users/{id}/unban', [ImAdminController::class, 'unbanUser'])->whereNumber('id');
+    Route::get('/users', [ImController::class, 'users']);
+    Route::get('/users/{id}', [ImController::class, 'userDetail'])->whereNumber('id');
+    Route::get('/groups', [ImController::class, 'groups']);
+    Route::get('/groups/{id}', [ImController::class, 'groupDetail'])->whereNumber('id');
+    Route::delete('/groups/{id}', [ImController::class, 'dismissGroup'])->whereNumber('id');
+    Route::get('/messages', [ImController::class, 'messageAudit']);
+    Route::delete('/messages/{id}', [ImController::class, 'deleteMessage'])->whereNumber('id');
+    Route::get('/dashboard', [ImController::class, 'dashboard']);
+    Route::get('/reports', [ImController::class, 'reports']);
+    Route::post('/reports/{id}/resolve', [ImController::class, 'resolveReport'])->whereNumber('id');
+    Route::get('/conversations', [ImController::class, 'conversations']);
+    Route::get('/conversations/{id}', [ImController::class, 'conversationDetail'])->whereNumber('id');
+    Route::delete('/conversations/{id}', [ImController::class, 'deleteConversation'])->whereNumber('id');
+    Route::post('/users/{id}/ban', [ImController::class, 'banUser'])->whereNumber('id');
+    Route::post('/users/{id}/unban', [ImController::class, 'unbanUser'])->whereNumber('id');
 });
 
 // ── 文件传输增强 ──
@@ -2358,6 +2394,7 @@ Route::prefix('threads')->middleware(['auth:sanctum'])->group(function () {
 
 // ── 音视频通话 ──
 Route::prefix('calls')->middleware(['auth:sanctum'])->group(function () {
+    Route::get('/ice-servers', [CallController::class, 'iceServers']);
     Route::get('/incoming', [CallController::class, 'pendingIncoming']);
     Route::post('/call', [CallController::class, 'call']);
     Route::post('/{id}/respond', [CallController::class, 'respond'])->whereNumber('id');
@@ -2410,6 +2447,7 @@ Route::prefix('stickers')->middleware(['auth:sanctum'])->group(function () {
     Route::post('/packs/{pack}/stickers', [StickerController::class, 'addSticker'])->whereNumber('pack');
     Route::delete('/packs/{id}', [StickerController::class, 'deletePack'])->whereNumber('id');
     Route::post('/send/{conv}', [StickerController::class, 'sendSticker'])->whereNumber('conv');
+    Route::post('/upload', [StickerController::class, 'uploadSticker']);
     Route::get('/search-gif', [StickerController::class, 'searchGif']);
     Route::get('/emojis/frequent', [StickerController::class, 'frequentEmojis']);
 });
@@ -2451,11 +2489,11 @@ Route::prefix('code-sandbox')->middleware(['auth:sanctum'])->group(function () {
 
 // ── 无障碍 AI ──
 Route::prefix('a11y')->middleware(['auth:sanctum'])->group(function () {
-    Route::post('/image-alt', [AccessibilityController::class, 'imageAlt']);
-    Route::post('/describe-image', [AccessibilityController::class, 'describeImage']);
-    Route::get('/message-summary/{message}', [AccessibilityController::class, 'messageSummary'])->whereNumber('message');
-    Route::get('/conversation-summary/{conv}', [AccessibilityController::class, 'conversationSummary'])->whereNumber('conv');
-    Route::get('/default-settings', [AccessibilityController::class, 'defaultSettings']);
+    Route::post('/image-alt', [A11yController::class, 'imageAlt']);
+    Route::post('/describe-image', [A11yController::class, 'describeImage']);
+    Route::get('/message-summary/{message}', [A11yController::class, 'messageSummary'])->whereNumber('message');
+    Route::get('/conversation-summary/{conv}', [A11yController::class, 'conversationSummary'])->whereNumber('conv');
+    Route::get('/default-settings', [A11yController::class, 'defaultSettings']);
     Route::get('/guidelines', [A11yController::class, 'guidelines']);
     Route::get('/stats', [A11yController::class, 'stats']);
     Route::get('/report', [A11yController::class, 'report']);

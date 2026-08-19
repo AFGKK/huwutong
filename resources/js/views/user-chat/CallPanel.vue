@@ -6,11 +6,11 @@
             <div v-if="minimized" class="call-minibar" @click="minimized = false">
                 <div class="minibar-avatar">{{ callPartner?.name?.charAt(0) || '?' }}</div>
                 <div class="minibar-info">
-                    <div class="minibar-name">{{ callPartner?.name || '对方' }}</div>
+                    <div class="minibar-name">{{ callPartner?.name || t('call_panel.peer') }}</div>
                     <div class="minibar-status">{{ callStatusText }}</div>
                 </div>
                 <div class="minibar-timer" v-if="callTimer">{{ callTimer }}</div>
-                <el-button circle size="small" type="danger" @click.stop="endCall" title="挂断">
+                <el-button circle size="small" type="danger" @click.stop="endCall" :title="t('call_panel.hangup')">
                     <el-icon><Phone style="transform:rotate(135deg)" /></el-icon>
                 </el-button>
             </div>
@@ -19,13 +19,13 @@
             <template v-else>
                 <div class="call-header">
                     <div class="call-header-left">
-                        <el-button text size="small" @click="minimized = true" title="最小化">
+                        <el-button text size="small" @click="minimized = true" :title="t('call_panel.minimize')">
                             <el-icon><Minus /></el-icon>
                         </el-button>
                     </div>
-                    <div class="call-header-title">{{ callType === 'video' ? '📹 视频通话' : '📞 语音通话' }}</div>
+                    <div class="call-header-title">{{ callType === 'video' ? t('call_panel.video_call') : t('call_panel.audio_call') }}</div>
                     <div class="call-header-right">
-                        <el-button text size="small" @click="endCall" title="挂断">
+                        <el-button text size="small" @click="endCall" :title="t('call_panel.hangup')">
                             <el-icon><Close /></el-icon>
                         </el-button>
                     </div>
@@ -36,7 +36,7 @@
                     <video ref="remoteVideoRef" autoplay playsinline class="remote-video-el"></video>
                     <div v-if="!hasRemoteMedia" class="remote-video-fallback">
                         <div class="remote-avatar-large">{{ callPartner?.name?.charAt(0) || '?' }}</div>
-                        <div class="remote-name">{{ callPartner?.name || '对方' }}</div>
+                        <div class="remote-name">{{ callPartner?.name || t('call_panel.peer') }}</div>
                     </div>
                     <video ref="localVideoRef" autoplay playsinline muted class="local-video-el"></video>
                 </div>
@@ -46,32 +46,32 @@
                     <div class="audio-avatar-wrap">
                         <div class="audio-avatar-large">{{ callPartner?.name?.charAt(0) || '?' }}</div>
                     </div>
-                    <div class="audio-name">{{ callPartner?.name || '对方' }}</div>
+                    <div class="audio-name">{{ callPartner?.name || t('call_panel.peer') }}</div>
                     <div class="audio-status">{{ callStatusText }}</div>
                     <div v-if="callTimer" class="audio-timer">{{ callTimer }}</div>
                 </div>
 
                 <!-- 通话控制栏 -->
                 <div class="call-controls">
-                    <el-button v-if="callState === 'calling'" circle type="danger" size="large" @click="endCall" title="挂断">
+                    <el-button v-if="callState === 'calling'" circle type="danger" size="large" @click="endCall" :title="t('call_panel.hangup')">
                         <el-icon :size="24"><Phone style="transform:rotate(135deg)" /></el-icon>
                     </el-button>
                     <template v-if="callState === 'ringing'">
-                        <el-button circle type="success" size="large" @click="answerCall" title="接听">
+                        <el-button circle type="success" size="large" @click="answerCall" :title="t('call_panel.answer')">
                             <el-icon :size="24"><Phone /></el-icon>
                         </el-button>
-                        <el-button circle type="danger" size="large" @click="endCall" title="拒绝">
+                        <el-button circle type="danger" size="large" @click="endCall" :title="t('call_panel.reject')">
                             <el-icon :size="24"><Phone style="transform:rotate(135deg)" /></el-icon>
                         </el-button>
                     </template>
                     <template v-if="callState === 'connected'">
-                        <el-button circle :type="muted ? 'warning' : 'default'" size="large" @click="toggleMute" :title="muted ? '取消静音' : '静音'">
+                        <el-button circle :type="muted ? 'warning' : 'default'" size="large" @click="toggleMute" :title="muted ? t('call_panel.unmute') : t('call_panel.mute')">
                             <el-icon :size="20"><Mute v-if="muted" /><Microphone v-else /></el-icon>
                         </el-button>
-                        <el-button circle type="danger" size="large" @click="endCall" title="挂断">
+                        <el-button circle type="danger" size="large" @click="endCall" :title="t('call_panel.hangup')">
                             <el-icon :size="24"><Phone style="transform:rotate(135deg)" /></el-icon>
                         </el-button>
-                        <el-button circle :type="speakerOn ? 'primary' : 'default'" size="large" @click="speakerOn = !speakerOn" :title="speakerOn ? '听筒' : '扬声器'">
+                        <el-button circle :type="speakerOn ? 'primary' : 'default'" size="large" @click="speakerOn = !speakerOn" :title="speakerOn ? t('call_panel.earpiece') : t('call_panel.speaker')">
                             <el-icon :size="20"><MuteNotification v-if="speakerOn" /><Bell v-else /></el-icon>
                         </el-button>
                     </template>
@@ -84,9 +84,12 @@
 
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Phone, Microphone, Mute, Bell, MuteNotification, Minus, Close } from '@element-plus/icons-vue'
 import callsApi from '@/api/calls'
+
+const { t } = useI18n()
 
 const props = defineProps({
     modelValue: { type: String, default: 'idle' },
@@ -121,14 +124,31 @@ let peerConnection = null
 let localStream = null
 let remoteDescriptionSet = false
 
-const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }]
+const DEFAULT_ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }]
+let iceServersCache = null
+
+async function resolveIceServers() {
+    if (iceServersCache) return iceServersCache
+    try {
+        const res = await callsApi.iceServers()
+        const servers = res.data?.data?.ice_servers ?? res.data?.ice_servers
+        if (Array.isArray(servers) && servers.length > 0) {
+            iceServersCache = servers
+            return iceServersCache
+        }
+    } catch (e) {
+        console.warn('[Call] ICE servers fetch failed:', e.message)
+    }
+    iceServersCache = DEFAULT_ICE_SERVERS
+    return iceServersCache
+}
 
 const callStatusText = computed(() => {
     switch (callState.value) {
-        case 'calling': return '正在呼叫...'
-        case 'ringing': return '来电...'
-        case 'connected': return '通话中'
-        case 'ended': return '已结束'
+        case 'calling': return t('call_panel.status.calling')
+        case 'ringing': return t('call_panel.status.ringing')
+        case 'connected': return t('call_panel.status.connected')
+        case 'ended': return t('call_panel.status.ended')
         default: return ''
     }
 })
@@ -147,7 +167,7 @@ async function startCall(calleeId, type, convId) {
         startStatusPolling(data.call_id)
         await setupWebRTC('caller')
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '呼叫失败')
+        ElMessage.error(e.response?.data?.message || t('call_panel.messages.call_failed'))
         callState.value = 'idle'
     }
 }
@@ -162,7 +182,7 @@ async function answerCall() {
         callRole = 'callee'
         await setupWebRTC('callee')
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '接听失败')
+        ElMessage.error(e.response?.data?.message || t('call_panel.messages.answer_failed'))
     }
 }
 
@@ -203,10 +223,10 @@ function startStatusPolling(callId) {
                 startTimer()
                 stopStatusPolling()
             } else if (status === 'rejected') {
-                ElMessage.info('对方拒绝了通话')
+                ElMessage.info(t('call_panel.messages.rejected'))
                 await endCall()
             } else if (status === 'ended') {
-                ElMessage.info('通话已结束')
+                ElMessage.info(t('call_panel.messages.ended'))
                 await endCall()
             }
         } catch { stopStatusPolling() }
@@ -252,7 +272,8 @@ async function setupWebRTC(role) {
         console.warn('[Call] getUserMedia failed:', e.message)
     }
 
-    peerConnection = new RTCPeerConnection({ iceServers: ICE_SERVERS })
+    const iceServers = await resolveIceServers()
+    peerConnection = new RTCPeerConnection({ iceServers })
     remoteDescriptionSet = false
 
     if (localStream) {
@@ -371,7 +392,7 @@ onUnmounted(() => {
 .call-overlay { position: fixed; bottom: 20px; right: 20px; z-index: 2000; }
 .call-panel { width: 340px; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.15); overflow: hidden; border: 1px solid #e4e7ed; }
 .call-minimized .call-panel { width: 280px; }
-.call-minibar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; cursor: pointer; background: linear-gradient(135deg, #409eff, #337ecc); color: #fff; }
+.call-minibar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; cursor: pointer; background: linear-gradient(135deg, #0f172a, #1e293b); color: #fff; }
 .minibar-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
 .minibar-info { flex: 1; min-width: 0; }
 .minibar-name { font-size: 13px; font-weight: 600; }
@@ -382,12 +403,12 @@ onUnmounted(() => {
 .call-video-area { position: relative; height: 240px; background: #1a1a2e; overflow: hidden; }
 .remote-video-el { width: 100%; height: 100%; object-fit: cover; background: #1a1a2e; }
 .remote-video-fallback { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; pointer-events: none; }
-.remote-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #409eff, #66b1ff); display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; margin-bottom: 12px; }
+.remote-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, #66b1ff); display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; margin-bottom: 12px; }
 .remote-name { font-size: 16px; }
-.local-video-el { position: absolute; bottom: 12px; right: 12px; width: 80px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #409eff; background: #2a2a4a; z-index: 2; }
+.local-video-el { position: absolute; bottom: 12px; right: 12px; width: 80px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #0f172a; background: #2a2a4a; z-index: 2; }
 .call-audio-area { text-align: center; padding: 32px 20px; }
 .audio-avatar-wrap { margin-bottom: 12px; }
-.audio-avatar-large { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #409eff, #66b1ff); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: #fff; margin: 0 auto; }
+.audio-avatar-large { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, #66b1ff); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: #fff; margin: 0 auto; }
 .audio-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
 .audio-status { font-size: 13px; color: #909399; margin-bottom: 4px; }
 .audio-timer { font-size: 14px; color: #606266; font-weight: 600; font-variant-numeric: tabular-nums; }

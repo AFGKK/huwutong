@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\ConversationMessage;
 use App\Models\ConversationParticipant;
 use App\Models\HandoffRequest;
 use App\Models\Tenant;
@@ -14,6 +13,9 @@ use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * 人工客服队列已退役：accept / messages 等变更接口统一 410。
+ */
 class ImChatHandoffDmTest extends TestCase
 {
     use RefreshDatabase;
@@ -56,15 +58,8 @@ class ImChatHandoffDmTest extends TestCase
         return ['Authorization' => 'Bearer ' . $token];
     }
 
-    private function userHeaders(): array
-    {
-        $token = $this->userA->createToken('user-test', ['*'])->plainTextToken;
-
-        return ['Authorization' => 'Bearer ' . $token];
-    }
-
     /** @test */
-    public function accept_user_chat_handoff_posts_system_message_in_dm(): void
+    public function accept_user_chat_handoff_is_disabled(): void
     {
         $conv = UserConversation::create(['type' => 'private', 'created_by' => $this->userA->id]);
         ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userA->id, 'role' => 'member']);
@@ -82,24 +77,17 @@ class ImChatHandoffDmTest extends TestCase
             'queued_at' => now(),
         ]);
 
-        $r = $this->postJson("/api/handoff/{$handoff->id}/accept", [], $this->agentHeaders());
-        $r->assertStatus(200)->assertJsonPath('success', true);
+        $this->postJson("/api/handoff/{$handoff->id}/accept", [], $this->agentHeaders())
+            ->assertStatus(410)
+            ->assertJsonPath('success', false);
 
         $handoff->refresh();
-        $dmId = $handoff->dmConversationId();
-        $this->assertNotNull($dmId);
-        $this->assertDatabaseHas('conversation_messages', [
-            'conversation_id' => $dmId,
-            'message_type' => 'system',
-        ]);
-        $this->assertDatabaseHas('conversation_participants', [
-            'conversation_id' => $dmId,
-            'user_id' => $this->agent->id,
-        ]);
+        $this->assertEquals('queued', $handoff->status);
+        $this->assertNull($handoff->assigned_to);
     }
 
     /** @test */
-    public function agent_reply_routes_to_dm_not_agent_messages(): void
+    public function agent_reply_via_handoff_messages_is_disabled(): void
     {
         $conv = UserConversation::create(['type' => 'private', 'created_by' => $this->userA->id]);
         ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userA->id, 'role' => 'member']);
@@ -118,75 +106,33 @@ class ImChatHandoffDmTest extends TestCase
         ]);
         ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->agent->id, 'role' => 'member']);
 
-        $r = $this->postJson("/api/handoff/{$handoff->id}/messages", ['content' => '您好，有什么可以帮您？'], $this->agentHeaders());
-        $r->assertStatus(200);
+        $this->postJson("/api/handoff/{$handoff->id}/messages", ['content' => '您好，有什么可以帮您？'], $this->agentHeaders())
+            ->assertStatus(410)
+            ->assertJsonPath('success', false);
 
-        $this->assertDatabaseHas('conversation_messages', [
+        $this->assertDatabaseMissing('conversation_messages', [
             'conversation_id' => $conv->id,
             'sender_id' => $this->agent->id,
             'content' => '您好，有什么可以帮您？',
         ]);
-        $this->assertDatabaseMissing('agent_messages', [
-            'handoff_request_id' => $handoff->id,
-            'content' => '您好，有什么可以帮您？',
-        ]);
     }
 
     /** @test */
-    public function peer_chat_handoff_creates_separate_agent_dm(): void
+    public function handoff_queue_is_gone(): void
     {
-        $seller = User::factory()->create(['tenant_id' => $this->tenant->id, 'name' => 'Seller']);
-        $conv = UserConversation::create(['type' => 'private', 'created_by' => $this->userA->id]);
-        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userA->id, 'role' => 'member']);
-        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $seller->id, 'role' => 'member']);
-
-        $handoff = HandoffRequest::create([
+        HandoffRequest::create([
             'tenant_id' => $this->tenant->id,
-            'user_conversation_id' => $conv->id,
             'user_id' => $this->userA->id,
             'reason' => 'user_request',
             'status' => 'queued',
             'priority' => 'medium',
+            'queue_position' => 1,
             'metadata' => ['source' => 'user_chat'],
             'queued_at' => now(),
         ]);
 
-        $this->postJson("/api/handoff/{$handoff->id}/accept", [], $this->agentHeaders())->assertStatus(200);
-
-        $handoff->refresh();
-        $dmId = $handoff->dmConversationId();
-        $this->assertNotNull($dmId);
-        $this->assertNotEquals($conv->id, $dmId);
-
-        $this->assertDatabaseHas('conversation_participants', ['conversation_id' => $dmId, 'user_id' => $this->userA->id]);
-        $this->assertDatabaseHas('conversation_participants', ['conversation_id' => $dmId, 'user_id' => $this->agent->id]);
-        $this->assertDatabaseMissing('conversation_participants', ['conversation_id' => $conv->id, 'user_id' => $this->agent->id]);
-    }
-
-    /** @test */
-    public function user_can_see_dm_messages_after_agent_accepts(): void
-    {
-        $conv = UserConversation::create(['type' => 'private', 'created_by' => $this->userA->id]);
-        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->userA->id, 'role' => 'member']);
-
-        $handoff = HandoffRequest::create([
-            'tenant_id' => $this->tenant->id,
-            'user_conversation_id' => $conv->id,
-            'user_id' => $this->userA->id,
-            'reason' => 'user_request',
-            'status' => 'queued',
-            'priority' => 'medium',
-            'metadata' => ['source' => 'user_chat'],
-            'queued_at' => now(),
-        ]);
-
-        $this->postJson("/api/handoff/{$handoff->id}/accept", [], $this->agentHeaders())->assertStatus(200);
-        $this->postJson("/api/handoff/{$handoff->id}/messages", ['content' => '人工回复内容'], $this->agentHeaders())->assertStatus(200);
-
-        $handoff->refresh();
-        $r = $this->getJson("/api/user-chat/conversations/{$handoff->dmConversationId()}/messages", $this->userHeaders());
-        $r->assertStatus(200);
-        $contents = collect($r->json('data'))->pluck('content')->all();
-        $this->assertContains('人工回复内容', $contents);
+        $this->getJson('/api/handoffs/queue', $this->agentHeaders())
+            ->assertStatus(410)
+            ->assertJsonPath('success', false);
     }
 }
