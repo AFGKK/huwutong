@@ -163,4 +163,72 @@ class AuthTest extends TestCase
             'token' => hash('sha256', explode('|', $token)[1] ?? $token),
         ]);
     }
+
+    public function test_phone_send_code_and_login_creates_user(): void
+    {
+        config(['sms.driver' => 'log']);
+
+        $send = $this->postJson('/api/phone/send-code', [
+            'phone' => '13900139000',
+            'scene' => 'login',
+        ]);
+        $send->assertOk()->assertJsonPath('success', true);
+
+        $code = \Illuminate\Support\Facades\Cache::get('phone_code:13900139000');
+        $this->assertNotEmpty($code);
+
+        $login = $this->postJson('/api/phone/login', [
+            'phone' => '13900139000',
+            'code' => $code,
+        ]);
+
+        $login->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data' => ['user', 'token', 'is_new']]);
+
+        $this->assertDatabaseHas('users', [
+            'phone' => '13900139000',
+        ]);
+        $this->assertNull(User::where('phone', '13900139000')->value('email'));
+    }
+
+    public function test_phone_register_with_password(): void
+    {
+        config(['sms.driver' => 'log']);
+
+        $this->postJson('/api/phone/send-code', [
+            'phone' => '13900139001',
+            'scene' => 'register',
+        ])->assertOk();
+
+        $code = \Illuminate\Support\Facades\Cache::get('phone_code:13900139001');
+
+        $response = $this->postJson('/api/phone/register', [
+            'name' => '手机用户',
+            'phone' => '13900139001',
+            'code' => $code,
+            'password' => 'Test@123456',
+            'password_confirmation' => 'Test@123456',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data' => ['user', 'token']]);
+
+        $this->assertDatabaseHas('users', [
+            'phone' => '13900139001',
+            'name' => '手机用户',
+        ]);
+    }
+
+    public function test_phone_register_rejects_existing_phone_on_send_code(): void
+    {
+        User::factory()->create(['phone' => '13900139002', 'email' => 'p2@example.com']);
+
+        $this->postJson('/api/phone/send-code', [
+            'phone' => '13900139002',
+            'scene' => 'register',
+        ])->assertStatus(422)
+            ->assertJsonPath('error.code', 'PHONE_EXISTS');
+    }
 }

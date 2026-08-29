@@ -81,9 +81,12 @@ class SiteSettingsSeeder extends Seeder
 
             // 短信配置
             ['group' => 'sms', 'key' => 'sms_driver', 'value' => 'log', 'type' => 'select', 'description' => '短信驱动（目前支持 log / aliyun）', 'options' => ['log','aliyun'], 'is_public' => false],
+            ['group' => 'sms', 'key' => 'sms_phone_auth_enabled', 'value' => '1', 'type' => 'switch', 'description' => '启用手机号验证码登录/注册', 'is_public' => true],
             ['group' => 'sms', 'key' => 'sms_aliyun_key', 'value' => '', 'type' => 'password', 'description' => '阿里云 AccessKey', 'is_public' => false],
             ['group' => 'sms', 'key' => 'sms_aliyun_secret', 'value' => '', 'type' => 'password', 'description' => '阿里云 AccessSecret', 'is_public' => false],
             ['group' => 'sms', 'key' => 'sms_aliyun_sign', 'value' => '', 'type' => 'text', 'description' => '阿里云短信签名', 'is_public' => false],
+            ['group' => 'sms', 'key' => 'sms_aliyun_template', 'value' => '', 'type' => 'text', 'description' => '阿里云验证码短信模板 Code（如 SMS_xxx）', 'is_public' => false],
+            ['group' => 'sms', 'key' => 'sms_aliyun_notify_template', 'value' => '', 'type' => 'text', 'description' => '阿里云通知类短信模板 Code（可选）', 'is_public' => false],
             ['group' => 'sms', 'key' => 'sms_tencent_app_id', 'value' => '', 'type' => 'text', 'description' => '腾讯云 AppID', 'is_public' => false],
             ['group' => 'sms', 'key' => 'sms_tencent_key', 'value' => '', 'type' => 'password', 'description' => '腾讯云 AppKey', 'is_public' => false],
             ['group' => 'sms', 'key' => 'sms_tencent_sign', 'value' => '', 'type' => 'text', 'description' => '腾讯云短信签名', 'is_public' => false],

@@ -5,14 +5,21 @@
         <div class="brand-logo" v-if="branding.logo_url">
           <img :src="branding.logo_url" :alt="branding.brand_name" class="logo-img" />
         </div>
-        <el-icon v-else :size="40" :color="branding.primary_color || '#409eff'"><Key /></el-icon>
+        <el-icon v-else :size="40" :color="branding.primary_color || '#0f172a'"><Key /></el-icon>
         <h2 :style="{ color: branding.text_color || '#303133' }">
-          {{ branding.login_page_title || branding.brand_name || 'HWT License 管理后台' }}
+          {{ branding.login_page_title || branding.brand_name || $t('auth.login_fallback_title') }}
         </h2>
-        <p class="text-gray-400">{{ branding.login_page_subtitle || '请登录您的账户' }}</p>
+        <p class="text-gray-400">{{ branding.login_page_subtitle || $t('auth.login_subtitle') }}</p>
       </div>
 
+      <el-tabs v-model="loginMode" class="login-tabs">
+        <el-tab-pane :label="$t('auth.tab_password')" name="password" />
+        <el-tab-pane :label="$t('auth.tab_phone')" name="phone" />
+      </el-tabs>
+
+      <!-- 邮箱密码登录 -->
       <el-form
+        v-show="loginMode === 'password'"
         ref="formRef"
         :model="form"
         :rules="rules"
@@ -20,19 +27,19 @@
         size="large"
         @keyup.enter="handleLogin"
       >
-        <el-form-item label="邮箱" prop="email">
+        <el-form-item :label="$t('auth.email')" prop="email">
           <el-input
             v-model="form.email"
-            placeholder="请输入邮箱"
+            :placeholder="$t('auth.email_ph')"
             :prefix-icon="UserFilled"
           />
         </el-form-item>
 
-        <el-form-item label="密码" prop="password">
+        <el-form-item :label="$t('auth.password')" prop="password">
           <el-input
             v-model="form.password"
             type="password"
-            placeholder="请输入密码"
+            :placeholder="$t('auth.password_ph')"
             show-password
             :prefix-icon="Lock"
           />
@@ -47,35 +54,86 @@
             :style="{ borderRadius: branding.button_radius || '4px' }"
             @click="handleLogin"
           >
-            {{ authStore.loading ? '登录中...' : '登 录' }}
+            {{ authStore.loading ? $t('auth.logging_in') : $t('auth.login_btn') }}
           </el-button>
         </el-form-item>
       </el-form>
 
+      <!-- 手机验证码登录 -->
+      <el-form
+        v-show="loginMode === 'phone'"
+        ref="phoneFormRef"
+        :model="phoneForm"
+        :rules="phoneRules"
+        label-position="top"
+        size="large"
+        @keyup.enter="handlePhoneLogin"
+      >
+        <el-form-item :label="$t('auth.phone')" prop="phone">
+          <el-input
+            v-model="phoneForm.phone"
+            :placeholder="$t('auth.phone_required_ph')"
+            :prefix-icon="Iphone"
+            maxlength="11"
+          />
+        </el-form-item>
+
+        <el-form-item :label="$t('auth.verify_code')" prop="code">
+          <div class="code-row">
+            <el-input
+              v-model="phoneForm.code"
+              :placeholder="$t('auth.verify_code_ph')"
+              maxlength="6"
+            />
+            <el-button
+              :disabled="phoneCodeCountdown > 0 || phoneCodeSending"
+              :loading="phoneCodeSending"
+              @click="sendLoginCode"
+            >
+              {{ phoneCodeCountdown > 0 ? $t('auth.code_resend_in', { n: phoneCodeCountdown }) : $t('auth.send_verify_code') }}
+            </el-button>
+          </div>
+        </el-form-item>
+
+        <el-form-item>
+          <el-button
+            type="primary"
+            :loading="authStore.loading"
+            class="w-full"
+            size="large"
+            :style="{ borderRadius: branding.button_radius || '4px' }"
+            @click="handlePhoneLogin"
+          >
+            {{ authStore.loading ? $t('auth.logging_in') : $t('auth.login_btn') }}
+          </el-button>
+        </el-form-item>
+        <p class="phone-login-hint">{{ $t('auth.phone_login_hint') }}</p>
+      </el-form>
+
       <!-- 分隔线 -->
-      <div class="divider"><span class="divider-text">或使用其他方式</span></div>
+      <div class="divider"><span class="divider-text">{{ $t('auth.or_other') }}</span></div>
 
       <!-- 魔法链接 -->
       <div class="alt-login-section">
         <div class="magic-link-row" v-if="!magicLinkSent">
-          <el-input v-model="magicEmail" placeholder="输入邮箱接收登录链接" size="default" class="magic-input" :disabled="magicLoading" />
-          <el-button type="primary" plain :loading="magicLoading" size="default" @click="sendMagicLink">发送链接</el-button>
+          <el-input v-model="magicEmail" :placeholder="$t('auth.magic_ph')" size="default" class="magic-input" :disabled="magicLoading" />
+          <el-button type="primary" plain :loading="magicLoading" size="default" @click="sendMagicLink">{{ $t('auth.magic_send') }}</el-button>
         </div>
         <div v-else class="magic-success">
           <el-icon :size="18" color="#67c23a"><CircleCheck /></el-icon>
           <div class="magic-success-text">
-            <span>登录链接已发送到 <strong>{{ obfuscateEmail(magicEmail) }}</strong></span>
-            <span class="magic-hint">请查收邮件，点击链接即可登录（链接 10 分钟内有效）</span>
+            <span>{{ $t('auth.magic_sent') }} <strong>{{ obfuscateEmail(magicEmail) }}</strong></span>
+            <span class="magic-hint">{{ $t('auth.magic_hint') }}</span>
           </div>
           <div class="magic-actions">
             <el-button v-if="magicCountdown > 0" size="small" disabled text>
-              {{ magicCountdown }}s 后重发
+              {{ $t('auth.magic_resend_in', { n: magicCountdown }) }}
             </el-button>
             <el-button v-else size="small" text type="primary" :loading="magicLoading" @click="sendMagicLink">
-              重新发送
+              {{ $t('auth.magic_resend') }}
             </el-button>
             <el-button size="small" text @click="magicLinkSent = false; magicEmail = ''; clearMagicTimer()">
-              更换邮箱
+              {{ $t('auth.magic_change_email') }}
             </el-button>
           </div>
         </div>
@@ -87,13 +145,13 @@
           <el-icon :size="16" style="margin-right:4px"><Link /></el-icon> Passkey
         </el-button>
         <el-button type="warning" plain size="default" class="flex-1" @click="showQrPanel = !showQrPanel">
-          <el-icon :size="16" style="margin-right:4px"><Camera /></el-icon> 扫码
+          <el-icon :size="16" style="margin-right:4px"><Camera /></el-icon> {{ $t('auth.scan_qr') }}
         </el-button>
-        <el-button plain size="default" class="flex-1" @click="$router.push('/forgot-password')">忘记密码</el-button>
+        <el-button plain size="default" class="flex-1" @click="$router.push('/forgot-password')">{{ $t('auth.forgot_password') }}</el-button>
       </div>
       <div v-if="!passkeySupported" class="passkey-hint">
         <el-icon :size="12" color="#909399"><Warning /></el-icon>
-        <span>当前浏览器不支持 Passkey，请使用 Chrome/Edge/Safari 最新版</span>
+        <span>{{ $t('auth.passkey_unsupported') }}</span>
       </div>
 
       <!-- 扫码面板 -->
@@ -101,32 +159,32 @@
         <div class="qr-placeholder">
           <template v-if="!qrSessionId">
             <el-icon :size="48" color="#909399"><Camera /></el-icon>
-            <p>打开手机端扫描下方二维码登录</p>
-            <el-button type="primary" size="small" :loading="qrLoading" @click="createQrSession">生成二维码</el-button>
+            <p>{{ $t('auth.qr_hint') }}</p>
+            <el-button type="primary" size="small" :loading="qrLoading" @click="createQrSession">{{ $t('auth.qr_generate') }}</el-button>
           </template>
           <template v-else-if="qrImageUrl">
-            <img :src="qrImageUrl" class="qr-code-img" alt="扫码登录" />
-            <p class="text-sm text-gray-500 mt-2">请使用手机扫码确认登录</p>
-            <p class="text-xs text-gray-400 mt-1">二维码有效期 5 分钟</p>
+            <img :src="qrImageUrl" class="qr-code-img" :alt="$t('auth.qr_alt')" />
+            <p class="text-sm text-gray-500 mt-2">{{ $t('auth.qr_scan_hint') }}</p>
+            <p class="text-xs text-gray-400 mt-1">{{ $t('auth.qr_ttl') }}</p>
             <div class="flex items-center justify-center gap-2 mt-3">
               <el-icon class="is-loading" :size="16"><Loading /></el-icon>
-              <span class="text-sm text-gray-500">等待扫码...</span>
+              <span class="text-sm text-gray-500">{{ $t('auth.qr_waiting') }}</span>
             </div>
-            <el-button size="small" class="mt-3" @click="cancelQr">取消</el-button>
+            <el-button size="small" class="mt-3" @click="cancelQr">{{ $t('auth.cancel') }}</el-button>
           </template>
           <template v-else>
             <el-icon class="is-loading" :size="24"><Loading /></el-icon>
-            <p>生成二维码中...</p>
+            <p>{{ $t('auth.qr_generating') }}</p>
           </template>
         </div>
       </div>
 
       <!-- 社交登录（仅显示已配置的提供商） -->
       <div class="social-login" v-if="availableProviders.length > 0">
-        <span class="social-label">社交账号登录</span>
+        <span class="social-label">{{ $t('auth.social_login') }}</span>
         <div class="social-icons">
           <template v-for="p in availableProviders" :key="p.provider">
-            <el-tooltip :content="`${p.name} 登录`" placement="top">
+            <el-tooltip :content="$t('auth.provider_login', { name: p.name })" placement="top">
               <el-button circle class="social-btn" :style="{ color: p.color, borderColor: p.color }" @click="oauthLogin(p.provider)">
                 <span class="social-icon">{{ providerIcon(p.provider) }}</span>
               </el-button>
@@ -136,8 +194,8 @@
       </div>
 
       <div class="login-footer">
-        <router-link to="/status" class="status-link">系统状态</router-link>
-        <router-link to="/appeal" class="appeal-link">账号申诉</router-link>
+        <router-link to="/status" class="status-link">{{ $t('auth.status_page') }}</router-link>
+        <router-link to="/appeal" class="appeal-link">{{ $t('auth.appeal') }}</router-link>
         <span class="text-gray-400">{{ branding.footer_text || '© 2026 HWT License' }}</span>
       </div>
     </div>
@@ -152,16 +210,21 @@
 <script setup>
 import { reactive, ref, onMounted, computed, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
-import { UserFilled, Lock, Key, Loading, CircleCheck, Link, Camera, Promotion, Warning } from '@element-plus/icons-vue';
+import { UserFilled, Lock, Key, Loading, CircleCheck, Link, Camera, Promotion, Warning, Iphone } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import apiClient from '@/api/client';
+import authApi from '@/api/auth';
 import QRCode from 'qrcode';
 
 const router = useRouter();
 const route = useRoute();
+const { t } = useI18n();
 const authStore = useAuthStore();
 const formRef = ref(null);
+const phoneFormRef = ref(null);
+const loginMode = ref('password');
 const loadingBranding = ref(true);
 const magicEmail = ref('');
 const magicLoading = ref(false);
@@ -176,10 +239,13 @@ const qrImageUrl = ref(null);
 const qrLoading = ref(false);
 const availableProviders = ref([]);
 let qrPollTimer = null;
+const phoneCodeSending = ref(false);
+const phoneCodeCountdown = ref(0);
+let phoneCodeTimer = null;
 
 const branding = reactive({
-  brand_name: 'HWT License 管理后台',
-  primary_color: '#409eff',
+  brand_name: '',
+  primary_color: '#0f172a',
   secondary_color: '#67c23a',
   text_color: '#303133',
   login_page_title: '',
@@ -195,16 +261,32 @@ const form = reactive({
   password: '',
 });
 
-const rules = {
+const phoneForm = reactive({
+  phone: '',
+  code: '',
+});
+
+const rules = computed(() => ({
   email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' },
+    { required: true, message: t('auth.email_required'), trigger: 'blur' },
+    { type: 'email', message: t('auth.email_invalid'), trigger: 'blur' },
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码至少 6 位', trigger: 'blur' },
+    { required: true, message: t('auth.password_ph'), trigger: 'blur' },
+    { min: 6, message: t('auth.password_min'), trigger: 'blur' },
   ],
-};
+}));
+
+const phoneRules = computed(() => ({
+  phone: [
+    { required: true, message: t('auth.phone_required'), trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: t('auth.phone_invalid'), trigger: 'blur' },
+  ],
+  code: [
+    { required: true, message: t('auth.verify_code_required'), trigger: 'blur' },
+    { len: 6, message: t('auth.verify_code_len'), trigger: 'blur' },
+  ],
+}));
 
 const bgStyle = computed(() => {
   // 优先使用品牌的背景图片，否则用渐变色
@@ -216,12 +298,12 @@ const bgStyle = computed(() => {
     };
   }
   return {
-    background: `linear-gradient(135deg, ${branding.primary_color || '#667eea'} 0%, ${adjustColor(branding.primary_color || '#764ba2', -30)} 100%)`,
+    background: `linear-gradient(135deg, ${branding.primary_color || '#0f172a'} 0%, ${adjustColor(branding.primary_color || '#1e293b', -30)} 100%)`,
   };
 });
 
 const cardStyle = computed(() => ({
-  '--brand-primary': branding.primary_color || '#409eff',
+  '--brand-primary': branding.primary_color || '#0f172a',
   borderRadius: '12px',
 }));
 
@@ -231,8 +313,8 @@ async function loadBranding() {
     const { data } = await apiClient.get('/branding', { params: { domain: window.location.hostname } });
     const config = data?.data?.config;
     if (config) {
-      branding.brand_name = config.brand_name || 'HWT License 管理后台';
-      branding.primary_color = config.primary_color || '#409eff';
+      branding.brand_name = config.brand_name || t('admin.title');
+      branding.primary_color = config.primary_color || '#0f172a';
       branding.secondary_color = config.secondary_color || '#67c23a';
       branding.text_color = config.text_color || '#303133';
       branding.login_page_title = config.login_page_title || '';
@@ -251,7 +333,7 @@ async function loadBranding() {
       }
 
       if (config.brand_name) {
-        document.title = `${config.brand_name} - 登录`;
+        document.title = `${config.brand_name} - ${t('route_titles.login')}`;
       }
 
       if (config.favicon_url) {
@@ -294,8 +376,49 @@ async function handleLogin() {
   }
 }
 
+function startPhoneCodeCountdown(seconds = 60) {
+  phoneCodeCountdown.value = seconds;
+  if (phoneCodeTimer) clearInterval(phoneCodeTimer);
+  phoneCodeTimer = setInterval(() => {
+    phoneCodeCountdown.value -= 1;
+    if (phoneCodeCountdown.value <= 0) {
+      clearInterval(phoneCodeTimer);
+      phoneCodeTimer = null;
+    }
+  }, 1000);
+}
+
+async function sendLoginCode() {
+  const phoneOk = await phoneFormRef.value?.validateField('phone').then(() => true).catch(() => false);
+  if (!phoneOk) return;
+
+  phoneCodeSending.value = true;
+  try {
+    await authApi.sendPhoneCode({ phone: phoneForm.phone, scene: 'login' });
+    ElMessage.success(t('auth.verify_code_sent'));
+    startPhoneCodeCountdown(60);
+  } catch (e) {
+    ElMessage.error(e?.response?.data?.error?.message || e?.response?.data?.message || t('auth.code_send_fail'));
+  } finally {
+    phoneCodeSending.value = false;
+  }
+}
+
+async function handlePhoneLogin() {
+  const valid = await phoneFormRef.value?.validate().catch(() => false);
+  if (!valid) return;
+
+  const success = await authStore.phoneLogin({
+    phone: phoneForm.phone,
+    code: phoneForm.code,
+  });
+  if (success) {
+    router.push(loginRedirectPath());
+  }
+}
+
 function adjustColor(hex, amount) {
-  if (!hex) return '#764ba2';
+  if (!hex) return '#1e293b';
   hex = hex.replace('#', '');
   if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
   const num = parseInt(hex, 16);
@@ -326,23 +449,23 @@ function obfuscateEmail(email) {
 }
 async function sendMagicLink() {
   if (!magicEmail.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(magicEmail.value)) {
-    ElMessage.warning('请输入有效的邮箱地址'); return;
+    ElMessage.warning(t('auth.email_invalid')); return;
   }
   magicLoading.value = true;
   try {
     await apiClient.post('/auth/magic-link/send', { email: magicEmail.value });
     magicLinkSent.value = true;
     startMagicCountdown(60);
-    ElMessage.success('登录链接已发送');
+    ElMessage.success(t('auth.magic_sent_toast'));
   } catch {
-    ElMessage.error('发送失败，请稍后重试');
+    ElMessage.error(t('auth.magic_send_fail'));
   }
   finally { magicLoading.value = false; }
 }
 
 // ─── Passkey 登录 ───
 async function handlePasskeyLogin() {
-  if (!window.PublicKeyCredential) { ElMessage.warning('当前浏览器不支持 Passkey（WebAuthn）'); return; }
+  if (!window.PublicKeyCredential) { ElMessage.warning(t('auth.passkey_unsupported_webauthn')); return; }
   if (passkeyLoading.value) return;
   passkeyLoading.value = true;
   try {
@@ -352,7 +475,7 @@ async function handlePasskeyLogin() {
 
     // 2. Check if user has any passkeys registered
     if (opts.allowCredentials && opts.allowCredentials.length === 0) {
-      ElMessage.warning('该账号尚未注册 Passkey，请先在账户设置中添加');
+      ElMessage.warning(t('auth.passkey_not_registered'));
       return;
     }
 
@@ -379,17 +502,17 @@ async function handlePasskeyLogin() {
       const { user, token } = vr.data;
       authStore.user = user; authStore.token = token;
       localStorage.setItem('auth_token', token); localStorage.setItem('user', JSON.stringify(user));
-      ElMessage.success('Passkey 登录成功'); router.push(loginRedirectPath());
+      ElMessage.success(t('auth.passkey_login_ok')); router.push(loginRedirectPath());
     }
   } catch (e) {
     if (e.name === 'NotAllowedError') {
       // 用户取消操作，无需提示
     } else if (e.name === 'NotFoundError') {
-      ElMessage.warning('未找到可用的 Passkey，请确认已注册');
+      ElMessage.warning(t('auth.passkey_not_found'));
     } else if (e.response?.data?.message) {
       ElMessage.error(e.response.data.message);
     } else {
-      ElMessage.error('Passkey 登录失败，请重试');
+      ElMessage.error(t('auth.passkey_login_fail'));
     }
   }
   finally { passkeyLoading.value = false; }
@@ -412,14 +535,14 @@ async function createQrSession() {
           clearInterval(qrPollTimer); qrPollTimer = null;
           authStore.user = r.data.user; authStore.token = r.data.token;
           localStorage.setItem('auth_token', r.data.token); localStorage.setItem('user', JSON.stringify(r.data.user));
-          ElMessage.success('扫码登录成功'); router.push(loginRedirectPath());
+          ElMessage.success(t('auth.qr_login_ok')); router.push(loginRedirectPath());
         } else if (r.data?.status === 'expired') {
           clearInterval(qrPollTimer); qrPollTimer = null;
-          ElMessage.warning('二维码已过期'); qrSessionId.value = null; qrImageUrl.value = null;
+          ElMessage.warning(t('auth.qr_expired')); qrSessionId.value = null; qrImageUrl.value = null;
         }
       } catch { clearInterval(qrPollTimer); qrPollTimer = null; qrSessionId.value = null; qrImageUrl.value = null; }
     }, 2000);
-  } catch { ElMessage.error('创建扫码会话失败'); }
+  } catch { ElMessage.error(t('auth.qr_session_fail')); }
   finally { qrLoading.value = false; }
 }
 function cancelQr() {
@@ -428,12 +551,31 @@ function cancelQr() {
 }
 
 // ─── OAuth ───
-function oauthLogin(provider) {
-  ElMessage.info(`${provider} 登录需配置 OAuth App 凭据后可用`);
+async function oauthLogin(provider) {
+  const p = availableProviders.value.find(x => x.provider === provider);
+  if (p && p.configured === false) {
+    ElMessage.warning(t('auth.oauth_not_configured', { name: p.name || provider }));
+    return;
+  }
+  try {
+    const path = loginRedirectPath() || '/dashboard';
+    const returnTo = path.startsWith('/build') ? path : `/build${path.startsWith('/') ? path : `/${path}`}`;
+    const { data: res } = await apiClient.get(`/oauth/authorize-url/${provider}`, {
+      params: { intent: 'login', return_to: returnTo },
+    });
+    const url = res.data?.authorize_url;
+    if (!url) {
+      ElMessage.error(res.error?.message || res.message || t('auth.oauth_url_fail'));
+      return;
+    }
+    window.location.href = url;
+  } catch (e) {
+    ElMessage.error(e.response?.data?.error?.message || e.response?.data?.message || t('auth.oauth_unavailable', { name: provider }));
+  }
 }
 
 function providerIcon(provider) {
-  const icons = { wechat: '微', qq: 'QQ', apple: '🍎', google: 'G', github: 'GB', alipay: '支' };
+  const icons = { wechat: 'We', qq: 'QQ', apple: '🍎', google: 'G', github: 'GH', alipay: 'Pay' };
   return icons[provider] || provider.charAt(0).toUpperCase();
 }
 
@@ -449,6 +591,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (qrPollTimer) clearInterval(qrPollTimer);
   clearMagicTimer();
+  if (phoneCodeTimer) clearInterval(phoneCodeTimer);
 });
 </script>
 
@@ -457,6 +600,11 @@ onUnmounted(() => {
 .login-card { width: 420px; padding: 40px; background: #fff; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); z-index: 1; }
 .login-header { text-align: center; margin-bottom: 32px; }
 .login-header h2 { margin: 16px 0 8px; font-size: 22px; }
+.login-tabs { margin-bottom: 8px; }
+.login-tabs :deep(.el-tabs__header) { margin-bottom: 16px; }
+.code-row { display: flex; gap: 8px; width: 100%; }
+.code-row .el-input { flex: 1; }
+.phone-login-hint { margin: -8px 0 8px; font-size: 12px; color: #909399; }
 .brand-logo { display: flex; justify-content: center; margin-bottom: 16px; }
 .logo-img { max-height: 48px; max-width: 200px; }
 .w-full { width: 100%; }

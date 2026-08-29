@@ -72,20 +72,27 @@
                                 <ArrowDown />
                             </el-icon>
                         </li>
-                        <!-- 菜单项（通过 @click 显式导航，避免 el-menu :router 与 click 冲突）-->
+                        <!-- 菜单项（图标须在默认插槽，#title 仅放文字，collapse 模式才能显示图标）-->
                         <el-menu-item
-                            v-for="item in visibleItems(group.items)"
+                            v-for="item in visibleGroupItems(group)"
                             :key="item.path"
                             :index="item.path"
                             role="menuitem"
                             :aria-label="item.title"
                             @click="handleMenuClick(item.path)"
                         >
-                            <template #title>
+                            <el-badge
+                                v-if="item.path === '/user-chat' && userChatUnread > 0 && sidebarStore.sidebarCollapsed"
+                                :value="userChatUnread > 99 ? '99+' : userChatUnread"
+                                class="sidebar-icon-badge"
+                            >
                                 <el-icon aria-hidden="true"><component :is="item.icon" /></el-icon>
+                            </el-badge>
+                            <el-icon v-else aria-hidden="true"><component :is="item.icon" /></el-icon>
+                            <template #title>
                                 <span>{{ item.title }}</span>
                                 <el-badge
-                                    v-if="item.path === '/user-chat' && userChatUnread > 0"
+                                    v-if="item.path === '/user-chat' && userChatUnread > 0 && !sidebarStore.sidebarCollapsed"
                                     :value="userChatUnread > 99 ? '99+' : userChatUnread"
                                     class="sidebar-menu-badge"
                                 />
@@ -327,6 +334,14 @@ function clearImpersonateState() {
 function visibleItems(items) {
     if (authStore.isAdmin) return items
     return items.filter(item => !item.adminOnly)
+}
+
+/** 分组展开时才显示子项；侧边栏收起时始终显示图标列表 */
+function visibleGroupItems(group) {
+    const items = visibleItems(group.items)
+    if (sidebarStore.sidebarCollapsed || items.length <= 1) return items
+    if (collapsedGroups[group.label]) return []
+    return items
 }
 
 /** 菜单点击导航 */
@@ -1002,6 +1017,10 @@ function closeMobileDrawer() {
 .sidebar-menu-badge :deep(.el-badge__content) {
     position: static;
     transform: none;
+}
+
+.sidebar-icon-badge :deep(.el-badge__content) {
+    transform: scale(0.85);
 }
 
 @media (max-width: 768px) {

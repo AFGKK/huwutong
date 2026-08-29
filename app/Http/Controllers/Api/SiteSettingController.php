@@ -71,12 +71,74 @@ class SiteSettingController extends Controller
             }
         }
 
-        // 清除缓存（如果有）
-        if (cache()->has('site_settings_all')) {
-            cache()->forget('site_settings_all');
+        // ── 键名别名镜像（公安备案 / 工作时间）──
+        $this->mirrorSettingAliases($updates);
+
+        // ── 维护开关：与 MaintenanceConfig 双向同步 ──
+        if (array_key_exists('maintenance_enabled', $updates)) {
+            try {
+                $svc = app(\App\Services\MaintenanceModeService::class);
+                if (($updates['maintenance_enabled'] ?? '0') === '1') {
+                    if (! $svc->getConfig()) {
+                        $svc->enable([
+                            'title' => __('app.api.site_setting.maint_title'),
+                            'message' => $updates['maintenance_message']
+                                ?? (string) site_setting('maintenance_message', __('app.api.site_setting.maint_message')),
+                        ]);
+                    } else {
+                        $svc->syncSiteSettingFlag(true, $updates['maintenance_message'] ?? null);
+                    }
+                } else {
+                    $svc->disable();
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Maintenance sync failed: '.$e->getMessage());
+            }
         }
 
-        return ApiResponse::success(null, '设置保存成功');
+        // 清除缓存（如果有）
+        cache()->forget('site_settings_all');
+
+        // 支付/短信配置立即叠加到 runtime
+        \App\Services\SiteSettingRuntimeOverlay::apply();
+
+        return ApiResponse::success(null, __('app.api.site_setting.saved'));
+    }
+
+    /**
+     * 后台保存时同步历史别名键，避免前台读不到
+     */
+    private function mirrorSettingAliases(array $updates): void
+    {
+        $pairs = [
+            'police_beian' => 'gongan_beian',
+            'gongan_beian' => 'police_beian',
+            'police_beian_url' => 'gongan_beian_url',
+            'gongan_beian_url' => 'police_beian_url',
+            'service_work_hours' => 'working_hours',
+            'working_hours' => 'service_work_hours',
+            'primary_color' => 'page_primary_color',
+            'page_primary_color' => 'primary_color',
+        ];
+
+        foreach ($pairs as $source => $target) {
+            if (! array_key_exists($source, $updates)) {
+                continue;
+            }
+            $sourceRow = SiteSetting::where('key', $source)->first();
+            $targetRow = SiteSetting::where('key', $target)->first();
+            $defaultGroup = 'brand';
+
+            SiteSetting::updateOrCreate(
+                ['key' => $target],
+                [
+                    'group' => $targetRow?->group ?: ($sourceRow?->group ?: $defaultGroup),
+                    'value' => $updates[$source] ?? '',
+                    'type' => $targetRow?->type ?: ($sourceRow?->type ?: 'text'),
+                    'is_public' => true,
+                ]
+            );
+        }
     }
 
     /**
@@ -139,7 +201,7 @@ class SiteSettingController extends Controller
             'key' => $key,
             'value' => $url,
             'url' => $url,
-        ], '图片上传成功');
+        ], __('app.api.site_setting.image_uploaded'));
     }
 
     /**
@@ -159,7 +221,7 @@ class SiteSettingController extends Controller
 
         $setting = SiteSetting::create($validated);
 
-        return ApiResponse::created($setting, '设置项已创建');
+        return ApiResponse::created($setting, __('app.api.site_setting.item_created'));
     }
 
     /**
@@ -174,28 +236,29 @@ class SiteSettingController extends Controller
     private function groupLabel(string $group): string
     {
         $labels = [
-            'general' => '基本信息',
-            'brand' => '品牌设置',
-            'contact' => '联系方式',
-            'seo' => 'SEO 优化',
-            'social' => '社交媒体',
-            'mail' => '邮件(SMTP)配置',
-            'payment' => '支付网关配置',
-            'storage' => '存储配置',
-            'sms' => '短信配置',
-            'ai' => 'AI / 大模型配置',
-            'security' => '安全策略',
-            'maintenance' => '系统维护',
-            'registration' => '注册设置',
-            'localization' => '时区/本地化',
-            'notification' => '通知设置',
-            'backup' => '备份设置',
-            'logging' => '日志设置',
-            'interface' => '界面设置',
-            'api' => 'API 配置',
-            'service' => '客服设置',
-            'legal' => '法律/隐私',
-            'oauth' => 'OAuth 登录',
+            'general' => __('app.api.site_setting.group_general'),
+            'brand' => __('app.api.site_setting.group_brand'),
+            'contact' => __('app.api.site_setting.group_contact'),
+            'seo' => __('app.api.site_setting.group_seo'),
+            'social' => __('app.api.site_setting.group_social'),
+            'mail' => __('app.api.site_setting.group_mail'),
+            'payment' => __('app.api.site_setting.group_payment'),
+            'storage' => __('app.api.site_setting.group_storage'),
+            'sms' => __('app.api.site_setting.group_sms'),
+            'ai' => __('app.api.site_setting.group_ai'),
+            'security' => __('app.api.site_setting.group_security'),
+            'maintenance' => __('app.api.site_setting.group_maintenance'),
+            'registration' => __('app.api.site_setting.group_registration'),
+            'localization' => __('app.api.site_setting.group_localization'),
+            'notification' => __('app.api.site_setting.group_notification'),
+            'backup' => __('app.api.site_setting.group_backup'),
+            'logging' => __('app.api.site_setting.group_logging'),
+            'interface' => __('app.api.site_setting.group_interface'),
+            'api' => __('app.api.site_setting.group_api'),
+            'service' => __('app.api.site_setting.group_service'),
+            'legal' => __('app.api.site_setting.group_legal'),
+            'oauth' => __('app.api.site_setting.group_oauth'),
+            'wechat' => __('app.api.site_setting.group_wechat'),
         ];
         return $labels[$group] ?? $group;
     }

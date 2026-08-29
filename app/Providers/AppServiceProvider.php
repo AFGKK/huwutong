@@ -7,6 +7,8 @@ use App\Contracts\PaymentGateway;
 use App\Events\LicenseStatusChanged;
 use App\Listeners\LogLicenseStatusChanged;
 use App\Services\CloudStorageService;
+use App\Notifications\Channels\FcmChannel;
+use App\Services\FcmPushService;
 use App\Services\LlmService;
 use App\Services\MemoryService;
 use App\Services\SensitiveWordService;
@@ -19,10 +21,21 @@ use App\Services\Payment\AlipayPaymentGateway;
 use App\Services\Payment\MockPaymentGateway;
 use App\Services\Payment\StripePaymentGateway;
 use App\Services\PaymentManager;
+use App\Models\BlogPost;
+use App\Models\ForumPost;
+use App\Models\KbArticle;
+use App\Models\MarketplaceApp;
+use App\Models\OaArticle;
+use App\Models\OfficialAccount;
+use App\Models\Product;
+use App\Models\User;
 use App\Models\Log;
 use App\Observers\LogObserver;
+use App\Observers\MeilisearchObserver;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Http\Request;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -34,6 +47,12 @@ class AppServiceProvider extends ServiceProvider
             $service->registerAdapter('ollama', \App\Services\Llm\OllamaAdapter::class);
             $service->registerAdapter('vllm', \App\Services\Llm\VllmAdapter::class);
             return $service;
+        });
+
+        // D-28: FCM 推送通知通道
+        $this->app->singleton(FcmPushService::class);
+        $this->app->singleton(FcmChannel::class, function ($app) {
+            return new FcmChannel($app->make(FcmPushService::class));
         });
 
         // 云存储统一适配层
@@ -84,8 +103,35 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if (config('app.force_https')) {
+            URL::forceScheme('https');
+        }
+
+        // 后台 SiteSetting → 支付/短信 runtime config 桥接
+        \App\Services\SiteSettingRuntimeOverlay::apply();
+
+        // Octane 常驻内存优化
+        if (class_exists(\Laravel\Octane\Octane::class)) {
+            $this->app->booted(function () {
+                // 清除可能被序列化的单例状态
+            });
+        }
+
         // 自动为审计日志计算 Merkle 哈希
         Log::observe(LogObserver::class);
+
+        // D-36: Meilisearch 增量索引同步
+        if (config('meilisearch.observer.enabled', true)) {
+            $observer = MeilisearchObserver::class;
+            Product::observe($observer);
+            KbArticle::observe($observer);
+            MarketplaceApp::observe($observer);
+            ForumPost::observe($observer);
+            BlogPost::observe($observer);
+            OaArticle::observe($observer);
+            User::observe($observer);
+            OfficialAccount::observe($observer);
+        }
 
         // M2-133: CDN 静态资源 Blade 指令
         Blade::directive('cdnAssets', function () {

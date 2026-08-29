@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * 多方式登录注册控制器
@@ -39,13 +40,18 @@ class AuthController extends Controller
 
     public function register(RegisterRequest $request): JsonResponse
     {
+        if ((string) site_setting('registration_enabled', '1') === '0') {
+            return ApiResponse::error('REGISTRATION_DISABLED', __('app.auth.api.registration_disabled'), 403);
+        }
+
         // 检查邀请码（如果需要）
         $inviteCode = $request->input('invite_code');
-        $whitelistOnly = config('auth.invite_only', false);
+        $whitelistOnly = (bool) config('auth.invite_only', false)
+            || (string) site_setting('registration_require_invite_code', '0') === '1';
 
         if ($whitelistOnly) {
             if (! $inviteCode || ! $this->authService->consumeInviteCode($inviteCode)) {
-                return ApiResponse::error('INVITE_REQUIRED', '需要有效的邀请码才能注册', 422);
+                return ApiResponse::error('INVITE_REQUIRED', __('app.auth.api.invite_required'), 422);
             }
         }
 
@@ -57,13 +63,45 @@ class AuthController extends Controller
 
         $user = User::create([
             'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
+            'email' => $request->email ?: null,
+            'phone' => $request->phone ?: null,
             'password' => Hash::make($request->password),
             'password_changed_at' => now(),
+            'phone_verified_at' => null,
         ]);
 
         $this->authService->recordPasswordHistory($user, $request->password);
+
+        $requireEmailVerify = $user->email
+            && (string) site_setting('registration_require_email_verify', '0') === '1';
+
+        if ($requireEmailVerify) {
+            try {
+                $verification = $this->authService->sendEmailVerification($user);
+                Mail::to($user->email)->send(new \App\Mail\EmailVerification($user, $verification->token));
+            } catch (\Throwable $e) {
+                Log::error('注册后发送邮箱验证失败', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            $this->authService->recordLoginAudit(
+                $user, 'register', $request->ip(), $request->userAgent(),
+                'email', true,
+            );
+
+            if ($inviteCode) {
+                $this->storeAffiliateService->autoBuildAgentRelationshipOnRegistration($user, $inviteCode);
+            }
+
+            return ApiResponse::created([
+                'user' => $this->formatUser($user),
+                'token' => null,
+                'requires_verification' => true,
+                'pending_consents' => $this->authService->getPendingConsents($user),
+            ], __('app.auth.api.register_verify_email'));
+        }
 
         $token = $user->createToken('auth-token', ['*'])->plainTextToken;
 
@@ -84,8 +122,9 @@ class AuthController extends Controller
         return ApiResponse::created([
             'user' => $this->formatUser($user),
             'token' => $token,
+            'requires_verification' => false,
             'pending_consents' => $this->authService->getPendingConsents($user),
-        ], '注册成功');
+        ], __('app.auth.api.register_ok'));
     }
 
     public function login(LoginRequest $request): JsonResponse
@@ -98,7 +137,7 @@ class AuthController extends Controller
             $minutes = $this->authService->getLockoutRemainingMinutes($email);
             return ApiResponse::error(
                 'ACCOUNT_LOCKED',
-                "账号已被锁定，请 {$minutes} 分钟后再试",
+                __('app.auth.api.account_locked', ['minutes' => $minutes]),
                 429,
                 ['lockout_minutes' => $minutes],
             );
@@ -117,13 +156,13 @@ class AuthController extends Controller
 
             $this->authService->recordLoginAudit(
                 $user, 'login', $request->ip(), $request->userAgent(),
-                'email', false, '密码错误',
+                'email', false, __('app.auth.api.password_wrong'),
             );
 
-            $remaining = AuthService::LOCKOUT_MAX_ATTEMPTS - $attempts;
-            $message = '邮箱/手机号或密码错误';
+            $remaining = $this->authService->lockoutMaxAttempts() - $attempts;
+            $message = __('app.auth.api.credentials_wrong');
             if ($remaining > 0 && $remaining <= 3) {
-                $message .= "，还剩 {$remaining} 次尝试机会";
+                $message .= __('app.auth.api.attempts_left', ['n' => $remaining]);
             }
 
             return ApiResponse::error('AUTH_FAILED', $message, 401);
@@ -131,9 +170,9 @@ class AuthController extends Controller
 
         // 检查账号状态
         if ($user->status !== 'active') {
-            $msg = '账号已被禁用';
+            $msg = __('app.auth.api.account_disabled');
             if ($user->banned_at) {
-                $msg = '账号已被封禁。如有疑问，请提交账号申诉';
+                $msg = __('app.auth.api.account_banned');
             }
             return ApiResponse::error('ACCOUNT_DISABLED', $msg, 403);
         }
@@ -177,7 +216,7 @@ class AuthController extends Controller
             $response['device_fingerprint'] = $deviceFingerprint;
         }
 
-        return ApiResponse::success($response, '登录成功');
+        return ApiResponse::success($response, __('app.auth.api.login_ok'));
     }
 
     public function user(Request $request): JsonResponse
@@ -216,7 +255,7 @@ class AuthController extends Controller
             );
         }
 
-        return response()->json(['success' => true, 'message' => '已退出登录']);
+        return response()->json(['success' => true, 'message' => __('app.auth.api.logged_out')]);
     }
 
     // ─── Token 刷新 ───
@@ -260,7 +299,7 @@ class AuthController extends Controller
                 'token' => $newToken->plainTextToken,
                 'expires_at' => $newToken->accessToken->expires_at,
             ],
-            'message' => 'Token 已刷新',
+            'message' => __('app.auth.api.token_refreshed'),
         ]);
     }
 
@@ -274,7 +313,7 @@ class AuthController extends Controller
         $user = $request->user();
 
         if ($user->email_verified_at) {
-            return ApiResponse::error('ALREADY_VERIFIED', '邮箱已验证', 422);
+            return ApiResponse::error('ALREADY_VERIFIED', __('app.auth.api.already_verified'), 422);
         }
 
         $verification = $this->authService->sendEmailVerification($user);
@@ -291,7 +330,7 @@ class AuthController extends Controller
 
         return ApiResponse::success([
             'expires_at' => $verification->expires_at,
-        ], '验证码已发送');
+        ], __('app.auth.api.code_sent'));
     }
 
     /**
@@ -306,10 +345,10 @@ class AuthController extends Controller
         $user = $request->user();
 
         if ($this->authService->verifyEmail($user, $data['token'])) {
-            return ApiResponse::success(null, '邮箱验证成功');
+            return ApiResponse::success(null, __('app.auth.api.email_verified'));
         }
 
-        return ApiResponse::error('INVALID_TOKEN', '验证码无效或已过期', 422);
+        return ApiResponse::error('INVALID_TOKEN', __('app.auth.api.invalid_token'), 422);
     }
 
     // ─── 忘记密码 / 重置密码 ───
@@ -326,7 +365,7 @@ class AuthController extends Controller
         $token = $this->authService->generatePasswordResetToken($data['email']);
 
         if (! $token) {
-            return ApiResponse::notFound('该邮箱未注册');
+            return ApiResponse::notFound(__('app.auth.api.email_not_registered'));
         }
 
         // 发送密码重置邮件
@@ -339,7 +378,7 @@ class AuthController extends Controller
             ]);
         }
 
-        return ApiResponse::success(null, '验证码已发送到您的邮箱');
+        return ApiResponse::success(null, __('app.auth.api.code_sent_email'));
     }
 
     /**
@@ -360,84 +399,123 @@ class AuthController extends Controller
         }
 
         if ($this->authService->resetPassword($data['email'], $data['token'], $data['password'])) {
-            return ApiResponse::success(null, '密码重置成功');
+            return ApiResponse::success(null, __('app.auth.api.password_reset_ok'));
         }
 
-        return ApiResponse::error('INVALID_TOKEN', '验证码无效或已过期', 422);
+        return ApiResponse::error('INVALID_TOKEN', __('app.auth.api.invalid_token'), 422);
     }
 
-    // ─── 手机验证码登录 ───
+    // ─── 手机验证码登录 / 注册 ───
 
     /**
      * 发送手机验证码
+     *
+     * scene=login|register（默认 login）
      */
     public function sendPhoneCode(Request $request): JsonResponse
     {
+        if ((string) site_setting('sms_phone_auth_enabled', '1') === '0') {
+            return ApiResponse::error('PHONE_AUTH_DISABLED', __('app.auth.api.phone_auth_disabled'), 403);
+        }
+
         $data = $request->validate([
             'phone' => 'required|string|regex:/^1[3-9]\d{9}$/',
+            'scene' => 'sometimes|in:login,register',
         ]);
 
-        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $scene = $data['scene'] ?? 'login';
+        $exists = User::where('phone', $data['phone'])->exists();
 
-        // 存储到缓存（5分钟有效，60秒防刷）
+        if ($scene === 'register' && $exists) {
+            return ApiResponse::error('PHONE_EXISTS', __('app.auth.api.phone_exists'), 422);
+        }
+
         $cacheKey = 'phone_code:' . $data['phone'];
         $lastSent = Cache::get($cacheKey . '_sent');
 
         if ($lastSent && now()->diffInSeconds($lastSent) < 60) {
-            return ApiResponse::error('TOO_FREQUENT', '发送太频繁，请稍后再试', 429);
+            return ApiResponse::error('TOO_FREQUENT', __('app.auth.api.too_frequent'), 429);
         }
 
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
         Cache::put($cacheKey, $code, now()->addMinutes(5));
+        Cache::put($cacheKey . '_scene', $scene, now()->addMinutes(5));
         Cache::put($cacheKey . '_sent', now(), now()->addMinutes(5));
 
-        // 发送短信验证码
         try {
-            app(\App\Services\SmsService::class)->sendVerificationCode($data['phone'], $code);
+            $result = app(\App\Services\SmsService::class)->sendVerificationCode($data['phone'], $code);
+            if (! ($result['success'] ?? false)) {
+                Cache::forget($cacheKey);
+                Cache::forget($cacheKey . '_scene');
+                Cache::forget($cacheKey . '_sent');
+
+                return ApiResponse::error('SMS_FAILED', $result['message'] ?? __('app.auth.api.sms_failed'), 502);
+            }
         } catch (\Throwable $e) {
+            Cache::forget($cacheKey);
+            Cache::forget($cacheKey . '_scene');
+            Cache::forget($cacheKey . '_sent');
             Log::error('发送短信验证码失败', [
                 'phone' => $data['phone'],
                 'error' => $e->getMessage(),
             ]);
+
+            return ApiResponse::error('SMS_FAILED', __('app.auth.api.sms_failed'), 502);
         }
 
-        return ApiResponse::success(null, '验证码已发送');
+        return ApiResponse::success([
+            'expires_in' => 300,
+            'scene' => $scene,
+        ], __('app.auth.api.code_sent'));
     }
 
     /**
-     * 手机验证码登录
+     * 手机验证码登录（无账号时自动注册）
      */
     public function phoneLogin(Request $request): JsonResponse
     {
+        if ((string) site_setting('sms_phone_auth_enabled', '1') === '0') {
+            return ApiResponse::error('PHONE_AUTH_DISABLED', __('app.auth.api.phone_auth_disabled'), 403);
+        }
+
         $data = $request->validate([
             'phone' => 'required|string|regex:/^1[3-9]\d{9}$/',
             'code' => 'required|string|size:6',
         ]);
 
-        // 校验验证码
         $cacheKey = 'phone_code:' . $data['phone'];
         $storedCode = Cache::get($cacheKey);
 
         if (! $storedCode || $storedCode !== $data['code']) {
-            return ApiResponse::error('INVALID_CODE', '验证码错误或已过期', 422);
+            return ApiResponse::error('INVALID_CODE', __('app.auth.api.invalid_code'), 422);
         }
 
         Cache::forget($cacheKey);
+        Cache::forget($cacheKey . '_scene');
+        Cache::forget($cacheKey . '_sent');
 
-        // 查找或创建用户
         $user = User::where('phone', $data['phone'])->first();
+        $isNew = false;
 
         if (! $user) {
+            if ((string) site_setting('registration_enabled', '1') === '0') {
+                return ApiResponse::error('REGISTRATION_DISABLED', __('app.auth.api.registration_disabled'), 403);
+            }
+
             $user = User::create([
-                'name' => '用户' . substr($data['phone'], -4),
+                'name' => __('app.auth.api.user_prefix') . substr($data['phone'], -4),
+                'email' => null,
                 'phone' => $data['phone'],
                 'password' => Hash::make(\Illuminate\Support\Str::random(32)),
                 'status' => 'active',
                 'phone_verified_at' => now(),
             ]);
+            $isNew = true;
         }
 
         if ($user->status !== 'active') {
-            return ApiResponse::error('ACCOUNT_DISABLED', '账号已被禁用', 403);
+            return ApiResponse::error('ACCOUNT_DISABLED', __('app.auth.api.account_disabled'), 403);
         }
 
         $user->update([
@@ -448,19 +526,99 @@ class AuthController extends Controller
 
         $token = $user->createToken('phone-token', ['*'])->plainTextToken;
 
-        // 记录 Token 版本
         $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
         $user->tokens()->latest()->first()?->update(['token_version' => $version]);
 
         $this->authService->recordLoginAudit(
-            $user, 'login', $request->ip(), $request->userAgent(),
+            $user, $isNew ? 'register' : 'login', $request->ip(), $request->userAgent(),
             'phone', true,
         );
 
         return ApiResponse::success([
             'user' => $this->formatUser($user),
             'token' => $token,
-        ], '登录成功');
+            'is_new' => $isNew,
+        ], __('app.auth.api.login_ok'));
+    }
+
+    /**
+     * 手机号 + 验证码正式注册（需设置密码）
+     */
+    public function phoneRegister(Request $request): JsonResponse
+    {
+        if ((string) site_setting('sms_phone_auth_enabled', '1') === '0') {
+            return ApiResponse::error('PHONE_AUTH_DISABLED', __('app.auth.api.phone_auth_disabled'), 403);
+        }
+
+        if ((string) site_setting('registration_enabled', '1') === '0') {
+            return ApiResponse::error('REGISTRATION_DISABLED', __('app.auth.api.registration_disabled'), 403);
+        }
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|regex:/^1[3-9]\d{9}$/|unique:users,phone',
+            'code' => 'required|string|size:6',
+            'password' => 'required|string|min:8|confirmed',
+            'invite_code' => 'sometimes|nullable|string|max:64',
+        ]);
+
+        $inviteCode = $data['invite_code'] ?? null;
+        $whitelistOnly = (bool) config('auth.invite_only', false)
+            || (string) site_setting('registration_require_invite_code', '0') === '1';
+
+        if ($whitelistOnly) {
+            if (! $inviteCode || ! $this->authService->consumeInviteCode($inviteCode)) {
+                return ApiResponse::error('INVITE_REQUIRED', __('app.auth.api.invite_required'), 422);
+            }
+        }
+
+        $cacheKey = 'phone_code:' . $data['phone'];
+        $storedCode = Cache::get($cacheKey);
+
+        if (! $storedCode || $storedCode !== $data['code']) {
+            return ApiResponse::error('INVALID_CODE', __('app.auth.api.invalid_code'), 422);
+        }
+
+        $passwordError = $this->authService->validatePasswordStrength($data['password']);
+        if ($passwordError) {
+            return ApiResponse::validationError($passwordError, ['password' => [$passwordError]]);
+        }
+
+        Cache::forget($cacheKey);
+        Cache::forget($cacheKey . '_scene');
+        Cache::forget($cacheKey . '_sent');
+
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => null,
+            'phone' => $data['phone'],
+            'password' => Hash::make($data['password']),
+            'password_changed_at' => now(),
+            'status' => 'active',
+            'phone_verified_at' => now(),
+        ]);
+
+        $this->authService->recordPasswordHistory($user, $data['password']);
+
+        $token = $user->createToken('auth-token', ['*'])->plainTextToken;
+        $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
+        $user->tokens()->latest()->first()?->update(['token_version' => $version]);
+
+        $this->authService->recordLoginAudit(
+            $user, 'register', $request->ip(), $request->userAgent(),
+            'phone', true,
+        );
+
+        if ($inviteCode) {
+            $this->storeAffiliateService->autoBuildAgentRelationshipOnRegistration($user, $inviteCode);
+        }
+
+        return ApiResponse::created([
+            'user' => $this->formatUser($user),
+            'token' => $token,
+            'requires_verification' => false,
+            'pending_consents' => $this->authService->getPendingConsents($user),
+        ], __('app.auth.api.register_ok'));
     }
 
     // ─── 密码修改 ───
@@ -478,7 +636,7 @@ class AuthController extends Controller
         $user = $request->user();
 
         if (! Hash::check($data['current_password'], $user->password)) {
-            return ApiResponse::error('INVALID_PASSWORD', '当前密码错误', 422);
+            return ApiResponse::error('INVALID_PASSWORD', __('app.auth.api.invalid_password'), 422);
         }
 
         // 检查密码强度
@@ -489,7 +647,7 @@ class AuthController extends Controller
 
         // 检查密码历史
         if (! $this->authService->isPasswordAllowed($user, $data['new_password'])) {
-            return ApiResponse::error('PASSWORD_REUSED', '不能使用最近使用过的密码', 422);
+            return ApiResponse::error('PASSWORD_REUSED', __('app.auth.api.password_reused'), 422);
         }
 
         $user->update([
@@ -505,7 +663,7 @@ class AuthController extends Controller
         // 递增 Token 版本，使其他设备的 Token 失效
         $this->tokenIntrospection->bumpUserVersion($user->id);
 
-        return ApiResponse::success(null, '密码修改成功');
+        return ApiResponse::success(null, __('app.auth.api.password_changed'));
     }
 
     // ─── Session 管理 ───
@@ -544,7 +702,7 @@ class AuthController extends Controller
         $token = $user->tokens()->findOrFail($tokenId);
 
         if ((string) $token->id === (string) $user->currentAccessToken()->id) {
-            return ApiResponse::error('CANNOT_REVOKE_CURRENT', '不能吊销当前会话', 422);
+            return ApiResponse::error('CANNOT_REVOKE_CURRENT', __('app.auth.api.cannot_revoke_current'), 422);
         }
 
         $this->tokenIntrospection->revokeToken(
@@ -553,7 +711,7 @@ class AuthController extends Controller
             $user->id,
         );
 
-        return ApiResponse::success(null, '会话已吊销');
+        return ApiResponse::success(null, __('app.auth.api.session_revoked'));
     }
 
     // ─── Admin Session 管理 ───
@@ -642,7 +800,7 @@ class AuthController extends Controller
 
         $token->delete();
 
-        return ApiResponse::success(null, '会话已强制终止');
+        return ApiResponse::success(null, __('app.auth.api.session_terminated'));
     }
 
     /**
@@ -660,7 +818,7 @@ class AuthController extends Controller
             ->whereIn('id', $request->ids)
             ->delete();
 
-        return ApiResponse::success(null, "已强制终止 {$count} 个会话");
+        return ApiResponse::success(null, __('app.auth.api.sessions_terminated_n', ['count' => $count]));
     }
 
     /**
@@ -675,7 +833,7 @@ class AuthController extends Controller
             ->where('tokenable_type', \App\Models\User::class)
             ->delete();
 
-        return ApiResponse::success(null, "已强制终止用户 {$targetUser->name} 的 {$count} 个会话");
+        return ApiResponse::success(null, __('app.auth.api.sessions_terminated_user', ['name' => $targetUser->name, 'count' => $count]));
     }
 
     // ─── 设备信任 ───
@@ -700,7 +858,7 @@ class AuthController extends Controller
             $request->userAgent(),
         );
 
-        return ApiResponse::success(null, '设备已信任');
+        return ApiResponse::success(null, __('app.auth.api.device_trusted'));
 
     }
 
@@ -721,7 +879,7 @@ class AuthController extends Controller
         $device = $request->user()->trustedDevices()->findOrFail($deviceId);
         $device->delete();
 
-        return ApiResponse::success(null, '设备信任已取消');
+        return ApiResponse::success(null, __('app.auth.api.device_untrusted'));
     }
 
     /**
@@ -731,7 +889,7 @@ class AuthController extends Controller
     {
         $request->user()->trustedDevices()->delete();
 
-        return ApiResponse::success(null, '已清除所有信任设备');
+        return ApiResponse::success(null, __('app.auth.api.devices_cleared'));
     }
 
     /**
@@ -751,7 +909,7 @@ class AuthController extends Controller
         if (!$isTrusted) {
             $this->notificationService->sendNewDeviceNotification(
                 $user,
-                $data['device_name'] ?? '未知设备',
+                $data['device_name'] ?? __('app.auth.api.unknown_device'),
                 $request->ip(),
                 $request->userAgent(),
             );
@@ -797,7 +955,7 @@ class AuthController extends Controller
                 'created_at' => $c->created_at,
             ]),
             'stats' => $this->authService->getInviteCodeStats(),
-        ], '邀请码已生成');
+        ], __('app.auth.api.invite_generated'));
     }
 
     /**
@@ -848,7 +1006,7 @@ class AuthController extends Controller
         $consent = LegalConsent::findOrFail($data['legal_consent_id']);
 
         if ($consent->isConsentedBy($request->user()->id)) {
-            return ApiResponse::error('ALREADY_CONSENTED', '您已确认过此协议', 422);
+            return ApiResponse::error('ALREADY_CONSENTED', __('app.auth.api.already_consented'), 422);
         }
 
         $this->authService->consentTo(
@@ -857,7 +1015,7 @@ class AuthController extends Controller
             $request->ip(),
         );
 
-        return ApiResponse::success(null, '协议确认成功');
+        return ApiResponse::success(null, __('app.auth.api.consent_ok'));
     }
 
     // ─── 账号注销 ───
@@ -883,7 +1041,7 @@ class AuthController extends Controller
         return ApiResponse::success([
             'cooling_until' => $deletionRequest->cooling_until,
             'cooling_days' => AuthService::COOLING_DAYS,
-        ], '注销申请已提交，请在冷静期后确认');
+        ], __('app.auth.api.deletion_submitted'));
     }
 
     /**
@@ -892,9 +1050,9 @@ class AuthController extends Controller
     public function cancelDeletion(Request $request): JsonResponse
     {
         if ($this->authService->cancelDeletion($request->user())) {
-            return ApiResponse::success(null, '注销申请已取消');
+            return ApiResponse::success(null, __('app.auth.api.deletion_cancelled'));
         }
-        return ApiResponse::notFound('没有待处理的注销申请');
+        return ApiResponse::notFound(__('app.auth.api.no_pending_deletion'));
     }
 
     /**
@@ -945,7 +1103,7 @@ class AuthController extends Controller
             ->first();
 
         if ($existing && $existing->user_id !== $user->id) {
-            return ApiResponse::error('ALREADY_BOUND', '该第三方账号已被其他用户绑定', 422);
+            return ApiResponse::error('ALREADY_BOUND', __('app.auth.api.already_bound'), 422);
         }
 
         $authProvider = $user->authProviders()->updateOrCreate(
@@ -957,7 +1115,7 @@ class AuthController extends Controller
             ],
         );
 
-        return ApiResponse::success($authProvider, '绑定成功');
+        return ApiResponse::success($authProvider, __('app.auth.api.bind_ok'));
     }
 
     /**
@@ -967,7 +1125,7 @@ class AuthController extends Controller
     {
         try {
             $this->authService->unbindProvider($request->user(), $authProviderId);
-            return ApiResponse::success(null, '解绑成功');
+            return ApiResponse::success(null, __('app.auth.api.unbind_ok'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('UNBIND_FAILED', $e->getMessage(), 422);
         }
@@ -1008,9 +1166,15 @@ class AuthController extends Controller
             ->keyBy('key');
 
         $config = config('oauth.providers', []);
+        $oauthRedirect = app(\App\Services\OAuthRedirectService::class);
         $available = [];
 
         foreach ($config as $key => $cfg) {
+            // 仅暴露已实现跳转换票的提供商，避免假开关
+            if (! in_array($key, \App\Services\OAuthRedirectService::SUPPORTED, true)) {
+                continue;
+            }
+
             $dbKey = "oauth_{$key}_enabled";
             $enabled = isset($settings[$dbKey])
                 ? $settings[$dbKey]->value === '1'
@@ -1022,6 +1186,7 @@ class AuthController extends Controller
                     'name' => $cfg['name'] ?? $key,
                     'icon' => $cfg['icon'] ?? null,
                     'color' => $cfg['color'] ?? null,
+                    'configured' => $oauthRedirect->isConfigured($key),
                 ];
             }
         }
@@ -1030,7 +1195,161 @@ class AuthController extends Controller
     }
 
     /**
-     * OAuth 登录回调
+     * 获取 OAuth 授权 URL（JSON，登录公开 / 绑定需鉴权）
+     * GET /api/oauth/authorize-url/{provider}?intent=login|bind&return_to=...
+     */
+    public function oauthAuthorizeUrl(string $provider, Request $request): JsonResponse
+    {
+        try {
+            // Bearer Token 场景下公开路由也解析当前用户（绑定需要）
+            if (! $request->user() && $request->bearerToken()) {
+                $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($request->bearerToken());
+                if ($accessToken?->tokenable) {
+                    auth()->setUser($accessToken->tokenable);
+                    $request->setUserResolver(fn () => $accessToken->tokenable);
+                }
+            }
+
+            $intent = $request->input('intent', 'login');
+            $userId = null;
+            if ($intent === 'bind') {
+                $user = $request->user();
+                if (! $user) {
+                    return ApiResponse::error('UNAUTHORIZED', __('app.auth.api.bind_login_required'), 401);
+                }
+                $userId = $user->id;
+            }
+
+            $result = app(\App\Services\OAuthRedirectService::class)->buildAuthorizeUrl(
+                $provider,
+                $intent,
+                $request->input('return_to'),
+                $userId,
+            );
+
+            return ApiResponse::success([
+                'authorize_url' => $result['authorize_url'],
+                'provider' => $provider,
+                'intent' => $intent,
+            ]);
+        } catch (\Throwable $e) {
+            return ApiResponse::error('OAUTH_NOT_CONFIGURED', $e->getMessage(), 422);
+        }
+    }
+
+    /**
+     * 发起 OAuth 授权跳转（浏览器直达，适合登录）
+     * GET /api/oauth/redirect/{provider}?intent=login&return_to=/build/...
+     */
+    public function oauthRedirect(string $provider, Request $request)
+    {
+        $intent = $request->input('intent', 'login');
+        try {
+            if ($intent === 'bind') {
+                return ApiResponse::error('USE_AUTHORIZE_URL', __('app.auth.api.use_authorize_url'), 400);
+            }
+
+            $result = app(\App\Services\OAuthRedirectService::class)->buildAuthorizeUrl(
+                $provider,
+                'login',
+                $request->input('return_to'),
+                null,
+            );
+
+            return redirect()->away($result['authorize_url']);
+        } catch (\Throwable $e) {
+            $msg = urlencode($e->getMessage());
+
+            return redirect('/build/login?oauth_error='.$msg);
+        }
+    }
+
+    /**
+     * OAuth 回调：换票 → 登录/绑定 → 跳回 SPA
+     * GET /api/oauth/callback/{provider}
+     */
+    public function oauthCallback(string $provider, Request $request)
+    {
+        try {
+            $code = (string) $request->input('code', '');
+            $state = (string) $request->input('state', '');
+            if ($code === '' || $state === '') {
+                throw new \RuntimeException(__('app.auth.api.oauth_missing_code'));
+            }
+
+            $profile = app(\App\Services\OAuthRedirectService::class)->handleCallback($provider, $code, $state);
+            $intent = $profile['intent'] ?? 'login';
+            $returnTo = $profile['return_to'] ?? null;
+
+            if ($intent === 'bind') {
+                $userId = $profile['user_id'] ?? null;
+                $user = $userId ? User::find($userId) : null;
+                if (! $user) {
+                    throw new \RuntimeException(__('app.auth.api.oauth_bind_session_lost'));
+                }
+
+                $existing = \App\Models\UserAuthProvider::where('provider', $profile['provider'])
+                    ->where('provider_id', $profile['provider_id'])
+                    ->first();
+                if ($existing && $existing->user_id !== $user->id) {
+                    throw new \RuntimeException(__('app.auth.api.already_bound'));
+                }
+
+                $user->authProviders()->updateOrCreate(
+                    ['provider' => $profile['provider'], 'provider_id' => $profile['provider_id']],
+                    [
+                        'avatar' => $profile['avatar'] ?? null,
+                        'nickname' => $profile['name'] ?? null,
+                        'metadata' => null,
+                    ],
+                );
+
+                $target = $returnTo ?: '/build/account/binding';
+                $sep = str_contains($target, '?') ? '&' : '?';
+
+                return redirect($target.$sep.'oauth_bound=1&provider='.urlencode($provider));
+            }
+
+            $user = $this->authService->findOrCreateOAuthUser(
+                $profile['provider'],
+                $profile['provider_id'],
+                $profile['email'] ?? '',
+                $profile['name'] ?? 'User',
+                $profile['avatar'] ?? null,
+                null,
+            );
+
+            if ($user->status !== 'active') {
+                throw new \RuntimeException(__('app.auth.api.account_disabled'));
+            }
+
+            $user->update([
+                'last_login_at' => now(),
+                'last_login_ip' => $request->ip(),
+            ]);
+
+            $token = $user->createToken("{$profile['provider']}-token", ['*'])->plainTextToken;
+            $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
+            $user->tokens()->latest()->first()?->update(['token_version' => $version]);
+
+            $this->authService->recordLoginAudit(
+                $user, 'login', $request->ip(), $request->userAgent(),
+                $profile['provider'], true,
+            );
+
+            $target = $returnTo ?: '/build/dashboard';
+            $sep = str_contains($target, '?') ? '&' : '?';
+
+            return redirect($target.$sep.'oauth_token='.urlencode($token).'&oauth_provider='.urlencode($provider));
+        } catch (\Throwable $e) {
+            $msg = urlencode($e->getMessage());
+
+            return redirect('/build/login?oauth_error='.$msg);
+        }
+    }
+
+    /**
+     * OAuth 登录回调（前端 SDK / 服务端回调换票后均可调用）
      */
     public function oauthLogin(Request $request): JsonResponse
     {
@@ -1053,7 +1372,7 @@ class AuthController extends Controller
         );
 
         if ($user->status !== 'active') {
-            return ApiResponse::error('ACCOUNT_DISABLED', '账号已被禁用', 403);
+            return ApiResponse::error('ACCOUNT_DISABLED', __('app.auth.api.account_disabled'), 403);
         }
 
         $user->update([
@@ -1076,7 +1395,7 @@ class AuthController extends Controller
             'user' => $this->formatUser($user),
             'token' => $token,
             'is_new_user' => $user->wasRecentlyCreated,
-        ], '登录成功');
+        ], __('app.auth.api.login_ok'));
     }
 
     // ─── 登录审计日志 ───
@@ -1156,7 +1475,7 @@ class AuthController extends Controller
             ));
         }
 
-        return ApiResponse::success(null, '登录链接已发送到您的邮箱');
+        return ApiResponse::success(null, __('app.auth.api.magic_link_sent'));
     }
 
     /**
@@ -1177,7 +1496,7 @@ class AuthController extends Controller
             ->first();
 
         if (!$record) {
-            return ApiResponse::error('INVALID_TOKEN', '登录链接无效或已过期', 400);
+            return ApiResponse::error('INVALID_TOKEN', __('app.auth.api.magic_link_invalid'), 400);
         }
 
         // 标记已使用
@@ -1186,7 +1505,7 @@ class AuthController extends Controller
         $user = User::where('email', $data['email'])->first();
 
         if (!$user || $user->status !== 'active') {
-            return ApiResponse::error('ACCOUNT_DISABLED', '账号不存在或已被禁用', 403);
+            return ApiResponse::error('ACCOUNT_DISABLED', __('app.auth.api.account_missing_or_disabled'), 403);
         }
 
         $user->update([
@@ -1204,7 +1523,7 @@ class AuthController extends Controller
         return ApiResponse::success([
             'user' => $this->formatUser($user),
             'token' => $token,
-        ], '登录成功');
+        ], __('app.auth.api.login_ok'));
     }
 
     /**
@@ -1225,7 +1544,7 @@ class AuthController extends Controller
         return ApiResponse::success([
             'session_id' => $session->session_id,
             'expires_at' => $session->expires_at,
-        ], '扫码会话已创建');
+        ], __('app.auth.api.qr_session_created'));
     }
 
     /**
@@ -1236,18 +1555,18 @@ class AuthController extends Controller
         $session = \App\Models\QrLoginSession::where('session_id', $sessionId)->first();
 
         if (!$session) {
-            return ApiResponse::error('SESSION_NOT_FOUND', '会话不存在', 404);
+            return ApiResponse::error('SESSION_NOT_FOUND', __('app.auth.api.session_not_found'), 404);
         }
 
         if ($session->status === 'expired' || $session->expires_at < now()) {
             $session->update(['status' => 'expired']);
-            return ApiResponse::error('SESSION_EXPIRED', '二维码已过期，请刷新', 410);
+            return ApiResponse::error('SESSION_EXPIRED', __('app.auth.api.qr_expired'), 410);
         }
 
         if ($session->status === 'confirmed' && $session->user_id) {
             $user = \App\Models\User::find($session->user_id);
             if (!$user || $user->status !== 'active') {
-                return ApiResponse::error('ACCOUNT_DISABLED', '账号已被禁用', 403);
+                return ApiResponse::error('ACCOUNT_DISABLED', __('app.auth.api.account_disabled'), 403);
             }
 
             $token = $user->createToken('qr-login-token', ['*'])->plainTextToken;
@@ -1260,7 +1579,7 @@ class AuthController extends Controller
             return ApiResponse::success([
                 'user' => $this->formatUser($user),
                 'token' => $token,
-            ], '扫码登录成功');
+            ], __('app.auth.api.qr_login_ok'));
         }
 
         return ApiResponse::success([
@@ -1282,7 +1601,7 @@ class AuthController extends Controller
             ->first();
 
         if (!$session) {
-            return ApiResponse::error('SESSION_INVALID', '二维码无效或已过期', 400);
+            return ApiResponse::error('SESSION_INVALID', __('app.auth.api.qr_invalid'), 400);
         }
 
         $user = $request->user();
@@ -1294,7 +1613,7 @@ class AuthController extends Controller
             'confirmed_token' => \Str::random(64),
         ]);
 
-        return ApiResponse::success(null, '扫码确认成功');
+        return ApiResponse::success(null, __('app.auth.api.qr_confirm_ok'));
     }
 
     /**
@@ -1361,7 +1680,7 @@ class AuthController extends Controller
         // 验证挑战
         $clientData = json_decode(base64_decode($data['response']['clientDataJSON']), true);
         if (!$clientData || !isset($clientData['challenge'])) {
-            return ApiResponse::error('INVALID_CLIENT_DATA', '客户端数据无效', 400);
+            return ApiResponse::error('INVALID_CLIENT_DATA', __('app.auth.api.invalid_client_data'), 400);
         }
 
         $receivedChallenge = base64_decode($clientData['challenge']);
@@ -1374,7 +1693,7 @@ class AuthController extends Controller
             ->first();
 
         if (!$storedChallenge) {
-            return ApiResponse::error('INVALID_CHALLENGE', '挑战无效或已过期', 400);
+            return ApiResponse::error('INVALID_CHALLENGE', __('app.auth.api.invalid_challenge'), 400);
         }
 
         // 删除已使用的挑战
@@ -1383,7 +1702,7 @@ class AuthController extends Controller
         // 检查凭据是否已注册
         $existing = \App\Models\WebauthnCredential::where('credential_id', $data['id'])->first();
         if ($existing) {
-            return ApiResponse::error('CREDENTIAL_EXISTS', '该凭据已注册', 409);
+            return ApiResponse::error('CREDENTIAL_EXISTS', __('app.auth.api.credential_exists'), 409);
         }
 
         // 保存凭据
@@ -1398,7 +1717,7 @@ class AuthController extends Controller
 
         return ApiResponse::success([
             'credential_id' => $credential->id,
-        ], 'Passkey 注册成功');
+        ], __('app.auth.api.passkey_registered'));
     }
 
     /**
@@ -1461,7 +1780,7 @@ class AuthController extends Controller
         // 验证挑战
         $clientData = json_decode(base64_decode($data['response']['clientDataJSON']), true);
         if (!$clientData || !isset($clientData['challenge'])) {
-            return ApiResponse::error('INVALID_CLIENT_DATA', '客户端数据无效', 400);
+            return ApiResponse::error('INVALID_CLIENT_DATA', __('app.auth.api.invalid_client_data'), 400);
         }
 
         $receivedChallenge = base64_decode($clientData['challenge']);
@@ -1473,7 +1792,7 @@ class AuthController extends Controller
             ->first();
 
         if (!$storedChallenge) {
-            return ApiResponse::error('INVALID_CHALLENGE', '挑战无效或已过期', 400);
+            return ApiResponse::error('INVALID_CHALLENGE', __('app.auth.api.invalid_challenge'), 400);
         }
 
         $storedChallenge->delete();
@@ -1484,12 +1803,12 @@ class AuthController extends Controller
             ->first();
 
         if (!$credential) {
-            return ApiResponse::error('CREDENTIAL_NOT_FOUND', '凭据未找到', 404);
+            return ApiResponse::error('CREDENTIAL_NOT_FOUND', __('app.auth.api.credential_not_found'), 404);
         }
 
         $user = $credential->user;
         if (!$user || $user->status !== 'active') {
-            return ApiResponse::error('ACCOUNT_DISABLED', '账号已被禁用', 403);
+            return ApiResponse::error('ACCOUNT_DISABLED', __('app.auth.api.account_disabled'), 403);
         }
 
         // 更新计数器
@@ -1513,7 +1832,7 @@ class AuthController extends Controller
         return ApiResponse::success([
             'user' => $this->formatUser($user),
             'token' => $token,
-        ], '登录成功');
+        ], __('app.auth.api.login_ok'));
     }
 
     /**
@@ -1538,12 +1857,12 @@ class AuthController extends Controller
             ->first();
 
         if (!$credential) {
-            return ApiResponse::error('NOT_FOUND', '凭据未找到', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.auth.api.credential_not_found'), 404);
         }
 
         $credential->update(['is_active' => false]);
 
-        return ApiResponse::success(null, 'Passkey 已删除');
+        return ApiResponse::success(null, __('app.auth.api.passkey_deleted'));
     }
 
     // ─── 头像管理 ───
@@ -1571,7 +1890,7 @@ class AuthController extends Controller
         $path = $file->store('avatars/' . $user->id, 'public');
 
         if (!$path) {
-            return ApiResponse::error('头像上传失败', 500);
+            return ApiResponse::error(__('app.auth.api.avatar_upload_fail'), 500);
         }
 
         $user->update(['avatar' => $path]);
@@ -1579,7 +1898,7 @@ class AuthController extends Controller
         return ApiResponse::success([
             'avatar' => $user->avatar,
             'avatar_url' => $user->avatar_url,
-        ], '头像更新成功');
+        ], __('app.auth.api.avatar_updated'));
     }
 
     /**
@@ -1600,7 +1919,7 @@ class AuthController extends Controller
 
         return ApiResponse::success([
             'avatar_url' => $user->avatar_url,
-        ], '头像已恢复默认');
+        ], __('app.auth.api.avatar_reset'));
     }
 
     /**
@@ -1615,6 +1934,6 @@ class AuthController extends Controller
 
         $request->user()->update($validated);
 
-        return ApiResponse::success($request->user()->only(['id', 'name', 'email', 'phone', 'avatar', 'avatar_url']), '资料已更新');
+        return ApiResponse::success($request->user()->only(['id', 'name', 'email', 'phone', 'avatar', 'avatar_url']), __('app.auth.api.profile_updated'));
     }
 }

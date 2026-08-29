@@ -20,12 +20,16 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/phone/send-code', [AuthController::class, 'sendPhoneCode']);
 Route::post('/phone/login', [AuthController::class, 'phoneLogin']);
+Route::post('/phone/register', [AuthController::class, 'phoneRegister']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 // OAuth login (public)
 Route::post('/oauth/login', [AuthController::class, 'oauthLogin']);
 Route::get('/oauth/available-providers', [AuthController::class, 'availableOauthProviders']);
+Route::get('/oauth/authorize-url/{provider}', [AuthController::class, 'oauthAuthorizeUrl']);
+Route::get('/oauth/redirect/{provider}', [AuthController::class, 'oauthRedirect']);
+Route::get('/oauth/callback/{provider}', [AuthController::class, 'oauthCallback']);
 
 // Magic Link (public)
 Route::post('/auth/magic-link/send', [AuthController::class, 'sendMagicLink']);
@@ -148,5 +152,9 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
 
         // Login history
         Route::get('/login-history', [AuthController::class, 'loginHistory']);
+
+        // FCM Device Token (Flutter Push)
+        Route::post('/device/fcm-token', [App\Http\Controllers\Api\DeviceTokenController::class, 'registerToken']);
+        Route::delete('/device/fcm-token', [App\Http\Controllers\Api\DeviceTokenController::class, 'removeToken']);
     }); // end mask
 }); // end auth:sanctum

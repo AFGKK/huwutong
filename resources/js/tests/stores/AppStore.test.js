@@ -38,10 +38,11 @@ describe('useAppStore', () => {
 
     it('初始状态正确', async () => {
         const { useAppStore } = await import('@/stores/app');
+        const i18n = (await import('@/i18n')).default;
         const store = useAppStore();
 
         expect(store.sidebarCollapsed).toBe(false);
-        expect(store.currentTitle).toBe('仪表盘');
+        expect(store.currentTitle).toBe(i18n.global.t('admin.menu.dashboard'));
     });
 
     it('toggleSidebar 切换侧边栏状态', async () => {
@@ -50,18 +51,21 @@ describe('useAppStore', () => {
 
         store.toggleSidebar();
         expect(store.sidebarCollapsed).toBe(true);
+        expect(localStorage.getItem('hwt_admin_sidebar_collapsed')).toBe('1');
 
         store.toggleSidebar();
         expect(store.sidebarCollapsed).toBe(false);
+        expect(localStorage.getItem('hwt_admin_sidebar_collapsed')).toBe('0');
     });
 
     it('setTitle 更新标题', async () => {
         const { useAppStore } = await import('@/stores/app');
+        const i18n = (await import('@/i18n')).default;
         const store = useAppStore();
 
-        store.setTitle('License 管理');
-        expect(store.currentTitle).toBe('License 管理');
-        expect(document.title).toBe('License 管理 - HWT License');
+        store.setTitle('License Admin');
+        expect(store.currentTitle).toBe('License Admin');
+        expect(document.title).toBe(`License Admin - ${i18n.global.t('admin.brand_suffix')}`);
     });
 
     it('notify 调用对应的 ElMessage 方法', async () => {
@@ -69,17 +73,17 @@ describe('useAppStore', () => {
         const store = useAppStore();
         const { ElMessage } = await import('element-plus');
 
-        store.notify('success', '操作成功');
-        expect(ElMessage.success).toHaveBeenCalledWith('操作成功');
+        store.notify('success', 'ok');
+        expect(ElMessage.success).toHaveBeenCalledWith('ok');
 
-        store.notify('error', '操作失败');
-        expect(ElMessage.error).toHaveBeenCalledWith('操作失败');
+        store.notify('error', 'fail');
+        expect(ElMessage.error).toHaveBeenCalledWith('fail');
 
-        store.notify('warning', '请注意');
-        expect(ElMessage.warning).toHaveBeenCalledWith('请注意');
+        store.notify('warning', 'warn');
+        expect(ElMessage.warning).toHaveBeenCalledWith('warn');
 
-        store.notify('info', '信息提示');
-        expect(ElMessage.info).toHaveBeenCalledWith('信息提示');
+        store.notify('info', 'info');
+        expect(ElMessage.info).toHaveBeenCalledWith('info');
 
         // 未知类型 fallback 到 info
         store.notify('unknown', 'fallback');

@@ -13,6 +13,15 @@ export default {
     register(data) {
         return apiClient.post('/register', data);
     },
+    sendPhoneCode(data) {
+        return apiClient.post('/phone/send-code', data);
+    },
+    phoneLogin(data) {
+        return apiClient.post('/phone/login', data);
+    },
+    phoneRegister(data) {
+        return apiClient.post('/phone/register', data);
+    },
     refreshToken() {
         return apiClient.post('/token/refresh');
     },

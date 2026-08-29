@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import authApi from '@/api/auth';
 import tenantApi from '@/api/tenant';
 import { ElMessage } from 'element-plus';
+import i18n from '@/i18n';
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
@@ -33,17 +34,21 @@ export const useAuthStore = defineStore('auth', {
     },
 
     actions: {
+        applySession(user, token) {
+            this.user = user;
+            this.token = token;
+            localStorage.setItem('auth_token', token);
+            localStorage.setItem('user', JSON.stringify(user));
+            import('@/echo').then(({ refreshEchoAuthHeaders }) => refreshEchoAuthHeaders()).catch(() => {});
+        },
+
         async login(credentials) {
             this.loading = true;
             try {
                 const { data: res } = await authApi.login(credentials);
                 const { user, token } = res.data;
-                this.user = user;
-                this.token = token;
-                localStorage.setItem('auth_token', token);
-                localStorage.setItem('user', JSON.stringify(user));
-                import('@/echo').then(({ refreshEchoAuthHeaders }) => refreshEchoAuthHeaders()).catch(() => {});
-                ElMessage.success('登录成功');
+                this.applySession(user, token);
+                ElMessage.success(i18n.global.t('auth.login_success'));
                 return true;
             } catch (e) {
                 const errData = e?.response?.data?.error;
@@ -51,9 +56,45 @@ export const useAuthStore = defineStore('auth', {
                     const firstMsg = Object.values(errData.details)[0]?.[0];
                     if (firstMsg) ElMessage.error(firstMsg);
                 } else {
-                    ElMessage.error(errData?.message || '登录失败，请检查邮箱和密码');
+                    ElMessage.error(errData?.message || i18n.global.t('auth.login_fail'));
                 }
                 return false;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async phoneLogin(payload) {
+            this.loading = true;
+            try {
+                const { data: res } = await authApi.phoneLogin(payload);
+                const { user, token } = res.data;
+                this.applySession(user, token);
+                ElMessage.success(i18n.global.t('auth.login_success'));
+                return true;
+            } catch (e) {
+                ElMessage.error(e?.response?.data?.error?.message || e?.response?.data?.message || i18n.global.t('auth.phone_login_fail'));
+                return false;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async phoneRegister(payload) {
+            this.loading = true;
+            try {
+                const { data: res } = await authApi.phoneRegister(payload);
+                const payloadData = res.data || res;
+                const user = payloadData.user;
+                const token = payloadData.token;
+                if (user && token) {
+                    this.applySession(user, token);
+                }
+                ElMessage.success(i18n.global.t('auth.register_success'));
+                return { ok: true, data: payloadData };
+            } catch (e) {
+                ElMessage.error(e?.response?.data?.error?.message || e?.response?.data?.message || i18n.global.t('auth.register_fail'));
+                return { ok: false };
             } finally {
                 this.loading = false;
             }
@@ -106,7 +147,7 @@ export const useAuthStore = defineStore('auth', {
                     this.user.remember_tenant_id = tenantId;
                     localStorage.setItem('user', JSON.stringify(this.user));
                 }
-                ElMessage.success(`已切换到: ${res.data.tenant.name}`);
+                ElMessage.success(i18n.global.t('auth.tenant_switched', { name: res.data.tenant.name }));
                 return true;
             } catch {
                 return false;

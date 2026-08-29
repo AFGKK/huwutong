@@ -2,28 +2,28 @@
     <div class="qr-confirm-page">
         <div class="confirm-content">
             <div class="icon-area">
-                <el-icon :size="64" color="#409eff"><Monitor /></el-icon>
+                <el-icon :size="64" color="#0f172a"><Monitor /></el-icon>
             </div>
-            <h2>确认扫码登录</h2>
-            <p class="desc">检测到来自以下设备的登录请求</p>
+            <h2>{{ $t('qr_confirm.title') }}</h2>
+            <p class="desc">{{ $t('qr_confirm.desc') }}</p>
 
             <el-descriptions :column="1" border size="small" class="session-info">
-                <el-descriptions-item label="设备">{{ sessionInfo.device || '未知设备' }}</el-descriptions-item>
-                <el-descriptions-item label="浏览器">{{ sessionInfo.browser || '未知' }}</el-descriptions-item>
-                <el-descriptions-item label="操作系统">{{ sessionInfo.os || '未知' }}</el-descriptions-item>
-                <el-descriptions-item label="IP 地址">{{ sessionInfo.ip || '未知' }}</el-descriptions-item>
-                <el-descriptions-item label="位置">{{ sessionInfo.location || '未知' }}</el-descriptions-item>
-                <el-descriptions-item label="时间">{{ sessionInfo.created_at || '-' }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('qr_confirm.device')">{{ sessionInfo.device || $t('qr_confirm.unknown_device') }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('qr_confirm.browser')">{{ sessionInfo.browser || $t('qr_confirm.unknown') }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('qr_confirm.os')">{{ sessionInfo.os || $t('qr_confirm.unknown') }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('qr_confirm.ip')">{{ sessionInfo.ip || $t('qr_confirm.unknown') }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('qr_confirm.location')">{{ sessionInfo.location || $t('qr_confirm.unknown') }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('qr_confirm.time')">{{ sessionInfo.created_at || '-' }}</el-descriptions-item>
             </el-descriptions>
 
             <div class="actions">
-                <el-button type="primary" size="large" :loading="confirming" @click="handleConfirm">确认登录</el-button>
-                <el-button size="large" @click="handleCancel">取消</el-button>
+                <el-button type="primary" size="large" :loading="confirming" @click="handleConfirm">{{ $t('qr_confirm.confirm') }}</el-button>
+                <el-button size="large" @click="handleCancel">{{ $t('qr_confirm.cancel') }}</el-button>
             </div>
 
             <div v-if="confirmResult" class="result">
-                <el-result v-if="confirmResult.success" icon="success" title="登录成功" sub-title="PC 端将自动跳转" />
-                <el-result v-else icon="error" title="登录失败" :sub-title="confirmResult.message" />
+                <el-result v-if="confirmResult.success" icon="success" :title="$t('qr_confirm.success')" :sub-title="$t('qr_confirm.success_sub')" />
+                <el-result v-else icon="error" :title="$t('qr_confirm.fail')" :sub-title="confirmResult.message" />
             </div>
         </div>
     </div>
@@ -32,12 +32,14 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Monitor } from '@element-plus/icons-vue';
 import apiClient from '@/api/client';
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
 const confirming = ref(false);
 const confirmResult = ref(null);
@@ -48,7 +50,7 @@ const sessionInfo = reactive({
 async function loadSession() {
     const sessionId = route.query.session;
     if (!sessionId) {
-        ElMessage.error('缺少会话 ID');
+        ElMessage.error(t('qr_confirm.missing_session'));
         return;
     }
     try {
@@ -58,25 +60,25 @@ async function loadSession() {
             if (!sessionInfo.created_at) sessionInfo.created_at = res.data.created_at;
         }
     } catch {
-        ElMessage.error('会话已过期或无效');
+        ElMessage.error(t('qr_confirm.expired'));
     }
 }
 
 async function handleConfirm() {
     const sessionId = route.query.session;
-    if (!sessionId) { ElMessage.error('缺少会话 ID'); return; }
+    if (!sessionId) { ElMessage.error(t('qr_confirm.missing_session')); return; }
     confirming.value = true;
     try {
         const { data: res } = await apiClient.post('/auth/qrcode/confirm', { session_id: sessionId });
-        confirmResult.value = { success: true, message: res.message || '登录成功' };
+        confirmResult.value = { success: true, message: res.message || t('qr_confirm.success') };
         setTimeout(() => router.push('/portal/dashboard'), 2000);
     } catch (e) {
-        confirmResult.value = { success: false, message: e.response?.data?.message || '确认失败' };
+        confirmResult.value = { success: false, message: e.response?.data?.message || t('qr_confirm.confirm_fail') };
     } finally { confirming.value = false; }
 }
 
 function handleCancel() {
-    ElMessage.info('已取消登录');
+    ElMessage.info(t('qr_confirm.cancelled'));
     router.push('/portal/dashboard');
 }
 

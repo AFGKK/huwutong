@@ -10,8 +10,8 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                 </div>
-                <h2 class="forgot-title">忘记密码</h2>
-                <p class="forgot-subtitle">输入您的注册邮箱，我们将发送重置验证码</p>
+                <h2 class="forgot-title">{{ $t('auth.forgot_title') }}</h2>
+                <p class="forgot-subtitle">{{ $t('auth.forgot_subtitle') }}</p>
             </div>
             <div class="forgot-card-body">
                 <div v-if="sent" class="success-state">
@@ -20,34 +20,36 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
                     </div>
-                    <p class="success-title">验证码已发送</p>
-                    <p class="success-desc">请检查您的邮箱 <strong>{{ email }}</strong>，按照邮件指引重置密码</p>
-                    <el-button @click="resetForm" style="margin-top:12px">重新发送</el-button>
+                    <p class="success-title">{{ $t('auth.forgot_sent_title') }}</p>
+                    <p class="success-desc">{{ $t('auth.forgot_sent_desc') }} <strong>{{ email }}</strong></p>
+                    <el-button @click="resetForm" style="margin-top:12px">{{ $t('auth.magic_resend') }}</el-button>
                 </div>
                 <el-form v-else ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="handleForgotPassword">
-                    <el-form-item label="注册邮箱" prop="email">
-                        <el-input v-model="form.email" placeholder="请输入注册时使用的邮箱" :prefix-icon="Message" size="large" />
+                    <el-form-item :label="$t('auth.forgot_email_label')" prop="email">
+                        <el-input v-model="form.email" :placeholder="$t('auth.forgot_email_ph')" :prefix-icon="Message" size="large" />
                     </el-form-item>
                     <el-form-item style="margin-top:24px">
-                        <el-button type="primary" native-type="submit" :loading="loading" class="submit-btn" size="large">发送重置验证码</el-button>
+                        <el-button type="primary" native-type="submit" :loading="loading" class="submit-btn" size="large">{{ $t('auth.forgot_send') }}</el-button>
                     </el-form-item>
                 </el-form>
             </div>
             <div class="back-link">
-                <el-button text size="small" @click="$router.push('/login')">← 返回登录</el-button>
+                <el-button text size="small" @click="$router.push('/login')">{{ $t('auth.back_to_login') }}</el-button>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Message } from '@element-plus/icons-vue'
 import apiClient from '@/api/client'
 
 const router = useRouter()
+const { t } = useI18n()
 const formRef = ref(null)
 const loading = ref(false)
 const sent = ref(false)
@@ -55,19 +57,19 @@ const email = ref('')
 
 const branding = reactive({
     logo_url: '',
-    site_name: '互物通',
+    site_name: t('app_name'),
 })
 
 const form = reactive({
     email: '',
 })
 
-const rules = {
+const rules = computed(() => ({
     email: [
-        { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-        { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' },
+        { required: true, message: t('auth.email_required'), trigger: 'blur' },
+        { type: 'email', message: t('auth.email_invalid'), trigger: 'blur' },
     ],
-}
+}))
 
 async function loadBranding() {
     try {
@@ -86,9 +88,9 @@ async function handleForgotPassword() {
         await apiClient.post('/forgot-password', { email: form.email })
         email.value = form.email
         sent.value = true
-        ElMessage.success('验证码已发送到您的邮箱')
+        ElMessage.success(t('auth.forgot_sent_toast'))
     } catch (e) {
-        const msg = e.response?.data?.message || '发送失败，请稍后重试'
+        const msg = e.response?.data?.message || t('auth.forgot_send_fail')
         ElMessage.error(msg)
     } finally {
         loading.value = false
@@ -111,7 +113,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     padding: 16px;
 }
 .forgot-card-wrap {
