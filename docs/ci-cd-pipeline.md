@@ -113,6 +113,38 @@ Production Blue-Green:
 | `NODE_VERSION` | `20` | 前端构建 Node 版本 |
 | `K8S_NAMESPACE` | `hwt-production` | 生产 K8s 命名空间 |
 
+### 3.3 OWASP ZAP 渗透测试（D-41 / T-25）
+
+| 变量 | 默认值 | 说明 |
+|:----|:------|:-----|
+| `ZAP_ENABLED` | `false` | 本地是否连接 ZAP 守护进程；CI 不依赖此变量 |
+| `ZAP_HOST` | `127.0.0.1` | ZAP API 主机 |
+| `ZAP_PORT` | `8090` | ZAP API 端口 |
+| `ZAP_API_KEY` | — | ZAP API 密钥（Docker 部署时可留空） |
+| `ZAP_FAIL_ON_HIGH` | `true` | `php artisan security:scan` 发现高危时 exit 1 |
+| `PENTEST_BLOCK_HIGH` | `true` | 与 `config/auto-pentest.php` 联动，高危阻断发布 |
+
+**CI 触发方式**
+
+- push / PR → `main` / `master` / `develop` 自动运行
+- 每周日 03:00 UTC 定时扫描
+- GitHub → Actions → **OWASP ZAP Security Scan** → Run workflow（手动）
+
+**本地快速验证**
+
+```bash
+# 1. 启动应用
+php artisan serve --port=8000
+
+# 2. 静态分析（无需 Docker）
+php artisan security:scan --quick
+
+# 3. 完整 ZAP 基线（需 Docker）
+TARGET_URL=http://localhost:8000 bash .ci/zap/ci-scan.sh baseline
+```
+
+**发布门禁**：`security-scan.yml` 解析 `report.xml`，高危 > 0 时阻断（`exit 1`）。
+
 ---
 
 ## 4. Docker 镜像构建

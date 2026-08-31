@@ -1,7 +1,10 @@
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import '../services/api_service.dart';
+import '../services/push_service.dart';
 
 /// 认证状态管理
 class AuthProvider extends ChangeNotifier {
@@ -29,10 +32,12 @@ class AuthProvider extends ChangeNotifier {
   bool get biometricAvailable => _biometricAvailable;
 
   Future<void> checkLoginStatus() async {
+    _bindFcmTokenRefresh();
     _isLoggedIn = await _api.isLoggedIn();
     await _checkBiometricStatus();
     if (_isLoggedIn) {
       await _loadProfile();
+      await _registerFcmToken();
     }
     notifyListeners();
   }
@@ -47,6 +52,10 @@ class AuthProvider extends ChangeNotifier {
       _isLoggedIn = true;
       _userEmail = email;
       await _loadProfile();
+
+      // 登录成功后注册 FCM Token
+      await _registerFcmToken();
+
       return true;
     } catch (e) {
       _error = '登录失败，请检查邮箱和密码';
@@ -83,6 +92,7 @@ class AuthProvider extends ChangeNotifier {
       _isLoggedIn = true;
       _userEmail = savedEmail;
       await _loadProfile();
+      await _registerFcmToken();
       return true;
     } catch (e) {
       _error = '生物识别登录失败';
@@ -110,6 +120,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await _api.removeFcmToken();
     await _api.logout();
     _isLoggedIn = false;
     _userName = null;
@@ -130,5 +141,46 @@ class AuthProvider extends ChangeNotifier {
       _userName = profile['name'] as String?;
       _userEmail = profile['email'] as String?;
     } catch (_) {}
+  }
+
+  void _bindFcmTokenRefresh() {
+    PushService().onTokenRefresh = (token) async {
+      if (!_isLoggedIn) return;
+      await _api.registerFcmToken(
+        token,
+        platform: PushService.platformName,
+        deviceName: await _deviceName(),
+      );
+    };
+  }
+
+  Future<String> _deviceName() async {
+    try {
+      final info = DeviceInfoPlugin();
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final android = await info.androidInfo;
+        return '${android.manufacturer} ${android.model}'.trim();
+      }
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final ios = await info.iosInfo;
+        return ios.name.isNotEmpty ? ios.name : 'iOS Device';
+      }
+    } catch (_) {}
+    return 'Flutter App';
+  }
+
+  Future<void> _registerFcmToken() async {
+    try {
+      final push = PushService();
+      if (push.fcmToken != null) {
+        await _api.registerFcmToken(
+          push.fcmToken!,
+          platform: PushService.platformName,
+          deviceName: await _deviceName(),
+        );
+      }
+    } catch (_) {
+      // FCM 注册失败不阻塞登录
+    }
   }
 }

@@ -53,6 +53,10 @@
 
 ### 前置条件
 ```bash
+# 0. 启动 D-39 压测栈（推荐，非 artisan serve）
+powershell -File scripts/benchmark-up.ps1   # Windows
+# export BASE_URL=http://127.0.0.1:8088/api
+
 # 1. 安装 k6（macOS）
 brew install k6
 
@@ -81,11 +85,26 @@ k6 run -e TOKEN=$TOKEN benchmarks/k6/scripts/spike-test.js
 php artisan benchmark:run
 ```
 
-### CI 集成
+### D-40 达标验证（归档）
 ```bash
-# GitHub Actions 中使用
-k6 run --summary-export=benchmark-result.json benchmarks/k6/scripts/smoke.js
+# 完整流程（优先 D-39 栈 8088，回退 artisan serve 8000）
+powershell -ExecutionPolicy Bypass -File scripts/benchmark-run-full.ps1
+
+# 仅生成 PHP 层报告
+php artisan benchmark:report --base-url=http://127.0.0.1:8088/api --target-qps=5000 --try-k6
+
+# k6 恒定到达率（需安装 k6 + D-39 栈）
+k6 run -e BASE_URL=http://127.0.0.1:8088/api -e TARGET_QPS=5000 \
+  --summary-export=benchmarks/results/k6-qps-summary.json \
+  benchmarks/k6/scripts/qps-target.js
+
+# k6 混合负载 D-40 阶段
+k6 run -e BASE_URL=http://127.0.0.1:8088/api -e TOKEN=$TOKEN -e STAGE=d40 \
+  benchmarks/k6/scripts/load-test.js
 ```
+
+归档报告路径：`benchmarks/results/benchmark-result.json`
+
 
 ## 5. 测试环境
 
@@ -128,3 +147,6 @@ http_req_failed................: 0.02%
 | 日期 | 版本 | 综合 QPS | 结果 | 备注 |
 |:----|:---:|:--------:|:----:|:----|
 | 2026-06-14 | v1.0 | - | ⏳ 待执行 | 初始基准 |
+| 2026-07-12 | v1.1 | **0.4** (HTTP) | ❌ 未达标 | `artisan serve` :8000；100 req×并发1；P95 2778ms；k6 未安装 |
+| 2026-07-12 | v1.1 | ~1190 (服务端) | — | `benchmark:run` License 验证项；应用层 DB 性能基线 |
+| — | 目标 | **≥5000** | — | 需 D-39 Nginx+PHP-FPM 栈 (8088) + k6 重测 |

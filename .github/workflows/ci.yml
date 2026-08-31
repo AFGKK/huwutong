@@ -48,11 +48,13 @@ jobs:
           POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
+        # 表数量多时默认 shm/max_locks 易触发 out of shared memory
         options: >-
           --health-cmd="pg_isready -U postgres"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+          --shm-size=256m
 
       redis:
         image: redis:7-alpine

@@ -1,0 +1,17 @@
+{
+  "name": "hwt-miniprogram",
+  "version": "1.0.0",
+  "private": true,
+  "description": "互物通微信小程序 — miniprogram-ci 上传/预览",
+  "scripts": {
+    "ci:preview": "node ci/preview.js",
+    "ci:upload": "node ci/upload.js",
+    "ci:pack": "node ci/pack.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "miniprogram-ci": "^2.0.10"
+  }
+}

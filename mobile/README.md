@@ -54,6 +54,15 @@ flutter run --dart-define=API_BASE_URL=http://your-server.com/api
 
 默认值指向 `http://10.0.2.2:8000/api`（Android 模拟器的宿主机）。
 
+## 真机推送 / 商店上架
+
+凭据配置与 T-20 真机冒烟清单见：**[docs/真机账号上架指南.md](../docs/真机账号上架指南.md)**
+
+```bash
+# 检查 FCM / 小程序 AppID 是否已从占位符替换
+php scripts/verify-mobile-credentials.php
+```
+
 ## 项目结构
 
 ```

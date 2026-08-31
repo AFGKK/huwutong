@@ -55,7 +55,7 @@ case "${CMD}" in
 
     models)
         info "下载推荐模型到 Ollama..."
-        MODELS=("qwen2:7b" "nomic-embed-text" "deepseek-r1:7b")
+        MODELS=("qwen2.5:7b" "qwen2.5:1.5b" "nomic-embed-text")
         for model in "${MODELS[@]}"; do
             info "下载模型: ${model}"
             docker exec hwt-ollama ollama pull "${model}" || error "下载 ${model} 失败"

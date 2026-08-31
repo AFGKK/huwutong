@@ -99,7 +99,7 @@ npm run dev                # 前端 → http://localhost:5173
 ### 1.5 可用的 Docker 服务
 
 ```yaml
-# 见 compose.yaml
+# 见 docker-compose.yml / docs/docker-compose-dev.md
 服务        端口                    用途
 laravel.test  80                    Laravel 应用
 mysql         3306                  数据库

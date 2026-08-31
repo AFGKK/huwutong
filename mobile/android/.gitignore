@@ -1,0 +1,11 @@
+*.iml
+.gradle/
+build/
+local.properties
+key.properties
+captures/
+.idea/
+.DS_Store
+Thumbs.db
+/google-services.json
+/crashes/

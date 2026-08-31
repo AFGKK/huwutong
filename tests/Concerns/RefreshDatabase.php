@@ -67,6 +67,7 @@ trait RefreshDatabase
 
     /**
      * 清空测试库运行期/seed 残留数据，避免与 RefreshDatabase 事务外数据冲突。
+     * 仅 TRUNCATE 有数据的表（pg_stat），避免 700+ 空表逐表 TRUNCATE 导致测试启动极慢。
      */
     protected function purgePersistedTestData(): void
     {
@@ -76,19 +77,42 @@ trait RefreshDatabase
             return;
         }
 
-        $except = ['migrations'];
-
         $tables = collect($connection->select(
-            "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
-        ))->pluck('tablename')->reject(fn (string $table) => in_array($table, $except, true));
+            "SELECT relname AS tablename FROM pg_stat_user_tables
+             WHERE schemaname = 'public' AND n_live_tup > 0 AND relname != 'migrations'"
+        ))->pluck('tablename');
+
+        // pg_stat 可能滞后，兜底清空触发 purge 的探针表
+        if ($tables->isEmpty()) {
+            foreach (['pages', 'portal_branding_configs', 'languages', 'products', 'logs'] as $table) {
+                if ($connection->getSchemaBuilder()->hasTable($table)) {
+                    $tables->push($table);
+                }
+            }
+            $tables = $tables->unique()->values();
+        }
+
+        if ($tables->isEmpty()) {
+            return;
+        }
 
         $connection->statement("SET session_replication_role = 'replica'");
 
-        foreach ($tables as $table) {
+        foreach ($tables->chunk(30) as $chunk) {
+            $quoted = $chunk
+                ->map(fn (string $t) => '"' . str_replace('"', '""', $t) . '"')
+                ->implode(', ');
+
             try {
-                $connection->statement("TRUNCATE TABLE \"{$table}\" RESTART IDENTITY CASCADE");
+                $connection->statement("TRUNCATE TABLE {$quoted} RESTART IDENTITY CASCADE");
             } catch (\Throwable) {
-                // 单表失败不阻断整套测试启动
+                foreach ($chunk as $table) {
+                    try {
+                        $connection->statement("TRUNCATE TABLE \"{$table}\" RESTART IDENTITY CASCADE");
+                    } catch (\Throwable) {
+                        // 单表失败不阻断整套测试启动
+                    }
+                }
             }
         }
 

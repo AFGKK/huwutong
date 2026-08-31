@@ -100,6 +100,36 @@ class NotificationApiTest extends TestCase
 
         $response->assertStatus(200);
         $this->assertEquals(1, $response->json('data.count'));
+        $this->assertEquals(1, $response->json('data.system_count'));
+        $this->assertEquals(0, $response->json('data.interaction_count'));
+        $this->assertNotEmpty($response->json('data.system_preview'));
+    }
+
+    public function test_unread_count_splits_interaction_and_system(): void
+    {
+        Notification::create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->user->id,
+            'type' => 'interaction_like',
+            'title' => '赞了你',
+            'content' => '小明赞了你的动态',
+            'is_read' => false,
+        ]);
+        Notification::create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->user->id,
+            'type' => 'system',
+            'title' => '系统维护',
+            'content' => '今晚维护',
+            'is_read' => false,
+        ]);
+
+        $response = $this->getJson('/api/notifications/unread-count', $this->authHeaders());
+
+        $response->assertStatus(200);
+        $this->assertEquals(1, $response->json('data.interaction_count'));
+        $this->assertEquals(1, $response->json('data.system_count'));
+        $this->assertEquals(1, $response->json('data.system_total'));
     }
 
     // ─── 标记已读 ───

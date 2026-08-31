@@ -34,11 +34,14 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withProviders([
+        \App\Providers\AppServiceProvider::class,
         \App\Providers\EventServiceProvider::class,
         \App\Providers\TelescopeServiceProvider::class,
         Illuminate\Broadcasting\BroadcastServiceProvider::class,
     ])
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->trustProxies(at: env('TRUSTED_PROXIES', '*'));
+
         $middleware->alias([
             'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
             'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
@@ -67,13 +70,18 @@ return Application::configure(basePath: dirname(__DIR__))
             'fine-grained-api-key' => \App\Http\Middleware\FineGrainedApiKeyMiddleware::class,
             'widget-auth' => \App\Http\Middleware\WidgetAuthMiddleware::class,
             'waf' => \App\Http\Middleware\WafMiddleware::class,
+            'locale' => \App\Http\Middleware\SetLocale::class,
         ]);
 
         // 应用层中间件统一注册（按 M0-11 ADR：这些由应用层处理，网关层不应重复）
+        $middleware->web(prepend: [
+            \App\Http\Middleware\SetLocale::class, // D-22: 自动语言检测 — web 路由组首页/公共页面
+        ]);
         $middleware->api(prepend: [
             \App\Http\Middleware\ResolveDomainTenant::class,
             \App\Http\Middleware\SecurityHeadersMiddleware::class, // CORS/CSP/安全头 — 应用层统一处理
             \App\Http\Middleware\ImpersonateMiddleware::class, // 模拟登录 — 在所有认证路由之前检查
+            \App\Http\Middleware\SetLocale::class, // D-22: 自动语言检测
         ]);
 
         $middleware->api(append: [

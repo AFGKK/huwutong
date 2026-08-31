@@ -1,0 +1,14 @@
+{
+  "name": "hwt-license-viewer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "D-33: 互物通 Tauri 轻量 License 查看器",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0"
+  }
+}

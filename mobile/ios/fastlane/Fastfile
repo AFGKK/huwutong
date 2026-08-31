@@ -1,0 +1,65 @@
+# D-29: Fastlane 配置 — iOS 分发
+#
+# 前提：
+#   - 在 Apple Developer 创建 App ID 和 Bundle Identifier
+#   - 配置 App Store Connect API Key 并设置环境变量:
+#     - APP_STORE_CONNECT_API_KEY_KEY_ID
+#     - APP_STORE_CONNECT_API_KEY_ISSUER_ID
+#     - APP_STORE_CONNECT_API_KEY_CONTENT (Base64)
+#   - 或使用 Application Loader 传统方式:
+#     - FASTLANE_USER / FASTLANE_PASSWORD
+#   - 设置 MATCH_GIT_URL / MATCH_PASSWORD 用于代码签名
+
+default_platform(:ios)
+
+platform :ios do
+  desc "构建并上传到 TestFlight 内部测试"
+  lane :deploy_testflight do
+    # 同步签名证书
+    match(type: 'appstore', readonly: true)
+
+    # 构建
+    build_app(
+      scheme: 'Runner',
+      workspace: 'Runner.xcworkspace',
+      export_method: 'app-store',
+      clean: true,
+    )
+
+    # 上传到 TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      changelog: "版本更新 #{get_version_number}",
+    )
+  end
+
+  desc "构建 Debug 包 (无签名)"
+  lane :build_debug do
+    build_app(
+      scheme: 'Runner',
+      workspace: 'Runner.xcworkspace',
+      export_method: 'debug',
+      skip_codesigning: true,
+      clean: true,
+    )
+  end
+
+  desc "构建并上传到 App Store Connect 正式发布"
+  lane :deploy_production do
+    match(type: 'appstore', readonly: true)
+
+    build_app(
+      scheme: 'Runner',
+      workspace: 'Runner.xcworkspace',
+      export_method: 'app-store',
+      clean: true,
+    )
+
+    upload_to_app_store(
+      skip_waiting_for_build_processing: true,
+      skip_metadata: true,
+      skip_screenshots: true,
+      changelog: "版本更新 #{get_version_number}",
+    )
+  end
+end

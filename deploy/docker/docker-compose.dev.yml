@@ -1,0 +1,224 @@
+# D-20: 互物通全栈开发栈（PostgreSQL 默认）
+# 用法:
+#   docker compose -f deploy/docker/docker-compose.dev.yml up -d     # 从子目录
+#   docker compose up -d                                             # 从根目录（推荐）
+#   docker compose up -d postgres redis                              # 仅启动基础服务
+#   docker compose run --rm app php artisan migrate:fresh --seed     # 运行迁移
+#   docker compose logs -f app queue                                 # 跟踪日志
+#   docker compose down                                              # 关闭全部服务
+#
+# MySQL 可选: docker compose --profile mysql up -d
+
+name: hwt-dev
+
+x-app-env: &app-env
+  APP_ENV: ${APP_ENV:-local}
+  APP_DEBUG: ${APP_DEBUG:-true}
+  DB_CONNECTION: ${DB_CONNECTION:-pgsql}
+  DB_HOST: ${DOCKER_DB_HOST:-postgres}
+  DB_PORT: ${DB_PORT:-5432}
+  DB_DATABASE: ${DB_DATABASE:-huwutong}
+  DB_USERNAME: ${DB_USERNAME:-postgres}
+  DB_PASSWORD: ${DB_PASSWORD:-postgres}
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+  CACHE_DRIVER: redis
+  SESSION_DRIVER: redis
+  QUEUE_CONNECTION: redis
+  MEILISEARCH_HOST: http://meilisearch:7700
+  MEILISEARCH_API_KEY: ${MEILISEARCH_API_KEY:-huwutong-dev-master-key}
+  OLLAMA_API_BASE: http://ollama:11434
+  LOCAL_LLM_ENABLED: ${LOCAL_LLM_ENABLED:-true}
+  MAIL_MAILER: smtp
+  MAIL_HOST: mailpit
+  MAIL_PORT: 1025
+  REVERB_HOST: reverb
+  REVERB_PORT: 8080
+  REVERB_SCHEME: http
+
+x-cli-service: &cli-service
+  build:
+    context: ../..
+    dockerfile: deploy/docker/Dockerfile.cli
+  working_dir: /var/www
+  volumes:
+    - ../..:/var/www
+  networks:
+    - hwt
+  restart: unless-stopped
+  environment:
+    <<: *app-env
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: hwt-postgres
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FORWARD_DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-huwutong}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - hwt_pg_data:/var/lib/postgresql/data
+    networks:
+      - hwt
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-huwutong}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql:
+    profiles: [mysql]
+    image: mysql:8.4
+    container_name: hwt-mysql
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FORWARD_MYSQL_PORT:-3306}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_DATABASE:-huwutong}
+      MYSQL_USER: ${DB_USERNAME:-huwutong}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+    volumes:
+      - hwt_mysql_data:/var/lib/mysql
+    networks:
+      - hwt
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${DB_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: hwt-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FORWARD_REDIS_PORT:-6379}:6379"
+    networks:
+      - hwt
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    container_name: hwt-meilisearch
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FORWARD_MEILISEARCH_PORT:-7700}:7700"
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY:-huwutong-dev-master-key}
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_ENV: development
+    volumes:
+      - hwt_meili_data:/meili_data
+    networks:
+      - hwt
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hwt-ollama
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FORWARD_OLLAMA_PORT:-11434}:11434"
+    environment:
+      OLLAMA_KEEP_ALIVE: 24h
+      OLLAMA_NUM_PARALLEL: 4
+    volumes:
+      - hwt_ollama_data:/root/.ollama
+    networks:
+      - hwt
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:11434/api/tags || curl -sf http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: hwt-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FORWARD_MAILPIT_PORT:-1025}:1025"
+      - "127.0.0.1:${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025"
+    networks:
+      - hwt
+
+  reverb:
+    <<: *cli-service
+    container_name: hwt-reverb
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    ports:
+      - "127.0.0.1:${FORWARD_REVERB_PORT:-8080}:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  queue:
+    <<: *cli-service
+    container_name: hwt-queue
+    command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  schedule:
+    <<: *cli-service
+    container_name: hwt-schedule
+    command: php artisan schedule:work
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    container_name: hwt-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-80}:80"
+    volumes:
+      - ../..:/var/www
+    networks:
+      - hwt
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    environment:
+      <<: *app-env
+      APP_URL: http://localhost:${APP_PORT:-80}
+
+networks:
+  hwt:
+    driver: bridge
+
+volumes:
+  hwt_pg_data:
+  hwt_mysql_data:
+  hwt_meili_data:
+  hwt_ollama_data:

@@ -1,0 +1,4 @@
+# Fastlane Android 配置
+
+json_key_file ""  # 通过环境变量 SUPPLY_JSON_KEY_DATA 或 SUPPLY_JSON_KEY 提供
+package_name "com.huwutong.license"

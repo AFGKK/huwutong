@@ -1,0 +1,38 @@
+FROM php:8.3-cli-alpine AS base
+
+RUN apk add --no-cache \
+    git \
+    unzip \
+    curl \
+    bash \
+    oniguruma-dev \
+    libzip-dev \
+    libxml2-dev \
+    libsodium-dev \
+    postgresql-dev \
+    linux-headers \
+    && docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    pdo_pgsql \
+    mbstring \
+    bcmath \
+    zip \
+    xml \
+    sodium \
+    pcntl \
+    opcache \
+    && pecl install redis swoole \
+    && docker-php-ext-enable redis swoole opcache
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+COPY deploy/benchmark/php/opcache.ini /usr/local/etc/php/conf.d/99-opcache-benchmark.ini
+COPY deploy/benchmark/entrypoint-octane.sh /usr/local/bin/entrypoint-octane.sh
+RUN chmod +x /usr/local/bin/entrypoint-octane.sh
+
+WORKDIR /var/www
+
+EXPOSE 8000
+
+ENTRYPOINT ["entrypoint-octane.sh"]
+CMD ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0", "--port=8000", "--workers=16", "--max-requests=5000"]

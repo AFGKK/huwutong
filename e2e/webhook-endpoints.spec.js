@@ -29,7 +29,7 @@ test.describe('Webhook 端点管理 E2E', () => {
     test('加载 Webhook 事件页面正常', async ({ page }) => {
         await navigateAsLoggedIn(page, '/admin/webhooks?tab=events');
 
-        await expect(page.locator('h2', { hasText: 'Webhook 事件' })).toBeVisible({ timeout: 10000 });
+        await expect(page.getByRole('heading', { name: 'Webhook 事件', exact: true })).toBeVisible({ timeout: 10000 });
         await expect(page.locator('text=页面不存在')).toHaveCount(0);
     });
 });

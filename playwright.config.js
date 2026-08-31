@@ -18,9 +18,48 @@ export default defineConfig({
         serviceWorkers: 'block',
     },
     projects: [
+        // ── 桌面浏览器 ──
         {
             name: 'chromium',
             use: { ...devices['Desktop Chrome'] },
+        },
+        {
+            name: 'firefox',
+            use: { ...devices['Desktop Firefox'] },
+        },
+        {
+            name: 'webkit',
+            use: { ...devices['Desktop Safari'] },
+        },
+        // ── 移动浏览器 ──
+        {
+            name: 'mobile-chrome',
+            use: {
+                ...devices['Pixel 5'],
+                viewport: { width: 375, height: 812 },
+            },
+        },
+        {
+            name: 'mobile-safari',
+            use: {
+                ...devices['iPhone 13'],
+                viewport: { width: 390, height: 844 },
+            },
+        },
+        // ── 平板浏览器 ──
+        {
+            name: 'tablet-chrome',
+            use: {
+                ...devices['iPad (gen 7)'],
+                browserName: 'chromium',
+            },
+        },
+        {
+            name: 'tablet-safari',
+            use: {
+                ...devices['iPad (gen 7)'],
+                browserName: 'webkit',
+            },
         },
     ],
     webServer: {

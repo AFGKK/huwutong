@@ -1,0 +1,7 @@
+# Fastlane iOS 配置
+
+app_identifier "com.huwutong.license"
+apple_id ""  # 通过 FASTLANE_USER 环境变量提供
+
+# App Store Connect Team ID（可选，有多个 team 时使用）
+# team_id "YOUR_TEAM_ID"

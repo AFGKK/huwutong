@@ -1,0 +1,53 @@
+{
+  "miniprogramRoot": "",
+  "setting": {
+    "urlCheck": true,
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
+    "enhance": false,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
+  },
+  "appid": "wx4cab3d98eaf9106b",
+  "projectname": "HWT License 查询",
+  "condition": {
+    "miniprogram": {
+      "list": [
+        {
+          "name": "查询页",
+          "pathName": "pages/index/index",
+          "query": "",
+          "scene": null
+        }
+      ]
+    }
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.3.4",
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  },
+  "simulatorPluginLibVersion": {}
+}

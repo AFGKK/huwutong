@@ -1,0 +1,77 @@
+/* 互物通小程序 — 全局样式与设计 token（实体色，兼容旧开发者工具） */
+page {
+  --hwt-primary: #1a73e8;
+  --hwt-ok: #34a853;
+  --hwt-warn: #f9ab00;
+  --hwt-danger: #ea4335;
+  --hwt-bg: #f7f8fa;
+  --hwt-card: #ffffff;
+  --hwt-text: #1f1f1f;
+  --hwt-muted: #5f6368;
+  --hwt-subtle: #9aa0a6;
+  --hwt-border: #f0f0f0;
+  --hwt-radius: 12px;
+
+  background-color: #f7f8fa;
+  color: #1f1f1f;
+  font-size: 14px;
+  box-sizing: border-box;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* 通用主/次按钮 */
+.hwt-btn {
+  width: 100%;
+  height: 44px;
+  line-height: 44px;
+  text-align: center;
+  font-size: 16px;
+  border-radius: 12px;
+  border: none;
+  margin-bottom: 12px;
+}
+
+.hwt-btn::after {
+  border: none;
+}
+
+.hwt-btn:active {
+  opacity: 0.85;
+}
+
+.hwt-btn-primary {
+  background: #1a73e8;
+  color: #ffffff;
+}
+
+.hwt-btn-secondary {
+  background: #ffffff;
+  color: #1a73e8;
+  border: 1px solid #1a73e8;
+}
+
+.hwt-btn-ghost {
+  background: transparent;
+  color: #5f6368;
+  border: none;
+  font-size: 14px;
+  height: 40px;
+  line-height: 40px;
+}
+
+.hwt-section-title {
+  font-size: 13px;
+  color: #5f6368;
+  margin: 0 4px 8px;
+}
+
+.hwt-key {
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  word-break: break-all;
+}

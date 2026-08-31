@@ -1,6 +1,7 @@
 # ===================================================
-# PostgreSQL 16 + pgvector 开发栈
-# 使用: docker compose -f deploy/docker/docker-compose.pgsql.yml up -d
+# PostgreSQL 16 + pgvector 开发栈（遗留，推荐 docker-compose.yml）
+# 使用: docker compose up -d
+# 或:   docker compose -f deploy/docker/docker-compose.dev.yml up -d
 # ===================================================
 
 services:

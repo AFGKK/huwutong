@@ -1,0 +1,14 @@
+# D-20: 互物通全栈开发环境
+# 这是根目录入口 compose 文件，引用实际服务定义
+#
+# 快速开始:
+#   docker compose up -d                    # 启动全部服务
+#   docker compose up -d postgres redis     # 仅启动数据库和缓存
+#   docker compose run --rm app php artisan migrate:fresh --seed
+#   docker compose logs -f app queue        # 跟踪日志
+#   docker compose down                     # 关闭全部服务
+
+name: hwt-dev
+
+include:
+  - deploy/docker/docker-compose.dev.yml

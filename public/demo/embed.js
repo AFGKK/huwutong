@@ -159,5 +159,5 @@
     setTimeout(openDemo, config.autoOpenDelay || 3000);
   }
 
-  console.log('[HWT Demo] Embed script loaded');
+  // Embed script loaded
 })();

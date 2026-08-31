@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../config/push_config.dart';
+
+typedef FcmTokenRefreshCallback = Future<void> Function(String token);
 
 /// 推送通知服务 — FCM + 本地通知
 class PushService {
@@ -13,6 +18,9 @@ class PushService {
 
   /// FCM Token（用于服务端推送）
   String? fcmToken;
+
+  FcmTokenRefreshCallback? onTokenRefresh;
+  StreamSubscription<String>? _tokenRefreshSub;
 
   /// 初始化推送通知
   Future<void> init() async {
@@ -87,7 +95,15 @@ class PushService {
         notificationSettings.authorizationStatus == AuthorizationStatus.provisional) {
       // 获取 FCM Token
       fcmToken = await _firebaseMessaging.getToken();
+      await _notifyTokenRefresh(fcmToken);
     }
+
+    // Token 刷新时重新注册到后端
+    _tokenRefreshSub?.cancel();
+    _tokenRefreshSub = _firebaseMessaging.onTokenRefresh.listen((token) async {
+      fcmToken = token;
+      await _notifyTokenRefresh(token);
+    });
 
     // 前台消息处理
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
@@ -207,5 +223,26 @@ class PushService {
   /// 取消所有通知
   Future<void> cancelAll() async {
     await _flutterLocalNotificationsPlugin.cancelAll();
+  }
+
+  /// 当前运行平台（ios / android）
+  static String get platformName {
+    if (Platform.isIOS) return 'ios';
+    if (Platform.isAndroid) return 'android';
+    return 'unknown';
+  }
+
+  Future<void> _notifyTokenRefresh(String? token) async {
+    if (token == null || token.isEmpty || onTokenRefresh == null) return;
+    try {
+      await onTokenRefresh!(token);
+    } catch (_) {
+      // 注册失败不阻塞推送初始化
+    }
+  }
+
+  void dispose() {
+    _tokenRefreshSub?.cancel();
+    _tokenRefreshSub = null;
   }
 }

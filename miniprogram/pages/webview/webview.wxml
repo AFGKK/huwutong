@@ -1,0 +1,11 @@
+<view class="page">
+  <web-view wx:if="{{src}}" src="{{src}}" bindmessage="onMessage" binderror="onError"></web-view>
+
+  <view class="fallback" wx:if="{{!src || showFallback}}">
+    <text class="title">无法内嵌打开页面</text>
+    <text class="hint">请确认微信公众平台已配置业务域名，或复制链接到浏览器打开。</text>
+    <text class="url" wx:if="{{src || rawUrl}}">{{src || rawUrl}}</text>
+    <button class="btn" bindtap="onCopy">复制链接</button>
+    <button class="btn ghost" bindtap="onBack">返回</button>
+  </view>
+</view>

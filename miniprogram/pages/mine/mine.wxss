@@ -1,0 +1,151 @@
+.page {
+  min-height: 100vh;
+  padding: 16px 16px calc(40px + env(safe-area-inset-bottom));
+  background: #f7f8fa;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+  line-height: 56px;
+  text-align: center;
+  border-radius: 50%;
+  background: #1a73e8;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 600;
+  margin-right: 14px;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+
+.sub {
+  font-size: 12px;
+  color: #5f6368;
+  margin-top: 4px;
+}
+
+.menu {
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.login-btn {
+  background: #07c160;
+  color: #ffffff;
+  border-radius: 22px;
+  font-size: 15px;
+  border: none;
+}
+
+.login-btn::after,
+.logout-btn::after {
+  border: none;
+}
+
+.logout-btn {
+  background: #ffffff;
+  color: #ea4335;
+  border: 1px solid #ea4335;
+  border-radius: 22px;
+  font-size: 15px;
+}
+
+.section {
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 13px;
+  color: #5f6368;
+  margin: 0 4px 8px;
+}
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item:active {
+  background: #f5f5f5;
+}
+
+.contact-row {
+  width: 100%;
+  text-align: left;
+  background: #ffffff;
+  border-radius: 0;
+  border: none;
+  line-height: normal;
+  font-size: 14px;
+  color: #1f1f1f;
+  padding: 14px 16px;
+  margin: 0;
+}
+
+.contact-row::after {
+  border: none;
+}
+
+.list-key {
+  font-size: 13px;
+  color: #1f1f1f;
+}
+
+.list-meta {
+  font-size: 11px;
+  color: #9aa0a6;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arrow {
+  color: #9aa0a6;
+  font-size: 18px;
+}
+
+.clear-row {
+  text-align: center;
+  font-size: 12px;
+  color: #1a73e8;
+  padding: 10px;
+}
+
+.footer {
+  text-align: center;
+  font-size: 12px;
+  color: #9aa0a6;
+  margin-top: 24px;
+}

@@ -1,0 +1,101 @@
+<!-- 我的 -->
+<view class="page">
+  <view class="profile card">
+    <view class="avatar">{{isLoggedIn ? '互' : '?'}}</view>
+    <view class="profile-info" wx:if="{{isLoggedIn}}">
+      <text class="name">{{userInfo.name || '微信用户'}}</text>
+      <text class="sub" wx:if="{{phoneMasked}}">手机 {{phoneMasked}}</text>
+      <text class="sub" wx:else>已登录，可激活与管理授权</text>
+    </view>
+    <view class="profile-info" wx:else>
+      <text class="name">未登录</text>
+      <text class="sub">登录后可激活设备、查看我的激活</text>
+    </view>
+  </view>
+
+  <view class="card menu" wx:if="{{!isLoggedIn}}">
+    <button class="login-btn" bindtap="onLogin">微信一键登录</button>
+  </view>
+
+  <view class="section" wx:if="{{isLoggedIn}}">
+    <view class="section-title">账号</view>
+    <view class="card list">
+      <button
+        class="list-item contact-row phone-btn"
+        open-type="getPhoneNumber"
+        bindgetphonenumber="onGetPhoneNumber"
+        wx:if="{{!phoneMasked}}"
+      >
+        <text>绑定手机号</text>
+        <text class="arrow">›</text>
+      </button>
+      <view class="list-item" wx:else>
+        <text>已绑定手机</text>
+        <text class="list-meta">{{phoneMasked}}</text>
+      </view>
+      <view class="list-item" bindtap="onGoActivations">
+        <text>我的激活</text>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section" wx:if="{{recentQueries.length > 0}}">
+    <view class="section-title">最近查询</view>
+    <view class="card list">
+      <view
+        class="list-item"
+        wx:for="{{recentQueries}}"
+        wx:key="*this"
+        data-key="{{item}}"
+        bindtap="onTapRecent"
+      >
+        <text class="list-key hwt-key">{{item}}</text>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+    <view class="clear-row" bindtap="onClearRecent">清空记录</view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">购买与帮助</view>
+    <view class="card list">
+      <view class="list-item" bindtap="onOpenProducts">
+        <text>产品商城</text>
+        <text class="arrow">›</text>
+      </view>
+      <view class="list-item" bindtap="onOpenPricing">
+        <text>套餐定价</text>
+        <text class="arrow">›</text>
+      </view>
+      <view class="list-item" bindtap="onOpenHelp">
+        <text>帮助中心</text>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">服务</view>
+    <view class="card list">
+      <view class="list-item" data-type="privacy" bindtap="onOpenAgreement">
+        <text>隐私政策</text>
+        <text class="arrow">›</text>
+      </view>
+      <view class="list-item" data-type="terms" bindtap="onOpenAgreement">
+        <text>用户协议</text>
+        <text class="arrow">›</text>
+      </view>
+      <button class="list-item contact-row" open-type="contact" session-from="mine">
+        <text>在线客服</text>
+        <text class="arrow">›</text>
+      </button>
+    </view>
+  </view>
+
+  <view class="card menu" wx:if="{{isLoggedIn}}">
+    <button class="logout-btn" bindtap="onLogout">退出登录</button>
+  </view>
+
+  <view class="footer" bindlongpress="onDevTap">互物通 · 企业授权查询</view>
+</view>

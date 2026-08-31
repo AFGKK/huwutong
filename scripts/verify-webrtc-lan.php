@@ -51,6 +51,12 @@ if ($callId) {
 $incoming = Http::withToken($demoToken)->get("{$base}/api/calls/incoming");
 $results['incoming_poll'] = $incoming->status();
 
+$ice = Http::withToken($adminToken)->get("{$base}/api/calls/ice-servers");
+$results['ice_servers_status'] = $ice->status();
+$iceServers = $ice->json('data.ice_servers') ?? [];
+$results['ice_servers_count'] = count($iceServers);
+$results['has_turn'] = !empty($ice->json('data.has_turn')) ? 'yes' : 'no';
+
 $admin->tokens()->where('name', 'lan-verify-admin')->delete();
 $demo->tokens()->where('name', 'lan-verify-demo')->delete();
 

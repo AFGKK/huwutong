@@ -1,0 +1,37 @@
+<view class="page">
+  <view class="empty" wx:if="{{!isLoggedIn}}">
+    <view class="empty-icon">锁</view>
+    <text class="empty-text">请先登录后查看激活记录</text>
+    <button class="btn" bindtap="onGoMine">去登录</button>
+  </view>
+
+  <view class="skeleton-wrap" wx:elif="{{loading}}">
+    <view class="card skeleton-card" wx:for="{{[1,2,3]}}" wx:key="*this">
+      <view class="sk-line sk-w60"></view>
+      <view class="sk-line sk-w90"></view>
+      <view class="sk-line sk-w40"></view>
+    </view>
+  </view>
+
+  <view class="empty" wx:elif="{{items.length === 0}}">
+    <view class="empty-icon muted">空</view>
+    <text class="empty-text">暂无激活记录</text>
+    <text class="empty-hint">在查询结果页激活设备后，记录会出现在这里</text>
+    <button class="btn" bindtap="onGoQuery">去查询</button>
+  </view>
+
+  <view class="list" wx:else>
+    <view class="card item" wx:for="{{items}}" wx:key="device_id" data-key="{{item.license_key}}" bindtap="onTapItem">
+      <view class="row-top">
+        <text class="product">{{item.product_name || '授权'}}</text>
+        <text class="status {{item.is_expired ? 'expired' : ''}}">{{item.is_expired ? '已过期' : (item.license_status || '—')}}</text>
+      </view>
+      <text class="key hwt-key">{{item.license_key}}</text>
+      <view class="row-meta">
+        <text>{{item.device_name || item.platform || '设备'}}</text>
+        <text class="time">{{item.last_seen_at || ''}}</text>
+      </view>
+      <text class="exp" wx:if="{{item.expires_at}}">到期：{{item.expires_at}}</text>
+    </view>
+  </view>
+</view>

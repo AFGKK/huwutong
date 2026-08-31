@@ -5,13 +5,13 @@ import '../models/models.dart';
 
 /// HWT License API 客户端
 class ApiService {
-  late final Dio _dio;
+  late final Dio dio;
   final _storage = const FlutterSecureStorage();
 
   static const _tokenKey = 'auth_token';
 
   ApiService() {
-    _dio = Dio(BaseOptions(
+    dio = Dio(BaseOptions(
       baseUrl: ApiConfig.baseUrl,
       connectTimeout: ApiConfig.connectTimeout,
       receiveTimeout: ApiConfig.timeout,
@@ -19,7 +19,7 @@ class ApiService {
     ));
 
     // 请求拦截器 - 注入 Token
-    _dio.interceptors.add(InterceptorsWrapper(
+    dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final token = await _storage.read(key: _tokenKey);
         if (token != null) {
@@ -45,7 +45,7 @@ class ApiService {
   // ─── 认证 ───
 
   Future<String> login(String email, String password) async {
-    final res = await _dio.post('/login', data: {
+    final res = await dio.post('/login', data: {
       'email': email,
       'password': password,
     });
@@ -56,7 +56,7 @@ class ApiService {
 
   Future<void> logout() async {
     try {
-      await _dio.post('/logout');
+      await dio.post('/logout');
     } catch (_) {}
     await _storage.delete(key: _tokenKey);
   }
@@ -67,14 +67,14 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getProfile() async {
-    final res = await _dio.get('/me');
+    final res = await dio.get('/user');
     return res.data['data'] as Map<String, dynamic>? ?? {};
   }
 
   // ─── Dashboard ───
 
   Future<DashboardStats> getDashboardStats() async {
-    final res = await _dio.get('/licenses/stats');
+    final res = await dio.get('/licenses/stats');
     return DashboardStats.fromJson(res.data['data'] ?? {});
   }
 
@@ -83,26 +83,26 @@ class ApiService {
   Future<List<License>> getLicenses({int page = 1, String? status}) async {
     final params = <String, dynamic>{'page': page, 'per_page': 20};
     if (status != null && status != 'all') params['filter[status]'] = status;
-    final res = await _dio.get('/licenses', queryParameters: params);
+    final res = await dio.get('/licenses', queryParameters: params);
     final list = (res.data['data'] as List?) ?? [];
     return list.map((e) => License.fromJson(e)).toList();
   }
 
   Future<License> getLicenseDetail(int id) async {
-    final res = await _dio.get('/licenses/$id');
+    final res = await dio.get('/licenses/$id');
     return License.fromJson(res.data['data']);
   }
 
   Future<void> revokeLicense(int id, {String? reason}) async {
-    await _dio.post('/licenses/$id/revoke', data: {'reason': reason});
+    await dio.post('/licenses/$id/revoke', data: {'reason': reason});
   }
 
   Future<void> suspendLicense(int id) async {
-    await _dio.post('/licenses/$id/suspend');
+    await dio.post('/licenses/$id/suspend');
   }
 
   Future<void> activateLicense(String licenseKey, String deviceFingerprint) async {
-    await _dio.post('/license/activate', data: {
+    await dio.post('/license/activate', data: {
       'license_key': licenseKey,
       'device_fingerprint': deviceFingerprint,
       'device_name': 'Mobile App',
@@ -113,48 +113,64 @@ class ApiService {
   // ─── Device ───
 
   Future<List<Device>> getDevices({int page = 1}) async {
-    final res = await _dio.get('/devices', queryParameters: {'page': page, 'per_page': 20});
+    final res = await dio.get('/devices', queryParameters: {'page': page, 'per_page': 20});
     final list = (res.data['data'] as List?) ?? [];
     return list.map((e) => Device.fromJson(e)).toList();
   }
 
   Future<void> removeDevice(int id) async {
-    await _dio.delete('/devices/$id');
+    await dio.delete('/devices/$id');
   }
 
   // ─── Notifications ───
 
   Future<List<Notification>> getNotifications({int page = 1}) async {
-    final res = await _dio.get('/notifications', queryParameters: {'page': page, 'per_page': 20});
+    final res = await dio.get('/notifications', queryParameters: {'page': page, 'per_page': 20});
     final list = (res.data['data'] as List?) ?? [];
     return list.map((e) => Notification.fromJson(e)).toList();
   }
 
   Future<int> getUnreadCount() async {
-    final res = await _dio.get('/notifications/unread-count');
+    final res = await dio.get('/notifications/unread-count');
     return res.data['data']['count'] as int? ?? 0;
   }
 
   Future<void> markAsRead(int id) async {
-    await _dio.post('/notifications/$id/read');
+    await dio.post('/notifications/$id/read');
   }
 
   Future<void> markAllAsRead() async {
-    await _dio.post('/notifications/read-all');
+    await dio.post('/notifications/read-all');
   }
 
   // ─── Approval ───
 
   Future<List<Map<String, dynamic>>> getPendingApprovals() async {
-    final res = await _dio.get('/approvals/pending');
+    final res = await dio.get('/approvals/pending');
     return (res.data['data'] as List?)?.cast<Map<String, dynamic>>() ?? [];
   }
 
   Future<void> approveActivation(int approvalId) async {
-    await _dio.post('/approvals/$approvalId/approve');
+    await dio.post('/approvals/$approvalId/approve');
   }
 
   Future<void> rejectActivation(int approvalId, {String? reason}) async {
-    await _dio.post('/approvals/$approvalId/reject', data: {'reason': reason});
+    await dio.post('/approvals/$approvalId/reject', data: {'reason': reason});
+  }
+
+  // ─── FCM Push Token (D-28) ───
+
+  Future<void> registerFcmToken(String token, {String? platform, String? deviceName}) async {
+    await dio.post('/device/fcm-token', data: {
+      'token': token,
+      'platform': platform ?? 'android',
+      'device_name': deviceName ?? 'Flutter App',
+    });
+  }
+
+  Future<void> removeFcmToken() async {
+    try {
+      await dio.delete('/device/fcm-token');
+    } catch (_) {}
   }
 }

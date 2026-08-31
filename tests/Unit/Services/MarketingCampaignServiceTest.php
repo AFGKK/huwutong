@@ -28,8 +28,11 @@ class MarketingCampaignServiceTest extends TestCase
         parent::setUp();
         $this->service = $this->app->make(MarketingCampaignService::class);
         $this->tenant = Tenant::factory()->create();
-        $this->user = User::factory()->create();
-        $this->customer = Customer::factory()->create(['tenant_id' => $this->tenant->id]);
+        $this->user = User::factory()->create(['marketing_opt_in' => true]);
+        $this->customer = Customer::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->user->id,
+        ]);
     }
 
     // ─── 活动 CRUD ───

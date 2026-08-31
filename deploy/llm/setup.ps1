@@ -104,12 +104,11 @@ function Download-Models {
 
     foreach ($m in $models) {
         Write-Info "下载 $($m.name) - $($m.desc)..."
-        Write-Info "  运行: docker exec -it ollama ollama pull $($m.name)"
+        Write-Info "  运行: docker exec hwt-ollama ollama pull $($m.name)"
         
-        # 在后台拉取
         $job = Start-Job -ScriptBlock {
             param($modelName)
-            docker exec ollama ollama pull $modelName 2>&1
+            docker exec hwt-ollama ollama pull $modelName 2>&1
         } -ArgumentList $m.name
 
         # 等待完成（最多 30 分钟）
@@ -123,7 +122,7 @@ function Download-Models {
 
         if ($job.State -eq 'Running') {
             Stop-Job $job
-            Write-Error "下载 $($m.name) 超时，请手动运行: docker exec ollama ollama pull $($m.name)"
+            Write-Error "下载 $($m.name) 超时，请手动运行: docker exec hwt-ollama ollama pull $($m.name)"
         } else {
             $result = Receive-Job $job
             Write-Info "模型 $($m.name) 下载完成"
@@ -134,6 +133,32 @@ function Download-Models {
     Write-Info "所有模型已下载完成！"
     Write-Info "在 .env 文件中配置默认模型："
     Write-Info "  OLLAMA_DEFAULT_MODEL=qwen2.5:7b"
+}
+
+# ===================================================
+# Windows 原生安装（环境无 Docker 时的备用方案）
+# ===================================================
+function Install-OllamaNative {
+    Write-Info "Windows 原生 Ollama 安装检查"
+    Write-Info "================================"
+    
+    $ollamaPath = "$env:LOCALAPPDATA\Programs\Ollama\ollama.exe"
+    $installed = Test-Path $ollamaPath
+    
+    if ($installed) {
+        Write-Info "Ollama 已安装: $ollamaPath"
+        try {
+            $resp = Invoke-WebRequest -Uri "http://localhost:11434/api/tags" -TimeoutSec 3 -ErrorAction Stop
+            Write-Info "Ollama 服务: ✅ 运行中"
+        } catch {
+            Write-Warning "Ollama 服务: ⚠️ 未运行 — 请手动启动 Ollama 应用程序"
+        }
+    } else {
+        Write-Info "Ollama 未安装，有两种方式:"
+        Write-Info "  [方式一] 原生安装: 下载 https://ollama.com/download/Windows → 运行 OllamaSetup.exe"
+        Write-Info "    安装后: ollama pull qwen2.5:7b && ollama pull nomic-embed-text"
+        Write-Info "  [方式二] Docker: docker compose -f deploy/llm/docker-compose.ollama.yml up -d"
+    }
 }
 
 # ===================================================
@@ -189,6 +214,7 @@ switch ($Command) {
     'ollama' { Deploy-Ollama }
     'vllm' { Deploy-Vllm }
     'models' { Download-Models }
+    'native' { Install-OllamaNative }
     'status' { Show-Status }
     default { Show-Status }
 }

@@ -1,0 +1,61 @@
+{
+  "name": "hwt-admin-desktop",
+  "productName": "互物通 License 管理",
+  "version": "1.0.0",
+  "description": "D-32: 互物通 Electron 管理壳 — WebView 加载 /build 后台",
+  "main": "src/main.js",
+  "author": "HWT",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "cross-env HWT_ADMIN_URL=http://127.0.0.1:8000/build electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.huwutong.admin",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "config.js"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.business",
+      "icon": "assets/icon.icns"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "互物通 License 管理"
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "${env.HWT_ELECTRON_UPDATE_URL}"
+      }
+    ]
+  }
+}

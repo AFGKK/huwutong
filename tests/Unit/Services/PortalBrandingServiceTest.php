@@ -33,7 +33,7 @@ class PortalBrandingServiceTest extends TestCase
             'tenant_id' => null,
             'locale' => 'zh-CN',
             'brand_name' => '默认品牌',
-            'primary_color' => '#409eff',
+            'primary_color' => '#0f172a',
             'is_active' => true,
             'is_default' => true,
         ]);
@@ -68,7 +68,7 @@ class PortalBrandingServiceTest extends TestCase
         $config = $this->service->getOrCreateConfig($this->tenant->id);
 
         $this->assertNotNull($config);
-        $this->assertEquals('#409eff', $config->primary_color);
+        $this->assertEquals('#0f172a', $config->primary_color);
         $this->assertTrue($config->is_active);
     }
 
@@ -138,7 +138,7 @@ class PortalBrandingServiceTest extends TestCase
             'tenant_id' => null,
             'locale' => 'zh-CN',
             'brand_name' => '默认品牌',
-            'primary_color' => '#409eff',
+            'primary_color' => '#0f172a',
             'is_active' => true,
             'is_default' => true,
         ]);
@@ -154,7 +154,7 @@ class PortalBrandingServiceTest extends TestCase
         // 重置后应恢复到默认值
         $reset = $this->service->resetToDefault($this->tenant->id);
         $this->assertEquals('默认品牌', $reset->brand_name);
-        $this->assertEquals('#409eff', $reset->primary_color);
+        $this->assertEquals('#0f172a', $reset->primary_color);
     }
 
     /** @test */

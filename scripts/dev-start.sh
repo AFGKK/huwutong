@@ -1,70 +1,56 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+# D-20: 更新版开发环境启动（Docker 基础设施 + 本地 PHP）
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
 
 echo "================================================"
-echo "  HWT License 一键开发环境启动脚本"
+echo "  HWT License 一键开发环境 (D-20)"
 echo "================================================"
-echo ""
 
-# 检查 Docker
-if ! command -v docker &> /dev/null; then
+if ! command -v docker >/dev/null 2>&1; then
     echo "❌ Docker 未安装，请先安装 Docker Desktop"
     exit 1
 fi
 
-# 检查 .env
 if [ ! -f .env ]; then
-    echo "📝 创建 .env 文件..."
+    echo "📝 创建 .env ..."
     cp .env.example .env
-    php artisan key:generate
+    php artisan key:generate --force
 fi
 
-# 启动 Docker 服务
-echo "🐳 启动 Docker 服务 (MySQL + Redis + Mailpit)..."
-docker compose up -d mysql redis mailpit
+echo "🐳 启动 Docker 栈 (PostgreSQL + Redis + Meili + Ollama + Reverb + Queue)..."
+docker compose up -d --build
 
-# 等待 MySQL 就绪
-echo "⏳ 等待 MySQL 就绪..."
-for i in $(seq 1 30); do
-    if docker compose exec -T mysql mysqladmin ping -proot --silent 2>/dev/null; then
-        echo "✅ MySQL 就绪"
-        break
-    fi
-    sleep 2
-done
+echo "⏳ 等待服务就绪..."
+sleep 10
 
-# 安装依赖
-echo "📦 安装 Composer 依赖..."
+if docker compose exec -T postgres pg_isready -U "${DB_USERNAME:-postgres}" >/dev/null 2>&1; then
+    echo "✅ PostgreSQL 就绪"
+else
+    echo "⚠️ PostgreSQL 尚未就绪，请稍后重试 migrate"
+fi
+
+echo "📦 Composer / npm ..."
 composer install --no-interaction --prefer-dist
-
-echo "📦 安装 npm 依赖..."
 npm install
 
-# 运行迁移
-echo "🗄️ 运行数据库迁移..."
+echo "🗄️ 迁移与种子..."
 php artisan migrate --seed --force
 
-# 创建 Storage 链接
-php artisan storage:link --force || true
-
-# 优化缓存
-php artisan config:cache 2>/dev/null || true
-php artisan route:cache 2>/dev/null || true
+php artisan storage:link --force 2>/dev/null || true
 
 echo ""
 echo "================================================"
-echo "  🎉 开发环境就绪！"
+echo "  🎉 开发环境就绪"
 echo "================================================"
 echo ""
-echo "启动所有服务:"
 echo "  Terminal 1: php artisan serve --host=0.0.0.0 --port=8000"
 echo "  Terminal 2: npm run dev"
-echo "  Terminal 3: php artisan horizon"
-echo "  Terminal 4: php artisan reverb:start"
 echo ""
-echo "访问地址:"
-echo "  后端 API:    http://localhost:8000"
-echo "  前端 HMR:    http://localhost:5173"
+echo "  (Reverb / Queue 已在 Docker 中运行)"
+echo ""
 echo "  Mailpit:     http://localhost:8025"
-echo "  MinIO 管理:  http://localhost:9001"
+echo "  Meilisearch: http://localhost:7700"
 echo ""

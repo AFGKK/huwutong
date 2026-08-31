@@ -1,0 +1,82 @@
+<!-- 查询页：一屏一事 — 查 License -->
+<view class="page">
+  <view class="hero">
+    <view class="brand-mark">互</view>
+    <text class="title">互物通授权查询</text>
+    <text class="subtitle">输入 License Key 或扫码查询</text>
+  </view>
+
+  <view class="card search-card">
+    <view class="search-row">
+      <input
+        class="search-input hwt-key"
+        placeholder="输入 License Key"
+        placeholder-class="placeholder"
+        value="{{licenseKey}}"
+        bindinput="onKeyInput"
+        maxlength="60"
+        confirm-type="search"
+        bindconfirm="onLookup"
+      />
+      <view class="search-actions">
+        <view class="action-btn" bindtap="onScan" aria-role="button" aria-label="扫码">
+          <text class="action-text">扫码</text>
+        </view>
+        <view class="action-btn" bindtap="onClear" wx:if="{{licenseKey}}">
+          <text class="action-text muted">清除</text>
+        </view>
+      </view>
+    </view>
+    <button
+      class="lookup-btn {{isLoading ? 'loading' : ''}}"
+      bindtap="onLookup"
+      disabled="{{isLoading}}"
+    >
+      <view class="btn-inner" wx:if="{{isLoading}}">
+        <view class="spinner"></view>
+        <text>查询中...</text>
+      </view>
+      <text wx:else>查询</text>
+    </button>
+  </view>
+
+  <view class="hint">
+    <text class="hint-text">支持分享带参打开；查询结果可分享给同事</text>
+  </view>
+
+  <view class="examples" wx:if="{{exampleKeys.length > 0}}">
+    <text class="examples-label">试试示例</text>
+    <view class="examples-list">
+      <view
+        class="example-chip"
+        wx:for="{{exampleKeys}}"
+        wx:key="*this"
+        data-key="{{item}}"
+        bindtap="onFillExample"
+      >{{item}}</view>
+    </view>
+  </view>
+
+  <view class="section" wx:if="{{recentQueries.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">最近查询</text>
+      <text class="section-action" bindtap="onClearRecent">清空</text>
+    </view>
+    <view class="recent-list card">
+      <view
+        class="recent-item"
+        wx:for="{{recentQueries}}"
+        wx:key="*this"
+        data-key="{{item}}"
+        bindtap="onTapRecent"
+      >
+        <text class="recent-key hwt-key">{{item}}</text>
+        <text class="recent-arrow">›</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section empty-recent" wx:elif="{{!isLoading}}">
+    <text class="empty-hint">暂无最近查询，输入 Key 开始</text>
+  </view>
+</view>

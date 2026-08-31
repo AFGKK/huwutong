@@ -65,7 +65,6 @@ $endpoints = [
     ['GET', '/api/tickets', '工单'],
     ['GET', '/api/handoffs/queue', 'Handoff 队列'],
     ['GET', '/api/im/dashboard', 'IM 看板'],
-    ['GET', '/api/chat/handoff-config', 'Handoff 配置'],
     ['GET', '/api/admin/auto-renewal/dashboard', '自动续费'],
     ['GET', '/api/admin/sla-probes/dashboard', 'SLA 拨测'],
     ['GET', '/api/admin/official-accounts', '公众号'],
@@ -111,6 +110,9 @@ foreach ($endpoints as [$method, $path, $group]) {
         } elseif ($status === 404) {
             $skipped++;
             echo "  ⏭️  [{$group}] {$method} {$path} → 404 (路由未注册)\n";
+        } elseif ($status === 410) {
+            $skipped++;
+            echo "  ⏭️  [{$group}] {$method} {$path} → 410 (已退役)\n";
         } elseif ($status === 403 || $status === 401) {
             // 403 多为 Policy 拒绝（路由存在但无业务权限），不计入失败
             $skipped++;

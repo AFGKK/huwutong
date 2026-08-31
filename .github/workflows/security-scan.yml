@@ -89,6 +89,8 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+          sed -i 's/APP_DEBUG=true/APP_DEBUG=false/' .env
+          sed -i 's/APP_ENV=local/APP_ENV=testing/' .env
 
       - name: 运行数据库迁移
         run: php artisan migrate --force

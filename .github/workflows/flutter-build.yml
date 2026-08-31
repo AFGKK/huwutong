@@ -1,0 +1,188 @@
+# D-29: Flutter 移动端 CI 构建工作流
+#
+# 功能：
+#   - 单元测试（Flutter test）
+#   - Android APK/AppBundle 构建
+#   - iOS Archive 构建（仅 macOS runner）
+#   - 构建产物上传为 Artifact
+#
+# 触发条件：
+#   - 对 mobile/ 目录的 push/PR
+
+name: Flutter Build
+
+on:
+  push:
+    branches: [master, develop]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/flutter-build.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'mobile/**'
+  workflow_dispatch:
+    inputs:
+      build_ios:
+        description: '是否构建 iOS (需要 macOS runner)'
+        type: boolean
+        default: false
+      build_mode:
+        description: '构建模式'
+        type: choice
+        default: 'debug'
+        options:
+          - debug
+          - release
+
+env:
+  FLUTTER_VERSION: '3.24.x'
+  MOBILE_DIR: 'mobile'
+
+concurrency:
+  group: flutter-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ###########################################################################
+  # Job 1: 单元测试 + 分析
+  ###########################################################################
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.MOBILE_DIR }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.MOBILE_DIR }}/.dart_tool
+            ${{ env.MOBILE_DIR }}/build
+          key: flutter-pub-${{ hashFiles(format('{0}/pubspec.yaml', env.MOBILE_DIR)) }}
+          restore-keys: |
+            flutter-pub-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code (build_runner)
+        run: dart run build_runner build --delete-conflicting-outputs
+        continue-on-error: true
+
+      - name: Run Flutter analyze
+        run: flutter analyze
+
+      - name: Run unit tests
+        run: flutter test --coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: flutter-coverage
+          path: ${{ env.MOBILE_DIR }}/coverage/
+          retention-days: 7
+
+  ###########################################################################
+  # Job 2: Android APK 构建
+  ###########################################################################
+  build-android:
+    needs: [test]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.MOBILE_DIR }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build APK (debug)
+        if: github.event.inputs.build_mode == 'debug' || github.event_name == 'pull_request'
+        run: flutter build apk --debug
+
+      - name: Build APK (release)
+        if: github.event.inputs.build_mode == 'release' || github.ref == 'refs/heads/master'
+        run: flutter build apk --release
+
+      - name: Build AppBundle (release)
+        if: github.ref == 'refs/heads/master'
+        run: flutter build appbundle --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: hwt-license-android-${{ github.sha }}
+          path: |
+            ${{ env.MOBILE_DIR }}/build/app/outputs/flutter-apk/*.apk
+            ${{ env.MOBILE_DIR }}/build/app/outputs/bundle/release/*.aab
+          retention-days: 30
+
+  ###########################################################################
+  # Job 3: iOS Archive（仅 macOS runner + 手动触发或 master）
+  ###########################################################################
+  build-ios:
+    needs: [test]
+    if: >
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.build_ios == 'true')
+      || github.ref == 'refs/heads/master'
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ${{ env.MOBILE_DIR }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Build iOS (debug)
+        if: github.event_name == 'pull_request'
+        run: flutter build ios --debug --no-codesign
+
+      - name: Build iOS Archive (release)
+        if: github.ref == 'refs/heads/master'
+        run: flutter build ios --release --no-codesign
+
+      - name: Upload iOS build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hwt-license-ios-${{ github.sha }}
+          path: |
+            ${{ env.MOBILE_DIR }}/build/ios/iphoneos/
+            ${{ env.MOBILE_DIR }}/build/ios/archive/
+          retention-days: 30

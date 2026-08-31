@@ -17,13 +17,21 @@ $svc = app(MeilisearchService::class);
 
 if (! $svc->isAvailable()) {
     echo "❌ Meilisearch 不可用，请检查 MEILISEARCH_HOST / 服务是否启动\n";
-    echo "   docker compose -f deploy/docker/docker-compose.pgsql.yml up -d meilisearch\n";
+    echo "   Windows: powershell -File scripts/start-meilisearch.ps1\n";
+    echo "   Docker:  docker compose -f deploy/meilisearch/docker-compose.yml up -d\n";
     exit(1);
 }
 
 echo "=== Meilisearch 全量同步 ===\n\n";
 
-$results = $svc->syncAll();
+echo "初始化索引...\n";
+foreach ($svc->setupAllIndexes() as $indexKey => $result) {
+    $status = $result['status'] ?? 'ok';
+    echo "  ✅ {$indexKey}: {$status}\n";
+}
+echo "\n";
+
+$results = $svc->syncAll(false);
 
 foreach ($results as $index => $stats) {
     $synced = $stats['synced'] ?? 0;

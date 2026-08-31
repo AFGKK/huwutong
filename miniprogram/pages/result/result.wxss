@@ -1,0 +1,259 @@
+/* 结果页 */
+.page {
+  min-height: 100vh;
+  padding: 0 16px calc(40px + env(safe-area-inset-bottom));
+  background: #f7f8fa;
+  box-sizing: border-box;
+}
+
+.status-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 16px 22px;
+  margin: 0 -16px;
+  border-radius: 0 0 20px 20px;
+}
+
+.status-badge {
+  padding: 4px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+}
+
+.license-key {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  text-align: center;
+  padding: 0 8px;
+  opacity: 0.98;
+}
+
+.copy-btn {
+  margin-top: 10px;
+  padding: 4px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 14px;
+  font-size: 12px;
+  color: #ffffff;
+}
+
+.copy-btn:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.metrics {
+  margin-top: 14px;
+  padding: 16px 8px;
+  display: flex;
+  align-items: stretch;
+}
+
+.metric {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 6px;
+  min-width: 0;
+}
+
+.metric-divider {
+  width: 1px;
+  background: #f0f0f0;
+  margin: 4px 0;
+}
+
+.metric-label {
+  font-size: 11px;
+  color: #9aa0a6;
+  margin-bottom: 6px;
+}
+
+.metric-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f1f1f;
+  text-align: center;
+  word-break: break-all;
+  line-height: 1.35;
+}
+
+.metric-value.danger {
+  color: #ea4335;
+}
+
+.info-card {
+  margin-top: 12px;
+  padding: 4px 16px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 13px;
+  color: #5f6368;
+  flex-shrink: 0;
+}
+
+.info-value {
+  font-size: 13px;
+  color: #1f1f1f;
+  text-align: right;
+  max-width: 62%;
+  word-break: break-all;
+}
+
+.info-value.secondary {
+  color: #5f6368;
+  font-size: 12px;
+}
+
+.guide-card {
+  margin-top: 12px;
+  padding: 14px 16px;
+}
+
+.guide-text {
+  font-size: 13px;
+  color: #5f6368;
+  line-height: 1.65;
+}
+
+.actions {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.btn {
+  width: 100%;
+  height: 46px;
+  line-height: 46px;
+  text-align: center;
+  font-size: 16px;
+  border-radius: 12px;
+  border: none;
+  margin-bottom: 10px;
+}
+
+.btn::after {
+  border: none;
+}
+
+.btn:active {
+  opacity: 0.85;
+}
+
+.btn-primary {
+  background: #1a73e8;
+  color: #ffffff;
+}
+
+.btn-outline {
+  background: #ffffff;
+  color: #1a73e8;
+  border: 1px solid #1a73e8;
+}
+
+.secondary-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  padding: 4px 0 8px;
+}
+
+.btn-link {
+  margin: 0;
+  padding: 8px 12px;
+  background: transparent;
+  color: #5f6368;
+  font-size: 13px;
+  line-height: 1.4;
+  border: none;
+}
+
+.btn-link::after {
+  border: none;
+}
+
+.section {
+  margin-top: 16px;
+}
+
+.section-title {
+  font-size: 13px;
+  color: #5f6368;
+  margin: 0 4px 8px;
+}
+
+.device-list {
+  padding: 0 16px;
+}
+
+.device-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 14px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.device-item:last-child {
+  border-bottom: none;
+}
+
+.device-main {
+  display: flex;
+  flex-direction: column;
+  max-width: 65%;
+}
+
+.device-name {
+  font-size: 14px;
+  color: #1f1f1f;
+  font-weight: 500;
+}
+
+.device-meta {
+  font-size: 12px;
+  color: #9aa0a6;
+  margin-top: 4px;
+}
+
+.device-time {
+  font-size: 11px;
+  color: #9aa0a6;
+  max-width: 32%;
+  text-align: right;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 80px;
+}
+
+.empty-text {
+  font-size: 14px;
+  color: #5f6368;
+  margin-bottom: 16px;
+}

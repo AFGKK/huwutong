@@ -1,0 +1,73 @@
+<!-- 设备激活 -->
+<view class="page" wx:if="{{!isActivated}}">
+  <view class="card form-card">
+    <view class="header">
+      <text class="header-title">激活设备</text>
+      <text class="header-sub">为以下 License 占用一个设备名额</text>
+    </view>
+
+    <view class="key-display">
+      <text class="key-label">License Key</text>
+      <text class="key-value hwt-key">{{licenseKey}}</text>
+    </view>
+
+    <view class="form-group">
+      <text class="form-label">设备名称</text>
+      <input
+        class="form-input"
+        placeholder="例如：办公室电脑、我的手机"
+        placeholder-class="form-placeholder"
+        value="{{deviceName}}"
+        bindinput="onDeviceNameInput"
+        maxlength="50"
+      />
+    </view>
+
+    <view class="form-group">
+      <text class="form-label">设备指纹</text>
+      <view class="fingerprint-display">
+        <text class="fingerprint-text hwt-key">{{deviceFingerprint}}</text>
+      </view>
+      <text class="form-hint">同一微信账号再次激活将识别为同一设备</text>
+    </view>
+
+    <view class="actions">
+      <button
+        class="btn btn-primary {{isActivating ? 'loading' : ''}}"
+        bindtap="onActivate"
+        disabled="{{isActivating}}"
+      >
+        <view class="btn-inner" wx:if="{{isActivating}}">
+          <view class="spinner"></view>
+          <text>激活中...</text>
+        </view>
+        <text wx:else>确认激活</text>
+      </button>
+      <button class="btn btn-secondary" bindtap="onBack" disabled="{{isActivating}}">返回</button>
+    </view>
+  </view>
+
+  <view class="tips">
+    <text class="tips-title">说明</text>
+    <text class="tips-text">每个 License 有设备数量上限，激活将占用一个名额。</text>
+    <text class="tips-text">更换设备时，请先在管理后台释放旧设备。</text>
+  </view>
+</view>
+
+<!-- 激活成功 -->
+<view class="page success-page" wx:else>
+  <view class="success-card card">
+    <view class="success-icon">
+      <view class="success-check"></view>
+    </view>
+    <text class="success-title">激活成功</text>
+    <text class="success-desc">设备「{{deviceName}}」已绑定到本授权</text>
+    <text class="success-key hwt-key">{{licenseKey}}</text>
+
+    <view class="success-actions">
+      <button class="btn btn-primary" bindtap="onGoActivations">查看我的激活</button>
+      <button class="btn btn-outline" bindtap="onGoQuery">继续查询</button>
+      <button class="btn btn-secondary" bindtap="onBackToResult">返回</button>
+    </view>
+  </view>
+</view>

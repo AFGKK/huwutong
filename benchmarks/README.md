@@ -1,57 +1,55 @@
-# 🏋️ M2-22 性能压测套件
+# T-24 5000 QPS 压测达标验证
 
-> 单机 ≥ 5,000 QPS 验证
+## 环境
 
-## 目录结构
+- PHP 8.3 + Laravel 11
+- PostgreSQL 16 (pgvector) + Redis 7 (cache/session/queue)
+- 两种运行模式:
+  - **PHP-FPM** (默认): `max_children=500`, 理论 ~3000 QPS
+  - **Octane (Swoole)** (推荐): 16 workers, 理论 ~10000+ QPS
 
-```
-benchmarks/
-├── README.md              ← 本文件
-├── k6/
-│   ├── config.json         ← 全局配置
-│   ├── scripts/
-│   │   ├── smoke.js        ← 烟雾测试（快速验证）
-│   │   ├── load-test.js    ← 负载测试（模拟峰值）
-│   │   ├── stress-test.js  ← 压力测试（寻找极限）
-│   │   └── spike-test.js   ← 突发测试（秒杀场景）
-│   └── data/
-│       └── test-data.json  ← 测试数据
-├── results/               ← 测试结果（自动生成）
-└── ...
+## 快速启动
 
-docs/benchmarks/
-└── index.md               ← 压测报告文档
-
-app/Console/Commands/
-└── BenchmarkCommand.php   ← 服务端基准测试 Artisan 命令
-```
-
-## 快速开始
+### Octane Swoole 模式 (目标 5000 QPS)
 
 ```bash
-# 1. 服务端基准测试（无需安装额外工具）
-php artisan benchmark:run
-php artisan benchmark:run --quick  # 快速模式
+# 启动环境
+docker compose -f deploy/benchmark/docker-compose.benchmark.yml \
+  --profile octane up -d --build
 
-# 2. k6 端到端负载测试（需安装 k6）
-#    安装: https://k6.io/docs/getting-started/installation/
-
-export TOKEN="your-api-token"
-k6 run benchmarks/k6/scripts/smoke.js
-k6 run -e TOKEN=$TOKEN benchmarks/k6/scripts/load-test.js
+# 运行 5000 QPS 压测
+docker compose -f deploy/benchmark/docker-compose.benchmark.yml \
+  --profile k6 run --rm k6-qps
 ```
 
-## 测试矩阵
+### PHP-FPM 模式
 
-| 测试类型 | 并发 | 持续时间 | 目标 QPS | 适用场景 |
-|:--------|:---:|:--------:|:--------:|:--------|
-| Smoke   | 1   | 10s      | 可用性   | 开发/CI 快速验证 |
-| Load    | 100 | 3m       | 5,000    | 正常业务峰值 |
-| Stress  | 500 | 10m      | 10,000+  | 极限承载 |
-| Spike   | 500 | 1.5m     | 突发     | 秒杀/促销 |
+```bash
+docker compose -f deploy/benchmark/docker-compose.benchmark.yml \
+  --profile fpm up -d --build
 
-## 结果查看
+# 运行压测
+docker compose -f deploy/benchmark/docker-compose.benchmark.yml \
+  --profile k6 run --rm k6-qps
+```
 
-- 服务端基准：`storage/app/benchmarks/report.json`
-- k6 结果：终端直接输出 + `--summary-export=file.json`
-- 压测报告：`docs/benchmarks/index.md`
+## 配置优化
+
+| 配置 | PHP-FPM | Octane (Swoole) |
+|------|---------|-----------------|
+| 进程模型 | 每个请求一个进程 | 常驻内存 Worker |
+| Worker 数 | max_children=500 | 16 workers (每 worker 持续服务) |
+| Opcache | 512MB / 80000 files / JIT | 同上 |
+| Nginx keepalive | 32 | 256 |
+
+## 压测脚本
+
+| 脚本 | 类型 | 用途 |
+|------|------|------|
+| `benchmarks/k6/scripts/qps-target.js` | constant-arrival-rate | 5000 QPS 达标验证 |
+| `benchmarks/k6/scripts/load-test.js` | ramping-vus | 混合 API 负载测试 |
+| `benchmarks/k6/scripts/stress-test.js` | ramping-vus | 压力测试 |
+
+## 结果
+
+压测结果输出到 `benchmarks/results/k6-qps-summary.json`

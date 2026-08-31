@@ -19,15 +19,16 @@ services:
       - OLLAMA_KEEP_ALIVE=24h
       - OLLAMA_NUM_PARALLEL=4
       - OLLAMA_MAX_LOADED_MODELS=2
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    # GPU 可选：有 NVIDIA 时在 host 安装 nvidia-container-toolkit 后取消注释
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:11434/api/tags || curl -sf http://localhost:11434/api/tags"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -1,0 +1,2 @@
+# 图标占位 — 打包前请运行 `cargo tauri icon path/to/source.png` 生成各尺寸。
+# 或使用 Electron 项目的 assets/icon.png 作为源图。

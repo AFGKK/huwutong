@@ -1,0 +1,8 @@
+{
+  "description": "本地开发者工具私有配置，覆盖 project.config.json 中的 appid。此文件勿提交 Git。",
+  "projectname": "HWT License 查询",
+  "appid": "wx0000000000000000",
+  "setting": {
+    "urlCheck": false
+  }
+}

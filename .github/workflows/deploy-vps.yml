@@ -1,0 +1,123 @@
+# 互物通 — VPS 生产部署工作流
+# 适用于：非 K8s 环境的裸机/VPS 部署
+# 触发：手动触发（指定版本 tag）
+name: Deploy VPS Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '部署版本 (git tag, 如 v1.0.0)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Dry run (仅打印命令)'
+        default: false
+        type: boolean
+
+env:
+  APP_NAME: huwutong
+  DEPLOY_PATH: /var/www/huwutong
+  SSH_HOST: 88.huwutong.com
+  SSH_USER: deploy
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version }}
+
+      - name: 验证版本标签
+        run: |
+          if [[ ! "${{ github.event.inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "⚠ 版本标签格式建议: v1.0.0"
+          fi
+          echo "部署版本: ${{ github.event.inputs.version }}"
+          echo "当前 commit: $(git rev-parse HEAD)"
+
+      - name: 生成部署脚本
+        run: |
+          cat > deploy-remote.sh << 'SCRIPT'
+          set -e
+
+          echo "=== P0: 生产部署 ==="
+          APP_DIR={{ DEPLOY_PATH }}
+          cd $APP_DIR
+
+          # 维护模式
+          php artisan down --retry=60
+
+          # 拉取代码
+          git fetch origin
+          git checkout {{ VERSION }}
+          git pull origin {{ VERSION }}
+
+          # 安装 PHP 依赖
+          composer install --no-dev --optimize-autoloader --no-interaction
+
+          # 前端构建
+          npm ci && npm run build
+
+          # 数据库迁移
+          php artisan migrate --force
+
+          # 缓存优化
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          php artisan event:cache
+
+          # 存储链接
+          php artisan storage:link
+
+          # 重启队列
+          sudo supervisorctl restart huwutong-worker:*
+
+          # 退出维护模式
+          php artisan up
+
+          # 健康检查（路由见 routes/api/public.php）
+          sleep 5
+          curl -fsS http://127.0.0.1/api/health/ready || curl -fsS http://127.0.0.1/api/health/live \
+            || echo "⚠ 健康检查异常，请手动检查"
+
+          echo "=== 部署完成 ==="
+          SCRIPT
+
+          # 替换占位符
+          sed -i "s|{{ DEPLOY_PATH }}|${{ env.DEPLOY_PATH }}|g" deploy-remote.sh
+          sed -i "s|{{ VERSION }}|${{ github.event.inputs.version }}|g" deploy-remote.sh
+
+      - name: 执行远程部署
+        if: ${{ !github.event.inputs.dry_run }}
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          # 写入 SSH 密钥
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ env.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+          # 上传并执行脚本
+          scp deploy-remote.sh ${{ env.SSH_USER }}@${{ env.SSH_HOST }}:/tmp/deploy-remote.sh
+          ssh ${{ env.SSH_USER }}@${{ env.SSH_HOST }} "bash /tmp/deploy-remote.sh && rm /tmp/deploy-remote.sh"
+
+      - name: 验证部署
+        if: ${{ !github.event.inputs.dry_run }}
+        run: |
+          sleep 10
+          # 运行验证脚本
+          ssh ${{ env.SSH_USER }}@${{ env.SSH_HOST }} "cd ${{ env.DEPLOY_PATH }} && php scripts/verify-production.php"
+
+      - name: Dry Run 信息
+        if: ${{ github.event.inputs.dry_run }}
+        run: |
+          echo "=== Dry Run - 将执行的命令 ==="
+          cat deploy-remote.sh

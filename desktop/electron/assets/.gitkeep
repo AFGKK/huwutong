@@ -1,0 +1,3 @@
+# 将 `public/build/assets/pwa-icon-192.png` 复制为 `icon.png` 后打包。
+# Windows 可使用 online 工具生成 icon.ico；macOS 生成 icon.icns。
+# 开发模式会使用内置占位图标。

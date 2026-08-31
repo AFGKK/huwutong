@@ -1,0 +1,10 @@
+<view class="page">
+  <view class="title">{{title}}</view>
+  <view class="content">
+    <block wx:for="{{paragraphs}}" wx:key="*this">
+      <text class="p">{{item}}</text>
+    </block>
+  </view>
+  <view class="hint">完整网页版：{{webUrl}}</view>
+  <button class="btn" bindtap="onOpenWeb">在浏览器打开</button>
+</view>

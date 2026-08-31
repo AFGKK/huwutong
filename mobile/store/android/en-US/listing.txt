@@ -1,0 +1,17 @@
+title=HWT License
+short_description=Enterprise license management at your fingertips
+full_description=HWT License is the ultimate mobile companion for enterprise license management. Manage your software licenses, monitor device activations, and handle approval requests wherever you are.
+
+Key Features:
+• Dashboard — Real-time overview of total, active, and expiring licenses
+• License Management — View details, suspend or revoke licenses
+• Device Management — Track activated devices, remove unauthorized ones
+• Activation Approvals — Quick approve/reject device activation requests
+• Notification Center — Receive expiry alerts and security notifications
+• Push Notifications — Instant alerts delivered to your mobile device
+• Biometric Auth — Fingerprint / Face ID for fast and secure login
+
+HWT License puts enterprise license management in your pocket.
+
+video_url=
+promo_text=Enterprise license management at your fingertips.

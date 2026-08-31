@@ -1,0 +1,3 @@
+// Flutter release xcconfig
+// This file is generated during flutter build ios --release.
+#include "Flutter/Generated.xcconfig"

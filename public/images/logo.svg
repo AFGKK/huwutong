@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="互物通">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#g)"/>
+  <path d="M34 78V50c0-3.3 2.7-6 6-6h12c8.8 0 16 7.2 16 16s-7.2 16-16 16H46v8c0 2.2-1.8 4-4 4h-4c-2.2 0-4-1.8-4-4zm16-24h8c4.4 0 8 3.6 8 8s-3.6 8-8 8h-8V54z" fill="#fff"/>
+  <path d="M78 44h8c2.2 0 4 1.8 4 4v36c0 2.2-1.8 4-4 4h-8c-2.2 0-4-1.8-4-4V48c0-2.2 1.8-4 4-4z" fill="#fff" opacity=".95"/>
+  <circle cx="96" cy="52" r="6" fill="#94a3b8"/>
+</svg>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>互物通 License 查看</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>互物通 License 查看</h1>
+      <p class="subtitle">D-33 Tauri 轻量版 · 基于 public-lookup API</p>
+    </header>
+
+    <section class="form">
+      <label>
+        API 地址
+        <input id="api-base" type="url" value="http://127.0.0.1:8000" />
+      </label>
+      <label>
+        License Key
+        <input id="license-key" type="text" placeholder="HWT-XXXX-XXXX" autocomplete="off" />
+      </label>
+      <div class="actions">
+        <button id="btn-lookup" type="button">查询</button>
+        <button id="btn-validate" type="button" class="secondary">SDK 验证</button>
+      </div>
+      <label class="optional">
+        API Key（SDK 验证可选）
+        <input id="api-key" type="password" placeholder="留空则跳过 SDK 验证" autocomplete="off" />
+      </label>
+    </section>
+
+    <section id="result" class="result hidden">
+      <h2>查询结果</h2>
+      <pre id="result-body"></pre>
+    </section>
+
+    <footer>
+      <span id="platform"></span>
+      · 安装包目标 &lt;30MB
+    </footer>
+  </main>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

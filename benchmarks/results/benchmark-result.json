@@ -1,0 +1,33 @@
+{
+    "mission": "D-40",
+    "title": "互物通 5000 QPS 达标验证报告",
+    "timestamp": "2026-07-17T14:30:05+00:00",
+    "environment": {
+        "php_version": "8.3.3",
+        "laravel_version": "11.54.0",
+        "base_url": "http:\/\/127.0.0.1:1\/api",
+        "health_url": "http:\/\/127.0.0.1:1\/api\/health\/live",
+        "runtime": "cli",
+        "cache_driver": "array",
+        "db_connection": "pgsql"
+    },
+    "target_qps": 5000,
+    "tests": {
+        "http_load": {
+            "status": "unavailable",
+            "error": "cURL error 7: Failed to connect to 127.0.0.1 port 1 after 2043 ms: Couldn't connect to server (see https:\/\/curl.se\/libcurl\/c\/libcurl-errors.html) for http:\/\/127.0.0.1:1\/api\/health\/live",
+            "achieved_qps": 0,
+            "passed": false
+        }
+    },
+    "summary": {
+        "achieved_qps": 0,
+        "http_qps": 0,
+        "k6_qps": null,
+        "p95_ms": null,
+        "target_qps": 5000,
+        "passed": false,
+        "pass_ratio": 0,
+        "recommendation": "未达标，请使用 D-39 Nginx+PHP-FPM 栈（8088）并安装 k6 后重跑 scripts\/benchmark-run-full.ps1"
+    }
+}
