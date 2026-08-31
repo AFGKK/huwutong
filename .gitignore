@@ -201,3 +201,20 @@ _ide_helper_meta.txt
 /run_eco_test.php
 /check_opcache.php
 /create_reactions_table.php
+
+# Root build/test output and one-off fix scripts (no leading underscore)
+/build_*.txt
+/phpunit_*.txt
+/phpunit_*.xml
+/tmp_*.txt
+/fxlog*.txt
+/im_full_results.txt
+/fix_*.js
+/fix_*.php
+/fix_*.ps1
+/fxdup*.php
+/run_*_test*.php
+/run_im_*.php
+/run_eco_test.php
+/check_opcache.php
+/create_reactions_table.php
