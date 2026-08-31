@@ -146,7 +146,7 @@ class SecretManager
     public function restoreSecret(TenantSecret $secret, ?int $restoredBy = null): void
     {
         if ($secret->isExpired()) {
-            throw new \RuntimeException('无法恢复已过期的凭据，请重新创建');
+            throw new \RuntimeException(__("app.secret_manager.cannot_restore_expired_credential"));
         }
 
         $secret->update(['status' => 'active']);
@@ -315,7 +315,7 @@ class SecretManager
 
         $decoded = base64_decode($encrypted);
         if ($decoded === false || strlen($decoded) < 12) {
-            throw new \RuntimeException('无效的加密数据格式');
+            throw new \RuntimeException(__("app.secret_manager.invalid_encrypted_data_format"));
         }
 
         $iv = substr($decoded, 0, 12);
@@ -329,7 +329,7 @@ class SecretManager
         );
 
         if ($plaintext === false) {
-            throw new \RuntimeException('解密失败：数据可能已被篡改');
+            throw new \RuntimeException(__("app.secret_manager.decryption_failed_data_tampered"));
         }
 
         return $plaintext;
@@ -344,7 +344,7 @@ class SecretManager
         $key = $key ?? MasterKey::where('is_current', true)->first();
 
         if (!$key) {
-            throw new \RuntimeException('未找到活跃主密钥，请先生成主密钥');
+            throw new \RuntimeException(__("app.secret_manager.no_active_master_key"));
         }
 
         $cacheKey = sprintf(self::DEK_CACHE_KEY, $key->id);
@@ -411,7 +411,7 @@ class SecretManager
         $decrypted = openssl_decrypt($data, 'aes-256-cbc', $appKey, OPENSSL_RAW_DATA, $iv);
 
         if ($decrypted === false) {
-            throw new \RuntimeException('KEK 解密失败');
+            throw new \RuntimeException(__("app.secret_manager.kek_decryption_failed"));
         }
 
         return $decrypted;
@@ -424,7 +424,7 @@ class SecretManager
     {
         $keyId = config('secret-manager.kms_key_id');
         if (empty($keyId)) {
-            throw new \RuntimeException('KMS 未配置: secret-manager.kms_key_id');
+            throw new \RuntimeException(__("app.secret_manager.msg_74343a8b"));
         }
 
         // 使用 KMS 生成的数据密钥加密
@@ -450,7 +450,7 @@ class SecretManager
         $vaultToken = config('secret-manager.vault_token');
 
         if (empty($vaultAddr) || empty($vaultToken)) {
-            throw new \RuntimeException('Vault 未配置');
+            throw new \RuntimeException(__("app.secret_manager.vault_not_configured"));
         }
 
         // 实际部署时使用 Vault HTTP API 调用 transit/encrypt

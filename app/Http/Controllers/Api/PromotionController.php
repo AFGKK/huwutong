@@ -58,7 +58,7 @@ class PromotionController extends Controller
             'slug' => 'nullable|string|max:255|unique:promotions,slug',
         ]);
         $promotion = $this->service->createPromotion($validated);
-        return ApiResponse::success($promotion, '促销活动已创建', 201);
+        return ApiResponse::success($promotion, __('app.api.promotion.created'), 201);
     }
 
     public function update(Request $request, Promotion $promotion): JsonResponse
@@ -82,14 +82,14 @@ class PromotionController extends Controller
             'display_config' => 'nullable|array',
         ]);
         $promotion = $this->service->updatePromotion($promotion, $validated);
-        return ApiResponse::success($promotion, '促销活动已更新');
+        return ApiResponse::success($promotion, __('app.api.promotion.updated'));
     }
 
     public function publish(Promotion $promotion): JsonResponse
     {
         try {
             $promotion = $this->service->publishPromotion($promotion);
-            return ApiResponse::success($promotion, '促销活动已发布');
+            return ApiResponse::success($promotion, __('app.api.promotion.published'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('PUBLISH_FAILED', $e->getMessage(), 400);
         }
@@ -98,7 +98,7 @@ class PromotionController extends Controller
     public function pause(Promotion $promotion): JsonResponse
     {
         $promotion = $this->service->pausePromotion($promotion);
-        return ApiResponse::success($promotion, '促销活动已暂停');
+        return ApiResponse::success($promotion, __('app.api.promotion.paused'));
     }
 
     public function stats(): JsonResponse
@@ -151,7 +151,7 @@ class PromotionController extends Controller
             'notes' => 'nullable|string',
         ]);
         $contract = $this->service->createContract($validated);
-        return ApiResponse::success($contract, '合同已创建', 201);
+        return ApiResponse::success($contract, __('app.api.promotion.contract_created'), 201);
     }
 
     public function contractUpdate(Request $request, EnterpriseContract $contract): JsonResponse
@@ -168,7 +168,7 @@ class PromotionController extends Controller
             'notes' => 'nullable|string',
         ]);
         $contract = $this->service->updateContract($contract, $validated);
-        return ApiResponse::success($contract, '合同已更新');
+        return ApiResponse::success($contract, __('app.api.promotion.contract_updated'));
     }
 
     public function contractApprove(Request $request, EnterpriseContract $contract): JsonResponse
@@ -178,7 +178,7 @@ class PromotionController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
         $contract = $this->service->approveContract($contract, $validated['status'], $validated['notes'] ?? null);
-        $msg = $validated['status'] === 'approved' ? '合同已批准' : '合同已拒绝';
+        $msg = $validated['status'] === 'approved' ? __('app.api.promotion.contract_approved') : __('app.api.promotion.contract_rejected');
         return ApiResponse::success($contract, $msg);
     }
 
@@ -224,14 +224,14 @@ class PromotionController extends Controller
             'expires_at' => 'nullable|date|after:starts_at',
         ]);
         $coupon = $this->service->createCoupon($validated);
-        return ApiResponse::success($coupon, '优惠券已创建', 201);
+        return ApiResponse::success($coupon, __('app.api.promotion.coupon_created'), 201);
     }
 
     public function customerCoupons(Request $request): JsonResponse
     {
         $customerId = $request->user()?->customer?->id;
         if (!$customerId) {
-            return ApiResponse::error('NO_CUSTOMER', '当前用户无关联客户', 400);
+            return ApiResponse::error('NO_CUSTOMER', __('app.api.promotion.no_customer'), 400);
         }
         return ApiResponse::success($this->service->getCustomerCoupons($customerId));
     }

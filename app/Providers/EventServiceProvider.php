@@ -21,6 +21,7 @@ class EventServiceProvider extends ServiceProvider
         ],
         LicenseAboutToExpire::class => [
             DispatchLicenseEvent::class,
+            \App\Listeners\SendMiniprogramExpirySubscribe::class,
         ],
         \App\Events\OaArticlePublished::class => [
             \App\Listeners\AiCommentOnArticlePublished::class,
@@ -35,6 +36,10 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\OaSubmissionCreated::class => [
             \App\Listeners\AiReviewSubmission::class,
         ],
+    ];
+
+    protected $subscribe = [
+        \App\Listeners\MarketingEventSubscriber::class,
     ];
 
     public function boot(): void

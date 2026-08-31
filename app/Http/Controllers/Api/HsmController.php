@@ -40,7 +40,7 @@ class HsmController extends Controller
             $request->algorithm ?? 'Ed25519'
         );
 
-        return ApiResponse::success($key, 'HSM 密钥初始化成功');
+        return ApiResponse::success($key, __('app.api.hsm.key_initialized'));
     }
 
     public function rotate(Request $request): ApiResponse
@@ -52,7 +52,7 @@ class HsmController extends Controller
         return ApiResponse::success([
             'new_key_id' => $key->id,
             'key_label' => $key->key_label,
-        ], 'HSM 密钥轮换成功');
+        ], __('app.api.hsm.key_rotated'));
     }
 
     public function sign(Request $request): ApiResponse
@@ -68,6 +68,6 @@ class HsmController extends Controller
 
         $result = $this->hsm->signLicenseKey($request->license_key, $keyLabel);
 
-        return ApiResponse::success($result, '签名成功');
+        return ApiResponse::success($result, __('app.api.hsm.sign_success'));
     }
 }

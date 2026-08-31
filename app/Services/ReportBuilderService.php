@@ -32,109 +32,111 @@ class ReportBuilderService
      */
     public function getDataSources(): array
     {
+        $t = fn(string $key) => __('app.admin.report_builder.' . $key);
+
         return [
             'subscriptions' => [
-                'label' => '订阅数据',
-                'description' => '订阅信息、状态、金额、周期',
+                'label' => $t('data_sources.subscriptions.label'),
+                'description' => $t('data_sources.subscriptions.description'),
                 'metrics' => [
-                    'count' => ['label' => '订阅数', 'type' => 'count', 'default' => true],
-                    'total_revenue' => ['label' => '总收入', 'type' => 'sum', 'field' => 'total_paid', 'format' => 'currency'],
-                    'avg_price' => ['label' => '平均价格', 'type' => 'avg', 'field' => 'price', 'format' => 'currency'],
-                    'active_count' => ['label' => '活跃订阅数', 'type' => 'count_filtered', 'filter' => ['status' => 'active']],
+                    'count' => ['label' => $t('metrics.subscriptions.count'), 'type' => 'count', 'default' => true],
+                    'total_revenue' => ['label' => $t('metrics.subscriptions.total_revenue'), 'type' => 'sum', 'field' => 'total_paid', 'format' => 'currency'],
+                    'avg_price' => ['label' => $t('metrics.subscriptions.avg_price'), 'type' => 'avg', 'field' => 'price', 'format' => 'currency'],
+                    'active_count' => ['label' => $t('metrics.subscriptions.active_count'), 'type' => 'count_filtered', 'filter' => ['status' => 'active']],
                 ],
                 'dimensions' => [
-                    'status' => ['label' => '状态', 'field' => 'status'],
-                    'billing_period' => ['label' => '计费周期', 'field' => 'billing_period'],
-                    'plan' => ['label' => '方案', 'field' => 'plan'],
-                    'currency' => ['label' => '货币', 'field' => 'currency'],
-                    'created_at' => ['label' => '创建时间', 'field' => 'created_at', 'type' => 'date'],
-                    'starts_at' => ['label' => '开始时间', 'field' => 'starts_at', 'type' => 'date'],
+                    'status' => ['label' => $t('dimensions.subscriptions.status'), 'field' => 'status'],
+                    'billing_period' => ['label' => $t('dimensions.subscriptions.billing_period'), 'field' => 'billing_period'],
+                    'plan' => ['label' => $t('dimensions.subscriptions.plan'), 'field' => 'plan'],
+                    'currency' => ['label' => $t('dimensions.subscriptions.currency'), 'field' => 'currency'],
+                    'created_at' => ['label' => $t('dimensions.subscriptions.created_at'), 'field' => 'created_at', 'type' => 'date'],
+                    'starts_at' => ['label' => $t('dimensions.subscriptions.starts_at'), 'field' => 'starts_at', 'type' => 'date'],
                 ],
             ],
             'invoices' => [
-                'label' => '发票数据',
-                'description' => '发票金额、状态、支付方式',
+                'label' => $t('data_sources.invoices.label'),
+                'description' => $t('data_sources.invoices.description'),
                 'metrics' => [
-                    'count' => ['label' => '发票数', 'type' => 'count', 'default' => true],
-                    'total_amount' => ['label' => '总金额', 'type' => 'sum', 'field' => 'amount', 'format' => 'currency'],
-                    'avg_amount' => ['label' => '平均金额', 'type' => 'avg', 'field' => 'amount', 'format' => 'currency'],
-                    'paid_count' => ['label' => '已支付数', 'type' => 'count_filtered', 'filter' => ['paid' => true]],
-                    'tax_total' => ['label' => '总税额', 'type' => 'sum', 'field' => 'tax_amount', 'format' => 'currency'],
-                    'discount_total' => ['label' => '总折扣', 'type' => 'sum', 'field' => 'discount_amount', 'format' => 'currency'],
+                    'count' => ['label' => $t('metrics.invoices.count'), 'type' => 'count', 'default' => true],
+                    'total_amount' => ['label' => $t('metrics.invoices.total_amount'), 'type' => 'sum', 'field' => 'amount', 'format' => 'currency'],
+                    'avg_amount' => ['label' => $t('metrics.invoices.avg_amount'), 'type' => 'avg', 'field' => 'amount', 'format' => 'currency'],
+                    'paid_count' => ['label' => $t('metrics.invoices.paid_count'), 'type' => 'count_filtered', 'filter' => ['paid' => true]],
+                    'tax_total' => ['label' => $t('metrics.invoices.tax_total'), 'type' => 'sum', 'field' => 'tax_amount', 'format' => 'currency'],
+                    'discount_total' => ['label' => $t('metrics.invoices.discount_total'), 'type' => 'sum', 'field' => 'discount_amount', 'format' => 'currency'],
                 ],
                 'dimensions' => [
-                    'status' => ['label' => '状态', 'field' => 'status'],
-                    'payment_method' => ['label' => '支付方式', 'field' => 'payment_method'],
-                    'currency' => ['label' => '货币', 'field' => 'currency'],
-                    'billing_reason' => ['label' => '原因', 'field' => 'billing_reason'],
-                    'created_at' => ['label' => '创建时间', 'field' => 'created_at', 'type' => 'date'],
-                    'paid_at' => ['label' => '支付时间', 'field' => 'paid_at', 'type' => 'date'],
+                    'status' => ['label' => $t('dimensions.invoices.status'), 'field' => 'status'],
+                    'payment_method' => ['label' => $t('dimensions.invoices.payment_method'), 'field' => 'payment_method'],
+                    'currency' => ['label' => $t('dimensions.invoices.currency'), 'field' => 'currency'],
+                    'billing_reason' => ['label' => $t('dimensions.invoices.billing_reason'), 'field' => 'billing_reason'],
+                    'created_at' => ['label' => $t('dimensions.invoices.created_at'), 'field' => 'created_at', 'type' => 'date'],
+                    'paid_at' => ['label' => $t('dimensions.invoices.paid_at'), 'field' => 'paid_at', 'type' => 'date'],
                 ],
             ],
             'licenses' => [
-                'label' => 'License 数据',
-                'description' => '许可证信息、状态、类型',
+                'label' => $t('data_sources.licenses.label'),
+                'description' => $t('data_sources.licenses.description'),
                 'metrics' => [
-                    'count' => ['label' => 'License 数', 'type' => 'count', 'default' => true],
-                    'active_count' => ['label' => '活跃数', 'type' => 'count_filtered', 'filter' => ['status' => 'active']],
-                    'total_seats' => ['label' => '总 Seat 数', 'type' => 'sum', 'field' => 'seats'],
-                    'avg_seats' => ['label' => '平均 Seat', 'type' => 'avg', 'field' => 'seats'],
-                    'total_devices' => ['label' => '总设备限额', 'type' => 'sum', 'field' => 'max_devices'],
+                    'count' => ['label' => $t('metrics.licenses.count'), 'type' => 'count', 'default' => true],
+                    'active_count' => ['label' => $t('metrics.licenses.active_count'), 'type' => 'count_filtered', 'filter' => ['status' => 'active']],
+                    'total_seats' => ['label' => $t('metrics.licenses.total_seats'), 'type' => 'sum', 'field' => 'seats'],
+                    'avg_seats' => ['label' => $t('metrics.licenses.avg_seats'), 'type' => 'avg', 'field' => 'seats'],
+                    'total_devices' => ['label' => $t('metrics.licenses.total_devices'), 'type' => 'sum', 'field' => 'max_devices'],
                 ],
                 'dimensions' => [
-                    'status' => ['label' => '状态', 'field' => 'status'],
-                    'type' => ['label' => '类型', 'field' => 'type'],
-                    'product_id' => ['label' => '产品', 'field' => 'product_id', 'relation' => 'product.name'],
-                    'created_at' => ['label' => '创建时间', 'field' => 'created_at', 'type' => 'date'],
-                    'expires_at' => ['label' => '过期时间', 'field' => 'expires_at', 'type' => 'date'],
+                    'status' => ['label' => $t('dimensions.licenses.status'), 'field' => 'status'],
+                    'type' => ['label' => $t('dimensions.licenses.type'), 'field' => 'type'],
+                    'product_id' => ['label' => $t('dimensions.licenses.product_id'), 'field' => 'product_id', 'relation' => 'product.name'],
+                    'created_at' => ['label' => $t('dimensions.licenses.created_at'), 'field' => 'created_at', 'type' => 'date'],
+                    'expires_at' => ['label' => $t('dimensions.licenses.expires_at'), 'field' => 'expires_at', 'type' => 'date'],
                 ],
             ],
             'customers' => [
-                'label' => '客户数据',
-                'description' => '客户信息、地域分布',
+                'label' => $t('data_sources.customers.label'),
+                'description' => $t('data_sources.customers.description'),
                 'metrics' => [
-                    'count' => ['label' => '客户数', 'type' => 'count', 'default' => true],
-                    'active_count' => ['label' => '活跃客户', 'type' => 'count_filtered', 'filter' => ['status' => 'active']],
+                    'count' => ['label' => $t('metrics.customers.count'), 'type' => 'count', 'default' => true],
+                    'active_count' => ['label' => $t('metrics.customers.active_count'), 'type' => 'count_filtered', 'filter' => ['status' => 'active']],
                 ],
                 'dimensions' => [
-                    'country' => ['label' => '国家', 'field' => 'country'],
-                    'status' => ['label' => '状态', 'field' => 'status'],
-                    'created_at' => ['label' => '创建时间', 'field' => 'created_at', 'type' => 'date'],
+                    'country' => ['label' => $t('dimensions.customers.country'), 'field' => 'country'],
+                    'status' => ['label' => $t('dimensions.customers.status'), 'field' => 'status'],
+                    'created_at' => ['label' => $t('dimensions.customers.created_at'), 'field' => 'created_at', 'type' => 'date'],
                 ],
             ],
             'activations' => [
-                'label' => '激活数据',
-                'description' => '设备激活记录',
+                'label' => $t('data_sources.activations.label'),
+                'description' => $t('data_sources.activations.description'),
                 'metrics' => [
-                    'count' => ['label' => '激活数', 'type' => 'count', 'default' => true],
-                    'unique_devices' => ['label' => '唯一设备', 'type' => 'count_distinct', 'field' => 'device_id'],
+                    'count' => ['label' => $t('metrics.activations.count'), 'type' => 'count', 'default' => true],
+                    'unique_devices' => ['label' => $t('metrics.activations.unique_devices'), 'type' => 'count_distinct', 'field' => 'device_id'],
                 ],
                 'dimensions' => [
-                    'created_at' => ['label' => '激活时间', 'field' => 'created_at', 'type' => 'date'],
+                    'created_at' => ['label' => $t('dimensions.activations.created_at'), 'field' => 'created_at', 'type' => 'date'],
                 ],
             ],
             'churn' => [
-                'label' => '流失分析',
-                'description' => '客户流失数据',
+                'label' => $t('data_sources.churn.label'),
+                'description' => $t('data_sources.churn.description'),
                 'metrics' => [
-                    'churned_count' => ['label' => '流失数', 'type' => 'count_filtered', 'filter' => ['status' => 'canceled']],
-                    'churn_rate' => ['label' => '流失率', 'type' => 'computed', 'format' => 'percentage'],
+                    'churned_count' => ['label' => $t('metrics.churn.churned_count'), 'type' => 'count_filtered', 'filter' => ['status' => 'canceled']],
+                    'churn_rate' => ['label' => $t('metrics.churn.churn_rate'), 'type' => 'computed', 'format' => 'percentage'],
                 ],
                 'dimensions' => [
-                    'canceled_at' => ['label' => '取消时间', 'field' => 'canceled_at', 'type' => 'date'],
-                    'cancellation_reason' => ['label' => '取消原因', 'field' => 'cancellation_reason'],
+                    'canceled_at' => ['label' => $t('dimensions.churn.canceled_at'), 'field' => 'canceled_at', 'type' => 'date'],
+                    'cancellation_reason' => ['label' => $t('dimensions.churn.cancellation_reason'), 'field' => 'cancellation_reason'],
                 ],
             ],
             'audit_logs' => [
-                'label' => '审计日志',
-                'description' => '操作审计记录',
+                'label' => $t('data_sources.audit_logs.label'),
+                'description' => $t('data_sources.audit_logs.description'),
                 'metrics' => [
-                    'count' => ['label' => '日志数', 'type' => 'count', 'default' => true],
+                    'count' => ['label' => $t('metrics.audit_logs.count'), 'type' => 'count', 'default' => true],
                 ],
                 'dimensions' => [
-                    'type' => ['label' => '类型', 'field' => 'type'],
-                    'action' => ['label' => '动作', 'field' => 'action'],
-                    'created_at' => ['label' => '时间', 'field' => 'created_at', 'type' => 'date'],
+                    'type' => ['label' => $t('dimensions.audit_logs.type'), 'field' => 'type'],
+                    'action' => ['label' => $t('dimensions.audit_logs.action'), 'field' => 'action'],
+                    'created_at' => ['label' => $t('dimensions.audit_logs.created_at'), 'field' => 'created_at', 'type' => 'date'],
                 ],
             ],
         ];
@@ -191,7 +193,7 @@ class ReportBuilderService
             'activations' => \App\Models\LicenseActivation::query(),
             'churn' => Subscription::query()->whereNotNull('canceled_at'),
             'audit_logs' => \App\Models\Log::query(),
-            default => throw new \InvalidArgumentException("不支持的数据源: {$dataSource}"),
+            default => throw new \InvalidArgumentException(__('app.admin.report_builder.unsupported_source', ['source' => $dataSource])),
         };
 
         // 应用过滤条件
@@ -484,13 +486,13 @@ class ReportBuilderService
         $data = $snapshot->snapshot_data;
 
         if (!$data || empty($data['rows'])) {
-            throw new \RuntimeException('报表数据为空');
+            throw new \RuntimeException(__('app.admin.report_builder.empty_data'));
         }
 
         $content = match ($format) {
             'csv' => $this->toCsv($data),
             'json' => $this->toJson($data),
-            default => throw new \InvalidArgumentException("不支持的导出格式: {$format}"),
+            default => throw new \InvalidArgumentException(__('app.admin.report_builder.unsupported_format', ['format' => $format])),
         };
 
         $filename = Str::slug($report->name) . '-' . now()->format('YmdHis') . '.' . $format;
@@ -597,8 +599,8 @@ class ReportBuilderService
     {
         return ReportDashboard::create([
             'user_id' => $userId,
-            'name' => '默认看板',
-            'description' => '系统自动创建的默认看板',
+            'name' => __('app.admin.report_builder.default_dashboard_name'),
+            'description' => __('app.admin.report_builder.default_dashboard_description'),
             'layout' => ['widgets' => []],
             'is_default' => true,
         ]);

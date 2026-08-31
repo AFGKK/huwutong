@@ -303,7 +303,7 @@ class CommissionRiskController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '风控任务已执行',
+            'message' => __('app.controller_compat.commission_risk_msg_306'),
             'data' => $result,
         ]);
     }

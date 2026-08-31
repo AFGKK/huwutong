@@ -77,17 +77,17 @@ class TpmBindingService
         $activeCount = TpmBinding::where('license_id', $license->id)
             ->where('status', 'active')->count();
         if ($activeCount >= $maxBindings) {
-            throw new \RuntimeException("已达到最大绑定数限制({$maxBindings})");
+            throw new \RuntimeException(__('app.tpm_binding.max_bindings', ['max' => $maxBindings]));
         }
 
         // 验证 EK 证书（生产环境应验证证书链）
         if (config('tpm.tpm.require_ek_cert', true) && empty($data['ek_certificate'])) {
-            throw new \RuntimeException('缺少 Endorsement Key 证书');
+            throw new \RuntimeException(__('app.tpm_binding.missing_ek_cert'));
         }
 
         // 验证 AK
         if (config('tpm.tpm.require_ak', true) && empty($data['ak_public_key'])) {
-            throw new \RuntimeException('缺少 Attestation Key');
+            throw new \RuntimeException(__('app.tpm_binding.missing_ak'));
         }
 
         $binding = TpmBinding::create([
@@ -132,11 +132,11 @@ class TpmBindingService
         $binding = TpmBinding::findOrFail($id);
 
         if ($binding->status !== 'active') {
-            throw new \RuntimeException("绑定状态不可用: {$binding->status}");
+            throw new \RuntimeException(__('app.tpm_binding.status_unavailable', ['status' => $binding->status]));
         }
 
         if ($binding->isLocked()) {
-            throw new \RuntimeException('绑定已被锁定，请等待锁定解除');
+            throw new \RuntimeException(__('app.tpm_binding.binding_locked'));
         }
 
         $startTime = microtime(true);
@@ -147,7 +147,7 @@ class TpmBindingService
             // 验证 Quote nonce
             $nonce = $quoteData['nonce'] ?? '';
             if (strlen($nonce) < 16) {
-                throw new \RuntimeException('Quote nonce 无效');
+                throw new \RuntimeException(__('app.tpm_binding.quote_nonce_invalid'));
             }
 
             // 验证 PCR 值
@@ -155,7 +155,7 @@ class TpmBindingService
             if (!empty($binding->pcr_values) && !empty($pcrValues)) {
                 foreach ($binding->pcr_values as $key => $expected) {
                     if (isset($pcrValues[$key]) && $pcrValues[$key] !== $expected) {
-                        throw new \RuntimeException("PCR {$key} 值不匹配");
+                        throw new \RuntimeException(__('app.tpm_binding.pcr_mismatch', ['key' => $key]));
                     }
                 }
             }
@@ -164,7 +164,7 @@ class TpmBindingService
             $quoteTime = $quoteData['timestamp'] ?? 0;
             $maxAge = config('tpm.tpm.max_quote_age_seconds', 300);
             if ($quoteTime > 0 && (time() - $quoteTime) > $maxAge) {
-                throw new \RuntimeException('Quote 已过期');
+                throw new \RuntimeException(__('app.tpm_binding.quote_expired'));
             }
 
             // 记录验证成功

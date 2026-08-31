@@ -59,7 +59,7 @@ class LarkController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.lark.validation_failed'), $validator->errors()->toArray());
         }
 
         $integration = $this->larkService->saveIntegration($validator->validated());
@@ -71,7 +71,7 @@ class LarkController extends Controller
                 'bot_webhook_url', 'notify_enabled',
                 'created_at', 'updated_at',
             ]),
-        ], '飞书集成配置已保存');
+        ], __('app.api.lark.integration_saved'));
     }
 
     /**
@@ -83,13 +83,13 @@ class LarkController extends Controller
         $integration = $this->larkService->getIntegration();
 
         if (!$integration) {
-            return ApiResponse::error('NOT_CONFIGURED', '请先配置飞书集成', 400);
+            return ApiResponse::error('NOT_CONFIGURED', __('app.api.lark.not_configured'), 400);
         }
 
         $result = $this->larkService->testConnection($integration);
 
         if ($result['success']) {
-            return ApiResponse::success($result, '连接测试通过');
+            return ApiResponse::success($result, __('app.api.lark.connection_ok'));
         }
 
         return ApiResponse::error('CONNECTION_FAILED', $result['message'], 400, $result);
@@ -104,7 +104,7 @@ class LarkController extends Controller
         $integration = $this->larkService->getIntegration();
 
         if (!$integration) {
-            return ApiResponse::error('NOT_CONFIGURED', '请先配置飞书集成', 400);
+            return ApiResponse::error('NOT_CONFIGURED', __('app.api.lark.not_configured'), 400);
         }
 
         $validator = Validator::make($request->all(), [
@@ -114,38 +114,38 @@ class LarkController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.lark.validation_failed'), $validator->errors()->toArray());
         }
 
         $type = $request->input('type', 'webhook');
-        $message = $request->input('message', '这是一条来自互物通的测试消息 ✅');
+        $message = $request->input('message', __('app.api.lark.test_default_message'));
 
         $success = match ($type) {
             'user' => $this->larkService->sendUserMessage(
                 $integration,
                 $request->input('target', ''),
-                '飞书集成测试',
+                __('app.api.lark.test_title'),
                 $message
             ),
             'group' => $this->larkService->sendGroupMessage(
                 $integration,
                 $request->input('target', ''),
-                '飞书集成测试',
+                __('app.api.lark.test_title'),
                 $message
             ),
             default => $this->larkService->sendWebhookMessage(
                 $integration,
-                '飞书集成测试',
+                __('app.api.lark.test_title'),
                 $message,
                 'info'
             ),
         };
 
         if ($success) {
-            return ApiResponse::success(null, '测试消息已发送');
+            return ApiResponse::success(null, __('app.api.lark.test_sent'));
         }
 
-        return ApiResponse::error('SEND_FAILED', '消息发送失败', 400);
+        return ApiResponse::error('SEND_FAILED', __('app.api.lark.send_failed'), 400);
     }
 
     /**

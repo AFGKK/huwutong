@@ -73,7 +73,7 @@ class WebhookReplayController extends Controller
         $event = $this->findEvent($id);
 
         if (! $event) {
-            return ApiResponse::notFound('Webhook 事件不存在');
+            return ApiResponse::notFound(__('app.api.webhook_replay.event_not_found'));
         }
 
         $event->load(['deliveries' => fn($q) => $q->latest('attempt')]);
@@ -94,17 +94,17 @@ class WebhookReplayController extends Controller
         $event = $this->findEvent($id);
 
         if (! $event) {
-            return ApiResponse::notFound('Webhook 事件不存在');
+            return ApiResponse::notFound(__('app.api.webhook_replay.event_not_found'));
         }
 
         $endpoint = $event->webhookEndpoint;
 
         if (! $endpoint) {
-            return ApiResponse::error('ENDPOINT_NOT_FOUND', '关联的 Webhook 端点不存在', 404);
+            return ApiResponse::error('ENDPOINT_NOT_FOUND', __('app.api.webhook_replay.endpoint_not_found'), 404);
         }
 
         if (! $endpoint->is_active) {
-            return ApiResponse::error('ENDPOINT_INACTIVE', 'Webhook 端点已停用', 400);
+            return ApiResponse::error('ENDPOINT_INACTIVE', __('app.api.webhook_replay.endpoint_inactive'), 400);
         }
 
         $success = $this->webhookService->sendToEndpoint($event, $endpoint);
@@ -113,7 +113,7 @@ class WebhookReplayController extends Controller
             'event_id' => $event->id,
             'delivered' => $success,
             'status' => $event->fresh()->status,
-        ], $success ? '重放成功' : '重放失败');
+        ], $success ? __('app.api.webhook_replay.replay_success') : __('app.api.webhook_replay.replay_failed'));
     }
 
     /**
@@ -136,7 +136,7 @@ class WebhookReplayController extends Controller
             ->get();
 
         if ($events->isEmpty()) {
-            return ApiResponse::error('NO_REPLAYABLE_EVENTS', '没有可重放的事件', 404);
+            return ApiResponse::error('NO_REPLAYABLE_EVENTS', __('app.api.webhook_replay.no_replayable_events'), 404);
         }
 
         $results = [];
@@ -154,7 +154,7 @@ class WebhookReplayController extends Controller
                     'event_id' => $event->id,
                     'delivered' => false,
                     'status' => $event->status,
-                    'error' => '端点不可用',
+                    'error' => __('app.api.webhook_replay.endpoint_unavailable'),
                 ];
             }
         }
@@ -165,7 +165,7 @@ class WebhookReplayController extends Controller
             'total' => count($events),
             'success_count' => $successCount,
             'results' => $results,
-        ], "成功重放 {$successCount}/{$events->count()} 个事件");
+        ], __('app.api.webhook_replay.replayed_count', ['success' => $successCount, 'total' => $events->count()]));
     }
 
     /**
@@ -180,7 +180,7 @@ class WebhookReplayController extends Controller
             ->first();
 
         if (! $endpoint) {
-            return ApiResponse::notFound('Webhook 端点不存在');
+            return ApiResponse::notFound(__('app.api.webhook_replay.endpoint_not_found_full'));
         }
 
         $events = WebhookEvent::where('webhook_endpoint_id', $endpoint->id)
@@ -189,7 +189,7 @@ class WebhookReplayController extends Controller
             ->get();
 
         if ($events->isEmpty()) {
-            return ApiResponse::success(['total' => 0, 'success_count' => 0], '没有待重放的事件');
+            return ApiResponse::success(['total' => 0, 'success_count' => 0], __('app.api.webhook_replay.no_pending_events'));
         }
 
         $successCount = 0;
@@ -203,7 +203,7 @@ class WebhookReplayController extends Controller
         return ApiResponse::success([
             'total' => $events->count(),
             'success_count' => $successCount,
-        ], "成功重放 {$successCount}/{$events->count()} 个事件");
+        ], __('app.api.webhook_replay.replayed_count', ['success' => $successCount, 'total' => $events->count()]));
     }
 
     /**

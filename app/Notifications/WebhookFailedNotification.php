@@ -35,15 +35,18 @@ class WebhookFailedNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('【告警】Webhook 派发失败')
-            ->greeting("您好，{$notifiable->name}")
-            ->line("您的 Webhook 端点 {$this->endpoint->name} 派发失败")
-            ->line("端点 URL：{$this->endpoint->url}")
-            ->line("事件类型：{$this->eventType}")
-            ->line("失败次数：{$this->attempts}")
-            ->line("错误信息：{$this->error}")
-            ->line('请检查端点是否正常。')
-            ->action('查看 Webhook 端点', url('/webhook-endpoints/' . $this->endpoint->id));
+            ->subject(__('app.notifications.webhook.subject'))
+            ->greeting(__('app.notifications.greeting', ['name' => $notifiable->name]))
+            ->line(__('app.notifications.webhook.line_fail', ['name' => $this->endpoint->name]))
+            ->line(__('app.notifications.webhook.url', ['url' => $this->endpoint->url]))
+            ->line(__('app.notifications.webhook.event', ['type' => $this->eventType]))
+            ->line(__('app.notifications.webhook.attempts', ['n' => $this->attempts]))
+            ->line(__('app.notifications.webhook.error', ['error' => $this->error]))
+            ->line(__('app.notifications.webhook.check'))
+            ->action(
+                __('app.notifications.webhook.view'),
+                url('/webhook-endpoints/' . $this->endpoint->id)
+            );
     }
 
     public function toArray(object $notifiable): array
@@ -56,7 +59,10 @@ class WebhookFailedNotification extends Notification implements ShouldQueue
             'event_type' => $this->eventType,
             'attempts' => $this->attempts,
             'error' => $this->error,
-            'message' => "Webhook {$this->endpoint->name} 派发失败（{$this->eventType}）",
+            'message' => __('app.notifications.webhook.db_message', [
+                'name' => $this->endpoint->name,
+                'type' => $this->eventType,
+            ]),
         ];
     }
 }

@@ -84,7 +84,7 @@ class CustomFieldController extends Controller
 
         $field = $this->customFieldService->createDefinition($validator->validated(), $tenantId);
 
-        return ApiResponse::created($field, '自定义字段创建成功');
+        return ApiResponse::created($field, __("app.custom_field.msg_64a7d95d"));
     }
 
     /**
@@ -116,7 +116,7 @@ class CustomFieldController extends Controller
 
         $field = $this->customFieldService->updateDefinition($field, $validator->validated());
 
-        return ApiResponse::success($field, '自定义字段已更新');
+        return ApiResponse::success($field, __("app.custom_field.msg_a059c264"));
     }
 
     /**
@@ -127,7 +127,7 @@ class CustomFieldController extends Controller
         $field = CustomFieldDefinition::findOrFail($id);
         $this->customFieldService->deleteDefinition($field);
 
-        return ApiResponse::success(null, '自定义字段已删除');
+        return ApiResponse::success(null, __("app.custom_field.msg_22f8a80b"));
     }
 
     // ═══════════════════════════════════════════
@@ -153,7 +153,7 @@ class CustomFieldController extends Controller
 
         try {
             $values = $this->customFieldService->updateValues($license, $request->input('values'));
-            return ApiResponse::success($values, '自定义字段值已更新');
+            return ApiResponse::success($values, __("app.custom_field.msg_6788bb77"));
         } catch (\Illuminate\Validation\ValidationException $e) {
             return ApiResponse::error('VALIDATION_ERROR', $e->getMessage(), 422);
         }
@@ -182,7 +182,7 @@ class CustomFieldController extends Controller
 
         try {
             $values = $this->customFieldService->updateValues($customer, $request->input('values'));
-            return ApiResponse::success($values, '客户自定义字段值已更新');
+            return ApiResponse::success($values, __("app.custom_field.msg_e601a1b1"));
         } catch (\Illuminate\Validation\ValidationException $e) {
             return ApiResponse::error('VALIDATION_ERROR', $e->getMessage(), 422);
         }
@@ -211,7 +211,7 @@ class CustomFieldController extends Controller
 
         try {
             $values = $this->customFieldService->updateValues($product, $request->input('values'));
-            return ApiResponse::success($values, '产品自定义字段值已更新');
+            return ApiResponse::success($values, __("app.custom_field.msg_a27798a9"));
         } catch (\Illuminate\Validation\ValidationException $e) {
             return ApiResponse::error('VALIDATION_ERROR', $e->getMessage(), 422);
         }

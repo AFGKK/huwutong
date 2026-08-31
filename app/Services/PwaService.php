@@ -114,12 +114,12 @@ class PwaService
     public function sendPushNotification(string $title, string $body, ?string $url = null, ?string $tag = null): array
     {
         if (!config('pwa.push_notifications.enabled')) {
-            return ['success' => false, 'message' => '推送通知未启用'];
+            return ['success' => false, 'message' => __('app.common.push_notifications_not_enabled')];
         }
 
         $subscriptions = $this->getSubscriptions();
         if (empty($subscriptions)) {
-            return ['success' => false, 'message' => '无订阅用户'];
+            return ['success' => false, 'message' => __('app.common.no_subscribed_users')];
         }
 
         $auth = [
@@ -201,7 +201,7 @@ class PwaService
         // 记录清除事件
         Log::info('PWA: Cache cleared');
 
-        return ['success' => true, 'message' => '缓存已清除'];
+        return ['success' => true, 'message' => __('app.common.cache_cleared')];
     }
 
     /**

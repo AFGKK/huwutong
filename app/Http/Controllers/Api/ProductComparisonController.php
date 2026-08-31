@@ -46,7 +46,7 @@ class ProductComparisonController extends Controller
             $request->integer('sort_order', 0),
         );
 
-        return ApiResponse::success($group, 201, '规格分组已创建');
+        return ApiResponse::success($group, 201, __('app.api.product_comparison.group_created'));
     }
 
     /**
@@ -64,7 +64,7 @@ class ProductComparisonController extends Controller
         }
 
         $group = $this->comparisonService->updateSpecGroup($groupId, $request->only(['name', 'sort_order']));
-        return ApiResponse::success($group, 200, '规格分组已更新');
+        return ApiResponse::success($group, 200, __('app.api.product_comparison.group_updated'));
     }
 
     /**
@@ -73,7 +73,7 @@ class ProductComparisonController extends Controller
     public function deleteSpecGroup(int $groupId)
     {
         $this->comparisonService->deleteSpecGroup($groupId);
-        return ApiResponse::success(['message' => '规格分组已删除']);
+        return ApiResponse::success(['message' => __('app.api.product_comparison.group_deleted')]);
     }
 
     /**
@@ -98,7 +98,7 @@ class ProductComparisonController extends Controller
             'label', 'type', 'unit', 'options', 'sort_order',
         ]));
 
-        return ApiResponse::success($spec, 201, '规格项已创建');
+        return ApiResponse::success($spec, 201, __('app.api.product_comparison.spec_created'));
     }
 
     /**
@@ -123,7 +123,7 @@ class ProductComparisonController extends Controller
             'label', 'type', 'unit', 'options', 'sort_order',
         ]));
 
-        return ApiResponse::success($spec, 200, '规格项已更新');
+        return ApiResponse::success($spec, 200, __('app.api.product_comparison.spec_updated'));
     }
 
     /**
@@ -132,7 +132,7 @@ class ProductComparisonController extends Controller
     public function deleteSpec(int $specId)
     {
         $this->comparisonService->deleteSpec($specId);
-        return ApiResponse::success(['message' => '规格项已删除']);
+        return ApiResponse::success(['message' => __('app.api.product_comparison.spec_deleted')]);
     }
 
     /**
@@ -154,7 +154,7 @@ class ProductComparisonController extends Controller
             $request->input('value'),
         );
 
-        return ApiResponse::success($value, 200, '规格值已设置');
+        return ApiResponse::success($value, 200, __('app.api.product_comparison.value_set'));
     }
 
     // ─── 规格列表（管理端） ───
@@ -210,7 +210,7 @@ class ProductComparisonController extends Controller
             $request->input('name'),
         );
 
-        return ApiResponse::success($comparison, 201, '比较列表已创建');
+        return ApiResponse::success($comparison, 201, __('app.api.product_comparison.comparison_created'));
     }
 
     /**
@@ -248,7 +248,7 @@ class ProductComparisonController extends Controller
         }
 
         $item = $this->comparisonService->addToComparison($id, $request->input('product_id'));
-        return ApiResponse::success($item, 201, '已添加到比较列表');
+        return ApiResponse::success($item, 201, __('app.api.product_comparison.item_added'));
     }
 
     /**
@@ -257,7 +257,7 @@ class ProductComparisonController extends Controller
     public function removeItem(int $id, int $productId)
     {
         $this->comparisonService->removeFromComparison($id, $productId);
-        return ApiResponse::success(['message' => '已从比较列表移除']);
+        return ApiResponse::success(['message' => __('app.api.product_comparison.item_removed')]);
     }
 
     /**
@@ -266,6 +266,6 @@ class ProductComparisonController extends Controller
     public function destroyComparison(int $id)
     {
         $this->comparisonService->deleteComparison($id);
-        return ApiResponse::success(['message' => '比较列表已删除']);
+        return ApiResponse::success(['message' => __('app.api.product_comparison.comparison_deleted')]);
     }
 }

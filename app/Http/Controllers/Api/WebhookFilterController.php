@@ -57,7 +57,7 @@ class WebhookFilterController extends Controller
 
         try {
             $filter = $this->webhookFilter->createFilter($endpoint->id, $data, $userId);
-            return ApiResponse::success(['filter' => $filter], '过滤器已创建');
+            return ApiResponse::success(['filter' => $filter], __('app.api.webhook_filter.filter_created'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 422);
         }
@@ -84,7 +84,7 @@ class WebhookFilterController extends Controller
         ]);
 
         $filter = $this->webhookFilter->updateFilter($filterId, $data);
-        return ApiResponse::success(['filter' => $filter], '过滤器已更新');
+        return ApiResponse::success(['filter' => $filter], __('app.api.webhook_filter.filter_updated'));
     }
 
     /**
@@ -96,7 +96,7 @@ class WebhookFilterController extends Controller
             ->findOrFail($endpointId);
 
         $this->webhookFilter->deleteFilter($filterId);
-        return ApiResponse::success(null, '过滤器已删除');
+        return ApiResponse::success(null, __('app.api.webhook_filter.filter_deleted'));
     }
 
     /**

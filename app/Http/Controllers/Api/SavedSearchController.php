@@ -52,7 +52,7 @@ class SavedSearchController extends Controller
 
         $search = SavedSearch::create($data);
 
-        return ApiResponse::created($search, '搜索已保存');
+        return ApiResponse::created($search, __("app.saved_search.msg_71df8af6"));
     }
 
     /**
@@ -61,7 +61,7 @@ class SavedSearchController extends Controller
     public function update(Request $request, SavedSearch $savedSearch): JsonResponse
     {
         if ($savedSearch->user_id !== $request->user()->id) {
-            return ApiResponse::error('FORBIDDEN', '无权修改此搜索', 403);
+            return ApiResponse::error('FORBIDDEN', __("app.saved_search.msg_097474e9"), 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -77,7 +77,7 @@ class SavedSearchController extends Controller
 
         $savedSearch->update($validator->validated());
 
-        return ApiResponse::success($savedSearch->fresh(), '搜索已更新');
+        return ApiResponse::success($savedSearch->fresh(), __('app.saved_search.search_updated'));
     }
 
     /**
@@ -86,11 +86,11 @@ class SavedSearchController extends Controller
     public function destroy(Request $request, SavedSearch $savedSearch): JsonResponse
     {
         if ($savedSearch->user_id !== $request->user()->id) {
-            return ApiResponse::error('FORBIDDEN', '无权删除此搜索', 403);
+            return ApiResponse::error('FORBIDDEN', __("app.saved_search.msg_945f6ffc"), 403);
         }
 
         $savedSearch->delete();
 
-        return ApiResponse::success(null, '搜索已删除');
+        return ApiResponse::success(null, __("app.saved_search.msg_775dd3aa"));
     }
 }

@@ -61,7 +61,7 @@ class PortalBrandingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__("app.portal_branding.msg_e441b11e"), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -73,7 +73,7 @@ class PortalBrandingController extends Controller
             $validator->safe()->except(['locale'])
         );
 
-        return ApiResponse::success($config, '品牌配置已更新');
+        return ApiResponse::success($config, __("app.portal_branding.msg_009a1589"));
     }
 
     /**
@@ -86,7 +86,7 @@ class PortalBrandingController extends Controller
             $request->input('locale', 'zh-CN')
         );
 
-        return ApiResponse::success($config, '已重置为默认配置');
+        return ApiResponse::success($config, __("app.portal_branding.msg_0fd47041"));
     }
 
     /**
@@ -108,14 +108,14 @@ class PortalBrandingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.common.validation_failed'), $validator->errors()->toArray());
         }
 
         $templates = $this->brandingService->getThemeTemplates();
         $theme = collect($templates)->firstWhere('id', $request->input('theme_id'));
 
         if (!$theme) {
-            return ApiResponse::error('INVALID_THEME', '无效的主题模板', 400);
+            return ApiResponse::error('INVALID_THEME', __("app.portal_branding.msg_6fe887db"), 400);
         }
 
         $config = $this->brandingService->updateConfig(
@@ -130,7 +130,7 @@ class PortalBrandingController extends Controller
             ]
         );
 
-        return ApiResponse::success($config, '主题模板已应用');
+        return ApiResponse::success($config, __("app.portal_branding.msg_06734c9d"));
     }
 
     /**

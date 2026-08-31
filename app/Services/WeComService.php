@@ -36,6 +36,6 @@ class WeComService
     public function testConnection(string $webhookUrl): array
     {
         $ok = $this->send($webhookUrl, '🔄 企业微信连接测试', "测试时间: " . now()->format('Y-m-d H:i:s') . "\n>状态: 连接成功 ✅", 'low');
-        return ['success' => $ok, 'message' => $ok ? '企业微信连接测试通过' : '企业微信连接测试失败，请检查 Webhook URL'];
+        return ['success' => $ok, 'message' => $ok ? __('app.common.wecom_connection_test_passed') : __('app.common.wecom_connection_test_failed')];
     }
 }

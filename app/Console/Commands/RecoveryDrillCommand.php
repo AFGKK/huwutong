@@ -109,13 +109,13 @@ class RecoveryDrillCommand extends Command
         $this->results[] = ['step' => '备份记录数', 'status' => 'OK', 'detail' => "总计 {$total}, 成功 {$completed}, 失败 {$failed}, 近7天 {$recent}"];
 
         if ($total === 0) {
-            throw new \RuntimeException('没有备份记录，请先执行 php artisan db:backup');
+            throw new \RuntimeException(__('app.common.no_backup_records'));
         }
         if ($recent === 0) {
-            throw new \RuntimeException('近7天无成功备份');
+            throw new \RuntimeException(__('app.common.no_recent_successful_backup'));
         }
         if ($failed > $total * 0.3) {
-            throw new \RuntimeException("失败率过高: {$failed}/{$total}");
+            throw new \RuntimeException(__('app.common.failure_rate_too_high', ['failed' => $failed, 'total' => $total]));
         }
     }
 
@@ -138,7 +138,7 @@ class RecoveryDrillCommand extends Command
         }
 
         if ($missing > 0) {
-            throw new \RuntimeException("{$missing} 个备份文件缺失（共检查 {$records->count()} 个）");
+            throw new \RuntimeException(__('app.common.backup_files_missing', ['missing' => $missing, 'checked' => $records->count()]));
         }
 
         $this->results[] = ['step' => '备份文件完整性', 'status' => 'OK', 'detail' => "检查 {$records->count()} 个，全部完整"];
@@ -147,10 +147,10 @@ class RecoveryDrillCommand extends Command
     private function simulateRestore(): void
     {
         $record = BackupRecord::completed()->latest()->first();
-        if (!$record) throw new \RuntimeException('无可用备份');
+        if (!$record) throw new \RuntimeException(__('app.common.no_available_backup'));
 
         $filePath = storage_path("app/backups/{$record->file_name}");
-        if (!file_exists($filePath)) throw new \RuntimeException('备份文件不存在: ' . $filePath);
+        if (!file_exists($filePath)) throw new \RuntimeException(__('app.common.backup_file_not_found', ['path' => $filePath]));
 
         // 验证 gzip 完整性
         $cmd = sprintf('gzip -t %s', escapeshellarg($filePath));
@@ -159,7 +159,7 @@ class RecoveryDrillCommand extends Command
         exec($cmd, $output, $code);
 
         if ($code !== 0) {
-            throw new \RuntimeException('备份文件损坏 (gzip 校验失败)');
+            throw new \RuntimeException(__('app.common.backup_file_corrupted'));
         }
 
         // 快速验证 SQL 语法（取前 100 行检查）
@@ -172,7 +172,7 @@ class RecoveryDrillCommand extends Command
     private function measureRto(): void
     {
         $record = BackupRecord::completed()->latest()->first();
-        if (!$record) throw new \RuntimeException('无可用备份');
+        if (!$record) throw new \RuntimeException(__('app.common.no_available_backup'));
 
         $fileSizeMb = $record->file_size / 1024 / 1024;
         $estimatedRestoreMinutes = max(1, round($fileSizeMb / 100)); // 假设 100MB/min 导入速度

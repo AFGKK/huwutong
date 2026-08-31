@@ -103,7 +103,7 @@ class SessionManagerService
         $session = UserSession::findOrFail($id);
 
         if ($session->is_current && $session->user_id === $requestUserId) {
-            return ['success' => false, 'message' => '不能踢出当前自己的会话'];
+            return ['success' => false, 'message' => __('app.common.cannot_kick_own_session')];
         }
 
         $session->delete();
@@ -117,7 +117,7 @@ class SessionManagerService
         // 使 Laravel session 失效
         DB::table('sessions')->where('id', $session->session_id)->delete();
 
-        return ['success' => true, 'message' => '会话已踢出'];
+        return ['success' => true, 'message' => __('app.common.session_kicked')];
     }
 
     /**
@@ -170,6 +170,6 @@ class SessionManagerService
             'count' => $count,
         ]);
 
-        return ['success' => true, 'message' => "已踢出 {$count} 个会话"];
+        return ['success' => true, 'message' => __('app.common.sessions_kicked', ['count' => $count])];
     }
 }

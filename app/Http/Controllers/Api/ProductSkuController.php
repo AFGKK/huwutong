@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BillingCycle;
 use App\Models\ProductSku;
 use App\Services\ProductSkuService;
 use App\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * SKU 商品规格管理 (M1.1-24)
@@ -26,7 +28,7 @@ class ProductSkuController extends Controller
      */
     public function dashboard(): JsonResponse
     {
-        return ApiResponse::success($this->skuService->getDashboard(), 'SKU仪表盘获取成功');
+        return ApiResponse::success($this->skuService->getDashboard(), __('app.api.product_sku.dashboard_fetched'));
     }
 
     /**
@@ -39,7 +41,7 @@ class ProductSkuController extends Controller
             'product_id', 'is_active', 'billing_cycle', 'search',
             'stock_status', 'per_page', 'page',
         ]);
-        return ApiResponse::success($this->skuService->getSkus($params), 'SKU列表获取成功');
+        return ApiResponse::success($this->skuService->getSkus($params), __('app.api.product_sku.list_fetched'));
     }
 
     /**
@@ -49,7 +51,7 @@ class ProductSkuController extends Controller
     public function show(ProductSku $productSku): JsonResponse
     {
         $productSku->load('product');
-        return ApiResponse::success($productSku, 'SKU详情获取成功');
+        return ApiResponse::success($productSku, __('app.api.product_sku.detail_fetched'));
     }
 
     /**
@@ -68,7 +70,7 @@ class ProductSkuController extends Controller
             'currency' => 'nullable|string|size:3',
             'stock' => 'nullable|integer|min:-1',
             'is_active' => 'nullable|boolean',
-            'billing_cycle' => 'nullable|string|in:monthly,quarterly,yearly,one-time',
+            'billing_cycle' => ['nullable', 'string', Rule::in(BillingCycle::activeCodes())],
             'commission_rate' => 'nullable|numeric|min:0|max:100',
             'deliverables' => 'nullable|array',
             'deliverables.*.type' => 'required|string|in:file,link,text',
@@ -83,7 +85,7 @@ class ProductSkuController extends Controller
         ]);
 
         $sku = $this->skuService->createSku($validated);
-        return ApiResponse::success($sku, 'SKU创建成功');
+        return ApiResponse::success($sku, __('app.api.product_sku.created'));
     }
 
     /**
@@ -101,7 +103,7 @@ class ProductSkuController extends Controller
             'currency' => 'nullable|string|size:3',
             'stock' => 'nullable|integer|min:-1',
             'is_active' => 'nullable|boolean',
-            'billing_cycle' => 'nullable|string|in:monthly,quarterly,yearly,one-time',
+            'billing_cycle' => ['nullable', 'string', Rule::in(BillingCycle::activeCodes())],
             'commission_rate' => 'nullable|numeric|min:0|max:100',
             'deliverables' => 'nullable|array',
             'deliverables.*.type' => 'required|string|in:file,link,text',
@@ -116,7 +118,7 @@ class ProductSkuController extends Controller
         ]);
 
         $sku = $this->skuService->updateSku($productSku->id, $validated);
-        return ApiResponse::success($sku, 'SKU更新成功');
+        return ApiResponse::success($sku, __('app.api.product_sku.updated'));
     }
 
     /**
@@ -126,7 +128,7 @@ class ProductSkuController extends Controller
     public function destroy(ProductSku $productSku): JsonResponse
     {
         $this->skuService->deleteSku($productSku->id);
-        return ApiResponse::success(null, 'SKU删除成功');
+        return ApiResponse::success(null, __('app.api.product_sku.deleted'));
     }
 
     /**
@@ -136,7 +138,7 @@ class ProductSkuController extends Controller
     public function toggle(ProductSku $productSku): JsonResponse
     {
         $sku = $this->skuService->toggleActive($productSku->id);
-        return ApiResponse::success($sku, $sku->is_active ? 'SKU已上架' : 'SKU已下架');
+        return ApiResponse::success($sku, $sku->is_active ? __('app.api.product_sku.listed') : __('app.api.product_sku.delisted'));
     }
 
     /**
@@ -152,7 +154,7 @@ class ProductSkuController extends Controller
         ]);
 
         $results = $this->skuService->batchUpdateStock($validated['items']);
-        return ApiResponse::success($results, '库存批量更新成功');
+        return ApiResponse::success($results, __('app.api.product_sku.stock_updated'));
     }
 
     /**
@@ -186,6 +188,6 @@ class ProductSkuController extends Controller
             'mime_type' => $mimeType,
             'file_size' => $fileSize,
             'path' => $fileName,
-        ], '文件上传成功');
+        ], __('app.api.product_sku.file_uploaded'));
     }
 }

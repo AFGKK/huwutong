@@ -17,6 +17,12 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->appendOutputTo(storage_path('logs/domain-health.log'));
 
+        // 每天凌晨 2 点自动续期即将过期的 SSL 证书
+        $schedule->command('ssl:check --renew')
+            ->dailyAt('02:00')
+            ->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/ssl-renewal.log'));
+
         // 定时发布广场帖子 - 每分钟检查
         $schedule->command('plaza:publish-scheduled')
             ->everyMinute()

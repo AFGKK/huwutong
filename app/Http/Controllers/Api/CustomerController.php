@@ -89,7 +89,7 @@ class CustomerController extends Controller
             ...$validated,
         ]);
 
-        return ApiResponse::created($customer->load('user'), '客户创建成功');
+        return ApiResponse::created($customer->load('user'), __('app.customer.customer_created'));
     }
 
     public function update(int $id, Request $request): JsonResponse
@@ -105,7 +105,7 @@ class CustomerController extends Controller
 
         $customer->update($validated);
 
-        return ApiResponse::success($customer->load('user'), '客户更新成功');
+        return ApiResponse::success($customer->load('user'), __('app.customer.customer_updated'));
     }
 
     /**

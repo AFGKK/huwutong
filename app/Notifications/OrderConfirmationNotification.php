@@ -23,7 +23,35 @@ class OrderConfirmationNotification extends Notification implements ShouldQueue
 
     public function via($notifiable): array
     {
-        return ['mail'];
+        $channels = ['mail'];
+
+        // D-28: FCM 推送
+        if ($notifiable->fcm_token ?? null) {
+            $channels[] = 'fcm';
+        }
+
+        return $channels;
+    }
+
+    /**
+     * D-28: FCM 推送消息
+     */
+    public function toFcm($notifiable): array
+    {
+        return [
+            'title' => __('app.notifications.order.fcm_title'),
+            'body' => __('app.notifications.order.fcm_body', [
+                'no' => $this->order->order_no,
+                'amount' => number_format($this->order->final_amount, 2),
+            ]),
+            'data' => [
+                'type' => 'order_confirmation',
+                'order_id' => (string) $this->order->id,
+                'order_no' => $this->order->order_no,
+                'route' => '/build/orders/' . $this->order->id,
+                'category' => 'order',
+            ],
+        ];
     }
 
     public function toMail($notifiable): MailMessage
@@ -32,17 +60,26 @@ class OrderConfirmationNotification extends Notification implements ShouldQueue
         $order->load(['items.sku.product', 'deliveries']);
 
         $message = (new MailMessage)
-            ->subject('订单确认 - #' . $order->order_no)
-            ->greeting('您好！')
-            ->line('您的订单已支付成功，以下为订单详情：')
-            ->line('订单编号：' . $order->order_no)
-            ->line('订单金额：¥' . number_format($order->final_amount, 2))
-            ->line('下单时间：' . $order->created_at->format('Y-m-d H:i'))
+            ->subject(__('app.notifications.order.subject', ['no' => $order->order_no]))
+            ->greeting(__('app.notifications.greeting_generic'))
+            ->line(__('app.notifications.order.paid_ok'))
+            ->line(__('app.notifications.order.order_no', ['no' => $order->order_no]))
+            ->line(__('app.notifications.order.amount', [
+                'amount' => number_format($order->final_amount, 2),
+            ]))
+            ->line(__('app.notifications.order.created_at', [
+                'time' => $order->created_at->format('Y-m-d H:i'),
+            ]))
             ->line('---');
 
         foreach ($order->items as $item) {
-            $message->line('商品：' . ($item->sku?->product?->name ?? '') . ' - ' . $item->name);
-            $message->line('数量：' . $item->quantity . ' × ¥' . number_format($item->unit_price, 2));
+            $message->line(__('app.notifications.order.item', [
+                'name' => ($item->sku?->product?->name ?? '') . ' - ' . $item->name,
+            ]));
+            $message->line(__('app.notifications.order.qty_price', [
+                'qty' => $item->quantity,
+                'price' => number_format($item->unit_price, 2),
+            ]));
         }
 
         // License 信息
@@ -52,7 +89,7 @@ class OrderConfirmationNotification extends Notification implements ShouldQueue
 
         if ($licenses->isNotEmpty()) {
             $message->line('---');
-            $message->line('您的授权码（License Key）：');
+            $message->line(__('app.notifications.order.license_keys'));
             foreach ($licenses as $delivery) {
                 $content = json_decode($delivery->content, true) ?? [];
                 foreach ($content as $lic) {
@@ -65,8 +102,8 @@ class OrderConfirmationNotification extends Notification implements ShouldQueue
         }
 
         $message->line('---')
-            ->line('感谢您的购买！如有问题请联系客服。')
-            ->action('查看订单', url('/build/orders/' . $order->id));
+            ->line(__('app.notifications.order.thanks'))
+            ->action(__('app.notifications.order.view_order'), url('/build/orders/' . $order->id));
 
         return $message;
     }

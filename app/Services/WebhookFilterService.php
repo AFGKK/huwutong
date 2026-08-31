@@ -36,7 +36,7 @@ class WebhookFilterService
         $count = WebhookFilter::where('webhook_endpoint_id', $endpointId)->count();
         $max = config('webhook-filter.max_filters_per_endpoint', 20);
         if ($count >= $max) {
-            throw new \RuntimeException("过滤器已达上限 ({$max}个)");
+            throw new \RuntimeException(__("app.webhook_filter.msg_634a794b"));
         }
 
         return WebhookFilter::create([

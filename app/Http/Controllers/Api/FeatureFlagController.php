@@ -65,7 +65,7 @@ class FeatureFlagController extends Controller
         $license = License::where('license_key', $data['license_key'])->first();
 
         if (! $license) {
-            return ApiResponse::error('LICENSE_NOT_FOUND', 'License Key 不存在', 404);
+            return ApiResponse::error('LICENSE_NOT_FOUND', __("app.feature_flag.msg_9d21147f"), 404);
         }
 
         $hasFeature = $this->featureFlagService->hasFeature($license, $data['feature']);
@@ -94,7 +94,7 @@ class FeatureFlagController extends Controller
         $license = License::where('license_key', $data['license_key'])->first();
 
         if (! $license) {
-            return ApiResponse::error('LICENSE_NOT_FOUND', 'License Key 不存在', 404);
+            return ApiResponse::error('LICENSE_NOT_FOUND', __('app.feature_flag.license_key'), 404);
         }
 
         $results = $this->featureFlagService->checkFeatures($license, $data['features']);
@@ -120,7 +120,7 @@ class FeatureFlagController extends Controller
         $license = License::where('license_key', $data['license_key'])->first();
 
         if (! $license) {
-            return ApiResponse::error('LICENSE_NOT_FOUND', 'License Key 不存在', 404);
+            return ApiResponse::error('LICENSE_NOT_FOUND', __('app.feature_flag.license_key'), 404);
         }
 
         $features = $this->featureFlagService->getLicenseFeatures($license);
@@ -149,7 +149,7 @@ class FeatureFlagController extends Controller
 
         $flag = FeatureFlag::create($data);
 
-        return ApiResponse::success($flag, '功能开关创建成功', 201);
+        return ApiResponse::success($flag, __("app.feature_flag.msg_c903b7c5"), 201);
     }
 
     /**
@@ -169,7 +169,7 @@ class FeatureFlagController extends Controller
 
         $flag->update($data);
 
-        return ApiResponse::success($flag, '功能开关更新成功');
+        return ApiResponse::success($flag, __("app.feature_flag.msg_c2ff7ddf"));
     }
 
     /**
@@ -182,7 +182,7 @@ class FeatureFlagController extends Controller
         $flag = FeatureFlag::findOrFail($id);
         $flag->update(['is_active' => $request->boolean('is_active', !$flag->is_active)]);
 
-        return ApiResponse::success($flag, $flag->is_active ? '功能已启用' : '功能已禁用');
+        return ApiResponse::success($flag, $flag->is_active ? __('app.feature_flag.feature_enabled') : __("app.feature_flag.msg_c71195ee"));
     }
 
     /**
@@ -196,7 +196,7 @@ class FeatureFlagController extends Controller
         $flag->products()->detach();
         $flag->delete();
 
-        return ApiResponse::success(null, '功能开关已删除');
+        return ApiResponse::success(null, __("app.feature_flag.msg_df817226"));
     }
 
     /**
@@ -242,6 +242,6 @@ class FeatureFlagController extends Controller
             $data['is_active'] ?? true,
         );
 
-        return ApiResponse::success(null, '功能已分配到产品');
+        return ApiResponse::success(null, __("app.feature_flag.msg_53da7bc9"));
     }
 }

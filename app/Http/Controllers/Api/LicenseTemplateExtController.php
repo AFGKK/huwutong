@@ -40,7 +40,7 @@ class LicenseTemplateExtController extends Controller
         }
 
         $this->licenseTemplateService->saveVariables($template->id, $request->input('variables'));
-        return ApiResponse::success(['saved' => true], '变量已保存');
+        return ApiResponse::success(['saved' => true], __("app.license_template_ext.msg_cd5f28f7"));
     }
 
     // ─── 字段映射 ───
@@ -59,7 +59,7 @@ class LicenseTemplateExtController extends Controller
         }
 
         $this->licenseTemplateService->saveFieldMappings($templateId, $request->input('mappings'));
-        return ApiResponse::success(['saved' => true], '字段映射已保存');
+        return ApiResponse::success(['saved' => true], __("app.license_template_ext.msg_a9480901"));
     }
 
     // ─── 批量生成 ───
@@ -88,7 +88,7 @@ class LicenseTemplateExtController extends Controller
             $request->only(['customer_id', 'status'])
         );
 
-        return ApiResponse::created($batch, '批量生成任务已提交');
+        return ApiResponse::created($batch, __("app.license_template_ext.msg_7145b4b8"));
     }
 
     public function batchTasks(Request $request)
@@ -98,7 +98,7 @@ class LicenseTemplateExtController extends Controller
             $request->only(['status', 'page', 'per_page'])
         );
 
-        return ApiResponse::success($paginated['data'] ?? $paginated, '查询成功');
+        return ApiResponse::success($paginated['data'] ?? $paginated, __("app.license_template_ext.msg_d72b49e1"));
     }
 
     public function batchTaskShow(int $id)
@@ -111,7 +111,7 @@ class LicenseTemplateExtController extends Controller
         $batch = LicenseBatchGeneration::findOrFail($id);
         $batch->items()->delete();
         $batch->delete();
-        return ApiResponse::success(null, '任务已删除');
+        return ApiResponse::success(null, __("app.license_template_ext.msg_b2ae04aa"));
     }
 
     // ─── 预览 ───

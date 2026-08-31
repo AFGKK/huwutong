@@ -34,12 +34,12 @@ class ProcessRenewalPayment extends BaseWorkflowStep
     {
         $invoiceId = $context['invoice_id'] ?? null;
         if (!$invoiceId) {
-            throw new \RuntimeException('缺少 invoice_id');
+            throw new \RuntimeException(__('app.common.missing_invoice_id'));
         }
 
         $invoice = Invoice::find($invoiceId);
         if (!$invoice) {
-            throw new \RuntimeException("发票 {$invoiceId} 不存在");
+            throw new \RuntimeException(__('app.common.invoice_not_found', ['id' => $invoiceId]));
         }
 
         $this->log('info', '处理支付', ['invoice' => $invoiceId, 'amount' => $invoice->total]);
@@ -56,7 +56,7 @@ class ProcessRenewalPayment extends BaseWorkflowStep
         }
 
         if (!$paymentMethod) {
-            throw new \RuntimeException('客户没有可用的支付方式');
+            throw new \RuntimeException(__('app.common.no_payment_method_available'));
         }
 
         $result = $this->paymentManager->charge([
@@ -86,7 +86,7 @@ class ProcessRenewalPayment extends BaseWorkflowStep
             ];
         }
 
-        throw new \RuntimeException($result['error'] ?? '支付失败');
+        throw new \RuntimeException($result['error'] ?? __('app.common.payment_failed'));
     }
 
     public function compensate(WorkflowInstance $instance, array &$context, array $input, array $output): void

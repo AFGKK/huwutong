@@ -102,7 +102,7 @@ class ChangelogService
             $count = $this->createSnapshot($apiVersionId, $versionLabel);
             return [
                 'status' => 'snapshot_created',
-                'message' => "已创建首个端点快照，共 {$count} 个端点",
+                'message' => __('app.api.service_changelog.first_snapshot', ['count' => $count]),
                 'changelogs_created' => 0,
                 'changes' => [],
             ];
@@ -125,7 +125,7 @@ class ChangelogService
         if (empty($changes['added']) && empty($changes['removed']) && empty($changes['modified']) && empty($changes['deprecated'])) {
             return [
                 'status' => 'no_changes',
-                'message' => '自上次快照以来无端点变更',
+                'message' => __('app.api.service_changelog.no_changes'),
                 'changelogs_created' => 0,
                 'changes' => $changes,
             ];
@@ -141,7 +141,7 @@ class ChangelogService
                 'version' => $versionLabel,
                 'release_date' => now(),
                 'type' => 'release',
-                'title' => "v{$versionLabel} API 更新",
+                'title' => __('app.api.service_changelog.api_update_title', ['version' => $versionLabel]),
                 'description' => $description,
                 'affected_endpoints' => $changes,
                 'source' => 'auto_detect',
@@ -155,7 +155,7 @@ class ChangelogService
 
         return [
             'status' => 'success',
-            'message' => "自动检测完成，生成 {$changelogsCreated} 条 Changelog",
+            'message' => __('app.api.service_changelog.auto_detect_done', ['count' => $changelogsCreated]),
             'changelogs_created' => $changelogsCreated,
             'changes' => $changes,
         ];
@@ -413,33 +413,33 @@ class ChangelogService
         $parts = [];
 
         if (!empty($changes['added'])) {
-            $parts[] = "**新增端点**（" . count($changes['added']) . "个）";
+            $parts[] = __('app.api.service_changelog.new_endpoints', ['count' => count($changes['added'])]);
             foreach (array_slice($changes['added'], 0, 10) as $ep) {
                 $parts[] = "- `{$ep['method']} {$ep['path']}` — {$ep['summary']}";
             }
             if (count($changes['added']) > 10) {
-                $parts[] = "- ...及其他 " . (count($changes['added']) - 10) . " 个新增端点";
+                $parts[] = __('app.api.service_changelog.and_more_new', ['count' => count($changes['added']) - 10]);
             }
         }
 
         if (!empty($changes['modified'])) {
-            $parts[] = "**修改端点**（" . count($changes['modified']) . "个）";
+            $parts[] = __('app.api.service_changelog.modified_endpoints', ['count' => count($changes['modified'])]);
             foreach (array_slice($changes['modified'], 0, 10) as $ep) {
                 $parts[] = "- `{$ep['method']} {$ep['path']}` — {$ep['summary']}";
             }
         }
 
         if (!empty($changes['deprecated'])) {
-            $parts[] = "**弃用端点**（" . count($changes['deprecated']) . "个）";
+            $parts[] = __('app.api.service_changelog.deprecated_endpoints', ['count' => count($changes['deprecated'])]);
             foreach ($changes['deprecated'] as $ep) {
-                $parts[] = "- `{$ep['method']} {$ep['path']}` — 请迁移至替代方案";
+                $parts[] = "- `{$ep['method']} {$ep['path']}` — " . __('app.api.service_changelog.migrate_to_alternative');
             }
         }
 
         if (!empty($changes['removed'])) {
-            $parts[] = "**移除端点**（" . count($changes['removed']) . "个）";
+            $parts[] = __('app.api.service_changelog.removed_endpoints', ['count' => count($changes['removed'])]);
             foreach ($changes['removed'] as $ep) {
-                $parts[] = "- `{$ep['method']} {$ep['path']}` — 此前已标记弃用";
+                $parts[] = "- `{$ep['method']} {$ep['path']}` — " . __('app.api.service_changelog.previously_deprecated');
             }
         }
 
@@ -452,14 +452,14 @@ class ChangelogService
 
         foreach ($breakingChanges as $change) {
             if ($change['type'] === 'removed') {
-                $steps[] = "🔴 端点 `{$change['endpoint']}` 已移除。请更新您的集成代码，使用替代 API。";
+                $steps[] = '🔴 ' . __('app.api.service_changelog.endpoint_removed', ['endpoint' => $change['endpoint']]);
             } elseif ($change['type'] === 'deprecated') {
-                $steps[] = "🟡 端点 `{$change['endpoint']}` 已标记弃用。请计划迁移至替代方案。";
+                $steps[] = '🟡 ' . __('app.api.service_changelog.endpoint_deprecated', ['endpoint' => $change['endpoint']]);
             }
         }
 
         if (empty($steps)) {
-            $steps[] = "✅ 本次升级无破坏性变更，可安全升级。";
+            $steps[] = '✅ ' . __('app.api.service_changelog.safe_upgrade');
         }
 
         return $steps;
@@ -473,9 +473,9 @@ class ChangelogService
             ->toArray();
 
         if (count($intermediate) <= 2) {
-            return "建议直接从 v{$fromVersion} 升级至 v{$toVersion}";
+            return __('app.api.service_changelog.direct_upgrade', ['from' => $fromVersion, 'to' => $toVersion]);
         }
 
-        return "建议按以下版本顺序逐步升级：" . implode(' → ', $intermediate);
+        return __('app.api.service_changelog.step_upgrade') . implode(' → ', $intermediate);
     }
 }

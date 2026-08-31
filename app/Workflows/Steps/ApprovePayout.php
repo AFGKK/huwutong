@@ -27,7 +27,7 @@ class ApprovePayout extends BaseWorkflowStep
     {
         $payoutId = $context['payout_id'] ?? $input['payout_id'] ?? null;
         if (! $payoutId) {
-            throw new \RuntimeException('缺少 payout_id');
+            throw new \RuntimeException(__('app.common.missing_payout_id'));
         }
 
         $payout = CommissionPayout::findOrFail($payoutId);

@@ -57,7 +57,7 @@ class CookieConsentController extends Controller
             userAgent: $request->userAgent(),
         );
 
-        return ApiResponse::success(null, '同意记录已保存');
+        return ApiResponse::success(null, __("app.cookie_consent.msg_9649c551"));
     }
 
     /**
@@ -112,7 +112,7 @@ class CookieConsentController extends Controller
             }
         }
 
-        return ApiResponse::success($config, 'Cookie 配置已更新');
+        return ApiResponse::success($config, __("app.cookie_consent.msg_cb816431"));
     }
 
     /**

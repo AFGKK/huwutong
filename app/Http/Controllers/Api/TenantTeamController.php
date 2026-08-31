@@ -100,14 +100,14 @@ class TenantTeamController extends Controller
         // 检查权限：只有 admin/finance 可以邀请成员
         $userRole = $this->teamService->getUserRole($tenant, $user);
         if (! in_array($userRole, ['admin', 'finance'])) {
-            return ApiResponse::forbidden('您没有邀请成员的权限');
+            return ApiResponse::forbidden(__('app.api.tenant_team.no_invite_perm'));
         }
 
         try {
             if (! empty($data['invites'])) {
                 // 批量邀请
                 $result = $this->teamService->inviteMembers($tenant, $data['invites'], $user);
-                return ApiResponse::success($result, '邀请已发送');
+                return ApiResponse::success($result, __('app.api.tenant_team.invite_sent'));
             }
 
             // 单个邀请
@@ -121,7 +121,7 @@ class TenantTeamController extends Controller
 
             return ApiResponse::created(
                 $invitation->load('inviter:id,name,email'),
-                '邀请已发送'
+                __('app.api.tenant_team.invite_sent')
             );
         } catch (\RuntimeException $e) {
             return ApiResponse::error('INVITE_FAILED', $e->getMessage(), 409);
@@ -150,7 +150,7 @@ class TenantTeamController extends Controller
             $member = $this->teamService->acceptInvitation($request->input('token'), $user);
             $member->load(['tenant:id,name,slug,logo', 'user:id,name,email']);
 
-            return ApiResponse::success($member, '已加入团队');
+            return ApiResponse::success($member, __('app.api.tenant_team.joined'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('ACCEPT_FAILED', $e->getMessage(), 400);
         }
@@ -172,7 +172,7 @@ class TenantTeamController extends Controller
 
         try {
             $this->teamService->declineInvitation($request->input('token'));
-            return ApiResponse::success(null, '已拒绝邀请');
+            return ApiResponse::success(null, __('app.api.tenant_team.invite_rejected'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('DECLINE_FAILED', $e->getMessage(), 400);
         }
@@ -191,12 +191,12 @@ class TenantTeamController extends Controller
         $userRole = $this->teamService->getUserRole($tenant, $user);
 
         if ($user->id !== $invitation->invited_by && $userRole !== 'admin') {
-            return ApiResponse::forbidden('您没有取消此邀请的权限');
+            return ApiResponse::forbidden(__('app.api.tenant_team.no_cancel_perm'));
         }
 
         try {
             $this->teamService->cancelInvitation($invitation);
-            return ApiResponse::success(null, '邀请已取消');
+            return ApiResponse::success(null, __('app.api.tenant_team.invite_cancelled'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('CANCEL_FAILED', $e->getMessage(), 400);
         }
@@ -213,14 +213,14 @@ class TenantTeamController extends Controller
         $userRole = $this->teamService->getUserRole($tenant, $user);
 
         if (! in_array($userRole, ['admin', 'finance'])) {
-            return ApiResponse::forbidden('您没有重新发送邀请的权限');
+            return ApiResponse::forbidden(__('app.api.tenant_team.no_resend_perm'));
         }
 
         try {
             $updated = $this->teamService->resendInvitation($invitation);
             return ApiResponse::success(
                 $updated->load('inviter:id,name,email'),
-                '邀请已重新发送'
+                __('app.api.tenant_team.invite_resent')
             );
         } catch (\RuntimeException $e) {
             return ApiResponse::error('RESEND_FAILED', $e->getMessage(), 400);
@@ -251,12 +251,12 @@ class TenantTeamController extends Controller
         $tenant = $this->resolveTenant($request, $user);
 
         if ($member->tenant_id !== $tenant->id) {
-            return ApiResponse::notFound('成员不属于此租户');
+            return ApiResponse::notFound(__('app.api.tenant_team.member_not_in_tenant'));
         }
 
         $userRole = $this->teamService->getUserRole($tenant, $user);
         if ($userRole !== 'admin') {
-            return ApiResponse::forbidden('只有管理员可以修改成员角色');
+            return ApiResponse::forbidden(__('app.api.tenant_team.admin_role_only'));
         }
 
         $validator = Validator::make($request->all(), [
@@ -269,7 +269,7 @@ class TenantTeamController extends Controller
 
         try {
             $updated = $this->teamService->updateMemberRole($member, $request->input('role'));
-            return ApiResponse::success($updated, '成员角色已更新');
+            return ApiResponse::success($updated, __('app.api.tenant_team.role_updated'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('ROLE_UPDATE_FAILED', $e->getMessage(), 409);
         }
@@ -285,17 +285,17 @@ class TenantTeamController extends Controller
         $tenant = $this->resolveTenant($request, $user);
 
         if ($member->tenant_id !== $tenant->id) {
-            return ApiResponse::notFound('成员不属于此租户');
+            return ApiResponse::notFound(__('app.api.tenant_team.member_not_in_tenant'));
         }
 
         $userRole = $this->teamService->getUserRole($tenant, $user);
         if ($userRole !== 'admin') {
-            return ApiResponse::forbidden('只有管理员可以移除成员');
+            return ApiResponse::forbidden(__('app.api.tenant_team.admin_remove_only'));
         }
 
         try {
             $this->teamService->removeMember($member, $user);
-            return ApiResponse::success(null, '成员已移除');
+            return ApiResponse::success(null, __('app.api.tenant_team.member_removed'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('REMOVE_FAILED', $e->getMessage(), 409);
         }
@@ -323,14 +323,14 @@ class TenantTeamController extends Controller
             ->first();
 
         if (! $fromMember || ! $fromMember->isAdmin()) {
-            return ApiResponse::forbidden('只有管理员可以转让权限');
+            return ApiResponse::forbidden(__('app.api.tenant_team.admin_transfer_only'));
         }
 
         $toMember = TenantMember::find($request->input('target_member_id'));
 
         try {
             $this->teamService->transferAdmin($fromMember, $toMember);
-            return ApiResponse::success(null, '管理员权限已转让');
+            return ApiResponse::success(null, __('app.api.tenant_team.admin_transferred'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('TRANSFER_FAILED', $e->getMessage(), 409);
         }
@@ -347,7 +347,7 @@ class TenantTeamController extends Controller
 
         try {
             $this->teamService->leaveTenant($tenant, $user);
-            return ApiResponse::success(null, '已退出团队');
+            return ApiResponse::success(null, __('app.api.tenant_team.left'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('LEAVE_FAILED', $e->getMessage(), 409);
         }
@@ -365,12 +365,12 @@ class TenantTeamController extends Controller
             ?? $user->tenant_id;
 
         if (! $tenantId) {
-            throw new \RuntimeException('未选择租户');
+            throw new \RuntimeException(__('app.api.tenant_team.no_tenant_selected'));
         }
 
         $tenant = Tenant::find($tenantId);
         if (! $tenant) {
-            throw new \RuntimeException('租户不存在');
+            throw new \RuntimeException(__('app.api.tenant_team.tenant_missing'));
         }
 
         // 验证用户是否是该租户的成员
@@ -380,7 +380,7 @@ class TenantTeamController extends Controller
             ->exists();
 
         if (! $isMember && ! $user->hasRole('super-admin')) {
-            throw new \RuntimeException('您无权访问该租户');
+            throw new \RuntimeException(__('app.api.tenant_team.no_tenant_access'));
         }
 
         return $tenant;

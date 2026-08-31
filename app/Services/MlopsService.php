@@ -210,7 +210,7 @@ class MlopsService
 
         $maxConcurrent = config('mlops.training.max_concurrent_jobs', 3);
         if ($running >= $maxConcurrent) {
-            throw new \RuntimeException("已达到最大并发训练任务数({$maxConcurrent})");
+            throw new \RuntimeException(__("app.mlops.msg_e48b0b46"));
         }
 
         $job = MlTrainingJob::create([

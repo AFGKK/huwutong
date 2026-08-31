@@ -96,7 +96,7 @@ class SmartContractController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, $validator->errors()->toArray());
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.smart_contract.validation_failed'), 422, $validator->errors()->toArray());
         }
 
         $data = $request->all();
@@ -104,7 +104,7 @@ class SmartContractController extends Controller
 
         $contract = $this->contractService->createContract($data);
 
-        return ApiResponse::success($contract, '合约创建成功', 201);
+        return ApiResponse::success($contract, __('app.api.smart_contract.contract_created'), 201);
     }
 
     /**
@@ -126,12 +126,12 @@ class SmartContractController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, $validator->errors()->toArray());
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.smart_contract.validation_failed'), 422, $validator->errors()->toArray());
         }
 
         $contract = $this->contractService->updateContract($contract, $request->all());
 
-        return ApiResponse::success($contract, '合约更新成功');
+        return ApiResponse::success($contract, __('app.api.smart_contract.contract_updated'));
     }
 
     /**
@@ -142,10 +142,10 @@ class SmartContractController extends Controller
         $deleted = $this->contractService->deleteContract($contract);
 
         if (!$deleted) {
-            return ApiResponse::error('SYSTEM_CONTRACT', '系统合约不可删除', 403);
+            return ApiResponse::error('SYSTEM_CONTRACT', __('app.api.smart_contract.system_contract_delete'), 403);
         }
 
-        return ApiResponse::success(null, '合约已删除');
+        return ApiResponse::success(null, __('app.api.smart_contract.contract_deleted'));
     }
 
     /**
@@ -154,7 +154,7 @@ class SmartContractController extends Controller
     public function seedContracts(Request $request)
     {
         $count = $this->contractService->seedSystemContracts($request->user()->tenant_id);
-        return ApiResponse::success(['seeded' => $count], "已播种 {$count} 条系统合约");
+        return ApiResponse::success(['seeded' => $count], __('app.api.smart_contract.seeded_contracts', ['count' => $count]));
     }
 
     // ─── 合约分配管理 ───
@@ -186,12 +186,12 @@ class SmartContractController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, $validator->errors()->toArray());
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.smart_contract.validation_failed'), 422, $validator->errors()->toArray());
         }
 
         $assignment = $this->contractService->assignContract($request->all());
 
-        return ApiResponse::success($assignment, '合约分配成功', 201);
+        return ApiResponse::success($assignment, __('app.api.smart_contract.assignment_created'), 201);
     }
 
     /**
@@ -208,12 +208,12 @@ class SmartContractController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, $validator->errors()->toArray());
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.smart_contract.validation_failed'), 422, $validator->errors()->toArray());
         }
 
         $assignment = $this->contractService->updateAssignment($assignment, $request->all());
 
-        return ApiResponse::success($assignment, '合约分配已更新');
+        return ApiResponse::success($assignment, __('app.api.smart_contract.assignment_updated'));
     }
 
     /**
@@ -222,7 +222,7 @@ class SmartContractController extends Controller
     public function destroyAssignment(LicenseContractAssignment $assignment)
     {
         $this->contractService->removeAssignment($assignment);
-        return ApiResponse::success(null, '合约分配已移除');
+        return ApiResponse::success(null, __('app.api.smart_contract.assignment_removed'));
     }
 
     /**
@@ -236,7 +236,7 @@ class SmartContractController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, $validator->errors()->toArray());
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.smart_contract.validation_failed'), 422, $validator->errors()->toArray());
         }
 
         return ApiResponse::success(
@@ -284,7 +284,7 @@ class SmartContractController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, $validator->errors()->toArray());
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.smart_contract.validation_failed'), 422, $validator->errors()->toArray());
         }
 
         $context = [

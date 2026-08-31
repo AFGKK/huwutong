@@ -83,7 +83,7 @@ class ProductDemoController extends Controller
     public function publicShow(Product $product): JsonResponse
     {
         if (!$product->demo_enabled) {
-            return response()->json(['success' => false, 'message' => '演示未启用'], 404);
+            return response()->json(['success' => false, 'message' => __('app.controller_compat.product_demo_msg_86')], 404);
         }
 
         return response()->json([

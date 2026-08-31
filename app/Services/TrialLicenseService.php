@@ -132,7 +132,7 @@ class TrialLicenseService
     public function checkTrialStatus(License $license): array
     {
         if ($license->type !== 'trial') {
-            return ['action' => 'none', 'message' => '非 Trial License'];
+            return ['action' => 'none', 'message' => __('app.common.not_trial_license')];
         }
 
         $now = now();

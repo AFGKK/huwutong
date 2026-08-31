@@ -65,7 +65,7 @@ class AttackDetectionController extends Controller
             'resolved_at' => in_array($validated['status'], ['resolved', 'false_positive']) ? now() : null,
         ]);
 
-        return ApiResponse::success($attackEvent, '状态已更新');
+        return ApiResponse::success($attackEvent, __("app.attack_detection.msg_7d6e0e1a"));
     }
 
     /**
@@ -107,7 +107,7 @@ class AttackDetectionController extends Controller
 
         Cache::put("banned:ip:{$validated['ip']}", true, $validated['duration_minutes'] ?? 60 * 60);
 
-        return ApiResponse::success(null, 'IP已封禁');
+        return ApiResponse::success(null, __("app.attack_detection.msg_e476583e"));
     }
 
     /**
@@ -117,7 +117,7 @@ class AttackDetectionController extends Controller
     {
         AttackIpBlock::where('ip', $ip)->delete();
         Cache::forget("banned:ip:{$ip}");
-        return ApiResponse::success(null, 'IP已解封');
+        return ApiResponse::success(null, __("app.attack_detection.msg_08fb4a9e"));
     }
 
     /**
@@ -140,7 +140,7 @@ class AttackDetectionController extends Controller
         );
 
         return $event
-            ? ApiResponse::success($event, '已检测到攻击')
-            : ApiResponse::success(null, '未检测到异常');
+            ? ApiResponse::success($event, __("app.attack_detection.msg_69361f9f"))
+            : ApiResponse::success(null, __("app.attack_detection.msg_495db5bf"));
     }
 }

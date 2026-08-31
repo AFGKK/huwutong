@@ -29,8 +29,15 @@ class PageController extends Controller
         }
 
         $perPage = min((int) $request->input('per_page', 20), 100);
+        $paginator = $query->orderBy('slug')->paginate($perPage);
+        $legal = app(\App\Services\LegalCmsPageService::class);
+        $paginator->getCollection()->transform(function (Page $page) use ($legal) {
+            $page->setAttribute('linkage', $legal->linkageMeta($page));
 
-        return ApiResponse::paginated($query->orderBy('slug')->paginate($perPage));
+            return $page;
+        });
+
+        return ApiResponse::paginated($paginator);
     }
 
     /**
@@ -69,7 +76,7 @@ class PageController extends Controller
             'version' => 1,
         ]);
 
-        return ApiResponse::created($page, '页面创建成功');
+        return ApiResponse::created($page, __('app.api.pages.page_created'));
     }
 
     /**
@@ -96,7 +103,7 @@ class PageController extends Controller
             $page->increment('version');
         }
 
-        return ApiResponse::success($page->fresh(), '页面更新成功');
+        return ApiResponse::success($page->fresh(), __('app.api.pages.page_updated'));
     }
 
     /**
@@ -105,8 +112,29 @@ class PageController extends Controller
     public function publish(int $id): JsonResponse
     {
         $page = Page::findOrFail($id);
+        $legal = app(\App\Services\LegalCmsPageService::class);
+
+        $plain = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $page->content)) ?? '');
+        if (isset(\App\Services\LegalCmsPageService::STATIC_FALLBACKS[$page->slug]) && mb_strlen($plain) < 20) {
+            return ApiResponse::error(
+                'CONTENT_TOO_SHORT',
+                __('app.api.pages.body_too_short'),
+                422
+            );
+        }
+
         $page->publish();
-        return ApiResponse::success($page->fresh(), '页面已发布');
+        $fresh = $page->fresh();
+        $meta = $legal->linkageMeta($fresh);
+
+        $message = __('app.api.pages.page_published');
+        if ($meta['mode'] === 'static_form') {
+            $message = __('app.api.pages.page_published_contact');
+        } elseif ($meta['mode'] === 'cms') {
+            $message = __('app.api.pages.page_published_custom', ['url' => $meta['url']]);
+        }
+
+        return ApiResponse::success(array_merge($fresh->toArray(), ['linkage' => $meta]), $message);
     }
 
     /**
@@ -116,7 +144,15 @@ class PageController extends Controller
     {
         $page = Page::findOrFail($id);
         $page->draft();
-        return ApiResponse::success($page->fresh(), '已撤回为草稿');
+        $fresh = $page->fresh();
+        $meta = app(\App\Services\LegalCmsPageService::class)->linkageMeta($fresh);
+
+        $message = __('app.api.pages.page_reverted_draft');
+        if (isset(\App\Services\LegalCmsPageService::STATIC_FALLBACKS[$page->slug])) {
+            $message = __('app.api.pages.page_reverted_static');
+        }
+
+        return ApiResponse::success(array_merge($fresh->toArray(), ['linkage' => $meta]), $message);
     }
 
     /**
@@ -126,7 +162,7 @@ class PageController extends Controller
     {
         $page = Page::findOrFail($id);
         $page->delete();
-        return ApiResponse::success(null, '页面已删除');
+        return ApiResponse::success(null, __('app.api.pages.page_deleted'));
     }
 
     /**

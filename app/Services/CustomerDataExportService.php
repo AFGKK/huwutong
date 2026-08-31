@@ -97,7 +97,7 @@ class CustomerDataExportService
 
         $path = $export->file_path;
         if (!Storage::disk($this->disk)->exists($path)) {
-            $export->markAsFailed('文件已丢失');
+            $export->markAsFailed(__('app.customer_data_export.file_lost'));
             return null;
         }
 
@@ -173,16 +173,16 @@ class CustomerDataExportService
         }
 
         return $query->get()->map(fn($l) => [
-            'License Key' => $l->license_key,
-            '产品' => $l->product?->name ?? '-',
-            '类型' => $l->type,
-            '状态' => $l->status,
-            '激活时间' => $l->activated_at?->format('Y-m-d H:i:s') ?? '-',
-            '过期时间' => $l->expires_at?->format('Y-m-d H:i:s') ?? '-',
-            '授权席位' => $l->seats,
-            '最大设备数' => $l->max_devices,
-            '激活数' => $l->activations->count(),
-            '创建时间' => $l->created_at->format('Y-m-d H:i:s'),
+            __('app.customer_data_export.csv_license_key') => $l->license_key,
+            __('app.customer_data_export.csv_product') => $l->product?->name ?? '-',
+            __('app.customer_data_export.csv_type') => $l->type,
+            __('app.customer_data_export.csv_status') => $l->status,
+            __('app.customer_data_export.csv_activated_at') => $l->activated_at?->format('Y-m-d H:i:s') ?? '-',
+            __('app.customer_data_export.csv_expires_at') => $l->expires_at?->format('Y-m-d H:i:s') ?? '-',
+            __('app.customer_data_export.csv_seats') => $l->seats,
+            __('app.customer_data_export.csv_max_devices') => $l->max_devices,
+            __('app.customer_data_export.csv_activation_count') => $l->activations->count(),
+            __('app.customer_data_export.csv_created_at') => $l->created_at->format('Y-m-d H:i:s'),
         ])->toArray();
     }
 
@@ -201,14 +201,14 @@ class CustomerDataExportService
         }
 
         return $query->get()->map(fn($inv) => [
-            '发票号' => $inv->invoice_no ?? $inv->id,
-            '金额' => number_format((float) ($inv->amount ?? 0), 2),
-            '币种' => $inv->currency ?? 'USD',
-            '状态' => $inv->status,
-            '支付方式' => $inv->payment_method ?? '-',
-            '支付时间' => $inv->paid_at?->format('Y-m-d H:i:s') ?? '-',
-            '创建时间' => $inv->created_at->format('Y-m-d H:i:s'),
-            '到期时间' => $inv->due_at?->format('Y-m-d') ?? '-',
+            __('app.customer_data_export.csv_invoice_no') => $inv->invoice_no ?? $inv->id,
+            __('app.customer_data_export.csv_amount') => number_format((float) ($inv->amount ?? 0), 2),
+            __('app.customer_data_export.csv_currency') => $inv->currency ?? 'USD',
+            __('app.customer_data_export.csv_status') => $inv->status,
+            __('app.customer_data_export.csv_payment_method') => $inv->payment_method ?? '-',
+            __('app.customer_data_export.csv_paid_at') => $inv->paid_at?->format('Y-m-d H:i:s') ?? '-',
+            __('app.customer_data_export.csv_created_at') => $inv->created_at->format('Y-m-d H:i:s'),
+            __('app.customer_data_export.csv_due_at') => $inv->due_at?->format('Y-m-d') ?? '-',
         ])->toArray();
     }
 
@@ -221,12 +221,12 @@ class CustomerDataExportService
         // Filters are applied on the license level if needed
 
         return $query->get()->map(fn($a) => [
-            'License Key' => $a->license?->license_key ?? '-',
-            '设备ID' => $a->device_id ?? '-',
-            'IP地址' => $a->ip_address ?? '-',
-            '操作' => $a->action ?? '-',
-            '指纹' => $a->fingerprint ?? '-',
-            '激活时间' => $a->created_at->format('Y-m-d H:i:s'),
+            __('app.customer_data_export.csv_license_key') => $a->license?->license_key ?? '-',
+            __('app.customer_data_export.csv_device_id') => $a->device_id ?? '-',
+            __('app.customer_data_export.csv_ip_address') => $a->ip_address ?? '-',
+            __('app.customer_data_export.csv_action') => $a->action ?? '-',
+            __('app.customer_data_export.csv_fingerprint') => $a->fingerprint ?? '-',
+            __('app.customer_data_export.csv_activated_at') => $a->created_at->format('Y-m-d H:i:s'),
         ])->toArray();
     }
 
@@ -237,14 +237,14 @@ class CustomerDataExportService
             ->sum(\DB::raw('COALESCE(amount, 0)'));
 
         return [[
-            '客户ID' => $customer->id,
-            '类型' => $customer->type ?? '-',
-            '等级' => $customer->level ?? '-',
-            '状态' => $customer->status,
-            '注册时间' => $customer->created_at->format('Y-m-d H:i:s'),
-            '总消费' => number_format((float) $totalSpent, 2),
-            'License数' => $customer->licenses()->count(),
-            '发票数' => $customer->invoices()->count(),
+            __('app.customer_data_export.csv_customer_id') => $customer->id,
+            __('app.customer_data_export.csv_type') => $customer->type ?? '-',
+            __('app.customer_data_export.csv_level') => $customer->level ?? '-',
+            __('app.customer_data_export.csv_status') => $customer->status,
+            __('app.customer_data_export.csv_registered_at') => $customer->created_at->format('Y-m-d H:i:s'),
+            __('app.customer_data_export.csv_total_spent') => number_format((float) $totalSpent, 2),
+            __('app.customer_data_export.csv_license_count') => $customer->licenses()->count(),
+            __('app.customer_data_export.csv_invoice_count') => $customer->invoices()->count(),
         ]];
     }
 

@@ -166,7 +166,7 @@ class FlowDesignerController extends Controller
         $definition = $this->service->exportToWorkflowDefinition($workflowDesign->id);
 
         if (!$definition) {
-            return ApiResponse::success(['error' => '导出失败'], 400);
+            return ApiResponse::success(['error' => __("app.flow_designer.msg_dd51ab50")], 400);
         }
 
         return ApiResponse::success($definition);

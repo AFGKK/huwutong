@@ -83,7 +83,7 @@ class ScheduledPromotionController extends Controller
 
         try {
             $promotion = $this->scheduledPromotionService->createPromotion($data);
-            return ApiResponse::success($promotion->load('creator:id,name'), '促销活动已创建');
+            return ApiResponse::success($promotion->load('creator:id,name'), __('app.scheduled_promotion.promotion_created'));
         } catch (\Throwable $e) {
             return ApiResponse::error('CREATE_FAILED', $e->getMessage(), 500);
         }
@@ -121,7 +121,7 @@ class ScheduledPromotionController extends Controller
 
         try {
             $promotion = $this->scheduledPromotionService->updatePromotion($promotion, $data);
-            return ApiResponse::success($promotion, '促销活动已更新');
+            return ApiResponse::success($promotion, __("app.scheduled_promotion.msg_99a41ea1"));
         } catch (\Throwable $e) {
             return ApiResponse::error('UPDATE_FAILED', $e->getMessage(), 500);
         }
@@ -135,7 +135,7 @@ class ScheduledPromotionController extends Controller
         $promotion = Promotion::findOrFail($id);
         try {
             $promotion = $this->scheduledPromotionService->publish($promotion);
-            return ApiResponse::success($promotion, '活动已发布');
+            return ApiResponse::success($promotion, __("app.scheduled_promotion.msg_4133b12a"));
         } catch (\Throwable $e) {
             return ApiResponse::error('PUBLISH_FAILED', $e->getMessage(), 500);
         }
@@ -149,7 +149,7 @@ class ScheduledPromotionController extends Controller
         $promotion = Promotion::findOrFail($id);
         try {
             $promotion = $this->scheduledPromotionService->pause($promotion);
-            return ApiResponse::success($promotion, '活动已暂停');
+            return ApiResponse::success($promotion, __("app.scheduled_promotion.msg_96d8bcad"));
         } catch (\Throwable $e) {
             return ApiResponse::error('PAUSE_FAILED', $e->getMessage(), 500);
         }
@@ -162,7 +162,7 @@ class ScheduledPromotionController extends Controller
     {
         $promotion = Promotion::findOrFail($id);
         $promotion->delete();
-        return ApiResponse::success(null, '活动已删除');
+        return ApiResponse::success(null, __("app.scheduled_promotion.msg_4a90654a"));
     }
 
     /**

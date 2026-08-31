@@ -65,7 +65,7 @@ class CustomerMergeController extends Controller
 
             return ApiResponse::success(
                 $this->customerMergeService->getMergeDetail($log),
-                '客户合并成功'
+                __('app.customer_merge.customer_merged')
             );
         } catch (\Exception $e) {
             return ApiResponse::error($e->getMessage());

@@ -29,6 +29,21 @@ class AccountDeletionService
         'privacy_concerns' => '隐私顾虑',
         'other' => '其他原因',
     ];
+    
+    protected static function translatedReason(string $key): string
+    {
+        $map = [
+            'too_expensive' => 'service_account_deletion.too_expensive',
+            'missing_features' => 'service_account_deletion.missing_features',
+            'switching_provider' => 'service_account_deletion.switching_provider',
+            'no_longer_needed' => 'service_account_deletion.no_longer_needed',
+            'technical_issues' => 'service_account_deletion.technical_issues',
+            'poor_support' => 'service_account_deletion.poor_support',
+            'privacy_concerns' => 'service_account_deletion.privacy_concerns',
+            'other' => 'service_account_deletion.other',
+        ];
+        return isset($map[$key]) ? __('app.api.' . $map[$key]) : $key;
+    }
 
     public function __construct(
         protected GdprComplianceService $gdprService,
@@ -50,7 +65,7 @@ class AccountDeletionService
                 ->whereIn('status', ['pending', 'overdue'])
                 ->count();
             if ($unpaidInvoices > 0) {
-                $reasons[] = "有 {$unpaidInvoices} 笔未结清账单，请先完成支付";
+                $reasons[] = __('app.api.service_account_deletion.unpaid_invoices', ['count' => $unpaidInvoices]);
             }
 
             // 检查是否有活跃订阅
@@ -58,7 +73,7 @@ class AccountDeletionService
                 ->whereIn('status', ['active', 'trial', 'grace'])
                 ->count();
             if ($activeSubscriptions > 0) {
-                $reasons[] = "有 {$activeSubscriptions} 个活跃订阅，请先取消订阅";
+                $reasons[] = __('app.api.service_account_deletion.active_subscriptions', ['count' => $activeSubscriptions]);
             }
         }
 
@@ -67,7 +82,7 @@ class AccountDeletionService
             ->whereIn('status', ['open', 'pending', 'in_progress'])
             ->count();
         if ($openTickets > 0) {
-            $reasons[] = "有 {$openTickets} 个未处理工单，请先关闭";
+            $reasons[] = __('app.api.service_account_deletion.open_tickets', ['count' => $openTickets]);
         }
 
         // 检查是否有待处理的提现
@@ -75,7 +90,7 @@ class AccountDeletionService
             $q->where('user_id', $user->id);
         })->whereIn('status', ['pending', 'pending_review'])->count();
         if ($pendingPayouts > 0) {
-            $reasons[] = "有待处理提现 {$pendingPayouts} 笔，请先完成";
+            $reasons[] = __('app.api.service_account_deletion.pending_payouts', ['count' => $pendingPayouts]);
         }
 
         return [
@@ -102,7 +117,7 @@ class AccountDeletionService
                 'user_id' => $user->id,
                 'type' => GdprDataRequest::TYPE_ERASURE,
                 'status' => GdprDataRequest::STATUS_PROCESSING,
-                'reason' => $reasonDetail ?? self::CANCELLATION_REASONS[$reason] ?? $reason,
+                'reason' => $reasonDetail ?? self::translatedReason($reason) ?? $reason,
                 'request_data' => [
                     'cancellation_reason' => $reason,
                     'cancellation_detail' => $reasonDetail,
@@ -174,7 +189,7 @@ class AccountDeletionService
                 'type' => GdprDataRequest::TYPE_ERASURE,
                 'status' => GdprDataRequest::STATUS_PROCESSING,
                 'processed_by' => $adminId,
-                'reason' => $notes ?? '管理员手动触发的数据匿名化',
+                'reason' => $notes ?? __('app.api.service_account_deletion.admin_anonymization'),
                 'request_data' => [
                     'initiated_by' => 'admin',
                     'admin_id' => $adminId,

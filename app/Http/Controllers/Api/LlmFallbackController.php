@@ -36,7 +36,7 @@ class LlmFallbackController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '所有 LLM 熔断器已重置',
+            'message' => __('app.api.llm_fallback_api.breakers_reset'),
         ]);
     }
 }

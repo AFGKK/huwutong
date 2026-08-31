@@ -253,7 +253,7 @@ class SSOService
         return match ($provider->provider_type) {
             'saml2' => $this->buildSamlLoginUrl($provider, $redirectTo),
             'oidc', 'oauth2' => $this->buildOidcLoginUrl($provider, $redirectTo),
-            default => throw new \RuntimeException("不支持的 SSO 类型: {$provider->provider_type}"),
+            default => throw new \RuntimeException(__("app.sso.msg_6394ba26")),
         };
     }
 
@@ -296,7 +296,7 @@ class SSOService
 
         $baseUrl = $provider->authorization_url;
         if (! $baseUrl) {
-            throw new \RuntimeException("SSO 提供者 {$provider->name} 未配置 authorization_url");
+            throw new \RuntimeException(__("app.sso.msg_4b1e9980"));
         }
 
         return $baseUrl . '?' . $params;

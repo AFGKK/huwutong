@@ -55,14 +55,14 @@ class CsmController extends Controller
 
         $score = $this->csmService->calculateHealthScore($customer);
 
-        return ApiResponse::success($score, '健康评分已更新');
+        return ApiResponse::success($score, __("app.csm.msg_e05e0061"));
     }
 
     public function batchCalculateHealth(Request $request): JsonResponse
     {
         $results = $this->csmService->batchCalculateHealthScores($request->user()->tenant_id);
 
-        return ApiResponse::success($results, "已处理 " . count($results) . " 个客户");
+        return ApiResponse::success($results, __('app.csm.batch_health_processed', ['count' => count($results)]));
     }
 
     // ─── 任务管理 ───
@@ -96,7 +96,7 @@ class CsmController extends Controller
 
         $task = $this->csmService->createTask($data);
 
-        return ApiResponse::success($task->load('assignee:id,name', 'customer.user:id,name'), '任务已创建', 201);
+        return ApiResponse::success($task->load('assignee:id,name', 'customer.user:id,name'), __('app.csm.task_created'), 201);
     }
 
     public function updateTask(Request $request, CsmTask $csmTask): JsonResponse
@@ -112,13 +112,13 @@ class CsmController extends Controller
 
         $task = $this->csmService->updateTask($csmTask, $data);
 
-        return ApiResponse::success($task->load('assignee:id,name'), '任务已更新');
+        return ApiResponse::success($task->load('assignee:id,name'), __('app.csm.task_updated'));
     }
 
     public function deleteTask(CsmTask $csmTask): JsonResponse
     {
         $csmTask->delete();
-        return ApiResponse::success(null, '任务已删除');
+        return ApiResponse::success(null, __("app.csm.msg_b2ae04aa"));
     }
 
     // ─── 沟通记录 ───
@@ -153,7 +153,7 @@ class CsmController extends Controller
 
         $comm = $this->csmService->recordCommunication($data);
 
-        return ApiResponse::success($comm->load('user:id,name'), '沟通记录已保存', 201);
+        return ApiResponse::success($comm->load('user:id,name'), __('app.csm.comm_record_saved'), 201);
     }
 
     // ─── 续费提醒生成 ───
@@ -162,7 +162,7 @@ class CsmController extends Controller
     {
         $count = $this->csmService->createRenewalReminders($request->user()->tenant_id);
 
-        return ApiResponse::success(['created' => $count], "已创建 {$count} 个续费提醒任务");
+        return ApiResponse::success(['created' => $count], __("app.csm.msg_63e5eb07"));
     }
 
     public function healthTrend(Request $request): JsonResponse

@@ -26,7 +26,7 @@ class ExtendSubscription extends BaseWorkflowStep
         /** @var Subscription $subscription */
         $subscription = $instance->workflowable;
         if (!$subscription) {
-            throw new \RuntimeException('工作流未关联 Subscription');
+            throw new \RuntimeException(__('app.common.workflow_not_linked_subscription'));
         }
 
         $billingPeriod = $subscription->billing_period ?? 'monthly';

@@ -155,14 +155,14 @@ class LicenseAnalyticsController extends Controller
     public function detectViolations(Request $request): JsonResponse
     {
         if ($request->user()->cannot('admin')) {
-            return ApiResponse::error('FORBIDDEN', '无权执行此操作', 403);
+            return ApiResponse::error('FORBIDDEN', __("app.license_analytics.msg_d618d0f5"), 403);
         }
 
         $tenantId = $request->user()->tenant_id;
 
         $result = $this->analyticsService->detectViolations($tenantId);
 
-        return ApiResponse::success($result, '违规检测完成');
+        return ApiResponse::success($result, __("app.license_analytics.msg_5c4236f5"));
     }
 
     /**
@@ -173,12 +173,12 @@ class LicenseAnalyticsController extends Controller
     public function backfill(Request $request): JsonResponse
     {
         if ($request->user()->cannot('admin')) {
-            return ApiResponse::error('FORBIDDEN', '无权执行此操作', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.license_analytics.not_authorized'), 403);
         }
 
         $result = $this->analyticsService->backfillAnalytics();
 
-        return ApiResponse::success($result, '历史数据回填完成');
+        return ApiResponse::success($result, __("app.license_analytics.msg_d29872aa"));
     }
 
     /**

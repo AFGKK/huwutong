@@ -450,80 +450,82 @@ class AdvancedSearchService
      */
     protected function licenseFilters(): array
     {
+        $t = fn(string $k) => __('app.advanced_search.' . $k);
+
         return [
             'q' => [
                 'type' => 'text',
-                'label' => '关键词',
-                'placeholder' => '搜索许可证密钥或客户...',
+                'label' => $t('common.keyword'),
+                'placeholder' => $t('licenses.search_placeholder'),
                 'operators' => ['contains'],
             ],
             'status' => [
                 'type' => 'select',
-                'label' => '状态',
+                'label' => $t('common.status'),
                 'multiple' => true,
                 'options' => [
-                    ['value' => 'active', 'label' => '激活'],
-                    ['value' => 'expired', 'label' => '已过期'],
-                    ['value' => 'suspended', 'label' => '已暂停'],
-                    ['value' => 'revoked', 'label' => '已撤销'],
-                    ['value' => 'pending', 'label' => '待激活'],
+                    ['value' => 'active', 'label' => $t('licenses.status_active')],
+                    ['value' => 'expired', 'label' => $t('licenses.status_expired')],
+                    ['value' => 'suspended', 'label' => $t('licenses.status_suspended')],
+                    ['value' => 'revoked', 'label' => $t('licenses.status_revoked')],
+                    ['value' => 'pending', 'label' => $t('licenses.status_pending')],
                 ],
             ],
             'type' => [
                 'type' => 'select',
-                'label' => '类型',
+                'label' => $t('common.type'),
                 'multiple' => true,
                 'options' => [
-                    ['value' => 'standard', 'label' => '标准'],
-                    ['value' => 'enterprise', 'label' => '企业'],
-                    ['value' => 'trial', 'label' => '试用'],
-                    ['value' => 'lifetime', 'label' => '永久'],
-                    ['value' => 'subscription', 'label' => '订阅'],
+                    ['value' => 'standard', 'label' => $t('licenses.type_standard')],
+                    ['value' => 'enterprise', 'label' => $t('licenses.type_enterprise')],
+                    ['value' => 'trial', 'label' => $t('licenses.type_trial')],
+                    ['value' => 'lifetime', 'label' => $t('licenses.type_lifetime')],
+                    ['value' => 'subscription', 'label' => $t('licenses.type_subscription')],
                 ],
             ],
             'product_id' => [
                 'type' => 'model-select',
-                'label' => '产品',
+                'label' => $t('common.product'),
                 'model' => 'Product',
                 'value_field' => 'id',
                 'label_field' => 'name',
             ],
             'customer_id' => [
                 'type' => 'model-select',
-                'label' => '客户',
+                'label' => $t('common.customer'),
                 'model' => 'Customer',
                 'value_field' => 'id',
                 'label_field' => 'name',
             ],
             'expires_from' => [
                 'type' => 'date',
-                'label' => '过期日期(起)',
+                'label' => $t('licenses.expires_from'),
             ],
             'expires_to' => [
                 'type' => 'date',
-                'label' => '过期日期(止)',
+                'label' => $t('licenses.expires_to'),
             ],
             'seats_min' => [
                 'type' => 'number',
-                'label' => '最少座位数',
+                'label' => $t('licenses.seats_min'),
                 'min' => 0,
             ],
             'seats_max' => [
                 'type' => 'number',
-                'label' => '最多座位数',
+                'label' => $t('licenses.seats_max'),
                 'min' => 0,
             ],
             'is_floating' => [
                 'type' => 'boolean',
-                'label' => '浮动许可证',
+                'label' => $t('licenses.is_floating'),
             ],
             'date_from' => [
                 'type' => 'date',
-                'label' => '创建日期(起)',
+                'label' => $t('common.date_created_from'),
             ],
             'date_to' => [
                 'type' => 'date',
-                'label' => '创建日期(止)',
+                'label' => $t('common.date_created_to'),
             ],
         ];
     }
@@ -533,45 +535,47 @@ class AdvancedSearchService
      */
     protected function customerFilters(): array
     {
+        $t = fn(string $k) => __('app.advanced_search.' . $k);
+
         return [
             'q' => [
                 'type' => 'text',
-                'label' => '关键词',
-                'placeholder' => '搜索姓名、邮箱、公司...',
+                'label' => $t('common.keyword'),
+                'placeholder' => $t('customers.search_placeholder'),
             ],
             'status' => [
                 'type' => 'select',
-                'label' => '状态',
+                'label' => $t('common.status'),
                 'multiple' => true,
                 'options' => [
-                    ['value' => 'active', 'label' => '活跃'],
-                    ['value' => 'inactive', 'label' => '非活跃'],
-                    ['value' => 'blocked', 'label' => '已封锁'],
+                    ['value' => 'active', 'label' => $t('customers.status_active')],
+                    ['value' => 'inactive', 'label' => $t('customers.status_inactive')],
+                    ['value' => 'blocked', 'label' => $t('customers.status_blocked')],
                 ],
             ],
             'company' => [
                 'type' => 'text',
-                'label' => '公司名称',
+                'label' => $t('customers.company'),
             ],
             'country' => [
                 'type' => 'text',
-                'label' => '国家',
+                'label' => $t('customers.country'),
             ],
             'has_licenses' => [
                 'type' => 'boolean',
-                'label' => '拥有许可证',
+                'label' => $t('customers.has_licenses'),
             ],
             'has_subscriptions' => [
                 'type' => 'boolean',
-                'label' => '拥有订阅',
+                'label' => $t('customers.has_subscriptions'),
             ],
             'date_from' => [
                 'type' => 'date',
-                'label' => '注册日期(起)',
+                'label' => $t('customers.date_registered_from'),
             ],
             'date_to' => [
                 'type' => 'date',
-                'label' => '注册日期(止)',
+                'label' => $t('customers.date_registered_to'),
             ],
         ];
     }
@@ -581,65 +585,67 @@ class AdvancedSearchService
      */
     protected function ticketFilters(): array
     {
+        $t = fn(string $k) => __('app.advanced_search.' . $k);
+
         return [
             'q' => [
                 'type' => 'text',
-                'label' => '关键词',
-                'placeholder' => '搜索主题、描述...',
+                'label' => $t('common.keyword'),
+                'placeholder' => $t('tickets.search_placeholder'),
             ],
             'status' => [
                 'type' => 'select',
-                'label' => '状态',
+                'label' => $t('common.status'),
                 'multiple' => true,
                 'options' => [
-                    ['value' => 'open', 'label' => '开放'],
-                    ['value' => 'in_progress', 'label' => '处理中'],
-                    ['value' => 'waiting_customer', 'label' => '等待客户'],
-                    ['value' => 'resolved', 'label' => '已解决'],
-                    ['value' => 'closed', 'label' => '已关闭'],
+                    ['value' => 'open', 'label' => $t('tickets.status_open')],
+                    ['value' => 'in_progress', 'label' => $t('tickets.status_in_progress')],
+                    ['value' => 'waiting_customer', 'label' => $t('tickets.status_waiting_customer')],
+                    ['value' => 'resolved', 'label' => $t('tickets.status_resolved')],
+                    ['value' => 'closed', 'label' => $t('tickets.status_closed')],
                 ],
             ],
             'priority' => [
                 'type' => 'select',
-                'label' => '优先级',
+                'label' => $t('tickets.priority'),
                 'multiple' => true,
                 'options' => [
-                    ['value' => 'low', 'label' => '低'],
-                    ['value' => 'medium', 'label' => '中'],
-                    ['value' => 'high', 'label' => '高'],
-                    ['value' => 'urgent', 'label' => '紧急'],
+                    ['value' => 'low', 'label' => $t('tickets.priority_low')],
+                    ['value' => 'medium', 'label' => $t('tickets.priority_medium')],
+                    ['value' => 'high', 'label' => $t('tickets.priority_high')],
+                    ['value' => 'urgent', 'label' => $t('tickets.priority_urgent')],
                 ],
             ],
             'category' => [
                 'type' => 'select',
-                'label' => '分类',
+                'label' => $t('tickets.category'),
                 'multiple' => true,
                 'options' => [
-                    ['value' => 'billing', 'label' => '账单'],
-                    ['value' => 'technical', 'label' => '技术'],
-                    ['value' => 'account', 'label' => '账户'],
-                    ['value' => 'feature', 'label' => '功能请求'],
-                    ['value' => 'bug', 'label' => '缺陷'],
+                    ['value' => 'billing', 'label' => $t('tickets.category_billing')],
+                    ['value' => 'technical', 'label' => $t('tickets.category_technical')],
+                    ['value' => 'account', 'label' => $t('tickets.category_account')],
+                    ['value' => 'feature', 'label' => $t('tickets.category_feature')],
+                    ['value' => 'bug', 'label' => $t('tickets.category_bug')],
                 ],
             ],
             'assigned_to' => [
                 'type' => 'model-select',
-                'label' => '指派人',
+                'label' => $t('tickets.assigned_to'),
                 'model' => 'User',
                 'value_field' => 'id',
                 'label_field' => 'name',
             ],
             'customer_id' => [
                 'type' => 'model-select',
-                'label' => '客户',
+                'label' => $t('common.customer'),
                 'model' => 'Customer',
                 'value_field' => 'id',
                 'label_field' => 'name',
             ],
-            'due_from' => ['type' => 'date', 'label' => '截止日期(起)'],
-            'due_to' => ['type' => 'date', 'label' => '截止日期(止)'],
-            'date_from' => ['type' => 'date', 'label' => '创建日期(起)'],
-            'date_to' => ['type' => 'date', 'label' => '创建日期(止)'],
+            'due_from' => ['type' => 'date', 'label' => $t('tickets.due_from')],
+            'due_to' => ['type' => 'date', 'label' => $t('tickets.due_to')],
+            'date_from' => ['type' => 'date', 'label' => $t('common.date_created_from')],
+            'date_to' => ['type' => 'date', 'label' => $t('common.date_created_to')],
         ];
     }
 
@@ -648,32 +654,34 @@ class AdvancedSearchService
      */
     protected function productFilters(): array
     {
+        $t = fn(string $k) => __('app.advanced_search.' . $k);
+
         return [
             'q' => [
                 'type' => 'text',
-                'label' => '关键词',
-                'placeholder' => '搜索产品名称...',
+                'label' => $t('common.keyword'),
+                'placeholder' => $t('products.search_placeholder'),
             ],
             'is_active' => [
                 'type' => 'boolean',
-                'label' => '启用状态',
+                'label' => $t('products.is_active'),
             ],
             'category' => [
                 'type' => 'text',
-                'label' => '分类',
+                'label' => $t('products.category'),
             ],
             'price_min' => [
                 'type' => 'number',
-                'label' => '最低价格',
+                'label' => $t('products.price_min'),
                 'min' => 0,
             ],
             'price_max' => [
                 'type' => 'number',
-                'label' => '最高价格',
+                'label' => $t('products.price_max'),
                 'min' => 0,
             ],
-            'date_from' => ['type' => 'date', 'label' => '创建日期(起)'],
-            'date_to' => ['type' => 'date', 'label' => '创建日期(止)'],
+            'date_from' => ['type' => 'date', 'label' => $t('common.date_created_from')],
+            'date_to' => ['type' => 'date', 'label' => $t('common.date_created_to')],
         ];
     }
 
@@ -682,39 +690,41 @@ class AdvancedSearchService
      */
     protected function invoiceFilters(): array
     {
+        $t = fn(string $k) => __('app.advanced_search.' . $k);
+
         return [
             'q' => [
                 'type' => 'text',
-                'label' => '关键词',
-                'placeholder' => '搜索发票号或客户...',
+                'label' => $t('common.keyword'),
+                'placeholder' => $t('invoices.search_placeholder'),
             ],
             'status' => [
                 'type' => 'select',
-                'label' => '状态',
+                'label' => $t('common.status'),
                 'multiple' => true,
                 'options' => [
-                    ['value' => 'draft', 'label' => '草稿'],
-                    ['value' => 'sent', 'label' => '已发送'],
-                    ['value' => 'paid', 'label' => '已付款'],
-                    ['value' => 'overdue', 'label' => '逾期'],
-                    ['value' => 'cancelled', 'label' => '已取消'],
-                    ['value' => 'refunded', 'label' => '已退款'],
+                    ['value' => 'draft', 'label' => $t('invoices.status_draft')],
+                    ['value' => 'sent', 'label' => $t('invoices.status_sent')],
+                    ['value' => 'paid', 'label' => $t('invoices.status_paid')],
+                    ['value' => 'overdue', 'label' => $t('invoices.status_overdue')],
+                    ['value' => 'cancelled', 'label' => $t('invoices.status_cancelled')],
+                    ['value' => 'refunded', 'label' => $t('invoices.status_refunded')],
                 ],
             ],
             'amount_min' => [
                 'type' => 'number',
-                'label' => '最低金额',
+                'label' => $t('invoices.amount_min'),
                 'min' => 0,
             ],
             'amount_max' => [
                 'type' => 'number',
-                'label' => '最高金额',
+                'label' => $t('invoices.amount_max'),
                 'min' => 0,
             ],
-            'paid_from' => ['type' => 'date', 'label' => '付款日期(起)'],
-            'paid_to' => ['type' => 'date', 'label' => '付款日期(止)'],
-            'date_from' => ['type' => 'date', 'label' => '创建日期(起)'],
-            'date_to' => ['type' => 'date', 'label' => '创建日期(止)'],
+            'paid_from' => ['type' => 'date', 'label' => $t('invoices.paid_from')],
+            'paid_to' => ['type' => 'date', 'label' => $t('invoices.paid_to')],
+            'date_from' => ['type' => 'date', 'label' => $t('common.date_created_from')],
+            'date_to' => ['type' => 'date', 'label' => $t('common.date_created_to')],
         ];
     }
 
@@ -723,42 +733,44 @@ class AdvancedSearchService
      */
     protected function subscriptionFilters(): array
     {
+        $t = fn(string $k) => __('app.advanced_search.' . $k);
+
         return [
             'q' => [
                 'type' => 'text',
-                'label' => '关键词',
-                'placeholder' => '搜索方案或客户...',
+                'label' => $t('common.keyword'),
+                'placeholder' => $t('subscriptions.search_placeholder'),
             ],
             'status' => [
                 'type' => 'select',
-                'label' => '状态',
+                'label' => $t('common.status'),
                 'multiple' => true,
                 'options' => [
-                    ['value' => 'active', 'label' => '活跃'],
-                    ['value' => 'past_due', 'label' => '逾期'],
-                    ['value' => 'cancelled', 'label' => '已取消'],
-                    ['value' => 'expired', 'label' => '已过期'],
-                    ['value' => 'trialing', 'label' => '试用'],
+                    ['value' => 'active', 'label' => $t('subscriptions.status_active')],
+                    ['value' => 'past_due', 'label' => $t('subscriptions.status_past_due')],
+                    ['value' => 'cancelled', 'label' => $t('subscriptions.status_cancelled')],
+                    ['value' => 'expired', 'label' => $t('subscriptions.status_expired')],
+                    ['value' => 'trialing', 'label' => $t('subscriptions.status_trialing')],
                 ],
             ],
             'billing_period' => [
                 'type' => 'select',
-                'label' => '计费周期',
+                'label' => $t('subscriptions.billing_period'),
                 'options' => [
-                    ['value' => 'monthly', 'label' => '每月'],
-                    ['value' => 'quarterly', 'label' => '每季'],
-                    ['value' => 'yearly', 'label' => '每年'],
-                    ['value' => 'one_time', 'label' => '一次性'],
+                    ['value' => 'monthly', 'label' => $t('subscriptions.billing_period_monthly')],
+                    ['value' => 'quarterly', 'label' => $t('subscriptions.billing_period_quarterly')],
+                    ['value' => 'yearly', 'label' => $t('subscriptions.billing_period_yearly')],
+                    ['value' => 'one_time', 'label' => $t('subscriptions.billing_period_one_time')],
                 ],
             ],
             'plan' => [
                 'type' => 'text',
-                'label' => '方案名称',
+                'label' => $t('subscriptions.plan'),
             ],
-            'renews_from' => ['type' => 'date', 'label' => '续费日期(起)'],
-            'renews_to' => ['type' => 'date', 'label' => '续费日期(止)'],
-            'date_from' => ['type' => 'date', 'label' => '创建日期(起)'],
-            'date_to' => ['type' => 'date', 'label' => '创建日期(止)'],
+            'renews_from' => ['type' => 'date', 'label' => $t('subscriptions.renews_from')],
+            'renews_to' => ['type' => 'date', 'label' => $t('subscriptions.renews_to')],
+            'date_from' => ['type' => 'date', 'label' => $t('common.date_created_from')],
+            'date_to' => ['type' => 'date', 'label' => $t('common.date_created_to')],
         ];
     }
 

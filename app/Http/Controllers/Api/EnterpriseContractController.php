@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Models\EnterpriseContract;
 use App\Services\EnterpriseContractService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class EnterpriseContractController extends Controller
 {
@@ -66,7 +65,7 @@ class EnterpriseContractController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'name' => 'required|string|max:200',
             'customer_id' => 'required|integer|exists:customers,id',
             'total_value' => 'nullable|numeric|min:0',
@@ -79,17 +78,16 @@ class EnterpriseContractController extends Controller
             'auto_renew' => 'nullable|boolean',
             'renewal_notice_days' => 'nullable|integer|min:1',
             'notes' => 'nullable|string',
+            'terms' => 'nullable|string',
+            'special_terms' => 'nullable|string',
+            'licensed_items' => 'nullable|string',
         ]);
-
-        if ($validator->fails()) {
-            return ApiResponse::success(['errors' => $validator->errors()], 422);
-        }
 
         return ApiResponse::success(
             $this->service->createContract(
                 $request->user()->tenant_id,
                 $request->user()->id,
-                $request->all()
+                $validated
             )
         );
     }
@@ -99,11 +97,28 @@ class EnterpriseContractController extends Controller
      */
     public function update(Request $request, int $contractId)
     {
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:200',
+            'total_value' => 'nullable|numeric|min:0',
+            'currency' => 'nullable|string|size:3',
+            'discount_rate' => 'nullable|numeric|min:0|max:100',
+            'negotiated_amount' => 'nullable|numeric|min:0',
+            'start_date' => 'sometimes|date',
+            'end_date' => 'sometimes|date',
+            'billing_cycle_days' => 'nullable|integer|min:1',
+            'auto_renew' => 'nullable|boolean',
+            'renewal_notice_days' => 'nullable|integer|min:1',
+            'notes' => 'nullable|string',
+            'terms' => 'nullable|string',
+            'special_terms' => 'nullable|string',
+            'licensed_items' => 'nullable|string',
+        ]);
+
         return ApiResponse::success(
             $this->service->updateContract(
                 $request->user()->tenant_id,
                 $contractId,
-                $request->all()
+                $validated
             )
         );
     }

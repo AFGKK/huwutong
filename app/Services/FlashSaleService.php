@@ -59,11 +59,11 @@ class FlashSaleService
 
         // 检查活动状态
         if ($sale->status !== 'active') {
-            return ['success' => false, 'message' => '秒杀未开始或已结束'];
+            return ['success' => false, 'message' => __('app.common.flash_sale_not_active')];
         }
 
         if (now()->lt($sale->start_time) || now()->gt($sale->end_time)) {
-            return ['success' => false, 'message' => '不在秒杀时间段内'];
+            return ['success' => false, 'message' => __('app.common.flash_sale_not_in_time_range')];
         }
 
         // 防刷检查
@@ -76,7 +76,7 @@ class FlashSaleService
         $tokenKey = config('flash-sale.cache.token_key_prefix', 'flash_token:') . $flashSaleId;
         $tokens = Cache::get($tokenKey, config('flash-sale.rate_limit.token_bucket_capacity', 100));
         if ($tokens <= 0) {
-            return ['success' => false, 'message' => '请求过于频繁，请稍后再试'];
+            return ['success' => false, 'message' => __('app.common.request_too_frequent')];
         }
         Cache::decrement($tokenKey);
 
@@ -85,7 +85,7 @@ class FlashSaleService
         $stock = Cache::decrement($stockKey);
         if ($stock === false || $stock < 0) {
             Cache::increment($stockKey);
-            return ['success' => false, 'message' => '库存已售罄'];
+            return ['success' => false, 'message' => __('app.common.stock_sold_out')];
         }
 
         // 生成排队令牌

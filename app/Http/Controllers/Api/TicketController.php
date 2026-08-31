@@ -25,7 +25,7 @@ class TicketController extends Controller
             'customer.user:id,name',
             'user:id,name',
             'category:id,name',
-            'assignee:id,name',
+            'assignee:id,name,email',
             'tags',
         ]);
 
@@ -87,7 +87,7 @@ class TicketController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '工单已提交',
+            'message' => __('app.api.ticket.submitted'),
             'data' => $ticket->load('category:id,name'),
         ], 201);
     }
@@ -101,7 +101,7 @@ class TicketController extends Controller
             'customer.user:id,name,email',
             'user:id,name',
             'category:id,name',
-            'assignee:id,name',
+            'assignee:id,name,email',
             'tags',
             'publicReplies.user' => function ($q) {
                 $q->select('id', 'name')->with('roles:id,name');
@@ -135,7 +135,7 @@ class TicketController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '回复成功',
+            'message' => __('app.api.ticket.replied'),
             'data' => $reply,
         ]);
     }
@@ -149,7 +149,7 @@ class TicketController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '工单已标记为已解决',
+            'message' => __('app.api.ticket.resolved'),
         ]);
     }
 
@@ -162,7 +162,7 @@ class TicketController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '工单已关闭',
+            'message' => __('app.api.ticket.closed'),
         ]);
     }
 
@@ -175,7 +175,7 @@ class TicketController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '工单已重新打开',
+            'message' => __('app.api.ticket.reopened'),
         ]);
     }
 
@@ -196,7 +196,7 @@ class TicketController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '已分配',
+            'message' => __('app.api.ticket.assigned'),
         ]);
     }
 
@@ -224,7 +224,7 @@ class TicketController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
-        return response()->json(['success' => true, 'message' => '感谢您的评价']);
+        return response()->json(['success' => true, 'message' => __('app.api.ticket.thanks_rating')]);
     }
 
     /**
@@ -250,7 +250,7 @@ class TicketController extends Controller
             'sort_order' => 'sometimes|integer|min:0',
         ]));
 
-        return response()->json(['success' => true, 'message' => '分类已创建'], 201);
+        return response()->json(['success' => true, 'message' => __('app.api.ticket.category_created')], 201);
     }
 
     /**
@@ -261,12 +261,12 @@ class TicketController extends Controller
         if ($category->tickets()->count() > 0) {
             return response()->json([
                 'success' => false,
-                'message' => '该分类下还有工单，无法删除',
+                'message' => __('app.api.ticket.category_in_use'),
             ], 422);
         }
 
         $category->delete();
-        return response()->json(['success' => true, 'message' => '分类已删除']);
+        return response()->json(['success' => true, 'message' => __('app.api.ticket.category_deleted')]);
     }
 
     /**
@@ -294,30 +294,30 @@ class TicketController extends Controller
     public function batchClose(Request $request): JsonResponse
     {
         $ids = $request->input('ids', []);
-        if (empty($ids)) return response()->json(['success' => false, 'message' => '请选择工单'], 422);
+        if (empty($ids)) return response()->json(['success' => false, 'message' => __('app.api.ticket.select_tickets')], 422);
         $count = 0;
         foreach (Ticket::whereIn('id', $ids)->get() as $ticket) {
             $this->ticketService->close($ticket);
             $count++;
         }
-        return response()->json(['success' => true, 'data' => ['closed' => $count], 'message' => "已关闭 {$count} 个工单"]);
+        return response()->json(['success' => true, 'data' => ['closed' => $count], 'message' => __('app.api.ticket.closed_n', ['count' => $count])]);
     }
 
     public function batchAssign(Request $request): JsonResponse
     {
         $ids = $request->input('ids', []);
         $userId = $request->input('user_id');
-        if (empty($ids) || !$userId) return response()->json(['success' => false, 'message' => '参数不完整'], 422);
+        if (empty($ids) || !$userId) return response()->json(['success' => false, 'message' => __('app.api.ticket.params_incomplete')], 422);
         $count = Ticket::whereIn('id', $ids)->update(['assigned_to' => $userId]);
-        return response()->json(['success' => true, 'data' => ['assigned' => $count], 'message' => "已分配 {$count} 个工单"]);
+        return response()->json(['success' => true, 'data' => ['assigned' => $count], 'message' => __('app.api.ticket.assigned_n', ['count' => $count])]);
     }
 
     public function batchDelete(Request $request): JsonResponse
     {
         $ids = $request->input('ids', []);
-        if (empty($ids)) return response()->json(['success' => false, 'message' => '请选择工单'], 422);
+        if (empty($ids)) return response()->json(['success' => false, 'message' => __('app.api.ticket.select_tickets')], 422);
         $count = Ticket::whereIn('id', $ids)->delete();
-        return response()->json(['success' => true, 'data' => ['deleted' => $count], 'message' => "已删除 {$count} 个工单"]);
+        return response()->json(['success' => true, 'data' => ['deleted' => $count], 'message' => __('app.api.ticket.deleted_n', ['count' => $count])]);
     }
 
     // ─── 导出 ───
@@ -338,7 +338,7 @@ class TicketController extends Controller
         $callback = function () use ($tickets) {
             $handle = fopen('php://output', 'w');
             fwrite($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, ['ID', '标题', '分类', '优先级', '状态', '客户', '处理人', '创建时间', '描述']);
+            fputcsv($handle, __('app.api.ticket.csv_headers'));
             foreach ($tickets as $t) {
                 fputcsv($handle, [
                     $t->id, $t->title,

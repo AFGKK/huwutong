@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\OaArticle;
+use App\Models\OaCategory;
 use App\Models\OaSubmission;
 use App\Models\OfficialAccount;
 use Illuminate\Http\JsonResponse;
@@ -85,7 +86,7 @@ class OaAdminController extends Controller
                 'published_at' => now(),
             ]);
 
-            return ApiResponse::success($article, '已审核通过，文章已发布');
+            return ApiResponse::success($article, __('app.api.oa_admin.approved_published'));
         }
 
         if ($action === 'reject') {
@@ -95,10 +96,10 @@ class OaAdminController extends Controller
                 'reviewed_at' => now(),
                 'reject_reason' => $request->input('reason', ''),
             ]);
-            return ApiResponse::success($submission, '已驳回');
+            return ApiResponse::success($submission, __('app.api.oa_admin.rejected'));
         }
 
-        return ApiResponse::error('INVALID_ACTION', '无效操作', 400);
+        return ApiResponse::error('INVALID_ACTION', __('app.api.oa_admin.invalid_action'), 400);
     }
 
     // ── 管理后台：删除文章 ──
@@ -106,7 +107,7 @@ class OaAdminController extends Controller
     {
         $article = OaArticle::findOrFail($id);
         $article->delete();
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.oa_admin.deleted'));
     }
 
     // ── 管理后台：文章状态切换 ──
@@ -118,7 +119,7 @@ class OaAdminController extends Controller
             $article->published_at = now();
         }
         $article->save();
-        return ApiResponse::success(['status' => $article->status], $article->status === 'published' ? '已发布' : '已下架');
+        return ApiResponse::success(['status' => $article->status], $article->status === 'published' ? __('app.api.oa_admin.published') : __('app.api.oa_admin.unpublished'));
     }
 
     // ── 管理后台：全局置顶 ──
@@ -127,7 +128,7 @@ class OaAdminController extends Controller
         $article = OaArticle::findOrFail($id);
         $article->update(['is_global_pinned' => !$article->is_global_pinned]);
         $fresh = $article->fresh();
-        return ApiResponse::success(['is_global_pinned' => $fresh->is_global_pinned], $fresh->is_global_pinned ? '已置顶（全局）' : '已取消全局置顶');
+        return ApiResponse::success(['is_global_pinned' => $fresh->is_global_pinned], $fresh->is_global_pinned ? __('app.api.oa_admin.global_pinned') : __('app.api.oa_admin.global_unpinned'));
     }
 
     // ── 管理后台：互物号列表 ──
@@ -182,7 +183,7 @@ class OaAdminController extends Controller
         $account = OfficialAccount::findOrFail($id);
         $account->status = $account->status === 'active' ? 'suspended' : 'active';
         $account->save();
-        return ApiResponse::success(['status' => $account->status], $account->status === 'active' ? '已启用' : '已禁用');
+        return ApiResponse::success(['status' => $account->status], $account->status === 'active' ? __('app.api.oa_admin.enabled') : __('app.api.oa_admin.disabled'));
     }
 
     // ── 管理后台：审核通过 ──
@@ -190,7 +191,7 @@ class OaAdminController extends Controller
     {
         $account = OfficialAccount::findOrFail($id);
         if ($account->status !== 'pending') {
-            return ApiResponse::error('该互物号不是待审核状态', 422);
+            return ApiResponse::error(__('app.api.oa_admin.not_pending'), 422);
         }
         $account->status = 'active';
         $account->save();
@@ -200,7 +201,7 @@ class OaAdminController extends Controller
             'user_id' => $account->owner_id,
         ]);
 
-        return ApiResponse::success($account, '已审核通过');
+        return ApiResponse::success($account, __('app.api.oa_admin.approved'));
     }
 
     // ── 管理后台：审核拒绝 ──
@@ -208,7 +209,7 @@ class OaAdminController extends Controller
     {
         $account = OfficialAccount::findOrFail($id);
         if ($account->status !== 'pending') {
-            return ApiResponse::error('该互物号不是待审核状态', 422);
+            return ApiResponse::error(__('app.api.oa_admin.not_pending'), 422);
         }
         $reason = $request->input('reason', '');
         $account->status = 'rejected';
@@ -221,7 +222,7 @@ class OaAdminController extends Controller
             $account->save();
         }
 
-        return ApiResponse::success($account, '已拒绝');
+        return ApiResponse::success($account, __('app.api.oa_admin.account_rejected'));
     }
 
     // ── 管理后台：删除互物号 ──
@@ -229,10 +230,10 @@ class OaAdminController extends Controller
     {
         $account = OfficialAccount::withCount('articles')->findOrFail($id);
         if ($account->articles_count > 0) {
-            return ApiResponse::error('该互物号下有文章，无法删除', 422);
+            return ApiResponse::error(__('app.api.oa_admin.has_articles'), 422);
         }
         $account->delete();
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.oa_admin.deleted'));
     }
 
     // ── 管理后台：编辑互物号 ──
@@ -246,7 +247,7 @@ class OaAdminController extends Controller
             'category_id' => 'nullable|integer|exists:oa_categories,id',
         ]);
         $account->update(array_filter($validated));
-        return ApiResponse::success($account->fresh()->load('category:id,name'), '已更新');
+        return ApiResponse::success($account->fresh()->load('category:id,name'), __('app.api.oa_admin.updated'));
     }
 
     // ── 管理后台：批量启用/禁用 ──
@@ -254,16 +255,16 @@ class OaAdminController extends Controller
     {
         $ids = $request->input('ids', []);
         $status = $request->input('status', 'active');
-        if (empty($ids)) return ApiResponse::error('请选择互物号', 400);
+        if (empty($ids)) return ApiResponse::error(__('app.api.oa_admin.select_accounts'), 400);
         $count = OfficialAccount::whereIn('id', $ids)->update(['status' => $status]);
-        return ApiResponse::success(['count' => $count], "已{$count}个互物号" . ($status === 'active' ? '启用' : '禁用'));
+        return ApiResponse::success(['count' => $count], __('app.api.oa_admin.bulk_status', ['count' => $count, 'action' => $status === 'active' ? __('app.api.oa_admin.action_enable') : __('app.api.oa_admin.action_disable')]));
     }
 
     // ── 管理后台：批量删除 ──
     public function adminBatchDelete(Request $request): JsonResponse
     {
         $ids = $request->input('ids', []);
-        if (empty($ids)) return ApiResponse::error('请选择互物号', 400);
+        if (empty($ids)) return ApiResponse::error(__('app.api.oa_admin.select_accounts'), 400);
         $accounts = OfficialAccount::withCount('articles')->whereIn('id', $ids)->get();
         $deleted = 0;
         foreach ($accounts as $acc) {
@@ -273,6 +274,54 @@ class OaAdminController extends Controller
             }
         }
         $skipped = count($ids) - $deleted;
-        return ApiResponse::success(['deleted' => $deleted, 'skipped' => $skipped], "已删除{$deleted}个，{$skipped}个因有文章跳过");
+        return ApiResponse::success(['deleted' => $deleted, 'skipped' => $skipped], __('app.api.oa_admin.bulk_deleted', ['deleted' => $deleted, 'skipped' => $skipped]));
+    }
+
+    // ── 管理后台：分类管理 ──
+    public function adminCategories(): JsonResponse
+    {
+        $categories = OaCategory::withCount('accounts')
+            ->orderBy('sort_order')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return ApiResponse::success($categories);
+    }
+
+    public function adminStoreCategory(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:50',
+            'icon' => 'nullable|string|max:10',
+            'sort_order' => 'nullable|integer|min:0',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $category = OaCategory::create(array_merge($validated, [
+            'is_active' => $validated['is_active'] ?? true,
+            'sort_order' => $validated['sort_order'] ?? 0,
+        ]));
+
+        return ApiResponse::success($category->loadCount('accounts'), __('app.api.oa_admin.created'), 201);
+    }
+
+    public function adminUpdateCategory(Request $request, int $id): JsonResponse
+    {
+        $category = OaCategory::findOrFail($id);
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:50',
+            'icon' => 'nullable|string|max:10',
+            'sort_order' => 'nullable|integer|min:0',
+            'is_active' => 'nullable|boolean',
+        ]);
+        $category->update($validated);
+        return ApiResponse::success($category->fresh()->loadCount('accounts'), __('app.api.oa_admin.updated'));
+    }
+
+    public function adminDestroyCategory(int $id): JsonResponse
+    {
+        $category = OaCategory::findOrFail($id);
+        $category->delete();
+        return ApiResponse::success(null, __('app.api.oa_admin.deleted'));
     }
 }

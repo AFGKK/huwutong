@@ -86,7 +86,7 @@ class SecretScanController extends Controller
             'scanned' => $result['scanned'],
             'new_findings' => $processed['processed'],
             'total_findings' => $processed['total'],
-        ], '扫描完成');
+        ], __('app.api.secret_scan.scan_done'));
     }
 
     /**
@@ -112,7 +112,7 @@ class SecretScanController extends Controller
             'resolved_at' => now(),
         ]);
 
-        return ApiResponse::success($secretScanLog, '已处理');
+        return ApiResponse::success($secretScanLog, __('app.api.secret_scan.processed'));
     }
 
     /**
@@ -129,6 +129,6 @@ class SecretScanController extends Controller
             'scanned' => $result['scanned'],
             'new_findings' => $processed['processed'],
             'total_findings' => $processed['total'],
-        ], '快速扫描完成');
+        ], __('app.api.secret_scan.quick_scan_done'));
     }
 }

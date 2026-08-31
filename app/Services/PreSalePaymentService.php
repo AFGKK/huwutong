@@ -29,7 +29,7 @@ class PreSalePaymentService
     {
         $amount = $this->calculateDepositAmount($order);
         if ($amount <= 0) {
-            throw new \RuntimeException('定金金额无效');
+            throw new \RuntimeException(__("app.pre_sale_payment.invalid_deposit_amount"));
         }
 
         return $this->charge($order, 'deposit', $amount, $paymentMethod);
@@ -42,7 +42,7 @@ class PreSalePaymentService
     {
         $amount = max(0, (float) $order->total_amount - (float) $order->deposit_paid);
         if ($amount <= 0) {
-            throw new \RuntimeException('尾款金额无效');
+            throw new \RuntimeException(__("app.pre_sale_payment.invalid_balance_amount"));
         }
 
         return $this->charge($order, 'final', $amount, $paymentMethod);
@@ -54,13 +54,13 @@ class PreSalePaymentService
     public function refundOrder(PreSaleOrder $order, string $reason = '活动取消或众筹未达标'): array
     {
         if ($order->payment_status === 'refunded') {
-            return ['success' => true, 'amount' => 0, 'message' => '已退款'];
+            return ['success' => true, 'amount' => 0, 'message' => __('app.common.refunded')];
         }
 
         $refundAmount = (float) $order->deposit_paid + (float) $order->final_paid;
         if ($refundAmount <= 0) {
             $order->update(['payment_status' => 'refunded']);
-            return ['success' => true, 'amount' => 0, 'message' => '无需退款'];
+            return ['success' => true, 'amount' => 0, 'message' => __('app.common.no_refund_needed')];
         }
 
         return DB::transaction(function () use ($order, $reason, $refundAmount) {
@@ -91,7 +91,7 @@ class PreSalePaymentService
                 $refundResult = $this->processRefundForInvoice($invoice, $phaseAmount, $method, $order, $reason);
 
                 if (! ($refundResult['success'] ?? false)) {
-                    throw new \RuntimeException($refundResult['error'] ?? '退款失败');
+throw new \RuntimeException($refundResult['error'] ?? __("app.pre_sale_payment.refund_failed"));
                 }
 
                 $refundRecords[] = $refundResult;
@@ -148,7 +148,7 @@ class PreSalePaymentService
 
         if (! ($paymentResult['success'] ?? false)) {
             $invoice->update(['status' => 'failed']);
-            throw new \RuntimeException($paymentResult['error'] ?? '支付失败');
+throw new \RuntimeException($paymentResult['error'] ?? __("app.pre_sale_payment.payment_failed"));
         }
 
         $invoice->update([

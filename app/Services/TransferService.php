@@ -45,7 +45,7 @@ class TransferService
 
         // Check license is transferable
         if (!in_array($license->status, ['active', 'suspended'])) {
-            throw new \RuntimeException('License 当前状态不可转移');
+            throw new \RuntimeException(__("app.transfer.license_not_transferable"));
         }
 
         $data['reference'] = 'TX-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
@@ -77,7 +77,7 @@ class TransferService
     public function approveRequest(LicenseTransferRequest $request, ?string $notes = null): LicenseTransferRequest
     {
         if (!$request->isProcessable()) {
-            throw new \RuntimeException('该请求当前无法处理');
+            throw new \RuntimeException(__("app.transfer.request_cannot_process_now"));
         }
 
         $license = $request->license;
@@ -104,7 +104,7 @@ class TransferService
     public function rejectRequest(LicenseTransferRequest $request, string $reason): LicenseTransferRequest
     {
         if (!$request->isProcessable()) {
-            throw new \RuntimeException('该请求当前无法处理');
+throw new \RuntimeException(__("app.transfer.request_cannot_process_now"));
         }
 
         $audit = $request->audit_log ?? [];
@@ -124,7 +124,7 @@ class TransferService
     public function cancelRequest(LicenseTransferRequest $request): LicenseTransferRequest
     {
         if (!in_array($request->status, ['pending'])) {
-            throw new \RuntimeException('当前状态不可取消');
+            throw new \RuntimeException(__("app.transfer.cannot_cancel_in_current_state"));
         }
 
         $request->update([
@@ -237,7 +237,7 @@ class TransferService
     public function generateVerificationCode(LicenseTransferRequest $request): string
     {
         if ($request->type !== 'device_transfer') {
-            throw new \RuntimeException('仅设备转移需要验证码');
+            throw new \RuntimeException(__("app.transfer.device_transfer_requires_code"));
         }
 
         $code = (string) random_int(100000, 999999);

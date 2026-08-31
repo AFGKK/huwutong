@@ -37,7 +37,7 @@ class DataAnonymizationController extends Controller
     public function destroy(DataAnonymizationRule $rule): JsonResponse
     {
         $this->anonymizationService->delete($rule);
-        return response()->json(['success' => true, 'message' => '已删除']);
+        return response()->json(['success' => true, 'message' => __('app.common.deleted')]);
     }
 
     /**
@@ -122,6 +122,6 @@ class DataAnonymizationController extends Controller
     public function destroyRule(DataAnonymizationRule $rule): JsonResponse
     {
         $rule->delete();
-        return response()->json(['success' => true, 'message' => '已删除']);
+        return response()->json(['success' => true, 'message' => __('app.common.deleted')]);
     }
 }

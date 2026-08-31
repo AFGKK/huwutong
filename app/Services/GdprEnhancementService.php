@@ -32,7 +32,7 @@ class GdprEnhancementService
     public function updateDpia(DpiaRecord $dpia, array $data): DpiaRecord
     {
         if (in_array($dpia->status, ['approved', 'rejected']) && empty($data['reviewed_by'])) {
-            throw new \RuntimeException('已审核的 DPIA 不可编辑');
+            throw new \RuntimeException(__("app.gdpr_enhancement.dpia_reviewed_cannot_edit"));
         }
         $dpia->update($data);
         return $dpia->fresh();
@@ -41,7 +41,7 @@ class GdprEnhancementService
     public function reviewDpia(DpiaRecord $dpia, string $status, ?string $notes = null): DpiaRecord
     {
         if (!in_array($status, ['approved', 'rejected'])) {
-            throw new \RuntimeException('审核状态无效');
+            throw new \RuntimeException(__("app.gdpr_enhancement.invalid_review_status"));
         }
         $dpia->update([
             'status' => $status,

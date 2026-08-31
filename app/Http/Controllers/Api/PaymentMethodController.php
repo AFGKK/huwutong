@@ -27,7 +27,7 @@ class PaymentMethodController extends Controller
         $customer = $request->user()->customer;
 
         if (!$customer) {
-            return response()->json(['success' => false, 'message' => '未找到客户资料'], 404);
+            return response()->json(['success' => false, 'message' => __('app.api.payment_method.customer_not_found')], 404);
         }
 
         $methods = PaymentMethod::where('customer_id', $customer->id)
@@ -50,7 +50,7 @@ class PaymentMethodController extends Controller
         $customer = $request->user()->customer;
 
         if (!$customer) {
-            return response()->json(['success' => false, 'message' => '未找到客户资料'], 404);
+            return response()->json(['success' => false, 'message' => __('app.api.payment_method.customer_not_found')], 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -89,7 +89,7 @@ class PaymentMethodController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '支付方式添加成功',
+            'message' => __('app.api.payment_method.added'),
             'data' => $method->fresh(),
         ], 201);
     }
@@ -102,14 +102,14 @@ class PaymentMethodController extends Controller
         $customer = $request->user()->customer;
 
         if (!$customer || $paymentMethod->customer_id !== $customer->id) {
-            return response()->json(['success' => false, 'message' => '无权操作'], 403);
+            return response()->json(['success' => false, 'message' => __('app.api.payment_method.forbidden')], 403);
         }
 
         $paymentMethod->setAsDefault();
 
         return response()->json([
             'success' => true,
-            'message' => '已设为默认支付方式',
+            'message' => __('app.api.payment_method.set_default'),
             'data' => $paymentMethod->fresh(),
         ]);
     }
@@ -122,7 +122,7 @@ class PaymentMethodController extends Controller
         $customer = $request->user()->customer;
 
         if (!$customer || $paymentMethod->customer_id !== $customer->id) {
-            return response()->json(['success' => false, 'message' => '无权操作'], 403);
+            return response()->json(['success' => false, 'message' => __('app.api.payment_method.forbidden')], 403);
         }
 
         $wasDefault = $paymentMethod->is_default;
@@ -142,7 +142,7 @@ class PaymentMethodController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '支付方式已删除',
+            'message' => __('app.api.payment_method.deleted'),
         ]);
     }
 
@@ -221,7 +221,7 @@ class PaymentMethodController extends Controller
     {
         $paymentMethod->update(['is_active' => false]);
 
-        return response()->json(['success' => true, 'message' => '支付方式已禁用']);
+        return response()->json(['success' => true, 'message' => __('app.api.payment_method.disabled')]);
     }
 
     /**
@@ -233,6 +233,6 @@ class PaymentMethodController extends Controller
     {
         $paymentMethod->forceDelete();
 
-        return response()->json(['success' => true, 'message' => '支付方式已永久删除']);
+        return response()->json(['success' => true, 'message' => __('app.api.payment_method.permanently_deleted')]);
     }
 }

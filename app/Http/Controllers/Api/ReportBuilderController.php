@@ -77,7 +77,7 @@ class ReportBuilderController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.report_builder.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -85,7 +85,7 @@ class ReportBuilderController extends Controller
         $data['tenant_id'] = $request->user()->tenant_id;
 
         $report = $this->reportBuilder->createReport($data);
-        return ApiResponse::created($report, '报表已创建');
+        return ApiResponse::created($report, __('app.api.report_builder.report_created'));
     }
 
     /**
@@ -123,11 +123,11 @@ class ReportBuilderController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.report_builder.validation_failed'), $validator->errors()->toArray());
         }
 
         $report = $this->reportBuilder->updateReport($report, $validator->validated());
-        return ApiResponse::success($report, '报表已更新');
+        return ApiResponse::success($report, __('app.api.report_builder.report_updated'));
     }
 
     /**
@@ -138,7 +138,7 @@ class ReportBuilderController extends Controller
     {
         $report = CustomReport::findOrFail($id);
         $this->reportBuilder->deleteReport($report);
-        return ApiResponse::success(null, '报表已删除');
+        return ApiResponse::success(null, __('app.api.report_builder.report_deleted'));
     }
 
     /**
@@ -151,9 +151,9 @@ class ReportBuilderController extends Controller
 
         try {
             $data = $this->reportBuilder->generateReportData($report);
-            return ApiResponse::success($data, '报表已生成');
+            return ApiResponse::success($data, __('app.api.report_builder.report_generated'));
         } catch (\Exception $e) {
-            return ApiResponse::error('GENERATION_FAILED', '报表生成失败: ' . $e->getMessage(), 500);
+            return ApiResponse::error('GENERATION_FAILED', __('app.api.report_builder.generation_failed', ['error' => $e->getMessage()]), 500);
         }
     }
 
@@ -167,9 +167,9 @@ class ReportBuilderController extends Controller
 
         try {
             $snapshot = $this->reportBuilder->generateSnapshot($report);
-            return ApiResponse::created($snapshot, '快照已保存');
+            return ApiResponse::created($snapshot, __('app.api.report_builder.snapshot_saved'));
         } catch (\Exception $e) {
-            return ApiResponse::error('SNAPSHOT_FAILED', '快照生成失败: ' . $e->getMessage(), 500);
+            return ApiResponse::error('SNAPSHOT_FAILED', __('app.api.report_builder.snapshot_failed', ['error' => $e->getMessage()]), 500);
         }
     }
 
@@ -197,14 +197,14 @@ class ReportBuilderController extends Controller
 
         $format = $request->input('format', 'csv');
         if (!in_array($format, ['csv', 'json'])) {
-            return ApiResponse::error('INVALID_FORMAT', '不支持的导出格式', 422);
+            return ApiResponse::error('INVALID_FORMAT', __('app.api.report_builder.invalid_format'), 422);
         }
 
         try {
             $result = $this->reportBuilder->exportReport($report, $format);
-            return ApiResponse::success($result, '报表已导出');
+            return ApiResponse::success($result, __('app.api.report_builder.exported'));
         } catch (\Exception $e) {
-            return ApiResponse::error('EXPORT_FAILED', '导出失败: ' . $e->getMessage(), 500);
+            return ApiResponse::error('EXPORT_FAILED', __('app.api.report_builder.export_failed', ['error' => $e->getMessage()]), 500);
         }
     }
 
@@ -234,7 +234,7 @@ class ReportBuilderController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.report_builder.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -242,7 +242,7 @@ class ReportBuilderController extends Controller
         $data['tenant_id'] = $request->user()->tenant_id;
 
         $dashboard = $this->reportBuilder->createDashboard($data);
-        return ApiResponse::created($dashboard, '看板已创建');
+        return ApiResponse::created($dashboard, __('app.api.report_builder.dashboard_created'));
     }
 
     /**
@@ -262,11 +262,11 @@ class ReportBuilderController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.report_builder.validation_failed'), $validator->errors()->toArray());
         }
 
         $dashboard = $this->reportBuilder->updateDashboard($dashboard, $validator->validated());
-        return ApiResponse::success($dashboard, '看板已更新');
+        return ApiResponse::success($dashboard, __('app.api.report_builder.dashboard_updated'));
     }
 
     /**
@@ -277,7 +277,7 @@ class ReportBuilderController extends Controller
     {
         $dashboard = ReportDashboard::findOrFail($id);
         $this->reportBuilder->deleteDashboard($dashboard);
-        return ApiResponse::success(null, '看板已删除');
+        return ApiResponse::success(null, __('app.api.report_builder.dashboard_deleted'));
     }
 
     // ─── 主仪表盘 ───

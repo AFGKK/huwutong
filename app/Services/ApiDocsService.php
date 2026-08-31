@@ -34,20 +34,20 @@ class ApiDocsService
     public function getGroups(): array
     {
         return [
-            'auth' => '认证与授权',
-            'licenses' => '许可证管理',
-            'subscriptions' => '订阅管理',
-            'invoices' => '发票管理',
-            'customers' => '客户管理',
-            'products' => '产品管理',
-            'api-keys' => 'API 密钥',
+            'auth' => __('app.api_docs.api_docs_cc8c5888b7'),
+            'licenses' => __('app.api_docs.api_docs_00cce875b7'),
+            'subscriptions' => __('app.api_docs.api_docs_2d1c66bdf3'),
+            'invoices' => __('app.api_docs.api_docs_37ec4f8aa2'),
+            'customers' => __('app.api_docs.api_docs_cda7994ff4'),
+            'products' => __('app.api_docs.api_docs_fc38494c78'),
+            'api-keys' => __('app.api_docs.api_docs_482c9201dd'),
             'webhooks' => 'Webhook',
-            'features' => '功能开关',
-            'devices' => '设备管理',
-            'analytics' => '分析与报表',
-            'billing' => '计费系统',
-            'admin' => '系统管理',
-            'audit' => '审计与合规',
+            'features' => __('app.api_docs.api_docs_b9613078b8'),
+            'devices' => __('app.api_docs.api_docs_53ac00e956'),
+            'analytics' => __('app.api_docs.api_docs_ba48ac578f'),
+            'billing' => __('app.api_docs.api_docs_0f5ed55495'),
+            'admin' => __('app.api_docs.api_docs_4d85ac1250'),
+            'audit' => __('app.api_docs.api_docs_a11c1f6c1f'),
         ];
     }
 
@@ -538,7 +538,7 @@ class ApiDocsService
             'openapi' => '3.0.3',
             'info' => [
                 'title' => config('app.name') . ' API',
-                'description' => 'API 文档门户 - 自动生成的 OpenAPI 3.0 规范',
+                'description' => __('app.api_docs.api_docs_2adc49da7e'),
                 'version' => $version?->version ?? '1.0.0',
                 'contact' => [
                     'name' => 'API Support',
@@ -950,31 +950,31 @@ class ApiDocsService
 
         // 1. 新增变更日志
         if (!empty($added)) {
-            $this->createChangelogFromDiff($versionLabel, 'new', '新增 API 端点', $added, $apiVersionId);
+            $this->createChangelogFromDiff($versionLabel, 'new', __('app.api_docs.api_docs_3e03215ce5'), $added, $apiVersionId);
             $changelogsCreated++;
         }
 
         // 2. 修改变更日志
         if (!empty($changed)) {
-            $this->createChangelogFromDiff($versionLabel, 'update', 'API 端点更新', $changed, $apiVersionId);
+            $this->createChangelogFromDiff($versionLabel, 'update', __('app.api_docs.api_docs_0d3d3f294b'), $changed, $apiVersionId);
             $changelogsCreated++;
         }
 
         // 3. 弃用变更日志
         if (!empty($deprecated)) {
-            $this->createChangelogFromDiff($versionLabel, 'deprecation', 'API 端点废弃', $deprecated, $apiVersionId);
+            $this->createChangelogFromDiff($versionLabel, 'deprecation', __('app.api_docs.api_docs_2d796fb6cc'), $deprecated, $apiVersionId);
             $changelogsCreated++;
         }
 
         // 4. 移除变更日志
         if (!empty($removed)) {
-            $this->createChangelogFromDiff($versionLabel, 'removal', 'API 端点移除', $removed, $apiVersionId);
+            $this->createChangelogFromDiff($versionLabel, 'removal', __('app.api_docs.api_docs_e2cfb66807'), $removed, $apiVersionId);
             $changelogsCreated++;
         }
 
         // 5. 重新激活
         if (!empty($reactivated)) {
-            $this->createChangelogFromDiff($versionLabel, 'update', 'API 端点重新激活', $reactivated, $apiVersionId);
+            $this->createChangelogFromDiff($versionLabel, 'update', __('app.api_docs.api_docs_a39301ff13'), $reactivated, $apiVersionId);
             $changelogsCreated++;
         }
 
@@ -1042,7 +1042,7 @@ class ApiDocsService
             } elseif ($oldCount > $newCount) {
                 $changes[] = ['field' => 'parameters', 'type' => 'removed', 'detail' => "移除 {$diff} 个参数"];
             } else {
-                $changes[] = ['field' => 'parameters', 'type' => 'modified', 'detail' => '参数已更新'];
+                $changes[] = ['field' => 'parameters', 'type' => 'modified', 'detail' => __('app.api_docs.api_docs_2540b10cb1')];
             }
         }
 
@@ -1051,7 +1051,7 @@ class ApiDocsService
         $newResp = $current->responses ?: [];
 
         if ($this->isJsonChanged($oldResp, $newResp)) {
-            $changes[] = ['field' => 'responses', 'type' => 'modified', 'detail' => '响应结构已更新'];
+            $changes[] = ['field' => 'responses', 'type' => 'modified', 'detail' => __('app.api_docs.api_docs_6025789834')];
         }
 
         // 检查分组/标签变更

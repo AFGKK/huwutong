@@ -41,7 +41,7 @@ class UpdateSignerController extends Controller
 
         return response()->json([
             'code' => 0,
-            'message' => '签名成功',
+            'message' => __('app.api.update_signer.signed'),
             'data' => [
                 'id' => $package->id,
                 'signature' => $package->signature,
@@ -74,7 +74,7 @@ class UpdateSignerController extends Controller
 
         return response()->json([
             'code' => $result['verified'] ? 0 : 1,
-            'message' => $result['verified'] ? '验证通过' : '验证失败: ' . ($result['error_message'] ?? '未知错误'),
+            'message' => $result['verified'] ? __('app.api.update_signer.verify_passed') : __('app.api.update_signer.verify_failed', ['error' => $result['error_message'] ?? __('app.api.update_signer.unknown_error')]),
             'data' => $result,
         ]);
     }
@@ -128,7 +128,7 @@ class UpdateSignerController extends Controller
 
         return response()->json([
             'code' => 0,
-            'message' => '回滚请求已创建' . ($rollback->status === 'pending' ? '，待审批' : ''),
+            'message' => __('app.api.update_signer.rollback_created') . ($rollback->status === 'pending' ? __('app.api.update_signer.rollback_pending') : ''),
             'data' => $rollback,
         ]);
     }
@@ -144,7 +144,7 @@ class UpdateSignerController extends Controller
 
         return response()->json([
             'code' => 0,
-            'message' => '回滚已审批',
+            'message' => __('app.api.update_signer.rollback_approved'),
             'data' => $rollback->fresh(),
         ]);
     }
@@ -164,7 +164,7 @@ class UpdateSignerController extends Controller
 
         return response()->json([
             'code' => 0,
-            'message' => '回滚已执行',
+            'message' => __('app.api.update_signer.rollback_executed'),
             'data' => $rollback,
         ]);
     }
@@ -208,7 +208,7 @@ class UpdateSignerController extends Controller
 
         return response()->json([
             'code' => 0,
-            'message' => '灰度发布规则已创建',
+            'message' => __('app.api.update_signer.canary_rule_created'),
             'data' => $release,
         ]);
     }
@@ -223,7 +223,7 @@ class UpdateSignerController extends Controller
 
         return response()->json([
             'code' => 0,
-            'message' => '灰度发布已启动',
+            'message' => __('app.api.update_signer.canary_started'),
             'data' => $release,
         ]);
     }
@@ -237,12 +237,12 @@ class UpdateSignerController extends Controller
         $release = $this->signer->advanceGrayRelease($release);
 
         if (!$release) {
-            return response()->json(['code' => 1, 'message' => '无法推进：当前不满足条件或已在最终阶段'], 422);
+            return response()->json(['code' => 1, 'message' => __('app.api.update_signer.cannot_advance')], 422);
         }
 
         return response()->json([
             'code' => 0,
-            'message' => "灰度已推进到 {$release->current_stage} 阶段 ({$release->current_percentage}%)",
+            'message' => __('app.api.update_signer.canary_advanced', ['stage' => $release->current_stage, 'percent' => $release->current_percentage]),
             'data' => $release,
         ]);
     }
@@ -257,7 +257,7 @@ class UpdateSignerController extends Controller
 
         return response()->json([
             'code' => 0,
-            'message' => '灰度发布已暂停',
+            'message' => __('app.api.update_signer.canary_paused'),
             'data' => $release,
         ]);
     }

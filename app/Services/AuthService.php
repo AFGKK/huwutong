@@ -43,6 +43,27 @@ class AuthService
     const LOCKOUT_DURATION_MINUTES = 15;
     const COOLING_DAYS = 7; // 账号注销冷静期
 
+    public function passwordMinLength(): int
+    {
+        $n = (int) site_setting('security_password_min_length', self::PASSWORD_MIN_LENGTH);
+
+        return max(6, $n > 0 ? $n : self::PASSWORD_MIN_LENGTH);
+    }
+
+    public function lockoutMaxAttempts(): int
+    {
+        $n = (int) site_setting('security_login_max_attempts', self::LOCKOUT_MAX_ATTEMPTS);
+
+        return max(1, $n > 0 ? $n : self::LOCKOUT_MAX_ATTEMPTS);
+    }
+
+    public function lockoutDurationMinutes(): int
+    {
+        $n = (int) site_setting('security_lockout_minutes', self::LOCKOUT_DURATION_MINUTES);
+
+        return max(1, $n > 0 ? $n : self::LOCKOUT_DURATION_MINUTES);
+    }
+
     // ─── 邮箱验证 ───
 
     /**
@@ -160,23 +181,24 @@ class AuthService
      */
     public function validatePasswordStrength(string $password): ?string
     {
-        if (strlen($password) < self::PASSWORD_MIN_LENGTH) {
-            return "密码至少需要 " . self::PASSWORD_MIN_LENGTH . " 位字符";
+        $minLength = $this->passwordMinLength();
+        if (strlen($password) < $minLength) {
+            return "密码至少需要 {$minLength} 位字符";
         }
         if (strlen($password) > self::PASSWORD_MAX_LENGTH) {
-            return "密码不能超过 " . self::PASSWORD_MAX_LENGTH . " 位字符";
+            return __('app.auth_service.auth_service_509ab3f4d7').self::PASSWORD_MAX_LENGTH.__('app.auth_service.auth_service_4dfacf3a29');
         }
         if (! preg_match('/[A-Z]/', $password)) {
-            return '密码需要包含至少一个大写字母';
+            return __('app.auth_service.auth_service_8c71635c03');
         }
         if (! preg_match('/[a-z]/', $password)) {
-            return '密码需要包含至少一个小写字母';
+            return __('app.auth_service.auth_service_496dfb45a0');
         }
         if (! preg_match('/[0-9]/', $password)) {
-            return '密码需要包含至少一个数字';
+            return __('app.auth_service.auth_service_5524098537');
         }
         if (! preg_match('/[!@#$%^&*()_+\-=\[\]{};:\'",.<>?~`\\\\|\/]/', $password)) {
-            return '密码需要包含至少一个特殊字符';
+            return __('app.auth_service.auth_service_5a0de5ca2a');
         }
         return null;
     }
@@ -239,12 +261,14 @@ class AuthService
      */
     public function recordFailedAttempt(string $email): int
     {
-        $key = 'login_attempts:' . $email;
+        $minutes = $this->lockoutDurationMinutes();
+        $maxAttempts = $this->lockoutMaxAttempts();
+        $key = 'login_attempts:'.$email;
         $attempts = (int) Cache::get($key, 0) + 1;
-        Cache::put($key, $attempts, now()->addMinutes(self::LOCKOUT_DURATION_MINUTES));
+        Cache::put($key, $attempts, now()->addMinutes($minutes));
 
-        if ($attempts >= self::LOCKOUT_MAX_ATTEMPTS) {
-            Cache::put('login_lockout:' . $email, true, now()->addMinutes(self::LOCKOUT_DURATION_MINUTES));
+        if ($attempts >= $maxAttempts) {
+            Cache::put('login_lockout:'.$email, true, now()->addMinutes($minutes));
             Log::warning('账号已锁定', ['email' => $email, 'attempts' => $attempts]);
         }
 
@@ -430,7 +454,7 @@ class AuthService
             ->first();
 
         if ($pending) {
-            throw new \RuntimeException('已有待处理的注销申请');
+            throw new \RuntimeException(__('app.auth_service.auth_service_e279ac43e7'));
         }
 
         return AccountDeletionRequest::create([
@@ -580,7 +604,7 @@ class AuthService
         $otherProviders = $user->authProviders()->where('id', '!=', $authProviderId)->count();
 
         if (! $emailBound && ! $phoneBound && $otherProviders === 0) {
-            throw new \RuntimeException('无法解除最后的登录方式，请先绑定其他方式');
+            throw new \RuntimeException(__('app.auth_service.auth_service_160d056570'));
         }
 
         return (bool) $provider->delete();

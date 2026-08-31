@@ -129,7 +129,7 @@ class SeatPoolController extends Controller
 
         $license->update($validated);
 
-        return ApiResponse::success($license->fresh(), '席位池配置已更新');
+        return ApiResponse::success($license->fresh(), __('app.seat_pool.seat_pool_updated'));
     }
 
     /**
@@ -142,7 +142,7 @@ class SeatPoolController extends Controller
         $tenantId = auth()->user()->tenant_id;
         $results = $this->seatPool->batchReleaseExpiredSeats($tenantId);
 
-        return ApiResponse::success($results, '过期席位清理完成');
+        return ApiResponse::success($results, __("app.seat_pool.msg_67a869f3"));
     }
 
     /**
@@ -204,10 +204,10 @@ class SeatPoolController extends Controller
         $result = $this->seatPool->assignSeat($license, $validated['device_id'], $validated['seat_identifier'] ?? null);
 
         if (!$result) {
-            return ApiResponse::error('NO_AVAILABLE_SEAT', '无可用的席位', 409);
+            return ApiResponse::error('NO_AVAILABLE_SEAT', __("app.seat_pool.msg_0720316e"), 409);
         }
 
-        return ApiResponse::success($result, '席位分配成功');
+        return ApiResponse::success($result, __("app.seat_pool.msg_9d1cb6c9"));
     }
 
     public function licenseRelease(Request $request, License $license): JsonResponse
@@ -218,7 +218,7 @@ class SeatPoolController extends Controller
 
         $this->seatPool->releaseSeat($license, $validated['seat_identifier']);
 
-        return ApiResponse::success(null, '席位已释放');
+        return ApiResponse::success(null, __("app.seat_pool.msg_28b236c6"));
     }
 
     public function licenseHeartbeat(Request $request, License $license): JsonResponse
@@ -229,7 +229,7 @@ class SeatPoolController extends Controller
 
         $this->seatPool->heartbeat((int) $license->id, $validated['seat_identifier']);
 
-        return ApiResponse::success(null, '心跳已更新');
+        return ApiResponse::success(null, __("app.seat_pool.msg_37df7f2e"));
     }
 
     public function licenseCancelQueue(License $license): JsonResponse
@@ -238,7 +238,7 @@ class SeatPoolController extends Controller
             ->where('status', 'waiting')
             ->update(['status' => 'cancelled']);
 
-        return ApiResponse::success(null, '排队已取消');
+        return ApiResponse::success(null, __("app.seat_pool.msg_6c3db19c"));
     }
 
     public function licensePoolConfig(License $license): JsonResponse

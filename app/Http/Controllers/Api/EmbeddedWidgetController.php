@@ -68,7 +68,7 @@ class EmbeddedWidgetController extends Controller
             'token' => $token,
             'expires_at' => date('c', $payload['exp']),
             'embed_url' => url("/widget/embed?token={$token}"),
-        ], 'Widget 令牌生成成功');
+        ], __('app.embedded_widget.widget'));
     }
 
     /**
@@ -168,7 +168,7 @@ class EmbeddedWidgetController extends Controller
         $permissions = $request->get('widget_permissions', []);
 
         if (!in_array('licenses:write', $permissions)) {
-            abort(403, '无权限执行此操作');
+            abort(403, __("app.embedded_widget.msg_0952db27"));
         }
 
         try {
@@ -177,7 +177,7 @@ class EmbeddedWidgetController extends Controller
                 'platform' => 'web-embed',
                 'device_fingerprint' => 'widget-' . md5($request->ip() . $request->userAgent()),
             ]);
-            return ApiResponse::success($result, '激活成功');
+            return ApiResponse::success($result, __("app.embedded_widget.msg_240dec1f"));
         } catch (\Throwable $e) {
             return ApiResponse::error('ACTIVATION_FAILED', $e->getMessage(), 400);
         }

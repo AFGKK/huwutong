@@ -42,7 +42,7 @@ class MarketplaceController extends Controller
 
         return ApiResponse::created(
             $this->marketplaceService->createCategory($validated),
-            '分类创建成功'
+            __('app.api.marketplace.category_created')
         );
     }
 
@@ -59,14 +59,14 @@ class MarketplaceController extends Controller
 
         return ApiResponse::success(
             $this->marketplaceService->updateCategory($id, $validated),
-            '分类更新成功'
+            __('app.api.marketplace.category_updated')
         );
     }
 
     public function categoryDestroy(int $id): JsonResponse
     {
         $this->marketplaceService->deleteCategory($id);
-        return ApiResponse::success(null, '分类已删除');
+        return ApiResponse::success(null, __('app.api.marketplace.category_deleted'));
     }
 
     // ══════════════════════════════════════════
@@ -95,7 +95,7 @@ class MarketplaceController extends Controller
                 $request->user()->tenant_id,
                 $validated
             );
-            return ApiResponse::created($review, '评价提交成功');
+            return ApiResponse::created($review, __('app.api.marketplace.review_submitted'));
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::error('ALREADY_REVIEWED', $e->getMessage(), 422);
         }
@@ -111,7 +111,7 @@ class MarketplaceController extends Controller
         try {
             return ApiResponse::success(
                 $this->marketplaceService->updateReview($reviewId, $request->user()->id, $validated),
-                '评价更新成功'
+                __('app.api.marketplace.review_updated')
             );
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::error('FORBIDDEN', $e->getMessage(), 403);
@@ -122,7 +122,7 @@ class MarketplaceController extends Controller
     {
         try {
             $this->marketplaceService->deleteReview($reviewId, $request->user()->id);
-            return ApiResponse::success(null, '评价已删除');
+            return ApiResponse::success(null, __('app.api.marketplace.review_deleted'));
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::error('FORBIDDEN', $e->getMessage(), 403);
         }
@@ -136,7 +136,7 @@ class MarketplaceController extends Controller
 
         return ApiResponse::created(
             $this->marketplaceService->replyToReview($reviewId, $request->user()->id, $validated['content']),
-            '回复成功'
+            __('app.api.marketplace.reply_success')
         );
     }
 
@@ -155,7 +155,7 @@ class MarketplaceController extends Controller
 
         return ApiResponse::success(
             $this->marketplaceService->reviewReview($reviewId, $request->user()->id, $validated['action']),
-            $validated['action'] === 'approve' ? '评价已通过' : '评价已拒绝'
+            $validated['action'] === 'approve' ? __('app.api.marketplace.review_approved') : __('app.api.marketplace.review_rejected')
         );
     }
 
@@ -196,7 +196,7 @@ class MarketplaceController extends Controller
             $this->marketplaceService->createBanner(array_merge($validated, [
                 'created_by' => $request->user()->id,
             ])),
-            'Banner 创建成功'
+            __('app.api.marketplace.banner_created')
         );
     }
 
@@ -216,14 +216,14 @@ class MarketplaceController extends Controller
 
         return ApiResponse::success(
             $this->marketplaceService->updateBanner($id, $validated),
-            'Banner 更新成功'
+            __('app.api.marketplace.banner_updated')
         );
     }
 
     public function bannerDestroy(int $id): JsonResponse
     {
         $this->marketplaceService->deleteBanner($id);
-        return ApiResponse::success(null, 'Banner 已删除');
+        return ApiResponse::success(null, __('app.api.marketplace.banner_deleted'));
     }
 
     // ══════════════════════════════════════════

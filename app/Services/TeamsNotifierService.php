@@ -94,13 +94,13 @@ class TeamsNotifierService
     public function testConnection(TeamsWebhook $webhook): array
     {
         $payload = $this->buildAdaptiveCard(
-            '✅ Teams 连接测试',
-            '如果您看到此消息，说明 Teams 通知集成配置正确。',
+            __('app.teams_notifier.connection_test_title'),
+            __('app.teams_notifier.test_success_message'),
             'info',
             [
-                ['title' => '频道', 'value' => $webhook->name],
-                ['title' => '测试时间', 'value' => now()->format('Y-m-d H:i:s')],
-                ['title' => '来源', 'value' => config('app.name')],
+                ['title' => __('app.teams_notifier.field_channel'), 'value' => $webhook->name],
+                ['title' => __('app.teams_notifier.field_test_time'), 'value' => now()->format('Y-m-d H:i:s')],
+                ['title' => __('app.teams_notifier.field_source'), 'value' => config('app.name')],
             ]
         );
 
@@ -109,15 +109,15 @@ class TeamsNotifierService
                 ->post($webhook->webhook_url, $payload);
 
             if ($response->successful()) {
-                $this->log($webhook->tenant_id, $webhook->id, 'test', 'Teams 连接测试', '连接测试成功', 'success');
-                return ['success' => true, 'message' => '连接测试成功'];
+                $this->log($webhook->tenant_id, $webhook->id, 'test', __('app.teams_notifier.connection_test'), __('app.teams_notifier.test_success'), 'success');
+                return ['success' => true, 'message' => __('app.teams_notifier.test_success')];
             }
 
             $errorMsg = "HTTP {$response->status()}: " . $response->body();
-            $this->log($webhook->tenant_id, $webhook->id, 'test', 'Teams 连接测试', $errorMsg, 'failed', $response->status());
+            $this->log($webhook->tenant_id, $webhook->id, 'test', __('app.teams_notifier.connection_test'), $errorMsg, 'failed', $response->status());
             return ['success' => false, 'message' => $errorMsg];
         } catch (\Throwable $e) {
-            $this->log($webhook->tenant_id, $webhook->id, 'test', 'Teams 连接测试', $e->getMessage(), 'failed');
+            $this->log($webhook->tenant_id, $webhook->id, 'test', __('app.teams_notifier.connection_test'), $e->getMessage(), 'failed');
             return ['success' => false, 'message' => $e->getMessage()];
         }
     }
@@ -183,14 +183,14 @@ class TeamsNotifierService
      */
     public function sendActivationSuccess(int $tenantId, string $licenseKey, string $productName, string $customerName): array
     {
-        $title = $this->config['notification_types']['activation']['title'] ?? '✅ License 激活成功';
-        $message = "客户 **{$customerName}** 已成功激活 License **{$licenseKey}**（{$productName}）";
+        $title = $this->config['notification_types']['activation']['title'] ?? __('app.teams_notifier.activation_title');
+        $message = __('app.teams_notifier.activation_message', ['customer' => $customerName, 'license' => $licenseKey, 'product' => $productName]);
 
         return $this->send($tenantId, 'activation', $title, $message, [
-            ['title' => 'License', 'value' => $licenseKey],
-            ['title' => '产品', 'value' => $productName],
-            ['title' => '客户', 'value' => $customerName],
-            ['title' => '激活时间', 'value' => now()->format('Y-m-d H:i:s')],
+            ['title' => __('app.teams_notifier.field_license'), 'value' => $licenseKey],
+            ['title' => __('app.teams_notifier.field_product'), 'value' => $productName],
+            ['title' => __('app.teams_notifier.field_customer'), 'value' => $customerName],
+            ['title' => __('app.teams_notifier.field_activation_time'), 'value' => now()->format('Y-m-d H:i:s')],
         ]);
     }
 
@@ -199,10 +199,10 @@ class TeamsNotifierService
      */
     public function sendAlert(int $tenantId, string $alertTitle, string $alertMessage, string $severity = 'warning', array $extraFields = []): array
     {
-        $title = $this->config['notification_types']['alert']['title'] ?? '🚨 系统异常告警';
+        $title = $this->config['notification_types']['alert']['title'] ?? __('app.teams_notifier.alert_title');
         $fields = array_merge([
-            ['title' => '严重程度', 'value' => strtoupper($severity)],
-            ['title' => '时间', 'value' => now()->format('Y-m-d H:i:s')],
+            ['title' => __('app.teams_notifier.field_severity'), 'value' => strtoupper($severity)],
+            ['title' => __('app.teams_notifier.field_time'), 'value' => now()->format('Y-m-d H:i:s')],
         ], $extraFields);
 
         return $this->send($tenantId, 'alert', $title, $alertMessage, $fields);
@@ -213,16 +213,16 @@ class TeamsNotifierService
      */
     public function sendExpiryReminder(int $tenantId, string $licenseKey, string $productName, string $customerName, int $daysRemaining): array
     {
-        $title = $this->config['notification_types']['expiry']['title'] ?? '⏰ License 过期提醒';
+        $title = $this->config['notification_types']['expiry']['title'] ?? __('app.teams_notifier.expiry_title');
         $emoji = $daysRemaining <= 3 ? '🔴' : ($daysRemaining <= 7 ? '🟡' : '🟢');
-        $message = "{$emoji} 客户 **{$customerName}** 的 License **{$licenseKey}**（{$productName}）将在 **{$daysRemaining} 天** 后过期";
+        $message = __('app.teams_notifier.expiry_message', ['emoji' => $emoji, 'customer' => $customerName, 'license' => $licenseKey, 'product' => $productName, 'days' => $daysRemaining]);
 
         $fields = [
-            ['title' => 'License', 'value' => $licenseKey],
-            ['title' => '产品', 'value' => $productName],
-            ['title' => '客户', 'value' => $customerName],
-            ['title' => '剩余天数', 'value' => "{$daysRemaining} 天"],
-            ['title' => '过期时间', 'value' => now()->addDays($daysRemaining)->format('Y-m-d')],
+            ['title' => __('app.teams_notifier.field_license'), 'value' => $licenseKey],
+            ['title' => __('app.teams_notifier.field_product'), 'value' => $productName],
+            ['title' => __('app.teams_notifier.field_customer'), 'value' => $customerName],
+            ['title' => __('app.teams_notifier.field_days_remaining'), 'value' => __('app.teams_notifier.days_label', ['days' => $daysRemaining])],
+            ['title' => __('app.teams_notifier.field_expiry_time'), 'value' => now()->addDays($daysRemaining)->format('Y-m-d')],
         ];
 
         return $this->send($tenantId, 'expiry', $title, $message, $fields);
@@ -234,7 +234,7 @@ class TeamsNotifierService
     protected function buildAdaptiveCard(string $title, string $message, string $color = 'info', array $fields = []): array
     {
         $themeColor = $this->config['theme_colors'][$color] ?? '2979FF';
-        $brandName = $this->config['brand_name'] ?? '互物通';
+        $brandName = $this->config['brand_name'] ?? __('app.teams_notifier.brand_name');
         $brandIcon = $this->config['brand_icon'] ?? '';
 
         $body = [

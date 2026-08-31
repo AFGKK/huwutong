@@ -106,7 +106,7 @@ class AuditGovernanceService
 
         return ComplianceReport::create([
             'framework_id' => $frameworkId,
-            'title' => $params['title'] ?? $framework->name . ' 合规报告',
+            'title' => $params['title'] ?? __('app.audit_governance.report_title', ['name' => $framework->name]),
             'type' => $params['type'] ?? 'on_demand',
             'status' => 'generated',
             'period_start' => $periodStart,
@@ -189,7 +189,7 @@ class AuditGovernanceService
             ],
         ];
 
-        return $descriptions[$frameworkCode][$domain] ?? "{$domain} 控制域评估";
+        return $descriptions[$frameworkCode][$domain] ?? __('app.audit_governance.domain_fallback', ['domain' => $domain]);
     }
 
     protected function getDomainDetails(string $domain, string $from, string $to): array
@@ -226,15 +226,16 @@ class AuditGovernanceService
     protected function generateSummary(ComplianceFramework $framework, int $passed, int $failed, int $na, int $total): string
     {
         $passRate = $total > 0 ? round($passed / $total * 100, 1) : 0;
-        $dateRange = now()->subMonth()->format('Y-m-d') . ' 至 ' . now()->format('Y-m-d');
 
-        return sprintf(
-            '%s 合规报告 (%s)：通过 %d/%d 项 (%.1f%%)，失败 %d 项，不适用 %d 项。',
-            $framework->name,
-            $dateRange,
-            $passed, $total, $passRate,
-            $failed, $na
-        );
+        return __('app.audit_governance.summary_format', [
+            'name' => $framework->name,
+            'range' => now()->subMonth()->format('Y-m-d') . ' ~ ' . now()->format('Y-m-d'),
+            'passed' => $passed,
+            'total' => $total,
+            'rate' => $passRate,
+            'failed' => $failed,
+            'na' => $na,
+        ]);
     }
 
     /**
@@ -402,7 +403,7 @@ class AuditGovernanceService
             'pruned_count' => $pruned,
             'total_logs_after' => $totalAfter,
             'status' => $status,
-            'notes' => "清理 {$type} 类型超过 {$retentionDays} 天的日志",
+            'notes' => __('app.audit_governance.cleanup_note', ['type' => $type, 'days' => $retentionDays]),
             'initiated_by' => auth()->id(),
             'executed_at' => now(),
         ]);
@@ -652,7 +653,7 @@ class AuditGovernanceService
             'pruned_count' => $pruned,
             'total_logs_after' => $totalAfter,
             'status' => $status,
-            'notes' => "清理 {$displayName} 超过 {$retentionDays} 天的数据",
+            'notes' => __('app.audit_governance.cleanup_note_extended', ['name' => $displayName, 'days' => $retentionDays]),
             'initiated_by' => auth()->id(),
             'executed_at' => now(),
         ]);
@@ -793,15 +794,15 @@ class AuditGovernanceService
         $output = fopen('php://temp', 'r+');
 
         // 报告头信息
-        fputcsv($output, ['合规报告导出']);
-        fputcsv($output, ['标题', $report->title]);
-        fputcsv($output, ['框架', $report->framework?->name ?? '']);
-        fputcsv($output, ['报告期', "{$report->period_start} ~ {$report->period_end}"]);
-        fputcsv($output, ['风险等级', $report->risk_level ?? '']);
-        fputcsv($output, ['生成时间', $report->generated_at?->toDateTimeString() ?? '']);
+        fputcsv($output, [__('app.audit_governance.csv_title')]);
+        fputcsv($output, [__('app.audit_governance.csv_header_title'), $report->title]);
+        fputcsv($output, [__('app.audit_governance.csv_header_framework'), $report->framework?->name ?? '']);
+        fputcsv($output, [__('app.audit_governance.csv_header_period'), "{$report->period_start} ~ {$report->period_end}"]);
+        fputcsv($output, [__('app.audit_governance.csv_header_risk_level'), $report->risk_level ?? '']);
+        fputcsv($output, [__('app.audit_governance.csv_header_generated_at'), $report->generated_at?->toDateTimeString() ?? '']);
         fputcsv($output, ['']);
-        fputcsv($output, ['控制域评估']);
-        fputcsv($output, ['控制域', '状态', '描述', '关联事件数']);
+        fputcsv($output, [__('app.audit_governance.csv_section_domain')]);
+        fputcsv($output, [__('app.audit_governance.csv_col_domain'), __('app.audit_governance.csv_col_status'), __('app.audit_governance.csv_col_description'), __('app.audit_governance.csv_col_events')]);
 
         foreach (($report->findings ?? []) as $finding) {
             fputcsv($output, [
@@ -813,10 +814,10 @@ class AuditGovernanceService
         }
 
         fputcsv($output, ['']);
-        fputcsv($output, ['统计']);
-        fputcsv($output, ['通过', $report->passed_count]);
-        fputcsv($output, ['失败', $report->failed_count]);
-        fputcsv($output, ['不适用', $report->na_count]);
+        fputcsv($output, [__('app.audit_governance.csv_section_stats')]);
+        fputcsv($output, [__('app.audit_governance.csv_row_passed'), $report->passed_count]);
+        fputcsv($output, [__('app.audit_governance.csv_row_failed'), $report->failed_count]);
+        fputcsv($output, [__('app.audit_governance.csv_row_na'), $report->na_count]);
 
         rewind($output);
         $content = stream_get_contents($output);

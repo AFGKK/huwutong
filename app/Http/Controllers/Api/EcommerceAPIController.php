@@ -91,7 +91,7 @@ class EcommerceAPIController extends Controller
         if ($user = $request->user()) {
             $this->productSearch->clearSearchHistory($user->id);
         }
-        return ApiResponse::success(null, '搜索历史已清除');
+        return ApiResponse::success(null, __('app.api.ecommerce.search_history_cleared'));
     }
 
     /**
@@ -156,7 +156,7 @@ class EcommerceAPIController extends Controller
 
         try {
             $item = $this->cartService->addItem($cart, $data['sku_id'], $data['quantity'] ?? 1);
-            return ApiResponse::success($item->load('sku.product'), '已添加到购物车');
+            return ApiResponse::success($item->load('sku.product'), __('app.api.ecommerce.added_to_cart'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('CART_ADD_FAILED', $e->getMessage(), 400);
         }
@@ -177,7 +177,7 @@ class EcommerceAPIController extends Controller
             $this->cartService->updateQuantity($cart, $data['sku_id'], $data['quantity']);
             return ApiResponse::success(
                 $this->cartService->getCartSummary($cart->fresh()),
-                '购物车已更新'
+                __('app.api.ecommerce.cart_updated')
             );
         } catch (\RuntimeException $e) {
             return ApiResponse::error('CART_UPDATE_FAILED', $e->getMessage(), 400);
@@ -194,7 +194,7 @@ class EcommerceAPIController extends Controller
         if ($cart) {
             $this->cartService->removeItem($cart, $data['sku_id']);
         }
-        return ApiResponse::success(null, '已从购物车移除');
+        return ApiResponse::success(null, __('app.api.ecommerce.removed_from_cart'));
     }
 
     /**
@@ -206,7 +206,7 @@ class EcommerceAPIController extends Controller
         if ($cart) {
             $this->cartService->clear($cart);
         }
-        return ApiResponse::success(null, '购物车已清空');
+        return ApiResponse::success(null, __('app.api.ecommerce.cart_cleared'));
     }
 
     /**
@@ -217,11 +217,11 @@ class EcommerceAPIController extends Controller
         $data = $request->validate(['code' => 'required|string|max:50']);
         $cart = \App\Models\Cart::where('user_id', $request->user()->id)->first();
         if (!$cart) {
-            return ApiResponse::error('CART_EMPTY', '购物车为空', 400);
+            return ApiResponse::error('CART_EMPTY', __('app.api.ecommerce.cart_empty'), 400);
         }
         try {
             $result = $this->cartService->applyCoupon($cart, $data['code']);
-            return ApiResponse::success($result, '优惠券已应用');
+            return ApiResponse::success($result, __('app.api.ecommerce.coupon_applied'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('COUPON_ERROR', $e->getMessage(), 400);
         }
@@ -236,7 +236,7 @@ class EcommerceAPIController extends Controller
         if ($cart) {
             $this->cartService->removeCoupon($cart);
         }
-        return ApiResponse::success(null, '优惠券已移除');
+        return ApiResponse::success(null, __('app.api.ecommerce.coupon_removed'));
     }
 
     // ═══════════════ 订单 ═══════════════
@@ -265,7 +265,7 @@ class EcommerceAPIController extends Controller
             $order = $this->orderService->createOrder($data);
             return ApiResponse::created(
                 $order->load('items.sku.product'),
-                '订单创建成功'
+                __('app.api.ecommerce.order_created')
             );
         } catch (\RuntimeException $e) {
             return ApiResponse::error('ORDER_CREATE_FAILED', $e->getMessage(), 400);
@@ -311,7 +311,7 @@ class EcommerceAPIController extends Controller
         try {
             $gateway = $request->input('gateway', 'alipay');
             $result = $this->orderService->initiatePayment($order, $gateway);
-            return ApiResponse::success($result, '支付请求已创建');
+            return ApiResponse::success($result, __('app.api.ecommerce.payment_created'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('PAYMENT_FAILED', $e->getMessage(), 400);
         }
@@ -327,7 +327,7 @@ class EcommerceAPIController extends Controller
 
         try {
             $order = $this->orderService->cancel($order, $request->input('reason'));
-            return ApiResponse::success($order->load('items.sku'), '订单已取消');
+            return ApiResponse::success($order->load('items.sku'), __('app.api.ecommerce.order_cancelled'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('ORDER_CANCEL_FAILED', $e->getMessage(), 400);
         }
@@ -384,7 +384,7 @@ class EcommerceAPIController extends Controller
 
         // 权限检查
         if ($delivery->orderItem->order->tenant_id !== $request->user()->tenant_id) {
-            return ApiResponse::error('FORBIDDEN', '无权访问', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.ecommerce.forbidden'), 403);
         }
 
         return ApiResponse::success($delivery);
@@ -410,7 +410,7 @@ class EcommerceAPIController extends Controller
         $order = Order::where('tenant_id', $request->user()->tenant_id)
             ->find($validated['order_id']);
         if (!$order) {
-            return ApiResponse::error('ORDER_NOT_FOUND', '订单不存在', 404);
+            return ApiResponse::error('ORDER_NOT_FOUND', __('app.api.ecommerce.order_not_found'), 404);
         }
 
         try {
@@ -419,7 +419,7 @@ class EcommerceAPIController extends Controller
                 $validated['order_id'],
                 $validated
             );
-            return ApiResponse::created($refund, '退款申请已提交');
+            return ApiResponse::created($refund, __('app.api.ecommerce.refund_submitted'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('REFUND_REQUEST_FAILED', $e->getMessage(), 400);
         }
@@ -427,6 +427,21 @@ class EcommerceAPIController extends Controller
 
     /**
      * 我的退款记录
+     */
+    public function myRefundList(Request $request): JsonResponse
+    {
+        return ApiResponse::success(
+            $this->refundWorkflow->getCustomerRefunds(
+                $request->user()->tenant_id,
+                $request->user()->customer?->id ?? $request->user()->id,
+                $request->user()->id,
+                $request->all(),
+            )
+        );
+    }
+
+    /**
+     * 退款记录（租户维度，管理/运营）
      */
     public function refundList(Request $request): JsonResponse
     {

@@ -44,7 +44,7 @@ class AsrService
 
         $audioUrl = $message->content;
         if (empty($audioUrl)) {
-            throw new \RuntimeException('语音消息内容为空');
+            throw new \RuntimeException(__("app.asr.voice_content_empty"));
         }
 
         $provider = $this->getConfig('asr_provider', 'mock');

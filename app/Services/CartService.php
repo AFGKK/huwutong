@@ -51,7 +51,7 @@ class CartService
             );
         }
 
-        throw new \RuntimeException('需要 user_id 或 session_id');
+        throw new \RuntimeException(__('app.api.service_cart.user_session_required'));
     }
 
     /**
@@ -64,14 +64,14 @@ class CartService
 
         try {
             if (!$lock->get()) {
-                throw new \RuntimeException('购物车操作繁忙，请重试');
+                throw new \RuntimeException(__('app.api.service_cart.cart_busy'));
             }
 
             $sku = ProductSku::with('product')->findOrFail($skuId);
 
             // 商品上架校验
             if (!$sku->is_active) {
-                throw new \RuntimeException("「{$sku->name}」已下架");
+                throw new \RuntimeException(__('app.api.service_cart.sku_off_shelf', ['name' => $sku->name]));
             }
 
             // 库存实时校验
@@ -136,7 +136,7 @@ class CartService
 
         try {
             if (!$lock->get()) {
-                throw new \RuntimeException('购物车操作繁忙，请重试');
+                throw new \RuntimeException(__('app.api.service_cart.cart_busy'));
             }
 
             $item = CartItem::where('cart_id', $cart->id)
@@ -251,7 +251,7 @@ class CartService
         $cart->load(['items.sku']);
 
         if ($cart->items->isEmpty()) {
-            throw new \RuntimeException('购物车为空，无法使用优惠券');
+            throw new \RuntimeException(__('app.api.service_cart.cart_empty_coupon'));
         }
 
         $coupon = Coupon::where('code', $code)
@@ -259,26 +259,26 @@ class CartService
             ->first();
 
         if (!$coupon) {
-            throw new \RuntimeException('优惠券不存在或已失效');
+            throw new \RuntimeException(__('app.api.service_cart.coupon_invalid'));
         }
 
         // 校验有效期
         if ($coupon->starts_at && now()->lt($coupon->starts_at)) {
-            throw new \RuntimeException('优惠券尚未生效');
+            throw new \RuntimeException(__('app.api.service_cart.coupon_not_active'));
         }
         if ($coupon->expires_at && now()->gt($coupon->expires_at)) {
-            throw new \RuntimeException('优惠券已过期');
+            throw new \RuntimeException(__('app.api.service_cart.coupon_expired'));
         }
 
         // 校验使用次数
         if ($coupon->usage_limit && $coupon->usage_count >= $coupon->usage_limit) {
-            throw new \RuntimeException('优惠券已用完');
+            throw new \RuntimeException(__('app.api.service_cart.coupon_used_up'));
         }
 
         // 校验最低订单金额
         $subtotal = $cart->subtotal;
         if ($coupon->minimum_order_amount && $subtotal < $coupon->minimum_order_amount) {
-            throw new \RuntimeException("订单金额需满 {$coupon->minimum_order_amount} 元才能使用");
+            throw new \RuntimeException(__('app.api.service_cart.coupon_min_order', ['amount' => $coupon->minimum_order_amount]));
         }
 
         // 计算折扣
@@ -291,7 +291,7 @@ class CartService
 
         // 预算检查
         if ($coupon->budget && ($coupon->budget_spent + $discount) > $coupon->budget) {
-            throw new \RuntimeException('该优惠券预算已用完');
+            throw new \RuntimeException(__('app.api.service_cart.coupon_budget_exhausted'));
         }
 
         $cart->update([
@@ -365,19 +365,19 @@ class CartService
             $sku = $item->sku;
 
             if (!$sku || !$sku->is_active) {
-                $errors[] = "「{$item->sku?->name}」已下架，请移除";
+                $errors[] = __('app.api.service_cart.sku_removed', ['name' => $item->sku?->name]);
                 continue;
             }
 
             // 库存校验
             if ($sku->stock !== null && $sku->stock >= 0 && $sku->stock < $item->quantity) {
-                $errors[] = "「{$sku->name}」库存不足（可购: {$sku->stock}）";
+                $errors[] = __('app.api.service_cart.stock_insufficient', ['name' => $sku->name, 'stock' => $sku->stock]);
             }
 
             // 价格变动检测
             $currentPrice = (float) $sku->price;
             if ($currentPrice !== (float) $item->unit_price) {
-                $warnings[] = "「{$sku->name}」价格已从 ¥{$item->unit_price} 变更为 ¥{$currentPrice}";
+                $warnings[] = __('app.api.service_cart.price_changed', ['name' => $sku->name, 'old' => $item->unit_price, 'new' => $currentPrice]);
             }
         }
 
@@ -400,7 +400,7 @@ class CartService
 
         if ($sku->stock < $quantity) {
             throw new \RuntimeException(
-                "「{$sku->name}」库存不足: 当前{$sku->stock}, 需要{$quantity}"
+                __('app.api.service_cart.stock_insufficient_full', ['name' => $sku->name, 'stock' => $sku->stock, 'need' => $quantity])
             );
         }
     }

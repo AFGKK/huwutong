@@ -82,7 +82,7 @@ class ChannelController extends Controller
             'role' => 'owner',
         ]);
 
-        return ApiResponse::success($channel->load('creator:id,name'), '频道已创建', 201);
+        return ApiResponse::success($channel->load('creator:id,name'), __('app.api.channel.created'), 201);
     }
 
     // ════════════════════════════════════════════
@@ -96,12 +96,12 @@ class ChannelController extends Controller
 
         $existing = ChannelMember::where('channel_id', $id)->where('user_id', $myId)->first();
         if ($existing) {
-            return ApiResponse::error('ALREADY_MEMBER', '已经是频道成员');
+            return ApiResponse::error('ALREADY_MEMBER', __('app.api.channel.already_member'));
         }
 
         ChannelMember::create(['channel_id' => $id, 'user_id' => $myId, 'role' => 'member']);
 
-        return ApiResponse::success(null, '已加入频道');
+        return ApiResponse::success(null, __('app.api.channel.joined'));
     }
 
     public function leave(int $id): JsonResponse
@@ -110,11 +110,11 @@ class ChannelController extends Controller
         $member = ChannelMember::where('channel_id', $id)->where('user_id', $myId)->firstOrFail();
 
         if ($member->role === 'owner') {
-            return ApiResponse::error('IS_OWNER', '频道所有者不能离开，请先转让所有权');
+            return ApiResponse::error('IS_OWNER', __('app.api.channel.owner_cannot_leave'));
         }
 
         $member->delete();
-        return ApiResponse::success(null, '已离开频道');
+        return ApiResponse::success(null, __('app.api.channel.left'));
     }
 
     // ════════════════════════════════════════════
@@ -128,7 +128,7 @@ class ChannelController extends Controller
 
         $isMember = ChannelMember::where('channel_id', $channelId)->where('user_id', $myId)->exists();
         if (!$isMember && $channel->type === 'private') {
-            return ApiResponse::error('FORBIDDEN', '你不是频道成员', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.not_member'), 403);
         }
 
         $query = ChannelMessage::with('user:id,name,avatar')
@@ -176,7 +176,7 @@ class ChannelController extends Controller
 
         $isMember = ChannelMember::where('channel_id', $channelId)->where('user_id', $myId)->exists();
         if (!$isMember) {
-            return ApiResponse::error('FORBIDDEN', '你不是频道成员', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.not_member'), 403);
         }
 
         $content = $request->input('content', '');
@@ -217,7 +217,7 @@ class ChannelController extends Controller
         $msg->setAttribute('_read', false);
         // 触发 AI 群主持人
         ChannelMessageSent::dispatch($msg);
-        return ApiResponse::success($msg->load(['user:id,name,avatar', 'channelReplyTo.user:id,name,avatar']), '已发送', 201);
+        return ApiResponse::success($msg->load(['user:id,name,avatar', 'channelReplyTo.user:id,name,avatar']), __('app.api.channel.sent'), 201);
     }
 
     // ════════════════════════════════════════════
@@ -231,19 +231,19 @@ class ChannelController extends Controller
         $membership = ChannelMember::where('channel_id', $channelId)->where('user_id', $myId)->first();
 
         if (!$membership) {
-            return ApiResponse::error('FORBIDDEN', '你不是频道成员', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.not_member'), 403);
         }
 
         $message = ChannelMessage::where('channel_id', $channelId)->findOrFail($messageId);
 
         // 管理员或消息发送者可以删除
         if ($message->user_id !== $myId && !in_array($membership->role, ['owner', 'admin'])) {
-            return ApiResponse::error('FORBIDDEN', '无权删除此消息', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.forbidden_delete_msg'), 403);
         }
 
         $message->delete();
 
-        return ApiResponse::success(null, '消息已删除');
+        return ApiResponse::success(null, __('app.api.channel.msg_deleted'));
     }
 
     public function recallMessage(int $channelId, int $messageId): JsonResponse
@@ -254,17 +254,17 @@ class ChannelController extends Controller
         $message = ChannelMessage::where('channel_id', $channelId)->findOrFail($messageId);
 
         if ($message->user_id !== $myId) {
-            return ApiResponse::error('FORBIDDEN', '只能撤回自己的消息', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.recall_own_only'), 403);
         }
 
         // 只能撤回 2 分钟内的消息
         if ($message->created_at->diffInMinutes(now()) > 2) {
-            return ApiResponse::error('TIMEOUT', '超过 2 分钟的消息不能撤回', 400);
+            return ApiResponse::error('TIMEOUT', __('app.api.channel.recall_timeout'), 400);
         }
 
         $message->update(['is_recalled' => true]);
 
-        return ApiResponse::success(null, '消息已撤回');
+        return ApiResponse::success(null, __('app.api.channel.msg_recalled'));
     }
 
     // ════════════════════════════════════════════
@@ -313,7 +313,7 @@ class ChannelController extends Controller
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
-        return ApiResponse::success($category, '分类已创建', 201);
+        return ApiResponse::success($category, __('app.api.channel.category_created'), 201);
     }
 
     public function updateCategory(int $id, Request $request): JsonResponse
@@ -323,17 +323,17 @@ class ChannelController extends Controller
             'name' => 'required|string|max:100',
             'sort_order' => 'nullable|integer|min:0',
         ]));
-        return ApiResponse::success($category->fresh(), '分类已更新');
+        return ApiResponse::success($category->fresh(), __('app.api.channel.category_updated'));
     }
 
     public function destroyCategory(int $id): JsonResponse
     {
         $category = ChannelCategory::withCount('channels')->findOrFail($id);
         if ($category->channels_count > 0) {
-            return ApiResponse::error('HAS_CHANNELS', '该分类下有频道，无法删除', 400);
+            return ApiResponse::error('HAS_CHANNELS', __('app.api.channel.category_has_channels'), 400);
         }
         $category->delete();
-        return ApiResponse::success(null, '分类已删除');
+        return ApiResponse::success(null, __('app.api.channel.category_deleted'));
     }
 
     // ════════════════════════════════════════════
@@ -352,20 +352,20 @@ class ChannelController extends Controller
         $membership = ChannelMember::where('channel_id', $channel->id)->where('user_id', $myId)->first();
 
         if (!$membership || !in_array($membership->role, ['owner', 'admin'])) {
-            return ApiResponse::error('FORBIDDEN', '只有频道管理员可以修改头像', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.admin_avatar_only'), 403);
         }
 
         $file = $request->file('avatar');
         $path = $file->store('channels', 'public');
 
         if (!$path) {
-            return ApiResponse::error('头像上传失败', 500);
+            return ApiResponse::error(__('app.api.channel.avatar_upload_fail'), 500);
         }
 
         $url = '/storage/' . $path;
         $channel->update(['avatar' => $url]);
 
-        return ApiResponse::success(['avatar' => $url], '头像已更新');
+        return ApiResponse::success(['avatar' => $url], __('app.api.channel.avatar_updated'));
     }
 
     // ════════════════════════════════════════════
@@ -379,11 +379,11 @@ class ChannelController extends Controller
         $membership = ChannelMember::where('channel_id', $id)->where('user_id', $myId)->first();
 
         if (!$membership || !in_array($membership->role, ['owner', 'admin'])) {
-            return ApiResponse::error('FORBIDDEN', '只有频道管理员可以修改', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.admin_edit_only'), 403);
         }
 
         $channel->update($request->only(['name', 'description', 'icon', 'avatar', 'category_id']));
-        return ApiResponse::success($channel->fresh(), '已更新');
+        return ApiResponse::success($channel->fresh(), __('app.api.channel.updated'));
     }
 
     public function destroy(int $id): JsonResponse
@@ -392,14 +392,14 @@ class ChannelController extends Controller
         $membership = ChannelMember::where('channel_id', $id)->where('user_id', auth()->id())->first();
 
         if (!$membership || $membership->role !== 'owner') {
-            return ApiResponse::error('FORBIDDEN', '只有频道所有者可以删除', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.owner_delete_only'), 403);
         }
 
         $channel->messages()->delete();
         $channel->members()->delete();
         $channel->delete();
 
-        return ApiResponse::success(null, '频道已删除');
+        return ApiResponse::success(null, __('app.api.channel.deleted'));
     }
 
     public function members(int $channelId): JsonResponse
@@ -423,13 +423,13 @@ class ChannelController extends Controller
         $membership = ChannelMember::where('channel_id', $channelId)->where('user_id', $myId)->first();
 
         if (!$membership || !in_array($membership->role, ['owner', 'admin'])) {
-            return ApiResponse::error('FORBIDDEN', '只有频道管理员可以置顶消息', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.admin_pin_only'), 403);
         }
 
         $message = ChannelMessage::where('channel_id', $channelId)->findOrFail($messageId);
         $message->update(['is_pinned' => true]);
 
-        return ApiResponse::success($message->fresh(), '消息已置顶');
+        return ApiResponse::success($message->fresh(), __('app.api.channel.msg_pinned'));
     }
 
     public function unpinMessage(int $channelId, int $messageId): JsonResponse
@@ -439,13 +439,13 @@ class ChannelController extends Controller
         $membership = ChannelMember::where('channel_id', $channelId)->where('user_id', $myId)->first();
 
         if (!$membership || !in_array($membership->role, ['owner', 'admin'])) {
-            return ApiResponse::error('FORBIDDEN', '只有频道管理员可以取消置顶', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.admin_unpin_only'), 403);
         }
 
         $message = ChannelMessage::where('channel_id', $channelId)->findOrFail($messageId);
         $message->update(['is_pinned' => false]);
 
-        return ApiResponse::success($message->fresh(), '已取消置顶');
+        return ApiResponse::success($message->fresh(), __('app.api.channel.msg_unpinned'));
     }
 
     public function pinnedMessages(int $channelId): JsonResponse
@@ -474,7 +474,7 @@ class ChannelController extends Controller
 
         return ApiResponse::success([
             'is_muted' => $member->fresh()->is_muted,
-        ], $member->is_muted ? '已开启免打扰' : '已关闭免打扰');
+        ], $member->is_muted ? __('app.api.channel.mute_on') : __('app.api.channel.mute_off'));
     }
 
     // ════════════════════════════════════════════
@@ -488,17 +488,17 @@ class ChannelController extends Controller
         $myMembership = ChannelMember::where('channel_id', $channelId)->where('user_id', $myId)->first();
 
         if (!$myMembership || $myMembership->role !== 'owner') {
-            return ApiResponse::error('FORBIDDEN', '只有频道所有者可以管理成员角色', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.owner_role_only'), 403);
         }
 
         $member = ChannelMember::where('channel_id', $channelId)->findOrFail($memberId);
 
         if ($member->user_id === $myId) {
-            return ApiResponse::error('SELF', '不能修改自己的角色');
+            return ApiResponse::error('SELF', __('app.api.channel.cannot_change_self_role'));
         }
 
         if ($member->role === 'owner') {
-            return ApiResponse::error('IS_OWNER', '不能修改所有者的角色');
+            return ApiResponse::error('IS_OWNER', __('app.api.channel.cannot_change_owner_role'));
         }
 
         $validated = $request->validate([
@@ -507,7 +507,7 @@ class ChannelController extends Controller
 
         $member->update(['role' => $validated['role']]);
 
-        return ApiResponse::success($member->fresh()->load('user:id,name'), '角色已更新');
+        return ApiResponse::success($member->fresh()->load('user:id,name'), __('app.api.channel.role_updated'));
     }
 
     public function transferOwnership(int $channelId, Request $request): JsonResponse
@@ -517,7 +517,7 @@ class ChannelController extends Controller
         $myMembership = ChannelMember::where('channel_id', $channelId)->where('user_id', $myId)->first();
 
         if (!$myMembership || $myMembership->role !== 'owner') {
-            return ApiResponse::error('FORBIDDEN', '只有频道所有者可以转让', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.owner_transfer_only'), 403);
         }
 
         $validated = $request->validate([
@@ -527,7 +527,7 @@ class ChannelController extends Controller
         $targetId = $validated['user_id'];
 
         if ($targetId === $myId) {
-            return ApiResponse::error('SELF', '不能转让给自己');
+            return ApiResponse::error('SELF', __('app.api.channel.cannot_transfer_self'));
         }
 
         $targetMember = ChannelMember::where('channel_id', $channelId)->where('user_id', $targetId)->firstOrFail();
@@ -539,7 +539,7 @@ class ChannelController extends Controller
         // 更新 channel 的 created_by
         $channel->update(['created_by' => $targetId]);
 
-        return ApiResponse::success(null, '频道已转让');
+        return ApiResponse::success(null, __('app.api.channel.transferred'));
     }
 
     public function kickMember(int $channelId, int $memberId): JsonResponse
@@ -549,23 +549,23 @@ class ChannelController extends Controller
         $myMembership = ChannelMember::where('channel_id', $channelId)->where('user_id', $myId)->first();
 
         if (!$myMembership || !in_array($myMembership->role, ['owner', 'admin'])) {
-            return ApiResponse::error('FORBIDDEN', '只有管理员可以踢出成员', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.admin_kick_only'), 403);
         }
 
         $target = ChannelMember::where('channel_id', $channelId)->findOrFail($memberId);
 
         if ($target->role === 'owner') {
-            return ApiResponse::error('FORBIDDEN', '不能踢出频道所有者', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.cannot_kick_owner'), 403);
         }
 
         // 管理员不能踢出其他管理员
         if ($myMembership->role === 'admin' && $target->role === 'admin') {
-            return ApiResponse::error('FORBIDDEN', '管理员不能踢出其他管理员', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.cannot_kick_admin'), 403);
         }
 
         $target->delete();
 
-        return ApiResponse::success(null, '成员已移出');
+        return ApiResponse::success(null, __('app.api.channel.member_removed'));
     }
 
     public function searchMessages(int $channelId, Request $request): JsonResponse
@@ -575,7 +575,7 @@ class ChannelController extends Controller
         $isMember = ChannelMember::where('channel_id', $channelId)->where('user_id', $myId)->exists();
 
         if (!$isMember) {
-            return ApiResponse::error('FORBIDDEN', '你不是频道成员', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.channel.not_member'), 403);
         }
 
         $validated = $request->validate([

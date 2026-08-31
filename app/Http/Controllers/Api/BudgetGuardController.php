@@ -86,7 +86,7 @@ class BudgetGuardController extends Controller
             $userId
         );
 
-        return ApiResponse::success(['budget' => $budget->fresh()], '预算已保存');
+        return ApiResponse::success(['budget' => $budget->fresh()], __('app.budget_guard.budget_saved'));
     }
 
     /**
@@ -108,7 +108,7 @@ class BudgetGuardController extends Controller
         ]);
 
         $budget->update($data);
-        return ApiResponse::success(['budget' => $budget->fresh()], '预算已更新');
+        return ApiResponse::success(['budget' => $budget->fresh()], __('app.budget_guard.budget_updated'));
     }
 
     /**
@@ -117,7 +117,7 @@ class BudgetGuardController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $this->budgetGuard->deleteBudget($id);
-        return ApiResponse::success(null, '预算已删除');
+        return ApiResponse::success(null, __("app.budget_guard.msg_7edad71d"));
     }
 
     /**
@@ -149,8 +149,8 @@ class BudgetGuardController extends Controller
         $result = $this->budgetGuard->checkSpend($data['budgetable_type'], $data['budgetable_id'], $data['amount']);
 
         return $result['allowed']
-            ? ApiResponse::success($result, $result['reason'] ?? '消费允许')
-            : ApiResponse::error($result['reason'] ?? '预算不足', 402, $result);
+            ? ApiResponse::success($result, $result['reason'] ?? __("app.budget_guard.msg_7a0a837d"))
+            : ApiResponse::error($result['reason'] ?? __("app.budget_guard.msg_a7a346f3"), 402, $result);
     }
 
     /**
@@ -172,7 +172,7 @@ class BudgetGuardController extends Controller
             $userId
         );
 
-        return ApiResponse::success(['override' => $override], '审批请求已提交');
+        return ApiResponse::success(['override' => $override], __("app.budget_guard.msg_643ba94a"));
     }
 
     /**
@@ -181,7 +181,7 @@ class BudgetGuardController extends Controller
     public function approveOverride(Request $request, int $overrideId): JsonResponse
     {
         $override = $this->budgetGuard->approveOverride($overrideId, $request->user()?->id);
-        return ApiResponse::success(['override' => $override], '审批已通过');
+        return ApiResponse::success(['override' => $override], __("app.budget_guard.msg_16d0a17c"));
     }
 
     /**
@@ -190,7 +190,7 @@ class BudgetGuardController extends Controller
     public function rejectOverride(Request $request, int $overrideId): JsonResponse
     {
         $override = $this->budgetGuard->rejectOverride($overrideId, $request->user()?->id);
-        return ApiResponse::success(['override' => $override], '已拒绝');
+        return ApiResponse::success(['override' => $override], __("app.budget_guard.msg_81233d75"));
     }
 
     /**

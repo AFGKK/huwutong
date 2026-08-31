@@ -175,7 +175,7 @@ class SlowQueryMonitorService
                 // 生成建议
                 $suggestion = $this->generateSuggestion($explainRaw, $log);
             } else {
-                $suggestion = '非 SELECT 查询，无需 EXPLAIN。建议检查索引和查询逻辑。';
+                $suggestion = __('app.api.service_slow_query.non_select');
             }
 
             $log->update([
@@ -183,7 +183,7 @@ class SlowQueryMonitorService
                 'suggestion' => $suggestion,
             ]);
         } catch (\Throwable $e) {
-            $suggestion = 'EXPLAIN 执行失败: ' . $e->getMessage();
+            $suggestion = __('app.api.service_slow_query.explain_failed', ['error' => $e->getMessage()]);
             Log::warning("EXPLAIN failed for slow query #{$id}: " . $e->getMessage());
         }
 
@@ -277,7 +277,7 @@ class SlowQueryMonitorService
             return [
                 'count' => $count,
                 'threshold' => $threshold,
-                'message' => "最近5分钟内检测到 {$count} 条慢查询（阈值: {$threshold}），建议及时处理。",
+                'message' => __('app.api.service_slow_query.alert_message', ['count' => $count, 'threshold' => $threshold]),
                 'time' => now()->toDateTimeString(),
             ];
         }
@@ -298,30 +298,30 @@ class SlowQueryMonitorService
             $type = $row['type'] ?? '';
 
             if (in_array($type, ['ALL'])) {
-                $tips[] = "🔴 全表扫描 (type=ALL)：表 `{$row['table']}` 缺少合适的索引，建议添加索引覆盖查询条件。";
+                $tips[] = __('app.api.service_slow_query.tips_full_scan', ['table' => $row['table']]);
             }
             if (in_array($type, ['INDEX'])) {
-                $tips[] = "🟡 索引全扫描 (type=INDEX)：表 `{$row['table']}` 扫描了整个索引树，考虑缩小索引范围。";
+                $tips[] = __('app.api.service_slow_query.tips_index_scan', ['table' => $row['table']]);
             }
             if (($row['rows'] ?? 0) > 10000) {
-                $tips[] = "📊 扫描行数过多 ({$row['rows']})：表 `{$row['table']}` 扫描了 {$row['rows']} 行，建议优化查询条件或添加复合索引。";
+                $tips[] = __('app.api.service_slow_query.tips_rows_too_many', ['rows' => $row['rows'], 'table' => $row['table']]);
             }
             if (!empty($row['Extra']) && str_contains($row['Extra'], 'Using temporary')) {
-                $tips[] = "🧩 使用了临时表 (Using temporary)：建议优化 ORDER BY 和 GROUP BY 的索引。";
+                $tips[] = __('app.api.service_slow_query.tips_temp_table');
             }
             if (!empty($row['Extra']) && str_contains($row['Extra'], 'Using filesort')) {
-                $tips[] = "📋 使用了文件排序 (Using filesort)：建议为排序字段创建索引。";
+                $tips[] = __('app.api.service_slow_query.tips_filesort');
             }
             if (!empty($row['Extra']) && str_contains($row['Extra'], 'Using where; Using index')) {
-                $tips[] = "✅ 覆盖索引 (Using where; Using index)：当前查询使用了覆盖索引，性能良好。";
+                $tips[] = __('app.api.service_slow_query.tips_covering_index');
             }
             if (($row['key'] ?? '') === null || $row['key'] === '') {
-                $tips[] = "⚠️ 未使用索引 (key=NULL)：表 `{$row['table']}` 没有使用任何索引。";
+                $tips[] = __('app.api.service_slow_query.tips_no_index', ['table' => $row['table']]);
             }
         }
 
         if (empty($tips)) {
-            $tips[] = "✅ 当前查询的 EXPLAIN 结果未见明显异常。建议关注查询频率和扫描行数。";
+            $tips[] = __('app.api.service_slow_query.tips_all_clear');
         }
 
         return implode("\n", $tips);

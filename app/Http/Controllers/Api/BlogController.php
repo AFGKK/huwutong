@@ -55,10 +55,10 @@ class BlogController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('验证失败', 422, $validator->errors()->toArray());
+            return ApiResponse::error(__('app.api.blog.validation_failed'), 422, $validator->errors()->toArray());
         }
 
-        return ApiResponse::created($this->blogService->createPost($request->all()), '文章已创建');
+        return ApiResponse::created($this->blogService->createPost($request->all()), __('app.api.blog.post_created'));
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -81,17 +81,17 @@ class BlogController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('验证失败', 422, $validator->errors()->toArray());
+            return ApiResponse::error(__('app.api.blog.validation_failed'), 422, $validator->errors()->toArray());
         }
 
-        return ApiResponse::success($this->blogService->updatePost($post, $request->all()), '文章已更新');
+        return ApiResponse::success($this->blogService->updatePost($post, $request->all()), __('app.api.blog.post_updated'));
     }
 
     public function destroy(int $id): JsonResponse
     {
         $post = BlogPost::findOrFail($id);
         $this->blogService->deletePost($post);
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.blog.deleted'));
     }
 
     // ─── 操作 ───
@@ -113,28 +113,28 @@ class BlogController extends Controller
     public function batchDelete(Request $request): JsonResponse
     {
         $ids = $request->input('ids', []);
-        if (empty($ids)) return ApiResponse::error('NO_IDS', '请选择文章', 422);
+        if (empty($ids)) return ApiResponse::error('NO_IDS', __('app.api.blog.select_posts'), 422);
         $count = BlogPost::whereIn('id', $ids)->delete();
-        return ApiResponse::success(['deleted' => $count], "已删除 {$count} 篇文章");
+        return ApiResponse::success(['deleted' => $count], __('app.api.blog.deleted_n', ['count' => $count]));
     }
 
     public function batchPublish(Request $request): JsonResponse
     {
         $ids = $request->input('ids', []);
-        if (empty($ids)) return ApiResponse::error('NO_IDS', '请选择文章', 422);
+        if (empty($ids)) return ApiResponse::error('NO_IDS', __('app.api.blog.select_posts'), 422);
         $count = BlogPost::whereIn('id', $ids)->where('is_published', false)->update([
             'is_published' => true, 'published_at' => now(),
         ]);
-        return ApiResponse::success(['published' => $count], "已发布 {$count} 篇文章");
+        return ApiResponse::success(['published' => $count], __('app.api.blog.published_n', ['count' => $count]));
     }
 
     public function batchCategory(Request $request): JsonResponse
     {
         $ids = $request->input('ids', []);
         $categoryId = $request->input('category_id');
-        if (empty($ids)) return ApiResponse::error('NO_IDS', '请选择文章', 422);
+        if (empty($ids)) return ApiResponse::error('NO_IDS', __('app.api.blog.select_posts'), 422);
         $count = BlogPost::whereIn('id', $ids)->update(['category_id' => $categoryId]);
-        return ApiResponse::success(['updated' => $count], "已更新 {$count} 篇文章分类");
+        return ApiResponse::success(['updated' => $count], __('app.api.blog.category_updated_n', ['count' => $count]));
     }
 
     // ─── 导出 ───
@@ -154,7 +154,7 @@ class BlogController extends Controller
             $handle = fopen('php://output', 'w');
             // BOM for Excel UTF-8
             fwrite($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, ['ID', '标题', '类型', '分类', '作者', '标签', '状态', '发布时间', '摘要']);
+            fputcsv($handle, __('app.api.blog.csv_headers'));
             foreach ($posts as $p) {
                 fputcsv($handle, [
                     $p->id,
@@ -163,7 +163,7 @@ class BlogController extends Controller
                     $p->category?->name ?? '',
                     $p->author ?? '',
                     is_array($p->tags) ? implode('; ', $p->tags) : '',
-                    $p->is_published ? '已发布' : '草稿',
+                    $p->is_published ? __('app.api.blog.status_published') : __('app.api.blog.status_draft'),
                     $p->published_at ?? '',
                     strip_tags($p->excerpt ?? ''),
                 ]);
@@ -207,7 +207,7 @@ class BlogController extends Controller
     {
         $post = BlogPost::find($id);
         if (!$post) {
-            return ApiResponse::error('文章不存在', '未找到', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.blog.post_missing'), 404);
         }
         $post->increment('views_count');
         // 记录用户阅读历史
@@ -286,7 +286,7 @@ class BlogController extends Controller
 
         $category = \App\Models\BlogCategory::create($validated);
 
-        return ApiResponse::created($category, '分类已创建');
+        return ApiResponse::created($category, __('app.api.blog.category_created'));
     }
 
     /**
@@ -307,7 +307,7 @@ class BlogController extends Controller
 
         $category->update($validated);
 
-        return ApiResponse::success($category->fresh(), '分类已更新');
+        return ApiResponse::success($category->fresh(), __('app.api.blog.category_updated'));
     }
 
     /**
@@ -318,12 +318,12 @@ class BlogController extends Controller
         $category = \App\Models\BlogCategory::findOrFail($id);
 
         if ($category->posts()->count() > 0) {
-            return ApiResponse::error('CATEGORY_IN_USE', '该分类下还有文章，无法删除', 422);
+            return ApiResponse::error('CATEGORY_IN_USE', __('app.api.blog.category_in_use'), 422);
         }
 
         $category->delete();
 
-        return ApiResponse::success(null, '分类已删除');
+        return ApiResponse::success(null, __('app.api.blog.category_deleted'));
     }
 
     /**
@@ -355,7 +355,7 @@ class BlogController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '订阅确认邮件已发送，请查收验证',
+            'message' => __('app.api.blog.subscribe_confirm_sent'),
             'data' => ['email' => $sub->email],
         ], 201);
     }
@@ -392,7 +392,7 @@ class BlogController extends Controller
             ->ofType('changelog')
             ->orderByDesc('published_at')
             ->get()
-            ->groupBy(fn($p) => $p->version ?? '未分类');
+            ->groupBy(fn($p) => $p->version ?? __('app.api.blog.uncategorized'));
 
         return ApiResponse::success($posts);
     }
@@ -417,17 +417,17 @@ class BlogController extends Controller
     {
         $user = $request->user();
         if (!$user) {
-            return ApiResponse::error('未登录', '请先登录', 401);
+            return ApiResponse::error('UNAUTHENTICATED', __('app.api.blog.not_logged_in'), 401);
         }
 
         $authorId = $request->input('author_id');
         if (!$authorId) {
-            return ApiResponse::error('缺少作者ID', '请指定关注的作者', 422);
+            return ApiResponse::error('AUTHOR_REQUIRED', __('app.api.blog.author_id_required'), 422);
         }
 
         $author = User::find($authorId);
         if (!$author) {
-            return ApiResponse::error('作者不存在', 404);
+            return ApiResponse::error(__('app.api.blog.author_missing'), 404);
         }
 
         $type = 'App\\Models\\User';
@@ -435,7 +435,7 @@ class BlogController extends Controller
         if (\App\Models\Follow::where('user_id', $user->id)
             ->where('followable_type', $type)
             ->where('followable_id', $authorId)->exists()) {
-            return ApiResponse::error('已关注', '您已经关注了该作者', 422);
+            return ApiResponse::error(__("app.blog.msg_f4f38064"), __('app.api.blog.already_following'), 422);
         }
 
         \App\Models\Follow::create(['user_id' => $user->id, 'followable_type' => $type, 'followable_id' => $authorId]);
@@ -443,7 +443,7 @@ class BlogController extends Controller
         return ApiResponse::success([
             'followers_count' => \App\Models\Follow::where('followable_type', $type)->where('followable_id', $authorId)->count(),
             'is_following' => true,
-        ], '关注成功');
+        ], __('app.api.blog.follow_ok'));
     }
 
     /**
@@ -453,12 +453,12 @@ class BlogController extends Controller
     {
         $user = $request->user();
         if (!$user) {
-            return ApiResponse::error('未登录', '请先登录', 401);
+            return ApiResponse::error('UNAUTHENTICATED', __('app.api.blog.not_logged_in'), 401);
         }
 
         $authorId = $request->input('author_id');
         if (!$authorId) {
-            return ApiResponse::error('缺少作者ID', 422);
+            return ApiResponse::error(__('app.api.blog.author_id_missing'), 422);
         }
 
         $type = 'App\\Models\\User';
@@ -469,7 +469,7 @@ class BlogController extends Controller
         return ApiResponse::success([
             'followers_count' => \App\Models\Follow::where('followable_type', $type)->where('followable_id', $authorId)->count(),
             'is_following' => false,
-        ], '已取消关注');
+        ], __('app.api.blog.unfollowed'));
     }
 
     /**
@@ -480,7 +480,7 @@ class BlogController extends Controller
         $user = $request->user();
         $authorId = $request->input('author_id');
         if (!$authorId) {
-            return ApiResponse::error('缺少作者ID', 422);
+            return ApiResponse::error(__('app.api.blog.author_id_missing'), 422);
         }
 
         $type = 'App\\Models\\User';
@@ -517,7 +517,7 @@ class BlogController extends Controller
                 'generated' => str_starts_with($summary, '[AI]'),
             ]);
         } catch (\Throwable $e) {
-            return ApiResponse::error('摘要生成失败', 500);
+            return ApiResponse::error(__('app.api.blog.summary_failed'), 500);
         }
     }
 

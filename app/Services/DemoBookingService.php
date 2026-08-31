@@ -21,7 +21,7 @@ class DemoBookingService
         // 验证 Honeypot
         $honeypotField = config('demo-booking.form.honeypot', 'website_url');
         if (!empty($data[$honeypotField])) {
-            return ['success' => true, 'message' => '预约请求已提交'];
+            return ['success' => true, 'message' => __('app.common.booking_request_submitted')];
         }
 
         $booking = DemoBooking::create([
@@ -107,7 +107,7 @@ class DemoBookingService
             $booking->update(['contacted_at' => now()]);
         }
 
-        return ['success' => true, 'message' => '状态已更新', 'booking' => $booking->fresh()->toArray()];
+        return ['success' => true, 'message' => __('app.common.status_updated'), 'booking' => $booking->fresh()->toArray()];
     }
 
     /**

@@ -63,7 +63,7 @@ class WishlistController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, ['errors' => $validator->errors()]);
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.wishlist.validation_failed'), 422, ['errors' => $validator->errors()]);
         }
 
         $item = $this->wishlistService->toggleItem(
@@ -73,10 +73,18 @@ class WishlistController extends Controller
         );
 
         if ($item) {
-            return ApiResponse::success($item, '已添加到收藏');
+            return ApiResponse::success([
+                'wishlisted' => true,
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'item' => $item,
+            ], __('app.api.wishlist.added'));
         }
 
-        return ApiResponse::success(['message' => '已取消收藏']);
+        return ApiResponse::success([
+            'wishlisted' => false,
+            'product_id' => (int) $request->input('product_id'),
+        ], __('app.api.wishlist.removed'));
     }
 
     /**
@@ -96,7 +104,7 @@ class WishlistController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, ['errors' => $validator->errors()]);
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.wishlist.validation_failed'), 422, ['errors' => $validator->errors()]);
         }
 
         $item = $this->wishlistService->addItem(
@@ -106,7 +114,7 @@ class WishlistController extends Controller
             $validator->validated(),
         );
 
-        return ApiResponse::success($item, '已添加到收藏');
+        return ApiResponse::success($item, __('app.api.wishlist.added'));
     }
 
     /**
@@ -124,11 +132,11 @@ class WishlistController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, ['errors' => $validator->errors()]);
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.wishlist.validation_failed'), 422, ['errors' => $validator->errors()]);
         }
 
         $item = $this->wishlistService->updateItem($id, $validator->validated());
-        return ApiResponse::success($item, '已更新');
+        return ApiResponse::success($item, __('app.api.wishlist.updated'));
     }
 
     /**
@@ -137,7 +145,7 @@ class WishlistController extends Controller
     public function remove(int $id)
     {
         $this->wishlistService->removeItem($id);
-        return ApiResponse::success(['message' => '已移除收藏']);
+        return ApiResponse::success(['message' => __('app.api.wishlist.item_removed')]);
     }
 
     /**
@@ -151,11 +159,11 @@ class WishlistController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, ['errors' => $validator->errors()]);
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.wishlist.validation_failed'), 422, ['errors' => $validator->errors()]);
         }
 
         $this->wishlistService->batchRemoveItems($request->input('item_ids'));
-        return ApiResponse::success(['message' => '已批量移除']);
+        return ApiResponse::success(['message' => __('app.api.wishlist.batch_removed')]);
     }
 
     /**
@@ -168,11 +176,11 @@ class WishlistController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, ['errors' => $validator->errors()]);
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.wishlist.validation_failed'), 422, ['errors' => $validator->errors()]);
         }
 
         $item = $this->wishlistService->moveItem($id, $request->input('group_id'));
-        return ApiResponse::success($item, '已移动');
+        return ApiResponse::success($item, __('app.api.wishlist.moved'));
     }
 
     // ─── 分组管理 ───
@@ -187,11 +195,11 @@ class WishlistController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, ['errors' => $validator->errors()]);
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.wishlist.validation_failed'), 422, ['errors' => $validator->errors()]);
         }
 
         $group = $this->wishlistService->createGroup($request->user()->id, $request->input('name'));
-        return ApiResponse::success($group, '分组已创建');
+        return ApiResponse::success($group, __('app.api.wishlist.group_created'));
     }
 
     /**
@@ -205,11 +213,11 @@ class WishlistController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, ['errors' => $validator->errors()]);
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.wishlist.validation_failed'), 422, ['errors' => $validator->errors()]);
         }
 
         $group = $this->wishlistService->updateGroup($id, $request->only(['name', 'sort_order']));
-        return ApiResponse::success($group, '分组已更新');
+        return ApiResponse::success($group, __('app.api.wishlist.group_updated'));
     }
 
     /**
@@ -218,7 +226,7 @@ class WishlistController extends Controller
     public function deleteGroup(int $id)
     {
         $this->wishlistService->deleteGroup($id);
-        return ApiResponse::success(['message' => '分组已删除']);
+        return ApiResponse::success(['message' => __('app.api.wishlist.group_deleted')]);
     }
 
     // ─── 分享 ───
@@ -237,7 +245,7 @@ class WishlistController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, ['errors' => $validator->errors()]);
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.wishlist.validation_failed'), 422, ['errors' => $validator->errors()]);
         }
 
         $share = $this->wishlistService->createShareLink(
@@ -246,7 +254,7 @@ class WishlistController extends Controller
             $validator->validated(),
         );
 
-        return ApiResponse::success($share, '分享链接已创建');
+        return ApiResponse::success($share, __('app.api.wishlist.share_created'));
     }
 
     /**
@@ -257,7 +265,7 @@ class WishlistController extends Controller
         $share = $this->wishlistService->getSharedByToken($token);
 
         if (!$share) {
-            return ApiResponse::error('SHARE_EXPIRED', '分享链接已过期', 410);
+            return ApiResponse::error('SHARE_EXPIRED', __('app.api.wishlist.share_expired'), 410);
         }
 
         return ApiResponse::success($share);
@@ -269,7 +277,7 @@ class WishlistController extends Controller
     public function deleteShare(int $id)
     {
         $this->wishlistService->deleteShare($id);
-        return ApiResponse::success(['message' => '分享已删除']);
+        return ApiResponse::success(['message' => __('app.api.wishlist.share_deleted')]);
     }
 
     // ─── 管理端 ───

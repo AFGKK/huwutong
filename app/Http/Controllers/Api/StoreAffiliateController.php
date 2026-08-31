@@ -13,6 +13,7 @@ use App\Models\AffiliateTree;
 use App\Services\AffiliateEnhancedService;
 use App\Models\Order;
 use Illuminate\Support\Facades\Validator;
+use App\Services\CommissionAiRecommendationService;
 use App\Services\StoreAffiliateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,6 +28,7 @@ class StoreAffiliateController extends Controller
     public function __construct(
         protected StoreAffiliateService $storeAffiliateService,
         protected AffiliateEnhancedService $affiliateEnhancedService,
+        protected CommissionAiRecommendationService $commissionAiRecommendationService,
     ) {}
 
     /**
@@ -71,7 +73,7 @@ class StoreAffiliateController extends Controller
             $validated['campaign_id'] ?? null
         );
 
-        return ApiResponse::success($results, '推广链接已生成');
+        return ApiResponse::success($results, __('app.api.affiliate.links_generated'));
     }
 
     /**
@@ -91,7 +93,7 @@ class StoreAffiliateController extends Controller
                 $order,
                 $validated['referral_code']
             );
-            return ApiResponse::success(null, '订单已关联推广人');
+            return ApiResponse::success(null, __('app.api.affiliate.order_linked'));
         } catch (\Throwable $e) {
             return ApiResponse::error('LINK_FAILED', $e->getMessage(), 500);
         }
@@ -106,7 +108,7 @@ class StoreAffiliateController extends Controller
 
         try {
             $this->storeAffiliateService->calculateAndSettleOrderCommission($order);
-            return ApiResponse::success(null, '佣金已结算');
+            return ApiResponse::success(null, __('app.api.affiliate.commission_settled'));
         } catch (\Throwable $e) {
             return ApiResponse::error('SETTLE_FAILED', $e->getMessage(), 500);
         }
@@ -305,7 +307,7 @@ class StoreAffiliateController extends Controller
             ->exists();
 
         if ($existing) {
-            return ApiResponse::error('ALREADY_EXISTS', '该关系已存在', 400);
+            return ApiResponse::error('ALREADY_EXISTS', __('app.api.affiliate.relation_exists'), 400);
         }
 
         $level = (int) ($validated['level'] ?? 1);
@@ -328,7 +330,7 @@ class StoreAffiliateController extends Controller
         $parent->updateQuietly(['downline_count' => AffiliateTree::where('parent_agent_id', $parent->id)->count()]);
         $child->update(['parent_agent_id' => $parent->id, 'referral_source' => 'affiliate']);
 
-        return ApiResponse::success($tree, '推广关系已建立');
+        return ApiResponse::success($tree, __('app.api.affiliate.relation_created'));
     }
 
     /**
@@ -385,7 +387,7 @@ class StoreAffiliateController extends Controller
             'created_by' => $request->user()->id,
         ]));
 
-        return ApiResponse::success($campaign, '推广活动已创建', 201);
+        return ApiResponse::success($campaign, __('app.api.affiliate.campaign_created'), 201);
     }
 
     /**
@@ -414,7 +416,7 @@ class StoreAffiliateController extends Controller
 
         $campaign->update($validated);
 
-        return ApiResponse::success($campaign->fresh(), '推广活动已更新');
+        return ApiResponse::success($campaign->fresh(), __('app.api.affiliate.campaign_updated'));
     }
 
     /**
@@ -423,7 +425,7 @@ class StoreAffiliateController extends Controller
     public function destroyCampaign(AffiliateCampaign $campaign): JsonResponse
     {
         $campaign->delete();
-        return ApiResponse::success(null, '推广活动已删除');
+        return ApiResponse::success(null, __('app.api.affiliate.campaign_deleted'));
     }
 
     /**
@@ -482,7 +484,7 @@ class StoreAffiliateController extends Controller
         $newDeposited = ($campaign->budget_deposited ?? 0) + $amount;
         if ($campaign->budget_total > 0 && $newDeposited > $campaign->budget_total) {
             return ApiResponse::error('BUDGET_EXCEEDS_TOTAL',
-                "充值后总额 {$newDeposited} 超出总预算 {$campaign->budget_total}", 400);
+                __('app.api.affiliate.budget_exceeds', ['new' => $newDeposited, 'total' => $campaign->budget_total]), 400);
         }
 
         // 创建充值记录
@@ -518,8 +520,8 @@ class StoreAffiliateController extends Controller
                 'budget_deposited' => $campaign->fresh()->budget_deposited,
                 'budget_used' => $campaign->budget_used,
                 'remaining' => $campaign->fresh()->budget_deposited - $campaign->budget_used,
-                'message' => "已支付 ¥{$amount}，已到账",
-            ], '充值成功');
+                'message' => __('app.api.affiliate.topup_paid', ['amount' => $amount]),
+            ], __('app.api.affiliate.topup_ok'));
         }
 
         // 真实支付流程（微信/支付宝/Stripe/PayPal）
@@ -532,8 +534,8 @@ class StoreAffiliateController extends Controller
 
         $gatewayClass = $gatewayMap[$method] ?? null;
         if (!$gatewayClass) {
-            $topup->update(['status' => 'failed', 'notes' => '不支持的支付方式']);
-            return ApiResponse::error('INVALID_PAYMENT_METHOD', '不支持的支付方式', 400);
+            $topup->update(['status' => 'failed', 'notes' => __('app.api.affiliate.unsupported_pay')]);
+            return ApiResponse::error('INVALID_PAYMENT_METHOD', __('app.api.affiliate.unsupported_pay'), 400);
         }
 
         try {
@@ -546,8 +548,8 @@ class StoreAffiliateController extends Controller
             /** @var \App\Contracts\PaymentGateway $gateway */
             $gateway = app($gatewayClass);
             $result = $gateway->charge($invoice, [
-                'subject' => "推广活动预算充值 - {$campaign->name}",
-                'description' => "活动 #{$campaign->id} {$campaign->name} 预算充值 ¥{$amount}",
+                'subject' => __('app.api.affiliate.topup_subject', ['name' => $campaign->name]),
+                'description' => __('app.api.affiliate.topup_desc', ['id' => $campaign->id, 'name' => $campaign->name, 'amount' => $amount]),
             ]);
 
             if ($result['success'] ?? false) {
@@ -561,11 +563,11 @@ class StoreAffiliateController extends Controller
                     'payment_method' => $method,
                     'payment_url' => $result['payment_url'] ?? null,
                     'transaction_id' => $result['transaction_id'] ?? null,
-                ], '支付订单已创建，请完成支付');
+                ], __('app.api.affiliate.payment_created'));
             }
 
-            $topup->update(['status' => 'failed', 'notes' => $result['error'] ?? '支付失败']);
-            return ApiResponse::error('PAYMENT_FAILED', $result['error'] ?? '支付失败', 400);
+            $topup->update(['status' => 'failed', 'notes' => $result['error'] ?? __('app.api.affiliate.payment_failed')]);
+            return ApiResponse::error('PAYMENT_FAILED', $result['error'] ?? __('app.api.affiliate.payment_failed'), 400);
         } catch (\Throwable $e) {
             $topup->update(['status' => 'failed', 'notes' => $e->getMessage()]);
             Log::error('推广活动预算充值支付异常', [
@@ -573,7 +575,7 @@ class StoreAffiliateController extends Controller
                 'method' => $method,
                 'error' => $e->getMessage(),
             ]);
-            return ApiResponse::error('PAYMENT_ERROR', '支付服务异常：' . $e->getMessage(), 500);
+            return ApiResponse::error('PAYMENT_ERROR', __('app.api.affiliate.payment_error', ['error' => $e->getMessage()]), 500);
         }
     }
 
@@ -584,9 +586,16 @@ class StoreAffiliateController extends Controller
      *
      * GET /api/store-affiliate/campaigns/{campaign}/creatives
      */
-    public function creatives(AffiliateCampaign $campaign): JsonResponse
+    public function creatives(Request $request, AffiliateCampaign $campaign): JsonResponse
     {
-        return ApiResponse::success($campaign->creatives);
+        $query = $campaign->creatives()->orderByDesc('id');
+        $user = $request->user();
+
+        if (!$user->hasRole('super-admin') && !$user->hasRole('admin')) {
+            $query->where('status', 'approved')->where('is_active', true);
+        }
+
+        return ApiResponse::success($query->get());
     }
 
     /**
@@ -620,7 +629,7 @@ class StoreAffiliateController extends Controller
 
         $creative = AffiliateCreative::create($validated);
 
-        return ApiResponse::success($creative, '推广素材已创建');
+        return ApiResponse::success($creative, __('app.api.affiliate.creative_created'));
     }
 
     /**
@@ -644,7 +653,7 @@ class StoreAffiliateController extends Controller
 
         $creative->update($validated);
 
-        return ApiResponse::success($creative->fresh(), '推广素材已更新');
+        return ApiResponse::success($creative->fresh(), __('app.api.affiliate.creative_updated'));
     }
 
     /**
@@ -655,7 +664,7 @@ class StoreAffiliateController extends Controller
     public function destroyCreative(AffiliateCampaign $campaign, AffiliateCreative $creative): JsonResponse
     {
         $creative->delete();
-        return ApiResponse::success(null, '推广素材已删除');
+        return ApiResponse::success(null, __('app.api.affiliate.creative_deleted'));
     }
 
     /**
@@ -697,9 +706,10 @@ class StoreAffiliateController extends Controller
             'status' => $validated['action'],
             'review_notes' => $validated['review_notes'] ?? null,
             'reviewed_at' => now(),
+            'is_active' => $validated['action'] === 'approved',
         ]);
 
-        $msg = $validated['action'] === 'approved' ? '素材已审核通过' : '素材已驳回';
+        $msg = $validated['action'] === 'approved' ? __('app.api.affiliate.creative_approved') : __('app.api.affiliate.creative_rejected');
         return ApiResponse::success($creative->fresh(), $msg);
     }
 
@@ -724,17 +734,24 @@ class StoreAffiliateController extends Controller
      *
      * POST /api/store-affiliate/creatives/{creative}/resubmit
      */
-    public function resubmitCreative(AffiliateCreative $creative): JsonResponse
+    public function resubmitCreative(Request $request, AffiliateCreative $creative): JsonResponse
     {
-        if ($creative->status !== 'rejected') {
-            return ApiResponse::error('只有已驳回的素材才能重新提交');
+        if ((int) $creative->created_by !== (int) $request->user()->id) {
+            return ApiResponse::error('FORBIDDEN', __('app.api.affiliate.forbidden_creative'), 403);
         }
+
+        if ($creative->status !== 'rejected') {
+            return ApiResponse::error('INVALID_STATUS', __('app.api.affiliate.resubmit_rejected_only'), 422);
+        }
+
         $creative->update([
             'status' => 'pending',
             'review_notes' => null,
             'reviewed_at' => null,
+            'is_active' => false,
         ]);
-        return ApiResponse::success($creative->fresh(), '素材已重新提交审核');
+
+        return ApiResponse::success($creative->fresh(), __('app.api.affiliate.creative_resubmitted'));
     }
 
     /**
@@ -744,6 +761,11 @@ class StoreAffiliateController extends Controller
      */
     public function submitCreative(Request $request): JsonResponse
     {
+        $agent = Agent::where('user_id', $request->user()->id)->where('status', 'active')->first();
+        if (!$agent) {
+            return ApiResponse::error('NOT_AGENT', __('app.api.affiliate.not_agent'), 403);
+        }
+
         $validated = Validator::make($request->all(), [
             'campaign_id' => 'required|exists:affiliate_campaigns,id',
             'type' => 'required|in:banner,image,video,text,landing_page,link,coupon,qr_code',
@@ -755,10 +777,11 @@ class StoreAffiliateController extends Controller
 
         $validated['status'] = 'pending';
         $validated['created_by'] = $request->user()->id;
+        $validated['is_active'] = false;
 
         $creative = AffiliateCreative::create($validated);
 
-        return ApiResponse::success($creative, '素材已提交，等待审核');
+        return ApiResponse::success($creative->load('campaign'), __('app.api.affiliate.creative_submitted'));
     }
 
     /**
@@ -770,8 +793,27 @@ class StoreAffiliateController extends Controller
     {
         $user = $request->user();
         $existing = Agent::where('user_id', $user->id)->first();
+
         if ($existing) {
-            return ApiResponse::error('ALREADY_AGENT', '您已经是推广员（状态：' . $existing->status . '）');
+            if ($existing->status === 'active') {
+                return ApiResponse::error('ALREADY_AGENT', __('app.api.affiliate.already_agent'));
+            }
+
+            if ($existing->status === 'pending') {
+                return ApiResponse::error('ALREADY_PENDING', __('app.api.affiliate.already_pending'));
+            }
+
+            if ($existing->status === 'rejected') {
+                $existing->update([
+                    'status' => 'pending',
+                    'notes' => null,
+                    'approved_at' => null,
+                ]);
+
+                return ApiResponse::success($existing->fresh(), __('app.api.affiliate.agent_resubmitted'));
+            }
+
+            return ApiResponse::error('ALREADY_AGENT', __('app.api.affiliate.already_agent_status', ['status' => $existing->status]));
         }
 
         $agent = Agent::create([
@@ -782,7 +824,7 @@ class StoreAffiliateController extends Controller
             'commission_rate' => config('affiliate.default_commission_rate', 10),
         ]);
 
-        return ApiResponse::success($agent, '申请已提交，等待管理员审核');
+        return ApiResponse::success($agent, __('app.api.affiliate.agent_submitted'));
     }
 
     /**
@@ -790,12 +832,17 @@ class StoreAffiliateController extends Controller
      *
      * GET /api/store-affiliate/pending-agents
      */
-    public function pendingAgents(): JsonResponse
+    public function pendingAgents(Request $request): JsonResponse
     {
+        $user = $request->user();
+        if (!$user->hasRole('admin') && !$user->hasRole('super-admin')) {
+            return ApiResponse::error('FORBIDDEN', __('app.api.affiliate.forbidden_view_pending'), 403);
+        }
+
         $agents = Agent::where('status', 'pending')
             ->with('user:id,name,email')
             ->orderBy('created_at', 'desc')
-            ->paginate(50);
+            ->paginate($request->input('per_page', 50));
 
         return ApiResponse::paginated($agents);
     }
@@ -807,26 +854,37 @@ class StoreAffiliateController extends Controller
      */
     public function reviewAgent(Request $request, Agent $agent): JsonResponse
     {
+        $user = $request->user();
+        if (!$user->hasRole('admin') && !$user->hasRole('super-admin')) {
+            return ApiResponse::error('FORBIDDEN', __('app.api.affiliate.forbidden_review'), 403);
+        }
+
         $validated = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'action' => 'required|in:approved,rejected',
             'notes' => 'nullable|string|max:500',
         ])->validate();
 
+        if ($agent->status !== 'pending') {
+            return ApiResponse::error('INVALID_STATUS', __('app.api.affiliate.already_handled'), 422);
+        }
+
         if ($validated['action'] === 'approved') {
             $agent->update([
                 'status' => 'active',
                 'approved_at' => now(),
+                'notes' => null,
             ]);
-            $msg = '推广员已审核通过';
+            $msg = __('app.api.affiliate.agent_approved');
         } else {
             $agent->update([
                 'status' => 'rejected',
                 'notes' => $validated['notes'] ?? null,
+                'approved_at' => null,
             ]);
-            $msg = '推广员申请已驳回';
+            $msg = __('app.api.affiliate.agent_rejected');
         }
 
-        return ApiResponse::success($agent->fresh(), $msg);
+        return ApiResponse::success($agent->fresh()->load('user:id,name,email'), $msg);
     }
 
     /**
@@ -842,5 +900,85 @@ class StoreAffiliateController extends Controller
             ->paginate($request->input('per_page', 20));
 
         return ApiResponse::paginated($creatives);
+    }
+
+    // ══════════════════════════════════════════
+    // ╎  AI 佣金推荐
+    // ══════════════════════════════════════════
+
+    /**
+     * AI 推荐最优佣金率
+     *
+     * POST /api/store-affiliate/ai/recommend-rate
+     */
+    public function aiRecommendRate(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'product_id' => 'nullable|integer|exists:products,id',
+            'campaign_type' => 'nullable|string|in:referral,commission,reward,rebate',
+            'product_price' => 'nullable|numeric|min:0',
+        ]);
+
+        $result = $this->commissionAiRecommendationService->recommendCommissionRate(
+            productId: $validated['product_id'] ?? null,
+            campaignType: $validated['campaign_type'] ?? null,
+            productPrice: $validated['product_price'] ?? null,
+        );
+
+        return ApiResponse::success($result, __('app.api.affiliate.commission_recommended'));
+    }
+
+    /**
+     * AI 批量推荐佣金率
+     *
+     * POST /api/store-affiliate/ai/batch-recommend
+     */
+    public function aiBatchRecommend(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'product_ids' => 'required|array',
+            'product_ids.*' => 'integer|exists:products,id',
+            'campaign_type' => 'nullable|string|in:referral,commission,reward,rebate',
+        ]);
+
+        $results = $this->commissionAiRecommendationService->batchRecommend(
+            productIds: $validated['product_ids'],
+            campaignType: $validated['campaign_type'] ?? null,
+        );
+
+        return ApiResponse::success($results, __('app.api.affiliate.commission_batch'));
+    }
+
+    /**
+     * AI 获取创建活动预设建议
+     *
+     * GET /api/store-affiliate/ai/campaign-presets
+     */
+    public function aiCampaignPresets(): JsonResponse
+    {
+        return ApiResponse::success(
+            $this->commissionAiRecommendationService->getCampaignPresets(),
+            __('app.api.affiliate.presets_loaded')
+        );
+    }
+
+    /**
+     * AI 佣金效率分析
+     *
+     * GET /api/store-affiliate/ai/efficiency-analysis
+     */
+    public function aiEfficiencyAnalysis(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'days' => 'nullable|integer|min:1|max:365',
+        ]);
+
+        return ApiResponse::success(
+            $this->commissionAiRecommendationService->analyzeCommissionEfficiency(
+                tenantId: $request->user()->tenant_id,
+                days: $validated['days'] ?? 90,
+            ),
+            __('app.api.affiliate.efficiency_done')
+        );
     }
 }

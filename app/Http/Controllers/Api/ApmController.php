@@ -62,7 +62,7 @@ class ApmController extends Controller
         $record = \App\Models\ApmRequest::find($id);
 
         if (! $record) {
-            return ApiResponse::notFound('APM 记录不存在');
+            return ApiResponse::notFound(__("app.apm.msg_bacb466c"));
         }
 
         return ApiResponse::success($record);
@@ -75,7 +75,7 @@ class ApmController extends Controller
     {
         $deleted = $this->apmService->prune();
 
-        return ApiResponse::success(['deleted' => $deleted], "已清理 {$deleted} 条过期记录");
+        return ApiResponse::success(['deleted' => $deleted], __("app.apm.msg_99334edd"));
     }
 
     /**
@@ -174,7 +174,7 @@ class ApmController extends Controller
     protected function getTelescopeMetrics(\Carbon\Carbon $since): array
     {
         if (! $this->telescopeTableExists()) {
-            return ['available' => false, 'message' => 'Telescope 表未就绪'];
+            return ['available' => false, 'message' => __('app.controller_compat.apm_telescope')];
         }
 
         $exceptions = \Illuminate\Support\Facades\DB::table('telescope_entries')

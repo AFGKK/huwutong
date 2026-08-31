@@ -60,7 +60,7 @@ class LocalProxyController extends Controller
 
         $result = $this->localProxyService->registerNode($tenantId, $validated);
 
-        return ApiResponse::success($result, '代理节点注册成功', 201);
+        return ApiResponse::success($result, __("app.local_proxy.msg_47b2ed5c"), 201);
     }
 
     /**
@@ -79,7 +79,7 @@ class LocalProxyController extends Controller
             $tenantId, $validated['node_id'], $validated['register_token']
         );
 
-        return ApiResponse::success($result, '代理节点已激活');
+        return ApiResponse::success($result, __("app.local_proxy.msg_691ffc07"));
     }
 
     /**
@@ -107,7 +107,7 @@ class LocalProxyController extends Controller
 
         $node = $this->localProxyService->updateNodeStatus($tenantId, $id, $validated['status']);
 
-        return ApiResponse::success($node, '节点状态已更新');
+        return ApiResponse::success($node, __("app.local_proxy.msg_045b1fa4"));
     }
 
     /**
@@ -133,7 +133,7 @@ class LocalProxyController extends Controller
 
         $config = $this->localProxyService->updateNodeConfig($tenantId, $id, $validated);
 
-        return ApiResponse::success($config, '配置已更新');
+        return ApiResponse::success($config, __("app.local_proxy.msg_ff1cfcd2"));
     }
 
     // ─── 代理内部 API（供代理节点调用） ───

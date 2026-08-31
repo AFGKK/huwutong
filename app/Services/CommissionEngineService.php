@@ -212,7 +212,7 @@ class CommissionEngineService
 
                     $settlement->update([
                         'status' => 'refunded',
-                        'notes' => '发票退款，佣金已扣除',
+                        'notes' => __('app.commission_engine.commission_engine_5cd28ffcff'),
                     ]);
                 });
             }
@@ -244,16 +244,16 @@ class CommissionEngineService
 
         if (! $riskCheck['passed']) {
             $reasonStr = implode('；', $riskCheck['reasons']);
-            throw new \RuntimeException('提现风控未通过: ' . $reasonStr);
+            throw new \RuntimeException(__('app.commission_engine.commission_engine_cd76fdc4a1') . $reasonStr);
         }
 
         // 余额检查（兼容旧逻辑）
         if ($agent->available_balance < $amount) {
-            throw new \RuntimeException('可提现余额不足');
+            throw new \RuntimeException(__('app.commission_engine.commission_engine_d75434d52a'));
         }
 
         if ($amount < 100) {
-            throw new \RuntimeException('最低提现金额为 100 元');
+            throw new \RuntimeException(__('app.commission_engine.commission_engine_fef5190ebb'));
         }
 
         $fee = $this->calculatePayoutFee($amount, $method);

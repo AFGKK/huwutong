@@ -117,7 +117,7 @@ class SkuController extends Controller
         $validated['currency'] ??= 'CNY';
 
         $sku = ProductSku::create($validated);
-        return ApiResponse::success($sku->load('product'), 'SKU 创建成功', 201);
+        return ApiResponse::success($sku->load('product'), __('app.api.sku.created'), 201);
     }
 
     /**
@@ -144,7 +144,7 @@ class SkuController extends Controller
         ]);
 
         $sku->update($validated);
-        return ApiResponse::success($sku->fresh()->load('product'), 'SKU 更新成功');
+        return ApiResponse::success($sku->fresh()->load('product'), __('app.api.sku.updated'));
     }
 
     /**
@@ -154,7 +154,7 @@ class SkuController extends Controller
     {
         $sku = ProductSku::findOrFail($id);
         $sku->delete();
-        return ApiResponse::success(null, 'SKU 已删除');
+        return ApiResponse::success(null, __('app.api.sku.deleted'));
     }
 
     /**
@@ -164,7 +164,7 @@ class SkuController extends Controller
     {
         $sku = ProductSku::findOrFail($id);
         $sku->update(['is_active' => !$sku->is_active]);
-        return ApiResponse::success($sku->fresh(), $sku->is_active ? '已上架' : '已下架');
+        return ApiResponse::success($sku->fresh(), $sku->is_active ? __('app.api.sku.activated') : __('app.api.sku.deactivated'));
     }
 
     /**
@@ -195,25 +195,25 @@ class SkuController extends Controller
     protected function doBatchActivate(array $ids): JsonResponse
     {
         $count = ProductSku::whereIn('id', $ids)->update(['is_active' => true]);
-        return ApiResponse::success(['affected' => $count], "已上架 {$count} 个 SKU");
+        return ApiResponse::success(['affected' => $count], __('app.api.sku.activated_n', ['count' => $count]));
     }
 
     protected function doBatchDeactivate(array $ids): JsonResponse
     {
         $count = ProductSku::whereIn('id', $ids)->update(['is_active' => false]);
-        return ApiResponse::success(['affected' => $count], "已下架 {$count} 个 SKU");
+        return ApiResponse::success(['affected' => $count], __('app.api.sku.deactivated_n', ['count' => $count]));
     }
 
     protected function doBatchDelete(array $ids): JsonResponse
     {
         $count = ProductSku::whereIn('id', $ids)->delete();
-        return ApiResponse::success(['affected' => $count], "已删除 {$count} 个 SKU");
+        return ApiResponse::success(['affected' => $count], __('app.api.sku.deleted_n', ['count' => $count]));
     }
 
     protected function doBatchSetPrice(array $ids, float $price): JsonResponse
     {
         $count = ProductSku::whereIn('id', $ids)->update(['price' => $price]);
-        return ApiResponse::success(['affected' => $count], "已更新 {$count} 个 SKU 价格");
+        return ApiResponse::success(['affected' => $count], __('app.api.sku.price_updated_n', ['count' => $count]));
     }
 
     protected function doBatchAdjustStock(array $ids, int $change): JsonResponse
@@ -225,10 +225,10 @@ class SkuController extends Controller
             $oldStock = $sku->stock;
             $newStock = max(-1, $oldStock + $change);
             $sku->update(['stock' => $newStock]);
-            $this->logStockChange($sku->id, $change, $oldStock, $newStock, '批量调整');
+            $this->logStockChange($sku->id, $change, $oldStock, $newStock, __('app.api.sku.stock_batch_reason'));
             $affected++;
         }
-        return ApiResponse::success(['affected' => $affected], "已调整 {$affected} 个 SKU 库存");
+        return ApiResponse::success(['affected' => $affected], __('app.api.sku.stock_adjusted_n', ['count' => $affected]));
     }
 
     /**
@@ -248,7 +248,7 @@ class SkuController extends Controller
             $clone->currencyPrices()->create($cp->only(['currency', 'price', 'compare_at_price', 'cost_price']));
         }
 
-        return ApiResponse::success($clone->load('product', 'currencyPrices'), 'SKU 已克隆', 201);
+        return ApiResponse::success($clone->load('product', 'currencyPrices'), __('app.api.sku.cloned'), 201);
     }
 
     // ── 多币种定价 ──
@@ -286,7 +286,7 @@ class SkuController extends Controller
             ]);
         }
 
-        return ApiResponse::success($sku->fresh()->currencyPrices, '多币种定价已保存');
+        return ApiResponse::success($sku->fresh()->currencyPrices, __('app.api.sku.currency_saved'));
     }
 
     // ── 库存日志 ──
@@ -317,13 +317,13 @@ class SkuController extends Controller
         $newStock = max(-1, $oldStock + $validated['change']);
         $sku->update(['stock' => $newStock]);
 
-        $this->logStockChange($sku->id, $validated['change'], $oldStock, $newStock, $validated['reason'] ?? '手动调整');
+        $this->logStockChange($sku->id, $validated['change'], $oldStock, $newStock, $validated['reason'] ?? __('app.api.sku.stock_manual_reason'));
 
         return ApiResponse::success([
             'old_stock' => $oldStock,
             'new_stock' => $newStock,
             'change' => $validated['change'],
-        ], '库存已调整');
+        ], __('app.api.sku.stock_adjusted'));
     }
 
     protected function logStockChange(int $skuId, int $change, int $oldStock, int $newStock, string $reason): void
@@ -396,7 +396,7 @@ class SkuController extends Controller
                 $data = array_combine($header, $row);
                 $product = \App\Models\Product::where('name', $data['product_name'])->first();
                 if (!$product) {
-                    $errors[] = "产品「{$data['product_name']}」不存在";
+                    $errors[] = __('app.api.sku.product_missing', ['name' => $data['product_name']]);
                     continue;
                 }
 
@@ -422,12 +422,12 @@ class SkuController extends Controller
                     $created++;
                 }
             } catch (\Exception $e) {
-                $errors[] = "行 '{$data['sku_code']}': {$e->getMessage()}";
+                $errors[] = __('app.api.sku.row_error', ['code' => $data['sku_code'], 'error' => $e->getMessage()]);
             }
         }
 
         return ApiResponse::success([
-            'message' => "新建 {$created}，更新 {$updated}" . ($errors ? "，{$errors} 个错误" : ''),
+            'message' => __('app.api.sku.import_result', ['created' => $created, 'updated' => $updated]) . ($errors ? __('app.api.sku.import_errors', ['count' => count($errors)]) : ''),
             'created' => $created,
             'updated' => $updated,
             'errors' => $errors,

@@ -45,7 +45,7 @@ class TokenIntrospectionMiddleware
 
             return response()->json([
                 'success' => false,
-                'message' => 'Token 已被吊销，请重新登录',
+                'message' => __('app.middleware.token_revoked'),
                 'code' => 'TOKEN_REVOKED',
             ], 401);
         }
@@ -56,7 +56,7 @@ class TokenIntrospectionMiddleware
 
             return response()->json([
                 'success' => false,
-                'message' => 'Token 已过期（版本变更），请重新登录',
+                'message' => __('app.middleware.token_expired_version_changed'),
                 'code' => 'TOKEN_VERSION_EXPIRED',
             ], 401);
         }
@@ -65,7 +65,7 @@ class TokenIntrospectionMiddleware
         if ($user->status !== 'active') {
             return response()->json([
                 'success' => false,
-                'message' => '账号已被禁用',
+                'message' => __('app.middleware.account_disabled'),
                 'code' => 'USER_INACTIVE',
             ], 403);
         }

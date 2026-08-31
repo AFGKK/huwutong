@@ -20,7 +20,7 @@ class BlogSubscriptionVerify extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '确认订阅 HWT License 开发者博客',
+            subject: __('app.mail.blog_subscription_verify_subject'),
         );
     }
 
@@ -35,9 +35,9 @@ class BlogSubscriptionVerify extends Mailable
                 'verifyUrl' => $verifyUrl,
                 'unsubscribeUrl' => $unsubscribeUrl,
                 'types' => implode('、', array_map(fn($t) => match($t) {
-                    'blog' => '博客',
-                    'changelog' => '更新日志',
-                    'release_note' => '发布说明',
+                    'blog' => __('app.mail.blog_type'),
+                    'changelog' => __('app.mail.changelog_type'),
+                    'release_note' => __('app.mail.release_note_type'),
                     default => $t,
                 }, $this->subscription->subscribed_types ?? ['blog'])),
             ],

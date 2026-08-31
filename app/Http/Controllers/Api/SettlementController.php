@@ -65,7 +65,7 @@ class SettlementController extends Controller
             ...$validated,
         ]);
 
-        return ApiResponse::created($cycle, '结算周期创建成功');
+        return ApiResponse::created($cycle, __("app.settlement.msg_89badb8c"));
     }
 
     public function cycleShow(int $id): JsonResponse
@@ -79,7 +79,7 @@ class SettlementController extends Controller
     {
         $tenantId = $request->user()->tenant_id;
         $cycle = $this->settlementService->generateMonthlyCycle($tenantId, $request->user()->id);
-        return ApiResponse::success($cycle, '结算周期已生成');
+        return ApiResponse::success($cycle, __("app.settlement.msg_e31417c8"));
     }
 
     // ══════════════════════════════════════════
@@ -126,7 +126,7 @@ class SettlementController extends Controller
             ...$validated,
         ]);
 
-        return ApiResponse::created($batch, '结算批次创建成功');
+        return ApiResponse::created($batch, __("app.settlement.msg_05ed9f41"));
     }
 
     public function batchShow(int $id): JsonResponse
@@ -139,25 +139,25 @@ class SettlementController extends Controller
     public function batchSubmit(int $id): JsonResponse
     {
         $batch = $this->settlementService->submitForApproval($id);
-        return ApiResponse::success($batch, '已提交审核');
+        return ApiResponse::success($batch, __("app.settlement.msg_792e1c4f"));
     }
 
     public function batchApprove(int $id, Request $request): JsonResponse
     {
         $batch = $this->settlementService->approveBatch($id, $request->user()->id);
-        return ApiResponse::success($batch, '批次已审核通过');
+        return ApiResponse::success($batch, __("app.settlement.msg_02605ac9"));
     }
 
     public function batchComplete(int $id): JsonResponse
     {
         $batch = $this->settlementService->completeBatch($id);
-        return ApiResponse::success($batch, '批次已完成');
+        return ApiResponse::success($batch, __("app.settlement.msg_198722f7"));
     }
 
     public function batchCancel(int $id): JsonResponse
     {
         $batch = $this->settlementService->cancelBatch($id);
-        return ApiResponse::success($batch, '批次已取消');
+        return ApiResponse::success($batch, __("app.settlement.msg_bb7bc583"));
     }
 
     // ══════════════════════════════════════════

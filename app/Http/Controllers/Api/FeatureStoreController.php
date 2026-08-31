@@ -66,7 +66,7 @@ class FeatureStoreController extends Controller
         ]);
 
         $group = $this->featureStore->createGroup($tenantId, $validated);
-        return ApiResponse::created($group, '特征组创建成功');
+        return ApiResponse::created($group, __('app.api.feature_store.group_created'));
     }
 
     /**
@@ -96,7 +96,7 @@ class FeatureStoreController extends Controller
         ]);
 
         $group = $this->featureStore->updateGroup($group, $validated);
-        return ApiResponse::success($group, '特征组已更新');
+        return ApiResponse::success($group, __('app.api.feature_store.group_updated'));
     }
 
     /**
@@ -107,7 +107,7 @@ class FeatureStoreController extends Controller
     public function destroyGroup(FeatureGroup $group): JsonResponse
     {
         $group->delete();
-        return ApiResponse::success(null, '特征组已删除');
+        return ApiResponse::success(null, __('app.api.feature_store.group_deleted'));
     }
 
     // ═══════ 特征定义 ═══════
@@ -143,7 +143,7 @@ class FeatureStoreController extends Controller
         ]);
 
         $feature = $this->featureStore->createFeature($group->id, $validated);
-        return ApiResponse::created($feature, '特征创建成功');
+        return ApiResponse::created($feature, __('app.api.feature_store.feature_created'));
     }
 
     /**
@@ -162,7 +162,7 @@ class FeatureStoreController extends Controller
         ]);
 
         $created = $this->featureStore->batchCreateFeatures($group->id, $validated['features']);
-        return ApiResponse::created($created, count($created) . ' 个特征创建成功');
+        return ApiResponse::created($created, __('app.api.feature_store.features_created', ['count' => count($created)]));
     }
 
     /**
@@ -183,7 +183,7 @@ class FeatureStoreController extends Controller
         ]);
 
         $feature = $this->featureStore->updateFeature($feature, $validated);
-        return ApiResponse::success($feature, '特征已更新');
+        return ApiResponse::success($feature, __('app.api.feature_store.feature_updated'));
     }
 
     /**
@@ -194,7 +194,7 @@ class FeatureStoreController extends Controller
     public function destroyFeature(FeatureDefinition $feature): JsonResponse
     {
         $feature->delete();
-        return ApiResponse::success(null, '特征已删除');
+        return ApiResponse::success(null, __('app.api.feature_store.feature_deleted'));
     }
 
     // ═══════ 在线特征值 ═══════
@@ -219,7 +219,7 @@ class FeatureStoreController extends Controller
             $validated['ttl'] ?? null,
         );
 
-        return ApiResponse::success($record, '特征值已设置');
+        return ApiResponse::success($record, __('app.api.feature_store.value_set'));
     }
 
     /**
@@ -241,7 +241,7 @@ class FeatureStoreController extends Controller
         }
 
         $count = $this->featureStore->batchSetOnlineFeatures($feature->id, $values);
-        return ApiResponse::success(null, "已批量设置 {$count} 个特征值");
+        return ApiResponse::success(null, __('app.api.feature_store.batch_values_set', ['count' => $count]));
     }
 
     /**
@@ -294,7 +294,7 @@ class FeatureStoreController extends Controller
     {
         $entityId = $request->input('entity_id');
         $count = $this->featureStore->syncOnlineToOffline($feature->id, $entityId);
-        return ApiResponse::success(['synced_count' => $count], "已同步 {$count} 条");
+        return ApiResponse::success(['synced_count' => $count], __('app.api.feature_store.synced', ['count' => $count]));
     }
 
     /**
@@ -306,7 +306,7 @@ class FeatureStoreController extends Controller
     {
         $tenantId = auth()->user()->tenant_id;
         $results = $this->featureStore->syncAllToOffline($tenantId);
-        return ApiResponse::success($results, "同步完成: {$results['synced']} 成功, {$results['failed']} 失败");
+        return ApiResponse::success($results, __('app.api.feature_store.sync_done', ['synced' => $results['synced'], 'failed' => $results['failed']]));
     }
 
     /**
@@ -336,7 +336,7 @@ class FeatureStoreController extends Controller
     {
         $sampleSize = $request->input('sample_size');
         $check = $this->featureStore->checkConsistency($feature->id, $sampleSize);
-        return ApiResponse::success($check, "一致性检查完成: {$check->match_percent}% 匹配");
+        return ApiResponse::success($check, __('app.api.feature_store.consistency_done', ['percent' => $check->match_percent]));
     }
 
     /**
@@ -348,7 +348,7 @@ class FeatureStoreController extends Controller
     {
         $tenantId = auth()->user()->tenant_id;
         $results = $this->featureStore->batchCheckConsistency($tenantId);
-        return ApiResponse::success($results, "批量检查完成: {$results['checked']} 个特征");
+        return ApiResponse::success($results, __('app.api.feature_store.batch_check_done', ['count' => $results['checked']]));
     }
 
     /**

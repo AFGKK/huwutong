@@ -91,7 +91,7 @@ class EdgeVerifierController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Token 生成失败: ' . $e->getMessage(),
+                'message' => __('app.api.edge_verifier.token_generate_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -175,7 +175,7 @@ class EdgeVerifierController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "License {$validated['license_key']} 的边缘缓存已吊销",
+            'message' => __('app.api.edge_verifier.edge_cache_revoked', ['key' => $validated['license_key']]),
         ]);
     }
 
@@ -208,7 +208,7 @@ class EdgeVerifierController extends Controller
         if (count($parts) !== 3) {
             return response()->json([
                 'success' => false,
-                'message' => 'Token 格式无效',
+                'message' => __('app.api.edge_verifier.token_invalid'),
             ], 400);
         }
 
@@ -236,40 +236,40 @@ class EdgeVerifierController extends Controller
         $guide = [
             'prerequisites' => [
                 'Node.js >= 18',
-                'Cloudflare 账户',
+                __('app.api.edge_verifier.prereq_cf_account'),
                 'Wrangler CLI (npm install -g wrangler)',
             ],
             'steps' => [
                 [
                     'step' => 1,
-                    'title' => '配置 Cloudflare 凭证',
+                    'title' => __('app.api.edge_verifier.step_cf_credentials'),
                     'command' => 'npx wrangler login',
                 ],
                 [
                     'step' => 2,
-                    'title' => '设置环境变量',
+                    'title' => __('app.api.edge_verifier.step_env_vars'),
                     'command' => "npx wrangler secret put EDGE_VERIFIER_SECRET\nnpx wrangler secret put ORIGIN_URL",
-                    'note' => 'EDGE_VERIFIER_SECRET 需与 .env 中的 EDGE_VERIFIER_SECRET 一致',
+                    'note' => __('app.api.edge_verifier.step_env_note'),
                 ],
                 [
                     'step' => 3,
-                    'title' => '创建 KV 命名空间',
+                    'title' => __('app.api.edge_verifier.step_kv'),
                     'command' => 'npx wrangler kv:namespace create HWT_CACHE',
-                    'note' => '将返回的 ID 填入 wrangler.toml',
+                    'note' => __('app.api.edge_verifier.step_kv_note'),
                 ],
                 [
                     'step' => 4,
-                    'title' => '部署 Worker',
+                    'title' => __('app.api.edge_verifier.step_deploy'),
                     'command' => 'cd deploy/cf-workers/edge-verifier && npx wrangler deploy',
                 ],
                 [
                     'step' => 5,
-                    'title' => '配置路由',
+                    'title' => __('app.api.edge_verifier.step_routes'),
                     'command' => 'npx wrangler routes add *.yourdomain.com/api/edge/*',
                 ],
                 [
                     'step' => 6,
-                    'title' => '验证部署',
+                    'title' => __('app.api.edge_verifier.step_verify'),
                     'command' => 'curl https://yourdomain.com/api/edge/health',
                 ],
             ],

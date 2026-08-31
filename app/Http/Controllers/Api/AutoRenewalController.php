@@ -45,7 +45,7 @@ class AutoRenewalController extends Controller
 
         $validated['tenant_id'] = $request->user()->tenant_id;
         $plan = AutoRenewalPlan::create($validated);
-        return ApiResponse::created($plan, '续费计划已创建');
+        return ApiResponse::created($plan, __("app.auto_renewal.msg_b3f4deb8"));
     }
 
     public function updatePlan(Request $request, AutoRenewalPlan $plan): JsonResponse
@@ -59,7 +59,7 @@ class AutoRenewalController extends Controller
         ]);
 
         $plan->update($validated);
-        return ApiResponse::success($plan, '计划已更新');
+        return ApiResponse::success($plan, __("app.auto_renewal.msg_f7fca7cf"));
     }
 
     public function subscriptions(Request $request): JsonResponse
@@ -76,7 +76,7 @@ class AutoRenewalController extends Controller
     {
         $result = $this->service->renew($subscription);
         return $result['success']
-            ? ApiResponse::success($result, '续费成功')
+            ? ApiResponse::success($result, __("app.auto_renewal.msg_d0b819cf"))
             : ApiResponse::error('RENEW_FAILED', $result['message'], 400);
     }
 
@@ -85,7 +85,7 @@ class AutoRenewalController extends Controller
         $request->validate(['target_plan_id' => 'required|integer|exists:auto_renewal_plans,id']);
         $result = $this->service->upgrade($subscription, $request->target_plan_id);
         return $result['success']
-            ? ApiResponse::success($result, '升级成功')
+            ? ApiResponse::success($result, __("app.auto_renewal.msg_e64d788d"))
             : ApiResponse::error('UPGRADE_FAILED', $result['message'], 400);
     }
 
@@ -94,26 +94,26 @@ class AutoRenewalController extends Controller
         $request->validate(['target_plan_id' => 'required|integer|exists:auto_renewal_plans,id']);
         $result = $this->service->downgrade($subscription, $request->target_plan_id);
         return $result['success']
-            ? ApiResponse::success($result, '降级将在周期结束时生效')
+            ? ApiResponse::success($result, __("app.auto_renewal.msg_e6a78b6a"))
             : ApiResponse::error('DOWNGRADE_FAILED', $result['message'], 400);
     }
 
     public function cancel(AutoRenewalSubscription $subscription): JsonResponse
     {
         $this->service->cancel($subscription);
-        return ApiResponse::success(null, '订阅已取消');
+        return ApiResponse::success(null, __("app.auto_renewal.msg_4222360d"));
     }
 
     public function pause(AutoRenewalSubscription $subscription): JsonResponse
     {
         $this->service->pause($subscription);
-        return ApiResponse::success(null, '订阅已暂停');
+        return ApiResponse::success(null, __("app.auto_renewal.msg_fa3cfb12"));
     }
 
     public function resume(AutoRenewalSubscription $subscription): JsonResponse
     {
         $this->service->resume($subscription);
-        return ApiResponse::success(null, '订阅已恢复');
+        return ApiResponse::success(null, __("app.auto_renewal.msg_aad72f05"));
     }
 
     public function attempts(AutoRenewalSubscription $subscription): JsonResponse

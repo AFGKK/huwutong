@@ -48,7 +48,7 @@ class SecuritySopController extends Controller
 
         $template = $this->securityService->createSopTemplate($data);
 
-        return ApiResponse::success($template, 'SOP模板已创建', 201);
+        return ApiResponse::success($template, __("app.security_sop.msg_136ca8b9"), 201);
     }
 
     public function showSopTemplate(SecuritySopTemplate $securitySopTemplate): JsonResponse
@@ -71,13 +71,13 @@ class SecuritySopController extends Controller
         ]);
 
         $template = $this->securityService->updateSopTemplate($securitySopTemplate, $data);
-        return ApiResponse::success($template, 'SOP模板已更新');
+        return ApiResponse::success($template, __("app.security_sop.msg_8552a51e"));
     }
 
     public function deleteSopTemplate(SecuritySopTemplate $securitySopTemplate): JsonResponse
     {
         $securitySopTemplate->delete();
-        return ApiResponse::success(null, 'SOP模板已删除');
+        return ApiResponse::success(null, __("app.security_sop.msg_1901dde5"));
     }
 
     // ─── SOP 执行 ───
@@ -89,7 +89,7 @@ class SecuritySopController extends Controller
 
         $execution = $this->securityService->executeSopManually($securitySopTemplate, $event, $request->user()->id);
 
-        return ApiResponse::success($execution, 'SOP已执行');
+        return ApiResponse::success($execution, __("app.security_sop.msg_1874549f"));
     }
 
     public function handleEvent(Request $request, SecurityEvent $securityEvent): JsonResponse
@@ -97,10 +97,10 @@ class SecuritySopController extends Controller
         $execution = $this->securityService->handleSecurityEvent($securityEvent);
 
         if (!$execution) {
-            return ApiResponse::success(null, '未匹配到SOP模板');
+            return ApiResponse::success(null, __("app.security_sop.msg_b0525c18"));
         }
 
-        return ApiResponse::success($execution, 'SOP已匹配并执行');
+        return ApiResponse::success($execution, __("app.security_sop.msg_96d440b7"));
     }
 
     public function resolveEvent(Request $request, SecurityEvent $securityEvent): JsonResponse
@@ -117,7 +117,7 @@ class SecuritySopController extends Controller
             $request->user()->id,
         );
 
-        return ApiResponse::success($event, '事件已解决');
+        return ApiResponse::success($event, __("app.security_sop.msg_6482c88b"));
     }
 
     // ─── 执行记录 ───

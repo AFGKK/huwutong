@@ -35,7 +35,8 @@ class BillingCycleController extends Controller
         $validated = $request->validate([
             'code' => 'required|string|max:30|unique:billing_cycles,code',
             'name' => 'required|string|max:50',
-            'months' => 'nullable|integer|min:1',
+            'months' => 'nullable|integer|min:0',
+            'days' => 'nullable|integer|min:0',
             'sort_order' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
         ]);
@@ -44,7 +45,7 @@ class BillingCycleController extends Controller
         $validated['is_active'] ??= true;
 
         $cycle = BillingCycle::create($validated);
-        return ApiResponse::success($cycle, '计费周期已创建', 201);
+        return ApiResponse::success($cycle, __("app.billing_cycle.msg_81aa8232"), 201);
     }
 
     /**
@@ -57,13 +58,14 @@ class BillingCycleController extends Controller
         $validated = $request->validate([
             'code' => 'sometimes|string|max:30|unique:billing_cycles,code,' . $id,
             'name' => 'sometimes|string|max:50',
-            'months' => 'nullable|integer|min:1',
+            'months' => 'nullable|integer|min:0',
+            'days' => 'nullable|integer|min:0',
             'sort_order' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
         ]);
 
         $cycle->update($validated);
-        return ApiResponse::success($cycle->fresh(), '计费周期已更新');
+        return ApiResponse::success($cycle->fresh(), __('app.billing_cycle.cycle_updated'));
     }
 
     /**
@@ -76,10 +78,10 @@ class BillingCycleController extends Controller
         // 检查是否有 SKU 使用此周期
         $usageCount = \App\Models\ProductSku::where('billing_cycle', $cycle->code)->count();
         if ($usageCount > 0) {
-            return ApiResponse::error("有 {$usageCount} 个 SKU 使用此计费周期，无法删除");
+            return ApiResponse::error(__("app.billing_cycle.msg_82368bc4"));
         }
 
         $cycle->delete();
-        return ApiResponse::success(null, '计费周期已删除');
+        return ApiResponse::success(null, __("app.billing_cycle.msg_6dec7e47"));
     }
 }

@@ -50,7 +50,7 @@ class EnterGracePeriod extends BaseWorkflowStep
         // 没有 subscription 的 License，直接标记过期
         $licenseId = $context['license_id'] ?? $input['license_id'] ?? null;
         if (! $licenseId) {
-            throw new \RuntimeException('缺少 license_id 或 subscription_id');
+            throw new \RuntimeException(__('app.common.missing_license_or_subscription_id'));
         }
 
         $this->log('info', '无订阅关联，跳过宽限期', ['license_id' => $licenseId]);

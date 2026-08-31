@@ -34,7 +34,7 @@ class BruteForceMiddleware
             $remaining = $guard->getBanRemainingTtl($ip);
             return ApiResponse::error(
                 'IP_BANNED',
-                '您的 IP 已被临时封禁，请稍后再试',
+                __('app.middleware.ip_temp_banned'),
                 429,
                 [
                     'retry_after_seconds' => $remaining,

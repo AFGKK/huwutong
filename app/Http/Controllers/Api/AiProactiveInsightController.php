@@ -63,13 +63,13 @@ class AiProactiveInsightController extends Controller
         if (!$this->insightService->markRead($id, $userId)) {
             return response()->json([
                 'success' => false,
-                'error' => ['code' => 'INSIGHT_NOT_FOUND', 'message' => '洞察不存在'],
+                'error' => ['code' => 'INSIGHT_NOT_FOUND', 'message' => __('app.controller_compat.ai_proactive_insight_msg_66')],
             ], 404);
         }
 
         return response()->json([
             'success' => true,
-            'message' => '已标记为已读',
+            'message' => __('app.controller_compat.ai_proactive_insight_msg_72'),
         ]);
     }
 
@@ -83,13 +83,13 @@ class AiProactiveInsightController extends Controller
         if (!$this->insightService->dismiss($id, $userId)) {
             return response()->json([
                 'success' => false,
-                'error' => ['code' => 'INSIGHT_NOT_FOUND', 'message' => '洞察不存在'],
+                'error' => ['code' => 'INSIGHT_NOT_FOUND', 'message' => __('app.controller_compat.ai_proactive_insight_msg_86')],
             ], 404);
         }
 
         return response()->json([
             'success' => true,
-            'message' => '已忽略',
+            'message' => __('app.controller_compat.ignored'),
         ]);
     }
 
@@ -104,7 +104,7 @@ class AiProactiveInsightController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '全部标记为已读',
+            'message' => __('app.controller_compat.ai_proactive_insight_msg_107'),
         ]);
     }
 

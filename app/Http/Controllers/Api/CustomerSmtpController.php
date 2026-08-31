@@ -54,14 +54,14 @@ class CustomerSmtpController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.smtp.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
         $data['tenant_id'] = $request->user()->tenant_id;
 
         $config = $this->smtpService->create($data);
-        return ApiResponse::created($config, 'SMTP 配置已创建');
+        return ApiResponse::created($config, __('app.api.smtp.config_created'));
     }
 
     /**
@@ -86,11 +86,11 @@ class CustomerSmtpController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.smtp.validation_failed'), $validator->errors()->toArray());
         }
 
         $config = $this->smtpService->update($config, $validator->validated());
-        return ApiResponse::success($config, '配置已更新');
+        return ApiResponse::success($config, __('app.api.smtp.config_updated'));
     }
 
     /**
@@ -101,7 +101,7 @@ class CustomerSmtpController extends Controller
         $config = CustomerSmtpConfig::findOrFail($id);
         $config->logs()->delete();
         $config->delete();
-        return ApiResponse::success(null, '配置已删除');
+        return ApiResponse::success(null, __('app.api.smtp.config_deleted'));
     }
 
     /**
@@ -112,7 +112,7 @@ class CustomerSmtpController extends Controller
         $config = CustomerSmtpConfig::findOrFail($id);
         $result = $this->smtpService->testConnection($config);
         return $result['success']
-            ? ApiResponse::success($result, '连接成功')
+            ? ApiResponse::success($result, __('app.api.smtp.connection_ok'))
             : ApiResponse::error($result['message'], 400);
     }
 
@@ -123,7 +123,7 @@ class CustomerSmtpController extends Controller
     {
         $config = CustomerSmtpConfig::findOrFail($id);
         $this->smtpService->update($config, ['is_primary' => true]);
-        return ApiResponse::success(null, '已设为主 SMTP');
+        return ApiResponse::success(null, __('app.api.smtp.set_primary'));
     }
 
     /**
@@ -135,19 +135,19 @@ class CustomerSmtpController extends Controller
             'to' => 'required|email',
         ]);
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.smtp.validation_failed'), $validator->errors()->toArray());
         }
 
         $config = CustomerSmtpConfig::findOrFail($id);
         $result = $this->smtpService->send(
             $request->input('to'),
-            'SMTP 配置测试邮件',
-            "<h2>SMTP 配置测试</h2><p>如果您收到此邮件，说明 SMTP 配置正确。</p><p>发送时间：" . now() . "</p>",
+            __('app.api.smtp.test_subject'),
+            __('app.api.smtp.test_body', ['time' => now()]),
             $config->tenant_id
         );
 
         return $result['success']
-            ? ApiResponse::success(null, '测试邮件已发送')
+            ? ApiResponse::success(null, __('app.api.smtp.test_sent'))
             : ApiResponse::error($result['message'], 400);
     }
 
@@ -165,7 +165,7 @@ class CustomerSmtpController extends Controller
     public function recover(): JsonResponse
     {
         $recovered = $this->smtpService->checkAndRecover();
-        return ApiResponse::success(['recovered' => $recovered], count($recovered) . ' 个配置已恢复');
+        return ApiResponse::success(['recovered' => $recovered], __('app.api.smtp.configs_recovered', ['count' => count($recovered)]));
     }
 
     /**
@@ -216,7 +216,7 @@ class CustomerSmtpController extends Controller
         $tenantId = $request->user()->tenant_id;
         \Illuminate\Support\Facades\Cache::forever("smtp_fallback_config_{$tenantId}", $config);
 
-        return ApiResponse::success($config, '降级配置已更新');
+        return ApiResponse::success($config, __('app.api.smtp.fallback_updated'));
     }
 
     public function testFallback(Request $request): JsonResponse
@@ -227,7 +227,7 @@ class CustomerSmtpController extends Controller
             $result = $this->smtpService->testFallbackChain($tenantId);
             return ApiResponse::success($result);
         } catch (\Throwable $e) {
-            return ApiResponse::error('降级测试失败: ' . $e->getMessage());
+            return ApiResponse::error(__('app.api.smtp.fallback_test_failed', ['error' => $e->getMessage()]));
         }
     }
 

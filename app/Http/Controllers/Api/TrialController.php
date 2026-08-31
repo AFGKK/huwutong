@@ -45,7 +45,7 @@ class TrialController extends Controller
             'license' => $license,
             'trial_days' => TrialLicenseService::DEFAULT_TRIAL_DAYS,
             'expires_at' => $license->expires_at,
-        ], '试用创建成功');
+        ], __('app.api.trial.trial_created'));
     }
 
     /**
@@ -60,7 +60,7 @@ class TrialController extends Controller
         if ($license->type !== 'trial') {
             return ApiResponse::success([
                 'type' => $license->type,
-                'message' => '非 Trial License',
+                'message' => __('app.api.trial.non_trial_license'),
             ]);
         }
 
@@ -103,6 +103,6 @@ class TrialController extends Controller
 
         return ApiResponse::success([
             'license' => $updated,
-        ], "已成功转为 {$data['type']} 授权");
+        ], __('app.api.trial.converted_to', ['type' => $data['type']]));
     }
 }

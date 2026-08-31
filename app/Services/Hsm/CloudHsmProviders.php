@@ -75,7 +75,7 @@ class AwsCloudHsmProvider implements HsmProvider
     {
         try {
             $result = $this->call('/health', 'GET');
-            return ['healthy' => true, 'message' => 'AWS CloudHSM 连接正常'];
+            return ['healthy' => true, 'message' => __('app.common.aws_cloudhsm_ok')];
         } catch (\Throwable $e) {
             return ['healthy' => false, 'message' => $e->getMessage()];
         }
@@ -89,7 +89,7 @@ class AwsCloudHsmProvider implements HsmProvider
             ->{$method}($url, $data);
 
         if (!$response->successful()) {
-            throw new \RuntimeException("AWS CloudHSM 请求失败: {$response->status()} - {$response->body()}");
+            throw new \RuntimeException(__("app.cloud_hsm_providers.aws_cloudhsm_request_failed"));
         }
 
         return $response->json() ?? [];
@@ -160,7 +160,7 @@ class AzureDedicatedHsmProvider implements HsmProvider
 
     public function health(): array
     {
-        return ['healthy' => !empty($this->endpoint), 'message' => 'Azure HSM 配置就绪'];
+        return ['healthy' => !empty($this->endpoint), 'message' => __('app.common.azure_hsm_configured')];
     }
 
     private function call(string $path, array $data = []): array
@@ -170,7 +170,7 @@ class AzureDedicatedHsmProvider implements HsmProvider
             ->post(rtrim($this->endpoint, '/') . $path, $data);
 
         if (!$response->successful()) {
-            throw new \RuntimeException("Azure HSM 请求失败: {$response->status()}");
+            throw new \RuntimeException(__("app.cloud_hsm_providers.azure_hsm_request_failed"));
         }
         return $response->json() ?? [];
     }
@@ -238,6 +238,6 @@ class AliyunKmsProvider implements HsmProvider
 
     public function health(): array
     {
-        return ['healthy' => !empty($this->endpoint), 'message' => $this->endpoint ? '阿里云 KMS 已配置' : '未配置'];
+        return ['healthy' => !empty($this->endpoint), 'message' => $this->endpoint ? __('app.common.aliyun_kms_configured') : __('app.common.not_configured')];
     }
 }

@@ -61,28 +61,22 @@ class OrderService
             $items = [];
             $totalAmount = 0;
 
-            // 遍历商品&扣减库存
+            // 遍历商品 & 扣减库存（统一走 InventoryService，避免重复扣减）
             foreach ($data['items'] as $item) {
                 $sku = ProductSku::lockForUpdate()->findOrFail($item['sku_id']);
 
                 if (!$sku->is_active) {
-                    throw new \RuntimeException("「{$sku->name}」已下架");
+                    throw new \RuntimeException(__('app.api.service_order.sku_off_shelf', ['name' => $sku->name]));
                 }
 
-                // 库存扣减
-                if ($sku->stock !== null && $sku->stock >= 0) {
-                    if ($sku->stock < ($item['quantity'] ?? 1)) {
-                        throw new \RuntimeException("「{$sku->name}」库存不足: 当前{$sku->stock}");
-                    }
-                    $deducted = $sku->decrement('stock', $item['quantity'] ?? 1);
-                    if (!$deducted) {
-                        throw new \RuntimeException("「{$sku->name}」扣减失败");
-                    }
+                $quantity = $item['quantity'] ?? 1;
+                $deductResult = $this->inventoryService->deduct($sku->id, $quantity, 'order:' . $orderNo);
+                if (!$deductResult['success']) {
+                    throw new \RuntimeException($deductResult['message']);
                 }
-                $sku->increment('sold_count', $item['quantity'] ?? 1);
 
                 $unitPrice = $item['unit_price'] ?? (float) $sku->price;
-                $subtotal = $unitPrice * ($item['quantity'] ?? 1);
+                $subtotal = $unitPrice * $quantity;
                 $totalAmount += $subtotal;
 
                 $items[] = [
@@ -91,7 +85,7 @@ class OrderService
                     'item_type' => $item['item_type'] ?? $this->detectItemType($sku),
                     'name' => $sku->name,
                     'unit_price' => $unitPrice,
-                    'quantity' => $item['quantity'] ?? 1,
+                    'quantity' => $quantity,
                     'subtotal' => $subtotal,
                     'discount' => 0,
                 ];
@@ -143,13 +137,13 @@ class OrderService
     public function initiatePayment(Order $order, string $gateway = 'alipay'): array
     {
         if ($order->status !== Order::STATUS_PENDING) {
-            throw new \RuntimeException('订单状态不允许支付');
+            throw new \RuntimeException(__('app.api.service_order.status_not_allowed_pay'));
         }
 
         // 检查订单是否已超时
         if ($order->expires_at && now()->gt($order->expires_at)) {
             $this->cancelTimeout($order);
-            throw new \RuntimeException('订单已超时，请重新下单');
+            throw new \RuntimeException(__('app.api.service_order.order_timeout_repay'));
         }
 
         // 免费订单直接标记支付成功
@@ -181,6 +175,7 @@ class OrderService
 
         // 记录支付方式
         $order->update(['payment_method' => $gateway]);
+        $this->paymentManager->useDriver($gateway);
 
         // 创建待支付发票
         $invoice = Invoice::create([
@@ -198,10 +193,19 @@ class OrderService
         try {
             $result = $this->paymentManager->charge($invoice, $paymentData);
 
-            // Mock/开发环境：支付成功后自动标记已支付
-            if (!empty($result['success']) && !empty($result['transaction_id'])) {
-                $tid = $result['transaction_id'];
-                $this->markPaid($order, $gateway, $tid, ['invoice_id' => $invoice->id]);
+            if (! empty($result['success'])) {
+                $tid = $result['transaction_id'] ?? null;
+
+                if ($this->paymentManager->settlesSynchronously()) {
+                    $this->markPaid($order, $gateway, $tid ?? 'sync_'.$order->order_no, ['invoice_id' => $invoice->id]);
+                } else {
+                    $invoice->update([
+                        'metadata' => array_merge($invoice->metadata ?? [], [
+                            'pending_transaction_id' => $tid,
+                            'pending_gateway' => $gateway,
+                        ]),
+                    ]);
+                }
             }
 
             return [
@@ -221,7 +225,7 @@ class OrderService
                 'gateway' => $gateway,
                 'error' => $e->getMessage(),
             ]);
-            throw new \RuntimeException('支付初始化失败: ' . $e->getMessage());
+            throw new \RuntimeException(__('app.api.service_order.payment_init_failed', ['error' => $e->getMessage()]));
         }
     }
 
@@ -230,13 +234,13 @@ class OrderService
      */
     public function markPaid(Order $order, string $paymentMethod, string $transactionId, array $extra = []): Order
     {
-        if ($order->status !== Order::STATUS_PENDING) {
-            throw new \RuntimeException('订单状态不允许标记支付');
+        if (!$order->canTransitionTo(Order::STATUS_PAID)) {
+            throw new \RuntimeException(__('app.api.service_order.status_not_allowed_mark_paid'));
         }
 
         return DB::transaction(function () use ($order, $paymentMethod, $transactionId, $extra) {
+            $order->transitionTo(Order::STATUS_PAID);
             $order->update([
-                'status' => Order::STATUS_PAID,
                 'payment_method' => $paymentMethod,
                 'transaction_id' => $transactionId,
                 'paid_at' => now(),
@@ -305,17 +309,15 @@ class OrderService
      */
     public function cancel(Order $order, ?string $reason = null): Order
     {
-        if (!in_array($order->status, [Order::STATUS_PENDING, Order::STATUS_PAID])) {
-            throw new \RuntimeException('当前状态不允许取消');
+        if (!$order->canTransitionTo(Order::STATUS_CANCELLED)) {
+            throw new \RuntimeException(__('app.api.service_order.status_not_allowed_cancel'));
         }
 
         return DB::transaction(function () use ($order, $reason) {
-            $oldStatus = $order->status;
-
+            $order->transitionTo(Order::STATUS_CANCELLED);
             $order->update([
-                'status' => Order::STATUS_CANCELLED,
                 'cancelled_at' => now(),
-                'notes' => $reason ? ($order->notes . "\n取消原因: " . $reason) : $order->notes,
+                'notes' => $reason ? __('app.api.service_order.cancel_reason', ['notes' => $order->notes, 'reason' => $reason]) : $order->notes,
             ]);
 
             // 回滚库存
@@ -337,7 +339,7 @@ class OrderService
             return $order;
         }
 
-        return $this->cancel($order, '订单超时未支付');
+        return $this->cancel($order, __('app.api.service_order.order_timeout_cancel'));
     }
 
     /**
@@ -373,14 +375,11 @@ class OrderService
     {
         foreach ($order->items as $item) {
             try {
-                $sku = ProductSku::find($item->sku_id);
-                if ($sku) {
-                    // 无限库存模式不增不减
-                    if ($sku->stock === null || $sku->stock >= 0) {
-                        $sku->increment('stock', $item->quantity);
-                    }
-                    $sku->decrement('sold_count', $item->quantity);
-                }
+                $this->inventoryService->rollback(
+                    $item->sku_id,
+                    $item->quantity,
+                    'order_rollback:' . $order->order_no
+                );
             } catch (\Throwable $e) {
                 Log::error('库存回滚失败', [
                     'order_id' => $order->id,
@@ -432,21 +431,21 @@ class OrderService
             ->first();
 
         if (!$coupon) {
-            throw new \RuntimeException('优惠券不存在或已失效');
+            throw new \RuntimeException(__('app.api.service_order.coupon_invalid'));
         }
 
         // 校验
         if ($coupon->starts_at && now()->lt($coupon->starts_at)) {
-            throw new \RuntimeException('优惠券尚未生效');
+            throw new \RuntimeException(__('app.api.service_order.coupon_not_active'));
         }
         if ($coupon->expires_at && now()->gt($coupon->expires_at)) {
-            throw new \RuntimeException('优惠券已过期');
+            throw new \RuntimeException(__('app.api.service_order.coupon_expired'));
         }
         if ($coupon->usage_limit && $coupon->usage_count >= $coupon->usage_limit) {
-            throw new \RuntimeException('优惠券已用完');
+            throw new \RuntimeException(__('app.api.service_order.coupon_used_up'));
         }
         if ($coupon->minimum_order_amount && $totalAmount < $coupon->minimum_order_amount) {
-            throw new \RuntimeException("订单金额需满 {$coupon->minimum_order_amount} 元");
+            throw new \RuntimeException(__('app.api.service_order.coupon_min_order', ['amount' => $coupon->minimum_order_amount]));
         }
 
         // 计算折扣

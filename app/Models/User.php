@@ -20,8 +20,11 @@ class User extends Authenticatable
         'remember_tenant_id', 'status', 'last_login_at', 'last_login_ip',
         'mfa_secret', 'mfa_enabled', 'mfa_recovery_codes', 'mfa_recovery_used',
         'password_history', 'password_changed_at', 'login_attempts', 'locked_until',
+        'banned_at', 'banned_reason', 'banned_by',
         'phone_verified_at',
         'onboarding_completed', 'onboarding_skipped_at', 'onboarding_skip_reason', 'preferences',
+        'fcm_token', 'fcm_platform', 'fcm_device_name', 'fcm_token_updated_at',
+        'wechat_openid', 'wechat_unionid', 'source',
     ];
 
     protected $appends = ['avatar_url'];

@@ -40,7 +40,7 @@ class CacheInvalidationController extends Controller
     {
         $tenantId = $request->query('tenant_id');
         if (! $tenantId) {
-            abort(400, '缺少 tenant_id 参数');
+            abort(400, __('app.api.cache_invalidation.missing_tenant_id'));
         }
 
         $lastEventId = $request->query('last_event_id');
@@ -120,7 +120,7 @@ class CacheInvalidationController extends Controller
     {
         $tenantId = $request->query('tenant_id');
         if (! $tenantId) {
-            return ApiResponse::error('VALIDATION_ERROR', '缺少 tenant_id 参数', 422);
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.cache_invalidation.missing_tenant_id'), 422);
         }
 
         $since = $request->query('since');
@@ -145,7 +145,7 @@ class CacheInvalidationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.cache_invalidation.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -164,7 +164,7 @@ class CacheInvalidationController extends Controller
             'status' => $invalidation->status,
             'channel' => $invalidation->channel,
             'created_at' => $invalidation->created_at,
-        ], '缓存失效事件已触发', 201);
+        ], __('app.api.cache_invalidation.cache_invalidated'), 201);
     }
 
     /**
@@ -183,7 +183,7 @@ class CacheInvalidationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.cache_invalidation.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -197,7 +197,7 @@ class CacheInvalidationController extends Controller
                 'type' => $inv->type,
                 'status' => $inv->status,
             ], $invalidations),
-        ], '批量缓存失效事件已触发', 201);
+        ], __('app.api.cache_invalidation.batch_invalidated'), 201);
     }
 
     /**
@@ -238,7 +238,7 @@ class CacheInvalidationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.cache_invalidation.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -253,7 +253,7 @@ class CacheInvalidationController extends Controller
             'has_secret' => ! empty($webhook->secret),
             'subscribed_types' => $webhook->subscribed_types,
             'is_active' => $webhook->is_active,
-        ], 'Webhook 配置已创建', 201);
+        ], __('app.api.cache_invalidation.webhook_created'), 201);
     }
 
     /**
@@ -272,7 +272,7 @@ class CacheInvalidationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.cache_invalidation.validation_failed'), $validator->errors()->toArray());
         }
 
         $webhook->update($validator->validated());
@@ -283,7 +283,7 @@ class CacheInvalidationController extends Controller
             'has_secret' => ! empty($webhook->secret),
             'subscribed_types' => $webhook->subscribed_types,
             'is_active' => $webhook->is_active,
-        ], 'Webhook 配置已更新');
+        ], __('app.api.cache_invalidation.webhook_updated'));
     }
 
     /**
@@ -294,7 +294,7 @@ class CacheInvalidationController extends Controller
         $this->authorizeWebhook($request, $webhook);
         $webhook->delete();
 
-        return ApiResponse::success(null, 'Webhook 配置已删除');
+        return ApiResponse::success(null, __('app.api.cache_invalidation.webhook_deleted'));
     }
 
     /**
@@ -334,7 +334,7 @@ class CacheInvalidationController extends Controller
     {
         $tenantId = $request->user()->tenant_id;
         if ($webhook->tenant_id !== $tenantId) {
-            abort(403, '无权操作此 Webhook 配置');
+            abort(403, __('app.api.cache_invalidation.webhook_forbidden'));
         }
     }
 }

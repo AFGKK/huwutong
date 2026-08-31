@@ -291,7 +291,7 @@ class AutomationRuleService
             'notify_admin' => $this->actionNotifyAdmin($config, $context, $rule),
             'suspend_tenant' => $this->actionSuspendTenant($config, $context, $rule),
             'toggle_feature_flag' => $this->actionToggleFeatureFlag($config, $context, $rule),
-            default => throw new \InvalidArgumentException("不支持的动作类型: {$type}"),
+            default => throw new \InvalidArgumentException(__('app.automation_rule.unsupported_action_type', ['type' => $type])),
         };
     }
 
@@ -303,24 +303,24 @@ class AutomationRuleService
     public function getAvailableActions(): array
     {
         return [
-            'webhook' => ['label' => '发送 Webhook', 'fields' => ['webhook_id' => '关联 Webhook']],
-            'send_email' => ['label' => '发送邮件', 'fields' => ['template' => '邮件模板', 'to' => '收件人', 'subject' => '主题']],
-            'update_license' => ['label' => '更新 License', 'fields' => ['action' => '操作(expire/suspend/activate)', 'license_id' => 'License ID']],
-            'update_subscription' => ['label' => '更新订阅', 'fields' => ['action' => '操作(cancel/pause/resume)', 'subscription_id' => '订阅 ID']],
-            'create_log' => ['label' => '创建审计日志', 'fields' => ['type' => '日志类型', 'action' => '动作', 'description' => '描述']],
-            'notify_admin' => ['label' => '通知管理员', 'fields' => ['message' => '通知内容']],
-            'suspend_tenant' => ['label' => '暂停租户', 'fields' => ['reason' => '原因']],
-            'toggle_feature_flag' => ['label' => '切换功能开关', 'fields' => ['flag' => '开关名称', 'value' => '值']],
+            'webhook' => __('app.automation_rule.actions.webhook'),
+            'send_email' => __('app.automation_rule.actions.send_email'),
+            'update_license' => __('app.automation_rule.actions.update_license'),
+            'update_subscription' => __('app.automation_rule.actions.update_subscription'),
+            'create_log' => __('app.automation_rule.actions.create_log'),
+            'notify_admin' => __('app.automation_rule.actions.notify_admin'),
+            'suspend_tenant' => __('app.automation_rule.actions.suspend_tenant'),
+            'toggle_feature_flag' => __('app.automation_rule.actions.toggle_feature_flag'),
         ];
     }
 
     protected function actionWebhook(array $config, array $context): ?array
     {
         $webhookId = $config['webhook_id'] ?? null;
-        if (!$webhookId) throw new \RuntimeException('未指定 Webhook');
+        if (!$webhookId) throw new \RuntimeException(__('app.automation_rule.webhook_not_specified'));
 
         $webhook = AutomationWebhook::find($webhookId);
-        if (!$webhook) throw new \RuntimeException("Webhook {$webhookId} 不存在");
+        if (!$webhook) throw new \RuntimeException(__('app.automation_rule.webhook_not_found', ['id' => $webhookId]));
 
         $payload = array_merge(
             $webhook->body_template ?? [],
@@ -342,7 +342,7 @@ class AutomationRuleService
         $to = $config['to'] ?? 'admin';
         $subject = $this->interpolate($config['subject'] ?? 'Automation Notification', $context);
 
-        Log::info("[AutomationRule:{$rule->id}] 发送邮件: {$subject} to {$to}");
+        Log::info(__('app.automation_rule.log_send_email', ['subject' => $subject, 'to' => $to]), ['rule_id' => $rule->id]);
 
         return ['sent' => true, 'to' => $to, 'subject' => $subject];
     }
@@ -351,10 +351,10 @@ class AutomationRuleService
     {
         $action = $config['action'] ?? 'expire';
         $licenseId = $config['license_id'] ?? $context['license_id'] ?? null;
-        if (!$licenseId) throw new \RuntimeException('未指定 License');
+        if (!$licenseId) throw new \RuntimeException(__('app.automation_rule.license_not_specified'));
 
         $license = \App\Models\License::find($licenseId);
-        if (!$license) throw new \RuntimeException("License {$licenseId} 不存在");
+        if (!$license) throw new \RuntimeException(__('app.automation_rule.license_not_found', ['id' => $licenseId]));
 
         match ($action) {
             'expire' => $license->update(['status' => 'expired', 'expires_at' => now()]),
@@ -369,10 +369,10 @@ class AutomationRuleService
     {
         $action = $config['action'] ?? 'cancel';
         $subId = $config['subscription_id'] ?? $context['subscription_id'] ?? null;
-        if (!$subId) throw new \RuntimeException('未指定订阅');
+        if (!$subId) throw new \RuntimeException(__('app.automation_rule.subscription_not_specified'));
 
         $sub = \App\Models\Subscription::find($subId);
-        if (!$sub) throw new \RuntimeException("订阅 {$subId} 不存在");
+        if (!$sub) throw new \RuntimeException(__('app.automation_rule.subscription_not_found', ['id' => $subId]));
 
         match ($action) {
             'cancel' => $sub->update(['status' => 'canceled', 'canceled_at' => now()]),
@@ -399,7 +399,7 @@ class AutomationRuleService
     protected function actionNotifyAdmin(array $config, array $context, AutomationRule $rule): ?array
     {
         $message = $this->interpolate($config['message'] ?? "Rule {$rule->name} triggered", $context);
-        Log::warning("[AutomationRule:{$rule->id}] Admin通知: {$message}");
+        Log::warning(__('app.automation_rule.log_admin_notify', ['message' => $message]), ['rule_id' => $rule->id]);
 
         return ['notified' => true, 'message' => $message];
     }
@@ -407,7 +407,7 @@ class AutomationRuleService
     protected function actionSuspendTenant(array $config, array $context, AutomationRule $rule): ?array
     {
         $tenantId = $rule->tenant_id ?? $context['tenant_id'] ?? null;
-        if (!$tenantId) throw new \RuntimeException('未指定租户');
+        if (!$tenantId) throw new \RuntimeException(__('app.automation_rule.tenant_not_specified'));
 
         $tenant = \App\Models\Tenant::find($tenantId);
         $tenant?->update(['status' => 'suspended']);
@@ -419,9 +419,9 @@ class AutomationRuleService
     {
         $flag = $config['flag'] ?? null;
         $value = $config['value'] ?? false;
-        if (!$flag) throw new \RuntimeException('未指定功能开关');
+        if (!$flag) throw new \RuntimeException(__('app.automation_rule.feature_flag_not_specified'));
 
-        Log::info("[AutomationRule:{$rule->id}] 切换开关 {$flag} = " . ($value ? 'true' : 'false'));
+        Log::info(__('app.automation_rule.log_toggle_flag', ['flag' => $flag, 'value' => $value ? 'true' : 'false']), ['rule_id' => $rule->id]);
 
         return ['flag' => $flag, 'value' => $value];
     }
@@ -534,43 +534,32 @@ class AutomationRuleService
     public function getAvailableTriggers(): array
     {
         return [
-            'event' => [
-                'label' => '事件触发',
-                'description' => '当系统事件发生时触发',
+            'event' => array_merge(__('app.automation_rule.triggers.event'), [
                 'events' => [
-                    'license.*' => 'License 事件',
-                    'license.created' => 'License 创建',
-                    'license.expired' => 'License 过期',
-                    'license.suspended' => 'License 暂停',
-                    'license.activated' => 'License 激活',
-                    'subscription.*' => '订阅事件',
-                    'subscription.created' => '订阅创建',
-                    'subscription.renewed' => '订阅续费',
-                    'subscription.canceled' => '订阅取消',
-                    'subscription.expired' => '订阅过期',
-                    'invoice.*' => '发票事件',
-                    'invoice.paid' => '发票已支付',
-                    'invoice.overdue' => '发票逾期',
-                    'customer.*' => '客户事件',
-                    'customer.created' => '客户创建',
-                    'device.*' => '设备事件',
-                    'device.activated' => '设备激活',
-                    'security.*' => '安全事件',
-                    'security.breach' => '安全违规',
+                    'license.*' => __('app.automation_rule.events.license.*'),
+                    'license.created' => __('app.automation_rule.events.license.created'),
+                    'license.expired' => __('app.automation_rule.events.license.expired'),
+                    'license.suspended' => __('app.automation_rule.events.license.suspended'),
+                    'license.activated' => __('app.automation_rule.events.license.activated'),
+                    'subscription.*' => __('app.automation_rule.events.subscription.*'),
+                    'subscription.created' => __('app.automation_rule.events.subscription.created'),
+                    'subscription.renewed' => __('app.automation_rule.events.subscription.renewed'),
+                    'subscription.canceled' => __('app.automation_rule.events.subscription.canceled'),
+                    'subscription.expired' => __('app.automation_rule.events.subscription.expired'),
+                    'invoice.*' => __('app.automation_rule.events.invoice.*'),
+                    'invoice.paid' => __('app.automation_rule.events.invoice.paid'),
+                    'invoice.overdue' => __('app.automation_rule.events.invoice.overdue'),
+                    'customer.*' => __('app.automation_rule.events.customer.*'),
+                    'customer.created' => __('app.automation_rule.events.customer.created'),
+                    'device.*' => __('app.automation_rule.events.device.*'),
+                    'device.activated' => __('app.automation_rule.events.device.activated'),
+                    'security.*' => __('app.automation_rule.events.security.*'),
+                    'security.breach' => __('app.automation_rule.events.security.breach'),
                 ],
-            ],
-            'schedule' => [
-                'label' => '定时触发',
-                'description' => '按 Cron 表达式定时执行',
-            ],
-            'condition' => [
-                'label' => '条件触发',
-                'description' => '当条件满足时触发（如告警阈值）',
-            ],
-            'webhook' => [
-                'label' => 'Webhook 触发',
-                'description' => '通过外部 Webhook 调用触发',
-            ],
+            ]),
+            'schedule' => __('app.automation_rule.triggers.schedule'),
+            'condition' => __('app.automation_rule.triggers.condition'),
+            'webhook' => __('app.automation_rule.triggers.webhook'),
         ];
     }
 

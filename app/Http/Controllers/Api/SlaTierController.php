@@ -29,7 +29,7 @@ class SlaTierController extends Controller
         $tiers = SlaTier::where('tenant_id', $tenantId)->orderByDesc('priority')->get();
 
         return response()->json([
-            'message' => 'SLA 等级已初始化',
+            'message' => __('app.controller_compat.sla_tier_sla'),
             'data' => $tiers,
         ]);
     }
@@ -110,14 +110,14 @@ class SlaTierController extends Controller
         $tier = SlaTier::findOrFail($id);
 
         if ($tier->is_default) {
-            return response()->json(['error' => '不能删除默认 SLA 等级'], 400);
+            return response()->json(['error' => __('app.controller_compat.sla_tier_sla_1')], 400);
         }
 
         // 清除关联的自定义分配
         CustomerSlaAssignment::where('sla_tier_id', $id)->delete();
         $tier->delete();
 
-        return response()->json(['message' => 'SLA 等级已删除']);
+        return response()->json(['message' => __('app.controller_compat.sla_tier_sla_2')]);
     }
 
     /**
@@ -179,7 +179,7 @@ class SlaTierController extends Controller
         $customer = Customer::findOrFail($customerId);
         $this->slaTierService->resetToDefault($customer);
 
-        return response()->json(['message' => 'SLA 等级已恢复默认']);
+        return response()->json(['message' => __('app.controller_compat.sla_tier_sla_3')]);
     }
 
     /**

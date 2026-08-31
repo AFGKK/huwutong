@@ -35,7 +35,7 @@ class CacheWarmupService
     public function warmup(?string $source = null): array
     {
         if (!$this->config['enabled']) {
-            return ['success' => false, 'message' => '缓存预热未启用'];
+            return ['success' => false, 'message' => __('app.common.cache_warmup_not_enabled')];
         }
 
         $startTime = microtime(true);

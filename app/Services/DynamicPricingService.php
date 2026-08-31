@@ -93,7 +93,7 @@ class DynamicPricingService
             $extraPrice = round($basePrice * $remainingQuantity, 2);
             $totalPrice += $extraPrice;
             $appliedTiers[] = [
-                'name' => '标准价格',
+                'name' => __('app.dynamic_pricing.dynamic_pricing_4da3b07f40'),
                 'from' => $quantity - $remainingQuantity + 1,
                 'to' => $quantity,
                 'quantity_in_tier' => $remainingQuantity,
@@ -846,7 +846,7 @@ class DynamicPricingService
     public function applyWinningTreatment(PricingExperiment $experiment): array
     {
         if ($experiment->status !== 'completed') {
-            throw new \RuntimeException('只有已完成实验可以应用优胜方案');
+            throw new \RuntimeException(__('app.dynamic_pricing.dynamic_pricing_e43f377b93'));
         }
 
         $results = $experiment->results;
@@ -871,7 +871,7 @@ class DynamicPricingService
             // 实验组在转化率上显著优于对照组 → 应用 treatment_config
             $winningConfig = $experiment->treatment_config;
             $reason = sprintf(
-                '实验组转化率(%s%%) 显著优于对照组(%s%%), P值=%.4f, 提升幅度 %.2f%%',
+                __('app.dynamic_pricing.dynamic_pricing_22556f7b2b'),
                 $treatmentRate, $controlRate, $pValue,
                 $results['improvement']['conversion_rate'] ?? 0
             );
@@ -879,7 +879,7 @@ class DynamicPricingService
             // 实验组收入显著更高，且转化率未显著下降 → 应用 treatment_config
             $winningConfig = $experiment->treatment_config;
             $reason = sprintf(
-                '实验组平均收入(¥%s) 显著高于对照组(¥%s), 转化率未明显下降',
+                __('app.dynamic_pricing.dynamic_pricing_705f8833d0'),
                 number_format($treatmentRevenue, 2),
                 number_format($controlRevenue, 2)
             );
@@ -887,14 +887,14 @@ class DynamicPricingService
             // 实验组显著更差 → 保留对照组配置
             $winningConfig = $experiment->control_config;
             $reason = sprintf(
-                '实验组转化率(%s%%) 显著低于对照组(%s%%), P值=%.4f, 建议保留原定价',
+                __('app.dynamic_pricing.dynamic_pricing_8120af413b'),
                 $treatmentRate, $controlRate, $pValue
             );
         } else {
             // 无显著差异 → 建议延长实验或收集更多数据
             $winningConfig = null;
             $reason = sprintf(
-                '对照组(%s%%) 与实验组(%s%%) 无统计学显著差异(P值=%.4f), 建议增加样本量或延长实验',
+                __('app.dynamic_pricing.dynamic_pricing_b33be3cec5'),
                 $controlRate, $treatmentRate, $pValue
             );
         }
@@ -968,21 +968,21 @@ class DynamicPricingService
                 $rec['action'] = 'apply_treatment';
                 $rec['priority'] = $improvementRate > 20 ? 'high' : ($improvementRate > 10 ? 'medium' : 'low');
                 $rec['suggestion'] = sprintf(
-                    '实验组转化率提升 %s%%，建议将 treatment_config 应用为新的定价方案',
+                    __('app.dynamic_pricing.dynamic_pricing_bd6d0411ee'),
                     $improvementRate
                 );
             } elseif ($isSignificant && $improvementRate < 0) {
                 $rec['action'] = 'keep_control';
                 $rec['priority'] = 'high';
                 $rec['suggestion'] = sprintf(
-                    '实验组表现差于对照组 %s%%，建议放弃实验组方案',
+                    __('app.dynamic_pricing.dynamic_pricing_8ec59d4dd5'),
                     abs($improvementRate)
                 );
             } else {
                 $rec['action'] = 'need_more_data';
                 $rec['priority'] = 'low';
                 $rec['suggestion'] = sprintf(
-                    '无显著差异(P=%.4f)，建议增加样本量或调整实验参数后重试',
+                    __('app.dynamic_pricing.dynamic_pricing_437b71ab67'),
                     $results['significance']['p_value'] ?? 1
                 );
             }

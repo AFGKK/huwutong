@@ -54,7 +54,7 @@ class LicenseRestrictionController extends Controller
         $userId = $request->user()?->id;
         $restriction = $this->ipRestriction->saveConfig($licenseId, $data, $userId);
 
-        return ApiResponse::success(['config' => $restriction->fresh()], 'IP 范围限制已保存');
+        return ApiResponse::success(['config' => $restriction->fresh()], __('app.license_restriction.ip'));
     }
 
     /**
@@ -63,7 +63,7 @@ class LicenseRestrictionController extends Controller
     public function deleteIpRestriction(int $licenseId): JsonResponse
     {
         $this->ipRestriction->deleteConfig($licenseId);
-        return ApiResponse::success(null, 'IP 范围限制已删除');
+        return ApiResponse::success(null, __("app.license_restriction.msg_5b1ada98"));
     }
 
     /**
@@ -114,7 +114,7 @@ class LicenseRestrictionController extends Controller
         $userId = $request->user()?->id;
         $restriction = $this->geoFence->saveConfig($licenseId, $data, $userId);
 
-        return ApiResponse::success(['config' => $restriction->fresh()], '地理围栏已保存');
+        return ApiResponse::success(['config' => $restriction->fresh()], __('app.license_restriction.geofence_saved'));
     }
 
     /**
@@ -123,7 +123,7 @@ class LicenseRestrictionController extends Controller
     public function deleteGeoFence(int $licenseId): JsonResponse
     {
         $this->geoFence->deleteConfig($licenseId);
-        return ApiResponse::success(null, '地理围栏已删除');
+        return ApiResponse::success(null, __("app.license_restriction.msg_d3b70290"));
     }
 
     /**

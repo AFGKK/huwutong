@@ -302,14 +302,14 @@ class AutoDeliveryEngine
         $delivery = Delivery::with('order.items.sku')->findOrFail($deliveryId);
 
         if ($delivery->status === 'delivered') {
-            return ['success' => true, 'message' => '该订单项已交付'];
+            return ['success' => true, 'message' => __('app.auto_delivery_engine.already_delivered')];
         }
 
         $order = $delivery->order;
         $item = $order->items->firstWhere('id', $delivery->order_item_id);
 
         if (!$item) {
-            return ['success' => false, 'error' => '订单项不存在'];
+            return ['success' => false, 'error' => __('app.auto_delivery_engine.order_item_not_found')];
         }
 
         try {
@@ -338,7 +338,7 @@ class AutoDeliveryEngine
                     'delivered_at' => $delivery->delivered_at?->toIso8601String(),
                 ]);
                 $delivery->update(['webhook_pushed' => true, 'webhook_pushed_at' => now()]);
-                return ['success' => true, 'message' => 'Webhook 已重新推送'];
+                return ['success' => true, 'message' => __('app.auto_delivery_engine.webhook_resent')];
             } catch (\Throwable $e) {
                 return ['success' => false, 'error' => $e->getMessage()];
             }
@@ -346,11 +346,11 @@ class AutoDeliveryEngine
 
         if ($channel === 'email') {
             $email = $order->customer?->user?->email;
-            if (!$email) return ['success' => false, 'error' => '客户无邮箱'];
+            if (!$email) return ['success' => false, 'error' => __('app.auto_delivery_engine.customer_no_email')];
             try {
                 Mail::to($email)->send(new OrderDeliveryMail($order, $delivery));
                 $delivery->update(['email_sent' => true, 'email_sent_at' => now()]);
-                return ['success' => true, 'message' => '邮件已重新发送'];
+                return ['success' => true, 'message' => __('app.auto_delivery_engine.email_resent')];
             } catch (\Throwable $e) {
                 return ['success' => false, 'error' => $e->getMessage()];
             }
@@ -360,15 +360,15 @@ class AutoDeliveryEngine
             try {
                 $sent = $this->apiCallbackService->sendDeliveryCallback($order, $delivery);
                 if ($sent) {
-                    return ['success' => true, 'message' => 'API 回调已重新推送'];
+                    return ['success' => true, 'message' => __('app.auto_delivery_engine.api_callback_resent')];
                 }
-                return ['success' => false, 'error' => 'API 回调发送失败，请检查回调 URL 配置'];
+                return ['success' => false, 'error' => __('app.auto_delivery_engine.api_callback_failed')];
             } catch (\Throwable $e) {
                 return ['success' => false, 'error' => $e->getMessage()];
             }
         }
 
-        return ['success' => false, 'error' => "不支持的通知渠道: {$channel}"];
+        return ['success' => false, 'error' => __('app.auto_delivery_engine.unsupported_channel', ['channel' => $channel])];
     }
 
     /**

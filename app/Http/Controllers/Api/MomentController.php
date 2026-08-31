@@ -516,10 +516,10 @@ class MomentController extends Controller
         }
 
         if ($status === 'published') {
-            \App\Models\UserForumLevel::earn(auth()->id(), \App\Models\UserForumLevel::EXP_POST, '发布帖子');
+            \App\Models\UserForumLevel::earn(auth()->id(), \App\Models\UserForumLevel::EXP_POST, __('app.api.moment.exp_post'));
         }
 
-        return ApiResponse::success($post->load('user:id,name,avatar', 'tags'), $status === 'draft' ? '已保存到草稿箱' : ($status === 'scheduled' ? '已定时' : '已发布'), 201);
+        return ApiResponse::success($post->load('user:id,name,avatar', 'tags'), $status === 'draft' ? __('app.api.moment.draft_saved') : ($status === 'scheduled' ? __('app.api.moment.scheduled') : __('app.api.moment.published')), 201);
     }
     // ── 分类列表 ──
     public function categories(): JsonResponse
@@ -532,7 +532,7 @@ class MomentController extends Controller
     {
         $post = ForumPost::findOrFail($id);
         if ($post->user_id !== auth()->id()) {
-            return ApiResponse::error('FORBIDDEN', '只能编辑自己的帖子', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.moment.edit_own_only'), 403);
         }
 
         $validated = $request->validate([
@@ -557,7 +557,7 @@ class MomentController extends Controller
         if (array_key_exists('scheduled_at', $validated)) $post->scheduled_at = $validated['scheduled_at'];
         $post->save();
 
-        return ApiResponse::success($post->load('user:id,name,avatar', 'tags'), '已更新');
+        return ApiResponse::success($post->load('user:id,name,avatar', 'tags'), __('app.api.moment.updated'));
     }
 
     // ── 点赞/取消点赞 ──
@@ -573,7 +573,7 @@ class MomentController extends Controller
         if ($existing) {
             $existing->delete();
             $post->decrement('likes_count');
-            return ApiResponse::success(['liked' => false, 'likes_count' => $post->fresh()->likes_count], '已取消点赞');
+            return ApiResponse::success(['liked' => false, 'likes_count' => $post->fresh()->likes_count], __('app.api.moment.unliked'));
         }
 
         ForumLike::create([
@@ -583,9 +583,14 @@ class MomentController extends Controller
         ]);
         $post->increment('likes_count');
         if ($post->user_id !== auth()->id()) {
-            \App\Models\UserForumLevel::earn($post->user_id, \App\Models\UserForumLevel::EXP_LIKE_RECEIVED, '收到点赞');
+            \App\Models\UserForumLevel::earn($post->user_id, \App\Models\UserForumLevel::EXP_LIKE_RECEIVED, __('app.api.moment.exp_like'));
+            try {
+                app(\App\Services\UserChatNotificationService::class)->notifyLike((int) $myId, $post);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('moment like notify failed: '.$e->getMessage());
+            }
         }
-        return ApiResponse::success(['liked' => true, 'likes_count' => $post->fresh()->likes_count], '已点赞');
+        return ApiResponse::success(['liked' => true, 'likes_count' => $post->fresh()->likes_count], __('app.api.moment.liked'));
     }
 
     // ── 置顶/取消置顶（管理员） ──
@@ -596,7 +601,7 @@ class MomentController extends Controller
 
         // 检查管理员权限
         if (!$user || !$user->hasRole('admin')) {
-            return ApiResponse::error('无权操作', 403);
+            return ApiResponse::error(__('app.api.moment.forbidden'), 403);
         }
 
         $post->is_pinned = !$post->is_pinned;
@@ -604,7 +609,7 @@ class MomentController extends Controller
 
         return ApiResponse::success([
             'is_pinned' => $post->is_pinned,
-        ], $post->is_pinned ? '已置顶' : '已取消置顶');
+        ], $post->is_pinned ? __('app.api.moment.pinned') : __('app.api.moment.unpinned'));
     }
 
     // ── 管理后台：帖子列表 ──
@@ -647,7 +652,7 @@ class MomentController extends Controller
         $post->replies()->delete();
         $post->favorites()->delete();
         $post->delete();
-        return ApiResponse::success(null, '帖子已删除');
+        return ApiResponse::success(null, __('app.api.moment.post_deleted'));
     }
 
     // ── 表情反应 ──
@@ -671,7 +676,7 @@ class MomentController extends Controller
                 'reacted' => false,
                 'reaction' => $reaction,
                 'reactions' => $this->getReactionSummary($id),
-            ], '已取消反应');
+            ], __('app.api.moment.reaction_removed'));
         }
 
         // 先删除该用户对该帖的所有其他反应（一人一帖只能有一种反应）
@@ -691,7 +696,7 @@ class MomentController extends Controller
             'reacted' => true,
             'reaction' => $reaction,
             'reactions' => $this->getReactionSummary($id),
-        ], '已反应');
+        ], __('app.api.moment.reacted'));
     }
 
     /**
@@ -731,7 +736,7 @@ class MomentController extends Controller
 
         if ($existing) {
             $existing->delete();
-            return ApiResponse::success(['favorited' => false, 'favorites_count' => $post->fresh()->favorites()->count()], '已取消收藏');
+            return ApiResponse::success(['favorited' => false, 'favorites_count' => $post->fresh()->favorites()->count()], __('app.api.moment.unfavorited'));
         }
 
         $fav = \App\Models\ForumFavorite::create([
@@ -744,7 +749,7 @@ class MomentController extends Controller
             'favorited' => true,
             'favorites_count' => $post->fresh()->favorites()->count(),
             'collection_id' => $fav->collection_id,
-        ], '已收藏');
+        ], __('app.api.moment.favorited'));
     }
 
     // ── 评论帖子 ──
@@ -760,9 +765,15 @@ class MomentController extends Controller
         ]);
 
         $post->increment('replies_count');
-        \App\Models\UserForumLevel::earn(auth()->id(), \App\Models\UserForumLevel::EXP_COMMENT, '发表评论');
+        \App\Models\UserForumLevel::earn(auth()->id(), \App\Models\UserForumLevel::EXP_COMMENT, __('app.api.moment.exp_comment'));
 
-        return ApiResponse::success($reply->load('user:id,name,avatar'), '评论已发布', 201);
+        try {
+            app(\App\Services\UserChatNotificationService::class)->notifyComment((int) auth()->id(), $post, $reply);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('moment comment notify failed: '.$e->getMessage());
+        }
+
+        return ApiResponse::success($reply->load('user:id,name,avatar'), __('app.api.moment.comment_published'), 201);
     }
 
     // ── 回复评论（楼中楼） ──
@@ -781,7 +792,13 @@ class MomentController extends Controller
 
         $post->increment('replies_count');
 
-        return ApiResponse::success($reply->load('user:id,name,avatar'), '回复已发布', 201);
+        try {
+            app(\App\Services\UserChatNotificationService::class)->notifyComment((int) auth()->id(), $post, $reply, $parent);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('moment reply notify failed: '.$e->getMessage());
+        }
+
+        return ApiResponse::success($reply->load('user:id,name,avatar'), __('app.api.moment.reply_published'), 201);
     }
 
     // ── 获取评论列表 ──
@@ -805,12 +822,12 @@ class MomentController extends Controller
     {
         $post = ForumPost::findOrFail($id);
         if ($post->user_id !== auth()->id()) {
-            return ApiResponse::error('FORBIDDEN', '只能删除自己的', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.moment.delete_own_only'), 403);
         }
         $post->replies()->delete();
         ForumLike::where('likeable_type', ForumPost::class)->where('likeable_id', $id)->delete();
         $post->delete();
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.moment.deleted'));
     }
 
     // ── 付费帖子购买（与互物号文章付费逻辑一致） ──
@@ -818,7 +835,7 @@ class MomentController extends Controller
     {
         $post = ForumPost::findOrFail($id);
         if (!$post->is_paid) {
-            return ApiResponse::error('NOT_PAID', '该帖子非付费内容');
+            return ApiResponse::error('NOT_PAID', __('app.api.moment.not_paid'));
         }
 
         $userId = auth()->id();
@@ -826,7 +843,7 @@ class MomentController extends Controller
 
         // 已经购买过
         if ($post->isPurchasedBy($userId)) {
-            return ApiResponse::success(null, '已解锁');
+            return ApiResponse::success(null, __('app.api.moment.unlocked'));
         }
 
         // 作者本人免费
@@ -839,19 +856,19 @@ class MomentController extends Controller
                 'status'     => 'completed',
                 'paid_at'    => now(),
             ]);
-            return ApiResponse::success(null, '已解锁（作者免费）');
+            return ApiResponse::success(null, __('app.api.moment.unlocked_author'));
         }
 
         $price = (float) $post->price;
         if ($price <= 0) {
-            return ApiResponse::error('INVALID_PRICE', '价格无效', 400);
+            return ApiResponse::error('INVALID_PRICE', __('app.api.moment.invalid_price'), 400);
         }
 
         if ($post->price_type === 'points') {
             // 积分支付
-            $spent = \App\Models\UserPoint::spend($userId, $price, "付费解锁帖子: #{$post->id}");
+            $spent = \App\Models\UserPoint::spend($userId, $price, __('app.api.moment.spend_unlock', ['id' => $post->id]));
             if (!$spent) {
-                return ApiResponse::error('INSUFFICIENT_POINTS', '积分余额不足', 400);
+                return ApiResponse::error('INSUFFICIENT_POINTS', __('app.api.moment.insufficient_points'), 400);
             }
 
             // 给作者增加积分（扣除平台手续费 10%）
@@ -859,7 +876,7 @@ class MomentController extends Controller
             if ($authorId && $authorId !== $userId) {
                 $authorPoints = (int) floor($price * 0.9);
                 if ($authorPoints > 0) {
-                    \App\Models\UserPoint::earn($authorId, $authorPoints, "帖子被打赏: #{$post->id}");
+                    \App\Models\UserPoint::earn($authorId, $authorPoints, __('app.api.moment.earn_tip', ['id' => $post->id]));
                 }
             }
 
@@ -875,7 +892,7 @@ class MomentController extends Controller
             return ApiResponse::success([
                 'has_purchased' => true,
                 'content'       => $post->content,
-            ], '🎉 已解锁，积分已扣除');
+            ], __('app.api.moment.unlocked_spent'));
         }
 
         // 金额支付（返回支付信息，前端跳转支付）
@@ -928,13 +945,13 @@ class MomentController extends Controller
                 'status'      => 'pending',
                 'fee'         => $platformFee,
                 'net_amount'  => $netAmount,
-                'message'     => '订单已创建，请完成支付',
+                'message'     => __('app.api.moment.order_created_pay'),
                 // 接入支付网关后返回支付链接
                 // 'pay_url'  => $payUrl,
-            ], '订单已创建');
+            ], __('app.api.moment.order_created'));
         }
 
-        return ApiResponse::error('UNSUPPORTED_PRICE_TYPE', '不支持的支付类型', 400);
+        return ApiResponse::error('UNSUPPORTED_PRICE_TYPE', __('app.api.moment.unsupported_pay'), 400);
     }
 
     // ── 用户等级信息 ──
@@ -967,7 +984,7 @@ class MomentController extends Controller
         $request->validate(['file' => 'required|image|max:10240']);
         $path = $request->file('file')->store('moments', 'public');
         $url = asset('storage/' . $path);
-        return ApiResponse::success(['url' => $url], '上传成功');
+        return ApiResponse::success(['url' => $url], __('app.api.moment.upload_ok'));
     }
 
     // ── 上传视频 ──
@@ -976,7 +993,7 @@ class MomentController extends Controller
         $request->validate(['file' => 'required|mimes:mp4,webm,ogg,mov|max:102400']);
         $path = $request->file('file')->store('moments/videos', 'public');
         $url = asset('storage/' . $path);
-        return ApiResponse::success(['url' => $url], '上传成功');
+        return ApiResponse::success(['url' => $url], __('app.api.moment.upload_ok'));
     }
 
     // ── 转发帖子到聊天 ──
@@ -994,10 +1011,10 @@ class MomentController extends Controller
         $isParticipant = ConversationParticipant::where('conversation_id', $targetConvId)
             ->where('user_id', $myId)->whereNull('deleted_at')->exists();
         if (!$isParticipant) {
-            return ApiResponse::error('FORBIDDEN', '你不是目标会话的参与者', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.moment.not_chat_participant'), 403);
         }
 
-        $content = '🌐 广场帖子：' . ($post->user->name ?? '用户') . ' — ' . mb_substr($post->content, 0, 100);
+        $content = __('app.api.moment.share_chat_content', ['name' => $post->user->name ?? __('app.api.moment.user'), 'snippet' => mb_substr($post->content, 0, 100)]);
 
         $conv = UserConversation::findOrFail($targetConvId);
         $this->chatConversations->pushTextMessage(
@@ -1007,25 +1024,25 @@ class MomentController extends Controller
             [
                 'from_plaza' => true,
                 'plaza_post_id' => $post->id,
-                'plaza_author' => $post->user->name ?? '用户',
+                'plaza_author' => $post->user->name ?? __('app.api.moment.user'),
                 'plaza_content' => mb_substr($post->content, 0, 200),
             ],
             'plaza-' . uniqid()
         );
 
-        return ApiResponse::success(null, '已转发');
+        return ApiResponse::success(null, __('app.api.moment.forwarded'));
     }
 
     public function deleteComment(int $commentId): JsonResponse
     {
         $comment = ForumReply::findOrFail($commentId);
         if ($comment->user_id !== auth()->id()) {
-            return ApiResponse::error('FORBIDDEN', '无权删除', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.moment.forbidden_delete'), 403);
         }
         // 删除子回复
         ForumReply::where('parent_id', $commentId)->delete();
         $comment->delete();
-        return ApiResponse::success(null, '评论已删除');
+        return ApiResponse::success(null, __('app.api.moment.comment_deleted'));
     }
 
     // ── 关注用户 ──
@@ -1033,20 +1050,25 @@ class MomentController extends Controller
     {
         $myId = auth()->id();
         if ($myId === $targetUserId) {
-            return ApiResponse::error('SELF', '不能关注自己');
+            return ApiResponse::error('SELF', __('app.api.moment.cannot_follow_self'));
         }
         if (ForumFollow::where('user_id', $myId)->where('target_user_id', $targetUserId)->exists()) {
-            return ApiResponse::error('ALREADY', '已经关注了该用户');
+            return ApiResponse::error('ALREADY', __('app.api.moment.already_following'));
         }
         ForumFollow::create(['user_id' => $myId, 'target_user_id' => $targetUserId]);
-        return ApiResponse::success(null, '关注成功');
+        try {
+            app(\App\Services\UserChatNotificationService::class)->notifyFollow((int) $myId, (int) $targetUserId);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('moment follow notify failed: '.$e->getMessage());
+        }
+        return ApiResponse::success(null, __('app.api.moment.follow_ok'));
     }
 
     // ── 取消关注用户 ──
     public function unfollowUser(int $targetUserId): JsonResponse
     {
         ForumFollow::where('user_id', auth()->id())->where('target_user_id', $targetUserId)->delete();
-        return ApiResponse::success(null, '已取消关注');
+        return ApiResponse::success(null, __('app.api.moment.unfollowed'));
     }
 
     // ── 关注状态 ──
@@ -1186,7 +1208,7 @@ class MomentController extends Controller
 
         // 检查是否已投过
         if (ForumPollVote::where('poll_id', $poll->id)->where('user_id', $myId)->exists()) {
-            return ApiResponse::error('ALREADY_VOTED', '你已经投过票了');
+            return ApiResponse::error('ALREADY_VOTED', __('app.api.moment.already_voted'));
         }
 
         ForumPollVote::create([
@@ -1214,7 +1236,7 @@ class MomentController extends Controller
             'total_votes' => $totalVotes,
             'options' => $options,
             'voted' => true,
-        ], '投票成功');
+        ], __('app.api.moment.vote_ok'));
     }
 
     // ── 收藏夹管理 ──
@@ -1267,7 +1289,7 @@ class MomentController extends Controller
             'id' => $collection->id,
             'name' => $collection->name,
             'icon' => $collection->icon,
-        ], '收藏夹已创建');
+        ], __('app.api.moment.collection_created'));
     }
 
     // 更新收藏夹
@@ -1280,7 +1302,7 @@ class MomentController extends Controller
         ]);
 
         $collection->update($validated);
-        return ApiResponse::success($collection, '已更新');
+        return ApiResponse::success($collection, __('app.api.moment.updated'));
     }
 
     // 删除收藏夹（收藏不会丢失，变为未分类）
@@ -1289,7 +1311,7 @@ class MomentController extends Controller
         $collection = ForumFavoriteCollection::where('user_id', auth()->id())->findOrFail($id);
         ForumFavorite::where('collection_id', $id)->update(['collection_id' => null]);
         $collection->delete();
-        return ApiResponse::success(null, '收藏夹已删除');
+        return ApiResponse::success(null, __('app.api.moment.collection_deleted'));
     }
 
     // 移动收藏到收藏夹
@@ -1307,7 +1329,7 @@ class MomentController extends Controller
 
         $fav->update(['collection_id' => $validated['collection_id']]);
 
-        return ApiResponse::success(['collection_id' => $fav->collection_id], '已移动');
+        return ApiResponse::success(['collection_id' => $fav->collection_id], __('app.api.moment.moved'));
     }
 
     // 获取用户收藏的帖子（可按收藏夹筛选）
@@ -1529,14 +1551,14 @@ class MomentController extends Controller
                 'report_id' => $report->id,
                 'action' => $result['action'],
                 'message' => $result['message'],
-            ], '举报已提交' . ($result['action'] !== 'skipped' ? '，AI 已自动处理' : ''));
+            ], $result['action'] !== 'skipped' ? __('app.api.moment.report_submitted_ai') : __('app.api.moment.report_submitted'));
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('[Moment] 举报AI审核异常: ' . $e->getMessage());
             return ApiResponse::success([
                 'report_id' => $report->id,
                 'action' => 'pending',
-                'message' => '举报已提交，等待人工审核',
-            ], '举报已提交');
+                'message' => __('app.api.moment.report_pending'),
+            ], __('app.api.moment.report_submitted'));
         }
     }
 

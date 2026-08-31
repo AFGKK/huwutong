@@ -65,7 +65,7 @@ class PreSaleController extends Controller
         }
 
         $campaign = $this->preSaleService->createCampaign($validator->validated());
-        return ApiResponse::success($campaign, 201, '预售/众筹活动已创建');
+        return ApiResponse::success($campaign, 201, __('app.api.pre_sale.campaign_created'));
     }
 
     public function update(Request $request, int $id)
@@ -90,14 +90,14 @@ class PreSaleController extends Controller
         }
 
         $campaign = $this->preSaleService->updateCampaign($id, $validator->validated());
-        return ApiResponse::success($campaign, 200, '已更新');
+        return ApiResponse::success($campaign, 200, __('app.api.pre_sale.updated'));
     }
 
     public function publish(int $id)
     {
         try {
             $campaign = $this->preSaleService->publishCampaign($id);
-            return ApiResponse::success($campaign, 200, '活动已发布');
+            return ApiResponse::success($campaign, 200, __('app.api.pre_sale.campaign_published'));
         } catch (\RuntimeException $e) {
             return ApiResponse::success(['message' => $e->getMessage()], 400);
         }
@@ -107,7 +107,7 @@ class PreSaleController extends Controller
     {
         try {
             $campaign = $this->preSaleService->cancelCampaign($id, $request->input('reason'));
-            return ApiResponse::success($campaign, 200, '活动已取消');
+            return ApiResponse::success($campaign, 200, __('app.api.pre_sale.campaign_cancelled'));
         } catch (\RuntimeException $e) {
             return ApiResponse::success(['message' => $e->getMessage()], 400);
         }
@@ -123,7 +123,7 @@ class PreSaleController extends Controller
     {
         try {
             $campaign = $this->preSaleService->completeCampaign($id);
-            return ApiResponse::success($campaign, 200, '活动已完成');
+            return ApiResponse::success($campaign, 200, __('app.api.pre_sale.campaign_completed'));
         } catch (\RuntimeException $e) {
             return ApiResponse::success(['message' => $e->getMessage()], 400);
         }
@@ -138,7 +138,7 @@ class PreSaleController extends Controller
     {
         try {
             $this->preSaleService->deleteCampaign($id);
-            return ApiResponse::success(['message' => '已删除']);
+            return ApiResponse::success(['message' => __('app.api.pre_sale.deleted')]);
         } catch (\RuntimeException $e) {
             return ApiResponse::success(['message' => $e->getMessage()], 400);
         }
@@ -174,7 +174,7 @@ class PreSaleController extends Controller
 
         try {
             $order = $this->preSaleService->placeOrder($data);
-            return ApiResponse::success($order, 201, '参与成功');
+            return ApiResponse::success($order, 201, __('app.api.pre_sale.order_placed'));
         } catch (\RuntimeException $e) {
             return ApiResponse::success(['message' => $e->getMessage()], 400);
         }
@@ -184,7 +184,7 @@ class PreSaleController extends Controller
     {
         try {
             $order = $this->preSaleService->payDeposit($orderId, $request->input('payment_method'));
-            return ApiResponse::success($order, 200, '定金已支付');
+            return ApiResponse::success($order, 200, __('app.api.pre_sale.deposit_paid'));
         } catch (\RuntimeException $e) {
             return ApiResponse::success(['message' => $e->getMessage()], 400);
         }
@@ -194,7 +194,7 @@ class PreSaleController extends Controller
     {
         try {
             $order = $this->preSaleService->payFinal($orderId, $request->input('payment_method'));
-            return ApiResponse::success($order, 200, '尾款已支付');
+            return ApiResponse::success($order, 200, __('app.api.pre_sale.final_paid'));
         } catch (\RuntimeException $e) {
             return ApiResponse::success(['message' => $e->getMessage()], 400);
         }
@@ -211,7 +211,7 @@ class PreSaleController extends Controller
         }
 
         $order = $this->preSaleService->updateFulfillmentStatus($orderId, $request->input('status'));
-        return ApiResponse::success($order, 200, '发货状态已更新');
+        return ApiResponse::success($order, 200, __('app.api.pre_sale.fulfillment_updated'));
     }
 
     // ─── 活动更新 ───
@@ -230,7 +230,7 @@ class PreSaleController extends Controller
         }
 
         $update = $this->preSaleService->postUpdate($campaignId, $validator->validated());
-        return ApiResponse::success($update, 201, '更新已发布');
+        return ApiResponse::success($update, 201, __('app.api.pre_sale.update_published'));
     }
 
     public function updates(int $campaignId)
@@ -241,7 +241,7 @@ class PreSaleController extends Controller
     public function deleteUpdate(int $updateId)
     {
         $this->preSaleService->deleteUpdate($updateId);
-        return ApiResponse::success(['message' => '更新已删除']);
+        return ApiResponse::success(['message' => __('app.api.pre_sale.update_deleted')]);
     }
 
     // ─── 公开API ───

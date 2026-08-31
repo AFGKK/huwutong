@@ -45,7 +45,7 @@ class PublicKeyVersionController extends Controller
     {
         $detail = $this->keyVersionService->getVersionDetail($keyVersion);
         if (! $detail) {
-            return ApiResponse::notFound('公钥版本不存在');
+            return ApiResponse::notFound(__("app.public_key_version.msg_2cce595e"));
         }
 
         return ApiResponse::success($detail);
@@ -76,7 +76,7 @@ class PublicKeyVersionController extends Controller
             'public_key' => $version->public_key,
             'expires_at' => $version->expires_at?->toIso8601String(),
             'compat_window_days' => PublicKeyVersionService::DEFAULT_COMPAT_WINDOW_DAYS,
-        ], '新公钥版本已创建，旧版本进入 ' . PublicKeyVersionService::DEFAULT_COMPAT_WINDOW_DAYS . ' 天兼容窗口期');
+        ], __('app.common.new_key_created', ['days' => PublicKeyVersionService::DEFAULT_COMPAT_WINDOW_DAYS]));
     }
 
     /**
@@ -90,10 +90,10 @@ class PublicKeyVersionController extends Controller
 
         $ok = $this->keyVersionService->revokeVersion($keyVersion, $validated['reason']);
         if (! $ok) {
-            return ApiResponse::notFound('公钥版本不存在');
+            return ApiResponse::notFound(__('app.public_key_version.version_not_found'));
         }
 
-        return ApiResponse::success(null, '公钥版本已吊销');
+        return ApiResponse::success(null, __("app.public_key_version.msg_99d5be41"));
     }
 
     /**

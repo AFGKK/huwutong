@@ -58,7 +58,7 @@ class UsageMeterController extends Controller
         return response()->json([
             'success' => true,
             'data'    => $record,
-            'message' => '用量记录成功',
+            'message' => __('app.controller_compat.usage_meter_msg_61'),
         ], 201);
     }
 
@@ -246,7 +246,7 @@ class UsageMeterController extends Controller
         return response()->json([
             'success' => true,
             'data'    => $quota->load(['license:id,license_key,name', 'product:id,name']),
-            'message' => '配额规则已保存',
+            'message' => __('app.controller_compat.usage_meter_msg_249'),
         ]);
     }
 
@@ -262,7 +262,7 @@ class UsageMeterController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '配额规则已删除',
+            'message' => __('app.controller_compat.usage_meter_msg_265'),
         ]);
     }
 

@@ -67,7 +67,7 @@ class ResolveDomainTenant
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
                 'success' => false,
-                'message' => '该域名未绑定到任何有效的租户',
+                'message' => __('app.middleware.domain_not_bound_to_tenant'),
             ], 404);
         }
 

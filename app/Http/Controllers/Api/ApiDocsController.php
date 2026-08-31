@@ -54,11 +54,11 @@ class ApiDocsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_docs.validation_failed'), $validator->errors()->toArray());
         }
 
         $endpoint = $this->apiDocs->createEndpoint($validator->validated());
-        return ApiResponse::created($endpoint, '端点已创建');
+        return ApiResponse::created($endpoint, __('app.api.api_docs.endpoint_created'));
     }
 
     public function updateEndpoint(Request $request, int $id): JsonResponse
@@ -82,18 +82,18 @@ class ApiDocsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_docs.validation_failed'), $validator->errors()->toArray());
         }
 
         $endpoint = $this->apiDocs->updateEndpoint($endpoint, $validator->validated());
-        return ApiResponse::success($endpoint, '端点已更新');
+        return ApiResponse::success($endpoint, __('app.api.api_docs.endpoint_updated'));
     }
 
     public function deleteEndpoint(int $id): JsonResponse
     {
         $endpoint = ApiDocEndpoint::findOrFail($id);
         $this->apiDocs->deleteEndpoint($endpoint);
-        return ApiResponse::success(null, '端点已删除');
+        return ApiResponse::success(null, __('app.api.api_docs.endpoint_deleted'));
     }
 
     // ─── 标签 ───
@@ -131,17 +131,17 @@ class ApiDocsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_docs.validation_failed'), $validator->errors()->toArray());
         }
 
         $snippet = $this->apiDocs->addCodeSnippet($validator->validated());
-        return ApiResponse::created($snippet, '代码片段已添加');
+        return ApiResponse::created($snippet, __('app.api.api_docs.snippet_added'));
     }
 
     public function deleteSnippet(int $id): JsonResponse
     {
         $this->apiDocs->deleteCodeSnippet($id);
-        return ApiResponse::success(null, '代码片段已删除');
+        return ApiResponse::success(null, __('app.api.api_docs.snippet_deleted'));
     }
 
     // ─── 测试控制台 ───
@@ -157,7 +157,7 @@ class ApiDocsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_docs.validation_failed'), $validator->errors()->toArray());
         }
 
         $result = $this->apiDocs->sendTestRequest(
@@ -165,7 +165,7 @@ class ApiDocsController extends Controller
             $validator->validated()
         );
 
-        return ApiResponse::success($result, '请求已发送');
+        return ApiResponse::success($result, __('app.api.api_docs.request_sent'));
     }
 
     public function testHistory(Request $request): JsonResponse
@@ -188,16 +188,16 @@ class ApiDocsController extends Controller
         $supported = ['php', 'python', 'javascript', 'go', 'java', 'ruby'];
 
         if (!in_array($language, $supported)) {
-            return ApiResponse::error('LANGUAGE_NOT_SUPPORTED', "不支持的编程语言: {$language}", 422);
+            return ApiResponse::error('LANGUAGE_NOT_SUPPORTED', __('app.api.api_docs.lang_unsupported', ['language' => $language]), 422);
         }
 
         $endpointIds = $request->input('endpoint_ids', []);
 
         try {
             $result = $this->apiDocs->generateSdkClient($language, $endpointIds);
-            return ApiResponse::success($result, 'SDK 已生成');
+            return ApiResponse::success($result, __('app.api.api_docs.sdk_generated'));
         } catch (\Exception $e) {
-            return ApiResponse::error('SDK_GENERATION_FAILED', 'SDK 生成失败: ' . $e->getMessage(), 500);
+            return ApiResponse::error('SDK_GENERATION_FAILED', __('app.api.api_docs.sdk_failed', ['error' => $e->getMessage()]), 500);
         }
     }
 
@@ -222,11 +222,11 @@ class ApiDocsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_docs.validation_failed'), $validator->errors()->toArray());
         }
 
         $changelog = $this->apiDocs->createChangelog($validator->validated());
-        return ApiResponse::created($changelog, '变更日志已创建');
+        return ApiResponse::created($changelog, __('app.api.api_docs.changelog_created'));
     }
 
     // ─── 版本差异对比 ───
@@ -239,7 +239,7 @@ class ApiDocsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_docs.validation_failed'), $validator->errors()->toArray());
         }
 
         $diff = $this->apiDocs->diffVersions(
@@ -327,10 +327,10 @@ class ApiDocsController extends Controller
 
             return ApiResponse::success([
                 'created' => $created,
-                'message' => "扫描完成，共处理 {$created} 个端点",
+                'message' => __('app.api.api_docs.scan_done', ['count' => $created]),
             ]);
         } catch (\Exception $e) {
-            return ApiResponse::error('SCAN_FAILED', '扫描失败: ' . $e->getMessage(), 500);
+            return ApiResponse::error('SCAN_FAILED', __('app.api.api_docs.scan_failed', ['error' => $e->getMessage()]), 500);
         }
     }
 
@@ -346,7 +346,7 @@ class ApiDocsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_docs.validation_failed'), $validator->errors()->toArray());
         }
 
         return ApiResponse::success(
@@ -377,7 +377,7 @@ class ApiDocsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_docs.validation_failed'), $validator->errors()->toArray());
         }
 
         $endpoint = ApiDocEndpoint::findOrFail($request->input('endpoint_id'));
@@ -397,7 +397,7 @@ class ApiDocsController extends Controller
             }
         }
 
-        return ApiResponse::success($saved, '代码片段已自动生成');
+        return ApiResponse::success($saved, __('app.api.api_docs.snippets_generated'));
     }
 
     // ─── 批量更新端点状态 ───
@@ -411,13 +411,13 @@ class ApiDocsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_docs.validation_failed'), $validator->errors()->toArray());
         }
 
         $count = ApiDocEndpoint::whereIn('id', $request->input('endpoint_ids'))
             ->update(['status' => $request->input('status')]);
 
-        return ApiResponse::success(['updated' => $count], "已更新 {$count} 个端点状态");
+        return ApiResponse::success(['updated' => $count], __('app.api.api_docs.status_updated_n', ['count' => $count]));
     }
 
     // ─── 端点统计 ───
@@ -429,7 +429,7 @@ class ApiDocsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_docs.validation_failed'), $validator->errors()->toArray());
         }
 
         $endpointId = $request->input('endpoint_id');
@@ -465,27 +465,27 @@ class ApiDocsController extends Controller
             $result = $this->apiDocs->autoGenerateChangelog($request->input('api_version_id'));
 
             if ($result['status'] === 'snapshot_created') {
-                return ApiResponse::success($result, '已创建首个端点快照');
+                return ApiResponse::success($result, __('app.api.api_docs.first_snapshot'));
             }
 
-            $message = '自动检测完成';
+            $message = __('app.api.api_docs.auto_detect_done');
             if ($result['changelogs_created'] > 0) {
                 $changes = $result['changes'];
                 $parts = [];
                 foreach (['added', 'changed', 'deprecated', 'removed', 'reactivated'] as $key) {
                     if (($changes[$key] ?? 0) > 0) {
-                        $labels = ['added' => '新增', 'changed' => '修改', 'deprecated' => '弃用', 'removed' => '移除', 'reactivated' => '重新激活'];
+                        $labels = ['added' => __('app.api.api_docs.detect_label_added'), 'changed' => __('app.api.api_docs.detect_label_changed'), 'deprecated' => __('app.api.api_docs.detect_label_deprecated'), 'removed' => __('app.api.api_docs.detect_label_removed'), 'reactivated' => __('app.api.api_docs.detect_label_reactivated')];
                         $parts[] = "{$labels[$key]} {$changes[$key]}";
                     }
                 }
-                $message = '检测完成：' . implode('，', $parts) . '，共生成 ' . $result['changelogs_created'] . ' 条变更日志';
+                $message = __('app.api.api_docs.detect_summary', ['parts' => implode('，', $parts), 'count' => $result['changelogs_created']]);
             } else {
-                $message = '未检测到端点变更，API 端点与上次快照一致';
+                $message = __('app.api.api_docs.detect_unchanged');
             }
 
             return ApiResponse::success($result, $message);
         } catch (\Exception $e) {
-            return ApiResponse::error('AUTO_DETECT_FAILED', '自动检测失败: ' . $e->getMessage(), 500);
+            return ApiResponse::error('AUTO_DETECT_FAILED', __('app.api.api_docs.auto_detect_failed', ['error' => $e->getMessage()]), 500);
         }
     }
 
@@ -504,7 +504,7 @@ class ApiDocsController extends Controller
 
         $count = $this->apiDocs->createSnapshot($request->input('api_version_id'), $label);
 
-        return ApiResponse::success(['count' => $count, 'label' => $label], "已创建 {$count} 个端点快照");
+        return ApiResponse::success(['count' => $count, 'label' => $label], __('app.api.api_docs.snapshots_created', ['count' => $count]));
     }
 
     /**
@@ -563,12 +563,12 @@ class ApiDocsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_docs.validation_failed'), $validator->errors()->toArray());
         }
 
         $endpoint->update(['translations' => $validator->validated()['translations']]);
 
-        return ApiResponse::success($endpoint->fresh(), '翻译已更新');
+        return ApiResponse::success($endpoint->fresh(), __('app.api.api_docs.translation_updated'));
     }
 
     /**
@@ -585,7 +585,7 @@ class ApiDocsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_docs.validation_failed'), $validator->errors()->toArray());
         }
 
         $imported = 0;
@@ -602,7 +602,7 @@ class ApiDocsController extends Controller
             $imported++;
         }
 
-        return ApiResponse::success(['imported' => $imported], "已导入 {$imported} 条翻译");
+        return ApiResponse::success(['imported' => $imported], __('app.api.api_docs.translations_imported', ['count' => $imported]));
     }
 
     /**

@@ -111,7 +111,7 @@ class EmailDashboardController extends Controller
             ->find($id);
 
         if (! $log) {
-            return ApiResponse::error('NOT_FOUND', '邮件记录不存在', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.email_dashboard.record_not_found'), 404);
         }
 
         return ApiResponse::success($log);

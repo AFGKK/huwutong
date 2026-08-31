@@ -91,7 +91,7 @@ class DeviceController extends Controller
             'is_blacklisted' => $request->boolean('blacklist', false),
         ]);
 
-        return ApiResponse::success($device->fresh(), '设备已停用');
+        return ApiResponse::success($device->fresh(), __('app.device.device_deactivated'));
     }
 
     /**
@@ -159,7 +159,7 @@ class DeviceController extends Controller
             $count++;
         }
 
-        return ApiResponse::success(['affected' => $count], "已处理 {$count} 台设备");
+        return ApiResponse::success(['affected' => $count], __("app.device.msg_dab6e2fb"));
     }
 
     // ═══════════════ 生命周期画像 (M3-24) ═══════════════
@@ -211,7 +211,7 @@ class DeviceController extends Controller
             'event' => $event,
             'new_trust_score' => $device->fresh()->trust_score,
             'new_stage' => $device->fresh()->lifecycle_stage,
-        ], '信任分已调整');
+        ], __('app.device.trust_score_adjusted'));
     }
 
     /**
@@ -227,7 +227,7 @@ class DeviceController extends Controller
 
         $event = $this->lifecycleService->markSuspicious($device, $data['reason'], $request->user()->id);
 
-        return ApiResponse::success($event->load('device'), '设备已标记为可疑');
+        return ApiResponse::success($event->load('device'), __('app.device.device_marked_suspicious'));
     }
 
     /**
@@ -243,7 +243,7 @@ class DeviceController extends Controller
 
         $event = $this->lifecycleService->retireDevice($device, $data['reason'], $request->user()->id);
 
-        return ApiResponse::success($event->load('device'), '设备已废弃');
+        return ApiResponse::success($event->load('device'), __('app.device.device_retired'));
     }
 
     /**

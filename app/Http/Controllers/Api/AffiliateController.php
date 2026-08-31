@@ -77,7 +77,7 @@ class AffiliateController extends Controller
 
         $campaign = $this->affiliateService->createCampaign($validated, $request->user()->id);
 
-        return ApiResponse::success($this->formatCampaign($campaign), '推广活动已创建');
+        return ApiResponse::success($this->formatCampaign($campaign), __('app.affiliate.campaign_created'));
     }
 
     /**
@@ -116,7 +116,7 @@ class AffiliateController extends Controller
         ]);
 
         $campaign->update($validated);
-        return ApiResponse::success($this->formatCampaign($campaign->fresh()), '活动已更新');
+        return ApiResponse::success($this->formatCampaign($campaign->fresh()), __('app.affiliate.campaign_updated'));
     }
 
     /**
@@ -127,7 +127,7 @@ class AffiliateController extends Controller
     public function refreshCampaign(AffiliateCampaign $campaign): JsonResponse
     {
         $result = $this->affiliateService->refreshCampaignStats($campaign);
-        return ApiResponse::success($this->formatCampaign($result), '统计已刷新');
+        return ApiResponse::success($this->formatCampaign($result), __('app.affiliate.stats_refreshed'));
     }
 
     // ─── 推广素材管理 ───
@@ -162,7 +162,7 @@ class AffiliateController extends Controller
 
         $creative = AffiliateCreative::create($validated);
 
-        return ApiResponse::success($creative, '推广素材已创建');
+        return ApiResponse::success($creative, __("app.affiliate.msg_30329d46"));
     }
 
     /**
@@ -198,13 +198,13 @@ class AffiliateController extends Controller
             ->exists();
 
         if ($existing) {
-            return ApiResponse::error('ALREADY_EXISTS', '该关系已存在', 400);
+            return ApiResponse::error('ALREADY_EXISTS', __("app.affiliate.msg_7ac2ed61"), 400);
         }
 
         $tree = $this->affiliateService->buildAffiliateTree($parent, $child);
         $child->update(['parent_agent_id' => $parent->id, 'referral_source' => 'affiliate']);
 
-        return ApiResponse::success($tree, '推广关系已建立');
+        return ApiResponse::success($tree, __("app.affiliate.msg_25b50b69"));
     }
 
     /**
@@ -252,7 +252,7 @@ class AffiliateController extends Controller
 
         $click = $this->affiliateService->recordClick($validated);
 
-        return ApiResponse::success($click, '点击已记录');
+        return ApiResponse::success($click, __("app.affiliate.msg_504f2b9b"));
     }
 
     /**
@@ -277,7 +277,7 @@ class AffiliateController extends Controller
         return ApiResponse::success([
             'attributed' => ! is_null($result),
             'click' => $result,
-        ], $result ? '转化已归因' : '未找到匹配点击');
+        ], $result ? __('app.affiliate.conversion_attributed') : __('app.affiliate.no_matching_click'));
     }
 
     // ─── 数据看板 ───

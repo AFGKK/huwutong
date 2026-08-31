@@ -182,7 +182,7 @@ class WatermarkTamperService
             return [
                 'passed' => false,
                 'reason' => 'no_hash',
-                'message' => 'License 尚未设置完整性哈希',
+                'message' => __('app.api.service_watermark_tamper.no_integrity_hash'),
             ];
         }
 
@@ -190,14 +190,14 @@ class WatermarkTamperService
             return [
                 'passed' => false,
                 'reason' => 'hash_mismatch',
-                'message' => '完整性哈希不匹配，License 数据可能已被篡改',
+                'message' => __('app.api.service_watermark_tamper.integrity_mismatch'),
             ];
         }
 
         return [
             'passed' => true,
             'reason' => 'ok',
-            'message' => '完整性验证通过',
+            'message' => __('app.api.service_watermark_tamper.integrity_ok'),
         ];
     }
 
@@ -448,44 +448,44 @@ class WatermarkTamperService
     {
         return [
             [
-                'rule_name' => '连续签名验证失败',
+                'rule_name' => __('app.watermark_tamper.watermark_tamper_a6f2ec7117'),
                 'rule_type' => 'signature',
                 'conditions' => ['type' => 'consecutive_failures', 'count' => 3],
                 'actions' => [['type' => 'alert', 'channel' => 'database']],
                 'severity' => 'high',
                 'cooldown_seconds' => 600,
                 'threshold' => 3,
-                'description' => '同一 License 连续 3 次签名验证失败时触发告警',
+                'description' => __('app.watermark_tamper.watermark_tamper_055c7085ef'),
             ],
             [
-                'rule_name' => '水印不匹配告警',
+                'rule_name' => __('app.watermark_tamper.watermark_tamper_bcdbf19749'),
                 'rule_type' => 'watermark',
                 'conditions' => ['type' => 'mismatch'],
                 'actions' => [['type' => 'alert', 'channel' => 'database'], ['type' => 'notify_admin']],
                 'severity' => 'critical',
                 'cooldown_seconds' => 300,
                 'threshold' => 1,
-                'description' => '水印验证不匹配时触发告警并通知管理员',
+                'description' => __('app.watermark_tamper.watermark_tamper_68684e33a4'),
             ],
             [
-                'rule_name' => '时间回滚检测',
+                'rule_name' => __('app.watermark_tamper.watermark_tamper_9e8653190f'),
                 'rule_type' => 'signature',
                 'conditions' => ['type' => 'time_rollback'],
                 'actions' => [['type' => 'alert', 'channel' => 'database'], ['type' => 'suspend_license']],
                 'severity' => 'critical',
                 'cooldown_seconds' => 600,
                 'threshold' => 2,
-                'description' => '检测到系统时间回滚时自动暂停 License',
+                'description' => __('app.watermark_tamper.watermark_tamper_9e7c37f1e4'),
             ],
             [
-                'rule_name' => '异常设备激活模式',
+                'rule_name' => __('app.watermark_tamper.watermark_tamper_a166b09a45'),
                 'rule_type' => 'device',
                 'conditions' => ['type' => 'burst_activation'],
                 'actions' => [['type' => 'alert', 'channel' => 'database'], ['type' => 'notify_admin']],
                 'severity' => 'high',
                 'cooldown_seconds' => 3600,
                 'threshold' => 10,
-                'description' => '同一 License 短时间内大量新设备激活',
+                'description' => __('app.watermark_tamper.watermark_tamper_3db0ff8e19'),
             ],
         ];
     }
@@ -615,7 +615,7 @@ class WatermarkTamperService
     {
         $watermark = $this->extractWatermark($license);
         if (!$watermark) {
-            return ['found' => false, 'message' => '未找到水印'];
+            return ['found' => false, 'message' => __('app.api.service_watermark_tamper.watermark_not_found')];
         }
 
         // 更新提取次数
@@ -880,7 +880,7 @@ class WatermarkTamperService
     {
         $watermark = LicenseWatermark::where('watermark_key', $watermarkKey)->first();
         if (!$watermark) {
-            return ['found' => false, 'message' => '水印不存在'];
+            return ['found' => false, 'message' => __('app.api.service_watermark_tamper.watermark_missing')];
         }
 
         $results = [];
@@ -955,7 +955,7 @@ class WatermarkTamperService
         $data = $watermark->watermark_data ?? [];
 
         if (empty($data) || $watermark->algorithm !== 'forensic_stealth') {
-            return ['decodable' => false, 'message' => '非暗水印格式'];
+            return ['decodable' => false, 'message' => __('app.api.service_watermark_tamper.not_blind_watermark')];
         }
 
         $signature = $data['signature'] ?? '';

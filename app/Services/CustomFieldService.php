@@ -319,16 +319,16 @@ class CustomFieldService
     public function fieldTypeOptions(): array
     {
         $labels = [
-            'text' => '单行文本',
-            'textarea' => '多行文本',
-            'number' => '数字',
-            'select' => '下拉单选',
-            'multi_select' => '下拉多选',
-            'date' => '日期',
-            'boolean' => '开关/布尔',
-            'url' => 'URL 链接',
-            'email' => '邮箱地址',
-            'color' => '颜色',
+            'text' => __('app.api.service_custom_field.text'),
+            'textarea' => __('app.api.service_custom_field.textarea'),
+            'number' => __('app.api.service_custom_field.number'),
+            'select' => __('app.api.service_custom_field.select'),
+            'multi_select' => __('app.api.service_custom_field.multi_select'),
+            'date' => __('app.api.service_custom_field.date'),
+            'boolean' => __('app.api.service_custom_field.boolean'),
+            'url' => __('app.api.service_custom_field.url'),
+            'email' => __('app.api.service_custom_field.email'),
+            'color' => __('app.api.service_custom_field.color'),
         ];
 
         return collect(self::FIELD_TYPES)->map(fn($t) => [
@@ -344,8 +344,8 @@ class CustomFieldService
     {
         $labels = [
             'license' => 'License',
-            'customer' => '客户',
-            'product' => '产品',
+            'customer' => __('app.api.service_custom_field.customer'),
+            'product' => __('app.api.service_custom_field.product'),
         ];
 
         return collect(self::ENTITY_TYPES)->map(fn($t) => [

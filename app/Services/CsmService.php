@@ -36,19 +36,19 @@ class CsmService
 
         if ($isExpired) {
             $subscriptionScore = 0;
-            $subDesc = '所有订阅已过期';
+            $subDesc = __('app.csm_service.all_subscriptions_expired');
         } elseif ($isInGrace) {
             $subscriptionScore = 25;
-            $subDesc = '订阅在宽限期内';
+            $subDesc = __('app.csm_service.subscription_in_grace');
         } elseif ($isTrial) {
             $subscriptionScore = 60;
-            $subDesc = '试用期';
+            $subDesc = __('app.csm_service.subscription_trial');
         } elseif ($hasActiveSub) {
             $subscriptionScore = 100;
-            $subDesc = '订阅活跃';
+            $subDesc = __('app.csm_service.subscription_active');
         } else {
             $subscriptionScore = 50;
-            $subDesc = '无活跃订阅';
+            $subDesc = __('app.csm_service.subscription_inactive');
         }
         $weightedScore += $subscriptionScore * 25;
         $totalWeight += 25;
@@ -61,10 +61,10 @@ class CsmService
             $activeLicenses = $licenses->filter(fn($l) => $l->status === 'active')->count();
             $activationRate = round(($activeLicenses / $totalLicenses) * 100);
             $licenseScore = min(100, $activationRate);
-            $licenseDesc = "{$activeLicenses}/{$totalLicenses} 活跃";
+            $licenseDesc = __('app.csm_service.license_active_count', ['active' => $activeLicenses, 'total' => $totalLicenses]);
         } else {
             $licenseScore = 0;
-            $licenseDesc = '无License';
+            $licenseDesc = __('app.csm_service.no_license');
         }
         $weightedScore += $licenseScore * 20;
         $totalWeight += 20;
@@ -83,10 +83,10 @@ class CsmService
                 'critical' => 5,
                 default => 50,
             };
-            $churnDesc = "流失风险: {$prediction->risk_level}, 概率: {$prediction->churn_probability}";
+            $churnDesc = __('app.csm_service.churn_risk_label', ['level' => $prediction->risk_level, 'probability' => $prediction->churn_probability]);
         } else {
             $churnScore = 70; // 无数据时偏保守
-            $churnDesc = '无流失预测数据';
+            $churnDesc = __('app.csm_service.no_churn_data');
         }
         $weightedScore += $churnScore * 20;
         $totalWeight += 20;
@@ -102,10 +102,10 @@ class CsmService
             $paymentRate = round(($paidCount / $totalInvoiceCount) * 100);
             $overdueCount = $invoices->filter(fn($inv) => $inv->status === 'overdue')->count();
             $paymentScore = max(0, min(100, $paymentRate - ($overdueCount * 15)));
-            $paymentDesc = "支付率 {$paymentRate}%, 逾期 {$overdueCount} 笔";
+            $paymentDesc = __('app.csm_service.payment_rate_desc', ['rate' => $paymentRate, 'count' => $overdueCount]);
         } else {
             $paymentScore = 80;
-            $paymentDesc = '无发票记录';
+            $paymentDesc = __('app.csm_service.no_invoice_records');
         }
         $weightedScore += $paymentScore * 15;
         $totalWeight += 15;
@@ -122,10 +122,10 @@ class CsmService
         if ($totalRecent > 0) {
             $resolutionRate = round(($resolvedTickets / $totalRecent) * 100);
             $ticketScore = max(0, min(100, $resolutionRate - ($openTickets * 10)));
-            $ticketDesc = "近30天 {$totalRecent} 工单, {$openTickets} 未关闭";
+            $ticketDesc = __('app.csm_service.tickets_status', ['total' => $totalRecent, 'open' => $openTickets]);
         } else {
             $ticketScore = 90;
-            $ticketDesc = '近30天无工单';
+            $ticketDesc = __('app.csm_service.no_tickets_30d');
         }
         $weightedScore += $ticketScore * 12;
         $totalWeight += 12;
@@ -146,10 +146,10 @@ class CsmService
                 $daysSinceActivity <= 90 => 40,
                 default => 10,
             };
-            $activityDesc = "{$daysSinceActivity}天前活跃";
+            $activityDesc = __('app.csm_service.active_days_ago', ['days' => $daysSinceActivity]);
         } else {
             $activityScore = 30;
-            $activityDesc = '无活动记录';
+            $activityDesc = __('app.csm_service.no_activity_records');
         }
         $weightedScore += $activityScore * 8;
         $totalWeight += 8;
@@ -198,12 +198,12 @@ class CsmService
         foreach ($factors as $key => $f) {
             if ($f['score'] < 50) {
                 $labels = [
-                    'subscription_status' => '订阅状态',
-                    'license_activation' => 'License活跃率',
-                    'churn_prediction' => '流失风险',
-                    'payment_status' => '支付状况',
-                    'support_tickets' => '工单支持',
-                    'recent_activity' => '近期活跃度',
+                    'subscription_status' => __('app.csm_service.factor_subscription'),
+                    'license_activation' => __('app.csm_service.factor_license'),
+                    'churn_prediction' => __('app.csm_service.factor_churn'),
+                    'payment_status' => __('app.csm_service.factor_payment'),
+                    'support_tickets' => __('app.csm_service.factor_support'),
+                    'recent_activity' => __('app.csm_service.factor_activity'),
                 ];
                 $lowFactors[] = $labels[$key] ?? $key;
             }
@@ -211,10 +211,10 @@ class CsmService
 
         $levelLabel = CsmHealthScore::LEVELS[$level] ?? $level;
         $subScore = $factors['subscription_status']['score'] ?? 0;
-        $summary = "健康等级: {$levelLabel} (评分: {$subScore})";
+        $summary = __('app.csm_service.health_level_label', ['level' => $levelLabel, 'score' => $subScore]);
 
         if (!empty($lowFactors)) {
-            $summary .= ' | 需关注: ' . implode(', ', $lowFactors);
+            $summary .= ' | ' . __('app.csm_service.needs_attention') . ': ' . implode(', ', $lowFactors);
         }
 
         return $summary;
@@ -496,8 +496,8 @@ class CsmService
                 'tenant_id' => $tenantId,
                 'customer_id' => $sub->customer_id,
                 'assigned_to' => User::where('tenant_id', $tenantId)->first()?->id ?? 1,
-                'title' => "续费提醒: {$sub->product?->name} ({$sub->plan})",
-                'description' => "客户订阅将于 {$sub->next_billing_at->format('Y-m-d')} 自动续费，金额 {$sub->price} {$sub->currency}。请提前确认支付方式有效。",
+                'title' => __('app.csm_service.renewal_reminder_title', ['product' => $sub->product?->name, 'plan' => $sub->plan]),
+                'description' => __('app.csm_service.renewal_reminder_description', ['date' => $sub->next_billing_at->format('Y-m-d'), 'price' => $sub->price, 'currency' => $sub->currency]),
                 'priority' => 'normal',
                 'category' => 'renewal',
                 'related_type' => 'renewal',
@@ -662,7 +662,7 @@ class CsmService
             $items[] = [
                 'type' => 'health_score',
                 'subtype' => $score->health_level,
-                'title' => "健康评分 {$score->health_score}",
+                'title' => __('app.csm_service.health_score_title', ['score' => $score->health_score]),
                 'description' => $score->summary,
                 'customer_name' => $score->customer?->user?->name,
                 'customer_id' => $score->customer_id,

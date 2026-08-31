@@ -40,7 +40,7 @@ class StaticAssetCdnController extends Controller
 
         try {
             $result = $this->cdnService->deploy($version);
-            return ApiResponse::success($result, "已部署 {$result['total']} 个文件到 CDN");
+            return ApiResponse::success($result, __('app.static_asset_cdn.deployed', ['count' => $result['total']]));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('DEPLOY_FAILED', $e->getMessage(), 400);
         }
@@ -59,7 +59,7 @@ class StaticAssetCdnController extends Controller
 
         try {
             $result = $this->cdnService->activateVersion($validated['version'] ?? null);
-            return ApiResponse::success($result, "已激活版本 {$result['version']}");
+            return ApiResponse::success($result, __('app.static_asset_cdn.version_activated', ['version' => $result['version']]));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('ACTIVATE_FAILED', $e->getMessage(), 400);
         }
@@ -78,7 +78,7 @@ class StaticAssetCdnController extends Controller
 
         try {
             $result = $this->cdnService->rollback($validated['version']);
-            return ApiResponse::success($result, "已回滚到版本 {$result['version']}");
+            return ApiResponse::success($result, __('app.static_asset_cdn.version_rolled_back', ['version' => $result['version']]));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('ROLLBACK_FAILED', $e->getMessage(), 400);
         }
@@ -127,7 +127,7 @@ class StaticAssetCdnController extends Controller
     {
         try {
             $this->cdnService->deleteVersion($version);
-            return ApiResponse::success(null, "版本 {$version} 已删除");
+            return ApiResponse::success(null, __('app.static_asset_cdn.version_deleted', ['version' => $version]));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('DELETE_FAILED', $e->getMessage(), 400);
         }

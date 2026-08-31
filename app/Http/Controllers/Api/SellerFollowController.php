@@ -17,7 +17,7 @@ class SellerFollowController extends Controller
         $userId = $request->user()->id;
 
         if ($userId === $id) {
-            return response()->json(['success' => false, 'message' => '不能关注自己'], 400);
+            return response()->json(['success' => false, 'message' => __('app.controller_compat.cannot_follow_self')], 400);
         }
 
         // Check if already following
@@ -27,7 +27,7 @@ class SellerFollowController extends Controller
             ->first();
 
         if ($existing) {
-            return response()->json(['success' => true, 'message' => '已关注']);
+            return response()->json(['success' => true, 'message' => __('app.controller_compat.already_followed')]);
         }
 
         DB::table('seller_followers')->insert([
@@ -37,7 +37,7 @@ class SellerFollowController extends Controller
             'updated_at' => now(),
         ]);
 
-        return response()->json(['success' => true, 'message' => '关注成功']);
+        return response()->json(['success' => true, 'message' => __('app.controller_compat.follow_success')]);
     }
 
     public function unfollow(int $id, Request $request): JsonResponse
@@ -49,7 +49,7 @@ class SellerFollowController extends Controller
             ->where('user_id', $userId)
             ->delete();
 
-        return response()->json(['success' => true, 'message' => '已取消关注']);
+        return response()->json(['success' => true, 'message' => __('app.controller_compat.unfollowed')]);
     }
 
     public function status(int $id, Request $request): JsonResponse

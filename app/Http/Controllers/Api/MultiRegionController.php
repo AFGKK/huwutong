@@ -49,7 +49,7 @@ class MultiRegionController extends Controller
         ]);
 
         $dc = $this->service->createDataCenter($validated);
-        return ApiResponse::success($dc, '数据中心已创建', 201);
+        return ApiResponse::success($dc, __('app.api.multi_region.dc_created'), 201);
     }
 
     public function updateDataCenter(Request $request, int $id): JsonResponse
@@ -70,19 +70,19 @@ class MultiRegionController extends Controller
         ]);
 
         $dc = $this->service->updateDataCenter($id, $validated);
-        return ApiResponse::success($dc, '数据中心已更新');
+        return ApiResponse::success($dc, __('app.api.multi_region.dc_updated'));
     }
 
     public function destroyDataCenter(int $id): JsonResponse
     {
         $this->service->deleteDataCenter($id);
-        return ApiResponse::success(null, '数据中心已删除');
+        return ApiResponse::success(null, __('app.api.multi_region.dc_deleted'));
     }
 
     public function seedDataCenters(): JsonResponse
     {
         $created = $this->service->seedDefaultDataCenters();
-        return ApiResponse::success($created, '默认数据中心已初始化');
+        return ApiResponse::success($created, __('app.api.multi_region.dc_initialized'));
     }
 
     // ═══════════ 健康检查 ═══════════
@@ -91,13 +91,13 @@ class MultiRegionController extends Controller
     {
         $dc = \App\Models\DataCenter::findOrFail($id);
         $log = $this->service->performHealthCheck($dc);
-        return ApiResponse::success($log, '健康检查完成');
+        return ApiResponse::success($log, __('app.api.multi_region.health_done'));
     }
 
     public function healthCheckAll(): JsonResponse
     {
         $results = $this->service->healthCheckAll();
-        return ApiResponse::success($results, '所有数据中心健康检查完成');
+        return ApiResponse::success($results, __('app.api.multi_region.health_all_done'));
     }
 
     public function healthTrend(int $id, Request $request): JsonResponse
@@ -142,7 +142,7 @@ class MultiRegionController extends Controller
         $tenantId = auth()->user()->tenant_id;
         $rule = $this->service->createFailoverRule($tenantId, $validated);
         $rule->load(['primaryDc:id,name,code', 'backupDc:id,name,code']);
-        return ApiResponse::success($rule, '故障切换规则已创建', 201);
+        return ApiResponse::success($rule, __('app.api.multi_region.failover_created'), 201);
     }
 
     public function updateFailoverRule(Request $request, FailoverRule $failoverRule): JsonResponse
@@ -162,13 +162,13 @@ class MultiRegionController extends Controller
 
         $rule = $this->service->updateFailoverRule($failoverRule->id, $validated);
         $rule->load(['primaryDc:id,name,code', 'backupDc:id,name,code']);
-        return ApiResponse::success($rule, '故障切换规则已更新');
+        return ApiResponse::success($rule, __('app.api.multi_region.failover_updated'));
     }
 
     public function destroyFailoverRule(FailoverRule $failoverRule): JsonResponse
     {
         $this->service->deleteFailoverRule($failoverRule->id);
-        return ApiResponse::success(null, '故障切换规则已删除');
+        return ApiResponse::success(null, __('app.api.multi_region.failover_deleted'));
     }
 
     // ═══════════ 执行故障切换 ═══════════
@@ -180,7 +180,7 @@ class MultiRegionController extends Controller
         ]);
 
         $log = $this->service->executeFailover($failoverRule, $validated['reason'], false);
-        return ApiResponse::success($log, '故障切换已执行');
+        return ApiResponse::success($log, __('app.api.multi_region.failover_executed'));
     }
 
     public function executeRestore(Request $request, FailoverRule $failoverRule): JsonResponse
@@ -190,7 +190,7 @@ class MultiRegionController extends Controller
         ]);
 
         $log = $this->service->executeRestore($failoverRule, $validated['reason']);
-        return ApiResponse::success($log, '已恢复至主数据中心');
+        return ApiResponse::success($log, __('app.api.multi_region.restored_primary'));
     }
 
     // ═══════════ 故障切换日志 ═══════════
@@ -249,7 +249,7 @@ class MultiRegionController extends Controller
         ]);
 
         $deployment = $this->service->createRegionDeployment($validated);
-        return ApiResponse::success($deployment, '区域部署已创建', 201);
+        return ApiResponse::success($deployment, __('app.api.multi_region.deployment_created'), 201);
     }
 
     public function updateRegionDeployment(Request $request, int $id): JsonResponse
@@ -267,19 +267,19 @@ class MultiRegionController extends Controller
         ]);
 
         $deployment = $this->service->updateRegionDeployment($id, $validated);
-        return ApiResponse::success($deployment, '区域部署已更新');
+        return ApiResponse::success($deployment, __('app.api.multi_region.deployment_updated'));
     }
 
     public function destroyRegionDeployment(int $id): JsonResponse
     {
         $this->service->deleteRegionDeployment($id);
-        return ApiResponse::success(null, '区域部署已删除');
+        return ApiResponse::success(null, __('app.api.multi_region.deployment_deleted'));
     }
 
     public function seedRegionDeployments(): JsonResponse
     {
         $created = $this->service->seedRegionDeployments();
-        return ApiResponse::success($created, '三区域部署已初始化(us-east/eu-west/ap-southeast)');
+        return ApiResponse::success($created, __('app.api.multi_region.tri_region_init'));
     }
 
     // ═══════════ M3-52 跨区域数据同步 ═══════════
@@ -297,7 +297,7 @@ class MultiRegionController extends Controller
             $validated['target_region'],
             $validated['data_type']
         );
-        return ApiResponse::success($syncLog, '数据同步已启动');
+        return ApiResponse::success($syncLog, __('app.api.multi_region.sync_started'));
     }
 
     public function listSyncLogs(Request $request): JsonResponse
@@ -314,7 +314,7 @@ class MultiRegionController extends Controller
     public function checkAllRegionHealth(): JsonResponse
     {
         $results = $this->service->checkAllRegionHealth();
-        return ApiResponse::success($results, '所有区域健康检查完成');
+        return ApiResponse::success($results, __('app.api.multi_region.region_health_done'));
     }
 
     public function regionHealthTrend(string $regionKey, Request $request): JsonResponse
@@ -327,7 +327,7 @@ class MultiRegionController extends Controller
     public function crossRegionHealthCheck(): JsonResponse
     {
         $results = $this->service->crossRegionHealthCheck();
-        return ApiResponse::success($results, '区域间互检完成');
+        return ApiResponse::success($results, __('app.api.multi_region.cross_check_done'));
     }
 
     // ═══════════ M3-52 GeoDNS路由 ═══════════

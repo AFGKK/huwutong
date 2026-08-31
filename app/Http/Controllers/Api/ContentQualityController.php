@@ -29,7 +29,7 @@ class ContentQualityController extends Controller
         $limit = (int) $request->input('limit', 50);
         $archiveDays = (int) $request->input('archive_days', 90);
         $results = $this->service->runAll($limit, $archiveDays);
-        return ApiResponse::success($results, '运营任务执行完成');
+        return ApiResponse::success($results, __("app.content_quality.msg_d73ed56d"));
     }
 
     public function stats(): JsonResponse

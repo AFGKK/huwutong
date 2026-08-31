@@ -69,7 +69,7 @@ class LicenseController extends Controller
 
         // 安全：检查租户归属
         if (! $this->isOwnTenant($license)) {
-            return ApiResponse::error('FORBIDDEN', '无权访问此 License', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_view'), 403);
         }
 
         // 分析当前状态
@@ -102,7 +102,7 @@ class LicenseController extends Controller
             ->first();
 
         if (! $license) {
-            return ApiResponse::error('LICENSE_NOT_FOUND', 'License Key 不存在', 404);
+            return ApiResponse::error('LICENSE_NOT_FOUND', __('app.api.license.key_not_found'), 404);
         }
 
         return ApiResponse::success($license);
@@ -128,13 +128,26 @@ class LicenseController extends Controller
         if (! $license) {
             return response()->json([
                 'success' => false,
-                'message' => '未找到该 License Key，请检查后重试',
+                'message' => __('app.api.license.lookup_not_found'),
                 'found' => false,
             ]);
         }
 
         $deviceCount = $license->devices->count();
         $maxDevices = $license->seat_limit ?? $license->product?->seat_limit ?? 0;
+
+        $devices = $license->devices->map(function ($device) {
+            $meta = is_array($device->metadata) ? $device->metadata : [];
+            $fp = (string) ($device->fingerprint ?? '');
+
+            return [
+                'id' => $device->id,
+                'device_name' => $meta['device_name'] ?? ($meta['client']['device_name'] ?? null),
+                'platform' => $device->platform,
+                'fingerprint_mask' => $fp !== '' ? (substr($fp, 0, 8) . '…') : '—',
+                'last_seen_at' => $device->last_seen_at?->toDateTimeString() ?? $device->updated_at?->toDateTimeString(),
+            ];
+        })->values();
 
         return response()->json([
             'success' => true,
@@ -145,11 +158,13 @@ class LicenseController extends Controller
                 'status_label' => $license->status_label ?? $license->status,
                 'product_name' => $license->product?->name ?? '—',
                 'product_description' => $license->product?->description ?? '',
+                'product_id' => $license->product_id,
                 'license_type' => $license->type,
                 'license_type_label' => $license->type_label ?? $license->type,
                 'activated' => $license->activated,
                 'max_devices' => $maxDevices,
                 'activated_devices' => $deviceCount,
+                'devices' => $devices,
                 'created_at' => $license->created_at?->toDateString(),
                 'expires_at' => $license->expires_at?->toDateString(),
                 'is_expired' => $license->expires_at ? $license->expires_at->isPast() : false,
@@ -180,7 +195,7 @@ class LicenseController extends Controller
             'metadata' => $data['metadata'] ?? null,
         ]);
 
-        return ApiResponse::created($license, 'License 创建成功');
+        return ApiResponse::created($license, __('app.api.license.created'));
     }
 
     /**
@@ -210,7 +225,7 @@ class LicenseController extends Controller
             ]);
         }
 
-        return ApiResponse::created($licenses, "成功创建 {$count} 个 License");
+        return ApiResponse::created($licenses, __('app.api.license.created_n', ['count' => $count]));
     }
 
     /**
@@ -222,12 +237,12 @@ class LicenseController extends Controller
     {
         $license = License::findOrFail($id);
         if (! $this->isOwnTenant($license)) {
-            return ApiResponse::error('FORBIDDEN', '无权操作此 License', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_op'), 403);
         }
 
         $updated = $this->licenseService->update($license, $request->validated());
 
-        return ApiResponse::success($updated, 'License 已更新');
+        return ApiResponse::success($updated, __('app.api.license.updated'));
     }
 
     /**
@@ -239,12 +254,12 @@ class LicenseController extends Controller
     {
         $license = License::findOrFail($id);
         if (! $this->isOwnTenant($license)) {
-            return ApiResponse::error('FORBIDDEN', '无权操作此 License', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_op'), 403);
         }
 
         $this->licenseService->softDelete($license);
 
-        return ApiResponse::success(null, 'License 已移至回收站');
+        return ApiResponse::success(null, __('app.api.license.trashed'));
     }
 
     /**
@@ -256,12 +271,12 @@ class LicenseController extends Controller
     {
         $license = License::withTrashed()->findOrFail($id);
         if (! $this->isOwnTenant($license)) {
-            return ApiResponse::error('FORBIDDEN', '无权操作此 License', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_op'), 403);
         }
 
         $restored = $this->licenseService->restoreFromTrash($id);
 
-        return ApiResponse::success($restored, 'License 已从回收站恢复');
+        return ApiResponse::success($restored, __('app.api.license.restored'));
     }
 
     /**
@@ -323,7 +338,7 @@ class LicenseController extends Controller
             ->get();
 
         if ($licenses->isEmpty()) {
-            return ApiResponse::error('NOT_FOUND', '未找到符合条件的 License', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.license.not_found_filter'), 404);
         }
 
         $action = $data['action'];
@@ -375,10 +390,10 @@ class LicenseController extends Controller
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            return ApiResponse::error('BATCH_FAILED', '批量操作失败：' . $e->getMessage(), 500);
+            return ApiResponse::error('BATCH_FAILED', __('app.api.license.batch_failed', ['error' => $e->getMessage()]), 500);
         }
 
-        return ApiResponse::success($results, "批量操作完成：成功 {$results['processed']} 个，失败 {$results['failed']} 个");
+        return ApiResponse::success($results, __('app.api.license.batch_done', ['ok' => $results['processed'], 'fail' => $results['failed']]));
     }
 
     /**
@@ -439,10 +454,10 @@ class LicenseController extends Controller
             case 'transfer':
                 $newTenantId = (int) ($payload['tenant_id'] ?? 0);
                 if (!$newTenantId) {
-                    throw new \Exception('目标租户 ID 不能为空');
+                    throw new \Exception(__('app.api.license.tenant_required'));
                 }
                 if (!$user->hasRole('super-admin')) {
-                    throw new \Exception('仅超级管理员可执行租户转移');
+                    throw new \Exception(__('app.api.license.tenant_transfer_admin'));
                 }
                 $license->tenant_id = $newTenantId;
                 $license->save();
@@ -460,7 +475,7 @@ class LicenseController extends Controller
                 }
                 break;
             default:
-                throw new \Exception("不支持的操作：{$action}");
+                throw new \Exception(__('app.api.license.unsupported_action', ['action' => $action]));
         }
     }
 
@@ -475,10 +490,10 @@ class LicenseController extends Controller
     {
         $license = License::findOrFail($id);
         if (! $this->isOwnTenant($license)) {
-            return ApiResponse::error('FORBIDDEN', '无权操作此 License', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_op'), 403);
         }
         $updated = $this->licenseService->revoke($license, $request->input('reason'));
-        return ApiResponse::success($updated, 'License 已撤销');
+        return ApiResponse::success($updated, __('app.api.license.revoked'));
     }
 
     /**
@@ -490,10 +505,10 @@ class LicenseController extends Controller
     {
         $license = License::findOrFail($id);
         if (! $this->isOwnTenant($license)) {
-            return ApiResponse::error('FORBIDDEN', '无权操作此 License', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_op'), 403);
         }
         $updated = $this->licenseService->suspend($license, $request->input('reason'));
-        return ApiResponse::success($updated, 'License 已挂起');
+        return ApiResponse::success($updated, __('app.api.license.suspended'));
     }
 
     /**
@@ -505,10 +520,10 @@ class LicenseController extends Controller
     {
         $license = License::findOrFail($id);
         if (! $this->isOwnTenant($license)) {
-            return ApiResponse::error('FORBIDDEN', '无权操作此 License', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_op'), 403);
         }
         $updated = $this->licenseService->freeze($license, $request->input('reason'));
-        return ApiResponse::success($updated, 'License 已冻结');
+        return ApiResponse::success($updated, __('app.api.license.frozen'));
     }
 
     /**
@@ -520,10 +535,10 @@ class LicenseController extends Controller
     {
         $license = License::findOrFail($id);
         if (! $this->isOwnTenant($license)) {
-            return ApiResponse::error('FORBIDDEN', '无权操作此 License', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_op'), 403);
         }
         $updated = $this->licenseService->restore($license, $request->input('reason'));
-        return ApiResponse::success($updated, 'License 已恢复');
+        return ApiResponse::success($updated, __('app.api.license.reactivated'));
     }
 
     /**
@@ -535,10 +550,10 @@ class LicenseController extends Controller
     {
         $license = License::findOrFail($id);
         if (! $this->isOwnTenant($license)) {
-            return ApiResponse::error('FORBIDDEN', '无权操作此 License', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_op'), 403);
         }
         $updated = $this->licenseService->blacklist($license, $request->input('reason'));
-        return ApiResponse::success($updated, 'License 已加入黑名单');
+        return ApiResponse::success($updated, __('app.api.license.blacklisted'));
     }
 
     /**
@@ -550,10 +565,10 @@ class LicenseController extends Controller
     {
         $license = License::findOrFail($id);
         if (! $this->isOwnTenant($license)) {
-            return ApiResponse::error('FORBIDDEN', '无权操作此 License', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_op'), 403);
         }
         $updated = $this->licenseService->refund($license, $request->input('reason'));
-        return ApiResponse::success($updated, 'License 已退款');
+        return ApiResponse::success($updated, __('app.api.license.refunded'));
     }
 
     /**
@@ -611,9 +626,9 @@ class LicenseController extends Controller
 
             // Header row
             fputcsv($handle, [
-                'License Key', '类型', '状态', '产品', '客户',
-                '租户', '座位数', '设备限制', '过期时间', '激活时间',
-                '创建时间', '元数据',
+                'License Key', __('app.api.license.csv_type'), __('app.api.license.csv_status'), __('app.api.license.csv_product'), __('app.api.license.csv_customer'),
+                __('app.api.license.csv_tenant'), __('app.api.license.csv_seats'), __('app.api.license.csv_devices'), __('app.api.license.csv_expires'), __('app.api.license.csv_activated'),
+                __('app.api.license.csv_created'), __('app.api.license.csv_metadata'),
             ]);
 
             $query->chunk(200, function ($licenses) use ($handle, $headers) {
@@ -669,7 +684,7 @@ class LicenseController extends Controller
         $header = fgetcsv($handle);
         if (!$header) {
             fclose($handle);
-            return ApiResponse::error('VALIDATION_ERROR', '文件为空或格式不正确', 422);
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.license.import_empty'), 422);
         }
 
         // Normalize headers (trim, lowercase)
@@ -732,7 +747,7 @@ class LicenseController extends Controller
                 }
 
                 if (!$productId) {
-                    throw new \Exception('产品不能为空（请提供产品名称或产品 ID）');
+                    throw new \Exception(__('app.api.license.product_required'));
                 }
 
                 // Resolve customer
@@ -747,7 +762,7 @@ class LicenseController extends Controller
                 // Validate type
                 $type = !empty($data['type']) ? strtolower(trim($data['type'])) : 'standard';
                 if (!in_array($type, ['trial', 'standard', 'enterprise', 'development'])) {
-                    throw new \Exception("无效的 License 类型：{$type}");
+                    throw new \Exception(__('app.api.license.invalid_type', ['type' => $type]));
                 }
 
                 // Validate seats
@@ -764,7 +779,7 @@ class LicenseController extends Controller
                     try {
                         $expiresAt = \Carbon\Carbon::parse($data['expires_at']);
                     } catch (\Exception $e) {
-                        throw new \Exception("无效的日期格式：{$data['expires_at']}");
+                        throw new \Exception(__('app.api.license.invalid_date', ['value' => $data['expires_at']]));
                     }
                 }
 
@@ -797,13 +812,16 @@ class LicenseController extends Controller
                 $results['success']++;
             } catch (\Exception $e) {
                 $results['failed']++;
-                $results['errors'][] = "第 {$rowNumber} 行：{$e->getMessage()}";
+                $results['errors'][] = __('app.api.license.import_row', [
+                    'row' => $rowNumber,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
         fclose($handle);
 
-        return ApiResponse::success($results, '导入完成');
+        return ApiResponse::success($results, __('app.api.license.import_done'));
     }
 
     // ═══════════════ Seat Pool 席位池管理 (M3-45) ═══════════════
@@ -871,10 +889,10 @@ class LicenseController extends Controller
         );
 
         if ($result['success']) {
-            return ApiResponse::success($result, '席位分配成功');
+            return ApiResponse::success($result, __('app.api.license.seat_assigned'));
         }
 
-        return ApiResponse::error($result['message'] ?? '席位分配失败', 409);
+        return ApiResponse::error($result['message'] ?? __('app.api.license.seat_assign_fail'), 409);
     }
 
     /**
@@ -896,10 +914,10 @@ class LicenseController extends Controller
         );
 
         if ($released) {
-            return ApiResponse::success(['released' => $released], '席位已释放');
+            return ApiResponse::success(['released' => $released], __('app.api.license.seat_released'));
         }
 
-        return ApiResponse::error('未找到活跃席位', 404);
+        return ApiResponse::error(__('app.api.license.seat_not_found'), 404);
     }
 
     /**
@@ -945,7 +963,7 @@ class LicenseController extends Controller
 
         $updated = $this->seatPoolService->updatePoolConfig($license, $validated);
 
-        return ApiResponse::success($updated, '席位池配置已更新');
+        return ApiResponse::success($updated, __('app.api.license.pool_updated'));
     }
 
     /**
@@ -960,7 +978,7 @@ class LicenseController extends Controller
         return ApiResponse::success([
             'licenses_affected' => count($results),
             'details' => $results,
-        ], '过期席位批量清理完成');
+        ], __('app.api.license.pool_cleaned'));
     }
 
     // ═══════════════ License Key 前缀格式化 (M3-23) ═══════════════
@@ -1010,6 +1028,9 @@ class LicenseController extends Controller
     {
         $stats = $this->keyPrefixFormatter->migrateAll();
 
-        return ApiResponse::success($stats, "迁移完成：{$stats['updated']}/{$stats['total']} 条已更新");
+        return ApiResponse::success($stats, __('app.api.license.prefix_migrated_detail', [
+            'updated' => $stats['updated'],
+            'total' => $stats['total'],
+        ]));
     }
 }

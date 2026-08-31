@@ -41,7 +41,7 @@ class AgentTierController extends Controller
     public function initTiers(): JsonResponse
     {
         $result = $this->tierService->initDefaultTiers();
-        return ApiResponse::success($result, '默认等级已初始化');
+        return ApiResponse::success($result, __("app.agent_tier.msg_1078f008"));
     }
 
     /**
@@ -63,7 +63,7 @@ class AgentTierController extends Controller
         ]);
 
         $tierDefinition->update($validated);
-        return ApiResponse::success($tierDefinition->fresh(), '等级已更新');
+        return ApiResponse::success($tierDefinition->fresh(), __('app.agent_tier.tier_updated'));
     }
 
     // ─── 晋升规则 ───
@@ -97,7 +97,7 @@ class AgentTierController extends Controller
         ]);
 
         $rule->update($validated);
-        return ApiResponse::success($rule->fresh(), '规则已更新');
+        return ApiResponse::success($rule->fresh(), __('app.agent_tier.rule_updated'));
     }
 
     // ─── 代理商等级管理 ───
@@ -131,7 +131,7 @@ class AgentTierController extends Controller
         $targetOrder = AgentTierService::TIER_ORDER[$validated['target_level']] ?? 0;
 
         if ($targetOrder <= $currentOrder) {
-            return ApiResponse::error('INVALID_PROMOTION', '目标等级必须高于当前等级', 400);
+            return ApiResponse::error('INVALID_PROMOTION', __("app.agent_tier.msg_7df32767"), 400);
         }
 
         $result = $this->tierService->promoteAgent(
@@ -142,7 +142,7 @@ class AgentTierController extends Controller
             $validated['remark'] ?? null
         );
 
-        return ApiResponse::success($result, '代理商已晋升');
+        return ApiResponse::success($result, __("app.agent_tier.msg_c7e43c17"));
     }
 
     /**
@@ -161,7 +161,7 @@ class AgentTierController extends Controller
         $targetOrder = AgentTierService::TIER_ORDER[$validated['target_level']] ?? 0;
 
         if ($targetOrder >= $currentOrder) {
-            return ApiResponse::error('INVALID_DEMOTION', '目标等级必须低于当前等级', 400);
+            return ApiResponse::error('INVALID_DEMOTION', __("app.agent_tier.msg_ba117a29"), 400);
         }
 
         $result = $this->tierService->demoteAgent(
@@ -172,7 +172,7 @@ class AgentTierController extends Controller
             $validated['reason']
         );
 
-        return ApiResponse::success($result, '代理商已降级');
+        return ApiResponse::success($result, __("app.agent_tier.msg_c10502e5"));
     }
 
     /**
@@ -187,7 +187,7 @@ class AgentTierController extends Controller
         ]);
 
         $result = $this->tierService->autoPromoteAgents($validated['agent_id'] ?? null);
-        return ApiResponse::success($result, '自动晋升评估完成');
+        return ApiResponse::success($result, __("app.agent_tier.msg_03b745a3"));
     }
 
     /**

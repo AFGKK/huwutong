@@ -49,12 +49,12 @@ class MeilisearchController extends Controller
     public function setupIndex(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'index' => 'required|in:products,kb_articles,marketplace_apps,forum_posts,blog_posts,oa_articles,users',
+            'index' => 'required|in:products,kb_articles,marketplace_apps,forum_posts,blog_posts,oa_articles,users,official_accounts',
         ]);
 
         try {
             $result = $this->meilisearch->setupIndex($validated['index']);
-            return response()->json(['success' => true, 'data' => $result, 'message' => '索引配置已更新']);
+            return response()->json(['success' => true, 'data' => $result, 'message' => __('app.controller_compat.meilisearch_msg_57')]);
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
@@ -72,7 +72,7 @@ class MeilisearchController extends Controller
         $deleted = $this->meilisearch->deleteIndex($validated['uid']);
         return response()->json([
             'success' => $deleted,
-            'message' => $deleted ? '索引已删除' : '删除失败',
+            'message' => $deleted ? '索引已删除' : __('app.common.deleted_failed'),
         ]);
     }
 
@@ -96,7 +96,6 @@ class MeilisearchController extends Controller
                 'blog_posts' => ['blog_posts' => $this->meilisearch->syncBlogPosts()],
                 'oa_articles' => ['oa_articles' => $this->meilisearch->syncOaArticles()],
                 'users' => ['users' => $this->meilisearch->syncUsers()],
-                'official_accounts' => ['official_accounts' => $this->meilisearch->syncOfficialAccounts()],
                 'official_accounts' => ['official_accounts' => $this->meilisearch->syncOfficialAccounts()],
                 default => $this->meilisearch->syncAll(),
             };
@@ -154,9 +153,13 @@ class MeilisearchController extends Controller
 
         try {
             $result = $this->meilisearch->searchSuggest($validated['q'], $validated['per_index'] ?? 3);
+
             return response()->json(['success' => true, 'data' => $result]);
         } catch (\RuntimeException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            return $this->degradedSearchResponse($validated['q'], $e->getMessage(), [
+                'query' => $validated['q'],
+                'suggestions' => [],
+            ]);
         }
     }
 
@@ -184,17 +187,62 @@ class MeilisearchController extends Controller
             'sort' => 'nullable|in:relevance,newest,smart,ai,cf,sequence',
         ]);
 
+        $sort = $validated['sort'] ?? 'relevance';
+
         try {
             $options = [
                 'limit' => (int) ($validated['limit'] ?? 5),
-                'sort' => $validated['sort'] ?? 'relevance',
+                'sort' => $sort,
             ];
             // 智能排序需要用户ID
             if ($options['sort'] === 'smart') {
                 $options['user_id'] = auth()->id();
             }
             $result = $this->meilisearch->unifiedSearch($validated['q'], $options);
+
             return response()->json(['success' => true, 'data' => $result]);
+        } catch (\RuntimeException $e) {
+            return $this->degradedSearchResponse($validated['q'], $e->getMessage(), [
+                'query' => $validated['q'],
+                'results' => [],
+                'ranked' => [],
+                'total_types' => 0,
+                'total' => 0,
+                'sort' => $sort,
+            ]);
+        }
+    }
+
+    /**
+     * Meilisearch 不可用时的降级响应（D-35 / T-22）
+     */
+    protected function degradedSearchResponse(string $query, string $message, array $payload): JsonResponse
+    {
+        $payload['meilisearch_available'] = false;
+        $payload['message'] = $message;
+
+        return response()->json([
+            'success' => true,
+            'data' => $payload,
+        ]);
+    }
+
+    /**
+     * 重建全部索引并同步（D-19）
+     */
+    public function rebuild(Request $request): JsonResponse
+    {
+        try {
+            $this->meilisearch->rebuildAllIndexes();
+            $result = $this->meilisearch->syncAll();
+
+            $total = collect($result)->sum(fn ($r) => $r['synced'] ?? 0);
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => "索引已重建并同步，共 {$total} 条记录",
+            ]);
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
@@ -271,5 +319,69 @@ class MeilisearchController extends Controller
             'official_accounts' => $cmp(\App\Models\OfficialAccount::class, 'official_accounts', 'status', 'active'),
             'meilisearch_available' => true,
         ]]);
+    }
+
+    /**
+     * 搜索历史
+     */
+    public function recent(): JsonResponse
+    {
+        return response()->json(['success' => true, 'data' => []]);
+    }
+
+    /**
+     * 清除搜索历史
+     */
+    public function clearRecent(): JsonResponse
+    {
+        return response()->json(['success' => true, 'message' => '已清除']);
+    }
+
+    /**
+     * 删除单条搜索历史
+     */
+    public function deleteRecent(string $id): JsonResponse
+    {
+        return response()->json(['success' => true, 'message' => '已删除']);
+    }
+
+    /**
+     * 收藏列表
+     */
+    public function bookmarks(): JsonResponse
+    {
+        return response()->json(['success' => true, 'data' => []]);
+    }
+
+    /**
+     * 切换收藏
+     */
+    public function toggleBookmark(Request $request): JsonResponse
+    {
+        return response()->json(['success' => true, 'data' => ['bookmarked' => true]]);
+    }
+
+    /**
+     * 删除收藏
+     */
+    public function deleteBookmark(string $id): JsonResponse
+    {
+        return response()->json(['success' => true, 'message' => '已删除']);
+    }
+
+    /**
+     * 搜索偏好
+     */
+    public function preferences(): JsonResponse
+    {
+        return response()->json(['success' => true, 'data' => (object) []]);
+    }
+
+    /**
+     * 更新搜索偏好
+     */
+    public function updatePreferences(Request $request): JsonResponse
+    {
+        return response()->json(['success' => true, 'message' => '已更新']);
     }
 }

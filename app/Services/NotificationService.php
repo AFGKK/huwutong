@@ -117,8 +117,8 @@ class NotificationService
         $this->send(
             $user->id,
             'new_device',
-            '新设备登录提醒',
-            "你的账号刚刚在「{$deviceName}」设备上登录（IP: {$ip}），如果不是你本人的操作，请立即修改密码。",
+            __('app.api.service_notification.new_device_login'),
+            __('app.api.service_notification.new_device_body', ['device' => $deviceName, 'ip' => $ip]),
             [
                 'device_name' => $deviceName,
                 'ip' => $ip,
@@ -135,12 +135,12 @@ class NotificationService
     public function sendExpiryWarning(int $userId, string $licenseKey, int $daysRemaining): void
     {
         $title = $daysRemaining <= 0
-            ? 'License 已过期'
-            : "License 即将过期（{$daysRemaining}天）";
+            ? __('app.api.service_notification.license_expired')
+            : __('app.api.service_notification.license_expiring', ['days' => $daysRemaining]);
 
         $content = $daysRemaining <= 0
-            ? "License {$licenseKey} 已过期，请及时续期以继续使用。"
-            : "License {$licenseKey} 将在 {$daysRemaining} 天后过期，请及时续期。";
+            ? __('app.api.service_notification.license_expired_body', ['key' => $licenseKey])
+            : __('app.api.service_notification.license_expiring_body', ['key' => $licenseKey, 'days' => $daysRemaining]);
 
         $this->send($userId, 'expiry_warning', $title, $content, [
             'license_key' => $licenseKey,
@@ -154,18 +154,129 @@ class NotificationService
     public function sendStatusChange(int $userId, string $licenseKey, string $oldStatus, string $newStatus): void
     {
         $statusLabels = [
-            'active' => '已激活', 'suspended' => '已挂起', 'revoked' => '已撤销',
-            'expired' => '已过期', 'frozen' => '已冻结', 'blacklisted' => '已黑名单',
-            'refunded' => '已退款',
+            'active' => __('app.api.service_notification.status_active'), 'suspended' => __('app.api.service_notification.status_suspended'), 'revoked' => __('app.api.service_notification.status_revoked'),
+            'expired' => '已过期', 'frozen' => __('app.api.service_notification.status_frozen'), 'blacklisted' => __('app.api.service_notification.status_blacklisted'),
+            'refunded' => __('app.api.service_notification.status_refunded'),
         ];
 
         $oldLabel = $statusLabels[$oldStatus] ?? $oldStatus;
         $newLabel = $statusLabels[$newStatus] ?? $newStatus;
 
         $this->send($userId, 'status_change',
-            "License 状态变更",
-            "License {$licenseKey} 状态已从「{$oldLabel}」变更为「{$newLabel}」。",
+            __('app.api.service_notification.license_status_changed'),
+            __('app.api.service_notification.license_status_body', ['key' => $licenseKey, 'old' => $oldLabel, 'new' => $newLabel]),
             ['license_key' => $licenseKey, 'old_status' => $oldStatus, 'new_status' => $newStatus]
         );
+    }
+
+    /**
+     * 发送可聚合通知（同 group_key 在窗口内合并 actors/count，抖音式「收到的赞 / 新增关注」）
+     *
+     * @param  callable(int $count, array $actors): array{0: string, 1: string}  $buildCopy  返回 [title, content]
+     */
+    public function sendAggregated(
+        int $userId,
+        string $type,
+        string $groupKey,
+        callable $buildCopy,
+        array $payload = [],
+        ?int $tenantId = null,
+        int $windowHours = 24,
+    ): ?Notification {
+        try {
+            if (! $tenantId) {
+                $user = User::find($userId);
+                $tenantId = $user?->tenant_id;
+            }
+
+            if (! $tenantId) {
+                Log::warning("聚合通知跳过：用户 {$userId} 无 tenant_id");
+
+                return null;
+            }
+
+            $existing = Notification::where('user_id', $userId)
+                ->where('type', $type)
+                ->where('group_key', $groupKey)
+                ->where('created_at', '>=', now()->subHours($windowHours))
+                ->orderByDesc('id')
+                ->first();
+
+            $actor = $payload['actor'] ?? null;
+            $actors = [];
+            $count = 1;
+
+            if ($existing) {
+                $oldPayload = $existing->payload ?? [];
+                $actors = is_array($oldPayload['actors'] ?? null) ? $oldPayload['actors'] : [];
+                $count = max(1, (int) ($oldPayload['count'] ?? 1));
+
+                if (is_array($actor) && ! empty($actor['id'])) {
+                    $actorId = (int) $actor['id'];
+                    $already = collect($actors)->contains(fn ($a) => (int) ($a['id'] ?? 0) === $actorId);
+                    if (! $already) {
+                        array_unshift($actors, $actor);
+                        $actors = array_slice($actors, 0, 20);
+                        $count++;
+                    }
+                } else {
+                    $count++;
+                }
+
+                [$title, $content] = $buildCopy($count, $actors);
+                $merged = array_merge($oldPayload, $payload, [
+                    'actors' => $actors,
+                    'count' => $count,
+                    'group_key' => $groupKey,
+                ]);
+
+                $existing->update([
+                    'title' => $title,
+                    'content' => $content,
+                    'payload' => $merged,
+                    'is_read' => false,
+                    'read_at' => null,
+                ]);
+
+                $notification = $existing->fresh();
+            } else {
+                if (is_array($actor)) {
+                    $actors = [$actor];
+                }
+                [$title, $content] = $buildCopy($count, $actors);
+                $payload = array_merge($payload, [
+                    'actors' => $actors,
+                    'count' => $count,
+                    'group_key' => $groupKey,
+                ]);
+
+                $data = [
+                    'user_id' => $userId,
+                    'type' => $type,
+                    'group_key' => $groupKey,
+                    'title' => $title,
+                    'content' => $content,
+                    'payload' => $payload,
+                    'is_read' => false,
+                    'tenant_id' => $tenantId,
+                ];
+
+                $notification = Notification::create($data);
+            }
+
+            if ($notification && config('broadcasting.default') !== 'null') {
+                try {
+                    NotificationBroadcast::dispatch($notification, $userId);
+                } catch (\Exception $e) {
+                    Log::warning("聚合通知广播失败 (用户 {$userId}): {$e->getMessage()}");
+                }
+            }
+
+            return $notification;
+        } catch (\Exception $e) {
+            Log::error("发送聚合通知给用户 {$userId} 失败: {$e->getMessage()}");
+
+            return null;
+        }
     }
 }

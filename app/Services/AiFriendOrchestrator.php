@@ -100,23 +100,12 @@ class AiFriendOrchestrator
     public function generateStream(int $convId, string $userMessage): \Generator
     {
         if (!$this->profile || !$this->config) {
-            throw new \RuntimeException('AI 好友未配置');
+            throw new \RuntimeException(__("app.ai_friend_orchestrator.ai_friend_not_configured"));
         }
 
         $contextMessages = $this->buildContext($convId, $userMessage);
 
-        // 适配 LLM Gateway
-        $options = [
-            'temperature' => $this->config->temperature ?? 0.7,
-            'max_tokens' => $this->config->max_tokens ?? 2048,
-            'model' => $this->config->model_name ?? 'deepseek-chat',
-        ];
-
-        if ($this->config->api_base_url) {
-            $options['api_base'] = $this->config->api_base_url;
-        }
-
-        $stream = $this->llm->chatStream($contextMessages, $options);
+        $stream = $this->llm->chatStream($contextMessages, $this->buildLlmOptions());
         return $stream;
     }
 
@@ -126,31 +115,21 @@ class AiFriendOrchestrator
     public function generate(int $convId, string $userMessage): array
     {
         if (!$this->profile || !$this->config) {
-            throw new \RuntimeException('AI 好友未配置');
+throw new \RuntimeException(__("app.ai_friend_orchestrator.ai_friend_not_configured"));
         }
 
         // AI-044: 用户消息预审（Prompt 防火墙 + 敏感词）
         $preCheck = $this->firewall->inspect($userMessage);
         if ($preCheck['blocked']) {
             return [
-                'content' => '抱歉，您的消息包含不安全内容，已被系统拦截。',
+                'content' => __('app.ai_friend_orchestrator.content_blocked'),
                 'pre_check' => $preCheck,
             ];
         }
 
         $contextMessages = $this->buildContext($convId, $userMessage);
 
-        $options = [
-            'temperature' => $this->config->temperature ?? 0.7,
-            'max_tokens' => $this->config->max_tokens ?? 2048,
-            'model' => $this->config->model_name ?? 'deepseek-chat',
-        ];
-
-        if ($this->config->api_base_url) {
-            $options['api_base'] = $this->config->api_base_url;
-        }
-
-        $result = $this->llm->chat($contextMessages, $options, 'ai_friend');
+        $result = $this->llm->chat($contextMessages, $this->buildLlmOptions(), 'ai_friend');
 
         // AI-044: AI 回复内容预审
         $replyContent = $result['content'] ?? '';
@@ -230,12 +209,34 @@ class AiFriendOrchestrator
     }
 
     /**
+     * 构建 LLM 调用参数（D-38：默认走站点配置的 Ollama）
+     */
+    protected function buildLlmOptions(): array
+    {
+        $routing = app(LlmRoutingService::class);
+        $options = $routing->applyDefaults([
+            'temperature' => $this->config->temperature ?? 0.7,
+            'max_tokens' => $this->config->max_tokens ?? 2048,
+        ]);
+
+        // 自定义端点时保留好友专属配置
+        if ($this->config->api_base_url) {
+            $options['api_base'] = $this->config->api_base_url;
+        }
+        if ($this->config->model_name && $this->config->api_base_url) {
+            $options['model'] = $this->config->model_name;
+        }
+
+        return $options;
+    }
+
+    /**
      * 测试 AI 好友连通性
      */
     public function testConnection(): array
     {
         if (!$this->profile || !$this->config) {
-            return ['success' => false, 'message' => 'AI 好友未配置'];
+            return ['success' => false, 'message' => __('app.common.ai_friend_not_configured')];
         }
 
         try {
@@ -251,13 +252,13 @@ class AiFriendOrchestrator
             $content = $result['content'] ?? '';
             return [
                 'success' => true,
-                'message' => '连接成功: ' . mb_substr($content, 0, 100),
+                'message' => __('app.ai_friend_orchestrator.connection_ok', ['msg' => mb_substr($content, 0, 100)]),
                 'usage' => $result['usage'] ?? [],
             ];
         } catch (\Throwable $e) {
             return [
                 'success' => false,
-                'message' => '连接失败: ' . $e->getMessage(),
+                'message' => __('app.ai_friend_orchestrator.connection_failed', ['error' => $e->getMessage()]),
             ];
         }
     }

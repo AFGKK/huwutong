@@ -35,7 +35,7 @@ class GeoLocationController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__("app.geo_location.msg_f0a154e5"), $validator->errors()->toArray());
         }
 
         $tenantId = $request->user()->tenant_id;
@@ -58,7 +58,7 @@ class GeoLocationController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.geo_location.param_validation_failed'), $validator->errors()->toArray());
         }
 
         $tenantId = $request->user()->tenant_id;
@@ -95,7 +95,7 @@ class GeoLocationController extends Controller
             'source' => 'nullable|string|in:activation,validation,heartbeat,manual',
         ]);
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.geo_location.param_validation_failed'), $validator->errors()->toArray());
         }
 
         $tenantId = $request->user()->tenant_id;
@@ -131,11 +131,11 @@ class GeoLocationController extends Controller
             'countries.*' => 'string|size:2',
         ]);
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.geo_location.param_validation_failed'), $validator->errors()->toArray());
         }
 
         $this->geoService->updateBlacklist($request->input('countries'));
 
-        return ApiResponse::success(['countries' => $this->geoService->getBlacklist()], '黑名单已更新');
+        return ApiResponse::success(['countries' => $this->geoService->getBlacklist()], __('app.geo_location.blacklist_updated'));
     }
 }

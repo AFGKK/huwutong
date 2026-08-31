@@ -48,7 +48,7 @@ class DeletionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__("app.deletion.msg_e441b11e"), $validator->errors()->toArray());
         }
 
         $user = Auth::user();
@@ -56,7 +56,7 @@ class DeletionController extends Controller
         $deletable = $this->deletionService->checkDeletability($user);
         if (! $deletable['can_delete']) {
             return ApiResponse::error(
-                '账号当前无法注销',
+                __('app.deletion.cannot_delete_now'),
                 409,
                 ['reasons' => $deletable['reasons']]
             );
@@ -69,9 +69,9 @@ class DeletionController extends Controller
                 $request->input('reason_detail')
             );
 
-            return ApiResponse::success($result, '账号已成功注销，数据已匿名化');
+            return ApiResponse::success($result, __("app.deletion.msg_a34ad1c9"));
         } catch (\Throwable $e) {
-            return ApiResponse::error('账号注销失败: ' . $e->getMessage(), 500);
+            return ApiResponse::error(__("app.deletion.msg_67631aa4") . $e->getMessage(), 500);
         }
     }
 
@@ -86,7 +86,7 @@ class DeletionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.common.validation_failed'), $validator->errors()->toArray());
         }
 
         $targetUser = User::findOrFail($request->input('user_id'));
@@ -99,9 +99,9 @@ class DeletionController extends Controller
                 $request->input('notes')
             );
 
-            return ApiResponse::success($result, '用户数据已匿名化');
+            return ApiResponse::success($result, __("app.deletion.msg_63327be7"));
         } catch (\Throwable $e) {
-            return ApiResponse::error('匿名化失败: ' . $e->getMessage(), 500);
+            return ApiResponse::error(__("app.deletion.msg_efda8370") . $e->getMessage(), 500);
         }
     }
 

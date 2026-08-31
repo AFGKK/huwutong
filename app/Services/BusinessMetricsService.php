@@ -225,7 +225,7 @@ class BusinessMetricsService
             $date = $now->copy()->subMonths($i);
             $result[] = [
                 'period' => $date->format('Y-m'),
-                'label' => $date->format('Y年n月'),
+                'label' => $date->format(__('app.business_metrics.business_metrics_5b68601674')),
                 'mrr' => $this->estimateMrrForMonth($date),
             ];
         }
@@ -291,7 +291,7 @@ class BusinessMetricsService
 
             $result[] = [
                 'period' => $end->format('Y-m'),
-                'label' => $end->format('Y年n月'),
+                'label' => $end->format(__('app.business_metrics.business_metrics_5b68601674')),
                 'churn_rate' => $beginActive > 0 ? round(($churned / $beginActive) * 100, 2) : 0,
                 'churned_count' => $churned,
                 'active_begin' => $beginActive,
@@ -317,7 +317,7 @@ class BusinessMetricsService
 
             $result[] = [
                 'period' => $start->format('Y-m'),
-                'label' => $start->format('Y年n月'),
+                'label' => $start->format(__('app.business_metrics.business_metrics_5b68601674')),
                 'count' => $count,
             ];
         }
@@ -343,7 +343,7 @@ class BusinessMetricsService
 
             $result[] = [
                 'period' => $start->format('Y-m'),
-                'label' => $start->format('Y年n月'),
+                'label' => $start->format(__('app.business_metrics.business_metrics_5b68601674')),
                 'revenue' => $revenue,
             ];
         }
@@ -395,7 +395,7 @@ class BusinessMetricsService
 
             $cohorts[] = [
                 'cohort' => $cohortStart->format('Y-m'),
-                'label' => $cohortStart->format('Y年n月'),
+                'label' => $cohortStart->format(__('app.business_metrics.business_metrics_5b68601674')),
                 'total_customers' => $cohortCustomers->count(),
                 'retention' => $retention,
             ];
@@ -433,34 +433,34 @@ class BusinessMetricsService
         $rows = [];
 
         // 总览
-        $rows[] = ['section' => '核心指标', '指标', '值', '', ''];
+        $rows[] = ['section' => __('app.business_metrics.business_metrics_9e75621ec5'), __('app.business_metrics.business_metrics_7e687515fc'), '值', '', ''];
         $rows[] = ['', 'MRR', $data['overview']['mrr'] ?? 0, '', ''];
         $rows[] = ['', 'ARR', $data['overview']['arr'] ?? 0, '', ''];
-        $rows[] = ['', '流失率(%)', $data['overview']['churn_rate'] ?? 0, '', ''];
+        $rows[] = ['', __('app.business_metrics.business_metrics_2d0fa6ca93'), $data['overview']['churn_rate'] ?? 0, '', ''];
         $rows[] = ['', 'LTV', $data['overview']['ltv'] ?? 0, '', ''];
         $rows[] = ['', 'CAC', $data['overview']['cac'] ?? 0, '', ''];
         $rows[] = ['', 'LTV/CAC', $data['overview']['ltv_cac_ratio'] ?? 0, '', ''];
-        $rows[] = ['', '续费率(%)', $data['overview']['renewal_rate'] ?? 0, '', ''];
-        $rows[] = ['', '激活率(%)', $data['overview']['activation_rate'] ?? 0, '', ''];
-        $rows[] = ['', '试用转化率(%)', $data['overview']['trial_conversion_rate'] ?? 0, '', ''];
+        $rows[] = ['', __('app.business_metrics.business_metrics_edec7d561d'), $data['overview']['renewal_rate'] ?? 0, '', ''];
+        $rows[] = ['', __('app.business_metrics.business_metrics_2b9d3fb593'), $data['overview']['activation_rate'] ?? 0, '', ''];
+        $rows[] = ['', __('app.business_metrics.business_metrics_4ca2684fc9'), $data['overview']['trial_conversion_rate'] ?? 0, '', ''];
         $rows[] = [];
 
         // MRR 趋势
-        $rows[] = ['section' => 'MRR 月度趋势', '月份', 'MRR', '环比(%)', '同比(%)'];
+        $rows[] = ['section' => __('app.business_metrics.business_metrics_319db1e3ed'), __('app.business_metrics.business_metrics_8190915888'), 'MRR', __('app.business_metrics.business_metrics_00241994fe'), __('app.business_metrics.business_metrics_1168840de2')];
         foreach ($data['mrr_trend'] as $item) {
             $rows[] = ['', $item['label'], $item['mrr'], $item['mom_change'] ?? 0, $item['yoy_change'] ?? 'N/A'];
         }
         $rows[] = [];
 
         // 收入趋势
-        $rows[] = ['section' => '收入月度趋势', '月份', '收入', '', ''];
+        $rows[] = ['section' => __('app.business_metrics.business_metrics_d9ba6b8624'), __('app.business_metrics.business_metrics_8190915888'), __('app.business_metrics.business_metrics_6c2fb35be5'), '', ''];
         foreach ($data['revenue_trend'] as $item) {
             $rows[] = ['', $item['label'], $item['revenue'], '', ''];
         }
         $rows[] = [];
 
         // 流失趋势
-        $rows[] = ['section' => '流失率月度趋势', '月份', '流失率(%)', '流失数', '期初活跃'];
+        $rows[] = ['section' => __('app.business_metrics.business_metrics_ec3b691f2f'), __('app.business_metrics.business_metrics_8190915888'), __('app.business_metrics.business_metrics_2d0fa6ca93'), __('app.business_metrics.business_metrics_7f0c2eee5d'), __('app.business_metrics.business_metrics_4e6dc3a3ef')];
         foreach ($data['churn_trend'] as $item) {
             $rows[] = ['', $item['label'], $item['churn_rate'], $item['churned_count'], $item['active_begin']];
         }

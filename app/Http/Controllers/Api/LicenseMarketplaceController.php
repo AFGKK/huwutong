@@ -66,7 +66,7 @@ class LicenseMarketplaceController extends Controller
                 $validated['price'],
                 $validated['notes'] ?? null,
             );
-            return ApiResponse::created($listing, '挂牌已提交');
+            return ApiResponse::created($listing, __("app.license_marketplace.msg_e67ad50c"));
         } catch (\InvalidArgumentException | \RuntimeException $e) {
             return ApiResponse::error('LISTING_FAILED', $e->getMessage(), 422);
         }
@@ -79,7 +79,7 @@ class LicenseMarketplaceController extends Controller
     public function approveListing(Request $request, LicenseListing $listing): JsonResponse
     {
         $listing = $this->marketplace->approveListing($listing->id, auth()->id(), $request->input('review_notes'));
-        return ApiResponse::success($listing, '挂牌已通过');
+        return ApiResponse::success($listing, __("app.license_marketplace.msg_aa0e1349"));
     }
 
     /**
@@ -90,7 +90,7 @@ class LicenseMarketplaceController extends Controller
     {
         $validated = $request->validate(['reason' => 'required|string|max:2000']);
         $listing = $this->marketplace->rejectListing($listing->id, auth()->id(), $validated['reason']);
-        return ApiResponse::success($listing, '挂牌已拒绝');
+        return ApiResponse::success($listing, __("app.license_marketplace.msg_d02aa1f1"));
     }
 
     /**
@@ -100,7 +100,7 @@ class LicenseMarketplaceController extends Controller
     public function cancelListing(LicenseListing $listing): JsonResponse
     {
         $listing = $this->marketplace->cancelListing($listing->id);
-        return ApiResponse::success($listing, '挂牌已取消');
+        return ApiResponse::success($listing, __("app.license_marketplace.msg_43ff4eb1"));
     }
 
     // ═══════ 交易管理 ═══════
@@ -117,7 +117,7 @@ class LicenseMarketplaceController extends Controller
 
         try {
             $transaction = $this->marketplace->executePurchase($listing->id, $validated['buyer_customer_id']);
-            return ApiResponse::success($transaction, '交易完成');
+            return ApiResponse::success($transaction, __("app.license_marketplace.msg_694acbcf"));
         } catch (\Throwable $e) {
             return ApiResponse::error('PURCHASE_FAILED', $e->getMessage(), 422);
         }
@@ -177,7 +177,7 @@ class LicenseMarketplaceController extends Controller
         ]);
 
         $dispute = $this->marketplace->resolveDispute($dispute->id, auth()->id(), $validated['resolution'], $validated['notes']);
-        return ApiResponse::success($dispute, '纠纷已处理');
+        return ApiResponse::success($dispute, __("app.license_marketplace.msg_c60133ff"));
     }
 
     // ═══════ 卖家评分 ═══════

@@ -78,7 +78,7 @@ class CommissionRiskGuard
                 $settlement->update([
                     'status' => 'released',
                     'released_at' => now(),
-                    'notes' => '全额抵扣负余额',
+                    'notes' => __('app.commission_risk_guard.full_deduct_negative'),
                 ]);
                 $this->logAudit('commission_frozen_full_deducted', [
                     'settlement_id' => $settlement->id,
@@ -105,7 +105,7 @@ class CommissionRiskGuard
             $settlement->update([
                 'status' => 'pending',
                 'released_at' => $frozenUntil,
-                'notes' => '冻结至 ' . $frozenUntil->toDateString(),
+                'notes' => __('app.commission_risk_guard.frozen_until', ['date' => $frozenUntil->toDateString()]),
             ]);
 
             // 更新收益账户：增加 pending_balance
@@ -280,7 +280,7 @@ class CommissionRiskGuard
             $results[] = $result;
             $settlement->update([
                 'status' => 'refunded',
-                'notes' => '退款已回拨: ' . ($result['action'] ?? 'unknown'),
+                'notes' => __('app.commission_risk_guard.refund_clawback', ['action' => ($result['action'] ?? 'unknown')]),
             ]);
         }
 
@@ -382,7 +382,7 @@ class CommissionRiskGuard
             if ($agent->status === 'active') {
                 $agent->update([
                     'status' => 'suspended',
-                    'notes' => ($agent->notes ?? '') . " | 负余额追缴: ¥{$negativeAmount} 于 " . now()->toDateString(),
+                    'notes' => ($agent->notes ?? '') . __('app.commission_risk_guard.negative_balance_note', ['amount' => $negativeAmount, 'date' => now()->toDateString()]),
                 ]);
             }
 
@@ -429,36 +429,36 @@ class CommissionRiskGuard
 
         // 4.1 可用余额检查
         if ((float) $account->available_balance < $amount) {
-            $reasons[] = '可用余额不足';
+            $reasons[] = __('app.commission_risk_guard.insufficient_balance');
         }
 
         // 4.2 最低提现金额检查
         if ($amount < self::MIN_WITHDRAWAL_AMOUNT) {
-            $reasons[] = '未达到最低提现金额 ' . self::MIN_WITHDRAWAL_AMOUNT . ' 元';
+            $reasons[] = __('app.commission_risk_guard.below_min_withdrawal', ['amount' => self::MIN_WITHDRAWAL_AMOUNT]);
         }
 
         // 4.3 负余额检查
         $metadata = $account->metadata ?? [];
         $negativeBalance = $metadata['negative_balance'] ?? 0;
         if ($negativeBalance > 0) {
-            $reasons[] = "账户存在负余额 ¥{$negativeBalance}，需偿还后方可提现";
+            $reasons[] = __('app.commission_risk_guard.negative_balance_exists', ['amount' => $negativeBalance]);
         }
 
         // 4.4 代理状态检查
         if ($agent->status !== 'active') {
-            $reasons[] = '代理账户状态异常（' . $agent->status . '），无法提现';
+            $reasons[] = __('app.commission_risk_guard.agent_status_abnormal', ['status' => $agent->status]);
         }
 
         // 4.5 争议订单检查
         $disputedCount = $this->countDisputedOrdersForAgent($agent);
         if ($disputedCount > 0) {
-            $reasons[] = "存在 {$disputedCount} 笔争议订单，需处理完毕后方可提现";
+            $reasons[] = __('app.commission_risk_guard.disputed_orders', ['count' => $disputedCount]);
         }
 
         // 4.6 每日提现次数限制
         $todayCount = $this->countTodayWithdrawals($agent);
         if ($todayCount >= self::MAX_WITHDRAWALS_PER_DAY) {
-            $reasons[] = '今日提现次数已达上限（' . self::MAX_WITHDRAWALS_PER_DAY . ' 次）';
+            $reasons[] = __('app.commission_risk_guard.withdrawal_limit', ['limit' => self::MAX_WITHDRAWALS_PER_DAY]);
         }
 
         // 4.7 大额提现标记（触发人工审核，但不拦截）
@@ -470,13 +470,13 @@ class CommissionRiskGuard
         // 4.8 异常模式检测 —— 短时高频
         $recentWithdrawals = $this->countRecentWithdrawals($agent, 24);
         if ($recentWithdrawals >= 2) {
-            $reasons[] = '24 小时内提现频繁，请稍后再试';
+            $reasons[] = __('app.commission_risk_guard.high_frequency');
         }
 
         // 4.9 提现渠道与金额匹配
         if ($method === 'alipay' || $method === 'wechat') {
             if ($amount > 50000) {
-                $reasons[] = '支付宝/微信单笔提现超过 50,000 元限制';
+                $reasons[] = __('app.commission_risk_guard.alipay_wechat_limit');
             }
         }
 
@@ -529,7 +529,7 @@ class CommissionRiskGuard
                 ->each(function (Agent $agent) {
                     $agent->update([
                         'status' => 'active',
-                        'notes' => ($agent->notes ?? '') . ' | 负余额已于 ' . now()->toDateTimeString() . ' 清偿',
+                        'notes' => ($agent->notes ?? '') . __('app.commission_risk_guard.negative_balance_cleared', ['date' => now()->toDateTimeString()]),
                     ]);
                 });
 

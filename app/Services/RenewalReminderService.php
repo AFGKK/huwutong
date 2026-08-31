@@ -275,8 +275,8 @@ class RenewalReminderService
             $suggestions[] = [
                 'type' => 'auto_renew_low',
                 'severity' => 'high',
-                'title' => '自动续费开通率偏低',
-                'message' => "当前自动续费开通率仅 {$analytics['auto_renew_rate']}%，建议通过优惠激励（如自动续费享9折）提升开通率",
+                'title' => __('app.api.service_renewal_reminder.auto_renew_low'),
+                'message' => __('app.api.service_renewal_reminder.auto_renew_low_msg', ['rate' => $analytics['auto_renew_rate']]),
                 'metric' => "{$analytics['auto_renew_rate']}%",
             ];
         }
@@ -286,8 +286,8 @@ class RenewalReminderService
             $suggestions[] = [
                 'type' => 'high_churn',
                 'severity' => 'critical',
-                'title' => '续费转化率过低',
-                'message' => "近30天续费转化率仅 {$analytics['conversion_rate_30d']}%，有 {$analytics['expired_30d']} 个订阅已过期，建议增加提醒频率或发送优惠券",
+                'title' => __('app.api.service_renewal_reminder.conversion_low'),
+                'message' => __('app.api.service_renewal_reminder.conversion_low_msg', ['rate' => $analytics['conversion_rate_30d'], 'count' => $analytics['expired_30d']]),
                 'metric' => "{$analytics['conversion_rate_30d']}%",
             ];
         }
@@ -306,8 +306,8 @@ class RenewalReminderService
             $suggestions[] = [
                 'type' => 'missing_channel',
                 'severity' => 'medium',
-                'title' => '缺少多渠道提醒',
-                'message' => '当前缺少 ' . implode('、', $missingLabels) . ' 提醒渠道，建议添加以提高触达率',
+                'title' => __('app.api.service_renewal_reminder.missing_channels'),
+                'message' => __('app.api.service_renewal_reminder.missing_channels_msg', ['channels' => implode('、', $missingLabels)]),
                 'metric' => implode(', ', $missingLabels),
             ];
         }
@@ -324,9 +324,9 @@ class RenewalReminderService
             $suggestions[] = [
                 'type' => 'expiring_soon',
                 'severity' => 'warning',
-                'title' => '近期有订阅即将到期',
-                'message' => "有 {$expiringSoon} 个订阅将在7天内到期，请确保已设置提醒模板",
-                'metric' => "{$expiringSoon} 个",
+                'title' => __('app.api.service_renewal_reminder.expiring_soon'),
+                'message' => __('app.api.service_renewal_reminder.expiring_soon_msg', ['count' => $expiringSoon]),
+                'metric' => __('app.api.service_renewal_reminder.unit_count', ['count' => $expiringSoon]),
             ];
         }
 
@@ -343,11 +343,11 @@ class RenewalReminderService
         if (!$text) return null;
 
         $replacements = [
-            '{{customer_name}}' => $subscription->customer?->name ?? '客户',
+            '{{customer_name}}' => $subscription->customer?->name ?? __('app.api.service_renewal_reminder.customer_label'),
             '{{subscription_id}}' => $subscription->id,
-            '{{plan}}' => $subscription->plan ?? '当前方案',
+            '{{plan}}' => $subscription->plan ?? __('app.api.service_renewal_reminder.plan_label'),
             '{{price}}' => number_format((float) $subscription->price, 2),
-            '{{ends_at}}' => $subscription->ends_at?->format('Y-m-d') ?? '未知',
+            '{{ends_at}}' => $subscription->ends_at?->format('Y-m-d') ?? __('app.api.service_renewal_reminder.unknown'),
             '{{days_left}}' => $subscription->ends_at ? now()->diffInDays($subscription->ends_at, false) : 0,
         ];
 

@@ -61,7 +61,7 @@ class ReportSchedulerController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数错误', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.report_scheduler.param_error'), $validator->errors()->toArray());
         }
 
         $schedule = $this->schedulerService->createSchedule(
@@ -70,7 +70,7 @@ class ReportSchedulerController extends Controller
             $validator->validated()
         );
 
-        return ApiResponse::created($schedule, '调度已创建');
+        return ApiResponse::created($schedule, __('app.api.report_scheduler.schedule_created'));
     }
 
     /**
@@ -84,7 +84,7 @@ class ReportSchedulerController extends Controller
             ->first();
 
         if (!$schedule) {
-            return ApiResponse::error('NOT_FOUND', '调度未找到', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.report_scheduler.schedule_not_found'), 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -101,11 +101,11 @@ class ReportSchedulerController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数错误', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.report_scheduler.param_error'), $validator->errors()->toArray());
         }
 
         $schedule = $this->schedulerService->updateSchedule($schedule, $validator->validated());
-        return ApiResponse::success($schedule, '调度已更新');
+        return ApiResponse::success($schedule, __('app.api.report_scheduler.schedule_updated'));
     }
 
     /**
@@ -119,11 +119,11 @@ class ReportSchedulerController extends Controller
             ->first();
 
         if (!$schedule) {
-            return ApiResponse::error('NOT_FOUND', '调度未找到', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.report_scheduler.schedule_not_found'), 404);
         }
 
         $this->schedulerService->deleteSchedule($schedule);
-        return ApiResponse::success(null, '调度已删除');
+        return ApiResponse::success(null, __('app.api.report_scheduler.schedule_deleted'));
     }
 
     /**
@@ -137,11 +137,11 @@ class ReportSchedulerController extends Controller
             ->first();
 
         if (!$schedule) {
-            return ApiResponse::error('NOT_FOUND', '调度未找到', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.report_scheduler.schedule_not_found'), 404);
         }
 
         $schedule = $this->schedulerService->toggleSchedule($schedule);
-        return ApiResponse::success($schedule, $schedule->is_active ? '调度已启用' : '调度已暂停');
+        return ApiResponse::success($schedule, $schedule->is_active ? __('app.api.report_scheduler.schedule_enabled') : __('app.api.report_scheduler.schedule_paused'));
     }
 
     /**
@@ -155,11 +155,11 @@ class ReportSchedulerController extends Controller
             ->first();
 
         if (!$schedule) {
-            return ApiResponse::error('NOT_FOUND', '调度未找到', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.report_scheduler.schedule_not_found'), 404);
         }
 
         $log = $this->schedulerService->triggerNow($schedule);
-        return ApiResponse::success($log, '调度已触发');
+        return ApiResponse::success($log, __('app.api.report_scheduler.schedule_triggered'));
     }
 
     /**

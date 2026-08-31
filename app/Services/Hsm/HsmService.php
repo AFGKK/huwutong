@@ -38,7 +38,7 @@ class HsmService
     public function provider(): HsmProvider
     {
         if (!$this->provider) {
-            throw new \RuntimeException('HSM 未配置或未启用');
+            throw new \RuntimeException(__("app.hsm.msg_1fe9ee7a"));
         }
         return $this->provider;
     }
@@ -142,7 +142,7 @@ class HsmService
     public function health(): array
     {
         if (!$this->enabled) {
-            return ['healthy' => false, 'provider' => 'disabled', 'message' => 'HSM 未启用'];
+            return ['healthy' => false, 'provider' => 'disabled', 'message' => __('app.common.hsm_not_enabled')];
         }
 
         $health = $this->provider()->health();

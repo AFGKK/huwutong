@@ -52,7 +52,7 @@ class LicenseHealthController extends Controller
         $result = $this->healthService->getForLicense($licenseId, $tenantId);
 
         if (!$result) {
-            return ApiResponse::error('License 不存在', 404);
+            return ApiResponse::error(__('app.api.portal_license_health.license_not_found'), 404);
         }
 
         return ApiResponse::success($result);

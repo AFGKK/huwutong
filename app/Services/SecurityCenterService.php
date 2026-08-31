@@ -266,52 +266,112 @@ class SecurityCenterService
         $score = 100;
         $checks = [];
 
-        // IP 白名单
+        // IP whitelist
         $whitelistEnabled = $this->getPolicyValue('ip_whitelist_enforced', $tenantId);
         if (!$whitelistEnabled) {
             $score -= 10;
-            $checks[] = ['item' => 'IP 白名单', 'status' => '未启用', 'deduction' => 10, 'recommendation' => '启用 IP 白名单可降低未授权访问风险'];
+            $checks[] = [
+                'item' => 'ip_whitelist',
+                'status' => 'not_enabled',
+                'status_params' => [],
+                'deduction' => 10,
+                'recommendation' => 'enable_ip_whitelist',
+            ];
         } else {
-            $checks[] = ['item' => 'IP 白名单', 'status' => '已启用', 'deduction' => 0, 'recommendation' => ''];
+            $checks[] = [
+                'item' => 'ip_whitelist',
+                'status' => 'enabled',
+                'status_params' => [],
+                'deduction' => 0,
+                'recommendation' => '',
+            ];
         }
 
         // MFA
         $mfaRequired = $this->getPolicyValue('mfa_required', $tenantId);
         if (!$mfaRequired) {
             $score -= 15;
-            $checks[] = ['item' => '多因素认证', 'status' => '未强制', 'deduction' => 15, 'recommendation' => '强制 MFA 可显著提升账户安全'];
+            $checks[] = [
+                'item' => 'mfa',
+                'status' => 'not_required',
+                'status_params' => [],
+                'deduction' => 15,
+                'recommendation' => 'require_mfa',
+            ];
         } else {
-            $checks[] = ['item' => '多因素认证', 'status' => '已强制', 'deduction' => 0, 'recommendation' => ''];
+            $checks[] = [
+                'item' => 'mfa',
+                'status' => 'required',
+                'status_params' => [],
+                'deduction' => 0,
+                'recommendation' => '',
+            ];
         }
 
-        // 密码复杂度
-        $minLen = $this->getPolicyValue('password_min_length', $tenantId);
+        // Password length
+        $minLen = (int) $this->getPolicyValue('password_min_length', $tenantId);
         if ($minLen < 8) {
             $score -= 8;
-            $checks[] = ['item' => '密码长度', 'status' => "{$minLen} 位", 'deduction' => 8, 'recommendation' => '密码最少 8 位'];
+            $checks[] = [
+                'item' => 'password_length',
+                'status' => 'chars',
+                'status_params' => ['n' => $minLen],
+                'deduction' => 8,
+                'recommendation' => 'password_min_8',
+            ];
         } else {
-            $checks[] = ['item' => '密码长度', 'status' => "{$minLen} 位", 'deduction' => 0, 'recommendation' => ''];
+            $checks[] = [
+                'item' => 'password_length',
+                'status' => 'chars',
+                'status_params' => ['n' => $minLen],
+                'deduction' => 0,
+                'recommendation' => '',
+            ];
         }
 
-        // 会话超时
-        $timeout = $this->getPolicyValue('session_timeout_minutes', $tenantId);
+        // Session timeout
+        $timeout = (int) $this->getPolicyValue('session_timeout_minutes', $tenantId);
         if ($timeout > 480) {
             $score -= 5;
-            $checks[] = ['item' => '会话超时', 'status' => "{$timeout} 分钟", 'deduction' => 5, 'recommendation' => '建议会话超时不超过 480 分钟'];
+            $checks[] = [
+                'item' => 'session_timeout',
+                'status' => 'minutes',
+                'status_params' => ['n' => $timeout],
+                'deduction' => 5,
+                'recommendation' => 'session_timeout_480',
+            ];
         } else {
-            $checks[] = ['item' => '会话超时', 'status' => "{$timeout} 分钟", 'deduction' => 0, 'recommendation' => ''];
+            $checks[] = [
+                'item' => 'session_timeout',
+                'status' => 'minutes',
+                'status_params' => ['n' => $timeout],
+                'deduction' => 0,
+                'recommendation' => '',
+            ];
         }
 
-        // 最近安全事件
+        // Recent critical events
         $criticalEvents = SecurityEvent::when($tenantId, fn($q) => $q->where('tenant_id', $tenantId))
             ->where('severity', 'critical')
             ->where('created_at', '>=', now()->subDay())
             ->count();
         if ($criticalEvents > 0) {
             $score -= $criticalEvents * 5;
-            $checks[] = ['item' => '严重安全事件', 'status' => "今日 {$criticalEvents} 次", 'deduction' => $criticalEvents * 5, 'recommendation' => '请立即处理严重安全事件'];
+            $checks[] = [
+                'item' => 'critical_events',
+                'status' => 'critical_today',
+                'status_params' => ['n' => $criticalEvents],
+                'deduction' => $criticalEvents * 5,
+                'recommendation' => 'handle_critical_events',
+            ];
         } else {
-            $checks[] = ['item' => '严重安全事件', 'status' => '无', 'deduction' => 0, 'recommendation' => ''];
+            $checks[] = [
+                'item' => 'critical_events',
+                'status' => 'none',
+                'status_params' => [],
+                'deduction' => 0,
+                'recommendation' => '',
+            ];
         }
 
         return [
@@ -497,15 +557,15 @@ class SecurityCenterService
     protected function executeSopAction(string $actionType, array $config, ?SecurityEvent $event = null, ?int $userId = null): array
     {
         return match ($actionType) {
-            'log_event' => ['success' => true, 'message' => '事件已记录'],
+            'log_event' => ['success' => true, 'message' => __('app.security_center.security_center_d7e017ecaf')],
             'notify_admin' => $this->actionNotifyAdmin($config, $event),
             'notify_user' => $this->actionNotifyUser($config, $event),
             'block_ip' => $this->actionBlockIp($config, $event),
             'terminate_sessions' => $this->actionTerminateSessions($config, $event, $userId),
             'disable_account' => $this->actionDisableAccount($config, $event),
-            'require_mfa' => ['success' => true, 'message' => 'MFA 已强制'],
+            'require_mfa' => ['success' => true, 'message' => __('app.security_center.security_center_37a3c267f9')],
             'send_alert_email' => $this->actionSendAlertEmail($config, $event),
-            'create_ticket' => ['success' => true, 'message' => '工单已创建（模拟）'],
+            'create_ticket' => ['success' => true, 'message' => __('app.security_center.security_center_de6fb014cf')],
             'custom_webhook' => $this->actionCustomWebhook($config, $event),
             default => ['success' => false, 'message' => "未知动作类型: {$actionType}"],
         };
@@ -514,9 +574,9 @@ class SecurityCenterService
     protected function actionNotifyAdmin(array $config, ?SecurityEvent $event): array
     {
         try {
-            $message = $config['message'] ?? '安全事件需要关注';
+            $message = $config['message'] ?? __('app.security_center.security_center_dc935122bc');
             Log::warning("[SOP] 通知管理员: {$message}", ['event_id' => $event?->id]);
-            return ['success' => true, 'message' => '管理员已通知'];
+            return ['success' => true, 'message' => __('app.security_center.security_center_c58e07c94c')];
         } catch (\Exception $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }
@@ -525,9 +585,9 @@ class SecurityCenterService
     protected function actionNotifyUser(array $config, ?SecurityEvent $event): array
     {
         try {
-            $message = $config['message'] ?? '您的账户有新的安全活动';
+            $message = $config['message'] ?? __('app.security_center.security_center_f99891d04a');
             Log::info("[SOP] 通知用户: {$message}", ['event_id' => $event?->id]);
-            return ['success' => true, 'message' => '用户已通知'];
+            return ['success' => true, 'message' => __('app.security_center.security_center_9f03fd1d60')];
         } catch (\Exception $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }
@@ -538,16 +598,16 @@ class SecurityCenterService
         try {
             $ip = $event?->ip_address ?? $config['ip_address'] ?? '';
             if (empty($ip)) {
-                return ['success' => false, 'message' => '无IP地址可封禁'];
+                return ['success' => false, 'message' => __('app.security_center.security_center_97be8ea37d')];
             }
 
             \App\Models\IpWhitelist::firstOrCreate(
                 ['tenant_id' => $event->tenant_id, 'ip_address' => $ip],
-                ['type' => 'blacklist', 'label' => $config['reason'] ?? 'SOP自动封禁', 'is_active' => true]
+                ['type' => 'blacklist', 'label' => $config['reason'] ?? __('app.security_center.security_center_553a2e3820'), 'is_active' => true]
             );
             Cache::forget("tenant:{$event->tenant_id}:blacklist");
 
-            return ['success' => true, 'message' => "IP {$ip} 已加入黑名单"];
+            return ['success' => true, 'message' => __('app.common.ip_blacklisted', ['ip' => $ip])];
         } catch (\Exception $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }
@@ -558,14 +618,14 @@ class SecurityCenterService
         try {
             $targetUserId = $config['user_id'] ?? $event?->user_id ?? $userId;
             if (!$targetUserId) {
-                return ['success' => false, 'message' => '无用户ID'];
+                return ['success' => false, 'message' => __('app.security_center.security_center_11edbc6382')];
             }
 
             $count = UserSession::where('user_id', $targetUserId)
                 ->where('expires_at', '>', now())
                 ->update(['expires_at' => now(), 'is_current' => false]);
 
-            return ['success' => true, 'message' => "已终止 {$count} 个会话"];
+            return ['success' => true, 'message' => __('app.common.sessions_terminated', ['count' => $count])];
         } catch (\Exception $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }
@@ -576,12 +636,12 @@ class SecurityCenterService
         try {
             $userId = $config['user_id'] ?? $event?->user_id;
             if (!$userId) {
-                return ['success' => false, 'message' => '无用户ID'];
+                return ['success' => false, 'message' => __('app.security_center.security_center_11edbc6382')];
             }
 
             User::where('id', $userId)->update(['is_active' => false]);
 
-            return ['success' => true, 'message' => "用户 #{$userId} 已禁用"];
+            return ['success' => true, 'message' => __('app.common.user_disabled', ['user' => $userId])];
         } catch (\Exception $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }
@@ -592,7 +652,7 @@ class SecurityCenterService
         try {
             $email = $config['email'] ?? ($event?->user?->email ?? 'admin@example.com');
             Log::info("[SOP] 发送告警邮件至 {$email}", ['event' => $event?->event_type]);
-            return ['success' => true, 'message' => "告警邮件已发送至 {$email}"];
+            return ['success' => true, 'message' => __('app.common.alert_email_sent', ['email' => $email])];
         } catch (\Exception $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }
@@ -603,10 +663,10 @@ class SecurityCenterService
         try {
             $url = $config['url'] ?? '';
             if (empty($url)) {
-                return ['success' => false, 'message' => '无Webhook URL'];
+                return ['success' => false, 'message' => __('app.security_center.security_center_ad6a7e31a0')];
             }
             Log::info("[SOP] 调用Webhook: {$url}", ['event_id' => $event?->id]);
-            return ['success' => true, 'message' => "Webhook 已调用: {$url}"];
+            return ['success' => true, 'message' => __('app.common.webhook_called', ['url' => $url])];
         } catch (\Exception $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }

@@ -80,7 +80,7 @@ class AuditExportController extends Controller
     public function downloadExportFile(AuditExportTask $auditExportTask)
     {
         if (!$auditExportTask->file_path || !Storage::disk($auditExportTask->disk)->exists($auditExportTask->file_path)) {
-            return ApiResponse::error('FILE_NOT_FOUND', '文件不存在或已过期', 404);
+            return ApiResponse::error('FILE_NOT_FOUND', __("app.audit_export.msg_602dd850"), 404);
         }
 
         $fileName = $auditExportTask->file_name ?? ('export.' . $auditExportTask->format);
@@ -100,7 +100,7 @@ class AuditExportController extends Controller
         $maxRows = min((int) ($request->input('max_rows', 50000)), 100000);
 
         if (!in_array($format, ['csv', 'json'])) {
-            return ApiResponse::success(['error' => '不支持的文件格式'], 422);
+            return ApiResponse::success(['error' => __("app.audit_export.msg_eac4f7b7")], 422);
         }
 
         $query = Log::query();

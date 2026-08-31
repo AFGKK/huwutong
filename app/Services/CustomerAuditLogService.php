@@ -151,81 +151,16 @@ class CustomerAuditLogService
      */
     public function getActionCategories(): array
     {
+        $cat = fn(string $k) => __('app.customer_audit_log.categories.' . $k);
+
         return [
-            'license' => [
-                'label' => 'License 操作',
-                'prefix' => 'license.',
-                'actions' => [
-                    'license.created' => '创建 License',
-                    'license.status_changed' => '变更 License 状态',
-                    'license.expired' => 'License 过期',
-                    'license.renewed' => '续费 License',
-                    'license.updated' => '更新 License',
-                ],
-            ],
-            'device' => [
-                'label' => '设备操作',
-                'prefix' => 'device.',
-                'actions' => [
-                    'device.activated' => '设备激活',
-                    'device.deactivated' => '设备解绑',
-                    'device.deactivated_all' => '全部设备解绑',
-                ],
-            ],
-            'team' => [
-                'label' => '团队操作',
-                'prefix' => 'team.',
-                'actions' => [
-                    'team.member.invited' => '邀请成员',
-                    'team.member.joined' => '成员加入',
-                    'team.member.removed' => '移除成员',
-                    'team.member.role_changed' => '变更成员角色',
-                    'team.member.left' => '成员退出',
-                    'team.admin_transferred' => '转让管理员',
-                ],
-            ],
-            'payment' => [
-                'label' => '支付操作',
-                'prefix' => 'payment.',
-                'actions' => [
-                    'payment.method_added' => '添加支付方式',
-                    'payment.method_removed' => '移除支付方式',
-                    'payment.invoice_generated' => '生成账单',
-                    'payment.payment_completed' => '支付成功',
-                    'payment.payment_failed' => '支付失败',
-                    'payment.refund_issued' => '退款',
-                ],
-            ],
-            'billing' => [
-                'label' => '账单操作',
-                'prefix' => 'billing.',
-                'actions' => [
-                    'billing.subscription_changed' => '变更订阅方案',
-                    'billing.subscription_cancelled' => '取消订阅',
-                    'billing.plan_upgraded' => '升级套餐',
-                    'billing.plan_downgraded' => '降级套餐',
-                ],
-            ],
-            'security' => [
-                'label' => '安全操作',
-                'prefix' => 'security.',
-                'actions' => [
-                    'security.password_changed' => '修改密码',
-                    'security.mfa_enabled' => '启用 MFA',
-                    'security.mfa_disabled' => '禁用 MFA',
-                    'security.api_key_created' => '创建 API Key',
-                    'security.api_key_revoked' => '吊销 API Key',
-                    'security.ip_whitelist_updated' => '更新 IP 白名单',
-                ],
-            ],
-            'setting' => [
-                'label' => '设置操作',
-                'prefix' => 'setting.',
-                'actions' => [
-                    'setting.tenant_updated' => '更新公司信息',
-                    'setting.branding_updated' => '更新品牌设置',
-                ],
-            ],
+            'license' => array_merge($cat('license'), ['prefix' => 'license.']),
+            'device' => array_merge($cat('device'), ['prefix' => 'device.']),
+            'team' => array_merge($cat('team'), ['prefix' => 'team.']),
+            'payment' => array_merge($cat('payment'), ['prefix' => 'payment.']),
+            'billing' => array_merge($cat('billing'), ['prefix' => 'billing.']),
+            'security' => array_merge($cat('security'), ['prefix' => 'security.']),
+            'setting' => array_merge($cat('setting'), ['prefix' => 'setting.']),
         ];
     }
 
@@ -259,7 +194,7 @@ class CustomerAuditLogService
             $query->where('created_at', '<=', $filters['date_to'] . ' 23:59:59');
         }
 
-        $headers = ['时间', '操作人', '邮箱', '操作类型', '操作描述', 'IP 地址', 'User-Agent'];
+        $headers = __('app.customer_audit_log.csv_headers');
 
         $rows = (function () use ($query, $maxRows) {
             $count = 0;
@@ -339,7 +274,7 @@ class CustomerAuditLogService
             }
         }
 
-        // 从 action 推断可读标签
+        // fallback: infer readable label from action
         $parts = explode('.', $action);
         $label = end($parts);
         $label = str_replace('_', ' ', $label);

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Invoice;
 use App\Models\License;
 use App\Models\Order;
 use App\Models\Refund;
@@ -19,6 +20,7 @@ class RefundWorkflowService
 {
     public function __construct(
         protected PaymentSecurityGuard $securityGuard,
+        protected OrderService $orderService,
     ) {}
 
     /**
@@ -28,8 +30,12 @@ class RefundWorkflowService
     {
         $order = Order::with('items')->findOrFail($orderId);
 
+        if (!$this->actorOwnsOrder($order, $customerId)) {
+            throw new \RuntimeException(__("app.refund_workflow.refund_access_denied"));
+        }
+
         if ($order->status !== Order::STATUS_PAID) {
-            throw new \RuntimeException('只有已支付的订单可以申请退款');
+            throw new \RuntimeException(__("app.refund_workflow.refund_only_paid_orders"));
         }
 
         // 退款防刷检查
@@ -38,10 +44,13 @@ class RefundWorkflowService
             throw new \RuntimeException($abuseCheck['message']);
         }
 
-        return DB::transaction(function () use ($order, $data) {
+        $invoice = $this->resolveOrderInvoice($order);
+
+        return DB::transaction(function () use ($order, $data, $invoice) {
             $refund = Refund::create([
                 'tenant_id' => $order->tenant_id,
                 'order_id' => $order->id,
+                'invoice_id' => $invoice?->id,
                 'customer_id' => $order->customer_id,
                 'refund_no' => 'RF' . date('Ymd') . Str::upper(Str::random(8)),
                 'amount' => $order->final_amount,
@@ -51,11 +60,11 @@ class RefundWorkflowService
                 'attachments' => $data['attachments'] ?? null,
                 'status' => 'pending',
                 'refund_type' => $data['refund_type'] ?? 'full',
+                'payment_method' => $order->payment_method,
                 'customer_requested_at' => now(),
             ]);
 
-            // 更新订单状态
-            $order->update(['status' => Order::STATUS_REFUNDING]);
+            $order->transitionTo(Order::STATUS_REFUNDING);
 
             return $refund;
         });
@@ -66,10 +75,10 @@ class RefundWorkflowService
      */
     public function review(int $refundId, string $action, array $data = []): Refund
     {
-        $refund = Refund::with('order')->findOrFail($refundId);
+        $refund = Refund::with('order.items')->findOrFail($refundId);
 
         if ($refund->status !== 'pending') {
-            throw new \RuntimeException("退款已处理，当前状态: {$refund->status}");
+            throw new \RuntimeException(__("app.refund_workflow.msg_16a5959c"));
         }
 
         if ($action === 'approve') {
@@ -80,7 +89,7 @@ class RefundWorkflowService
             return $this->reject($refund, $data);
         }
 
-        throw new \RuntimeException("未知操作: {$action}");
+        throw new \RuntimeException(__("app.refund_workflow.msg_24eaa667"));
     }
 
     /**
@@ -99,16 +108,21 @@ class RefundWorkflowService
                 ]),
             ]);
 
-            // 执行原路退款（调用支付网关）
+            if (!$refund->invoice_id) {
+                $invoice = $this->resolveOrderInvoice($refund->order);
+                if ($invoice) {
+                    $refund->update(['invoice_id' => $invoice->id]);
+                }
+            }
+
             $this->processRefundPayment($refund);
 
-            // 自动吊销关联License
             $this->revokeLicenses($refund);
 
-            // 更新订单
             $order = $refund->order;
             if ($order) {
-                $order->update(['status' => Order::STATUS_REFUNDED]);
+                $this->orderService->rollbackStock($order);
+                $order->transitionTo(Order::STATUS_REFUNDED);
             }
 
             $refund->update(['status' => 'completed', 'completed_at' => now()]);
@@ -132,10 +146,9 @@ class RefundWorkflowService
             ]),
         ]);
 
-        // 恢复订单状态为已支付
         $order = $refund->order;
         if ($order && $order->status === Order::STATUS_REFUNDING) {
-            $order->update(['status' => Order::STATUS_PAID]);
+            $order->transitionTo(Order::STATUS_PAID);
         }
 
         return $refund->fresh();
@@ -146,22 +159,34 @@ class RefundWorkflowService
      */
     protected function processRefundPayment(Refund $refund): void
     {
-        // 调用 PaymentManager 执行退款
         try {
+            $invoice = $refund->invoice ?? $this->resolveOrderInvoice($refund->order);
+            if (!$invoice) {
+                throw new \RuntimeException(__("app.refund_workflow.invoice_not_found_cannot_refund"));
+            }
+
             $paymentManager = app(PaymentManager::class);
-            $invoice = $refund->invoice;
-            if ($invoice) {
-                $paymentManager->refund($invoice, [
-                    'amount' => $refund->amount,
-                    'reason' => $refund->reason,
+            $gateway = $refund->payment_method ?: $refund->order?->payment_method ?: 'mock';
+            $paymentManager->useDriver($gateway);
+
+            $result = $paymentManager->refund($invoice, [
+                'amount' => $refund->amount,
+                'reason' => $refund->reason,
+            ]);
+
+            if (!empty($result['success'])) {
+                $refund->update([
+                    'payment_refund_id' => $result['refund_id'] ?? null,
+                    'payment_method' => $gateway,
                 ]);
+            } else {
+throw new \RuntimeException($result['error'] ?? __("app.refund_workflow.refund_gateway_failed"));
             }
         } catch (\Throwable $e) {
             Log::error('退款支付失败', [
                 'refund_id' => $refund->id,
                 'error' => $e->getMessage(),
             ]);
-            // 不阻断流程，标记为需要手动处理
             $refund->update([
                 'failure_reason' => '退款支付失败: ' . $e->getMessage(),
                 'metadata' => array_merge($refund->metadata ?? [], ['payment_refund_failed' => true]),
@@ -236,5 +261,50 @@ class RefundWorkflowService
         return $query->orderByDesc('created_at')
             ->paginate($perPage, ['*'], 'page', $page)
             ->toArray();
+    }
+
+    /**
+     * 客户自己的退款记录
+     */
+    public function getCustomerRefunds(int $tenantId, int $customerId, ?int $userId = null, array $filters = []): array
+    {
+        $query = Refund::byTenant($tenantId)
+            ->with(['order:id,order_no,status']);
+
+        $query->where(function ($q) use ($customerId, $userId) {
+            $q->where('customer_id', $customerId);
+            if ($userId) {
+                $q->orWhereHas('order', fn ($order) => $order->where('user_id', $userId));
+            }
+        });
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        return $query->orderByDesc('created_at')
+            ->paginate($filters['per_page'] ?? 20)
+            ->toArray();
+    }
+
+    protected function resolveOrderInvoice(?Order $order): ?Invoice
+    {
+        if (!$order) {
+            return null;
+        }
+
+        return Invoice::where('metadata->order_id', $order->id)
+            ->orWhere('invoice_no', 'INV-' . $order->order_no)
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    protected function actorOwnsOrder(Order $order, int $actorId): bool
+    {
+        if ($order->customer_id && $order->customer_id === $actorId) {
+            return true;
+        }
+
+        return $order->user_id && $order->user_id === $actorId;
     }
 }

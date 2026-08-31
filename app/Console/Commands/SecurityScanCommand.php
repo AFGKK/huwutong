@@ -39,7 +39,7 @@ class SecurityScanCommand extends Command
         $this->targetUrl = $this->option('target') ?? config('app.url', 'http://localhost:8000');
         $this->reportDir = storage_path('app/security-scans');
 
-        if (!is_dir($this->reportDir)) {
+        if (! is_dir($this->reportDir)) {
             mkdir($this->reportDir, 0755, true);
         }
 
@@ -47,9 +47,18 @@ class SecurityScanCommand extends Command
             return $this->showLastReport();
         }
 
-        // 前置检查
-        if (!$this->preflightCheck()) {
-            return 1;
+        // --quick 且无 ZAP：仅静态分析（CI 第一步 / 本地默认）
+        if ($this->option('quick') && ! $this->isZapAvailable()) {
+            $this->warn('⚠️  ZAP 服务未运行，执行静态安全分析...');
+            $static = $this->runStaticAnalysis();
+            $scanResult = $this->saveStaticResult($static);
+            $this->outputReport($scanResult);
+
+            return $static['passed'] ? self::SUCCESS : self::FAILURE;
+        }
+
+        if (! $this->preflightCheck()) {
+            return self::FAILURE;
         }
 
         // 执行扫描
@@ -69,86 +78,146 @@ class SecurityScanCommand extends Command
         // 根据策略决定退出码
         if ($scanResult->high_count > 0 && env('ZAP_FAIL_ON_HIGH', true)) {
             $this->error('❌ 发现高危漏洞，阻断发布！');
-            return 1;
+
+            return self::FAILURE;
         }
 
         $this->info('✅ 安全扫描通过');
-        return 0;
+
+        return self::SUCCESS;
+    }
+
+    private function isZapAvailable(): bool
+    {
+        $zapHost = env('ZAP_HOST', '127.0.0.1');
+        $zapPort = env('ZAP_PORT', '8090');
+        $zapApiKey = env('ZAP_API_KEY', '');
+
+        try {
+            $response = Http::timeout(3)->get("http://{$zapHost}:{$zapPort}/JSON/core/view/version/", [
+                'apikey' => $zapApiKey,
+            ]);
+
+            return $response->successful();
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     private function preflightCheck(): bool
     {
         $this->info('🔍 前置检查...');
 
-        $zapHost = env('ZAP_HOST', '127.0.0.1');
-        $zapPort = env('ZAP_PORT', '8090');
-        $zapApiKey = env('ZAP_API_KEY', '');
+        if ($this->isZapAvailable()) {
+            $zapHost = env('ZAP_HOST', '127.0.0.1');
+            $zapPort = env('ZAP_PORT', '8090');
+            $zapApiKey = env('ZAP_API_KEY', '');
 
-        try {
-            $response = Http::timeout(5)->get("http://{$zapHost}:{$zapPort}/JSON/core/view/version/", [
-                'apikey' => $zapApiKey,
-            ]);
-
-            if ($response->successful()) {
+            try {
+                $response = Http::timeout(5)->get("http://{$zapHost}:{$zapPort}/JSON/core/view/version/", [
+                    'apikey' => $zapApiKey,
+                ]);
                 $version = $response->json('version', 'unknown');
                 $this->info("✅ ZAP 服务可用 (版本: {$version})");
+
                 return true;
+            } catch (\Throwable) {
+                // fall through
             }
-        } catch (\Throwable $e) {
-            $this->warn("⚠️  ZAP 服务未运行，执行静态安全分析...");
-            return $this->runStaticAnalysis();
         }
 
-        return true;
+        $this->warn('⚠️  ZAP 服务未运行，执行静态安全分析...');
+
+        return $this->runStaticAnalysis()['passed'];
     }
 
-    private function runStaticAnalysis(): bool
+    /**
+     * @return array{passed: bool, checks: array<int, array{name: string, passed: bool, level: string}>, high_count: int, medium_count: int, low_count: int}
+     */
+    private function runStaticAnalysis(): array
     {
         $this->info('📝 执行静态安全分析...');
 
-        $checks = 0;
-        $passed = 0;
+        $checks = [];
 
         $middlewareChecks = [
-            'SecurityHeadersMiddleware' => \App\Http\Middleware\SecurityHeadersMiddleware::class,
-            'CspManagerMiddleware' => \App\Http\Middleware\CspManager::class,
+            'SecurityHeadersMiddleware (CORS/CSP/HSTS)' => \App\Http\Middleware\SecurityHeadersMiddleware::class,
             'DataMaskingMiddleware' => \App\Http\Middleware\DataMaskingMiddleware::class,
             'EnhancedThrottleMiddleware' => \App\Http\Middleware\EnhancedThrottleMiddleware::class,
             'BruteForceMiddleware' => \App\Http\Middleware\BruteForceMiddleware::class,
-            'CorsManagerMiddleware' => \App\Http\Middleware\CorsManager::class,
+            'WafMiddleware' => \App\Http\Middleware\WafMiddleware::class,
         ];
 
         foreach ($middlewareChecks as $name => $class) {
-            $checks++;
-            if (class_exists($class)) {
-                $this->info("  ✅ {$name} 已注册");
-                $passed++;
-            } else {
-                $this->warn("  ⚠️  {$name} 未注册");
-            }
+            $passed = class_exists($class);
+            $checks[] = ['name' => $name, 'passed' => $passed, 'level' => 'high'];
+            $passed
+                ? $this->info("  ✅ {$name} 已注册")
+                : $this->warn("  ⚠️  {$name} 未注册");
         }
 
-        // 检查 Sanctum
-        $checks++;
-        if (class_exists(\Laravel\Sanctum\Sanctum::class)) {
-            $this->info('  ✅ Sanctum 认证已配置');
-            $passed++;
+        $serviceChecks = [
+            'CspManagerService' => \App\Services\CspManagerService::class,
+            'CorsManagerService' => \App\Services\CorsManagerService::class,
+        ];
+
+        foreach ($serviceChecks as $name => $class) {
+            $passed = class_exists($class);
+            $checks[] = ['name' => $name, 'passed' => $passed, 'level' => 'medium'];
+            $passed
+                ? $this->info("  ✅ {$name} 可用")
+                : $this->warn("  ⚠️  {$name} 不可用");
         }
 
-        // 检查 APP_DEBUG
-        $checks++;
-        $appDebug = env('APP_DEBUG', false);
-        if (!$appDebug || $appDebug === false || $appDebug === 'false') {
-            $this->info('  ✅ 调试模式已关闭');
-            $passed++;
+        $sanctumOk = class_exists(\Laravel\Sanctum\Sanctum::class);
+        $checks[] = ['name' => 'Sanctum 认证', 'passed' => $sanctumOk, 'level' => 'high'];
+        $sanctumOk
+            ? $this->info('  ✅ Sanctum 认证已配置')
+            : $this->warn('  ⚠️  Sanctum 未安装');
+
+        $debugOff = ! filter_var(env('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN);
+        $debugRequired = app()->environment('production');
+        $debugPassed = $debugOff || ! $debugRequired;
+        $checks[] = [
+            'name' => 'APP_DEBUG 关闭（生产）',
+            'passed' => $debugPassed,
+            'level' => $debugRequired ? 'high' : 'low',
+        ];
+        if ($debugPassed) {
+            $this->info($debugOff ? '  ✅ 调试模式已关闭' : '  ℹ️  非生产环境，APP_DEBUG 允许开启');
         } else {
             $this->warn('  ⚠️  生产环境应关闭调试模式');
         }
 
-        $this->newLine();
-        $this->info("静态安全分析: {$passed}/{$checks} 通过");
+        $highFailed = collect($checks)->where('level', 'high')->where('passed', false)->count();
+        $mediumFailed = collect($checks)->where('level', 'medium')->where('passed', false)->count();
+        $passed = $highFailed === 0;
 
-        return $checks === $passed;
+        $this->newLine();
+        $passedCount = collect($checks)->where('passed', true)->count();
+        $this->info("静态安全分析: {$passedCount}/".count($checks)." 通过");
+
+        return [
+            'passed' => $passed,
+            'checks' => $checks,
+            'high_count' => $highFailed,
+            'medium_count' => $mediumFailed,
+            'low_count' => 0,
+        ];
+    }
+
+    private function saveStaticResult(array $static): SecurityScanResult
+    {
+        return SecurityScanResult::create([
+            'scan_type' => 'static',
+            'target_url' => $this->targetUrl,
+            'high_count' => $static['high_count'],
+            'medium_count' => $static['medium_count'],
+            'low_count' => $static['low_count'],
+            'passed' => $static['passed'],
+            'alerts' => $static['checks'],
+            'executed_at' => now(),
+        ]);
     }
 
     private function runScan(): array
@@ -298,10 +367,14 @@ class SecurityScanCommand extends Command
 
     private function notifyUsers(array $userIds, SecurityScanResult $result): void
     {
+        if (! class_exists(\App\Notifications\SecurityScanCompleted::class)) {
+            return;
+        }
+
         $users = User::whereIn('id', $userIds)->get();
         foreach ($users as $user) {
             try {
-                $user->notify(new SecurityScanCompleted($result));
+                $user->notify(new \App\Notifications\SecurityScanCompleted($result));
             } catch (\Throwable $e) {
                 Log::warning('通知失败', ['user_id' => $user->id]);
             }

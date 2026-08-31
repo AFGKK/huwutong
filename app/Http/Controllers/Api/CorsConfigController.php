@@ -52,7 +52,7 @@ class CorsConfigController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.cors_config.validation_failed'), $validator->errors()->toArray());
         }
 
         $config = $this->corsManager->create(array_merge(
@@ -67,7 +67,7 @@ class CorsConfigController extends Controller
             'route_pattern' => $config->route_pattern,
         ]);
 
-        return ApiResponse::created($config, 'CORS 配置已创建');
+        return ApiResponse::created($config, __('app.cors_config.created'));
     }
 
     /**
@@ -101,7 +101,7 @@ class CorsConfigController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.cors_config.validation_failed'), $validator->errors()->toArray());
         }
 
         $before = $corsConfig->replicate();
@@ -115,7 +115,7 @@ class CorsConfigController extends Controller
             'after' => $config->fresh()->toArray(),
         ]);
 
-        return ApiResponse::success($config, 'CORS 配置已更新');
+        return ApiResponse::success($config, __('app.cors_config.updated'));
     }
 
     /**
@@ -131,7 +131,7 @@ class CorsConfigController extends Controller
 
         $this->corsManager->delete($corsConfig);
 
-        return ApiResponse::success(null, 'CORS 配置已删除');
+        return ApiResponse::success(null, __('app.cors_config.deleted'));
     }
 
     /**
@@ -145,7 +145,7 @@ class CorsConfigController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.cors_config.validation_failed'), $validator->errors()->toArray());
         }
 
         $mockRequest = Request::create($request->input('path'), 'OPTIONS');
@@ -159,13 +159,13 @@ class CorsConfigController extends Controller
                 'matched' => true,
                 'config' => $config,
                 'headers' => $headers,
-            ], '匹配到 CORS 配置');
+            ], __('app.cors_config.matched'));
         }
 
         return ApiResponse::success([
             'matched' => false,
             'config' => null,
             'headers' => null,
-        ], '未匹配到 CORS 配置');
+        ], __('app.cors_config.no_match'));
     }
 }

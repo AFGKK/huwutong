@@ -46,7 +46,7 @@ class UserInteractionController extends Controller
                                 ->where('followable_id', $f->followable_id)->count();
                         }
                     } catch (\Throwable $e) {
-                        $item['name'] = '(已删除)';
+                        $item['name'] = __('app.api.interaction.deleted_placeholder');
                     }
                     return $item;
                 });
@@ -84,7 +84,7 @@ class UserInteractionController extends Controller
                             $item['url'] = $this->itemUrl($fav->favorable_type, $model);
                         }
                     } catch (\Throwable $e) {
-                        $item['title'] = '(已删除)';
+                        $item['title'] = __('app.api.interaction.deleted_placeholder');
                     }
                     return $item;
                 });
@@ -119,7 +119,7 @@ class UserInteractionController extends Controller
                             $item['url'] = $this->itemUrl($like->likeable_type, $model);
                         }
                     } catch (\Throwable $e) {
-                        $item['title'] = '(已删除)';
+                        $item['title'] = __('app.api.interaction.deleted_placeholder');
                     }
                     return $item;
                 });
@@ -147,7 +147,7 @@ class UserInteractionController extends Controller
             ->where('favorable_id', $validated['id'])
             ->exists()
         ) {
-            return ApiResponse::error('ALREADY_FAVORITED', '已收藏');
+            return ApiResponse::error('ALREADY_FAVORITED', __('app.api.interaction.already_favorited'));
         }
 
         Favorite::create([
@@ -156,7 +156,7 @@ class UserInteractionController extends Controller
             'favorable_id' => $validated['id'],
         ]);
 
-        return ApiResponse::success(null, '收藏成功');
+        return ApiResponse::success(null, __('app.api.interaction.favorite_ok'));
     }
 
     /**
@@ -177,7 +177,7 @@ class UserInteractionController extends Controller
             ->where('favorable_id', $validated['id'])
             ->delete();
 
-        return ApiResponse::success(null, '已取消收藏');
+        return ApiResponse::success(null, __('app.api.interaction.unfavorited'));
     }
 
     /**
@@ -198,7 +198,7 @@ class UserInteractionController extends Controller
             ->where('likeable_id', $validated['id'])
             ->exists()
         ) {
-            return ApiResponse::error('ALREADY_LIKED', '已点赞');
+            return ApiResponse::error('ALREADY_LIKED', __('app.api.interaction.already_liked'));
         }
 
         Like::create([
@@ -207,7 +207,7 @@ class UserInteractionController extends Controller
             'likeable_id' => $validated['id'],
         ]);
 
-        return ApiResponse::success(null, '点赞成功');
+        return ApiResponse::success(null, __('app.api.interaction.like_ok'));
     }
 
     /**
@@ -228,7 +228,7 @@ class UserInteractionController extends Controller
             ->where('likeable_id', $validated['id'])
             ->delete();
 
-        return ApiResponse::success(null, '已取消点赞');
+        return ApiResponse::success(null, __('app.api.interaction.unliked'));
     }
 
     /**
@@ -294,7 +294,7 @@ class UserInteractionController extends Controller
             $key = $day->format('Y-m-d');
             $weeklyTrend[] = [
                 'date' => $key,
-                'label' => ['一','二','三','四','五','六','日'][$i],
+                'label' => (__('app.api.interaction.weekday'))[$i],
                 'blog' => (int)($blogWeekly[$key] ?? 0),
                 'oa' => (int)($oaWeekly[$key] ?? 0),
                 'total' => (int)($blogWeekly[$key] ?? 0) + (int)($oaWeekly[$key] ?? 0),
@@ -320,25 +320,25 @@ class UserInteractionController extends Controller
 
         // 成就
         $achievements = [];
-        if ($totalRead >= 1) $achievements[] = ['key' => 'first_read', 'name' => '初次阅读', 'icon' => '📖', 'unlocked' => true];
-        if ($totalRead >= 10) $achievements[] = ['key' => 'read_10', 'name' => '阅读 10 篇', 'icon' => '📚', 'unlocked' => true];
-        if ($totalRead >= 50) $achievements[] = ['key' => 'read_50', 'name' => '阅读 50 篇', 'icon' => '📚', 'unlocked' => true];
-        if ($totalRead >= 100) $achievements[] = ['key' => 'read_100', 'name' => '百篇达人', 'icon' => '🏆', 'unlocked' => true];
-        if ($streak >= 3) $achievements[] = ['key' => 'streak_3', 'name' => '坚持 3 天', 'icon' => '🔥', 'unlocked' => true];
-        if ($streak >= 7) $achievements[] = ['key' => 'streak_7', 'name' => '坚持 7 天', 'icon' => '🔥', 'unlocked' => true];
-        if ($streak >= 30) $achievements[] = ['key' => 'streak_30', 'name' => '月度之星', 'icon' => '⭐', 'unlocked' => true];
-        if ($blogTotal >= 1 && $oaTotal >= 1) $achievements[] = ['key' => 'both_reader', 'name' => '跨平台读者', 'icon' => '🌐', 'unlocked' => true];
+        if ($totalRead >= 1) $achievements[] = ['key' => 'first_read', 'name' => __('app.api.interaction.ach_first_read'), 'icon' => '📖', 'unlocked' => true];
+        if ($totalRead >= 10) $achievements[] = ['key' => 'read_10', 'name' => __('app.api.interaction.ach_read_10'), 'icon' => '📚', 'unlocked' => true];
+        if ($totalRead >= 50) $achievements[] = ['key' => 'read_50', 'name' => __('app.api.interaction.ach_read_50'), 'icon' => '📚', 'unlocked' => true];
+        if ($totalRead >= 100) $achievements[] = ['key' => 'read_100', 'name' => __('app.api.interaction.ach_read_100'), 'icon' => '🏆', 'unlocked' => true];
+        if ($streak >= 3) $achievements[] = ['key' => 'streak_3', 'name' => __('app.api.interaction.ach_streak_3'), 'icon' => '🔥', 'unlocked' => true];
+        if ($streak >= 7) $achievements[] = ['key' => 'streak_7', 'name' => __('app.api.interaction.ach_streak_7'), 'icon' => '🔥', 'unlocked' => true];
+        if ($streak >= 30) $achievements[] = ['key' => 'streak_30', 'name' => __('app.api.interaction.ach_streak_30'), 'icon' => '⭐', 'unlocked' => true];
+        if ($blogTotal >= 1 && $oaTotal >= 1) $achievements[] = ['key' => 'both_reader', 'name' => __('app.api.interaction.ach_both_reader'), 'icon' => '🌐', 'unlocked' => true];
 
         // 添加未解锁成就预览
         $allAchievements = [
-            ['key' => 'first_read', 'name' => '初次阅读', 'icon' => '📖', 'need' => 1],
-            ['key' => 'read_10', 'name' => '阅读 10 篇', 'icon' => '📚', 'need' => 10],
-            ['key' => 'read_50', 'name' => '阅读 50 篇', 'icon' => '📚', 'need' => 50],
-            ['key' => 'read_100', 'name' => '百篇达人', 'icon' => '🏆', 'need' => 100],
-            ['key' => 'streak_3', 'name' => '坚持 3 天', 'icon' => '🔥', 'need' => 3],
-            ['key' => 'streak_7', 'name' => '坚持 7 天', 'icon' => '🔥', 'need' => 7],
-            ['key' => 'streak_30', 'name' => '月度之星', 'icon' => '⭐', 'need' => 30],
-            ['key' => 'both_reader', 'name' => '跨平台读者', 'icon' => '🌐', 'need' => '双平台'],
+            ['key' => 'first_read', 'name' => __('app.api.interaction.ach_first_read'), 'icon' => '📖', 'need' => 1],
+            ['key' => 'read_10', 'name' => __('app.api.interaction.ach_read_10'), 'icon' => '📚', 'need' => 10],
+            ['key' => 'read_50', 'name' => __('app.api.interaction.ach_read_50'), 'icon' => '📚', 'need' => 50],
+            ['key' => 'read_100', 'name' => __('app.api.interaction.ach_read_100'), 'icon' => '🏆', 'need' => 100],
+            ['key' => 'streak_3', 'name' => __('app.api.interaction.ach_streak_3'), 'icon' => '🔥', 'need' => 3],
+            ['key' => 'streak_7', 'name' => __('app.api.interaction.ach_streak_7'), 'icon' => '🔥', 'need' => 7],
+            ['key' => 'streak_30', 'name' => __('app.api.interaction.ach_streak_30'), 'icon' => '⭐', 'need' => 30],
+            ['key' => 'both_reader', 'name' => __('app.api.interaction.ach_both_reader'), 'icon' => '🌐', 'need' => __('app.api.interaction.need_both')],
         ];
 
         // 阅读目标（从偏好设置读取）
@@ -377,7 +377,7 @@ class UserInteractionController extends Controller
 
         return ApiResponse::success([
             'daily_goal' => (int)$validated['daily_goal'],
-        ], '阅读目标已更新');
+        ], __('app.api.interaction.goal_updated'));
     }
 
     /**
@@ -560,7 +560,7 @@ class UserInteractionController extends Controller
                     'tags' => $post->tags,
                     'published_at' => $post->published_at?->toDateTimeString(),
                     'source' => 'blog',
-                    'reason' => '最新推荐',
+                    'reason' => __('app.api.interaction.reason_latest'),
                 ];
             }
         }
@@ -583,11 +583,11 @@ class UserInteractionController extends Controller
         foreach ($interestTags as $it) {
             foreach ($tags as $t) {
                 if (mb_stripos((string)$t, $it) !== false || mb_stripos($it, (string)$t) !== false) {
-                    return '因您关注「' . $it . '」';
+                    return __('app.api.interaction.reason_follow', ['name' => $it]);
                 }
             }
         }
-        return '为您推荐';
+        return __('app.api.interaction.reason_for_you');
     }
 
     public function readingReport(Request $request): JsonResponse
@@ -667,8 +667,8 @@ class UserInteractionController extends Controller
         $daysInPeriod = $currentStart->diffInDays($currentEnd) + 1;
         $avgDaily = $daysInPeriod > 0 ? round($currentRead / $daysInPeriod, 1) : 0;
 
-        $periodLabel = $period === 'weekly' ? '本周' : '本月';
-        $prevPeriodLabel = $period === 'weekly' ? '上周' : '上月';
+        $periodLabel = $period === 'weekly' ? __('app.api.interaction.this_week') : __('app.api.interaction.this_month');
+        $prevPeriodLabel = $period === 'weekly' ? __('app.api.interaction.last_week') : __('app.api.interaction.last_month');
 
         return ApiResponse::success([
             'period' => $period,
@@ -808,7 +808,7 @@ class UserInteractionController extends Controller
                         $item['slug'] = $model->slug ?? '';
                     }
                 } catch (\Throwable $e) {
-                    $item['title'] = '(已删除)';
+                    $item['title'] = __('app.api.interaction.deleted_placeholder');
                     $item['tags'] = [];
                 }
                 return $item;
@@ -818,7 +818,7 @@ class UserInteractionController extends Controller
         $typeCollections = [
             [
                 'key' => 'type_blog',
-                'name' => '📝 博客文章',
+                'name' => __('app.api.interaction.type_blog'),
                 'icon' => '📝',
                 'type_filter' => 'blog_post',
                 'count' => 0,
@@ -826,7 +826,7 @@ class UserInteractionController extends Controller
             ],
             [
                 'key' => 'type_oa',
-                'name' => '📄 OA 文章',
+                'name' => __('app.api.interaction.type_oa'),
                 'icon' => '📄',
                 'type_filter' => 'oa_article',
                 'count' => 0,
@@ -834,7 +834,7 @@ class UserInteractionController extends Controller
             ],
             [
                 'key' => 'type_forum',
-                'name' => '🌐 广场帖子',
+                'name' => __('app.api.interaction.type_plaza'),
                 'icon' => '🌐',
                 'type_filter' => 'forum_post',
                 'count' => 0,
@@ -912,11 +912,11 @@ class UserInteractionController extends Controller
         if ($emailVerified) $score += 20;
         $items[] = [
             'key' => 'email',
-            'label' => '邮箱验证',
+            'label' => __('app.api.interaction.sec_email'),
             'detail' => $user->email,
             'passed' => $emailVerified,
             'score' => 20,
-            'action' => $emailVerified ? null : '验证邮箱',
+            'action' => $emailVerified ? null : __('app.api.interaction.sec_email_action'),
             'action_url' => null,
         ];
 
@@ -925,11 +925,11 @@ class UserInteractionController extends Controller
         if ($phoneVerified) $score += 20;
         $items[] = [
             'key' => 'phone',
-            'label' => '手机绑定',
-            'detail' => $user->phone ? substr_replace($user->phone, '****', 3, 4) : '未绑定',
+            'label' => __('app.api.interaction.sec_phone'),
+            'detail' => $user->phone ? substr_replace($user->phone, '****', 3, 4) : __('app.api.interaction.sec_phone_unbound'),
             'passed' => $phoneVerified,
             'score' => 20,
-            'action' => $phoneVerified ? null : '绑定手机',
+            'action' => $phoneVerified ? null : __('app.api.interaction.sec_phone_action'),
             'action_url' => '/build/account/profile',
         ];
 
@@ -938,11 +938,11 @@ class UserInteractionController extends Controller
         if ($mfaEnabled) $score += 25;
         $items[] = [
             'key' => 'mfa',
-            'label' => 'MFA 双因素认证',
-            'detail' => $mfaEnabled ? '已开启' : '未开启',
+            'label' => __('app.api.interaction.sec_mfa'),
+            'detail' => $mfaEnabled ? __('app.api.interaction.sec_mfa_on') : __('app.api.interaction.sec_mfa_off'),
             'passed' => $mfaEnabled,
             'score' => 25,
-            'action' => $mfaEnabled ? null : '立即开启',
+            'action' => $mfaEnabled ? null : __('app.api.interaction.sec_mfa_action'),
             'action_url' => '/build/account/passkey',
         ];
 
@@ -960,13 +960,13 @@ class UserInteractionController extends Controller
         if ($passwordFresh) $score += 20;
         $items[] = [
             'key' => 'password',
-            'label' => '密码时效',
+            'label' => __('app.api.interaction.sec_password'),
             'detail' => $user->password_changed_at
-                ? \Carbon\Carbon::parse($user->password_changed_at)->diffInDays(now()) . ' 天前修改'
-                : '未知',
+                ? __('app.api.interaction.sec_password_days', ['n' => \Carbon\Carbon::parse($user->password_changed_at)->diffInDays(now())])
+                : __('app.api.interaction.sec_password_unknown'),
             'passed' => $passwordFresh,
             'score' => 20,
-            'action' => $passwordFresh ? null : '修改密码',
+            'action' => $passwordFresh ? null : __('app.api.interaction.sec_password_action'),
             'action_url' => '/build/account/profile',
         ];
 
@@ -975,16 +975,16 @@ class UserInteractionController extends Controller
         if ($loginSafe) $score += 15;
         $items[] = [
             'key' => 'login',
-            'label' => '登录安全',
-            'detail' => $user->locked_until ? '账户已被锁定' : ($user->login_attempts > 0 ? $user->login_attempts . ' 次失败尝试' : '正常'),
+            'label' => __('app.api.interaction.sec_login'),
+            'detail' => $user->locked_until ? __('app.api.interaction.sec_login_locked') : ($user->login_attempts > 0 ? __('app.api.interaction.sec_login_attempts', ['n' => $user->login_attempts]) : __('app.api.interaction.sec_login_ok')),
             'passed' => $loginSafe,
             'score' => 15,
-            'action' => $loginSafe ? null : '查看登录历史',
+            'action' => $loginSafe ? null : __('app.api.interaction.sec_login_action'),
             'action_url' => '/build/account/login-history',
         ];
 
         $level = $score >= 80 ? 'safe' : ($score >= 50 ? 'warning' : 'danger');
-        $levelLabel = $score >= 80 ? '安全' : ($score >= 50 ? '需改进' : '不安全');
+        $levelLabel = $score >= 80 ? __('app.api.interaction.sec_level_safe') : ($score >= 50 ? __('app.api.interaction.sec_level_improve') : __('app.api.interaction.sec_level_unsafe'));
 
         return ApiResponse::success([
             'score' => $score,
@@ -1012,46 +1012,46 @@ class UserInteractionController extends Controller
                 ->select('id', 'name', 'slug', 'description')
                 ->get()
                 ->map(fn($a) => [
-                    '名称' => $a->name,
-                    '简介' => $a->description,
-                    '关注时间' => OaFollower::where('account_id', $a->id)->where('user_id', $user->id)->value('created_at')?->toDateTimeString(),
+                    __('app.api.interaction.export_name') => $a->name,
+                    __('app.api.interaction.export_desc') => $a->description,
+                    __('app.api.interaction.export_follow_at') => OaFollower::where('account_id', $a->id)->where('user_id', $user->id)->value('created_at')?->toDateTimeString(),
                 ]);
-            $data['关注'] = $follows;
+            $data[__('app.api.interaction.export_follows')] = $follows;
         }
 
         // 收藏
         if (in_array($type, ['all', 'favorites'])) {
             $favs = Favorite::where('user_id', $user->id)->orderByDesc('created_at')->get()->map(function ($fav) {
-                $item = ['类型' => $this->typeLabel($fav->favorable_type), '收藏时间' => $fav->created_at->toDateTimeString()];
+                $item = [__('app.api.interaction.export_type') => $this->typeLabel($fav->favorable_type), __('app.api.interaction.export_fav_at') => $fav->created_at->toDateTimeString()];
                 try {
                     $model = $fav->favorable_type::find($fav->favorable_id);
                     if ($model) {
-                        $item['标题'] = $model->title ?? $model->name ?? '';
-                        $item['摘要'] = $model->excerpt ?? $model->summary ?? '';
+                        $item[__('app.api.interaction.export_title')] = $model->title ?? $model->name ?? '';
+                        $item[__('app.api.interaction.export_summary')] = $model->excerpt ?? $model->summary ?? '';
                     }
-                } catch (\Throwable $e) { $item['标题'] = '(已删除)'; }
+                } catch (\Throwable $e) { $item[__('app.api.interaction.export_title')] = __('app.api.interaction.deleted_placeholder'); }
                 return $item;
             });
-            $data['收藏'] = $favs;
+            $data[__('app.api.interaction.export_favorites')] = $favs;
         }
 
         // 点赞
         if (in_array($type, ['all', 'likes'])) {
             $likes = Like::where('user_id', $user->id)->orderByDesc('created_at')->get()->map(function ($like) {
-                $item = ['类型' => $this->typeLabel($like->likeable_type), '点赞时间' => $like->created_at->toDateTimeString()];
+                $item = [__('app.api.interaction.export_type') => $this->typeLabel($like->likeable_type), __('app.api.interaction.export_like_at') => $like->created_at->toDateTimeString()];
                 try {
                     $model = $like->likeable_type::find($like->likeable_id);
-                    if ($model) $item['标题'] = $model->title ?? $model->name ?? '';
-                } catch (\Throwable $e) { $item['标题'] = '(已删除)'; }
+                    if ($model) $item[__('app.api.interaction.export_title')] = $model->title ?? $model->name ?? '';
+                } catch (\Throwable $e) { $item[__('app.api.interaction.export_title')] = __('app.api.interaction.deleted_placeholder'); }
                 return $item;
             });
-            $data['点赞'] = $likes;
+            $data[__('app.api.interaction.export_likes')] = $likes;
         }
 
         // 阅读统计
         $totalRead = \App\Models\BlogRead::where('user_id', $user->id)->count()
             + \App\Models\OaArticleRead::where('user_id', $user->id)->count();
-        $data['阅读统计'] = [['总阅读量' => $totalRead, '导出时间' => now()->toDateTimeString()]];
+        $data[__('app.api.interaction.export_read_stats')] = [[__('app.api.interaction.export_total_read') => $totalRead, __('app.api.interaction.export_time') => now()->toDateTimeString()]];
 
         if ($format === 'json') {
             $content = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -1073,11 +1073,11 @@ class UserInteractionController extends Controller
             $mime = 'text/csv';
         } else {
             // Markdown
-            $md = "# 📤 我的互动数据导出\n\n";
-            $md .= "> 导出时间：".now()->toDateTimeString()."\n\n";
+            $md = "# " . __('app.api.interaction.export_md_title') . "\n\n";
+            $md .= "> " . __('app.api.interaction.export_md_time', ['time' => now()->toDateTimeString()]) . "\n\n";
             foreach ($data as $section => $items) {
                 $md .= "## {$section}\n\n";
-                if (count($items) === 0) { $md .= "_暂无数据_\n\n"; continue; }
+                if (count($items) === 0) { $md .= __('app.api.interaction.export_empty') . "\n\n"; continue; }
                 $md .= "| " . implode(' | ', array_keys($items[0])) . " |\n";
                 $md .= "|" . implode('|', array_fill(0, count($items[0]), '---')) . "|\n";
                 foreach ($items as $item) {
@@ -1085,7 +1085,7 @@ class UserInteractionController extends Controller
                 }
                 $md .= "\n";
             }
-            $md .= "---\n*由 HWT License 自动生成*\n";
+            $md .= "---\n" . __('app.api.interaction.export_footer') . "\n";
             $content = $md;
             $filename = 'my-data-' . now()->format('Ymd') . '.md';
             $mime = 'text/markdown';
@@ -1144,7 +1144,7 @@ class UserInteractionController extends Controller
         $user->preferences = $preferences;
         $user->save();
 
-        return ApiResponse::success($preferences, '偏好设置已更新');
+        return ApiResponse::success($preferences, __('app.api.interaction.prefs_updated'));
     }
 
     // ─── 阅读清单队列 ───
@@ -1184,7 +1184,7 @@ class UserInteractionController extends Controller
                         $item['slug'] = $model->slug ?? '';
                     }
                 } catch (\Throwable $e) {
-                    $item['title'] = '(已删除)';
+                    $item['title'] = __('app.api.interaction.deleted_placeholder');
                 }
                 return $item;
             });
@@ -1238,7 +1238,7 @@ class UserInteractionController extends Controller
             ->where('queueable_id', $validated['id'])
             ->exists()
         ) {
-            return ApiResponse::error('ALREADY_IN_QUEUE', '已在阅读清单中');
+            return ApiResponse::error('ALREADY_IN_QUEUE', __('app.api.interaction.already_in_queue'));
         }
 
         $maxSort = \App\Models\ReadingQueue::where('user_id', $user->id)
@@ -1252,7 +1252,7 @@ class UserInteractionController extends Controller
             'sort_order' => $maxSort + 1,
         ]);
 
-        return ApiResponse::success(['id' => $item->id], '已添加到阅读清单');
+        return ApiResponse::success(['id' => $item->id], __('app.api.interaction.added_to_queue'));
     }
 
     /**
@@ -1262,7 +1262,7 @@ class UserInteractionController extends Controller
     {
         $item = \App\Models\ReadingQueue::where('user_id', auth()->id())->findOrFail($id);
         $item->delete();
-        return ApiResponse::success(null, '已从阅读清单移除');
+        return ApiResponse::success(null, __('app.api.interaction.removed_from_queue'));
     }
 
     /**
@@ -1276,7 +1276,7 @@ class UserInteractionController extends Controller
         $item->save();
         return ApiResponse::success([
             'is_completed' => $item->is_completed,
-        ], $item->is_completed ? '已标记为已完成' : '已移回待读');
+        ], $item->is_completed ? __('app.api.interaction.marked_done') : __('app.api.interaction.moved_back'));
     }
 
     /**
@@ -1296,6 +1296,6 @@ class UserInteractionController extends Controller
                 ->update(['sort_order' => $item['sort_order']]);
         }
 
-        return ApiResponse::success(null, '排序已更新');
+        return ApiResponse::success(null, __('app.api.interaction.sort_updated'));
     }
 }

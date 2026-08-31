@@ -161,31 +161,31 @@ class LicenseComplianceReportService
 
         // ─── Sheet 1: 摘要页 ───
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('合规摘要');
+        $sheet->setTitle(__('app.license_compliance_report.sheet_summary'));
 
-        $sheet->setCellValue('A1', 'License 合规审计报告');
+        $sheet->setCellValue('A1', __('app.license_compliance_report.report_title'));
         $sheet->mergeCells('A1:F1');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
 
-        $sheet->setCellValue('A2', '报告类型: ' . $report->type_label);
-        $sheet->setCellValue('A3', '生成时间: ' . now()->format('Y-m-d H:i:s'));
-        $sheet->setCellValue('A4', '报告周期: ' . ($report->report_period_start?->format('Y-m-d') ?? '全部') . ' 至 ' . ($report->report_period_end?->format('Y-m-d') ?? '至今'));
+        $sheet->setCellValue('A2', __('app.license_compliance_report.label_report_type') . ': ' . $report->type_label);
+        $sheet->setCellValue('A3', __('app.license_compliance_report.label_generated_at') . ': ' . now()->format('Y-m-d H:i:s'));
+        $sheet->setCellValue('A4', '报告周期: ' . ($report->report_period_start?->format('Y-m-d') ?? __('app.license_compliance_report.all')) . ' 至 ' . ($report->report_period_end?->format('Y-m-d') ?? __('app.license_compliance_report.to_present')));
 
         // 摘要数据
-        $sheet->setCellValue('A6', '指标');
-        $sheet->setCellValue('B6', '数值');
+        $sheet->setCellValue('A6', __('app.license_compliance_report.indicator'));
+        $sheet->setCellValue('B6', __('app.license_compliance_report.value'));
         $sheet->getStyle('A6:B6')->getFont()->setBold(true);
         $sheet->getStyle('A6:B6')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('4472C4');
         $sheet->getStyle('A6:B6')->getFont()->getColor()->setRGB('FFFFFF');
 
         $row = 7;
         foreach ([
-            'License 总数' => $summary['total_licenses'],
-            '活跃 License' => $summary['active_licenses'],
-            '已过期 License' => $summary['expired_licenses'],
-            '激活记录总数' => $summary['total_activations'],
-            '合规 License' => $summary['compliant_licenses'],
-            '超额使用 License' => $summary['overused_licenses'],
+            __('app.license_compliance_report.total_licenses') => $summary['total_licenses'],
+            __('app.license_compliance_report.active_licenses') => $summary['active_licenses'],
+            __('app.license_compliance_report.expired_licenses') => $summary['expired_licenses'],
+            __('app.license_compliance_report.total_activations') => $summary['total_activations'],
+            __('app.license_compliance_report.compliant_licenses') => $summary['compliant_licenses'],
+            __('app.license_compliance_report.overused_licenses') => $summary['overused_licenses'],
         ] as $label => $value) {
             $sheet->setCellValue("A{$row}", $label);
             $sheet->setCellValue("B{$row}", $value);
@@ -194,9 +194,9 @@ class LicenseComplianceReportService
 
         // ─── Sheet 2: License 清单 ───
         $ws2 = $spreadsheet->createSheet();
-        $ws2->setTitle('License 清单');
+        $ws2->setTitle(__('app.license_compliance_report.sheet_license_list'));
 
-        $headers = ['License Key', '产品名称', '客户', '状态', '创建时间', '过期时间', '最大席位', '已用席位', '合规状态'];
+        $headers = [__('app.license_compliance_report.col_license_key'), __('app.license_compliance_report.col_product_name'), __('app.license_compliance_report.col_customer'), __('app.license_compliance_report.col_status'), __('app.license_compliance_report.col_created_at'), __('app.license_compliance_report.col_expires_at'), __('app.license_compliance_report.col_max_seats'), __('app.license_compliance_report.col_used_seats'), __('app.license_compliance_report.col_compliance_status')];
         $col = 'A';
         foreach ($headers as $header) {
             $ws2->setCellValue("{$col}1", $header);
@@ -212,14 +212,14 @@ class LicenseComplianceReportService
             $activations = $lic['activations'] ?? [];
             $maxSeats = $lic['seats'] ?? $lic['max_devices'] ?? 1;
             $usedSeats = count($activations);
-            $compliant = $usedSeats <= $maxSeats ? '合规' : '⚠️ 超额';
+            $compliant = $usedSeats <= $maxSeats ? __('app.license_compliance_report.status_compliant') : __('app.license_compliance_report.status_overused');
 
             $ws2->setCellValue("A{$row}", $lic['license_key'] ?? $lic['key'] ?? '');
             $ws2->setCellValue("B{$row}", $lic['product']['name'] ?? $lic['product_name'] ?? '');
             $ws2->setCellValue("C{$row}", $lic['customer_name'] ?? $lic['customer_id'] ?? '');
             $ws2->setCellValue("D{$row}", $lic['status'] ?? '');
             $ws2->setCellValue("E{$row}", $lic['created_at'] ?? '');
-            $ws2->setCellValue("F{$row}", $lic['expires_at'] ?? '永久');
+            $ws2->setCellValue("F{$row}", $lic['expires_at'] ?? __('app.license_compliance_report.forever'));
             $ws2->setCellValue("G{$row}", $maxSeats);
             $ws2->setCellValue("H{$row}", $usedSeats);
             $ws2->setCellValue("I{$row}", $compliant);
@@ -235,9 +235,9 @@ class LicenseComplianceReportService
 
         // ─── Sheet 3: 激活记录 ───
         $ws3 = $spreadsheet->createSheet();
-        $ws3->setTitle('激活记录');
+        $ws3->setTitle(__('app.license_compliance_report.sheet_activation_records'));
 
-        $headers3 = ['License Key', '设备名称', '设备ID', 'IP 地址', '激活时间', '最后验证', '状态'];
+        $headers3 = [__('app.license_compliance_report.col_license_key'), __('app.license_compliance_report.col_device_name'), __('app.license_compliance_report.col_device_id'), __('app.license_compliance_report.col_ip_address'), __('app.license_compliance_report.col_activation_time'), __('app.license_compliance_report.col_last_verified'), __('app.license_compliance_report.col_status')];
         $col = 'A';
         foreach ($headers3 as $header) {
             $ws3->setCellValue("{$col}1", $header);
@@ -278,13 +278,13 @@ class LicenseComplianceReportService
         $output = fopen('php://temp', 'r+');
 
         // CSV header
-        fputcsv($output, ['License Key', '产品', '客户', '状态', '创建时间', '过期时间', '最大席位', '已用席位', '合规状态']);
+        fputcsv($output, [__('app.license_compliance_report.col_license_key'), __('app.license_compliance_report.csv_col_product'), __('app.license_compliance_report.col_customer'), __('app.license_compliance_report.col_status'), __('app.license_compliance_report.col_created_at'), __('app.license_compliance_report.col_expires_at'), __('app.license_compliance_report.col_max_seats'), __('app.license_compliance_report.col_used_seats'), __('app.license_compliance_report.col_compliance_status')]);
 
         foreach ($licenses as $lic) {
             $activations = $lic['activations'] ?? [];
             $maxSeats = $lic['seats'] ?? $lic['max_devices'] ?? 1;
             $usedSeats = count($activations);
-            $compliant = $usedSeats <= $maxSeats ? '合规' : '超额';
+            $compliant = $usedSeats <= $maxSeats ? __('app.license_compliance_report.status_compliant') : __('app.license_compliance_report.status_overused_csv');
 
             fputcsv($output, [
                 $lic['license_key'] ?? $lic['key'] ?? '',
@@ -292,7 +292,7 @@ class LicenseComplianceReportService
                 $lic['customer_name'] ?? '',
                 $lic['status'] ?? '',
                 $lic['created_at'] ?? '',
-                $lic['expires_at'] ?? '永久',
+                $lic['expires_at'] ?? __('app.license_compliance_report.forever'),
                 $maxSeats,
                 $usedSeats,
                 $compliant,

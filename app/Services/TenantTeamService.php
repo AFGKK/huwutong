@@ -60,7 +60,7 @@ class TenantTeamService
         ?string $message = null,
     ): TenantInvitation {
         if (! in_array($role, self::ROLES)) {
-            throw new \InvalidArgumentException("无效的角色: {$role}");
+            throw new \InvalidArgumentException(__('app.tenant_team_service.invalid_role', ['role' => $role]));
         }
 
         // 检查邮箱是否已是成员
@@ -69,7 +69,7 @@ class TenantTeamService
             ->exists();
 
         if ($existingMember) {
-            throw new \RuntimeException('该邮箱已是团队成员');
+            throw new \RuntimeException(__('app.tenant_team_service.email_already_member'));
         }
 
         // 检查是否有待处理的邀请
@@ -79,7 +79,7 @@ class TenantTeamService
             ->first();
 
         if ($pendingInvite) {
-            throw new \RuntimeException('该邮箱已有待处理的邀请，请等待对方回复或取消旧邀请后重试');
+            throw new \RuntimeException(__('app.tenant_team_service.pending_invitation_exists'));
         }
 
         return DB::transaction(function () use ($tenant, $email, $role, $invitedBy, $message) {
@@ -101,7 +101,7 @@ class TenantTeamService
             try {
                 $this->sendInvitationMail($invitation, $tenant, $invitedBy);
             } catch (\Throwable $e) {
-                LogFacade::error('邀请邮件发送失败', [
+                LogFacade::error(__('app.tenant_team.tenant_team_4b1cfed07c'), [
                     'invitation_id' => $invitation->id,
                     'email' => $email,
                     'error' => $e->getMessage(),
@@ -112,7 +112,7 @@ class TenantTeamService
             // 记录审计日志
             $this->auditLogService->log(
                 action: 'team.member.invited',
-                description: sprintf('邀请 %s 加入团队（角色: %s）', $email, $role),
+                description: __('app.tenant_team_service.audit_invite_member', ['email' => $email, 'role' => $role]),
                 tenant: $tenant,
                 user: $invitedBy,
                 payload: [
@@ -172,12 +172,12 @@ class TenantTeamService
         $invitation = TenantInvitation::findValid($token);
 
         if (! $invitation) {
-            throw new \RuntimeException('邀请链接无效或已过期');
+            throw new \RuntimeException(__('app.tenant_team_service.invitation_invalid_or_expired'));
         }
 
         // 验证邮箱
         if (strtolower($invitation->email) !== strtolower($user->email)) {
-            throw new \RuntimeException('邀请邮箱与当前账户邮箱不匹配');
+            throw new \RuntimeException(__('app.tenant_team_service.email_mismatch'));
         }
 
         return DB::transaction(function () use ($invitation, $user) {
@@ -219,7 +219,7 @@ class TenantTeamService
             // 记录审计日志
             $this->auditLogService->log(
                 action: 'team.member.joined',
-                description: sprintf('%s 通过邀请加入团队', $user->name ?? $user->email),
+                description: __('app.tenant_team_service.audit_joined_via_invitation', ['name' => $user->name ?? $user->email]),
                 tenant: $invitation->tenant,
                 user: $user,
                 payload: [
@@ -241,7 +241,7 @@ class TenantTeamService
         $invitation = TenantInvitation::findValid($token);
 
         if (! $invitation) {
-            throw new \RuntimeException('邀请链接无效或已过期');
+            throw new \RuntimeException(__('app.tenant_team_service.invitation_invalid_or_expired'));
         }
 
         return $invitation->decline();
@@ -261,7 +261,7 @@ class TenantTeamService
     public function resendInvitation(TenantInvitation $invitation): TenantInvitation
     {
         if (! $invitation->isValid()) {
-            throw new \RuntimeException('只能重新发送有效的邀请');
+            throw new \RuntimeException(__('app.tenant_team_service.can_only_resend_valid'));
         }
 
         $invitation->update([
@@ -332,7 +332,7 @@ class TenantTeamService
     public function updateMemberRole(TenantMember $member, string $newRole): TenantMember
     {
         if (! in_array($newRole, self::ROLES)) {
-            throw new \InvalidArgumentException("无效的角色: {$newRole}");
+            throw new \InvalidArgumentException(__('app.tenant_team_service.invalid_role', ['role' => $newRole]));
         }
 
         // 检查是否试图降级最后一个管理员
@@ -344,7 +344,7 @@ class TenantTeamService
                 ->count();
 
             if ($adminCount === 0) {
-                throw new \RuntimeException('至少需要保留一个管理员');
+                throw new \RuntimeException(__('app.tenant_team_service.need_at_least_one_admin'));
             }
         }
 
@@ -356,12 +356,7 @@ class TenantTeamService
         $targetUser = $member->user;
         $this->auditLogService->log(
             action: 'team.member.role_changed',
-            description: sprintf(
-                '%s 的角色从 %s 变更为 %s',
-                $targetUser?->name ?? $targetUser?->email ?? "成员 #{$member->id}",
-                $oldRole,
-                $newRole,
-            ),
+            description: __('app.tenant_team_service.audit_role_changed', ['name' => $targetUser?->name ?? $targetUser?->email ?? __('app.tenant_team_service.member_placeholder', ['id' => $member->id]), 'old_role' => $oldRole, 'new_role' => $newRole]),
             tenant: $member->tenant,
             user: request()->user(), // 操作者
             payload: [
@@ -382,7 +377,7 @@ class TenantTeamService
     {
         // 不能移除自己（除非转让所有权）
         if ($member->user_id === $operator->id) {
-            throw new \RuntimeException('不能移除自己，如需退出请联系其他管理员');
+            throw new \RuntimeException(__('app.tenant_team_service.cannot_remove_self'));
         }
 
         // 检查是否试图移除最后一个管理员
@@ -394,7 +389,7 @@ class TenantTeamService
                 ->count();
 
             if ($adminCount === 0) {
-                throw new \RuntimeException('至少需要保留一个管理员');
+                throw new \RuntimeException(__('app.tenant_team_service.need_at_least_one_admin'));
             }
         }
 
@@ -418,7 +413,7 @@ class TenantTeamService
         // 记录审计日志
         $this->auditLogService->log(
             action: 'team.member.removed',
-            description: sprintf('移除成员 %s', $user?->name ?? $user?->email ?? "成员 #{$member->id}"),
+            description: __('app.tenant_team_service.audit_removed_member', ['name' => $user?->name ?? $user?->email ?? __('app.tenant_team_service.member_placeholder', ['id' => $member->id])]),
             tenant: $member->tenant,
             user: $operator,
             payload: [
@@ -436,11 +431,11 @@ class TenantTeamService
     public function transferAdmin(TenantMember $fromMember, TenantMember $toMember): void
     {
         if (! $fromMember->isAdmin()) {
-            throw new \RuntimeException('只有管理员可以转让权限');
+            throw new \RuntimeException(__('app.tenant_team_service.only_admin_can_transfer'));
         }
 
         if ($fromMember->tenant_id !== $toMember->tenant_id) {
-            throw new \RuntimeException('目标成员不属于同一租户');
+            throw new \RuntimeException(__('app.tenant_team_service.target_not_same_tenant'));
         }
 
         DB::transaction(function () use ($fromMember, $toMember) {
@@ -453,11 +448,7 @@ class TenantTeamService
         $toUser = $toMember->user;
         $this->auditLogService->log(
             action: 'team.admin_transferred',
-            description: sprintf(
-                '管理员权限从 %s 转让给 %s',
-                $fromUser?->name ?? $fromUser?->email ?? "成员 #{$fromMember->id}",
-                $toUser?->name ?? $toUser?->email ?? "成员 #{$toMember->id}",
-            ),
+            description: __('app.tenant_team_service.audit_admin_transferred', ['from' => $fromUser?->name ?? $fromUser?->email ?? __('app.tenant_team_service.member_placeholder', ['id' => $fromMember->id]), 'to' => $toUser?->name ?? $toUser?->email ?? __('app.tenant_team_service.member_placeholder', ['id' => $toMember->id])]),
             tenant: $fromMember->tenant,
             user: $fromUser, // 转让者是发起方
             payload: [
@@ -479,7 +470,7 @@ class TenantTeamService
             ->first();
 
         if (! $member) {
-            throw new \RuntimeException('您不是该租户的成员');
+            throw new \RuntimeException(__('app.tenant_team_service.not_member_of_tenant'));
         }
 
         // 最后一个管理员不能退出
@@ -491,7 +482,7 @@ class TenantTeamService
                 ->count();
 
             if ($adminCount === 0) {
-                throw new \RuntimeException('您是最后一个管理员，请先转让管理员权限再退出');
+                throw new \RuntimeException(__('app.tenant_team_service.last_admin_cannot_leave'));
             }
         }
 
@@ -505,7 +496,7 @@ class TenantTeamService
         // 记录审计日志
         $this->auditLogService->log(
             action: 'team.member.left',
-            description: sprintf('%s 退出团队', $user->name ?? $user->email),
+            description: __('app.tenant_team_service.audit_left_team', ['name' => $user->name ?? $user->email]),
             tenant: $tenant,
             user: $user,
             payload: [

@@ -59,7 +59,7 @@ class DataImportController extends Controller
     public function parse(ImportTask $importTask)
     {
         if (!in_array($importTask->status, ['uploaded'])) {
-            return ApiResponse::success(['error' => '只能解析已上传状态的任务'], 422);
+            return ApiResponse::success(['error' => __("app.data_import.msg_30b3bd7a")], 422);
         }
 
         $task = $this->importService->parseFile($importTask);
@@ -93,7 +93,7 @@ class DataImportController extends Controller
     public function validate(ImportTask $importTask)
     {
         if (!in_array($importTask->status, ['preview'])) {
-            return ApiResponse::success(['error' => '请先完成文件解析'], 422);
+            return ApiResponse::success(['error' => __("app.data_import.msg_2fa26ace")], 422);
         }
 
         $task = $this->importService->validate($importTask);
@@ -105,7 +105,7 @@ class DataImportController extends Controller
     public function execute(ImportTask $importTask)
     {
         if (!in_array($importTask->status, ['validated', 'preview'])) {
-            return ApiResponse::success(['error' => '请先完成数据验证'], 422);
+            return ApiResponse::success(['error' => __("app.data_import.msg_b9d8f601")], 422);
         }
 
         $task = $this->importService->execute($importTask);

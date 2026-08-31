@@ -52,7 +52,7 @@ class CustomerDataExportController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => '验证失败', 'errors' => $validator->errors()], 422);
+            return response()->json(['message' => __('app.common.validation_failed'), 'errors' => $validator->errors()], 422);
         }
 
         // 限制频率：同一客户同类型每60秒只能导一次
@@ -62,7 +62,7 @@ class CustomerDataExportController extends Controller
             ->exists();
 
         if ($recent) {
-            return response()->json(['message' => '导出生效中，请60秒后再试'], 429);
+            return response()->json(['message' => __('app.controller_compat.customer_data_export_60')], 429);
         }
 
         $export = $this->exportService->createExport(
@@ -73,7 +73,7 @@ class CustomerDataExportController extends Controller
         );
 
         return response()->json([
-            'message' => '导出任务已创建',
+            'message' => __('app.controller_compat.customer_data_export_msg_76'),
             'export' => $export,
         ], 201);
     }
@@ -108,7 +108,7 @@ class CustomerDataExportController extends Controller
 
         $file = $this->exportService->download($export);
         if (!$file) {
-            return response()->json(['message' => '文件不可用或已过期'], 410);
+            return response()->json(['message' => __('app.controller_compat.customer_data_export_msg_111')], 410);
         }
 
         return response($file['content'], 200, [
@@ -133,7 +133,7 @@ class CustomerDataExportController extends Controller
             ->firstOrFail();
 
         $export->delete();
-        return response()->json(['message' => '已删除']);
+        return response()->json(['message' => __('app.common.deleted')]);
     }
 
     // ─── 管理员端点 ───
@@ -179,7 +179,7 @@ class CustomerDataExportController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => '验证失败', 'errors' => $validator->errors()], 422);
+            return response()->json(['message' => __('app.common.validation_failed'), 'errors' => $validator->errors()], 422);
         }
 
         $customer = Customer::findOrFail($request->input('customer_id'));
@@ -191,7 +191,7 @@ class CustomerDataExportController extends Controller
         );
 
         return response()->json([
-            'message' => '导出任务已创建',
+            'message' => __('app.controller_compat.customer_data_export_msg_194'),
             'export' => $export,
         ], 201);
     }

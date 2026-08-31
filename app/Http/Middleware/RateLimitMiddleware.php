@@ -202,7 +202,7 @@ class RateLimitMiddleware
 
         return ApiResponse::error(
             'RATE_LIMIT_EXCEEDED',
-            '请求过于频繁，请稍后再试',
+            __('app.middleware.too_many_requests'),
             429,
             [
                 'max_attempts' => $config['max_attempts'],

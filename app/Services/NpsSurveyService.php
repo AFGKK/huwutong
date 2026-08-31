@@ -136,7 +136,7 @@ class NpsSurveyService
         $survey = NpsSurvey::findOrFail($surveyId);
 
         if ($survey->status === 'completed') {
-            throw new \RuntimeException('该调查已完成');
+            throw new \RuntimeException(__("app.nps_survey.msg_08f33123"));
         }
 
         $score = (int) ($data['score'] ?? 0);

@@ -51,6 +51,18 @@ class AcmeService
     }
 
     /**
+     * HTTP 选项：仅在 staging 环境关闭 TLS 验证。
+     */
+    protected function httpOptions(): array
+    {
+        return [
+            'verify' => ! config('services.acme.staging', false),
+            'timeout' => 30,
+            'connect_timeout' => 10,
+        ];
+    }
+
+    /**
      * 为主域名签发证书
      *
      * @return array{success: bool, certificate?: string, private_key?: string, chain?: string, error?: string}
@@ -61,7 +73,7 @@ class AcmeService
         $ssl = $customDomain->sslCertificate;
 
         if (! $ssl) {
-            return ['success' => false, 'error' => 'SSL 证书记录不存在'];
+            return ['success' => false, 'error' => __('app.api.service_acme.ssl_record_not_found')];
         }
 
         try {
@@ -82,7 +94,7 @@ class AcmeService
                 'acme_challenge_token' => $challenge['token'],
                 'acme_challenge_content' => $challenge['key_authorization'],
                 'status' => 'renewing',
-                'error_message' => '正在验证域名所有权，请确保 .well-known/acme-challenge/ 可访问',
+                'error_message' => __('app.api.service_acme.verifying_domain'),
             ]);
 
             // 6. 通知 Nginx 响应验证（或等待外部 HTTP 服务器）
@@ -97,7 +109,7 @@ class AcmeService
             if (($order['status'] ?? '') !== 'ready' && ($order['status'] ?? '') !== 'valid') {
                 return [
                     'success' => false,
-                    'error' => '域名验证失败: ' . ($order['error']['detail'] ?? '未知错误'),
+                    'error' => __('app.api.service_acme.domain_verify_failed', ['error' => $order['error']['detail'] ?? 'unknown']),
                 ];
             }
 
@@ -146,7 +158,7 @@ class AcmeService
             ];
 
         } catch (\Throwable $e) {
-            $errorMsg = '证书签发失败: ' . $e->getMessage();
+            $errorMsg = __('app.api.service_acme.cert_issue_failed', ['error' => $e->getMessage()]);
             Log::error('ACME: ' . $errorMsg, ['domain' => $domain, 'trace' => $e->getTraceAsString()]);
 
             $ssl->update([
@@ -174,10 +186,13 @@ class AcmeService
     {
         $stored = Cache::get('acme_account_key');
         if ($stored) {
-            return $stored;
+            return Crypt::decrypt($stored);
         }
 
         $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        if (! $key) {
+            throw new \RuntimeException(__('app.api.service_acme.key_gen_failed'));
+        }
         openssl_pkey_export($key, $privateKey);
         $details = openssl_pkey_get_details($key);
 
@@ -186,7 +201,7 @@ class AcmeService
             'public_key' => $details['key'],
         ];
 
-        Cache::forever('acme_account_key', $accountKey);
+        Cache::forever('acme_account_key', Crypt::encrypt($accountKey));
 
         return $accountKey;
     }
@@ -216,7 +231,7 @@ class AcmeService
     {
         $authUrl = $order['authorizations'][0] ?? null;
         if (! $authUrl) {
-            throw new \RuntimeException('订单未包含授权 URL');
+            throw new \RuntimeException(__('app.api.service_acme.no_auth_url'));
         }
 
         $auth = $this->signedGet($authUrl, $accountKey);
@@ -235,7 +250,7 @@ class AcmeService
             }
         }
 
-        throw new \RuntimeException('未找到 HTTP-01 挑战');
+        throw new \RuntimeException(__('app.api.service_acme.no_http_challenge'));
     }
 
     /**
@@ -261,12 +276,12 @@ class AcmeService
             }
             if ($status === 'invalid') {
                 throw new \RuntimeException(
-                    '验证失败: ' . ($order['error']['detail'] ?? 'ACME 拒绝')
+                    __('app.api.service_acme.verify_failed', ['detail' => $order['error']['detail'] ?? 'ACME rejected'])
                 );
             }
         }
 
-        throw new \RuntimeException('验证超时');
+        throw new \RuntimeException(__('app.api.service_acme.verify_timeout'));
     }
 
     /**
@@ -281,15 +296,21 @@ class AcmeService
 
         $san = "DNS:{$domain}";
         $privKey = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
-        $csr = openssl_csr_new($dn, $privKey, ['digest_alg' => 'sha256']);
+        if (! $privKey) {
+            throw new \RuntimeException(__('app.api.service_acme.key_gen_failed'));
+        }
+        $csr = openssl_csr_new($dn, $privKey, [
+            'digest_alg' => 'sha256',
+            'subjectAltName' => $san,
+        ]);
 
         if (! $csr) {
-            throw new \RuntimeException('CSR 生成失败');
+            throw new \RuntimeException(__('app.api.service_acme.csr_generate_failed'));
         }
 
-        // 缓存私钥
+        // 缓存私钥（加密存储）
         openssl_pkey_export($privKey, $domainKeyPem);
-        Cache::forever("acme_domain_key_{$domain}", $domainKeyPem);
+        Cache::forever("acme_domain_key_{$domain}", Crypt::encrypt($domainKeyPem));
 
         // 导出 PEM 后转 DER
         openssl_csr_export($csr, $csrPem);
@@ -325,12 +346,12 @@ class AcmeService
             }
             if (($result['status'] ?? '') === 'invalid') {
                 throw new \RuntimeException(
-                    '证书最终化失败: ' . ($result['error']['detail'] ?? '未知')
+                    __('app.api.service_acme.cert_finalize_failed', ['error' => $result['error']['detail'] ?? 'unknown'])
                 );
             }
         }
 
-        throw new \RuntimeException('证书最终化超时');
+        throw new \RuntimeException(__('app.api.service_acme.cert_finalize_timeout'));
     }
 
     /**
@@ -338,7 +359,7 @@ class AcmeService
      */
     protected function downloadCertificate(array $accountKey, string $certUrl): array
     {
-        $response = Http::withOptions(['verify' => false])->get($certUrl);
+        $response = Http::withOptions($this->httpOptions())->get($certUrl);
         $pem = $response->body();
 
         // 分割完整证书链
@@ -369,7 +390,8 @@ class AcmeService
      */
     protected function getDomainPrivateKeyPem(string $domain): string
     {
-        return Cache::get("acme_domain_key_{$domain}", '');
+        $encrypted = Cache::get("acme_domain_key_{$domain}");
+        return $encrypted ? Crypt::decryptString($encrypted) : '';
     }
 
     // ================================================================
@@ -409,7 +431,7 @@ class AcmeService
             'signature' => $this->base64UrlEncode($signature),
         ];
 
-        $response = Http::withOptions(['verify' => false])
+        $response = Http::withOptions($this->httpOptions())
             ->withHeaders(['Content-Type' => 'application/jose+json'])
             ->post($url, $jws);
 
@@ -423,7 +445,7 @@ class AcmeService
      */
     protected function signedGet(string $url, array $accountKey): array
     {
-        $response = Http::withOptions(['verify' => false])
+        $response = Http::withOptions($this->httpOptions())
             ->withHeaders(['Accept' => 'application/json'])
             ->get($url);
 
@@ -444,12 +466,12 @@ class AcmeService
         $dir = $this->getDirectory();
         $nonceUrl = $dir['newNonce'] ?? $this->directoryUrl('/acme/new-nonce');
 
-        $response = Http::withOptions(['verify' => false])
+        $response = Http::withOptions($this->httpOptions())
             ->head($nonceUrl);
 
         $nonce = $response->header('Replay-Nonce');
         if (! $nonce) {
-            throw new \RuntimeException('无法获取 ACME Nonce');
+            throw new \RuntimeException(__('app.api.service_acme.no_acme_nonce'));
         }
 
         return $nonce;
@@ -465,7 +487,7 @@ class AcmeService
             return $dir;
         }
 
-        $response = Http::withOptions(['verify' => false])->get($this->directoryUrl);
+        $response = Http::withOptions($this->httpOptions())->get($this->directoryUrl);
         $dir = $response->json() ?? [];
 
         Cache::forever('acme_directory', $dir);
@@ -492,7 +514,7 @@ class AcmeService
         }
 
         // 新注册时，从响应中获取 KID
-        throw new \RuntimeException('尚未注册 ACME 账户 KID');
+        throw new \RuntimeException(__('app.api.service_acme.not_registered'));
     }
 
     /**
@@ -553,7 +575,8 @@ class AcmeService
 
     protected function pemToDer(string $pem): string
     {
-        $lines = explode("\n", trim($pem));
+        $pem = str_replace(["\r\n", "\r"], "\n", trim($pem));
+        $lines = explode("\n", $pem);
         array_shift($lines); // 去掉 BEGIN
         array_pop($lines);   // 去掉 END
         return base64_decode(implode('', $lines));

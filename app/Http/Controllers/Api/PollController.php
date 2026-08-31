@@ -37,7 +37,7 @@ class PollController extends Controller
         $isParticipant = ConversationParticipant::where('conversation_id', $validated['conversation_id'])
             ->where('user_id', $myId)->whereNull('deleted_at')->exists();
         if (!$isParticipant) {
-            return ApiResponse::error('你不是该会话的参与者');
+            return ApiResponse::error(__('app.api.poll.not_participant'));
         }
 
         return DB::transaction(function () use ($validated, $myId) {
@@ -81,7 +81,7 @@ class PollController extends Controller
 
             return ApiResponse::success(
                 $poll->load('options'),
-                '投票已创建',
+                __('app.api.poll.created'),
                 201,
             );
         });
@@ -127,11 +127,11 @@ class PollController extends Controller
         $poll = Poll::findOrFail($pollId);
 
         if ($poll->is_closed) {
-            return ApiResponse::error('POLL_CLOSED', '投票已结束');
+            return ApiResponse::error('POLL_CLOSED', __('app.api.poll.ended'));
         }
         if ($poll->expires_at && $poll->expires_at->isPast()) {
             $poll->update(['is_closed' => true, 'closed_at' => now()]);
-            return ApiResponse::error('POLL_EXPIRED', '投票已过期');
+            return ApiResponse::error('POLL_EXPIRED', __('app.api.poll.expired'));
         }
 
         $validated = $request->validate([
@@ -146,13 +146,13 @@ class PollController extends Controller
         $validOptionIds = $poll->options()->pluck('id')->toArray();
         foreach ($validated['votes'] as $v) {
             if (!in_array($v['option_id'], $validOptionIds)) {
-                return ApiResponse::error('INVALID_OPTION', '无效的投票选项');
+                return ApiResponse::error('INVALID_OPTION', __('app.api.poll.invalid_option'));
             }
         }
 
         // 检查选项数量限制
         if (count($validated['votes']) > $poll->max_choices) {
-            return ApiResponse::error('TOO_MANY_CHOICES', "最多选择 {$poll->max_choices} 个选项");
+            return ApiResponse::error('TOO_MANY_CHOICES', __('app.api.poll.too_many_choices', ['max' => $poll->max_choices]));
         }
 
         DB::transaction(function () use ($poll, $myId, $validated) {
@@ -173,7 +173,7 @@ class PollController extends Controller
         return ApiResponse::success([
             'poll_id' => $poll->id,
             'total_votes' => $poll->fresh()->total_votes,
-        ], '投票成功');
+        ], __('app.api.poll.voted'));
     }
 
     /**
@@ -232,13 +232,13 @@ class PollController extends Controller
                 ->whereIn('role', ['creator', 'admin'])
                 ->exists();
             if (!$isAdmin) {
-                return ApiResponse::error('FORBIDDEN', '只有创建者或管理员可以关闭投票');
+                return ApiResponse::error('FORBIDDEN', __('app.api.poll.close_forbidden'));
             }
         }
 
         $poll->update(['is_closed' => true, 'closed_at' => now()]);
 
-        return ApiResponse::success(null, '投票已关闭');
+        return ApiResponse::success(null, __('app.api.poll.closed'));
     }
 
     /**

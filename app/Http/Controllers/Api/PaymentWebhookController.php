@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\PaymentWebhookLog;
 use App\Services\Payment\AlipayPaymentGateway;
 use App\Services\Payment\StripePaymentGateway;
+use App\Services\Payment\YipayPaymentGateway;
 use App\Services\PaymentManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -88,14 +90,15 @@ class PaymentWebhookController extends Controller
     /**
      * 支付宝 Webhook 入口
      */
-    public function alipay(Request $request): JsonResponse
+    public function alipay(Request $request): Response|JsonResponse
     {
         $payload = $request->all();
 
         // 验证签名
         $verified = app(AlipayPaymentGateway::class)->verifyCallback($payload);
-        if (!$verified) {
+        if (! $verified) {
             Log::warning('Alipay webhook: signature verification failed');
+
             return response()->json(['error' => 'Invalid signature'], 401);
         }
 
@@ -136,8 +139,82 @@ class PaymentWebhookController extends Controller
             return response()->json(['error' => 'Processing failed'], 500);
         }
 
-        // 支付宝要求返回 success 字符串
-        return response()->json(['status' => 'success']);
+        // 支付宝异步通知要求响应纯文本 success
+        return response('success', 200)->header('Content-Type', 'text/plain');
+    }
+
+    /**
+     * 易支付 Webhook 异步回调入口
+     *
+     * 易支付回调参数:
+     *   - pid: 商户ID
+     *   - trade_no: 易支付订单号
+     *   - out_trade_no: 商户订单号
+     *   - type: 支付方式
+     *   - name: 商品名称
+     *   - money: 金额
+     *   - trade_status: 交易状态 (TRADE_SUCCESS)
+     *   - sign: 签名
+     *   - sign_type: 签名类型
+     */
+    public function yipay(Request $request): Response|JsonResponse
+    {
+        $payload = $request->all();
+
+        // 验证签名
+        $verified = app(YipayPaymentGateway::class)->verifyCallback($payload);
+        if (!$verified) {
+            Log::warning('Yipay webhook: signature verification failed');
+
+            return response()->json(['error' => 'Invalid signature'], 401);
+        }
+
+        // 易支付回调无唯一 event_id，使用 trade_no 幂等
+        $tradeNo = $payload['trade_no'] ?? null;
+        $outTradeNo = $payload['out_trade_no'] ?? '';
+        $tradeStatus = $payload['trade_status'] ?? '';
+
+        Log::info('Yipay webhook received', [
+            'trade_no' => $tradeNo,
+            'out_trade_no' => $outTradeNo,
+            'trade_status' => $tradeStatus,
+        ]);
+
+        // 幂等性检查
+        if ($tradeNo) {
+            $existing = PaymentWebhookLog::where('event_id', $tradeNo)->first();
+            if ($existing && $existing->status === 'completed') {
+                return response('success', 200)->header('Content-Type', 'text/plain');
+            }
+        }
+
+        $log = PaymentWebhookLog::create([
+            'gateway' => 'yipay',
+            'event_type' => $tradeStatus,
+            'event_id' => $tradeNo ?? 'yipay_' . uniqid(),
+            'status' => 'processing',
+            'payload' => $payload,
+        ]);
+
+        try {
+            if ($tradeStatus === 'TRADE_SUCCESS') {
+                $this->processYipaySuccess($outTradeNo, $tradeNo, $log);
+            } else {
+                Log::info("Yipay webhook: unhandled trade_status={$tradeStatus}");
+            }
+            $log->markCompleted();
+        } catch (\Throwable $e) {
+            $log->markFailed($e->getMessage());
+            Log::error('Yipay webhook processing failed', [
+                'trade_no' => $tradeNo,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => 'Processing failed'], 500);
+        }
+
+        // 易支付异步通知要求响应纯文本 success
+        return response('success', 200)->header('Content-Type', 'text/plain');
     }
 
     /**
@@ -485,7 +562,7 @@ class PaymentWebhookController extends Controller
         if ($eventId) {
             $existing = PaymentWebhookLog::where('event_id', $eventId)->first();
             if ($existing && $existing->status === 'completed') {
-                return response()->json(['code' => 'SUCCESS', 'message' => '重复通知']);
+                return response()->json(['code' => 'SUCCESS', 'message' => __('app.api.payment.duplicate')]);
             }
         }
 
@@ -507,11 +584,11 @@ class PaymentWebhookController extends Controller
                 'error' => $e->getMessage(),
             ]);
             // 微信支付期望收到失败时返回 FAIL，会重试
-            return response()->json(['code' => 'FAIL', 'message' => '处理失败'], 500);
+            return response()->json(['code' => 'FAIL', 'message' => __('app.api.payment.fail')], 500);
         }
 
         // 微信支付要求返回 SUCCESS 字符串
-        return response()->json(['code' => 'SUCCESS', 'message' => '成功']);
+        return response()->json(['code' => 'SUCCESS', 'message' => __('app.api.payment.ok')]);
     }
 
     // ========================
@@ -520,7 +597,7 @@ class PaymentWebhookController extends Controller
 
     protected function verifyStripeSignature(string $payload, string $sigHeader): bool
     {
-        $endpointSecret = env('STRIPE_WEBHOOK_SECRET');
+        $endpointSecret = config('payment.channels.stripe.webhook_secret', env('STRIPE_WEBHOOK_SECRET', ''));
         if (empty($endpointSecret)) {
             // 开发模式：无密钥则跳过验证
             if (app()->environment('local', 'testing')) {
@@ -641,6 +718,34 @@ class PaymentWebhookController extends Controller
         }
 
         $invoice->update(['status' => 'failed']);
+        $log->update(['processable_type' => \App\Models\Invoice::class, 'processable_id' => $invoice->id]);
+    }
+
+    // ========================
+    // 易支付 事件处理器
+    // ========================
+
+    protected function processYipaySuccess(string $outTradeNo, ?string $tradeNo, PaymentWebhookLog $log): void
+    {
+        $billingService = app(\App\Services\BillingService::class);
+
+        if (empty($outTradeNo)) {
+            Log::warning('Yipay webhook: TRADE_SUCCESS missing out_trade_no');
+            return;
+        }
+
+        // out_trade_no 为本地 invoice_no
+        $invoice = \App\Models\Invoice::where('invoice_no', $outTradeNo)->first();
+        if (!$invoice) {
+            Log::warning("Yipay webhook: invoice #{$outTradeNo} not found");
+            return;
+        }
+
+        $billingService->markInvoicePaid($invoice, [
+            'transaction_id' => $tradeNo ?? 'yipay_' . uniqid(),
+            'payment_method' => 'yipay',
+        ]);
+
         $log->update(['processable_type' => \App\Models\Invoice::class, 'processable_id' => $invoice->id]);
     }
 

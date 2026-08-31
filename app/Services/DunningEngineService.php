@@ -94,7 +94,7 @@ class DunningEngineService
 
         if (!$stage) {
             // 已无更多阶段，标记为需人工介入
-            $item->update(['status' => 'failed', 'notes' => '所有催缴阶段已用完，需人工处理']);
+            $item->update(['status' => 'failed', 'notes' => __('app.api.service_dunning_engine.all_stages_used')]);
             $stats['escalated'] = 1;
             return $stats;
         }
@@ -203,7 +203,7 @@ class DunningEngineService
         $customer = $item->customer;
         $channel = $stage['channel'] ?? 'email';
 
-        $subject = $stage['subject'] ?? ($isWarning ? '逾期警告' : '付款提醒');
+        $subject = $stage['subject'] ?? ($isWarning ? __('app.api.service_dunning_engine.overdue_warning') : __('app.api.service_dunning_engine.payment_reminder'));
         $template = $stage['template'] ?? 'dunning::default';
 
         $notificationData = [
@@ -231,7 +231,7 @@ class DunningEngineService
         if ($channel === 'email_and_sms' || $channel === 'sms') {
             $this->notificationService->sendSms(
                 $customer?->user?->phone,
-                "【付款提醒】您的账单 #{$item->invoice?->invoice_no} 已逾期，金额：{$item->amount_due}{$item->currency}，请及时处理。",
+                __('app.api.service_dunning_engine.reminder_body', ['invoice' => $item->invoice?->invoice_no, 'amount' => $item->amount_due, 'currency' => $item->currency]),
             );
         }
 
@@ -253,7 +253,7 @@ class DunningEngineService
         $invoice = $item->invoice;
         if (!$invoice || $invoice->paid) {
             $this->resolveItem($item, 'paid');
-            return ['success' => true, 'message' => '发票已支付'];
+            return ['success' => true, 'message' => __('app.api.service_dunning_engine.invoice_paid')];
         }
 
         try {
@@ -279,7 +279,7 @@ class DunningEngineService
                     ]);
                 }
 
-                return ['success' => true, 'message' => '支付成功'];
+                return ['success' => true, 'message' => __('app.api.service_dunning_engine.payment_success')];
             }
 
             return ['success' => false, 'error' => $paymentResult['error'] ?? 'payment_declined'];
@@ -347,7 +347,7 @@ class DunningEngineService
         if ($customer = $item->customer) {
             $this->notificationService->sendEmail(
                 $customer->user?->email,
-                '服务已暂停 — 因未付账单',
+                __('app.api.service_dunning_engine.service_suspended'),
                 'dunning::suspended',
                 [
                     'subscription_plan' => $subscription->plan,
@@ -365,13 +365,13 @@ class DunningEngineService
     {
         $item->update([
             'status' => 'failed',
-            'notes' => '所有自动催缴阶段已完成，等待人工处理',
+            'notes' => __('app.api.service_dunning_engine.awaiting_manual'),
         ]);
 
         // 通知管理员
         $this->notificationService->sendEmail(
             config('mail.admin_address'),
-            '催缴升级 — 需要人工介入',
+            __('app.api.service_dunning_engine.escalation_manual'),
             'dunning::escalated',
             [
                 'customer_name' => $item->customer?->name,
@@ -499,9 +499,9 @@ class DunningEngineService
         $strategy = DunningStrategy::where('slug', 'default')->first();
         if (!$strategy) {
             $strategy = DunningStrategy::create([
-                'name' => '默认催缴策略',
+                'name' => __('app.api.service_dunning_engine.default_strategy'),
                 'slug' => 'default',
-                'description' => '适用于所有订阅的默认催缴策略',
+                'description' => __('app.api.service_dunning_engine.default_strategy_desc'),
                 'stages' => DunningStrategy::defaultStages(),
                 'max_attempts' => 5,
                 'is_active' => true,
@@ -528,7 +528,7 @@ class DunningEngineService
         }
 
         if (!$invoice) {
-            throw new \RuntimeException('未找到未付发票');
+            throw new \RuntimeException(__('app.api.service_dunning_engine.invoice_not_found'));
         }
 
         return $this->enqueueOverdueInvoice($invoice);

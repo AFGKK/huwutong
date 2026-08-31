@@ -26,29 +26,29 @@ class WebhookSimulatorController extends Controller
     public function eventTypes(): JsonResponse
     {
         $types = [
-            ['value' => 'license.activated', 'label' => 'License 激活', 'group' => 'license'],
-            ['value' => 'license.deactivated', 'label' => 'License 停用', 'group' => 'license'],
-            ['value' => 'license.revoked', 'label' => 'License 吊销', 'group' => 'license'],
-            ['value' => 'license.expired', 'label' => 'License 过期', 'group' => 'license'],
-            ['value' => 'license.suspended', 'label' => 'License 暂停', 'group' => 'license'],
-            ['value' => 'license.restored', 'label' => 'License 恢复', 'group' => 'license'],
-            ['value' => 'license.frozen', 'label' => 'License 冻结', 'group' => 'license'],
-            ['value' => 'license.refunded', 'label' => 'License 退款', 'group' => 'license'],
-            ['value' => 'license.blacklisted', 'label' => 'License 加入黑名单', 'group' => 'license'],
-            ['value' => 'subscription.created', 'label' => '订阅创建', 'group' => 'subscription'],
-            ['value' => 'subscription.cancelled', 'label' => '订阅取消', 'group' => 'subscription'],
-            ['value' => 'subscription.renewed', 'label' => '订阅续费', 'group' => 'subscription'],
-            ['value' => 'subscription.expiring', 'label' => '订阅即将到期', 'group' => 'subscription'],
-            ['value' => 'subscription.payment_failed', 'label' => '订阅支付失败', 'group' => 'subscription'],
-            ['value' => 'customer.created', 'label' => '客户创建', 'group' => 'customer'],
-            ['value' => 'customer.updated', 'label' => '客户更新', 'group' => 'customer'],
-            ['value' => 'device.activated', 'label' => '设备激活', 'group' => 'device'],
-            ['value' => 'device.deactivated', 'label' => '设备停用', 'group' => 'device'],
-            ['value' => 'device.exceeded', 'label' => '设备超限', 'group' => 'device'],
-            ['value' => 'user.login', 'label' => '用户登录', 'group' => 'user'],
-            ['value' => 'user.mfa_enabled', 'label' => '用户启用 MFA', 'group' => 'user'],
-            ['value' => 'ticket.created', 'label' => '工单创建', 'group' => 'ticket'],
-            ['value' => 'ticket.updated', 'label' => '工单更新', 'group' => 'ticket'],
+            ['value' => 'license.activated', 'label' => __('app.api.webhook.evt_license_activated'), 'group' => 'license'],
+            ['value' => 'license.deactivated', 'label' => __('app.api.webhook.evt_license_deactivated'), 'group' => 'license'],
+            ['value' => 'license.revoked', 'label' => __('app.api.webhook.evt_license_revoked'), 'group' => 'license'],
+            ['value' => 'license.expired', 'label' => __('app.api.webhook.evt_license_expired'), 'group' => 'license'],
+            ['value' => 'license.suspended', 'label' => __('app.api.webhook.evt_license_suspended'), 'group' => 'license'],
+            ['value' => 'license.restored', 'label' => __('app.api.webhook.evt_license_restored'), 'group' => 'license'],
+            ['value' => 'license.frozen', 'label' => __('app.api.webhook.evt_license_frozen'), 'group' => 'license'],
+            ['value' => 'license.refunded', 'label' => __('app.api.webhook.evt_license_refunded'), 'group' => 'license'],
+            ['value' => 'license.blacklisted', 'label' => __('app.api.webhook.evt_license_blacklisted'), 'group' => 'license'],
+            ['value' => 'subscription.created', 'label' => __('app.api.webhook.evt_sub_created'), 'group' => 'subscription'],
+            ['value' => 'subscription.cancelled', 'label' => __('app.api.webhook.evt_sub_cancelled'), 'group' => 'subscription'],
+            ['value' => 'subscription.renewed', 'label' => __('app.api.webhook.evt_sub_renewed'), 'group' => 'subscription'],
+            ['value' => 'subscription.expiring', 'label' => __('app.api.webhook.evt_sub_expiring'), 'group' => 'subscription'],
+            ['value' => 'subscription.payment_failed', 'label' => __('app.api.webhook.evt_sub_payment_failed'), 'group' => 'subscription'],
+            ['value' => 'customer.created', 'label' => __('app.api.webhook.evt_customer_created'), 'group' => 'customer'],
+            ['value' => 'customer.updated', 'label' => __('app.api.webhook.evt_customer_updated'), 'group' => 'customer'],
+            ['value' => 'device.activated', 'label' => __('app.api.webhook.evt_device_activated'), 'group' => 'device'],
+            ['value' => 'device.deactivated', 'label' => __('app.api.webhook.evt_device_deactivated'), 'group' => 'device'],
+            ['value' => 'device.exceeded', 'label' => __('app.api.webhook.evt_device_exceeded'), 'group' => 'device'],
+            ['value' => 'user.login', 'label' => __('app.api.webhook.evt_user_login'), 'group' => 'user'],
+            ['value' => 'user.mfa_enabled', 'label' => __('app.api.webhook.evt_user_mfa'), 'group' => 'user'],
+            ['value' => 'ticket.created', 'label' => __('app.api.webhook.evt_ticket_created'), 'group' => 'ticket'],
+            ['value' => 'ticket.updated', 'label' => __('app.api.webhook.evt_ticket_updated'), 'group' => 'ticket'],
         ];
 
         return ApiResponse::success($types);
@@ -107,7 +107,7 @@ class WebhookSimulatorController extends Controller
                 ->first();
 
             if (! $endpoint) {
-                return ApiResponse::error('NOT_FOUND', '指定的端点不存在或不可用', 404);
+                return ApiResponse::error('NOT_FOUND', __('app.api.webhook_sim.endpoint_missing'), 404);
             }
 
             $targetedEndpoint = [
@@ -124,7 +124,7 @@ class WebhookSimulatorController extends Controller
                 'payload' => $payload,
                 'status' => 'pending',
                 'is_simulated' => true,
-                'description' => $data['description'] ?? 'Webhook 模拟器测试',
+                'description' => $data['description'] ?? __('app.api.webhook_sim.default_desc'),
             ]);
 
             $result = $this->webhookService->sendToEndpoint($event, $endpoint);
@@ -146,7 +146,7 @@ class WebhookSimulatorController extends Controller
                     'attempts' => $event->attempts,
                     'created_at' => $event->created_at,
                 ]],
-            ], 'Webhook 模拟事件已发送');
+            ], __('app.api.webhook_sim.sent'));
         } else {
             // 广播到所有匹配的端点
             $endpoints = WebhookEndpoint::where('tenant_id', $tenantId)
@@ -162,8 +162,8 @@ class WebhookSimulatorController extends Controller
                 return ApiResponse::success([
                     'dispatched_to' => [],
                     'dispatch_count' => 0,
-                    'message' => '没有匹配的 Webhook 端点订阅了此事件',
-                ], '没有端点匹配');
+                    'message' => __('app.api.webhook_sim.no_match_msg'),
+                ], __('app.api.webhook_sim.no_match'));
             }
 
             $results = [];
@@ -176,7 +176,7 @@ class WebhookSimulatorController extends Controller
                     'payload' => $payload,
                     'status' => 'pending',
                     'is_simulated' => true,
-                    'description' => $data['description'] ?? 'Webhook 模拟器测试',
+                    'description' => $data['description'] ?? __('app.api.webhook_sim.default_desc'),
                 ]);
 
                 $success = $this->webhookService->sendToEndpoint($event, $endpoint);
@@ -203,7 +203,7 @@ class WebhookSimulatorController extends Controller
                 'dispatched_to' => $results,
                 'dispatch_count' => $dispatchCount,
                 'results' => $results,
-            ], "Webhook 模拟事件已发送到 {$dispatchCount} 个端点");
+            ], __('app.api.webhook_sim.sent_n', ['count' => $dispatchCount]));
         }
     }
 
@@ -277,7 +277,7 @@ class WebhookSimulatorController extends Controller
             'license' => array_merge($base, [
                 'license' => $sampleLicenseData,
                 'previous_status' => 'pending',
-                'reason' => '模拟触发',
+                'reason' => __('app.api.webhook_sim.sim_reason'),
             ]),
             'subscription' => array_merge($base, [
                 'subscription' => [
@@ -288,23 +288,23 @@ class WebhookSimulatorController extends Controller
                 ],
                 'customer' => [
                     'id' => 1,
-                    'name' => '示例客户',
+                    'name' => __('app.api.webhook_sim.sample_customer'),
                     'email' => 'customer@example.com',
                 ],
             ]),
             'customer' => array_merge($base, [
                 'customer' => [
                     'id' => 1,
-                    'name' => '示例客户',
+                    'name' => __('app.api.webhook_sim.sample_customer'),
                     'email' => 'customer@example.com',
-                    'company' => '示例公司',
+                    'company' => __('app.api.webhook_sim.sample_company'),
                 ],
             ]),
             'device' => array_merge($base, [
                 'device' => [
                     'id' => 1,
                     'fingerprint' => 'DEVICE-FP-001',
-                    'name' => '示例设备',
+                    'name' => __('app.api.webhook_sim.sample_device'),
                     'platform' => 'linux',
                 ],
                 'license' => $sampleLicenseData,
@@ -312,14 +312,14 @@ class WebhookSimulatorController extends Controller
             'user' => array_merge($base, [
                 'user' => [
                     'id' => 1,
-                    'name' => '管理员',
+                    'name' => __('app.api.webhook_sim.sample_admin'),
                     'email' => 'admin@example.com',
                 ],
             ]),
             'ticket' => array_merge($base, [
                 'ticket' => [
                     'id' => 1,
-                    'subject' => '示例工单',
+                    'subject' => __('app.api.webhook_sim.sample_ticket'),
                     'status' => 'open',
                     'priority' => 'medium',
                 ],
@@ -336,20 +336,20 @@ class WebhookSimulatorController extends Controller
     public function eventInfo(string $eventType): JsonResponse
     {
         $info = [
-            'license.activated' => ['desc' => '当 License 被激活时触发', 'sample' => $this->generateSamplePayload('license.activated', null)],
-            'license.deactivated' => ['desc' => '当 License 被停用时触发', 'sample' => $this->generateSamplePayload('license.deactivated', null)],
-            'license.expired' => ['desc' => '当 License 到期时触发', 'sample' => $this->generateSamplePayload('license.expired', null)],
-            'subscription.created' => ['desc' => '当新订阅创建时触发', 'sample' => $this->generateSamplePayload('subscription.created', null)],
-            'subscription.cancelled' => ['desc' => '当订阅取消时触发', 'sample' => $this->generateSamplePayload('subscription.cancelled', null)],
-            'customer.created' => ['desc' => '当新客户创建时触发', 'sample' => $this->generateSamplePayload('customer.created', null)],
-            'device.activated' => ['desc' => '当设备激活时触发', 'sample' => $this->generateSamplePayload('device.activated', null)],
-            'user.login' => ['desc' => '当用户登录时触发', 'sample' => $this->generateSamplePayload('user.login', null)],
+            'license.activated' => ['desc' => __('app.api.webhook_sim.desc_license_activated'), 'sample' => $this->generateSamplePayload('license.activated', null)],
+            'license.deactivated' => ['desc' => __('app.api.webhook_sim.desc_license_deactivated'), 'sample' => $this->generateSamplePayload('license.deactivated', null)],
+            'license.expired' => ['desc' => __('app.api.webhook_sim.desc_license_expired'), 'sample' => $this->generateSamplePayload('license.expired', null)],
+            'subscription.created' => ['desc' => __('app.api.webhook_sim.desc_sub_created'), 'sample' => $this->generateSamplePayload('subscription.created', null)],
+            'subscription.cancelled' => ['desc' => __('app.api.webhook_sim.desc_sub_cancelled'), 'sample' => $this->generateSamplePayload('subscription.cancelled', null)],
+            'customer.created' => ['desc' => __('app.api.webhook_sim.desc_customer_created'), 'sample' => $this->generateSamplePayload('customer.created', null)],
+            'device.activated' => ['desc' => __('app.api.webhook_sim.desc_device_activated'), 'sample' => $this->generateSamplePayload('device.activated', null)],
+            'user.login' => ['desc' => __('app.api.webhook_sim.desc_user_login'), 'sample' => $this->generateSamplePayload('user.login', null)],
         ];
 
         if (! isset($info[$eventType])) {
             return ApiResponse::success([
                 'event_type' => $eventType,
-                'desc' => '自定义事件类型',
+                'desc' => __('app.api.webhook_sim.desc_custom'),
                 'sample' => $this->generateSamplePayload($eventType, null),
             ]);
         }

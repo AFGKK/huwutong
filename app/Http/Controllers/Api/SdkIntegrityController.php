@@ -95,7 +95,7 @@ class SdkIntegrityController extends Controller
 
         return response()->json([
             'code' => 0,
-            'message' => '销毁命令已下发',
+            'message' => __('app.controller_compat.sdk_integrity_msg_98'),
             'data' => $command,
         ]);
     }
@@ -197,12 +197,12 @@ class SdkIntegrityController extends Controller
         $command = $this->sdkIntegrity->cancelCommand($id);
 
         if (!$command) {
-            return response()->json(['code' => 1, 'message' => '已确认执行的命令无法取消'], 422);
+            return response()->json(['code' => 1, 'message' => __('app.controller_compat.sdk_integrity_msg_200')], 422);
         }
 
         return response()->json([
             'code' => 0,
-            'message' => '命令已取消',
+            'message' => __('app.controller_compat.sdk_integrity_msg_205'),
             'data' => $command,
         ]);
     }

@@ -111,7 +111,7 @@ class ProductReviewService
         $review = ProductReview::findOrFail($reviewId);
 
         if (!in_array($status, ['approved', 'rejected'])) {
-            throw new \InvalidArgumentException('状态必须是 approved 或 rejected');
+            throw new \InvalidArgumentException(__("app.product_review.msg_9355eadf"));
         }
 
         $data = ['status' => $status];

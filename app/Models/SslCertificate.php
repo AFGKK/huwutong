@@ -43,7 +43,9 @@ class SslCertificate extends Model
     {
         return $this->status === 'issued'
             && $this->expires_at
-            && $this->expires_at->isFuture();
+            && $this->expires_at->isFuture()
+            && $this->issued_at
+            && $this->issued_at->isPast();
     }
 
     /**
@@ -51,10 +53,10 @@ class SslCertificate extends Model
      */
     public function needsRenewal(): bool
     {
-        if (! $this->expires_at || $this->status === 'expired') {
+        if (! $this->expires_at || in_array($this->status, ['expired', 'revoked'])) {
             return true;
         }
-        return $this->expires_at->subDays(30)->isPast();
+        return $this->expires_at->copy()->subDays(30)->isPast();
     }
 
     /**
@@ -62,9 +64,9 @@ class SslCertificate extends Model
      */
     public function isExpiringSoon(): bool
     {
-        if (! $this->expires_at) {
+        if (! $this->expires_at || $this->status === 'revoked') {
             return false;
         }
-        return $this->expires_at->subDays(7)->isPast();
+        return $this->expires_at->copy()->subDays(7)->isPast();
     }
 }

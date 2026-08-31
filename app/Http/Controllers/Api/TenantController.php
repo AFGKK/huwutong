@@ -92,7 +92,7 @@ class TenantController extends Controller
             'allowed_ips' => $data['allowed_ips'] ?? null,
         ]);
 
-        return ApiResponse::created($tenant, '租户创建成功');
+        return ApiResponse::created($tenant, __('app.api.tenant.created'));
     }
 
     /**
@@ -120,7 +120,7 @@ class TenantController extends Controller
 
         $tenant->update($validator->validated());
 
-        return ApiResponse::success($tenant->fresh(), '租户更新成功');
+        return ApiResponse::success($tenant->fresh(), __('app.api.tenant.updated'));
     }
 
     /**
@@ -130,15 +130,15 @@ class TenantController extends Controller
     {
         // 安全：不允许删除有关联数据的租户（有用户或客户）
         if ($tenant->users()->count() > 0) {
-            return ApiResponse::error('FORBIDDEN', '该租户下存在用户，无法删除。请先迁移或禁用用户。', 409);
+            return ApiResponse::error('FORBIDDEN', __('app.api.tenant.has_users'), 409);
         }
         if ($tenant->customers()->count() > 0) {
-            return ApiResponse::error('FORBIDDEN', '该租户下存在客户，无法删除。', 409);
+            return ApiResponse::error('FORBIDDEN', __('app.api.tenant.has_customers'), 409);
         }
 
         $tenant->delete();
 
-        return ApiResponse::success(null, '租户已删除');
+        return ApiResponse::success(null, __('app.api.tenant.deleted'));
     }
 
     /**
@@ -150,7 +150,7 @@ class TenantController extends Controller
         $tenant->status = $newStatus;
         $tenant->save();
 
-        return ApiResponse::success(['status' => $newStatus], $newStatus === 'active' ? '租户已启用' : '租户已禁用');
+        return ApiResponse::success(['status' => $newStatus], $newStatus === 'active' ? __('app.api.tenant.enabled') : __('app.api.tenant.disabled'));
     }
 
     /**
@@ -188,7 +188,7 @@ class TenantController extends Controller
             ->first();
 
         if ($existing) {
-            return ApiResponse::error('CONFLICT', '该用户已是此租户的成员', 409);
+            return ApiResponse::error('CONFLICT', __('app.api.tenant.already_member'), 409);
         }
 
         $member = TenantMember::create([
@@ -201,7 +201,7 @@ class TenantController extends Controller
 
         $member->load('user:id,name,email');
 
-        return ApiResponse::created($member, '成员已添加');
+        return ApiResponse::created($member, __('app.api.tenant.member_added'));
     }
 
     /**
@@ -210,12 +210,12 @@ class TenantController extends Controller
     public function removeMember(Tenant $tenant, TenantMember $member): JsonResponse
     {
         if ($member->tenant_id !== $tenant->id) {
-            return ApiResponse::error('NOT_FOUND', '成员不属于此租户', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.tenant.member_not_found'), 404);
         }
 
         $member->delete();
 
-        return ApiResponse::success(null, '成员已移除');
+        return ApiResponse::success(null, __('app.api.tenant.member_removed'));
     }
 
     /**
@@ -224,7 +224,7 @@ class TenantController extends Controller
     public function updateMemberRole(Request $request, Tenant $tenant, TenantMember $member): JsonResponse
     {
         if ($member->tenant_id !== $tenant->id) {
-            return ApiResponse::error('NOT_FOUND', '成员不属于此租户', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.tenant.member_not_found'), 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -238,7 +238,7 @@ class TenantController extends Controller
         $member->role = $validator->validated()['role'];
         $member->save();
 
-        return ApiResponse::success($member->fresh(), '成员角色已更新');
+        return ApiResponse::success($member->fresh(), __('app.api.tenant.member_role_updated'));
     }
 
     /**

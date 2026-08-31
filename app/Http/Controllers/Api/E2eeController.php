@@ -61,7 +61,7 @@ class E2eeController extends Controller
             'user_id' => $userId,
             'has_keys' => true,
             'prekeys_count' => count($prekeys ?? []),
-        ], '密钥已注册', 201);
+        ], __('app.e2ee.keys_registered'), 201);
     }
 
     /**
@@ -71,7 +71,7 @@ class E2eeController extends Controller
     {
         $identity = E2eeIdentityKey::where('user_id', $userId)->first();
         if (!$identity) {
-            return ApiResponse::error('NO_KEYS', '对方尚未注册加密密钥', 404);
+            return ApiResponse::error('NO_KEYS', __("app.e2ee.msg_f58023cc"), 404);
         }
 
         // 取一个未使用的一次性预密钥
@@ -111,7 +111,7 @@ class E2eeController extends Controller
         // 获取自己的密钥
         $myIdentity = E2eeIdentityKey::where('user_id', $myId)->first();
         if (!$myIdentity) {
-            return ApiResponse::error('NO_LOCAL_KEYS', '请先注册您的加密密钥', 400);
+            return ApiResponse::error('NO_LOCAL_KEYS', __("app.e2ee.msg_48aebfcd"), 400);
         }
 
         // 执行密钥交换
@@ -123,13 +123,13 @@ class E2eeController extends Controller
         );
 
         if (!$result) {
-            return ApiResponse::error('SESSION_FAILED', '会话初始化失败', 500);
+            return ApiResponse::error('SESSION_FAILED', __("app.e2ee.msg_39273b12"), 500);
         }
 
         return ApiResponse::success([
             'conversation_id' => $convId,
             'session_established' => true,
-        ], '加密会话已建立', 201);
+        ], __('app.e2ee.enc_session_established'), 201);
     }
 
     /**
@@ -158,7 +158,7 @@ class E2eeController extends Controller
         }
 
         if (!$encrypted) {
-            return ApiResponse::error('ENCRYPT_FAILED', '加密失败，请先建立加密会话', 400);
+            return ApiResponse::error('ENCRYPT_FAILED', __("app.e2ee.msg_22abeb74"), 400);
         }
 
         return ApiResponse::success($encrypted);
@@ -188,7 +188,7 @@ class E2eeController extends Controller
         );
 
         if ($plaintext === null) {
-            return ApiResponse::error('DECRYPT_FAILED', '解密失败，密钥不匹配', 400);
+            return ApiResponse::error('DECRYPT_FAILED', __("app.e2ee.msg_4e1c003f"), 400);
         }
 
         return ApiResponse::success(['plaintext' => $plaintext]);

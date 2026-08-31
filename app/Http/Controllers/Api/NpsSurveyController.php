@@ -24,7 +24,7 @@ class NpsSurveyController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__("app.nps_survey.msg_f0a154e5"), $validator->errors()->toArray());
         }
 
         $data = $this->npsService->getDashboard(
@@ -46,7 +46,7 @@ class NpsSurveyController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.nps_survey.param_validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $this->npsService->getReport(
@@ -86,7 +86,7 @@ class NpsSurveyController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.nps_survey.param_validation_failed'), $validator->errors()->toArray());
         }
 
         $survey = $this->npsService->sendSurvey(
@@ -95,10 +95,10 @@ class NpsSurveyController extends Controller
         );
 
         if (!$survey) {
-            return ApiResponse::error('该用户不满足调查发送条件（间隔时间不足）', 400);
+            return ApiResponse::error(__("app.nps_survey.msg_170ef082"), 400);
         }
 
-        return ApiResponse::created($survey, '调查已发送');
+        return ApiResponse::created($survey, __("app.nps_survey.msg_4c78a0dc"));
     }
 
     /**
@@ -115,7 +115,7 @@ class NpsSurveyController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.nps_survey.param_validation_failed'), $validator->errors()->toArray());
         }
 
         try {
@@ -124,7 +124,7 @@ class NpsSurveyController extends Controller
                 $validator->validated()
             );
 
-            return ApiResponse::success($response, '感谢您的反馈！');
+            return ApiResponse::success($response, __("app.nps_survey.msg_a08f5623"));
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 400);
         }
@@ -146,7 +146,7 @@ class NpsSurveyController extends Controller
     public function generateSnapshot(): JsonResponse
     {
         $snapshot = $this->npsService->generateDailySnapshot();
-        return ApiResponse::success($snapshot, '快照已生成');
+        return ApiResponse::success($snapshot, __("app.nps_survey.msg_f2762270"));
     }
 
     /**

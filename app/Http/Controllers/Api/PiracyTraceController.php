@@ -52,7 +52,7 @@ class PiracyTraceController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
-        return ApiResponse::created($task, '扫描任务已创建');
+        return ApiResponse::created($task, __("app.piracy_trace.msg_be996e10"));
     }
 
     /**
@@ -61,7 +61,7 @@ class PiracyTraceController extends Controller
     public function runScan(PiracyScanTask $scanTask): JsonResponse
     {
         if ($scanTask->status === 'running') {
-            return ApiResponse::error('SCAN_IN_PROGRESS', '扫描任务正在运行中', 409);
+            return ApiResponse::error('SCAN_IN_PROGRESS', __("app.piracy_trace.msg_9cd347a5"), 409);
         }
 
         // 异步执行 - 实际应使用队列
@@ -69,7 +69,7 @@ class PiracyTraceController extends Controller
 
         return ApiResponse::success(
             $scanTask->fresh()->load('creator:id,name'),
-            '扫描完成'
+            __('app.piracy_trace.scan_completed')
         );
     }
 
@@ -122,7 +122,7 @@ class PiracyTraceController extends Controller
         }
 
         $evidence->update($validated);
-        return ApiResponse::success($evidence->fresh(), '证据已更新');
+        return ApiResponse::success($evidence->fresh(), __('app.piracy_trace.evidence_updated'));
     }
 
     /**
@@ -132,7 +132,7 @@ class PiracyTraceController extends Controller
     {
         $result = $this->service->autoRemediate($evidence);
         return $result['action_taken']
-            ? ApiResponse::success($result, '自动处理完成')
+            ? ApiResponse::success($result, __("app.piracy_trace.msg_7e619d45"))
             : ApiResponse::error('REMEDIATE_FAILED', $result['reason'], 400);
     }
 
@@ -142,7 +142,7 @@ class PiracyTraceController extends Controller
     public function generateReport(Request $request, PiracyEvidence $evidence): JsonResponse
     {
         $report = $this->service->generateForensicReport($evidence);
-        return ApiResponse::created($report->load('generator:id,name'), '取证报告已生成');
+        return ApiResponse::created($report->load('generator:id,name'), __('app.piracy_trace.forensic_report_generated'));
     }
 
     /**

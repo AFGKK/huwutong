@@ -408,6 +408,11 @@ class MfaService
      */
     public function requiresMfa(User $user): bool
     {
+        // 全站强制双因素（系统设置）
+        if ((string) site_setting('security_require_2fa', '0') === '1') {
+            return true;
+        }
+
         // 用户已启用 MFA—后续 API 需要 MFA code
         if ($user->mfa_enabled) {
             return true;

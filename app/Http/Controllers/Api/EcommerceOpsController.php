@@ -45,7 +45,7 @@ class EcommerceOpsController extends Controller
             'remark' => 'nullable|string|max:500',
         ]);
         $sku = $this->inventory->adjust($skuId, $validated['delta'], $validated['remark'] ?? '', $request->user()->id);
-        return ApiResponse::success($sku, '库存已调整');
+        return ApiResponse::success($sku, __("app.ecommerce_ops.msg_cd78acb9"));
     }
 
     public function inventoryInitialize(Request $request, int $skuId): JsonResponse
@@ -55,7 +55,7 @@ class EcommerceOpsController extends Controller
             'remark' => 'nullable|string|max:500',
         ]);
         $sku = $this->inventory->initializeStock($skuId, $validated['quantity'], $validated['remark'] ?? '');
-        return ApiResponse::success($sku, '库存已初始化');
+        return ApiResponse::success($sku, __("app.ecommerce_ops.msg_b285481c"));
     }
 
     // ═══════════════ M2-153 支付安全 ═══════════════
@@ -87,9 +87,9 @@ class EcommerceOpsController extends Controller
         );
 
         if ($result['passed']) {
-            return ApiResponse::success($result, '安全校验通过');
+            return ApiResponse::success($result, __("app.ecommerce_ops.msg_4e27d79f"));
         }
-        return ApiResponse::error('SECURITY_CHECK_FAILED', '安全校验未通过', 400, $result['failures']);
+        return ApiResponse::error('SECURITY_CHECK_FAILED', __("app.ecommerce_ops.msg_eb04f2f6"), 400, $result['failures']);
     }
 
     // ═══════════════ M2-155 退款售后 ═══════════════
@@ -121,7 +121,7 @@ class EcommerceOpsController extends Controller
                 $validated['order_id'],
                 $validated
             );
-            return ApiResponse::created($refund, '退款申请已提交');
+            return ApiResponse::created($refund, __("app.ecommerce_ops.msg_8b0856bf"));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('REFUND_REQUEST_FAILED', $e->getMessage(), 400);
         }

@@ -42,13 +42,13 @@ class NotificationPreferenceController extends Controller
 
         if (empty($data)) {
             $this->preferenceService->initializeDefaults($user);
-            return response()->json(['message' => '已初始化为默认设置']);
+            return response()->json(['message' => __('app.controller_compat.notification_preference_msg_45')]);
         }
 
         [$preferences, $general] = $this->preferenceService->updatePreferences($user, $data);
 
         return response()->json([
-            'message' => '通知偏好已更新',
+            'message' => __('app.controller_compat.notification_preference_msg_51'),
             'preferences' => $preferences,
             'general' => $general,
         ]);
@@ -69,7 +69,7 @@ class NotificationPreferenceController extends Controller
         $pref = $this->preferenceService->updateGeneralSettings($request->user(), $validated);
 
         return response()->json([
-            'message' => '通用设置已更新',
+            'message' => __('app.controller_compat.notification_preference_msg_72'),
             'general' => [
                 'quiet_hours_start' => $pref->quiet_hours_start,
                 'quiet_hours_end' => $pref->quiet_hours_end,
@@ -87,7 +87,7 @@ class NotificationPreferenceController extends Controller
     public function initializeMyPreferences(Request $request): JsonResponse
     {
         $this->preferenceService->initializeDefaults($request->user());
-        return response()->json(['message' => '已初始化为默认设置']);
+        return response()->json(['message' => __('app.controller_compat.notification_preference_msg_90')]);
     }
 
     /**
@@ -212,7 +212,7 @@ class NotificationPreferenceController extends Controller
         $pref = $this->preferenceService->updateGeneralSettings($user, $validated);
 
         return response()->json([
-            'message' => '用户通用设置已更新',
+            'message' => __('app.controller_compat.notification_preference_msg_215'),
             'general' => [
                 'quiet_hours_start' => $pref->quiet_hours_start,
                 'quiet_hours_end' => $pref->quiet_hours_end,
@@ -230,6 +230,6 @@ class NotificationPreferenceController extends Controller
         $user = \App\Models\User::findOrFail($userId);
         $this->preferenceService->initializeDefaults($user);
 
-        return response()->json(['message' => '用户偏好已初始化']);
+        return response()->json(['message' => __('app.controller_compat.notification_preference_msg_233')]);
     }
 }

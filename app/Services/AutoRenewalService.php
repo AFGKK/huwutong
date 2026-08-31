@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AutoRenewalPlan;
 use App\Models\AutoRenewalSubscription;
 use App\Models\AutoRenewalAttempt;
+use App\Models\BillingCycle;
 use App\Models\License;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -70,10 +71,10 @@ class AutoRenewalService
                 License::where('id', $subscription->license_id)
                     ->update(['expires_at' => $subscription->current_period_ends_at]);
 
-                return ['success' => true, 'message' => '续费成功', 'attempt_id' => $attempt->id];
+                return ['success' => true, 'message' => __('app.common.renewal_success'), 'attempt_id' => $attempt->id];
             }
 
-            throw new \RuntimeException('支付失败');
+            throw new \RuntimeException(__("app.auto_renewal.payment_failed"));
         } catch (\Exception $e) {
             $subscription->increment('failed_attempts');
             $subscription->update(['next_renewal_at' => now()->addHours(24)]);
@@ -97,12 +98,12 @@ class AutoRenewalService
         // 检查升级路径
         $allowedUpgrades = $currentPlan->upgrade_paths ?? [];
         if (!in_array($targetPlanId, $allowedUpgrades)) {
-            return ['success' => false, 'message' => '不允许升级到此套餐'];
+            return ['success' => false, 'message' => __('app.common.upgrade_to_plan_not_allowed')];
         }
 
         $priceDiff = $targetPlan->price - $currentPlan->price;
         if ($priceDiff <= 0) {
-            return ['success' => false, 'message' => '升级套餐价格应高于当前'];
+            return ['success' => false, 'message' => __('app.common.upgrade_plan_price_higher')];
         }
 
         // 按比例计算剩余价值折算
@@ -128,7 +129,7 @@ class AutoRenewalService
             'result_data' => ['from_plan' => $currentPlan->id, 'to_plan' => $targetPlanId],
         ]);
 
-        return ['success' => true, 'upgrade_price' => $upgradePrice, 'message' => '升级成功'];
+        return ['success' => true, 'upgrade_price' => $upgradePrice, 'message' => __('app.common.upgrade_success')];
     }
 
     /**
@@ -141,7 +142,7 @@ class AutoRenewalService
 
         $allowedDowngrades = $currentPlan->downgrade_paths ?? [];
         if (!in_array($targetPlanId, $allowedDowngrades)) {
-            return ['success' => false, 'message' => '不允许降级到此套餐'];
+            return ['success' => false, 'message' => __('app.common.downgrade_to_plan_not_allowed')];
         }
 
         $subscription->update([
@@ -160,7 +161,7 @@ class AutoRenewalService
             'status' => 'success',
         ]);
 
-        return ['success' => true, 'message' => '降级将在当前周期结束时生效'];
+        return ['success' => true, 'message' => __('app.common.downgrade_effective_at_cycle_end')];
     }
 
     /**
@@ -235,12 +236,10 @@ class AutoRenewalService
 
     protected function getPeriodMonths(string $period): int
     {
-        return match ($period) {
-            'monthly' => 1,
-            'quarterly' => 3,
-            'semi_annually' => 6,
-            'annually' => 12,
-            default => 1,
-        };
+        $cycle = BillingCycle::resolvePeriod($period);
+        if (!$cycle) {
+            return 1;
+        }
+        return ($cycle->months ?? 0) + (int) ceil(($cycle->days ?? 0) / 30);
     }
 }

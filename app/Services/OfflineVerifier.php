@@ -56,7 +56,7 @@ class OfflineVerifier
             // 1. 解析文件
         $parsed = $this->parseFile($fileContentBase64);
         if (! $parsed) {
-            return OfflineVerificationResult::invalid('FILE_PARSE_ERROR', '离线文件格式解析失败');
+            return OfflineVerificationResult::invalid('FILE_PARSE_ERROR', __('app.api.service_offline_verifier.file_parse_error'));
         }
 
         $payloadJson = $parsed['payload'];
@@ -74,13 +74,13 @@ class OfflineVerifier
 
             // 3. 检查算法是否已废弃
             if (in_array($algorithm, self::DEPRECATED_ALGORITHMS, true)) {
-                return OfflineVerificationResult::invalid('ALGORITHM_DEPRECATED', "签名算法 {$algorithm} 已废弃，请更新客户端");
+                return OfflineVerificationResult::invalid('ALGORITHM_DEPRECATED', __('app.api.service_offline_verifier.algorithm_deprecated', ['algo' => $algorithm]));
             }
 
             // 4. 检查有效期
             $expiresAt = isset($payload['expires_at']) ? Carbon::parse($payload['expires_at']) : null;
             if ($expiresAt && $expiresAt->isPast()) {
-                return OfflineVerificationResult::expired('离线 License 已过期', [
+                return OfflineVerificationResult::expired(__('app.api.service_offline_verifier.license_expired'), [
                     'expires_at' => $expiresAt->toIso8601String(),
                 ]);
             }
@@ -90,10 +90,10 @@ class OfflineVerifier
                 ? Carbon::parse($payload['offline_expires_at'])
                 : null;
             if ($offlineExpiresAt && $offlineExpiresAt->isPast()) {
-                return OfflineVerificationResult::expired('离线 License 文件已过期，请重新生成', [
+                return OfflineVerificationResult::expired(__('app.api.service_offline_verifier.license_file_expired'), [
                     'expires_at' => $expiresAt?->toIso8601String(),
                     'offline_expires_at' => $offlineExpiresAt->toIso8601String(),
-                    'offline_message' => '离线文件有效期 ' . config('offline.expiration_days', 30) . ' 天，请重新生成',
+                    'offline_message' => __('app.api.service_offline_verifier.file_validity_days', ['days' => config('offline.expiration_days', 30)]),
                 ]);
             }
 
@@ -106,14 +106,14 @@ class OfflineVerifier
             // 6. 检查吊销列表
             $crlCheck = $this->checkCrl($payload['lic_key']);
             if (! $crlCheck['valid']) {
-                return OfflineVerificationResult::revoked($crlCheck['reason'] ?? 'License 已被吊销');
+                return OfflineVerificationResult::revoked($crlCheck['reason'] ?? __('app.api.service_offline_verifier.license_revoked'));
             }
 
             // 7. 记录成功验证
             $this->recordVerification($payload['lic_key'], 'valid', $clientIp);
 
             return OfflineVerificationResult::valid(
-                '离线验证通过',
+                __('app.api.service_offline_verifier.offline_verify_passed'),
                 $payload,
                 [
                     'algorithm' => $algorithm,
@@ -128,7 +128,7 @@ class OfflineVerifier
                 'error' => $e->getMessage(),
                 'client_ip' => $clientIp,
             ]);
-            return OfflineVerificationResult::invalid('VERIFICATION_ERROR', '离线验证过程中发生异常');
+            return OfflineVerificationResult::invalid('VERIFICATION_ERROR', __('app.api.service_offline_verifier.verification_error'));
         }
     }
 
@@ -195,7 +195,7 @@ class OfflineVerifier
         $certificate = $this->resolveCertificate($algorithm, $keyVersion);
 
         if (! $certificate) {
-            return ['valid' => false, 'reason' => '找不到对应的签名公钥证书', 'public_key' => null];
+            return ['valid' => false, 'reason' => __('app.api.service_offline_verifier.public_key_not_found'), 'public_key' => null];
         }
 
         $publicKey = base64_decode($certificate->public_key);
@@ -209,12 +209,12 @@ class OfflineVerifier
             };
 
             if (! $valid) {
-                return ['valid' => false, 'reason' => '签名验证失败', 'public_key' => null];
+                return ['valid' => false, 'reason' => __('app.api.service_offline_verifier.signature_invalid'), 'public_key' => null];
             }
 
             return ['valid' => true, 'reason' => null, 'public_key' => $certificate->public_key];
         } catch (\Throwable $e) {
-            return ['valid' => false, 'reason' => '签名验证异常: ' . $e->getMessage(), 'public_key' => null];
+            return ['valid' => false, 'reason' => __('app.api.service_offline_verifier.signature_invalid'), 'public_key' => null];
         }
     }
 
@@ -224,7 +224,7 @@ class OfflineVerifier
     protected function verifyRsaSignature(string $data, string $signature, string $publicKeyBin): bool
     {
         if (! extension_loaded('openssl')) {
-            throw new \RuntimeException('OpenSSL 扩展未安装，无法验证 RSA 签名');
+            throw new \RuntimeException(__('app.api.service_offline_verifier.openssl_missing'));
         }
 
         $publicKey = openssl_pkey_get_public($publicKeyBin);
@@ -297,7 +297,7 @@ class OfflineVerifier
 
                 return [
                     'passed' => false,
-                    'reason' => '检测到系统时间回滚，请校准系统时间后重试',
+                    'reason' => __('app.api.service_offline_verifier.time_rollback'),
                 ];
             }
         }
@@ -409,15 +409,17 @@ class OfflineVerifier
     /**
      * 吊销一个 License（加入 CRL）
      */
-    public function revokeLicense(string $licenseKey, string $reason = '管理员吊销'): void
+    public function revokeLicense(string $licenseKey, ?string $reason = null): void
     {
+        $reason = $reason ?? __('app.api.service_offline_verifier.admin_revoked');
+
         $certificate = OfflineCertificate::where('is_active', true)
             ->where('is_revoked', false)
             ->orderBy('key_version', 'desc')
             ->first();
 
         if (! $certificate) {
-            throw new \RuntimeException('没有活跃的离线证书，无法吊销 License');
+            throw new \RuntimeException(__('app.api.service_offline_verifier.no_active_cert_revoke'));
         }
 
         OfflineCrlEntry::firstOrCreate([

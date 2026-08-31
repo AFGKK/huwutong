@@ -149,7 +149,7 @@ class CiCdController extends Controller
         return response()->json([
             'success' => true,
             'data' => $token,
-            'message' => '令牌创建成功，请在 CI/CD 配置中使用此令牌',
+            'message' => __('app.controller_compat.ci_cd_ci_cd'),
         ], 201);
     }
 

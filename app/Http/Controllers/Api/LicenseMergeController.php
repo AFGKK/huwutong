@@ -65,7 +65,7 @@ class LicenseMergeController extends Controller
 
             return ApiResponse::success(
                 $this->service->getMergeDetail($job),
-                'License 合并成功'
+                __('app.api.license_merge.merged')
             );
         } catch (\Exception $e) {
             return ApiResponse::error('MERGE_FAILED', $e->getMessage(), 400);
@@ -107,7 +107,7 @@ class LicenseMergeController extends Controller
             $this->service->rollback($job);
             return ApiResponse::success(
                 $this->service->getMergeDetail($job),
-                'License 合并已回滚'
+                __('app.api.license_merge.rolled_back')
             );
         } catch (\Exception $e) {
             return ApiResponse::error('ROLLBACK_FAILED', $e->getMessage(), 400);
@@ -136,7 +136,7 @@ class LicenseMergeController extends Controller
     protected function authorizeTenant(LicenseMergeJob $job): void
     {
         if ($job->tenant_id !== auth()->user()->tenant_id) {
-            abort(403, '无权访问此合并记录');
+            abort(403, __('app.api.license_merge.forbidden'));
         }
     }
 }

@@ -55,7 +55,7 @@ class IncidentAlertingController extends Controller
     {
         $result = $this->pagerDuty->testConnection();
         return $result['success']
-            ? ApiResponse::success($result, 'PagerDuty 连接测试成功')
+            ? ApiResponse::success($result, __("app.incident_alerting.msg_bfdb8c1b"))
             : ApiResponse::error($result['message'], 400);
     }
 
@@ -66,7 +66,7 @@ class IncidentAlertingController extends Controller
     {
         $result = $this->opsGenie->testConnection();
         return $result['success']
-            ? ApiResponse::success($result, 'OpsGenie 连接测试成功')
+            ? ApiResponse::success($result, __("app.incident_alerting.msg_6853fb91"))
             : ApiResponse::error($result['message'], 400);
     }
 
@@ -105,7 +105,7 @@ class IncidentAlertingController extends Controller
 
         $allSuccess = collect($results)->every(fn($r) => $r['success']);
         return $allSuccess
-            ? ApiResponse::success($results, '测试告警已发送')
+            ? ApiResponse::success($results, __("app.incident_alerting.msg_6afb0ac3"))
             : ApiResponse::error($results, 400);
     }
 
@@ -166,7 +166,7 @@ class IncidentAlertingController extends Controller
 
         $allSuccess = collect($results)->every(fn($r) => $r['success']);
         return $allSuccess
-            ? ApiResponse::success($results, '告警已推送')
+            ? ApiResponse::success($results, __("app.incident_alerting.msg_28315204"))
             : ApiResponse::error($results, 400);
     }
 }

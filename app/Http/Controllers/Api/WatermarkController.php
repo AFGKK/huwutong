@@ -60,7 +60,7 @@ class WatermarkController extends Controller
             $watermark = $this->service->embedWatermark($license, $validated['source_info'] ?? []);
         }
 
-        return ApiResponse::success($watermark, '暗水印已嵌入', 201);
+        return ApiResponse::success($watermark, __('app.api.watermark.embedded'), 201);
     }
 
     public function extractWatermark(Request $request): JsonResponse
@@ -79,7 +79,7 @@ class WatermarkController extends Controller
     {
         $result = $this->service->traceByWatermark($watermark->watermark_key);
         if (!$result) {
-            return ApiResponse::error('NOT_FOUND', '水印不存在或已失效', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.watermark.not_found'), 404);
         }
         return ApiResponse::success($result);
     }
@@ -96,7 +96,7 @@ class WatermarkController extends Controller
     public function revokeWatermark(LicenseWatermark $watermark): JsonResponse
     {
         $this->service->revokeWatermark($watermark);
-        return ApiResponse::success(null, '水印已吊销');
+        return ApiResponse::success(null, __('app.api.watermark.revoked'));
     }
 
     // ═══════════ 溯源审计 ═══════════
@@ -124,7 +124,7 @@ class WatermarkController extends Controller
 
         $validated['operator_id'] = auth()->id();
         $trace = $this->service->createTrace($validated);
-        return ApiResponse::success($trace->load(['watermark', 'operator:id,name']), '溯源记录已创建', 201);
+        return ApiResponse::success($trace->load(['watermark', 'operator:id,name']), __('app.api.watermark.trace_created'), 201);
     }
 
     // ═══════════ 防篡改事件 ═══════════
@@ -144,7 +144,7 @@ class WatermarkController extends Controller
             'resolution' => 'required|string|max:500',
         ]);
         $this->service->resolveTamperEvent($event, $validated['resolution']);
-        return ApiResponse::success(null, '事件已解决');
+        return ApiResponse::success(null, __('app.api.watermark.resolved'));
     }
 
     // ═══════════ 防篡改策略 ═══════════
@@ -167,7 +167,7 @@ class WatermarkController extends Controller
         ]);
 
         $policy->update($validated);
-        return ApiResponse::success($policy, '策略已更新');
+        return ApiResponse::success($policy, __('app.api.watermark.policy_updated'));
     }
 
     // ═══════════ 验证统计 ═══════════
@@ -197,7 +197,7 @@ class WatermarkController extends Controller
             $validated['source_info'] ?? []
         );
 
-        return ApiResponse::success($results, '批量嵌入完成');
+        return ApiResponse::success($results, __('app.api.watermark.batch_embedded'));
     }
 
     /**
@@ -211,7 +211,7 @@ class WatermarkController extends Controller
         ]);
 
         $results = $this->service->batchExtractForensic($validated['license_ids']);
-        return ApiResponse::success($results, '批量提取完成');
+        return ApiResponse::success($results, __('app.api.watermark.batch_extracted'));
     }
 
     /**
@@ -240,7 +240,7 @@ class WatermarkController extends Controller
     public function leakScan(Request $request, LicenseWatermark $watermark): JsonResponse
     {
         $result = $this->service->scanForLeaks($watermark->watermark_key);
-        return ApiResponse::success($result, '泄漏扫描完成');
+        return ApiResponse::success($result, __('app.api.watermark.leak_scan_done'));
     }
 
     /**

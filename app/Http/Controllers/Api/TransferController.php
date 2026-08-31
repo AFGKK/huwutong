@@ -50,7 +50,7 @@ class TransferController extends Controller
 
         try {
             $transfer = $this->service->createRequest($validated);
-            return ApiResponse::success($transfer, '转移请求已创建', 201);
+            return ApiResponse::success($transfer, __("app.transfer.msg_04568f83"), 201);
         } catch (\RuntimeException $e) {
             return ApiResponse::error('TRANSFER_FAILED', $e->getMessage(), 400);
         }
@@ -64,7 +64,7 @@ class TransferController extends Controller
 
         try {
             $transfer = $this->service->approveRequest($transfer, $validated['notes'] ?? null);
-            return ApiResponse::success($transfer, '转移请求已批准并执行');
+            return ApiResponse::success($transfer, __("app.transfer.msg_bb7d1f22"));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('APPROVE_FAILED', $e->getMessage(), 400);
         }
@@ -78,7 +78,7 @@ class TransferController extends Controller
 
         try {
             $transfer = $this->service->rejectRequest($transfer, $validated['reason']);
-            return ApiResponse::success($transfer, '转移请求已拒绝');
+            return ApiResponse::success($transfer, __("app.transfer.msg_8b87d4e2"));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('REJECT_FAILED', $e->getMessage(), 400);
         }
@@ -88,7 +88,7 @@ class TransferController extends Controller
     {
         try {
             $transfer = $this->service->cancelRequest($transfer);
-            return ApiResponse::success($transfer, '转移请求已取消');
+            return ApiResponse::success($transfer, __("app.transfer.msg_89dea46a"));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('CANCEL_FAILED', $e->getMessage(), 400);
         }
@@ -107,7 +107,7 @@ class TransferController extends Controller
     {
         try {
             $code = $this->service->generateVerificationCode($transfer);
-            return ApiResponse::success(['code' => $code], '验证码已生成（有效期5分钟）');
+            return ApiResponse::success(['code' => $code], __("app.transfer.msg_b7a248eb"));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('GENERATE_FAILED', $e->getMessage(), 400);
         }
@@ -124,9 +124,9 @@ class TransferController extends Controller
 
         $verified = $this->service->verifyCode($transfer, $validated['code']);
         if ($verified) {
-            return ApiResponse::success(['verified' => true], '验证通过');
+            return ApiResponse::success(['verified' => true], __("app.transfer.msg_d1ca6194"));
         }
-        return ApiResponse::error('VERIFY_FAILED', '验证码错误或已过期', 400);
+        return ApiResponse::error('VERIFY_FAILED', __("app.transfer.msg_a2ba8390"), 400);
     }
 
     // ═══════════════ 客户门户 ═══════════════
@@ -144,7 +144,7 @@ class TransferController extends Controller
     public function myShow(LicenseTransferRequest $transfer): JsonResponse
     {
         if ($transfer->requested_by !== auth()->id()) {
-            return ApiResponse::error('FORBIDDEN', '无权查看此转移请求', 403);
+            return ApiResponse::error('FORBIDDEN', __("app.transfer.msg_e914bec4"), 403);
         }
         $transfer->load(['license', 'targetCustomer:id,name', 'targetDevice:id,name']);
         return ApiResponse::success($transfer);

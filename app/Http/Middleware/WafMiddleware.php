@@ -324,11 +324,11 @@ class WafMiddleware
         string $severity
     ): ?Response {
         $categoryLabels = [
-            'sql_injection' => 'SQL 注入',
-            'xss' => 'XSS 跨站脚本',
-            'path_traversal' => '路径穿越',
-            'command_injection' => '命令注入',
-            'file_inclusion' => '文件包含',
+            'sql_injection' => __('app.middleware.sql_injection'),
+            'xss' => __('app.middleware.xss'),
+            'path_traversal' => __('app.middleware.path_traversal'),
+            'command_injection' => __('app.middleware.command_injection'),
+            'file_inclusion' => __('app.middleware.file_inclusion'),
             'ssrf' => 'SSRF',
         ];
 
@@ -503,7 +503,7 @@ class WafMiddleware
         .icon { font-size: 64px; margin-bottom: 16px; }
         h1 { font-size: 20px; margin: 0 0 8px; }
         p { color: #666; margin: 0 0 24px; font-size: 14px; line-height: 1.6; }
-        .btn { display: inline-block; padding: 10px 24px; background: #409eff; color: #fff;
+        .btn { display: inline-block; padding: 10px 24px; background: #0f172a; color: #fff;
                border-radius: 6px; text-decoration: none; font-size: 14px; }
         .ref { margin-top: 16px; font-size: 12px; color: #999; }
     </style>

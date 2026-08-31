@@ -370,7 +370,7 @@ class I18nController extends Controller
             $translation = $engine->translateSingle($id, Auth::id());
             return response()->json([
                 'success' => true,
-                'message' => '翻译完成。',
+                'message' => __('app.controller_compat.i18n_msg_373'),
                 'data' => $translation,
             ]);
         } catch (\RuntimeException $e) {

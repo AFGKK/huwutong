@@ -30,7 +30,7 @@ class RegionalComplianceController extends Controller
     public function initialize(Request $request): JsonResponse
     {
         $this->service->initializeTenant($request->user()->tenant_id);
-        return ApiResponse::success(null, '区域合规配置已初始化');
+        return ApiResponse::success(null, __("app.regional_compliance.msg_5e79942e"));
     }
 
     /**
@@ -68,7 +68,7 @@ class RegionalComplianceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__("app.regional_compliance.msg_e441b11e"), $validator->errors()->toArray());
         }
 
         $config = $this->service->updateConfig(
@@ -77,7 +77,7 @@ class RegionalComplianceController extends Controller
             $validator->validated()
         );
 
-        return ApiResponse::success($config, '区域配置已更新');
+        return ApiResponse::success($config, __("app.regional_compliance.msg_049b8eda"));
     }
 
     /**
@@ -121,7 +121,7 @@ class RegionalComplianceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.common.validation_failed'), $validator->errors()->toArray());
         }
 
         $restriction = $this->service->addRestriction(
@@ -129,7 +129,7 @@ class RegionalComplianceController extends Controller
             $validator->validated()
         );
 
-        return ApiResponse::created($restriction, '销售限制已添加');
+        return ApiResponse::created($restriction, __("app.regional_compliance.msg_63f6966e"));
     }
 
     /**
@@ -138,7 +138,7 @@ class RegionalComplianceController extends Controller
     public function removeRestriction(Request $request, int $id): JsonResponse
     {
         $this->service->removeRestriction($id, $request->user()->tenant_id);
-        return ApiResponse::success(null, '销售限制已移除');
+        return ApiResponse::success(null, __("app.regional_compliance.msg_828489d4"));
     }
 
     /**
@@ -152,7 +152,7 @@ class RegionalComplianceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.common.validation_failed'), $validator->errors()->toArray());
         }
 
         return ApiResponse::success(

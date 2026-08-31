@@ -382,10 +382,10 @@ class RevenueDashboardService
             $results[] = [
                 'level' => $level,
                 'level_label' => match ($level) {
-                    'regular' => '普通',
-                    'silver' => '银牌',
-                    'gold' => '金牌',
-                    'platinum' => '铂金',
+                    'regular' => __('app.revenue_dashboard.agent_level_regular'),
+                    'silver' => __('app.revenue_dashboard.agent_level_silver'),
+                    'gold' => __('app.revenue_dashboard.agent_level_gold'),
+                    'platinum' => __('app.revenue_dashboard.agent_level_platinum'),
                 },
                 'agent_count' => $agentCount,
                 'total_commission' => $totalCommission,
@@ -417,34 +417,34 @@ class RevenueDashboardService
     {
         return [
             'link' => [
-                'name' => '推广链接',
+                'name' => __('app.revenue_dashboard.channel_link'),
                 'icon' => 'Link',
-                'color' => '#409eff',
-                'description' => '通过推广链接注册的客户',
+                'color' => '#0f172a',
+                'description' => __('app.revenue_dashboard.channel_link_desc'),
             ],
             'code' => [
-                'name' => '邀请码',
+                'name' => __('app.revenue_dashboard.channel_code'),
                 'icon' => 'Key',
                 'color' => '#67c23a',
-                'description' => '通过邀请码注册的客户',
+                'description' => __('app.revenue_dashboard.channel_code_desc'),
             ],
             'direct' => [
-                'name' => '直接注册',
+                'name' => __('app.revenue_dashboard.channel_direct'),
                 'icon' => 'User',
                 'color' => '#909399',
-                'description' => '直接访问注册的客户',
+                'description' => __('app.revenue_dashboard.channel_direct_desc'),
             ],
             'api' => [
-                'name' => 'API注册',
+                'name' => __('app.revenue_dashboard.channel_api'),
                 'icon' => 'Connection',
                 'color' => '#e6a23c',
-                'description' => '通过API注册的客户',
+                'description' => __('app.revenue_dashboard.channel_api_desc'),
             ],
             'organic' => [
-                'name' => '自然流量',
+                'name' => __('app.revenue_dashboard.channel_organic'),
                 'icon' => 'TrendCharts',
                 'color' => '#b37feb',
-                'description' => '自然搜索/口碑传播',
+                'description' => __('app.revenue_dashboard.channel_organic_desc'),
             ],
         ];
     }
@@ -546,10 +546,10 @@ class RevenueDashboardService
                 'name' => $a->contact_name ?: $a->user?->name ?? 'N/A',
                 'level' => $a->level,
                 'level_label' => match ($a->level) {
-                    'regular' => '普通',
-                    'silver' => '银牌',
-                    'gold' => '金牌',
-                    'platinum' => '铂金',
+                    'regular' => __('app.revenue_dashboard.agent_level_regular'),
+                    'silver' => __('app.revenue_dashboard.agent_level_silver'),
+                    'gold' => __('app.revenue_dashboard.agent_level_gold'),
+                    'platinum' => __('app.revenue_dashboard.agent_level_platinum'),
                     default => $a->level,
                 },
                 'total_earned' => (float) $a->total_earned,

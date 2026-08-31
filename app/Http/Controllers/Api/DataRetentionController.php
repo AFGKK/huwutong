@@ -21,7 +21,7 @@ class DataRetentionController extends Controller
      */
     public function dashboard(): JsonResponse
     {
-        return ApiResponse::success($this->retentionService->getDashboard(), '数据留存仪表盘获取成功');
+        return ApiResponse::success($this->retentionService->getDashboard(), __('app.data_retention.dashboard_retrieved'));
     }
 
     /**
@@ -30,7 +30,7 @@ class DataRetentionController extends Controller
      */
     public function policies(): JsonResponse
     {
-        return ApiResponse::success($this->retentionService->getPolicies(), '策略列表获取成功');
+        return ApiResponse::success($this->retentionService->getPolicies(), __('app.data_retention.policy_list_retrieved'));
     }
 
     /**
@@ -52,7 +52,7 @@ class DataRetentionController extends Controller
         $dataRetentionPolicy->update($validated);
         $this->retentionService->clearCache();
 
-        return ApiResponse::success($dataRetentionPolicy->fresh(), '策略已更新');
+        return ApiResponse::success($dataRetentionPolicy->fresh(), __('app.data_retention.policy_updated'));
     }
 
     /**
@@ -95,7 +95,7 @@ class DataRetentionController extends Controller
     {
         $filters = $request->only(['policy_key', 'status', 'date_from', 'date_to', 'page', 'per_page']);
 
-        return ApiResponse::success($this->retentionService->getExecutions($filters), '执行历史获取成功');
+        return ApiResponse::success($this->retentionService->getExecutions($filters), __('app.data_retention.exec_history_retrieved'));
     }
 
     /**
@@ -104,6 +104,6 @@ class DataRetentionController extends Controller
      */
     public function storageStats(): JsonResponse
     {
-        return ApiResponse::success($this->retentionService->getStorageStats(), '存储统计获取成功');
+        return ApiResponse::success($this->retentionService->getStorageStats(), __('app.data_retention.storage_stats_retrieved'));
     }
 }

@@ -64,7 +64,7 @@ class LicenseTrashService
     {
         $license = License::onlyTrashed()->findOrFail($id);
         $license->restore();
-        return ['success' => true, 'message' => 'License 已从回收站恢复'];
+        return ['success' => true, 'message' => __('app.common.license_restored_from_trash')];
     }
 
     /**
@@ -76,7 +76,7 @@ class LicenseTrashService
             ->whereIn('id', $ids)
             ->restore();
 
-        return ['success' => true, 'message' => "已恢复 {$count} 个 License"];
+        return ['success' => true, 'message' => __('app.common.licenses_restored', ['count' => $count])];
     }
 
     /**
@@ -87,7 +87,7 @@ class LicenseTrashService
         $license = License::onlyTrashed()->findOrFail($id);
         $license->forceDelete();
 
-        return ['success' => true, 'message' => 'License 已永久删除'];
+        return ['success' => true, 'message' => __('app.common.license_permanently_deleted')];
     }
 
     /**
@@ -103,7 +103,7 @@ class LicenseTrashService
 
         $count = $query->forceDelete();
 
-        return ['success' => true, 'message' => "已清空 {$count} 个过期 License", 'count' => $count];
+        return ['success' => true, 'message' => __('app.common.expired_licenses_cleared', ['count' => $count]), 'count' => $count];
     }
 
     /**

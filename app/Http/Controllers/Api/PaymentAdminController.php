@@ -42,6 +42,7 @@ class PaymentAdminController extends Controller
             'wechat' => Invoice::where('payment_method', 'wechat')->where('status', 'paid')->count(),
             'stripe' => Invoice::where('payment_method', 'stripe')->where('status', 'paid')->count(),
             'paypal' => Invoice::where('payment_method', 'paypal')->where('status', 'paid')->count(),
+            'yipay' => Invoice::where('payment_method', 'yipay')->where('status', 'paid')->count(),
             'mock' => Invoice::where('payment_method', 'mock')->where('status', 'paid')->count(),
         ];
 
@@ -160,17 +161,17 @@ class PaymentAdminController extends Controller
      */
     public function switchDriver(Request $request): JsonResponse
     {
-        $request->validate(['driver' => 'required|in:mock,alipay,wechat,stripe,paypal']);
+        $request->validate(['driver' => 'required|in:mock,alipay,wechat,stripe,paypal,yipay']);
 
         // 仅开发环境允许切换
         if (!app()->environment('local', 'testing')) {
-            return response()->json(['success' => false, 'message' => '仅开发环境可切换'], 403);
+            return response()->json(['success' => false, 'message' => __('app.controller_compat.payment_admin_msg_167')], 403);
         }
 
         // 更新 .env 需要文件操作，此处仅返回提示
         return response()->json([
             'success' => true,
-            'message' => '请在 .env 中设置 PAYMENT_DRIVER=' . $request->input('driver'),
+            'message' => __('app.controller_compat.payment_admin_env_payment_driver') . $request->input('driver'),
         ]);
     }
 }

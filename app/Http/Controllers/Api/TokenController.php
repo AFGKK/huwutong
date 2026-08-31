@@ -59,7 +59,7 @@ class TokenController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '当前 Token 已吊销',
+            'message' => __('app.api.token_api.current_revoked'),
         ]);
     }
 
@@ -80,7 +80,7 @@ class TokenController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Token #{$tokenId} 已被管理员吊销",
+            'message' => __('app.api.token_api.admin_revoked', ['id' => $tokenId]),
         ]);
     }
 
@@ -98,7 +98,7 @@ class TokenController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "已吊销用户 {$userId} 的 {$count} 个 Token",
+            'message' => __('app.api.token_api.user_tokens_revoked', ['uid' => $userId, 'count' => $count]),
             'data' => ['revoked_count' => $count],
         ]);
     }

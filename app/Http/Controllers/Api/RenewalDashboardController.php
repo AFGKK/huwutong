@@ -293,14 +293,14 @@ class RenewalDashboardController extends Controller
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            return ApiResponse::error('RENEWAL_FAILED', '批量续期失败：' . $e->getMessage(), 500);
+            return ApiResponse::error('RENEWAL_FAILED', __("app.renewal_dashboard.msg_d2191a5e") . $e->getMessage(), 500);
         }
 
         return ApiResponse::success([
             'renewed' => $renewed,
             'skipped' => count($skipped),
             'total' => count($data['license_ids']),
-        ], "成功续期 {$renewed} 个 License");
+        ], __('app.common.renewed_result', ['count' => $renewed]));
     }
 
     /**
@@ -313,11 +313,11 @@ class RenewalDashboardController extends Controller
     {
         $tenantId = $request->user()->tenant_id;
         if ($tenantId && $license->tenant_id !== $tenantId) {
-            return ApiResponse::error('FORBIDDEN', '无权操作此 License', 403);
+            return ApiResponse::error('FORBIDDEN', __("app.renewal_dashboard.msg_6024cd8f"), 403);
         }
 
         if ($license->status !== 'active') {
-            return ApiResponse::error('INVALID_STATUS', '仅活跃状态的 License 可以续期', 422);
+            return ApiResponse::error('INVALID_STATUS', __("app.renewal_dashboard.msg_af3ad67f"), 422);
         }
 
         $validator = Validator::make($request->all(), [
@@ -353,7 +353,7 @@ class RenewalDashboardController extends Controller
 
         $license->load(['product:id,name', 'customer:id,name,email']);
 
-        return ApiResponse::success($license, "License 已续期 {$days} 天");
+        return ApiResponse::success($license, __("app.renewal_dashboard.msg_5b69190a"));
     }
 
     /**

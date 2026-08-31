@@ -130,6 +130,6 @@ class LogAggregationController extends Controller
     public function deleteSavedSearch(int $id): JsonResponse
     {
         $this->logService->deleteSavedSearch($id);
-        return response()->json(['message' => '已删除']);
+        return response()->json(['message' => __('app.common.deleted')]);
     }
 }

@@ -156,10 +156,10 @@ class BundleService
             $bundle = ProductBundle::with('items')->findOrFail($bundleId);
 
             if (!$bundle->is_active) {
-                throw new \RuntimeException('套餐已下架');
+                throw new \RuntimeException(__("app.bundle.bundle_unavailable"));
             }
             if (!$bundle->hasStock()) {
-                throw new \RuntimeException('套餐库存不足');
+                throw new \RuntimeException(__("app.bundle.bundle_out_of_stock"));
             }
 
             // 检查限购
@@ -168,7 +168,7 @@ class BundleService
                 ->where('status', 'completed')
                 ->count();
             if ($purchaseCount >= $bundle->max_purchase_per_user) {
-                throw new \RuntimeException("每人限购 {$bundle->max_purchase_per_user} 件");
+                throw new \RuntimeException(__("app.bundle.msg_6d1c3144"));
             }
 
             // 创建订单

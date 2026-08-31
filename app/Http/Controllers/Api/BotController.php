@@ -45,7 +45,7 @@ class BotController extends Controller
             'is_public' => false,
         ]);
 
-        return ApiResponse::success($bot, '机器人已注册', 201);
+        return ApiResponse::success($bot, __("app.bot.msg_41dd9d0c"), 201);
     }
 
     // BOT-002: 生成/刷新 Token
@@ -53,7 +53,7 @@ class BotController extends Controller
     {
         $bot = \App\Models\Bot::where('user_id', auth()->id())->findOrFail($id);
         $bot->update(['token' => \Illuminate\Support\Str::random(64)]);
-        return ApiResponse::success(['token' => $bot->token], 'Token 已刷新');
+        return ApiResponse::success(['token' => $bot->token], __("app.bot.msg_20995de7"));
     }
 
     // BOT-003: 机器人列表
@@ -106,7 +106,7 @@ class BotController extends Controller
                 ]);
             }
 
-            return ApiResponse::success($msg->load('sender:id,name'), '消息已发送', 201);
+            return ApiResponse::success($msg->load('sender:id,name'), __('app.bot.message_sent'), 201);
         }
 
         return ApiResponse::success(null, 'Event ignored');
@@ -125,7 +125,7 @@ class BotController extends Controller
 
         // 解析 @bot 命令
         if (!preg_match('/^@(\w+)\s+(.+)/', $text, $matches)) {
-            return ApiResponse::error('INVALID_COMMAND', '命令格式: @机器人名 指令内容', 400);
+            return ApiResponse::error('INVALID_COMMAND', __("app.bot.msg_c9a9b7cb"), 400);
         }
 
         $botName = $matches[1];
@@ -133,7 +133,7 @@ class BotController extends Controller
 
         $bot = \App\Models\Bot::where('name', $botName)->where('is_active', true)->first();
         if (!$bot) {
-            return ApiResponse::error('BOT_NOT_FOUND', "找不到机器人 @{$botName}", 404);
+            return ApiResponse::error('BOT_NOT_FOUND', __("app.bot.msg_893b5dfa"), 404);
         }
 
         // 调用 Webhook
@@ -168,6 +168,6 @@ class BotController extends Controller
             return ApiResponse::success($msg->load('sender:id,name'), $reply);
         }
 
-        return ApiResponse::success(null, '指令已转发给机器人');
+        return ApiResponse::success(null, __("app.bot.msg_553f2d98"));
     }
 }

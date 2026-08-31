@@ -44,7 +44,7 @@ class SecurityHeadersController extends Controller
         $config = array_merge($this->getConfig(), $validated);
         Cache::forever(self::CACHE_KEY, $config);
 
-        return ApiResponse::success($config, '安全响应头配置已更新');
+        return ApiResponse::success($config, __("app.security_headers.msg_39725a8a"));
     }
 
     /**
@@ -53,7 +53,7 @@ class SecurityHeadersController extends Controller
     public function reset(): JsonResponse
     {
         Cache::forget(self::CACHE_KEY);
-        return ApiResponse::success($this->getConfig(), '已恢复默认配置');
+        return ApiResponse::success($this->getConfig(), __('app.security_headers.default_restored'));
     }
 
     /**

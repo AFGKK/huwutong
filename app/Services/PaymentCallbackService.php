@@ -67,7 +67,7 @@ class PaymentCallbackService
                 'payment_failed' => $this->handlePaymentFailed($callback, $parsed),
                 'refund' => $this->handleRefund($callback, $parsed),
                 'chargeback' => $this->handleChargeback($callback, $parsed),
-                default => throw new \RuntimeException("未知事件类型: {$parsed['event_type']}"),
+default => throw new \RuntimeException(__("app.payment_callback.unknown_event_type", ['type' => $parsed['event_type']])),
             };
 
             $callback->update([
@@ -109,7 +109,7 @@ class PaymentCallbackService
             // 通过商户订单号查找订单
             $order = Order::where('order_no', $parsed['merchant_order_no'])->first();
             if (!$order) {
-                throw new \RuntimeException("订单不存在: {$parsed['merchant_order_no']}");
+throw new \RuntimeException(__("app.payment_callback.order_not_found_with_id", ['id' => $parsed['merchant_order_no']]));
             }
             $orderId = $order->id;
             $callback->update(['order_id' => $orderId]);
@@ -119,7 +119,7 @@ class PaymentCallbackService
 
         // 订单已支付，忽略
         if ($order->status === Order::STATUS_PAID) {
-            return ['order_id' => $order->id, 'order_no' => $order->order_no, 'message' => '订单已支付'];
+            return ['order_id' => $order->id, 'order_no' => $order->order_no, 'message' => __('app.common.order_already_paid')];
         }
 
         // 更新订单状态
@@ -152,11 +152,11 @@ class PaymentCallbackService
     {
         $order = $this->resolveOrder($parsed);
         if (!$order) {
-            throw new \RuntimeException("订单不存在");
+            throw new \RuntimeException(__("app.payment_callback.order_not_found"));
         }
 
         if ($order->status === Order::STATUS_PAID) {
-            return ['order_id' => $order->id, 'message' => '订单已支付，忽略失败通知'];
+            return ['order_id' => $order->id, 'message' => __('app.common.order_paid_ignore_failure')];
         }
 
         $order->update([
@@ -187,7 +187,7 @@ class PaymentCallbackService
     {
         $order = $this->resolveOrder($parsed);
         if (!$order) {
-            throw new \RuntimeException("订单不存在");
+throw new \RuntimeException(__("app.payment_callback.order_not_found"));
         }
 
         $isFullRefund = $parsed['amount'] && $parsed['amount'] >= $order->final_amount;
@@ -236,7 +236,7 @@ class PaymentCallbackService
     {
         $order = $this->resolveOrder($parsed);
         if (!$order) {
-            throw new \RuntimeException("订单不存在");
+throw new \RuntimeException(__("app.payment_callback.order_not_found"));
         }
 
         $order->update([
@@ -273,7 +273,7 @@ class PaymentCallbackService
             'wechat' => $this->parseWechat($payload),
             'paypal' => $this->parsePaypal($payload),
             'mock' => $this->parseMock($payload),
-            default => throw new \RuntimeException("不支持的支付网关: {$gateway}"),
+            default => throw new \RuntimeException(__("app.payment_callback.msg_9c72d03f")),
         };
     }
 
@@ -404,7 +404,7 @@ class PaymentCallbackService
     {
         $callback = PaymentCallback::findOrFail($callbackId);
         if ($callback->status !== 'failed') {
-            return ['success' => false, 'message' => '只有失败的回调可以重试'];
+            return ['success' => false, 'message' => __('app.common.only_failed_callback_can_retry')];
         }
 
         $payload = $callback->raw_payload ?: [];

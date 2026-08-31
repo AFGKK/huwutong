@@ -76,10 +76,10 @@ class PointsController extends Controller
         // 获取内容作者 user_id
         $receiverId = $this->resolveContentAuthor($content, $validated['content_type']);
         if (! $receiverId) {
-            return ApiResponse::error('无法确定内容作者', 400);
+            return ApiResponse::error(__('app.api.points.author_unknown'), 400);
         }
         if ((int) $receiverId === (int) auth()->id()) {
-            return ApiResponse::error('不能打赏自己的内容', 400);
+            return ApiResponse::error(__('app.api.points.cannot_tip_self'), 400);
         }
 
         $points = (float) $validated['points'];
@@ -91,11 +91,11 @@ class PointsController extends Controller
             $tipperPoints = UserPoint::spend(
                 auth()->id(),
                 $points,
-                "打赏 {$validated['content_type']}#{$validated['content_id']}"
+                __('app.api.points.tip_spend', ['type' => $validated['content_type'], 'id' => $validated['content_id']])
             );
             if (! $tipperPoints) {
                 DB::rollBack();
-                return ApiResponse::error('积分余额不足', 400);
+                return ApiResponse::error(__('app.api.points.insufficient'), 400);
             }
 
             // 创建打赏记录
@@ -112,7 +112,7 @@ class PointsController extends Controller
             UserPoint::earn(
                 $receiverId,
                 $points,
-                "收到打赏 {$validated['content_type']}#{$validated['content_id']}",
+                __('app.api.points.tip_earn', ['type' => $validated['content_type'], 'id' => $validated['content_id']]),
                 $tip
             );
 
@@ -122,12 +122,12 @@ class PointsController extends Controller
                 'tip_id'    => $tip->id,
                 'points'    => $points,
                 'balance'   => (float) $tipperPoints->balance,
-                'message'   => '打赏成功',
-            ], '打赏成功');
+                'message'   => __('app.api.points.tip_ok'),
+            ], __('app.api.points.tip_ok'));
 
         } catch (\Throwable $e) {
             DB::rollBack();
-            return ApiResponse::error('打赏失败：' . $e->getMessage(), 500);
+            return ApiResponse::error(__('app.api.points.tip_failed', ['error' => $e->getMessage()]), 500);
         }
     }
 
@@ -207,7 +207,7 @@ class PointsController extends Controller
             return ApiResponse::success([
                 'rewarded' => false,
                 'reason'   => 'daily_limit',
-                'message'  => '今日分享奖励已达上限（' . self::DAILY_SHARE_REWARD_LIMIT . '积分）',
+                'message'  => __('app.api.points.share_daily_limit', ['limit' => self::DAILY_SHARE_REWARD_LIMIT]),
             ]);
         }
 
@@ -222,7 +222,7 @@ class PointsController extends Controller
             return ApiResponse::success([
                 'rewarded' => false,
                 'reason'   => 'already_rewarded',
-                'message'  => '该内容已奖励过',
+                'message'  => __('app.api.points.share_already'),
             ]);
         }
 
@@ -242,7 +242,7 @@ class PointsController extends Controller
             ]);
 
             // 发放积分
-            $desc = '分享' . $this->contentTypeLabel($validated['content_type']) . '到' . $this->platformLabel($validated['platform']);
+            $desc = __('app.api.points.share_desc', ['type' => $this->contentTypeLabel($validated['content_type']), 'platform' => $this->platformLabel($validated['platform'])]);
             UserPoint::earn($userId, $points, $desc);
 
             DB::commit();
@@ -253,12 +253,12 @@ class PointsController extends Controller
                 'rewarded' => true,
                 'points'   => $points,
                 'balance'  => (float) ($balance ?? 0),
-                'message'  => "🎉 分享得 {$points} 积分！",
+                'message'  => __('app.api.points.share_reward', ['points' => $points]),
             ]);
 
         } catch (\Throwable $e) {
             DB::rollBack();
-            return ApiResponse::error('奖励发放失败', 500);
+            return ApiResponse::error(__('app.api.points.reward_failed'), 500);
         }
     }
 
@@ -280,20 +280,20 @@ class PointsController extends Controller
     private function contentTypeLabel(string $type): string
     {
         return match ($type) {
-            'oa_article' => '互物号文章',
-            'forum_post' => '广场帖子',
-            'blog_post'  => '博客文章',
-            'product'    => '商品',
-            default      => '内容',
+            'oa_article' => __('app.api.points.type_oa'),
+            'forum_post' => __('app.api.points.type_forum'),
+            'blog_post'  => __('app.api.points.type_blog'),
+            'product'    => __('app.api.points.type_product'),
+            default      => __('app.api.points.type_content'),
         };
     }
 
     private function platformLabel(string $platform): string
     {
         return match ($platform) {
-            'wechat'  => '微信',
-            'weibo'   => '微博',
-            'copy'    => '复制链接',
+            'wechat'  => __('app.api.points.platform_wechat'),
+            'weibo'   => __('app.api.points.platform_weibo'),
+            'copy'    => __('app.api.points.platform_copy'),
             default   => $platform,
         };
     }
@@ -315,7 +315,7 @@ class PointsController extends Controller
 
         return ApiResponse::success([
             'balance' => (float) $points->balance,
-        ], '积分发放成功');
+        ], __('app.api.points.grant_ok'));
     }
 
     // ── 管理员：用户积分列表 ──

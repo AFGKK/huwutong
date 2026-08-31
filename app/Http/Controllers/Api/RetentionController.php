@@ -53,7 +53,7 @@ class RetentionController extends Controller
         if ($subscription->status !== 'active' && $subscription->status !== 'grace') {
             return response()->json([
                 'success' => false,
-                'message' => '当前状态不允许重试续费',
+                'message' => __('app.controller_compat.retention_msg_56'),
             ], 422);
         }
 
@@ -63,7 +63,7 @@ class RetentionController extends Controller
         if ($result['success']) {
             return response()->json([
                 'success' => true,
-                'message' => '续费重试成功',
+                'message' => __('app.controller_compat.retention_msg_66'),
             ]);
         }
 
@@ -78,7 +78,7 @@ class RetentionController extends Controller
 
         return response()->json([
             'success' => false,
-            'message' => '续费重试失败: ' . ($result['error'] ?? '未知错误'),
+            'message' => __('app.controller_compat.retention_msg_81') . ($result['error'] ?? '未知错误'),
         ], 502);
     }
 
@@ -122,7 +122,7 @@ class RetentionController extends Controller
 
         return response()->json([
             'success' => $result,
-            'message' => $result ? '已处理' : '操作失败',
+            'message' => $result ? '已处理' : __('app.common.operation_failed'),
         ]);
     }
 
@@ -150,7 +150,7 @@ class RetentionController extends Controller
 
         $config = $this->pipelineService->getConfig($id);
         if (! $config) {
-            return response()->json(['success' => false, 'message' => '配置不存在'], 404);
+            return response()->json(['success' => false, 'message' => __('app.controller_compat.config_not_found')], 404);
         }
 
         return response()->json(['success' => true, 'data' => $config]);
@@ -193,7 +193,7 @@ class RetentionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => $id ? '配置已更新' : '配置已创建',
+            'message' => $id ? __('app.common.configured') : '配置已创建',
             'data' => $config,
         ]);
     }
@@ -209,7 +209,7 @@ class RetentionController extends Controller
 
         return response()->json([
             'success' => $result,
-            'message' => $result ? '配置状态已切换' : '操作失败',
+            'message' => $result ? '配置状态已切换' : __('app.common.operation_failed'),
         ]);
     }
 
@@ -224,7 +224,7 @@ class RetentionController extends Controller
 
         return response()->json([
             'success' => $result,
-            'message' => $result ? '配置已删除' : '操作失败',
+            'message' => $result ? '配置已删除' : __('app.common.operation_failed'),
         ]);
     }
 }

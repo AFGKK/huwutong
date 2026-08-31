@@ -54,11 +54,31 @@ class GlobalSearchService
         }
 
         // 3. 记录最近搜索
-        if (!empty($results['items'])) {
+        if (! empty($results['items'])) {
             $this->recordRecentSearch($userId, $query, $types, $results['total']);
         }
 
-        return $results;
+        return array_merge($results, ['engine' => $this->getEngineStatus()]);
+    }
+
+    /**
+     * 搜索引擎运行状态（D-19 运维降级）
+     */
+    public function getEngineStatus(): array
+    {
+        $engine = config('product-search.engine', 'database');
+        $meili = app(MeilisearchService::class);
+        $available = $meili->isAvailable();
+        $degraded = $engine === 'meilisearch' && ! $available;
+
+        return [
+            'engine' => $engine,
+            'meilisearch_available' => $available,
+            'degraded' => $degraded,
+            'message' => $degraded
+                ? 'Meilisearch 不可用，商品搜索已降级为数据库检索'
+                : null,
+        ];
     }
 
     /**
@@ -193,11 +213,39 @@ class GlobalSearchService
 
     protected function searchProducts(int $tenantId, string $query, int $limit): array
     {
-        return Product::where('tenant_id', $tenantId)
-            ->where('name', 'like', "%{$query}%")
-            ->limit($limit)
+        $meili = app(MeilisearchService::class);
+        if (config('product-search.engine') === 'meilisearch' && $meili->isAvailable()) {
+            try {
+                $result = $meili->searchProducts($query, ['limit' => $limit, 'filters' => 'is_active = true']);
+                $hits = $result['hits'] ?? [];
+                if ($hits !== []) {
+                    return collect($hits)->map(fn ($hit) => [
+                        'type' => 'product',
+                        'id' => $hit['id'],
+                        'title' => $hit['name'] ?? '',
+                        'description' => strip_tags($hit['description'] ?? $hit['long_description'] ?? ''),
+                        'identifier' => $hit['slug'] ?? '',
+                        'status' => ($hit['is_active'] ?? true) ? 'active' : 'inactive',
+                        'url' => '/products/' . ($hit['id'] ?? ''),
+                        'icon' => 'Goods',
+                        'resource_id' => $hit['id'],
+                        'weight' => 60,
+                        'source' => 'meilisearch',
+                    ])->all();
+                }
+            } catch (\Throwable $e) {
+                // 降级到数据库
+            }
+        }
+
+        $builder = Product::query()->where('name', 'like', "%{$query}%");
+        if (\Illuminate\Support\Facades\Schema::hasColumn((new Product)->getTable(), 'tenant_id')) {
+            $builder->where('tenant_id', $tenantId);
+        }
+
+        return $builder->limit($limit)
             ->get()
-            ->map(fn($p) => [
+            ->map(fn ($p) => [
                 'type' => 'product',
                 'id' => $p->id,
                 'title' => $p->name,
@@ -208,6 +256,7 @@ class GlobalSearchService
                 'icon' => 'Goods',
                 'resource_id' => $p->id,
                 'weight' => 60,
+                'source' => 'database',
             ])
             ->all();
     }
@@ -331,7 +380,30 @@ class GlobalSearchService
      */
     public function suggestions(int $tenantId, string $query, int $limit = 8): array
     {
-        if (strlen($query) < 1) return [];
+        if (strlen($query) < 1) {
+            return [];
+        }
+
+        $suggestions = [];
+
+        if (config('product-search.engine') === 'meilisearch') {
+            $meili = app(MeilisearchService::class);
+            if ($meili->isAvailable()) {
+                try {
+                    $result = $meili->searchProducts($query, ['limit' => min($limit, 5)]);
+                    foreach ($result['hits'] ?? [] as $hit) {
+                        $suggestions[] = [
+                            'text' => $hit['name'] ?? '',
+                            'type' => 'product',
+                            'identifier' => $hit['slug'] ?? '',
+                            'source' => 'meilisearch',
+                        ];
+                    }
+                } catch (\Throwable $e) {
+                    // 继续合并索引建议
+                }
+            }
+        }
 
         $results = SearchIndex::where('tenant_id', $tenantId)
             ->where('title', 'like', "{$query}%")
@@ -339,16 +411,16 @@ class GlobalSearchService
             ->limit($limit)
             ->get(['title', 'resource_type', 'identifier']);
 
-        $suggestions = [];
         foreach ($results as $r) {
             $suggestions[] = [
                 'text' => $r->title,
                 'type' => $r->resource_type,
                 'identifier' => $r->identifier,
+                'source' => 'index',
             ];
         }
 
-        return $suggestions;
+        return array_slice($suggestions, 0, $limit);
     }
 
     // ─── 搜索索引管理 ───
@@ -548,7 +620,7 @@ class GlobalSearchService
 
         if ($existing) {
             $existing->delete();
-            return ['bookmarked' => false, 'message' => '已取消收藏'];
+            return ['bookmarked' => false, 'message' => __('app.common.bookmark_removed')];
         }
 
         SearchBookmark::create([
@@ -559,7 +631,7 @@ class GlobalSearchService
             'label' => $label,
         ]);
 
-        return ['bookmarked' => true, 'message' => '已收藏'];
+        return ['bookmarked' => true, 'message' => __('app.common.bookmarked')];
     }
 
     public function deleteBookmark(int $id, int $userId): void

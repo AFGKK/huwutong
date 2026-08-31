@@ -45,15 +45,24 @@ class LlmFallbackService
 
     /**
      * 获取当前可用的 Provider（按降级链自动选择）
+     *
+     * @param  LlmProvider|null  $exclude  排除的 Provider（用于单次请求失败后立即切换）
      */
-    public function getAvailableProvider(): ?LlmProvider
+    public function getAvailableProvider(?LlmProvider $exclude = null): ?LlmProvider
     {
-        // 按优先级排序获取所有活跃 Provider
+        $preferredSlug = app(LlmRoutingService::class)->defaultProviderSlug();
+
+        // 站点默认 Provider 优先，其余按 sort_order
         $providers = LlmProvider::where('is_active', true)
             ->orderBy('sort_order')
-            ->get();
+            ->get()
+            ->sortBy(fn (LlmProvider $p) => $p->slug === $preferredSlug ? 0 : $p->sort_order + 1)
+            ->values();
 
         foreach ($providers as $provider) {
+            if ($exclude && $provider->id === $exclude->id) {
+                continue;
+            }
             if ($this->isCircuitOpen($provider)) {
                 Log::info('LLMFallback: provider circuit open, skipping', [
                     'provider' => $provider->slug,

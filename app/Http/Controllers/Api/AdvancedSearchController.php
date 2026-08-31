@@ -23,7 +23,7 @@ class AdvancedSearchController extends Controller
     public function filterDefinitions(string $page): JsonResponse
     {
         if (!in_array($page, SavedSearch::$pages)) {
-            return ApiResponse::error('INVALID_PAGE', "不支持的页面: {$page}", 422);
+            return ApiResponse::error('INVALID_PAGE', __('app.api.advanced_search.unsupported_page', ['page' => $page]), 422);
         }
 
         $definitions = $this->advancedSearchService->getFilterDefinitions($page);
@@ -53,7 +53,7 @@ class AdvancedSearchController extends Controller
     public function search(Request $request, string $page): JsonResponse
     {
         if (!in_array($page, SavedSearch::$pages)) {
-            return ApiResponse::error('INVALID_PAGE', "不支持的页面: {$page}", 422);
+            return ApiResponse::error('INVALID_PAGE', __('app.api.advanced_search.unsupported_page', ['page' => $page]), 422);
         }
 
         $validator = Validator::make($request->all(), [
@@ -67,7 +67,7 @@ class AdvancedSearchController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数错误', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.advanced_search.param_error'), $validator->errors()->toArray());
         }
 
         $tenantId = $request->user()->tenant_id;
@@ -126,7 +126,7 @@ class AdvancedSearchController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数错误', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.advanced_search.param_error'), $validator->errors()->toArray());
         }
 
         $search = $this->advancedSearchService->saveSearch(
@@ -134,7 +134,7 @@ class AdvancedSearchController extends Controller
             $validator->validated()
         );
 
-        return ApiResponse::created($search, '搜索已保存');
+        return ApiResponse::created($search, __('app.api.advanced_search.search_saved'));
     }
 
     /**
@@ -145,7 +145,7 @@ class AdvancedSearchController extends Controller
     {
         $search = SavedSearch::where('id', $id)->where('user_id', $request->user()->id)->first();
         if (!$search) {
-            return ApiResponse::error('NOT_FOUND', '保存搜索未找到', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.advanced_search.saved_search_not_found'), 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -161,11 +161,11 @@ class AdvancedSearchController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数错误', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.advanced_search.param_error'), $validator->errors()->toArray());
         }
 
         $search->update($validator->validated());
-        return ApiResponse::success($search->fresh(), '搜索已更新');
+        return ApiResponse::success($search->fresh(), __('app.api.advanced_search.search_updated'));
     }
 
     /**
@@ -176,11 +176,11 @@ class AdvancedSearchController extends Controller
     {
         $search = SavedSearch::where('id', $id)->where('user_id', $request->user()->id)->first();
         if (!$search) {
-            return ApiResponse::error('NOT_FOUND', '保存搜索未找到', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.advanced_search.saved_search_not_found'), 404);
         }
 
         $search->delete();
-        return ApiResponse::success(null, '搜索已删除');
+        return ApiResponse::success(null, __('app.api.advanced_search.search_deleted'));
     }
 
     /**
@@ -191,10 +191,10 @@ class AdvancedSearchController extends Controller
     {
         $result = $this->advancedSearchService->applySavedSearch($id, $request->user()->id);
         if (!$result) {
-            return ApiResponse::error('NOT_FOUND', '保存搜索未找到', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.advanced_search.saved_search_not_found'), 404);
         }
 
-        return ApiResponse::success($result, '已应用搜索');
+        return ApiResponse::success($result, __('app.api.advanced_search.search_applied'));
     }
 
     /**

@@ -32,7 +32,7 @@ class SelfLearningController extends Controller
             'auto_apply' => $autoApply,
         ]);
 
-        return ApiResponse::success($result, '学习周期完成');
+        return ApiResponse::success($result, __("app.self_learning.msg_0c1d172d"));
     }
 
     /**

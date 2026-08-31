@@ -153,7 +153,7 @@ class LocalLLMService
     public function getGpuInfo(): array
     {
         if (!config('local-llm.gpu_monitoring.enabled')) {
-            return ['available' => false, 'message' => 'GPU 监控已禁用'];
+            return ['available' => false, 'message' => __('app.common.gpu_monitoring_disabled')];
         }
 
         // 尝试通过 nvidia-smi 获取
@@ -177,7 +177,7 @@ class LocalLLMService
                 // ignore
             }
 
-            return ['available' => false, 'message' => '未检测到 NVIDIA GPU 或 nvidia-smi 不可用'];
+            return ['available' => false, 'message' => __('app.common.nvidia_gpu_not_detected')];
         }
 
         $gpus = [];
@@ -301,12 +301,12 @@ class LocalLLMService
             ]);
 
             if ($response->successful()) {
-                return ['success' => true, 'message' => "模型 {$modelName} 已删除"];
+                return ['success' => true, 'message' => __('app.common.model_deleted', ['model' => $modelName])];
             }
 
-            return ['success' => false, 'message' => '删除失败: ' . $response->body()];
+            return ['success' => false, 'message' => __('app.common.delete_failed', ['message' => $response->body()])];
         } catch (\Throwable $e) {
-            return ['success' => false, 'message' => '删除异常: ' . $e->getMessage()];
+            return ['success' => false, 'message' => __('app.common.delete_exception', ['message' => $e->getMessage()])];
         }
     }
 
@@ -320,9 +320,9 @@ class LocalLLMService
                 'title' => 'Ollama 部署',
                 'description' => '最简单的本地大模型部署方案，支持 macOS/Linux/Windows',
                 'steps' => [
-                    ['step' => 1, 'action' => '安装 Ollama', 'command' => 'curl -fsSL https://ollama.com/install.sh | sh'],
-                    ['step' => 2, 'action' => '拉取模型', 'command' => 'ollama pull qwen2:7b'],
-                    ['step' => 3, 'action' => '验证服务', 'command' => 'curl http://localhost:11434/api/tags'],
+                    ['step' => 1, 'action' => '启动 Ollama', 'command' => 'bash deploy/llm/setup.sh ollama'],
+                    ['step' => 2, 'action' => '拉取推荐模型', 'command' => 'php artisan ollama:setup --pull'],
+                    ['step' => 3, 'action' => '验证服务', 'command' => 'php artisan ollama:setup --status'],
                     ['step' => 4, 'action' => '配置 Provider', 'command' => '在管理后台 LLM Providers 中添加 Ollama'],
                 ],
                 'docker_compose' => true,

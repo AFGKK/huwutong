@@ -95,7 +95,7 @@ class PrepaidBalanceService
         ?string $description = null,
     ): array {
         if ($amount <= 0) {
-            throw new \InvalidArgumentException('充值金额必须大于 0');
+            throw new \InvalidArgumentException(__('app.api.service_prepaid_balance.amount_positive'));
         }
 
         $balance = $this->getBalance($customer, $currency);
@@ -126,7 +126,7 @@ class PrepaidBalanceService
                     'payment_method' => $paymentMethod,
                     'gateway_transaction_id' => $paymentResult['transaction_id'] ?? $transactionNumber,
                     'status' => 'completed',
-                    'description' => $description ?? "在线充值 {$amount} {$currency}",
+                    'description' => $description ?? __('app.api.service_prepaid_balance.online_topup', ['amount' => $amount, 'currency' => $currency]),
                     'completed_at' => now(),
                 ]);
             });
@@ -190,7 +190,7 @@ class PrepaidBalanceService
             'currency' => $currency,
             'payment_method' => 'admin',
             'status' => 'completed',
-            'description' => $description ?? "管理员手动充值 {$amount} {$currency}",
+            'description' => $description ?? __('app.api.service_prepaid_balance.admin_topup', ['amount' => $amount, 'currency' => $currency]),
             'completed_at' => now(),
             'metadata' => ['admin_user_id' => $adminUserId],
         ]);
@@ -227,7 +227,7 @@ class PrepaidBalanceService
         if ((float) $balance->balance < $amount) {
             return [
                 'success' => false,
-                'error' => '余额不足',
+                'error' => __('app.api.service_prepaid_balance.insufficient_balance'),
                 'balance_after' => (float) $balance->balance,
             ];
         }
@@ -250,7 +250,7 @@ class PrepaidBalanceService
             'balance_after' => $after,
             'currency' => $currency,
             'status' => 'completed',
-            'description' => $description ?? "余额消费 {$amount} {$currency}",
+            'description' => $description ?? __('app.api.service_prepaid_balance.balance_charge', ['amount' => $amount, 'currency' => $currency]),
             'completed_at' => now(),
         ]);
 
@@ -295,7 +295,7 @@ class PrepaidBalanceService
             'balance_after' => $after,
             'currency' => $currency,
             'status' => 'completed',
-            'description' => $description ?? "退款到余额 {$amount} {$currency}",
+            'description' => $description ?? sprintf(__('app.api.service_prepaid_balance.balance_refund'), $amount, $currency),
             'completed_at' => now(),
         ]);
 
@@ -325,7 +325,7 @@ class PrepaidBalanceService
         if ($after < 0) {
             return [
                 'success' => false,
-                'error' => '调账后余额不能为负数',
+                'error' => __('app.api.service_prepaid_balance.balance_negative'),
             ];
         }
 
@@ -342,7 +342,7 @@ class PrepaidBalanceService
             'balance_after' => $after,
             'currency' => $currency,
             'status' => 'completed',
-            'description' => $description ?? ($amount >= 0 ? "管理员调账 +{$amount}" : "管理员调账 {$amount}"),
+            'description' => $description ?? ($amount >= 0 ? __('app.api.service_prepaid_balance.admin_adjust_positive', ['amount' => $amount]) : __('app.api.service_prepaid_balance.admin_adjust_negative', ['amount' => abs($amount)])),
             'completed_at' => now(),
             'metadata' => ['admin_user_id' => $adminUserId],
         ]);
@@ -422,7 +422,7 @@ class PrepaidBalanceService
         if ($available < $amount) {
             return [
                 'success' => false,
-                'error' => '信用额度不足',
+                'error' => __('app.api.service_prepaid_balance.credit_insufficient'),
                 'available_credit' => $available,
             ];
         }
@@ -443,7 +443,7 @@ class PrepaidBalanceService
             'balance_after' => 0,
             'currency' => 'CNY',
             'status' => 'completed',
-            'description' => $description ?? "使用信用额度 {$amount} CNY",
+            'description' => $description ?? sprintf(__('app.api.service_prepaid_balance.credit_use'), $amount),
             'completed_at' => now(),
         ]);
 
@@ -481,7 +481,7 @@ class PrepaidBalanceService
             'balance_after' => 0,
             'currency' => 'CNY',
             'status' => 'completed',
-            'description' => $description ?? "偿还信用额度 {$amount} CNY",
+            'description' => $description ?? sprintf(__('app.api.service_prepaid_balance.credit_repay'), $amount),
             'completed_at' => now(),
         ]);
 
@@ -552,7 +552,7 @@ class PrepaidBalanceService
             (float) $settings['amount'],
             $settings['payment_method'] ?? 'alipay',
             $currency,
-            '自动充值（余额低于阈值）',
+            __('app.api.service_prepaid_balance.auto_topup'),
         );
 
         return [
@@ -639,7 +639,7 @@ class PrepaidBalanceService
 
         $credit = $this->getCreditLimit($customer);
         if ($credit->available_credit >= $remaining) {
-            $this->useCredit($customer, $remaining, "支付发票 {$invoice->invoice_no}");
+            $this->useCredit($customer, $remaining, __('app.api.service_prepaid_balance.pay_invoice', ['invoice' => $invoice->invoice_no]));
             $invoice->update([
                 'status' => 'paid',
                 'paid_at' => now(),
@@ -651,7 +651,7 @@ class PrepaidBalanceService
         // 3. 都不够，返回失败
         return [
             'success' => false,
-            'error' => '余额和信用额度均不足',
+            'error' => __('app.api.service_prepaid_balance.balance_credit_insufficient'),
             'balance_shortfall' => $remaining,
         ];
     }

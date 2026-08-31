@@ -10,13 +10,14 @@ use Illuminate\Database\Eloquent\Model;
 class BillingCycle extends Model
 {
     protected $fillable = [
-        'code', 'name', 'months', 'sort_order', 'is_active',
+        'code', 'name', 'months', 'days', 'sort_order', 'is_active',
     ];
 
     protected function casts(): array
     {
         return [
             'months' => 'integer',
+            'days' => 'integer',
             'sort_order' => 'integer',
             'is_active' => 'boolean',
         ];
@@ -37,7 +38,37 @@ class BillingCycle extends Model
     {
         return self::where('is_active', true)
             ->orderBy('sort_order')
-            ->get(['code', 'name', 'months'])
+            ->get(['code', 'name', 'months', 'days'])
             ->toArray();
+    }
+
+    /**
+     * 根据 code 和起始日期计算结束日期
+     * 支持 months + days 组合（如 1个月5天）
+     */
+    public static function calculateEndDate(string $code, \Carbon\Carbon $startDate): \Carbon\Carbon
+    {
+        $cycle = self::resolvePeriod($code);
+        if (!$cycle) {
+            return $startDate->copy()->addMonth();
+        }
+        return $cycle->applyTo($startDate);
+    }
+
+    /**
+     * 将周期应用到指定日期，返回新的结束日期
+     */
+    public function applyTo(\Carbon\Carbon $startDate): \Carbon\Carbon
+    {
+        $end = $startDate->copy();
+
+        if ($this->months) {
+            $end = $end->addMonths((int) $this->months);
+        }
+        if ($this->days) {
+            $end = $end->addDays((int) $this->days);
+        }
+
+        return $end;
     }
 }

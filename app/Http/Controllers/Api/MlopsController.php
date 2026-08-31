@@ -66,7 +66,7 @@ class MlopsController extends Controller
         ]);
 
         $model = $this->mlops->createModel($tenantId, $validated);
-        return ApiResponse::created($model, '模型创建成功');
+        return ApiResponse::created($model, __('app.api.mlops.model_created'));
     }
 
     /**
@@ -101,7 +101,7 @@ class MlopsController extends Controller
         ]);
 
         $model = $this->mlops->updateModel($model, $validated);
-        return ApiResponse::success($model, '模型已更新');
+        return ApiResponse::success($model, __('app.api.mlops.model_updated'));
     }
 
     /**
@@ -113,7 +113,7 @@ class MlopsController extends Controller
     {
         $this->authorize('delete', $model);
         $model->delete();
-        return ApiResponse::success(null, '模型已删除');
+        return ApiResponse::success(null, __('app.api.mlops.model_deleted'));
     }
 
     // ═══════ 版本管理 ═══════
@@ -144,7 +144,7 @@ class MlopsController extends Controller
         ]);
 
         $version = $this->mlops->createVersion($model->id, $validated);
-        return ApiResponse::created($version, '版本创建成功');
+        return ApiResponse::created($version, __('app.api.mlops.version_created'));
     }
 
     /**
@@ -155,7 +155,7 @@ class MlopsController extends Controller
     public function deployVersion(MlModel $model, MlModelVersion $version): JsonResponse
     {
         $version = $this->mlops->deployVersion($version, auth()->id());
-        return ApiResponse::success($version, '版本已部署到生产');
+        return ApiResponse::success($version, __('app.api.mlops.version_deployed'));
     }
 
     /**
@@ -166,7 +166,7 @@ class MlopsController extends Controller
     public function rollbackVersion(MlModel $model, MlModelVersion $version): JsonResponse
     {
         $version = $this->mlops->rollbackVersion($model, $version, auth()->id());
-        return ApiResponse::success($version, '版本已回滚');
+        return ApiResponse::success($version, __('app.api.mlops.version_rolled_back'));
     }
 
     // ═══════ 训练任务 ═══════
@@ -197,7 +197,7 @@ class MlopsController extends Controller
         ]);
 
         $job = $this->mlops->submitTrainingJob($model->id, $validated, auth()->id());
-        return ApiResponse::created($job, '训练任务已提交');
+        return ApiResponse::created($job, __('app.api.mlops.training_submitted'));
     }
 
     // ═══════ 漂移监控 ═══════
@@ -242,14 +242,14 @@ class MlopsController extends Controller
 
         $productionVersion = $model->productionVersion;
         if (!$productionVersion) {
-            return ApiResponse::error('没有生产版本可用于漂移检测');
+            return ApiResponse::error(__('app.api.mlops.no_prod_version'));
         }
 
         $event = $this->mlops->detectDrift($productionVersion->id, $validated['metrics']);
         if (!$event) {
-            return ApiResponse::success(null, '未检测到显著漂移');
+            return ApiResponse::success(null, __('app.api.mlops.no_significant_drift'));
         }
 
-        return ApiResponse::success($event, '漂移事件已记录');
+        return ApiResponse::success($event, __('app.api.mlops.drift_recorded'));
     }
 }

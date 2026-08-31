@@ -61,7 +61,7 @@ class StaticAssetCdnService
         $buildDir = $buildDir ?? base_path(self::BUILD_DIR);
 
         if (! File::isDirectory($buildDir)) {
-            throw new \RuntimeException("构建产物目录不存在: {$buildDir}");
+            throw new \RuntimeException(__("app.static_asset_cdn.msg_0f9f69d6"));
         }
 
         $files = File::allFiles($buildDir);
@@ -130,7 +130,7 @@ class StaticAssetCdnService
             $versions = $this->listDeployedVersions();
             $version = $versions[0] ?? null;
             if (! $version) {
-                throw new \RuntimeException('没有已部署的版本');
+                throw new \RuntimeException(__("app.static_asset_cdn.no_deployed_version"));
             }
         }
 
@@ -138,7 +138,7 @@ class StaticAssetCdnService
         $versionPath = self::STORAGE_PREFIX . "/{$version}";
         if (! $this->cloudStorage->exists($versionPath . '/manifest.json')
             && ! $this->isDirectoryNotEmpty($versionPath)) {
-            throw new \RuntimeException("版本 {$version} 在 CDN 上不存在");
+            throw new \RuntimeException(__("app.static_asset_cdn.msg_8c257a11"));
         }
 
         Cache::forever(self::CACHE_VERSION_KEY, $version);
@@ -161,7 +161,7 @@ class StaticAssetCdnService
         $versionKeys = array_column($versions, 'version');
 
         if (! in_array($version, $versionKeys)) {
-            throw new \RuntimeException("版本 {$version} 不存在");
+            throw new \RuntimeException(__("app.static_asset_cdn.msg_b26090ac"));
         }
 
         Cache::forever(self::CACHE_VERSION_KEY, $version);
@@ -254,7 +254,7 @@ class StaticAssetCdnService
     {
         $current = $this->getCurrentVersion();
         if ($version === $current) {
-            throw new \RuntimeException('不能删除当前激活的版本');
+            throw new \RuntimeException(__("app.static_asset_cdn.cannot_delete_active_version"));
         }
 
         $prefix = self::STORAGE_PREFIX . "/{$version}/";

@@ -62,7 +62,7 @@ class PromptTemplateController extends Controller
 
         $template = PromptTemplate::create($validated);
 
-        return ApiResponse::created($template, 'Prompt 模板已创建');
+        return ApiResponse::created($template, __("app.prompt_template.msg_7f891f3a"));
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -84,7 +84,7 @@ class PromptTemplateController extends Controller
 
         $template->update($validated);
 
-        return ApiResponse::success($template, 'Prompt 模板已更新');
+        return ApiResponse::success($template, __("app.prompt_template.msg_8db2ba43"));
     }
 
     public function createVersion(Request $request, int $id): JsonResponse
@@ -97,7 +97,7 @@ class PromptTemplateController extends Controller
         $template = PromptTemplate::findOrFail($id);
         $new = $this->promptService->createVersion($template, $validated['content'], $validated['note'] ?? null);
 
-        return ApiResponse::created($new, '新版本已创建');
+        return ApiResponse::created($new, __("app.prompt_template.msg_9b7c174b"));
     }
 
     public function setActive(int $id): JsonResponse
@@ -109,7 +109,7 @@ class PromptTemplateController extends Controller
             ->update(['is_current' => false]);
         $template->update(['is_current' => true, 'status' => 'active']);
 
-        return ApiResponse::success($template, '已设为当前版本');
+        return ApiResponse::success($template, __("app.prompt_template.msg_3760f06c"));
     }
 
     public function renderTest(Request $request, int $id): JsonResponse
@@ -125,6 +125,6 @@ class PromptTemplateController extends Controller
     {
         $template = PromptTemplate::findOrFail($id);
         $template->delete();
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __("app.prompt_template.msg_5cc23262"));
     }
 }

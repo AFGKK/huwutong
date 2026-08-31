@@ -73,7 +73,7 @@ class CustomerAuditLogController extends Controller
         $log = $this->auditLogService->getAuditLogDetail($tenant, $id);
 
         if (! $log) {
-            return ApiResponse::notFound('审计日志不存在');
+            return ApiResponse::notFound(__("app.customer_audit_log.msg_1a476563"));
         }
 
         return ApiResponse::success($log->load(['user:id,name,email']));
@@ -172,12 +172,12 @@ class CustomerAuditLogController extends Controller
             ?? $user->tenant_id;
 
         if (! $tenantId) {
-            abort(400, '未选择租户');
+            abort(400, __("app.customer_audit_log.msg_f4addfe2"));
         }
 
         $tenant = Tenant::find($tenantId);
         if (! $tenant) {
-            abort(404, '租户不存在');
+            abort(404, __("app.customer_audit_log.msg_0c0458f2"));
         }
 
         // 验证用户是该租户的活跃成员（或超管）
@@ -187,7 +187,7 @@ class CustomerAuditLogController extends Controller
             ->exists();
 
         if (! $isMember && ! $user->hasRole('super-admin')) {
-            abort(403, '您无权访问该租户');
+            abort(403, __("app.customer_audit_log.msg_d8d1234a"));
         }
 
         return $tenant;

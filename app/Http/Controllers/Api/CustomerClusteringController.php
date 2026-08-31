@@ -20,7 +20,7 @@ class CustomerClusteringController extends Controller
     public function runClustering(Request $request): JsonResponse
     {
         $results = $this->service->runClustering($request->user()->tenant_id);
-        return ApiResponse::success($results, '聚类分析完成');
+        return ApiResponse::success($results, __("app.customer_clustering.msg_3d742587"));
     }
 
     /**
@@ -55,7 +55,7 @@ class CustomerClusteringController extends Controller
         $result = $this->service->getCustomerCluster($customer->id);
         return $result
             ? ApiResponse::success($result)
-            : ApiResponse::error('NOT_FOUND', '尚未进行聚类分析', 404);
+            : ApiResponse::error('NOT_FOUND', __("app.customer_clustering.msg_0b8577cd"), 404);
     }
 
     /**

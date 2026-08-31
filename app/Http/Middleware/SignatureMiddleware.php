@@ -78,7 +78,7 @@ class SignatureMiddleware
 
         // 2. Timestamp 校验
         if (! ctype_digit((string) $timestamp)) {
-            return ApiResponse::error('INVALID_SIGNATURE_TIMESTAMP', '签名时间戳格式无效', 401);
+            return ApiResponse::error('INVALID_SIGNATURE_TIMESTAMP', __('app.middleware.invalid_signature_timestamp'), 401);
         }
 
         $now = time();

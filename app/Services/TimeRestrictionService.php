@@ -32,13 +32,13 @@ class TimeRestrictionService
         $config = $this->resolveConfig($license);
 
         if (! $config || ! $config->is_active) {
-            return ['allowed' => true, 'reason' => '未配置时段限制', 'action' => 'allowed'];
+            return ['allowed' => true, 'reason' => __('app.time_restriction.time_restriction_feb96556ec'), 'action' => 'allowed'];
         }
 
         // IP 白名单例外检查
         if ($clientIp && $this->isIpAllowed($config, $clientIp)) {
-            $this->logCheck($config, $license, 'allowed', 'IP 白名单例外');
-            return ['allowed' => true, 'reason' => 'IP 白名单例外', 'action' => 'allowed'];
+            $this->logCheck($config, $license, 'allowed', __('app.time_restriction.time_restriction_c5b2bd4868'));
+            return ['allowed' => true, 'reason' => __('app.time_restriction.time_restriction_c5b2bd4868'), 'action' => 'allowed'];
         }
 
         $timezone = $config->timezone ?: 'UTC';
@@ -56,10 +56,10 @@ class TimeRestrictionService
 
         if (in_array($todayDate, $holidays)) {
             // 节假日默认不可用
-            $this->logCheck($config, $license, 'denied', '节假日不可用');
+            $this->logCheck($config, $license, 'denied', __('app.time_restriction.time_restriction_a681b4d5f8'));
             return [
                 'allowed' => false,
-                'reason' => '今日为节假日，License 不可用',
+                'reason' => __('app.time_restriction.time_restriction_235eea21a1'),
                 'action' => $config->out_of_hours_action,
             ];
         }
@@ -79,7 +79,7 @@ class TimeRestrictionService
 
         if (! $daySchedule) {
             // 无该日排期 — 不可用
-            $dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            $dayNames = [__('app.time_restriction.time_restriction_562d7476ab'), __('app.time_restriction.time_restriction_1603b069c2'), __('app.time_restriction.time_restriction_b5a6a07e48'), __('app.time_restriction.time_restriction_e60725e762'), __('app.time_restriction.time_restriction_170fc8e27c'), __('app.time_restriction.time_restriction_eb79cea638'), __('app.time_restriction.time_restriction_2457513054')];
             $this->logCheck($config, $license, 'denied', "{$dayNames[$dayOfWeek]}无可用时段");
             return [
                 'allowed' => false,
@@ -93,18 +93,18 @@ class TimeRestrictionService
 
         // 检查是否在可用时段内
         if ($currentTime >= $startTime && $currentTime <= $endTime) {
-            $this->logCheck($config, $license, 'allowed', '在可用时段内');
-            return ['allowed' => true, 'reason' => '在可用时段内', 'action' => 'allowed'];
+            $this->logCheck($config, $license, 'allowed', __('app.time_restriction.time_restriction_38bf847b4e'));
+            return ['allowed' => true, 'reason' => __('app.time_restriction.time_restriction_38bf847b4e'), 'action' => 'allowed'];
         }
 
         // 4. 宽限机制
         if ($config->out_of_hours_action === 'grace' && $config->grace_minutes > 0) {
             $graceEndAt = Carbon::parse($endTime, $timezone)->addMinutes((int) $config->grace_minutes);
             if ($now <= $graceEndAt) {
-                $this->logCheck($config, $license, 'grace', '宽限期内');
+                $this->logCheck($config, $license, 'grace', __('app.time_restriction.time_restriction_cb20591947'));
                 return [
                     'allowed' => true,
-                    'reason' => '宽限期内允许使用',
+                    'reason' => __('app.time_restriction.time_restriction_c99f07db0e'),
                     'action' => 'grace',
                     'grace_until' => $graceEndAt->toIso8601String(),
                 ];
@@ -138,7 +138,7 @@ class TimeRestrictionService
             $endTime = $entry['end'] ?? '23:59';
 
             if ($currentTime >= $startTime && $currentTime <= $endTime) {
-                return ['allowed' => true, 'reason' => '特定期日特殊时段内', 'action' => 'allowed'];
+                return ['allowed' => true, 'reason' => __('app.time_restriction.time_restriction_7a76e129a5'), 'action' => 'allowed'];
             }
 
             // 特定期日排期匹配但不在此时间段内
@@ -247,11 +247,11 @@ class TimeRestrictionService
     public function getConfigSummary(?TimeRestrictionConfig $config): array
     {
         if (! $config || ! $config->is_active) {
-            return ['enabled' => false, 'summary' => '未启用时段限制'];
+            return ['enabled' => false, 'summary' => __('app.time_restriction.time_restriction_2d0e50c1ef')];
         }
 
         $weeklySummary = [];
-        $dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        $dayNames = [__('app.time_restriction.time_restriction_562d7476ab'), __('app.time_restriction.time_restriction_1603b069c2'), __('app.time_restriction.time_restriction_b5a6a07e48'), __('app.time_restriction.time_restriction_e60725e762'), __('app.time_restriction.time_restriction_170fc8e27c'), __('app.time_restriction.time_restriction_eb79cea638'), __('app.time_restriction.time_restriction_2457513054')];
 
         foreach (($config->weekly_schedule ?? []) as $entry) {
             $day = (int) ($entry['day'] ?? 0);

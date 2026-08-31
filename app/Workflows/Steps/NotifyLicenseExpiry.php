@@ -27,7 +27,7 @@ class NotifyLicenseExpiry extends BaseWorkflowStep
     {
         $licenseId = $context['license_id'] ?? $input['license_id'] ?? null;
         if (! $licenseId) {
-            throw new \RuntimeException('缺少 license_id');
+            throw new \RuntimeException(__('app.common.missing_license_id'));
         }
 
         $license = License::with('tenant', 'customer')->findOrFail($licenseId);

@@ -67,7 +67,7 @@ class OwnershipTransferController extends Controller
     public function getTransferables(Request $request, string $type)
     {
         if (!in_array($type, ['license', 'product'])) {
-            return ApiResponse::error('INVALID_TYPE', '不支持的转移类型', 422);
+            return ApiResponse::error('INVALID_TYPE', __("app.ownership_transfer.unsupported_transfer_type"), 422);
         }
 
         return ApiResponse::success(

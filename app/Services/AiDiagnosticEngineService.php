@@ -76,7 +76,7 @@ class AiDiagnosticEngineService
             ->get();
 
         if ($recentActivations->isEmpty()) {
-            return ['pattern' => 'no_recent_activity', 'message' => '近期无激活记录'];
+            return ['pattern' => 'no_recent_activity', 'message' => __('app.common.no_recent_activation_records')];
         }
 
         $failureCount = $recentActivations->filter(fn($a) => $a->status === 'failed')->count();

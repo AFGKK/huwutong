@@ -38,7 +38,7 @@ class AppealController extends Controller
         }
 
         if (!$user) {
-            return ApiResponse::error('USER_NOT_FOUND', '未找到该账号', 404);
+            return ApiResponse::error('USER_NOT_FOUND', __('app.api.appeal.user_missing'), 404);
         }
 
         try {
@@ -55,10 +55,42 @@ class AppealController extends Controller
                 'status' => $appeal->status,
                 'appealed_at' => $appeal->appealed_at,
                 'expected_response_days' => 3,
-            ], '申诉已提交，我们将在 3 个工作日内处理', 201);
+            ], __('app.api.appeal.submitted'), 201);
         } catch (\RuntimeException $e) {
             return ApiResponse::error('APPEAL_FAILED', $e->getMessage(), 422);
         }
+    }
+
+    /**
+     * 公开查询申诉进度（邮箱）
+     */
+    public function lookup(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        $user = User::where('email', $validated['email'])->firstOrFail();
+        $appeal = UserAppeal::where('user_id', $user->id)->latest()->first();
+
+        if (!$appeal) {
+            return ApiResponse::success([
+                'has_appeal' => false,
+            ], __('app.api.appeal.not_found'));
+        }
+
+        return ApiResponse::success([
+            'has_appeal' => true,
+            'appeal' => [
+                'id' => $appeal->id,
+                'status' => $appeal->status,
+                'reason' => $appeal->reason,
+                'explanation' => $appeal->explanation,
+                'review_comment' => $appeal->review_comment,
+                'appealed_at' => $appeal->appealed_at,
+                'reviewed_at' => $appeal->reviewed_at,
+            ],
+        ]);
     }
 
     /**
@@ -75,7 +107,7 @@ class AppealController extends Controller
             return ApiResponse::success([
                 'has_appeal' => false,
                 'can_appeal' => in_array($user->status, ['inactive', 'locked']),
-            ], '暂无申诉记录');
+            ], __('app.api.appeal.empty'));
         }
 
         return ApiResponse::success([

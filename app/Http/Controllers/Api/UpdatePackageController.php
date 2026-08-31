@@ -98,13 +98,13 @@ class UpdatePackageController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '更新包上传成功',
+                'message' => __('app.api.update_package.upload_success'),
                 'data' => $package->load('product:id,name'),
             ], 201);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '上传失败: ' . $e->getMessage(),
+                'message' => __('app.api.update_package.upload_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -119,7 +119,7 @@ class UpdatePackageController extends Controller
         if ($updatePackage->status !== 'draft') {
             return response()->json([
                 'success' => false,
-                'message' => '只能发布草稿状态的更新包',
+                'message' => __('app.api.update_package.only_draft_can_publish'),
             ], 422);
         }
 
@@ -127,7 +127,7 @@ class UpdatePackageController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '更新包已发布',
+            'message' => __('app.api.update_package.published'),
             'data' => $updatePackage->fresh(),
         ]);
     }
@@ -142,7 +142,7 @@ class UpdatePackageController extends Controller
         if (!in_array($updatePackage->status, ['published', 'draft'])) {
             return response()->json([
                 'success' => false,
-                'message' => '当前状态不允许废弃',
+                'message' => __('app.api.update_package.cannot_deprecate'),
             ], 422);
         }
 
@@ -150,7 +150,7 @@ class UpdatePackageController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '更新包已废弃',
+            'message' => __('app.api.update_package.deprecated'),
             'data' => $updatePackage->fresh(),
         ]);
     }
@@ -166,7 +166,7 @@ class UpdatePackageController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '更新包已删除',
+            'message' => __('app.api.update_package.deleted'),
         ]);
     }
 
@@ -176,7 +176,7 @@ class UpdatePackageController extends Controller
     public function download(UpdatePackage $updatePackage): \Illuminate\Http\RedirectResponse|\Symfony\Component\HttpFoundation\StreamedResponse
     {
         if ($updatePackage->status !== 'published') {
-            abort(404, '更新包未发布');
+            abort(404, __('app.api.update_package.not_published'));
         }
 
         // 记录下载

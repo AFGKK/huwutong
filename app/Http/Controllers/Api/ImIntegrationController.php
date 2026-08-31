@@ -73,12 +73,12 @@ class ImIntegrationController extends Controller
             ]);
 
             if ($response->successful()) {
-                return ApiResponse::success(null, '飞书连接测试通过');
+                return ApiResponse::success(null, __("app.im_integration.msg_0bee3b53"));
             }
 
-            return ApiResponse::error('TEST_FAILED', '飞书连接测试失败，请检查 Webhook URL', 400);
+            return ApiResponse::error('TEST_FAILED', __("app.im_integration.msg_a9641ef5"), 400);
         } catch (\Exception $e) {
-            return ApiResponse::error('TEST_FAILED', '飞书连接异常: ' . $e->getMessage(), 400);
+            return ApiResponse::error('TEST_FAILED', __("app.im_integration.msg_f3ae29b5") . $e->getMessage(), 400);
         }
     }
 
@@ -120,7 +120,7 @@ class ImIntegrationController extends Controller
         }
 
         return $ok
-            ? ApiResponse::success(null, '消息已发送')
-            : ApiResponse::error('SEND_FAILED', '消息发送失败', 500);
+            ? ApiResponse::success(null, __("app.im_integration.msg_282c355b"))
+            : ApiResponse::error('SEND_FAILED', __("app.im_integration.msg_419f6b96"), 500);
     }
 }

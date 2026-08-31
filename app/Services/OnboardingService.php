@@ -65,7 +65,7 @@ class OnboardingService
 
         // 验证步骤是否有效
         if (!in_array($step, UserOnboardingProgress::STEPS)) {
-            throw new \InvalidArgumentException("无效的步骤: {$step}");
+            throw new \InvalidArgumentException(__('app.onboarding.invalid_step', ['step' => $step]));
         }
 
         // 处理各步骤数据
@@ -109,46 +109,19 @@ class OnboardingService
      */
     public function getStepDefinition(string $step): array
     {
-        $definitions = [
-            'welcome' => [
-                'title' => '欢迎使用 HWT License',
-                'description' => '我们将在几分钟内帮您完成系统设置',
-                'icon' => 'MagicStick',
-                'fields' => [],
-            ],
-            'profile' => [
-                'title' => '完善个人资料',
-                'description' => '设置您的个人资料和偏好',
-                'icon' => 'User',
-                'fields' => ['name', 'phone'],
-            ],
-            'tenant' => [
-                'title' => '创建团队',
-                'description' => '创建一个团队或公司账户来管理您的 License',
-                'icon' => 'OfficeBuilding',
-                'fields' => ['tenant_name', 'tenant_logo'],
-            ],
-            'product' => [
-                'title' => '添加产品',
-                'description' => '添加您要授权管理的第一款产品',
-                'icon' => 'Goods',
-                'fields' => ['product_name', 'product_description'],
-            ],
-            'api_key' => [
-                'title' => '生成 API 密钥',
-                'description' => '创建 API 密钥用于集成您的系统',
-                'icon' => 'Key',
-                'fields' => ['key_name'],
-            ],
-            'complete' => [
-                'title' => '设置完成！',
-                'description' => '您已准备好开始使用 HWT License 系统',
-                'icon' => 'CircleCheck',
-                'fields' => [],
-            ],
+        $t = fn(string $k) => __('app.onboarding.steps.' . $k);
+
+        $meta = [
+            'welcome' => ['icon' => 'MagicStick', 'fields' => []],
+            'profile' => ['icon' => 'User', 'fields' => ['name', 'phone']],
+            'tenant' => ['icon' => 'OfficeBuilding', 'fields' => ['tenant_name', 'tenant_logo']],
+            'product' => ['icon' => 'Goods', 'fields' => ['product_name', 'product_description']],
+            'api_key' => ['icon' => 'Key', 'fields' => ['key_name']],
+            'complete' => ['icon' => 'CircleCheck', 'fields' => []],
         ];
 
-        return $definitions[$step] ?? $definitions['welcome'];
+        $translated = $t($step) ?: $t('welcome');
+        return array_merge($translated, $meta[$step] ?? $meta['welcome']);
     }
 
     /**

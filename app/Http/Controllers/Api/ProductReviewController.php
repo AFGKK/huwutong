@@ -58,7 +58,7 @@ class ProductReviewController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, ['errors' => $validator->errors()]);
+            return ApiResponse::error('VALIDATION_ERROR', __("app.product_review.msg_e441b11e"), 422, ['errors' => $validator->errors()]);
         }
 
         $data = $validator->validated();
@@ -72,7 +72,7 @@ class ProductReviewController extends Controller
 
         $review = $this->reviewService->createReview($data);
 
-        return ApiResponse::success($review, '评论已提交，等待审核');
+        return ApiResponse::success($review, __("app.product_review.msg_b7675450"));
     }
 
     // ─── 管理端API ───
@@ -115,7 +115,7 @@ class ProductReviewController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, ['errors' => $validator->errors()]);
+            return ApiResponse::error('VALIDATION_ERROR', __('app.common.validation_failed'), 422, ['errors' => $validator->errors()]);
         }
 
         $review = $this->reviewService->moderateReview(
@@ -139,7 +139,7 @@ class ProductReviewController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, ['errors' => $validator->errors()]);
+            return ApiResponse::error('VALIDATION_ERROR', __('app.common.validation_failed'), 422, ['errors' => $validator->errors()]);
         }
 
         $review = $this->reviewService->replyToReview(
@@ -148,7 +148,7 @@ class ProductReviewController extends Controller
             $request->user()->id,
         );
 
-        return ApiResponse::success($review, '回复已提交');
+        return ApiResponse::success($review, __("app.product_review.msg_e5d12c46"));
     }
 
     /**
@@ -157,7 +157,7 @@ class ProductReviewController extends Controller
     public function destroy(int $id)
     {
         $this->reviewService->deleteReview($id);
-        return ApiResponse::success(['message' => '评论已删除']);
+        return ApiResponse::success(['message' => __("app.product_review.msg_50191bdf")]);
     }
 
     /**

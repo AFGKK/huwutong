@@ -46,7 +46,7 @@ class AirGappedDeploymentService
     public function isAirGappedMode(): bool
     {
         return config('app.air_gapped_mode', false)
-            || env('AIR_GAPPED_MODE', false)
+            || config('air-gapped.enabled', env('AIR_GAPPED_MODE', false))
             || $this->detectAirGapped();
     }
 
@@ -117,7 +117,7 @@ class AirGappedDeploymentService
         if (!file_exists($sourcePath)) {
             return [
                 'success' => false,
-                'message' => "License 文件不存在: {$sourcePath}",
+                'message' => __('app.air_gapped_deployment.license_not_found', ['path' => $sourcePath]),
             ];
         }
 
@@ -166,7 +166,7 @@ class AirGappedDeploymentService
 
             return [
                 'success' => true,
-                'message' => "License 文件导入成功: {$filename}",
+                'message' => __('app.air_gapped_deployment.license_imported', ['file' => $filename]),
                 'path' => $targetPath,
             ];
         } catch (\Throwable $e) {
@@ -177,7 +177,7 @@ class AirGappedDeploymentService
 
             return [
                 'success' => false,
-                'message' => "License 导入失败: {$e->getMessage()}",
+                'message' => __('app.air_gapped_deployment.license_import_failed', ['error' => $e->getMessage()]),
             ];
         }
     }
@@ -307,7 +307,7 @@ class AirGappedDeploymentService
         if (!file_exists($packagePath)) {
             return [
                 'success' => false,
-                'message' => "更新包不存在: {$packagePath}",
+                'message' => __('app.air_gapped_deployment.update_not_found', ['path' => $packagePath]),
             ];
         }
 
@@ -330,7 +330,7 @@ class AirGappedDeploymentService
                 exec("cd {$tempDir} && sha256sum -c SHA256SUMS 2>&1", $output, $exitCode);
 
                 if ($exitCode !== 0) {
-                    throw new \RuntimeException('更新包完整性校验失败');
+                    throw new \RuntimeException(__('app.air_gapped_deployment.update_integrity_failed'));
                 }
             }
 
@@ -363,7 +363,7 @@ class AirGappedDeploymentService
 
             return [
                 'success' => true,
-                'message' => "更新包应用成功",
+                'message' => __('app.air_gapped_deployment.update_applied'),
                 'version' => trim($version) ?: null,
             ];
         } catch (\Throwable $e) {
@@ -371,7 +371,7 @@ class AirGappedDeploymentService
 
             return [
                 'success' => false,
-                'message' => "更新失败: {$e->getMessage()}",
+                'message' => __('app.air_gapped_deployment.update_failed', ['error' => $e->getMessage()]),
             ];
         } finally {
             if (is_dir($tempDir)) {

@@ -67,7 +67,7 @@ class ChaosEngineeringController extends Controller
         return response()->json([
             'success' => true,
             'data' => $experiment,
-            'message' => '实验已创建',
+            'message' => __('app.controller_compat.chaos_engineering_msg_70'),
         ], 201);
     }
 
@@ -91,7 +91,7 @@ class ChaosEngineeringController extends Controller
         return response()->json([
             'success' => true,
             'data' => $result,
-            'message' => '实验执行完成',
+            'message' => __('app.controller_compat.chaos_engineering_msg_94'),
         ]);
     }
 
@@ -105,7 +105,7 @@ class ChaosEngineeringController extends Controller
         return response()->json([
             'success' => true,
             'data' => $experiment,
-            'message' => '实验已回滚',
+            'message' => __('app.controller_compat.chaos_engineering_msg_108'),
         ]);
     }
 
@@ -116,7 +116,7 @@ class ChaosEngineeringController extends Controller
     {
         ChaosExperiment::findOrFail($id)->delete();
 
-        return response()->json(['success' => true, 'message' => '实验已删除']);
+        return response()->json(['success' => true, 'message' => __('app.controller_compat.chaos_engineering_msg_119')]);
     }
 
     /**

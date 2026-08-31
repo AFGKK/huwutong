@@ -53,7 +53,7 @@ class PagerDutyService
         ?string $source = null
     ): array {
         if (!$this->isEnabled()) {
-            return ['success' => false, 'message' => 'PagerDuty 未启用'];
+            return ['success' => false, 'message' => __('app.pager_duty_service.not_enabled')];
         }
 
         $dedupKey = $details['dedup_key'] ?? 'hwt-' . md5($summary . json_encode($details));
@@ -85,7 +85,7 @@ class PagerDutyService
                 ]);
                 return [
                     'success' => true,
-                    'message' => '告警已推送',
+                    'message' => __('app.pager_duty_service.alert_pushed'),
                     'dedup_key' => $dedupKey,
                     'status' => $body['status'] ?? 'unknown',
                 ];
@@ -97,11 +97,11 @@ class PagerDutyService
             ]);
             return [
                 'success' => false,
-                'message' => '推送失败: HTTP ' . $response->status(),
+                'message' => __('app.pager_duty_service.push_failed', ['status' => $response->status()]),
             ];
         } catch (\Throwable $e) {
             Log::error('PagerDuty 告警推送异常', ['error' => $e->getMessage()]);
-            return ['success' => false, 'message' => '推送异常: ' . $e->getMessage()];
+            return ['success' => false, 'message' => __('app.pager_duty_service.push_exception', ['error' => $e->getMessage()])];
         }
     }
 
@@ -127,7 +127,7 @@ class PagerDutyService
     protected function changeAction(string $dedupKey, string $action): array
     {
         if (!$this->isEnabled()) {
-            return ['success' => false, 'message' => 'PagerDuty 未启用'];
+            return ['success' => false, 'message' => __('app.pager_duty_service.not_enabled')];
         }
 
         $payload = [
@@ -141,12 +141,12 @@ class PagerDutyService
                 ->post('https://events.pagerduty.com/v2/enqueue', $payload);
 
             if ($response->successful()) {
-                return ['success' => true, 'message' => "事件已{$action}"];
+                return ['success' => true, 'message' => __('app.pager_duty_service.event_completed', ['action' => $action])];
             }
 
-            return ['success' => false, 'message' => '操作失败: HTTP ' . $response->status()];
+            return ['success' => false, 'message' => __('app.pager_duty_service.op_failed', ['status' => $response->status()])];
         } catch (\Throwable $e) {
-            return ['success' => false, 'message' => '操作异常: ' . $e->getMessage()];
+            return ['success' => false, 'message' => __('app.pager_duty_service.op_exception', ['error' => $e->getMessage()])];
         }
     }
 
@@ -156,7 +156,7 @@ class PagerDutyService
     public function getRecentEvents(int $limit = 25): array
     {
         if (empty($this->apiKey)) {
-            return ['success' => false, 'message' => 'PagerDuty API Key 未配置'];
+            return ['success' => false, 'message' => __('app.pager_duty_service.api_key_missing')];
         }
 
         try {
@@ -193,9 +193,9 @@ class PagerDutyService
                 ];
             }
 
-            return ['success' => false, 'message' => '获取事件失败'];
+            return ['success' => false, 'message' => __('app.pager_duty_service.list_failed')];
         } catch (\Throwable $e) {
-            return ['success' => false, 'message' => '获取事件异常: ' . $e->getMessage()];
+            return ['success' => false, 'message' => __('app.pager_duty_service.list_exception', ['error' => $e->getMessage()])];
         }
     }
 
@@ -205,13 +205,13 @@ class PagerDutyService
     public function testConnection(): array
     {
         if (!$this->isEnabled()) {
-            return ['success' => false, 'message' => 'PagerDuty 未启用或 Routing Key 未配置'];
+            return ['success' => false, 'message' => __('app.pager_duty_service.not_configured')];
         }
 
         // 发送一条测试告警，然后用 dedup_key 立即 resolve
         $testKey = 'hwt-test-' . date('YmdHis');
         $result = $this->triggerAlert(
-            '【互物通】PagerDuty 连接测试',
+            __('app.pager_duty_service.test_title'),
             'info',
             ['dedup_key' => $testKey, 'component' => 'test', 'group' => 'test'],
             'huwutong-test'
@@ -222,7 +222,7 @@ class PagerDutyService
             $this->resolve($testKey);
             return [
                 'success' => true,
-                'message' => 'PagerDuty 连接正常（测试告警已发送并解决）',
+                'message' => __('app.pager_duty_service.test_ok'),
                 'dedup_key' => $testKey,
             ];
         }

@@ -99,7 +99,7 @@ class MeteredBillingController extends Controller
             ]
         );
 
-        return ApiResponse::success($price, '价格配置已保存');
+        return ApiResponse::success($price, __('app.metered_billing.price_saved'));
     }
 
     /**
@@ -110,7 +110,7 @@ class MeteredBillingController extends Controller
         $price = MeteredPrice::findOrFail($id);
         $price->delete();
 
-        return ApiResponse::success(null, '价格配置已删除');
+        return ApiResponse::success(null, __('app.metered_billing.price_deleted'));
     }
 
     /**
@@ -148,7 +148,7 @@ class MeteredBillingController extends Controller
             return ApiResponse::error(implode('; ', $result['errors']), 400);
         }
 
-        return ApiResponse::success($result, $dryRun ? '用量计费试算完成' : '用量账单已生成');
+        return ApiResponse::success($result, $dryRun ? __('app.metered_billing.estimation_done') : __('app.metered_billing.bill_generated'));
     }
 
     /**
@@ -160,7 +160,7 @@ class MeteredBillingController extends Controller
 
         $result = $this->meteredBillingService->batchGenerateMeteredInvoices('monthly', $dryRun);
 
-        return ApiResponse::success($result, "已处理 {$result['total']} 个订阅，成功 {$result['success']} 个");
+        return ApiResponse::success($result, __('app.metered_billing.batch_result', ['total' => $result['total'], 'success' => $result['success']]));
     }
 
     /**
@@ -211,7 +211,7 @@ class MeteredBillingController extends Controller
 
         $subscription->update(['metered_config' => $meteredConfig]);
 
-        return ApiResponse::success($subscription->fresh(), '用量计费配置已更新');
+        return ApiResponse::success($subscription->fresh(), __('app.metered_billing.config_updated'));
     }
 
     /**

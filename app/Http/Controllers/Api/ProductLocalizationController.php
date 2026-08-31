@@ -54,7 +54,7 @@ class ProductLocalizationController extends Controller
             $request->boolean('auto_translated', false),
         );
 
-        return ApiResponse::success(['message' => '翻译已保存']);
+        return ApiResponse::success(['message' => __("app.product_localization.msg_9131080d")]);
     }
 
     public function deleteProductTranslation(Request $request, int $productId)
@@ -76,7 +76,7 @@ class ProductLocalizationController extends Controller
             $request->input('field'),
         );
 
-        return ApiResponse::success(['message' => '已删除']);
+        return ApiResponse::success(['message' => __("app.product_localization.msg_5cc23262")]);
     }
 
     // ─── 方案翻译 ───
@@ -110,7 +110,7 @@ class ProductLocalizationController extends Controller
             $request->boolean('auto_translated', false),
         );
 
-        return ApiResponse::success(['message' => '翻译已保存']);
+        return ApiResponse::success(['message' => __('app.product_localization.translation_saved')]);
     }
 
     public function deletePlanTranslation(Request $request, int $planId)
@@ -132,7 +132,7 @@ class ProductLocalizationController extends Controller
             $request->input('field'),
         );
 
-        return ApiResponse::success(['message' => '已删除']);
+        return ApiResponse::success(['message' => __('app.product_localization.deleted')]);
     }
 
     // ─── 统计 ───

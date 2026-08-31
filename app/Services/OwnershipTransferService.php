@@ -34,20 +34,20 @@ class OwnershipTransferService
             $firstLicense = $transferable->licenses()->first();
             $sourceCustomerId = $firstLicense?->customer_id;
             if (!$sourceCustomerId) {
-                throw new \RuntimeException('该产品下没有License，无法确定源客户');
+                throw new \RuntimeException(__("app.ownership_transfer.msg_681e589a"));
             }
         } else {
-            throw new \RuntimeException("不支持的转移类型: {$type}");
+            throw new \RuntimeException(__("app.ownership_transfer.msg_f3bd37ed"));
         }
 
         if (!$sourceCustomerId) {
-            throw new \RuntimeException('无法确定源客户');
+            throw new \RuntimeException(__("app.ownership_transfer.msg_f778a360"));
         }
 
         // 验证目标客户
         $targetCustomer = Customer::findOrFail($data['target_customer_id']);
         if ($targetCustomer->id === $sourceCustomerId) {
-            throw new \RuntimeException('源客户和目标客户不能相同');
+            throw new \RuntimeException(__("app.ownership_transfer.msg_af6ebdcb"));
         }
 
         $data['reference'] = 'OT-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
@@ -73,7 +73,7 @@ class OwnershipTransferService
     public function confirmBySource(OwnershipTransferRequest $request): OwnershipTransferRequest
     {
         if ($request->status !== 'pending_source') {
-            throw new \RuntimeException('当前状态不可由源客户确认');
+            throw new \RuntimeException(__("app.ownership_transfer.msg_4f86abf2"));
         }
 
         $request->update([
@@ -94,7 +94,7 @@ class OwnershipTransferService
     public function confirmByTarget(OwnershipTransferRequest $request): OwnershipTransferRequest
     {
         if ($request->status !== 'pending_target') {
-            throw new \RuntimeException('当前状态不可由目标客户确认');
+            throw new \RuntimeException(__("app.ownership_transfer.msg_f9f98646"));
         }
 
         $request->update([
@@ -115,7 +115,7 @@ class OwnershipTransferService
     public function approveAndExecute(OwnershipTransferRequest $request, ?string $notes = null): OwnershipTransferRequest
     {
         if ($request->status !== 'pending_approval' && $request->status !== 'pending_target') {
-            throw new \RuntimeException('该请求当前无法审批');
+            throw new \RuntimeException(__("app.ownership_transfer.msg_bd4f40ef"));
         }
 
         // 如果只有一方确认，自动完成另一方确认
@@ -157,7 +157,7 @@ class OwnershipTransferService
     public function reject(OwnershipTransferRequest $request, ?string $reason = null): OwnershipTransferRequest
     {
         if (!in_array($request->status, ['pending_source', 'pending_target', 'pending_approval'])) {
-            throw new \RuntimeException('该请求当前不可拒绝');
+            throw new \RuntimeException(__("app.ownership_transfer.msg_dc37dd9b"));
         }
 
         $request->update([
@@ -177,7 +177,7 @@ class OwnershipTransferService
     public function cancel(OwnershipTransferRequest $request): OwnershipTransferRequest
     {
         if (!in_array($request->status, ['pending_source', 'pending_target'])) {
-            throw new \RuntimeException('该请求当前不可取消');
+            throw new \RuntimeException(__("app.ownership_transfer.request_not_cancelable_now"));
         }
 
         $request->update([
@@ -292,7 +292,7 @@ class OwnershipTransferService
     {
         $query = OwnershipTransferRequest::with([
             'sourceCustomer:id,user_id,tenant_id', 'targetCustomer:id,user_id,tenant_id',
-            'requester:id,name', 'approver:id,name',
+            'requester:id,name', 'approver:id,name', 'transferable',
         ])->where('tenant_id', $tenantId);
 
         if (!empty($filters['status'])) {
@@ -318,7 +318,7 @@ class OwnershipTransferService
             'sourceCustomer', 'targetCustomer',
             'requester:id,name', 'sourceConfirmer:id,name',
             'targetConfirmer:id,name', 'approver:id,name',
-            'transferRecords',
+            'transferRecords', 'transferable',
         ])->findOrFail($id);
     }
 
@@ -329,6 +329,7 @@ class OwnershipTransferService
         return [
             'total' => (clone $base)->count(),
             'pending' => (clone $base)->whereIn('status', ['pending_source', 'pending_target', 'pending_approval'])->count(),
+            'approved' => (clone $base)->where('status', 'approved')->count(),
             'completed' => (clone $base)->where('status', 'completed')->count(),
             'rejected' => (clone $base)->where('status', 'rejected')->count(),
             'cancelled' => (clone $base)->where('status', 'cancelled')->count(),
@@ -393,7 +394,7 @@ class OwnershipTransferService
         return match ($type) {
             'license' => License::where('tenant_id', $tenantId)->findOrFail($id),
             'product' => Product::findOrFail($id),
-            default => throw new \RuntimeException("不支持的转移类型: {$type}"),
+default => throw new \RuntimeException(__("app.ownership_transfer.unsupported_transfer_type", ['type' => $type])),
         };
     }
 

@@ -80,7 +80,7 @@ class VasAdminService
             ->first();
 
         if ($existing) {
-            throw new \RuntimeException('该增值服务已开通');
+            throw new \RuntimeException(__("app.vas_admin.vas_already_subscribed"));
         }
 
         return VasSubscription::create([

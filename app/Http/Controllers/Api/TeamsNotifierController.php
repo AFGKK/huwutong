@@ -49,7 +49,7 @@ class TeamsNotifierController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.teams_notifier.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -57,7 +57,7 @@ class TeamsNotifierController extends Controller
         $data['is_active'] = $data['is_active'] ?? true;
 
         $webhook = $this->teamsNotifier->createWebhook($data);
-        return ApiResponse::created($webhook, 'Teams Webhook 已创建');
+        return ApiResponse::created($webhook, __('app.api.teams_notifier.webhook_created'));
     }
 
     /**
@@ -77,11 +77,11 @@ class TeamsNotifierController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.teams_notifier.validation_failed'), $validator->errors()->toArray());
         }
 
         $webhook = $this->teamsNotifier->updateWebhook($webhook, $validator->validated());
-        return ApiResponse::success($webhook, '配置已更新');
+        return ApiResponse::success($webhook, __('app.api.teams_notifier.config_updated'));
     }
 
     /**
@@ -91,7 +91,7 @@ class TeamsNotifierController extends Controller
     {
         $webhook = TeamsWebhook::findOrFail($id);
         $this->teamsNotifier->deleteWebhook($webhook);
-        return ApiResponse::success(null, '配置已删除');
+        return ApiResponse::success(null, __('app.api.teams_notifier.config_deleted'));
     }
 
     /**
@@ -102,7 +102,7 @@ class TeamsNotifierController extends Controller
         $webhook = TeamsWebhook::findOrFail($id);
         $result = $this->teamsNotifier->testConnection($webhook);
         return $result['success']
-            ? ApiResponse::success($result, '连接测试成功')
+            ? ApiResponse::success($result, __('app.api.teams_notifier.connection_ok'))
             : ApiResponse::error($result['message'], 400);
     }
 
@@ -116,19 +116,19 @@ class TeamsNotifierController extends Controller
         $result = $this->teamsNotifier->send(
             $webhook->tenant_id,
             $webhook->notification_type === 'all' ? 'alert' : $webhook->notification_type,
-            '🧪 Teams 通知测试',
-            '这是一条测试消息，用于验证 Teams 通知集成是否正常工作。',
+            __('app.api.teams_notifier.test_title'),
+            __('app.api.teams_notifier.test_body'),
             [
-                ['title' => '频道', 'value' => $webhook->name],
-                ['title' => '类型', 'value' => $webhook->notification_type],
-                ['title' => '时间', 'value' => now()->format('Y-m-d H:i:s')],
+                ['title' => __('app.api.teams_notifier.field_channel'), 'value' => $webhook->name],
+                ['title' => __('app.api.teams_notifier.field_type'), 'value' => $webhook->notification_type],
+                ['title' => __('app.api.teams_notifier.field_time'), 'value' => now()->format('Y-m-d H:i:s')],
             ],
             $webhook->id
         );
 
         return $result['sent'] > 0
-            ? ApiResponse::success(null, '测试消息已发送')
-            : ApiResponse::error($result['errors'][0] ?? '发送失败', 400);
+            ? ApiResponse::success(null, __('app.api.teams_notifier.test_sent'))
+            : ApiResponse::error($result['errors'][0] ?? __('app.api.teams_notifier.send_failed'), 400);
     }
 
     /**
@@ -143,7 +143,7 @@ class TeamsNotifierController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.teams_notifier.validation_failed'), $validator->errors()->toArray());
         }
 
         $result = $this->teamsNotifier->sendActivationSuccess(
@@ -168,7 +168,7 @@ class TeamsNotifierController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.teams_notifier.validation_failed'), $validator->errors()->toArray());
         }
 
         $result = $this->teamsNotifier->sendAlert(

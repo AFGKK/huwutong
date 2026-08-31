@@ -96,7 +96,7 @@ class KbController extends Controller
     public function show(KbArticle $article): JsonResponse
     {
         if (!$article->isPublished()) {
-            return response()->json(['success' => false, 'message' => '文章未发布'], 404);
+            return response()->json(['success' => false, 'message' => __('app.api.kb.unpublished')], 404);
         }
 
         $article->recordView();
@@ -146,7 +146,7 @@ class KbController extends Controller
             $request->input('session_id')
         );
 
-        return response()->json(['success' => true, 'message' => '感谢您的反馈']);
+        return response()->json(['success' => true, 'message' => __('app.api.kb.thanks_feedback')]);
     }
 
     // ─── 管理 API ───
@@ -194,7 +194,7 @@ class KbController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '文章创建成功',
+            'message' => __('app.api.kb.article_created'),
             'data' => $article->load('category:id,name'),
         ], 201);
     }
@@ -229,7 +229,7 @@ class KbController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '文章已更新',
+            'message' => __('app.api.kb.article_updated'),
             'data' => $updated,
         ]);
     }
@@ -241,7 +241,7 @@ class KbController extends Controller
     {
         $this->kbService->publishArticle($article);
 
-        return response()->json(['success' => true, 'message' => '文章已发布']);
+        return response()->json(['success' => true, 'message' => __('app.api.kb.article_published')]);
     }
 
     /**
@@ -251,7 +251,7 @@ class KbController extends Controller
     {
         $this->kbService->archiveArticle($article);
 
-        return response()->json(['success' => true, 'message' => '文章已归档']);
+        return response()->json(['success' => true, 'message' => __('app.api.kb.article_archived')]);
     }
 
     /**
@@ -261,7 +261,7 @@ class KbController extends Controller
     {
         $article->delete();
 
-        return response()->json(['success' => true, 'message' => '文章已删除']);
+        return response()->json(['success' => true, 'message' => __('app.api.kb.article_deleted')]);
     }
 
     /**
@@ -282,26 +282,26 @@ class KbController extends Controller
     public function batchDelete(Request $request): \Illuminate\Http\JsonResponse
     {
         $ids = $request->input('ids', []);
-        if (empty($ids)) return response()->json(['success' => false, 'message' => '请选择文章'], 422);
+        if (empty($ids)) return response()->json(['success' => false, 'message' => __('app.api.kb.select_articles')], 422);
         $count = \App\Models\KbArticle::whereIn('id', $ids)->delete();
-        return response()->json(['success' => true, 'data' => ['deleted' => $count], 'message' => "已删除 {$count} 篇文章"]);
+        return response()->json(['success' => true, 'data' => ['deleted' => $count], 'message' => __('app.api.kb.deleted_n', ['count' => $count])]);
     }
 
     public function batchPublish(Request $request): \Illuminate\Http\JsonResponse
     {
         $ids = $request->input('ids', []);
-        if (empty($ids)) return response()->json(['success' => false, 'message' => '请选择文章'], 422);
+        if (empty($ids)) return response()->json(['success' => false, 'message' => __('app.api.kb.select_articles')], 422);
         $count = \App\Models\KbArticle::whereIn('id', $ids)->where('status', 'draft')
             ->update(['status' => 'published', 'published_at' => now()]);
-        return response()->json(['success' => true, 'data' => ['published' => $count], 'message' => "已发布 {$count} 篇文章"]);
+        return response()->json(['success' => true, 'data' => ['published' => $count], 'message' => __('app.api.kb.published_n', ['count' => $count])]);
     }
 
     public function batchArchive(Request $request): \Illuminate\Http\JsonResponse
     {
         $ids = $request->input('ids', []);
-        if (empty($ids)) return response()->json(['success' => false, 'message' => '请选择文章'], 422);
+        if (empty($ids)) return response()->json(['success' => false, 'message' => __('app.api.kb.select_articles')], 422);
         $count = \App\Models\KbArticle::whereIn('id', $ids)->update(['status' => 'archived']);
-        return response()->json(['success' => true, 'data' => ['archived' => $count], 'message' => "已归档 {$count} 篇文章"]);
+        return response()->json(['success' => true, 'data' => ['archived' => $count], 'message' => __('app.api.kb.archived_n', ['count' => $count])]);
     }
 
     // ─── 导出 ───
@@ -317,11 +317,11 @@ class KbController extends Controller
         ];
 
         $callback = function () use ($articles) {
-            echo "# 帮助中心文章导出\n\n";
-            echo "导出时间: " . now()->format('Y-m-d H:i:s') . "\n\n---\n\n";
+            echo "# " . __('app.api.kb.export_title') . "\n\n";
+            echo __('app.api.kb.export_time', ['time' => now()->format('Y-m-d H:i:s')]) . "\n\n---\n\n";
             $currentCat = null;
             foreach ($articles as $a) {
-                $catName = $a->category?->name ?? '未分类';
+                $catName = $a->category?->name ?? __('app.api.kb.uncategorized');
                 if ($currentCat !== $catName) { $currentCat = $catName; echo "## {$catName}\n\n"; }
                 echo "### {$a->title}\n\n";
                 if ($a->excerpt) echo "> {$a->excerpt}\n\n";
@@ -355,7 +355,7 @@ class KbController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '分类创建成功',
+            'message' => __('app.api.kb.category_created'),
             'data' => $category,
         ], 201);
     }
@@ -378,7 +378,7 @@ class KbController extends Controller
 
         $category->update($request->all());
 
-        return response()->json(['success' => true, 'message' => '分类已更新', 'data' => $category->fresh()]);
+        return response()->json(['success' => true, 'message' => __('app.api.kb.category_updated'), 'data' => $category->fresh()]);
     }
 
     /**
@@ -389,12 +389,12 @@ class KbController extends Controller
         if ($category->articles()->count() > 0) {
             return response()->json([
                 'success' => false,
-                'message' => '该分类下还有文章，无法删除',
+                'message' => __('app.api.kb.category_in_use'),
             ], 422);
         }
 
         $category->delete();
 
-        return response()->json(['success' => true, 'message' => '分类已删除']);
+        return response()->json(['success' => true, 'message' => __('app.api.kb.category_deleted')]);
     }
 }

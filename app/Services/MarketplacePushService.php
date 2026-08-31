@@ -26,7 +26,7 @@ class MarketplacePushService
     public function createCampaign(array $data, int $userId): MarketplacePushCampaign
     {
         if (!Schema::hasTable('marketplace_push_campaigns')) {
-            throw new \RuntimeException('请先运行数据库迁移');
+            throw new \RuntimeException(__("app.marketplace_push.msg_740007bc"));
         }
 
         $campaign = MarketplacePushCampaign::create([
@@ -59,7 +59,7 @@ class MarketplacePushService
         $campaign = MarketplacePushCampaign::findOrFail($id);
 
         if (!in_array($campaign->status, ['draft', 'scheduled'])) {
-            throw new \RuntimeException('只能编辑草稿或待发送状态的活动');
+            throw new \RuntimeException(__("app.marketplace_push.msg_138bce49"));
         }
 
         $campaign->update($data);
@@ -79,7 +79,7 @@ class MarketplacePushService
         $campaign = MarketplacePushCampaign::findOrFail($id);
 
         if ($campaign->status === 'sent') {
-            throw new \RuntimeException('活动已发送，不能重复发送');
+            throw new \RuntimeException(__("app.marketplace_push.msg_5d333576"));
         }
 
         // 如果是定时发送，标记为 scheduled
@@ -153,7 +153,7 @@ class MarketplacePushService
     {
         $campaign = MarketplacePushCampaign::findOrFail($id);
         if (!in_array($campaign->status, ['draft', 'scheduled'])) {
-            throw new \RuntimeException('只能取消草稿或待发送状态的活动');
+            throw new \RuntimeException(__("app.marketplace_push.msg_b6554ae1"));
         }
         $campaign->update(['status' => 'cancelled']);
         return $campaign->fresh();

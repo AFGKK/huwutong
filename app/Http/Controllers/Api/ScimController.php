@@ -73,7 +73,7 @@ class ScimController extends Controller
         ]);
 
         $config = $this->scimService->saveConfig($request->user()->tenant_id, $validated, $id);
-        return ApiResponse::success($config, '配置已更新');
+        return ApiResponse::success($config, __("app.scim.msg_ff1cfcd2"));
     }
 
     /**
@@ -82,7 +82,7 @@ class ScimController extends Controller
     public function destroy(Request $request, int $id): JsonResponse
     {
         $this->scimService->deleteConfig($request->user()->tenant_id, $id);
-        return ApiResponse::success(null, '配置已删除');
+        return ApiResponse::success(null, __("app.scim.msg_02a1e7cd"));
     }
 
     /**
@@ -111,11 +111,11 @@ class ScimController extends Controller
             ->firstOrFail();
 
         if (!$config->enabled) {
-            return ApiResponse::error('请先启用该配置', 400);
+            return ApiResponse::error(__("app.scim.msg_096660eb"), 400);
         }
 
         $log = $this->scimService->syncUsers($config);
-        return ApiResponse::success($log, '同步完成');
+        return ApiResponse::success($log, __("app.scim.msg_02f667de"));
     }
 
     /**

@@ -70,7 +70,7 @@ PROMPT;
                 'question' => $question,
                 'error' => $e->getMessage(),
             ]);
-            return ApiResponse::error('LLM_ERROR', 'AI 服务暂时不可用，请稍后重试', 503);
+            return ApiResponse::error('LLM_ERROR', __("app.text_to_sql.msg_9363738d"), 503);
         }
 
         $responseText = $llmResponse['content'] ?? $llmResponse['response'] ?? '';
@@ -78,7 +78,7 @@ PROMPT;
         // 解析 LLM 返回的 JSON
         $parsed = $this->parseLlmResponse($responseText);
         if (! $parsed || empty($parsed['sql'])) {
-            return ApiResponse::error('INVALID_LLM_RESPONSE', $parsed['explanation'] ?? 'AI 无法生成有效的 SQL 查询', 422);
+            return ApiResponse::error('INVALID_LLM_RESPONSE', $parsed['explanation'] ?? __("app.text_to_sql.msg_9597e68c"), 422);
         }
 
         $sql = $parsed['sql'];
@@ -114,7 +114,7 @@ PROMPT;
             'count' => $result['count'],
             'elapsed_ms' => $result['elapsed_ms'],
             'warnings' => $result['warnings'],
-        ], '查询执行成功');
+        ], __('app.text_to_sql.query_executed'));
     }
 
     /**
@@ -151,7 +151,7 @@ PROMPT;
             'count' => $result['count'],
             'elapsed_ms' => $result['elapsed_ms'],
             'warnings' => $result['warnings'],
-        ], '查询执行成功');
+        ], __('app.text_to_sql.query_executed'));
     }
 
     /**

@@ -24,7 +24,7 @@ class StripePaymentGateway implements PaymentGateway
     private function client(): StripeClient
     {
         if ($this->client === null) {
-            $secret = $this->config['secret'] ?? env('STRIPE_SECRET');
+            $secret = $this->config['secret'] ?? config('payment.channels.stripe.secret', env('STRIPE_SECRET'));
             $this->client = new StripeClient($secret);
         }
         return $this->client;
@@ -32,21 +32,32 @@ class StripePaymentGateway implements PaymentGateway
 
     public function charge(Invoice $invoice, array $options = []): array
     {
-        $secretKey = $this->config['secret'] ?? env('STRIPE_SECRET');
+        $secretKey = $this->config['secret'] ?? config('payment.channels.stripe.secret', env('STRIPE_SECRET'));
         if (empty($secretKey)) {
             Log::error('Stripe: missing secret key');
             return ['success' => false, 'error' => 'Stripe 未配置'];
         }
 
         try {
-            $paymentIntent = $this->client()->paymentIntents->create([
-                'amount' => (int) ($invoice->amount * 100), // 单位：分
-                'currency' => strtolower($invoice->currency ?? 'cny'),
-                'metadata' => [
+            $metadata = array_merge(
+                [
                     'invoice_no' => $invoice->invoice_no,
-                    'invoice_id' => $invoice->id,
+                    'invoice_id' => (string) $invoice->id,
                 ],
-                'description' => 'License 订阅 - ' . ($invoice->subscription?->plan ?? '续费'),
+                collect($invoice->metadata ?? [])
+                    ->map(fn ($v) => is_scalar($v) ? (string) $v : json_encode($v))
+                    ->all(),
+                collect($options['metadata'] ?? [])
+                    ->map(fn ($v) => is_scalar($v) ? (string) $v : json_encode($v))
+                    ->all(),
+            );
+
+            $paymentIntent = $this->client()->paymentIntents->create([
+                'amount' => (int) round($invoice->amount * 100),
+                'currency' => strtolower($invoice->currency ?? 'cny'),
+                'metadata' => $metadata,
+                'description' => $options['description'] ?? ('互物通 - '.$invoice->invoice_no),
+                'automatic_payment_methods' => ['enabled' => true],
             ]);
 
             Log::info('Stripe: payment intent created', [

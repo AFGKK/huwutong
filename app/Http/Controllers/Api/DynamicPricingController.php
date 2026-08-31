@@ -29,7 +29,7 @@ class DynamicPricingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.pricing.validation_failed'), $validator->errors()->toArray());
         }
 
         $tiers = PricingTier::where('pricing_plan_id', $request->input('pricing_plan_id'))
@@ -51,7 +51,7 @@ class DynamicPricingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.pricing.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -59,7 +59,7 @@ class DynamicPricingController extends Controller
 
         $tier = PricingTier::create($data);
 
-        return ApiResponse::created($tier, '阶梯定价已创建');
+        return ApiResponse::created($tier, __('app.api.pricing.tier_created'));
     }
 
     public function updateTier(Request $request, int $id): JsonResponse
@@ -77,12 +77,12 @@ class DynamicPricingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.pricing.validation_failed'), $validator->errors()->toArray());
         }
 
         $tier->update($validator->validated());
 
-        return ApiResponse::success($tier->fresh(), '阶梯定价已更新');
+        return ApiResponse::success($tier->fresh(), __('app.api.pricing.tier_updated'));
     }
 
     public function destroyTier(int $id): JsonResponse
@@ -90,7 +90,7 @@ class DynamicPricingController extends Controller
         $tier = PricingTier::findOrFail($id);
         $tier->delete();
 
-        return ApiResponse::success(null, '阶梯定价已删除');
+        return ApiResponse::success(null, __('app.api.pricing.tier_deleted'));
     }
 
     // ─── 动态定价规则管理 ──────────────────────────────────────
@@ -154,7 +154,7 @@ class DynamicPricingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.pricing.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -163,7 +163,7 @@ class DynamicPricingController extends Controller
 
         $rule = DynamicPricingRule::create($data);
 
-        return ApiResponse::created($rule, '定价规则已创建');
+        return ApiResponse::created($rule, __('app.api.pricing.rule_created'));
     }
 
     public function updateRule(Request $request, int $id): JsonResponse
@@ -194,12 +194,12 @@ class DynamicPricingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.pricing.validation_failed'), $validator->errors()->toArray());
         }
 
         $rule->update($validator->validated());
 
-        return ApiResponse::success($rule->fresh(), '定价规则已更新');
+        return ApiResponse::success($rule->fresh(), __('app.api.pricing.rule_updated'));
     }
 
     public function deleteRule(int $id): JsonResponse
@@ -207,7 +207,7 @@ class DynamicPricingController extends Controller
         $rule = DynamicPricingRule::findOrFail($id);
         $rule->delete();
 
-        return ApiResponse::success(null, '定价规则已删除');
+        return ApiResponse::success(null, __('app.api.pricing.rule_deleted'));
     }
 
     public function toggleRule(int $id): JsonResponse
@@ -218,7 +218,7 @@ class DynamicPricingController extends Controller
         return ApiResponse::success([
             'id' => $rule->id,
             'is_active' => $rule->fresh()->is_active,
-        ], $rule->is_active ? '规则已启用' : '规则已停用');
+        ], $rule->is_active ? __('app.api.pricing.rule_enabled') : __('app.api.pricing.rule_disabled'));
     }
 
     // ─── 定价计算 ──────────────────────────────────────────────
@@ -233,7 +233,7 @@ class DynamicPricingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.pricing.validation_failed'), $validator->errors()->toArray());
         }
 
         $plan = PricingPlan::findOrFail($request->input('pricing_plan_id'));
@@ -266,7 +266,7 @@ class DynamicPricingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.pricing.validation_failed'), $validator->errors()->toArray());
         }
 
         $plan = PricingPlan::findOrFail($request->input('pricing_plan_id'));
@@ -287,7 +287,7 @@ class DynamicPricingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.pricing.validation_failed'), $validator->errors()->toArray());
         }
 
         $plan = PricingPlan::findOrFail($request->input('pricing_plan_id'));
@@ -324,36 +324,36 @@ class DynamicPricingController extends Controller
     {
         return ApiResponse::success([
             'rule_types' => [
-                ['value' => 'volume', 'label' => '批量折扣'],
-                ['value' => 'segment', 'label' => '客户细分定价'],
-                ['value' => 'time_seasonal', 'label' => '季节性定价'],
-                ['value' => 'time_hourly', 'label' => '时段定价'],
-                ['value' => 'promotion', 'label' => '促销定价'],
-                ['value' => 'llm_optimized', 'label' => 'LLM 优化定价'],
+                ['value' => 'volume', 'label' => __('app.api.pricing.type_volume')],
+                ['value' => 'segment', 'label' => __('app.api.pricing.type_segment')],
+                ['value' => 'time_seasonal', 'label' => __('app.api.pricing.type_time_seasonal')],
+                ['value' => 'time_hourly', 'label' => __('app.api.pricing.type_time_hourly')],
+                ['value' => 'promotion', 'label' => __('app.api.pricing.type_promotion')],
+                ['value' => 'llm_optimized', 'label' => __('app.api.pricing.type_llm')],
             ],
             'adjustment_types' => [
-                ['value' => 'percentage', 'label' => '百分比折扣'],
-                ['value' => 'fixed', 'label' => '固定金额'],
-                ['value' => 'override', 'label' => '覆盖价格'],
-                ['value' => 'formula', 'label' => '公式计算'],
+                ['value' => 'percentage', 'label' => __('app.api.pricing.adj_percentage')],
+                ['value' => 'fixed', 'label' => __('app.api.pricing.adj_fixed')],
+                ['value' => 'override', 'label' => __('app.api.pricing.adj_override')],
+                ['value' => 'formula', 'label' => __('app.api.pricing.adj_formula')],
             ],
             'stack_modes' => [
-                ['value' => 'replace', 'label' => '替换'],
-                ['value' => 'add', 'label' => '累加'],
-                ['value' => 'multiply', 'label' => '乘法'],
-                ['value' => 'compound', 'label' => '复利'],
+                ['value' => 'replace', 'label' => __('app.api.pricing.stack_replace')],
+                ['value' => 'add', 'label' => __('app.api.pricing.stack_add')],
+                ['value' => 'multiply', 'label' => __('app.api.pricing.stack_multiply')],
+                ['value' => 'compound', 'label' => __('app.api.pricing.stack_compound')],
             ],
             'target_types' => [
-                ['value' => 'plan', 'label' => '定价方案'],
-                ['value' => 'customer', 'label' => '客户'],
-                ['value' => 'segment', 'label' => '客户分群'],
-                ['value' => 'product', 'label' => '产品'],
+                ['value' => 'plan', 'label' => __('app.api.pricing.target_plan')],
+                ['value' => 'customer', 'label' => __('app.api.pricing.target_customer')],
+                ['value' => 'segment', 'label' => __('app.api.pricing.target_segment')],
+                ['value' => 'product', 'label' => __('app.api.pricing.target_product')],
             ],
             'pricing_models' => [
-                ['value' => 'fixed', 'label' => '固定定价'],
-                ['value' => 'tiered', 'label' => '阶梯定价'],
-                ['value' => 'usage', 'label' => '用量定价'],
-                ['value' => 'hybrid', 'label' => '混合定价'],
+                ['value' => 'fixed', 'label' => __('app.api.pricing.model_fixed')],
+                ['value' => 'tiered', 'label' => __('app.api.pricing.model_tiered')],
+                ['value' => 'usage', 'label' => __('app.api.pricing.model_usage')],
+                ['value' => 'hybrid', 'label' => __('app.api.pricing.model_hybrid')],
             ],
         ]);
     }
@@ -393,7 +393,7 @@ class DynamicPricingController extends Controller
 
         $experiment = PricingExperiment::create($validated);
 
-        return ApiResponse::success($experiment, '实验已创建', 201);
+        return ApiResponse::success($experiment, __('app.api.pricing.experiment_created'), 201);
     }
 
     public function showExperiment(PricingExperiment $experiment): JsonResponse
@@ -416,13 +416,13 @@ class DynamicPricingController extends Controller
         ]);
 
         $experiment->update($validated);
-        return ApiResponse::success($experiment, '实验已更新');
+        return ApiResponse::success($experiment, __('app.api.pricing.experiment_updated'));
     }
 
     public function startExperiment(PricingExperiment $experiment): JsonResponse
     {
         if (!in_array($experiment->status, ['draft', 'paused'])) {
-            return ApiResponse::error('INVALID_STATUS', '只有草稿或暂停状态可以启动', 422);
+            return ApiResponse::error('INVALID_STATUS', __('app.api.pricing.start_draft_only'), 422);
         }
 
         $experiment->update([
@@ -430,23 +430,23 @@ class DynamicPricingController extends Controller
             'starts_at' => $experiment->starts_at ?? now(),
         ]);
 
-        return ApiResponse::success($experiment, '实验已启动');
+        return ApiResponse::success($experiment, __('app.api.pricing.experiment_started'));
     }
 
     public function pauseExperiment(PricingExperiment $experiment): JsonResponse
     {
         if ($experiment->status !== 'running') {
-            return ApiResponse::error('INVALID_STATUS', '只有运行中的实验可以暂停', 422);
+            return ApiResponse::error('INVALID_STATUS', __('app.api.pricing.pause_running_only'), 422);
         }
 
         $experiment->update(['status' => 'paused']);
-        return ApiResponse::success($experiment, '实验已暂停');
+        return ApiResponse::success($experiment, __('app.api.pricing.experiment_paused'));
     }
 
     public function completeExperiment(PricingExperiment $experiment): JsonResponse
     {
         if (!in_array($experiment->status, ['running', 'paused'])) {
-            return ApiResponse::error('INVALID_STATUS', '无效状态', 422);
+            return ApiResponse::error('INVALID_STATUS', __('app.api.pricing.invalid_status'), 422);
         }
 
         // 计算结果
@@ -457,7 +457,7 @@ class DynamicPricingController extends Controller
             'ends_at' => $experiment->ends_at ?? now(),
         ]);
 
-        return ApiResponse::success($experiment->fresh(), '实验已完成');
+        return ApiResponse::success($experiment->fresh(), __('app.api.pricing.experiment_completed'));
     }
 
     public function calculateResults(PricingExperiment $experiment): JsonResponse
@@ -481,7 +481,7 @@ class DynamicPricingController extends Controller
             $validated['original_price'] ?? null,
         );
 
-        return ApiResponse::success($participant, '已分配到实验组', 201);
+        return ApiResponse::success($participant, __('app.api.pricing.assigned_group'), 201);
     }
 
     public function recordEvent(Request $request, PricingExperiment $experiment): JsonResponse
@@ -499,7 +499,7 @@ class DynamicPricingController extends Controller
             $validated['event_data'] ?? null,
         );
 
-        return ApiResponse::success($event, '事件已记录', 201);
+        return ApiResponse::success($event, __('app.api.pricing.event_recorded'), 201);
     }
 
     public function experimentStats(Request $request): JsonResponse
@@ -523,10 +523,10 @@ class DynamicPricingController extends Controller
     public function deleteExperiment(PricingExperiment $experiment): JsonResponse
     {
         if (!in_array($experiment->status, ['draft', 'cancelled'])) {
-            return ApiResponse::error('DELETE_FAILED', '只能删除草稿或已取消的实验', 400);
+            return ApiResponse::error('DELETE_FAILED', __('app.api.pricing.delete_draft_only'), 400);
         }
         $experiment->delete();
-        return ApiResponse::success(null, '实验已删除');
+        return ApiResponse::success(null, __('app.api.pricing.experiment_deleted'));
     }
 
     /**
@@ -536,7 +536,7 @@ class DynamicPricingController extends Controller
     {
         try {
             $recommendation = $this->pricingEngine->applyWinningTreatment($experiment);
-            return ApiResponse::success($recommendation, '优胜方案已生成');
+            return ApiResponse::success($recommendation, __('app.api.pricing.winner_generated'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('APPLY_FAILED', $e->getMessage(), 400);
         }
@@ -573,6 +573,6 @@ class DynamicPricingController extends Controller
         return ApiResponse::success([
             'assigned_count' => count($assigned),
             'assigned' => $assigned,
-        ], count($assigned) > 0 ? '已分配至匹配实验' : '无匹配实验');
+        ], count($assigned) > 0 ? __('app.api.pricing.assigned_matched') : __('app.api.pricing.no_matched'));
     }
 }

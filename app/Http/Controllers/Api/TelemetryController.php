@@ -61,7 +61,7 @@ class TelemetryController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__("app.telemetry.msg_e441b11e"), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -124,7 +124,7 @@ class TelemetryController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.common.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();

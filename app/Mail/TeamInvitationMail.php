@@ -28,7 +28,7 @@ class TeamInvitationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "{$this->inviterName} 邀请您加入 {$this->tenant->name} 团队 - HWT License",
+            subject: __('app.mail.team_invitation_subject', ['inviter' => $this->inviterName, 'team' => $this->tenant->name]),
         );
     }
 
@@ -42,39 +42,45 @@ class TeamInvitationMail extends Mailable
     private function buildHtml(): string
     {
         $roleLabels = [
-            'admin' => '管理员',
-            'finance' => '财务',
-            'developer' => '开发者',
-            'readonly' => '只读',
+            'admin' => __('app.mail.role_admin'),
+            'finance' => __('app.mail.role_finance'),
+            'developer' => __('app.mail.role_developer'),
+            'readonly' => __('app.mail.role_readonly'),
         ];
         $roleLabel = $roleLabels[$this->invitation->role] ?? $this->invitation->role;
         $expiresAt = $this->invitation->expires_at
             ? $this->invitation->expires_at->format('Y-m-d H:i')
-            : '7天后';
+            : __('app.mail.expires_in_7_days');
 
-        return <<<HTML
+                $teamInvTitle = __('app.mail.team_invitation_title');
+        $teamInvGreeting = __('app.mail.team_invitation_greeting');
+        $teamInvBody = __('app.mail.team_invitation_body', ['inviter' => $this->inviterName, 'team' => $this->tenant->name, 'role' => $roleLabel]);
+        $invValidity = __('app.mail.invitation_validity', ['expiry' => $expiresAt]);
+        $acceptLabel = __('app.mail.accept_invitation');
+        $declineLabel = __('app.mail.decline_invitation');
+        $invIgnore = __('app.mail.invitation_ignore');
+        $autoSentLabel = __('app.mail.auto_sent_by_system');
+return <<<HTML
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; padding: 40px; background: #f0f2f5;">
     <div style="max-width: 560px; margin: 0 auto;">
         <div style="text-align: center; padding: 16px 0;">
-            <span style="font-size: 20px; font-weight: 700; color: #409eff;">HWT License</span>
+            <span style="font-size: 20px; font-weight: 700; color: #0f172a;">HWT License</span>
         </div>
 
         <div style="background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
-            <div style="background: linear-gradient(135deg, #409eff, #337ecc); padding: 32px; text-align: center;">
+            <div style="background: linear-gradient(135deg, #0f172a, #1e293b); padding: 32px; text-align: center;">
                 <div style="font-size: 40px; margin-bottom: 12px;">👋</div>
-                <div style="font-size: 20px; color: #fff; font-weight: 600;">团队邀请</div>
+                <div style="font-size: 20px; color: #fff; font-weight: 600;">{$teamInvTitle}</div>
             </div>
 
             <div style="padding: 32px;">
-                <h2 style="margin: 0 0 16px; color: #1a1a1a; font-size: 18px;">您好！</h2>
+                <h2 style="margin: 0 0 16px; color: #1a1a1a; font-size: 18px;">{$teamInvGreeting}</h2>
 
                 <p style="color: #555; line-height: 1.8; font-size: 14px;">
-                    <strong style="color: #333;">{$this->inviterName}</strong> 邀请您加入
-                    <strong style="color: #409eff;">{$this->tenant->name}</strong> 团队，
-                    角色为 <strong style="color: #333;">{$roleLabel}</strong>。
+                    {$teamInvBody}
                 </p>
 
                 {if($this->invitation->message)}
@@ -87,14 +93,14 @@ class TeamInvitationMail extends Mailable
 
                 <div style="background: #f0f7ff; border-radius: 8px; padding: 12px 16px; margin: 16px 0;">
                     <p style="margin: 0; color: #666; font-size: 13px;">
-                        📋 邀请有效期：{$expiresAt}
+                        {$invValidity}
                     </p>
                 </div>
 
                 <div style="text-align: center; margin: 28px 0;">
                     <a href="{$this->acceptUrl}"
-                       style="display: inline-block; padding: 14px 48px; background: #409eff; color: #fff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 500;">
-                        接受邀请
+                       style="display: inline-block; padding: 14px 48px; background: #0f172a; color: #fff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 500;">
+                        {$acceptLabel}
                     </a>
                 </div>
 
@@ -102,7 +108,7 @@ class TeamInvitationMail extends Mailable
                 <div style="text-align: center; margin: 12px 0 0;">
                     <a href="{$this->declineUrl}"
                        style="color: #999; font-size: 13px; text-decoration: none;">
-                        拒绝邀请
+                        {$declineLabel}
                     </a>
                 </div>
                 {/if}
@@ -111,10 +117,10 @@ class TeamInvitationMail extends Mailable
 
         <div style="text-align: center; padding: 24px 16px;">
             <p style="color: #999; font-size: 12px; margin: 0;">
-                如果您不认识邀请人，请忽略此邮件。
+                {$invIgnore}
             </p>
             <p style="color: #999; font-size: 12px; margin: 4px 0 0;">
-                此邮件由 HWT License 系统自动发送。
+                {$autoSentLabel}
             </p>
         </div>
     </div>

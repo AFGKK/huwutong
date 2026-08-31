@@ -49,18 +49,18 @@ class EmailWhitelabelController extends Controller
         // 验证 DKIM 私钥格式
         if (!empty($validated['dkim_private_key'])) {
             if (!str_contains($validated['dkim_private_key'], '-----BEGIN')) {
-                return ApiResponse::error('DKIM 私钥格式无效，需要 PEM 格式');
+                return ApiResponse::error(__('app.api.email_wl.dkim_invalid'));
             }
         }
 
         // 验证 SPF 记录格式
         if (!empty($validated['spf_record']) && !str_starts_with($validated['spf_record'], 'v=spf1')) {
-            return ApiResponse::error('SPF 记录必须以 v=spf1 开头');
+            return ApiResponse::error(__('app.api.email_wl.spf_invalid'));
         }
 
         // 验证 DMARC 记录格式
         if (!empty($validated['dmarc_record']) && !str_starts_with($validated['dmarc_record'], 'v=DMARC1')) {
-            return ApiResponse::error('DMARC 记录必须以 v=DMARC1 开头');
+            return ApiResponse::error(__('app.api.email_wl.dmarc_invalid'));
         }
 
         $config = array_merge($this->getConfig($tenantId), $validated);
@@ -68,7 +68,7 @@ class EmailWhitelabelController extends Controller
 
         Cache::forever(self::CACHE_KEY_PREFIX . $tenantId, $config);
 
-        return ApiResponse::success($config, '邮件白标配置已更新');
+        return ApiResponse::success($config, __('app.api.email_wl.config_updated'));
     }
 
     /**
@@ -94,8 +94,8 @@ class EmailWhitelabelController extends Controller
                     'name' => "{$selector}._domainkey.{$domain}",
                     'value' => "v=DKIM1; h=sha256; k=rsa; p={$keyFormatted}",
                     'status' => 'pending',
-                    'purpose' => 'DKIM 签名验证',
-                    'guide' => "请在 DNS 管理后台添加以下 TXT 记录：\n主机记录：{$selector}._domainkey\n记录值：v=DKIM1; h=sha256; k=rsa; p={$keyFormatted}",
+                    'purpose' => __('app.api.email_wl.dns_purpose_dkim'),
+                    'guide' => __('app.api.email_wl.dns_guide_dkim', ['selector' => $selector, 'key' => $keyFormatted]),
                 ];
             }
         }
@@ -108,8 +108,8 @@ class EmailWhitelabelController extends Controller
                 'name' => $domain,
                 'value' => $spf,
                 'status' => 'pending',
-                'purpose' => 'SPF 发信认证',
-                'guide' => "请在 DNS 管理后台添加以下 TXT 记录：\n主机记录：@\n记录值：{$spf}",
+                'purpose' => __('app.api.email_wl.dns_purpose_spf'),
+                'guide' => __('app.api.email_wl.dns_guide_spf', ['spf' => $spf]),
             ];
         }
 
@@ -122,8 +122,8 @@ class EmailWhitelabelController extends Controller
                 'name' => "_dmarc.{$domain}",
                 'value' => $dmarc,
                 'status' => 'pending',
-                'purpose' => 'DMARC 防伪造',
-                'guide' => "请在 DNS 管理后台添加以下 TXT 记录：\n主机记录：_dmarc\n记录值：{$dmarc}",
+                'purpose' => __('app.api.email_wl.dns_purpose_dmarc'),
+                'guide' => __('app.api.email_wl.dns_guide_dmarc', ['dmarc' => $dmarc]),
             ];
         }
 
@@ -151,26 +151,26 @@ class EmailWhitelabelController extends Controller
             $selector = $config['dkim_selector'] ?? 'default';
             $results['dkim'] = [
                 'status' => 'pending',
-                'message' => "请添加 DKIM 记录后运行验证。DNS 记录：{$selector}._domainkey.{$domain}",
+                'message' => __('app.api.email_wl.dns_verify_dkim', ['record' => "{$selector}._domainkey.{$domain}"]),
             ];
         }
         if ($config['spf_enabled'] ?? false) {
             $results['spf'] = [
                 'status' => 'pending',
-                'message' => "SPF 记录已配置。下一步：等待 DNS 生效（通常 5-30 分钟）",
+                'message' => __('app.api.email_wl.dns_verify_spf'),
             ];
         }
         if ($config['dmarc_enabled'] ?? false) {
             $results['dmarc'] = [
                 'status' => 'pending',
-                'message' => "DMARC 策略：{$config['dmarc_policy']}。建议从 p=none 开始逐步收紧。",
+                'message' => __('app.api.email_wl.dns_verify_dmarc', ['policy' => $config['dmarc_policy']]),
             ];
         }
 
         return ApiResponse::success([
             'domain' => $domain,
             'results' => $results,
-            'overall_status' => count($results) > 0 ? '配置待生效' : '未配置',
+            'overall_status' => count($results) > 0 ? __('app.api.email_wl.status_pending') : __('app.api.email_wl.status_none'),
         ]);
     }
 

@@ -48,7 +48,7 @@ class AnomalyDetectionController extends Controller
     public function resolve(Request $request, int $id): JsonResponse
     {
         $this->anomalyService->resolve($id, $request->input('note'));
-        return response()->json(['message' => '异常已标记为已处理']);
+        return response()->json(['message' => __('app.api.anomaly_detection.anomaly_resolved')]);
     }
 
     /**

@@ -45,7 +45,7 @@ class CertificationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.cert.validation_failed'), $validator->errors()->toArray());
         }
 
         $level = $this->certService->createLevel(
@@ -53,7 +53,7 @@ class CertificationController extends Controller
             $validator->validated(),
         );
 
-        return ApiResponse::success($level, '认证等级已创建');
+        return ApiResponse::success($level, __('app.api.cert.level_created'));
     }
 
     /**
@@ -72,11 +72,11 @@ class CertificationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.cert.validation_failed'), $validator->errors()->toArray());
         }
 
         $level = $this->certService->updateLevel($id, $validator->validated());
-        return ApiResponse::success($level, '认证等级已更新');
+        return ApiResponse::success($level, __('app.api.cert.level_updated'));
     }
 
     // ─── 题库管理 ───
@@ -122,11 +122,11 @@ class CertificationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.cert.validation_failed'), $validator->errors()->toArray());
         }
 
         $question = $this->certService->addQuestion($levelId, $validator->validated());
-        return ApiResponse::success($question, '试题已添加');
+        return ApiResponse::success($question, __('app.api.cert.question_added'));
     }
 
     /**
@@ -145,7 +145,7 @@ class CertificationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.cert.validation_failed'), $validator->errors()->toArray());
         }
 
         $questions = $this->certService->bulkAddQuestions(
@@ -153,7 +153,7 @@ class CertificationController extends Controller
             $validator->validated()['questions'],
         );
 
-        return ApiResponse::success($questions, count($questions) . ' 道试题已导入');
+        return ApiResponse::success($questions, __('app.api.cert.questions_imported', ['count' => count($questions)]));
     }
 
     // ─── 考试流程 ───
@@ -168,7 +168,7 @@ class CertificationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.cert.validation_failed'), $validator->errors()->toArray());
         }
 
         try {
@@ -176,7 +176,7 @@ class CertificationController extends Controller
                 $request->user()->id,
                 $request->input('certification_level_id'),
             );
-            return ApiResponse::success($devCert, '考试已开始');
+            return ApiResponse::success($devCert, __('app.api.cert.exam_started'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('EXAM_FAILED', $e->getMessage(), 400);
         }
@@ -207,7 +207,7 @@ class CertificationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.cert.validation_failed'), $validator->errors()->toArray());
         }
 
         try {
@@ -216,7 +216,7 @@ class CertificationController extends Controller
                 $request->input('question_id'),
                 $request->input('selected_answers'),
             );
-            return ApiResponse::success($answer, '答案已提交');
+            return ApiResponse::success($answer, __('app.api.cert.answer_submitted'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('ANSWER_FAILED', $e->getMessage(), 400);
         }
@@ -229,7 +229,7 @@ class CertificationController extends Controller
     {
         try {
             $result = $this->certService->submitExam($devCertId);
-            $msg = $result->isPassed() ? '恭喜通过考试！' : '未达到通过分数';
+            $msg = $result->isPassed() ? __('app.api.cert.exam_passed') : __('app.api.cert.exam_failed');
             return ApiResponse::success($result, $msg);
         } catch (\RuntimeException $e) {
             return ApiResponse::error('SUBMIT_FAILED', $e->getMessage(), 400);
@@ -278,7 +278,7 @@ class CertificationController extends Controller
 
         try {
             $cert = $this->certService->revokeCertification($id, $request->input('reason'));
-            return ApiResponse::success($cert, '认证已吊销');
+            return ApiResponse::success($cert, __('app.api.cert.revoked'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('REVOKE_FAILED', $e->getMessage(), 400);
         }
@@ -294,7 +294,7 @@ class CertificationController extends Controller
         $result = $this->certService->verifyCertificate($certNumber);
 
         if (!$result) {
-            return ApiResponse::error('NOT_FOUND', '证书不存在', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.cert.cert_missing'), 404);
         }
 
         return ApiResponse::success($result);
@@ -318,7 +318,7 @@ class CertificationController extends Controller
     {
         $level = \App\Models\CertificationLevel::findOrFail($levelId);
         $name = $userName ?? auth()->user()?->name ?? 'Developer';
-        $svg = $this->certService->generateBadgeSvg($level->name, $level->color ?? '#409eff', $name);
+        $svg = $this->certService->generateBadgeSvg($level->name, $level->color ?? '#0f172a', $name);
 
         return response($svg, 200, ['Content-Type' => 'image/svg+xml']);
     }
@@ -348,12 +348,12 @@ class CertificationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.cert.validation_failed'), $validator->errors()->toArray());
         }
 
         $benefit = $this->certService->addBenefit($levelId, $request->all());
 
-        return ApiResponse::success($benefit, '权益已添加', 201);
+        return ApiResponse::success($benefit, __('app.api.cert.benefit_added'), 201);
     }
 
     /**
@@ -363,6 +363,6 @@ class CertificationController extends Controller
     {
         $this->certService->deleteBenefit($benefitId);
 
-        return ApiResponse::success(null, '权益已删除');
+        return ApiResponse::success(null, __('app.api.cert.benefit_deleted'));
     }
 }

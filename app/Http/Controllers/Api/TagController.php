@@ -121,7 +121,7 @@ class TagController extends Controller
 
         try {
             $this->tagService->delete($tag);
-            return ApiResponse::success(null, '标签已删除');
+            return ApiResponse::success(null, __("app.tag.msg_722459ee"));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('FORBIDDEN', $e->getMessage(), 403);
         }
@@ -149,7 +149,7 @@ class TagController extends Controller
         $model = $this->resolveTaggable($data['taggable_type'], $data['taggable_id']);
 
         if (! $model) {
-            return ApiResponse::error('NOT_FOUND', '关联模型不存在', 404);
+            return ApiResponse::error('NOT_FOUND', __("app.tag.msg_1080469d"), 404);
         }
 
         $this->authorize('update', $model);
@@ -159,7 +159,7 @@ class TagController extends Controller
         return ApiResponse::success([
             'tag_ids' => $tagIds,
             'tags' => $model->tags()->get(),
-        ], '标签已同步');
+        ], __('app.tag.tags_synced'));
     }
 
     /**
@@ -196,13 +196,13 @@ class TagController extends Controller
         $model = $this->resolveTaggable($data['taggable_type'], $data['taggable_id']);
 
         if (! $model) {
-            return ApiResponse::error('NOT_FOUND', '关联模型不存在', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.tag.model_not_found'), 404);
         }
 
         $this->authorize('update', $model);
 
         if (! method_exists($model, $action === 'attach' ? 'attachTag' : 'detachTag')) {
-            return ApiResponse::error('NOT_SUPPORTED', '该模型不支持标签操作', 400);
+            return ApiResponse::error('NOT_SUPPORTED', __("app.tag.msg_6f93c7e7"), 400);
         }
 
         if ($action === 'attach') {
@@ -213,7 +213,7 @@ class TagController extends Controller
 
         return ApiResponse::success([
             'tags' => $model->tags()->get(),
-        ], $action === 'attach' ? '标签已添加' : '标签已移除');
+        ], $action === 'attach' ? __('app.tag.tag_added') : __('app.tag.tag_removed'));
     }
 
     /**

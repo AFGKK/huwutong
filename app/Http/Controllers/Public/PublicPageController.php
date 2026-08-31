@@ -12,6 +12,7 @@ use App\Models\ProductCategory;
 use App\Models\ProductSku;
 use App\Models\Promotion;
 use App\Models\WishlistItem;
+use App\Services\DemoBookingService;
 use App\Services\UserChatConversationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,11 +51,13 @@ class PublicPageController extends Controller
                 $p->highest_price = $activeSkus->max('price');
                 $p->sold_total = $activeSkus->sum('sold_count');
                 $p->is_new = $p->created_at && $p->created_at->gt(now()->subDays(7));
-                $p->has_discount = $activeSkus->contains(fn($s) => $s->compare_at_price && $s->compare_at_price > $s->price);
+                $p->has_discount = $activeSkus->contains(fn ($s) => $s->compare_at_price && $s->compare_at_price > $s->price);
                 $p->is_hot = $p->sold_total > 20;
             });
 
-        return view('public.landing', compact('featuredProducts'));
+        $landingPlans = $this->publicPricingPlanPayload();
+
+        return view('public.landing', compact('featuredProducts', 'landingPlans'));
     }
 
     /**
@@ -471,11 +474,26 @@ class PublicPageController extends Controller
      */
     public function pricingPlans(): JsonResponse
     {
-        $plans = PricingPlan::where('is_active', true)
+        return response()->json([
+            'data' => $this->publicPricingPlanPayload(),
+            'currency' => 'CNY',
+            'currency_symbol' => '¥',
+        ]);
+    }
+
+    /**
+     * 公开定价套餐 payload（首页 SSR + API 共用）
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function publicPricingPlanPayload(): array
+    {
+        return PricingPlan::where('is_active', true)
             ->where('is_public', true)
             ->orderBy('sort_order')
             ->get()
             ->map(fn ($plan) => [
+                'id' => $plan->id,
                 'slug' => $plan->slug,
                 'name' => $plan->name,
                 'description' => $plan->description,
@@ -484,17 +502,13 @@ class PublicPageController extends Controller
                 'price_semi_annually' => (float) $plan->price_semi_annually,
                 'price_yearly' => (float) $plan->price_yearly,
                 'currency' => $plan->currency,
-                'features' => $plan->features,
+                'features' => $plan->features ?? [],
                 'limits' => $plan->limits,
                 'badge' => $plan->badge,
                 'trial_days' => $plan->trial_days,
-            ]);
-
-        return response()->json([
-            'data' => $plans,
-            'currency' => 'CNY',
-            'currency_symbol' => '¥',
-        ]);
+            ])
+            ->values()
+            ->all();
     }
 
     /**
@@ -521,7 +535,7 @@ class PublicPageController extends Controller
         if ($product && (int) $product->user_id !== (int) $validated['seller_id']) {
             return response()->json([
                 'success' => false,
-                'message' => '商品与卖家信息不匹配',
+                'message' => __('app.public_page.product_seller_mismatch'),
             ], 422);
         }
 
@@ -538,12 +552,12 @@ class PublicPageController extends Controller
                         $conv,
                         (int) $user->id,
                         $product,
-                        '【商品咨询】' . $product->name,
+                        __('app.public_page.product_inquiry_subject', ['product' => $product->name]),
                         'contact-seller-' . $conv->id . '-' . $validated['product_id'],
                         ['source' => 'contact_seller', 'product_id' => $validated['product_id']]
                     );
                 }
-                $prefix = $product ? '【商品咨询：' . $product->name . '】' . "\n" : '';
+                $prefix = $product ? __('app.public_page.product_inquiry_prefix', ['product' => $product->name]) . "\n" : '';
                 $chatService->pushTextMessage($conv, (int) $user->id, $prefix . $validated['message'], [
                     'product_id' => $validated['product_id'],
                     'source' => 'contact_seller',
@@ -551,7 +565,7 @@ class PublicPageController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'message' => '消息已发送，卖家将尽快回复您',
+                    'message' => __('app.public_page.message_sent'),
                     'conversation_id' => $conv->id,
                     'redirect' => '/build/user-chat?seller_id=' . $validated['seller_id'] . '&product_id=' . $validated['product_id'],
                 ]);
@@ -572,35 +586,88 @@ class PublicPageController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '消息已发送，卖家将尽快回复您',
+                'message' => __('app.controller_compat.public_page_msg_589'),
             ]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('联系卖家失败: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => '消息发送失败，请稍后重试',
+                'message' => __('app.public_page.message_failed'),
             ], 500);
         }
     }
 
     public function enterpriseContact(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'company' => 'required|string|max:200',
-            'name' => 'required|string|max:100',
-            'email' => 'required|email|max:200',
-            'phone' => 'nullable|string|max:50',
-            'employees' => 'nullable|string|max:50',
-            'message' => 'nullable|string|max:2000',
-        ]);
+        return $this->submitLead($request, 'pricing');
+    }
 
-        // 存储到数据库或发送通知
-        // 简化实现：记录日志
-        \Illuminate\Support\Facades\Log::channel('stack')->info('企业联系表单提交', $validated);
+    /**
+     * API: 提交联系/预约表单
+     *
+     * POST /api/public/contact
+     */
+    public function submitContact(Request $request): JsonResponse
+    {
+        return $this->submitLead($request, 'contact');
+    }
+
+    /**
+     * API: 公开 SDK 列表
+     *
+     * GET /api/public/sdks
+     */
+    public function publicSdks(): JsonResponse
+    {
+        $sdks = collect(config('dev-portal.sdks', []))
+            ->map(fn (array $sdk, string $key) => array_merge($sdk, ['id' => $key]))
+            ->values();
 
         return response()->json([
-            'message' => '提交成功，我们将在1个工作日内联系您',
+            'success' => true,
+            'data' => $sdks,
+            'quick_links' => config('dev-portal.quick_links', []),
         ]);
+    }
+
+    protected function submitLead(Request $request, string $defaultSource): JsonResponse
+    {
+        $honeypot = config('demo-booking.form.honeypot', 'website_url');
+
+        $validated = $request->validate([
+            'company_name' => 'required_without:company|string|max:200',
+            'company' => 'required_without:company_name|string|max:200',
+            'contact_name' => 'required_without:name|string|max:100',
+            'name' => 'required_without:contact_name|string|max:100',
+            'email' => 'required|email|max:200',
+            'phone' => 'nullable|string|max:50',
+            'employee_count' => 'nullable|string|max:50',
+            'employees' => 'nullable|string|max:50',
+            'product_interest' => 'nullable|string|max:500',
+            'interest' => 'nullable|string|max:500',
+            'message' => 'nullable|string|max:2000',
+            'source' => 'nullable|string|max:50',
+            $honeypot => 'nullable|string',
+        ]);
+
+        $payload = [
+            'company_name' => $validated['company_name'] ?? $validated['company'],
+            'contact_name' => $validated['contact_name'] ?? $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'] ?? null,
+            'employee_count' => $validated['employee_count'] ?? $validated['employees'] ?? null,
+            'product_interest' => $validated['product_interest'] ?? $validated['interest'] ?? null,
+            'message' => $validated['message'] ?? null,
+            'source' => $validated['source'] ?? $defaultSource,
+            $honeypot => $validated[$honeypot] ?? null,
+        ];
+
+        $result = app(DemoBookingService::class)->submit($payload);
+
+        return response()->json([
+            'success' => (bool) ($result['success'] ?? false),
+            'message' => $result['message'] ?? __('app.contact_page.submit_fail'),
+        ], ($result['success'] ?? false) ? 200 : 400);
     }
 
     /**
@@ -610,50 +677,63 @@ class PublicPageController extends Controller
      */
     public function landing(): JsonResponse
     {
+        // Capability proofs only — no vanity counts / fake ISO·SOC / invented SLA %.
         return response()->json([
             'hero' => [
-                'title' => '企业级授权管理',
-                'subtitle' => '为您的软件产品提供安全、灵活、可扩展的授权解决方案',
-                'cta_primary' => '免费开始',
-                'cta_secondary' => '查看定价',
+                'title' => __('app.landing.hero_title'),
+                'subtitle' => __('app.landing.hero_subtitle'),
+                'cta_primary' => __('app.landing.hero_cta_primary'),
+                'cta_secondary' => __('app.landing.hero_cta_secondary'),
             ],
             'features' => [
                 [
                     'icon' => 'shield-check',
-                    'title' => '安全可靠',
-                    'description' => 'Ed25519 签名 + 离线验证 + CRL 吊销列表，银行级安全保障',
+                    'title' => __('app.landing.feat_secure_title'),
+                    'description' => __('app.landing.feat_secure_desc'),
                 ],
                 [
                     'icon' => 'bolt',
-                    'title' => '高性能',
-                    'description' => '单机 5000+ QPS，边缘节点 <10ms 验证延迟，全球加速',
+                    'title' => __('app.landing.feat_perf_title'),
+                    'description' => __('app.landing.feat_perf_desc'),
                 ],
                 [
                     'icon' => 'device-mobile',
-                    'title' => '全平台覆盖',
-                    'description' => 'PHP/Node.js/Python/Go/Java/C# SDK，支持桌面/移动/嵌入式',
+                    'title' => __('app.landing.feat_sdk_title'),
+                    'description' => __('app.landing.feat_sdk_desc'),
                 ],
                 [
                     'icon' => 'cloud',
-                    'title' => '灵活部署',
-                    'description' => 'SaaS 云服务 + 私有化部署 + 完全离线气隙模式',
+                    'title' => __('app.landing.feat_deploy_title'),
+                    'description' => __('app.landing.feat_deploy_desc'),
                 ],
                 [
                     'icon' => 'chart-bar',
-                    'title' => '数据驱动',
-                    'description' => '实时分析看板 + AI 运营分析 + 自动报表，洞察业务增长',
+                    'title' => __('app.landing.feat_ops_title'),
+                    'description' => __('app.landing.feat_ops_desc'),
                 ],
                 [
                     'icon' => 'globe',
-                    'title' => '全球合规',
-                    'description' => 'GDPR/PIPL/SOC2/ISO27001，满足全球合规要求',
+                    'title' => __('app.landing.feat_compliance_title'),
+                    'description' => __('app.landing.feat_compliance_desc'),
                 ],
             ],
             'stats' => [
-                ['value' => '10,000+', 'label' => '活跃客户'],
-                ['value' => '500万+', 'label' => 'License 生成'],
-                ['value' => '99.99%', 'label' => '服务可用性'],
-                ['value' => '<10ms', 'label' => '平均验证延迟'],
+                [
+                    'value' => __('app.landing.trust_proof_1_value'),
+                    'label' => __('app.landing.trust_proof_1_label'),
+                ],
+                [
+                    'value' => __('app.landing.trust_proof_2_value'),
+                    'label' => __('app.landing.trust_proof_2_label'),
+                ],
+                [
+                    'value' => __('app.landing.trust_proof_3_value'),
+                    'label' => __('app.landing.trust_proof_3_label'),
+                ],
+                [
+                    'value' => __('app.landing.trust_proof_4_value'),
+                    'label' => __('app.landing.trust_proof_4_label'),
+                ],
             ],
         ]);
     }

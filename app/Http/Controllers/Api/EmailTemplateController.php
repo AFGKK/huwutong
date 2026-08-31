@@ -73,7 +73,7 @@ class EmailTemplateController extends Controller
             'status' => $validated['status'] ?? 'draft',
         ]);
 
-        return ApiResponse::created($template, '模板创建成功');
+        return ApiResponse::created($template, __('app.api.email_tpl.created'));
     }
 
     /**
@@ -95,7 +95,7 @@ class EmailTemplateController extends Controller
 
         $template->update($validated);
 
-        return ApiResponse::success($template->fresh(), '模板更新成功');
+        return ApiResponse::success($template->fresh(), __('app.api.email_tpl.updated'));
     }
 
     /**
@@ -105,7 +105,7 @@ class EmailTemplateController extends Controller
     {
         $template = EmailTemplate::findOrFail($id);
         $template->delete();
-        return ApiResponse::success(null, '模板已删除');
+        return ApiResponse::success(null, __('app.api.email_tpl.deleted'));
     }
 
     /**
@@ -127,14 +127,14 @@ class EmailTemplateController extends Controller
 
         $testData = [
             'site_name' => config('app.name'),
-            'customer_name' => '张三',
+            'customer_name' => __('app.api.email_tpl.sample_customer'),
             'customer_email' => 'test@example.com',
             'license_key' => 'HWT-XXXX-XXXX-XXXX',
             'license_status' => 'active',
-            'product_name' => '示例产品',
+            'product_name' => __('app.api.email_tpl.sample_product'),
             'expires_at' => now()->addYear()->format('Y-m-d'),
             'days_remaining' => '365',
-            'user_name' => '张三',
+            'user_name' => __('app.api.email_tpl.sample_customer'),
             'user_email' => 'test@example.com',
             'login_url' => url('/login'),
             'reset_url' => url('/password/reset'),
@@ -177,7 +177,7 @@ class EmailTemplateController extends Controller
             }
         }
 
-        return ApiResponse::success(['created' => $created], '默认模板初始化完成');
+        return ApiResponse::success(['created' => $created], __('app.api.email_tpl.defaults_init'));
     }
 
     /**
@@ -288,7 +288,7 @@ class EmailTemplateController extends Controller
                 'body_html' => '<h2>密码重置</h2>
 <p>{{user_name}}，您好：</p>
 <p>我们收到了您的密码重置请求。</p>
-<p><a href="{{reset_url}}" style="display:inline-block;padding:10px 24px;background:#409EFF;color:#fff;text-decoration:none;border-radius:4px;">重置密码</a></p>
+<p><a href="{{reset_url}}" style="display:inline-block;padding:10px 24px;background:#0f172a;color:#fff;text-decoration:none;border-radius:4px;">重置密码</a></p>
 <p>如果按钮无法点击，请复制以下链接到浏览器：</p>
 <p><code>{{reset_url}}</code></p>
 <p>此链接有效期为 60 分钟。</p>
@@ -311,7 +311,7 @@ class EmailTemplateController extends Controller
 <li>查看产品和订阅</li>
 <li>管理设备绑定</li>
 </ul>
-<p><a href="{{login_url}}" style="display:inline-block;padding:10px 24px;background:#409EFF;color:#fff;text-decoration:none;border-radius:4px;">立即登录</a></p>
+<p><a href="{{login_url}}" style="display:inline-block;padding:10px 24px;background:#0f172a;color:#fff;text-decoration:none;border-radius:4px;">立即登录</a></p>
 <p>{{site_name}} 团队</p>',
                 'locale' => 'zh-CN',
                 'variables' => ['user_name', 'login_url'],
@@ -385,7 +385,7 @@ class EmailTemplateController extends Controller
 <li>View products and subscriptions</li>
 <li>Manage device bindings</li>
 </ul>
-<p><a href="{{login_url}}" style="display:inline-block;padding:10px 24px;background:#409EFF;color:#fff;text-decoration:none;border-radius:4px;">Login Now</a></p>
+<p><a href="{{login_url}}" style="display:inline-block;padding:10px 24px;background:#0f172a;color:#fff;text-decoration:none;border-radius:4px;">Login Now</a></p>
 <p>{{site_name}} Team</p>',
                 'locale' => 'en',
                 'variables' => ['user_name', 'login_url'],

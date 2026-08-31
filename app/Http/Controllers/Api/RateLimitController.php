@@ -64,7 +64,7 @@ class RateLimitController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '限流规则已创建',
+            'message' => __('app.controller_compat.rate_limit_msg_67'),
             'data' => $rule,
         ], 201);
     }
@@ -94,7 +94,7 @@ class RateLimitController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '限流规则已更新',
+            'message' => __('app.controller_compat.rate_limit_msg_97'),
             'data' => $rateLimitRule->fresh(),
         ]);
     }
@@ -108,7 +108,7 @@ class RateLimitController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '限流规则已删除',
+            'message' => __('app.controller_compat.rate_limit_msg_111'),
         ]);
     }
 
@@ -131,13 +131,13 @@ class RateLimitController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                ['id' => 'ip', 'name' => 'IP 地址'],
+                ['id' => 'ip', 'name' => __('app.controller_compat.rate_limit_ip')],
                 ['id' => 'license', 'name' => 'License Key'],
-                ['id' => 'product', 'name' => '产品'],
-                ['id' => 'tenant', 'name' => '租户'],
-                ['id' => 'api', 'name' => 'API 路径'],
+                ['id' => 'product', 'name' => __('app.controller_compat.rate_limit_msg_136')],
+                ['id' => 'tenant', 'name' => __('app.controller_compat.rate_limit_msg_137')],
+                ['id' => 'api', 'name' => __('app.controller_compat.rate_limit_api')],
                 ['id' => 'api_key', 'name' => 'API Key'],
-                ['id' => 'global', 'name' => '全局'],
+                ['id' => 'global', 'name' => __('app.controller_compat.rate_limit_msg_140')],
             ],
         ]);
     }

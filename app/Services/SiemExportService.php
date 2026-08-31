@@ -114,7 +114,7 @@ class SiemExportService
 
         $logs = $this->fetchAuditLogs($connection->tenant_id, $queryFilters, $connection->max_batch_size);
         if (empty($logs)) {
-            return ['pushed' => 0, 'message' => '没有待推送的日志'];
+            return ['pushed' => 0, 'message' => __('app.common.no_pending_logs')];
         }
 
         $payload = $this->convertFormat($logs, $connection->format, $connection->field_mappings);

@@ -33,7 +33,7 @@ class ResaleController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.resale.validation_failed'), $validator->errors()->toArray());
         }
 
         try {
@@ -43,7 +43,7 @@ class ResaleController extends Controller
                 $request->user()->customer_id ?? $request->input('seller_customer_id'),
                 $validator->validated(),
             );
-            return ApiResponse::success($listing, '挂牌已创建');
+            return ApiResponse::success($listing, __('app.api.resale.listing_created'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('CREATE_FAILED', $e->getMessage(), 400);
         }
@@ -64,12 +64,12 @@ class ResaleController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.resale.validation_failed'), $validator->errors()->toArray());
         }
 
         try {
             $listing = $this->resaleService->updateListing($id, $validator->validated());
-            return ApiResponse::success($listing, '挂牌已更新');
+            return ApiResponse::success($listing, __('app.api.resale.listing_updated'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('UPDATE_FAILED', $e->getMessage(), 400);
         }
@@ -82,7 +82,7 @@ class ResaleController extends Controller
     {
         try {
             $listing = $this->resaleService->publishListing($id);
-            return ApiResponse::success($listing, '挂牌已提交审核');
+            return ApiResponse::success($listing, __('app.api.resale.listing_submitted'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('PUBLISH_FAILED', $e->getMessage(), 400);
         }
@@ -99,7 +99,7 @@ class ResaleController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.resale.validation_failed'), $validator->errors()->toArray());
         }
 
         try {
@@ -109,7 +109,7 @@ class ResaleController extends Controller
                 $request->input('action'),
                 $request->input('notes'),
             );
-            $msg = $request->input('action') === 'approve' ? '挂牌已通过审核' : '挂牌未通过审核';
+            $msg = $request->input('action') === 'approve' ? __('app.api.resale.listing_approved') : __('app.api.resale.listing_rejected');
             return ApiResponse::success($listing, $msg);
         } catch (\RuntimeException $e) {
             return ApiResponse::error('REVIEW_FAILED', $e->getMessage(), 400);
@@ -123,7 +123,7 @@ class ResaleController extends Controller
     {
         try {
             $listing = $this->resaleService->cancelListing($id);
-            return ApiResponse::success($listing, '挂牌已取消');
+            return ApiResponse::success($listing, __('app.api.resale.listing_cancelled'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('CANCEL_FAILED', $e->getMessage(), 400);
         }
@@ -154,7 +154,7 @@ class ResaleController extends Controller
             $listing = $this->resaleService->getListingDetail($id);
             return ApiResponse::success($listing);
         } catch (\Exception $e) {
-            return ApiResponse::error('NOT_FOUND', '挂牌不存在', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.resale.listing_not_found'), 404);
         }
     }
 
@@ -185,7 +185,7 @@ class ResaleController extends Controller
                 $listingId,
                 $request->user()->customer_id ?? $request->input('buyer_customer_id'),
             );
-            return ApiResponse::success($transaction, '交易已创建，请完成付款');
+            return ApiResponse::success($transaction, __('app.api.resale.transaction_created'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('PURCHASE_FAILED', $e->getMessage(), 400);
         }
@@ -202,7 +202,7 @@ class ResaleController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.resale.validation_failed'), $validator->errors()->toArray());
         }
 
         try {
@@ -211,7 +211,7 @@ class ResaleController extends Controller
                 $request->input('payment_method'),
                 $request->input('payment_reference'),
             );
-            return ApiResponse::success($transaction, '付款已确认');
+            return ApiResponse::success($transaction, __('app.api.resale.payment_confirmed'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('PAYMENT_FAILED', $e->getMessage(), 400);
         }
@@ -224,7 +224,7 @@ class ResaleController extends Controller
     {
         try {
             $transaction = $this->resaleService->sellerConfirm($id, $request->user()->id);
-            return ApiResponse::success($transaction, '卖家已确认');
+            return ApiResponse::success($transaction, __('app.api.resale.seller_confirmed'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('CONFIRM_FAILED', $e->getMessage(), 400);
         }
@@ -237,7 +237,7 @@ class ResaleController extends Controller
     {
         try {
             $transaction = $this->resaleService->executeTransfer($id, $request->user()->id);
-            return ApiResponse::success($transaction, 'License 所有权已转移');
+            return ApiResponse::success($transaction, __('app.api.resale.ownership_transferred'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('TRANSFER_FAILED', $e->getMessage(), 400);
         }
@@ -250,7 +250,7 @@ class ResaleController extends Controller
     {
         try {
             $transaction = $this->resaleService->cancelTransaction($id, $request->user()->id);
-            return ApiResponse::success($transaction, '交易已取消');
+            return ApiResponse::success($transaction, __('app.api.resale.transaction_cancelled'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('CANCEL_FAILED', $e->getMessage(), 400);
         }

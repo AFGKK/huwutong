@@ -39,7 +39,7 @@ class HealthScoreController extends Controller
         $healthScore = $this->healthScoreService->calculateForCustomer($customer);
 
         return response()->json([
-            'message' => '健康分计算完成',
+            'message' => __('app.controller_compat.health_score_msg_42'),
             'data' => $healthScore,
         ]);
     }

@@ -46,12 +46,12 @@ class ResaleService
 
         // 验证 License 可转让
         if (!$this->canBeResold($license)) {
-            throw new \RuntimeException('该 License 不符合转售条件');
+            throw new \RuntimeException(__('app.api.service_resale.not_eligible'));
         }
 
         // 验证 License 属于卖家
         if ($license->customer_id !== $sellerCustomerId) {
-            throw new \RuntimeException('该 License 不属于当前客户');
+            throw new \RuntimeException(__('app.api.service_resale.not_owner'));
         }
 
         // 检查是否已挂牌
@@ -61,7 +61,7 @@ class ResaleService
             ->first();
 
         if ($existing) {
-            throw new \RuntimeException('该 License 已有进行中的挂牌');
+            throw new \RuntimeException(__('app.api.service_resale.already_listed'));
         }
 
         return ResaleListing::create([
@@ -88,7 +88,7 @@ class ResaleService
         $listing = ResaleListing::findOrFail($listingId);
 
         if ($listing->status !== ResaleListing::STATUS_DRAFT) {
-            throw new \RuntimeException('仅草稿状态的挂牌可以编辑');
+            throw new \RuntimeException(__('app.api.service_resale.not_draft'));
         }
 
         $listing->update($data);
@@ -103,7 +103,7 @@ class ResaleService
         $listing = ResaleListing::findOrFail($listingId);
 
         if ($listing->status !== ResaleListing::STATUS_DRAFT) {
-            throw new \RuntimeException('仅草稿状态的挂牌可以发布');
+            throw new \RuntimeException(__('app.api.service_resale.not_draft_publish'));
         }
 
         // 可以配置是否需要审核（按租户配置）
@@ -125,7 +125,7 @@ class ResaleService
         $listing = ResaleListing::findOrFail($listingId);
 
         if ($listing->status !== ResaleListing::STATUS_PENDING_REVIEW) {
-            throw new \RuntimeException('该挂牌不在待审核状态');
+            throw new \RuntimeException(__('app.api.service_resale.not_pending_review'));
         }
 
         if ($action === 'approve') {
@@ -144,7 +144,7 @@ class ResaleService
                 'review_notes' => $notes,
             ]);
         } else {
-            throw new \InvalidArgumentException('操作必须为 approve 或 reject');
+            throw new \InvalidArgumentException(__('app.api.service_resale.invalid_approve_action'));
         }
 
         return $listing->fresh();
@@ -158,7 +158,7 @@ class ResaleService
         $listing = ResaleListing::findOrFail($listingId);
 
         if (in_array($listing->status, [ResaleListing::STATUS_SOLD, ResaleListing::STATUS_CANCELLED])) {
-            throw new \RuntimeException('该挂牌已结束，无法取消');
+            throw new \RuntimeException(__('app.api.service_resale.listing_ended'));
         }
 
         $listing->update(['status' => ResaleListing::STATUS_CANCELLED]);
@@ -267,7 +267,7 @@ class ResaleService
         $listing = ResaleListing::findOrFail($listingId);
 
         if (!$listing->isAvailable()) {
-            throw new \RuntimeException('该挂牌暂不可购买');
+            throw new \RuntimeException(__('app.api.service_resale.cannot_purchase'));
         }
 
         return DB::transaction(function () use ($listing, $buyerCustomerId) {
@@ -301,7 +301,7 @@ class ResaleService
         $transaction = ResaleTransaction::findOrFail($transactionId);
 
         if ($transaction->status !== ResaleTransaction::STATUS_PENDING_PAYMENT) {
-            throw new \RuntimeException('该交易不在待付款状态');
+            throw new \RuntimeException(__('app.api.service_resale.not_pending_payment'));
         }
 
         $transaction->update([
@@ -322,11 +322,11 @@ class ResaleService
         $transaction = ResaleTransaction::with('listing')->findOrFail($transactionId);
 
         if ($transaction->status !== ResaleTransaction::STATUS_PAID) {
-            throw new \RuntimeException('该交易未完成付款');
+            throw new \RuntimeException(__('app.api.service_resale.payment_incomplete'));
         }
 
         if ($transaction->confirmed_by_seller) {
-            throw new \RuntimeException('卖家已确认');
+            throw new \RuntimeException(__('app.api.service_resale.seller_confirmed'));
         }
 
         $transaction->update([
@@ -348,7 +348,7 @@ class ResaleService
                 ->findOrFail($transactionId);
 
             if ($transaction->status !== ResaleTransaction::STATUS_PENDING_TRANSFER) {
-                throw new \RuntimeException('该交易未进入转移阶段');
+                throw new \RuntimeException(__('app.api.service_resale.not_transfer_stage'));
             }
 
             $listing = $transaction->listing;
@@ -364,7 +364,7 @@ class ResaleService
                 sourceCustomerId: $sourceCustomerId,
                 targetCustomerId: $targetCustomerId,
                 requestedBy: $adminUserId,
-                notes: "二级市场交易 #{$transaction->reference}",
+                notes: __('app.api.service_resale.transaction_note', ['ref' => $transaction->reference]),
             );
 
             // 自动确认并执行（管理员操作）
@@ -407,7 +407,7 @@ class ResaleService
             $transaction = ResaleTransaction::with('listing')->findOrFail($transactionId);
 
             if (in_array($transaction->status, [ResaleTransaction::STATUS_COMPLETED, ResaleTransaction::STATUS_REFUNDED, ResaleTransaction::STATUS_CANCELLED])) {
-                throw new \RuntimeException('该交易已结束，无法取消');
+                throw new \RuntimeException(__('app.api.service_resale.transaction_ended'));
             }
 
             $transaction->update(['status' => ResaleTransaction::STATUS_CANCELLED]);

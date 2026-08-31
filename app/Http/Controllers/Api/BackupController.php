@@ -64,13 +64,13 @@ class BackupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '数据库备份完成',
+                'message' => __('app.controller_compat.database_backup_complete'),
                 'data' => $record,
             ], 201);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '备份失败: ' . $e->getMessage(),
+                'message' => __('app.controller_compat.backup_failed') . $e->getMessage(),
             ], 500);
         }
     }
@@ -87,13 +87,13 @@ class BackupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '文件备份完成',
+                'message' => __('app.controller_compat.file_backup_complete'),
                 'data' => $record,
             ], 201);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '备份失败: ' . $e->getMessage(),
+                'message' => __('app.controller_compat.backup_failed') . $e->getMessage(),
             ], 500);
         }
     }
@@ -112,7 +112,7 @@ class BackupController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '下载失败: ' . $e->getMessage(),
+                'message' => __('app.controller_compat.download_failed') . $e->getMessage(),
             ], 404);
         }
     }
@@ -139,7 +139,7 @@ class BackupController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '备份记录已删除',
+            'message' => __('app.controller_compat.backup_record_deleted'),
         ]);
     }
 
@@ -153,12 +153,12 @@ class BackupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '数据库已从备份恢复',
+                'message' => __('app.controller_compat.database_restored'),
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '恢复失败: ' . $e->getMessage(),
+                'message' => __('app.controller_compat.restore_failed') . $e->getMessage(),
             ], 500);
         }
     }

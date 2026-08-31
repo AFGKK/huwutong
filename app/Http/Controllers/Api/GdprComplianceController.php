@@ -43,7 +43,7 @@ class GdprComplianceController extends Controller
             $validated['request_data'] ?? []
         );
 
-        return ApiResponse::success($this->formatRequest($gdprRequest), 'DSR 请求已提交');
+        return ApiResponse::success($this->formatRequest($gdprRequest), __('app.api.gdpr.dsr_submitted'));
     }
 
     /**
@@ -69,12 +69,12 @@ class GdprComplianceController extends Controller
     public function download(GdprDataRequest $request): JsonResponse
     {
         if ($request->user_id !== auth()->id() && ! auth()->user()->isAdmin()) {
-            return ApiResponse::error('FORBIDDEN', '无权访问此文件', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.gdpr.forbidden'), 403);
         }
 
         $filePath = $this->gdprService->downloadExport($request);
         if (! $filePath) {
-            return ApiResponse::error('FILE_NOT_FOUND', '导出文件不存在或已过期', 404);
+            return ApiResponse::error('FILE_NOT_FOUND', __('app.api.gdpr.file_expired'), 404);
         }
 
         return response()->download($filePath);
@@ -131,7 +131,7 @@ class GdprComplianceController extends Controller
     public function process(GdprDataRequest $request): JsonResponse
     {
         if (! $request->isProcessable()) {
-            return ApiResponse::error('INVALID_STATUS', '该请求当前状态不可处理', 400);
+            return ApiResponse::error('INVALID_STATUS', __('app.api.gdpr.invalid_status'), 400);
         }
 
         $request->update(['processed_by' => auth()->id()]);
@@ -142,14 +142,14 @@ class GdprComplianceController extends Controller
                 GdprDataRequest::TYPE_EXPORT => $this->gdprService->processAccessRequest($request),
                 GdprDataRequest::TYPE_PORTABILITY => $this->gdprService->processPortabilityRequest($request),
                 GdprDataRequest::TYPE_ERASURE => $this->gdprService->processErasureRequest($request),
-                default => throw new \RuntimeException("不支持自动处理: {$request->type}"),
+                default => throw new \RuntimeException(__('app.api.gdpr.auto_not_supported', ['type' => $request->type])),
             };
 
             if ($result->isFailed()) {
-                return ApiResponse::error('PROCESS_FAILED', $result->admin_notes ?? '处理失败', 500);
+                return ApiResponse::error('PROCESS_FAILED', $result->admin_notes ?? __('app.api.gdpr.process_failed'), 500);
             }
 
-            return ApiResponse::success($this->formatRequest($result), '请求已处理完成');
+            return ApiResponse::success($this->formatRequest($result), __('app.api.gdpr.process_completed'));
         } catch (\Throwable $e) {
             return ApiResponse::error('PROCESS_ERROR', $e->getMessage(), 500);
         }
@@ -178,7 +178,7 @@ class GdprComplianceController extends Controller
 
         return ApiResponse::success(
             $this->formatRequest($request->fresh()),
-            $validated['action'] === 'approve' ? '请求已批准' : '请求已拒绝'
+            $validated['action'] === 'approve' ? __('app.api.gdpr.request_approved') : __('app.api.gdpr.request_rejected')
         );
     }
 
@@ -267,7 +267,7 @@ class GdprComplianceController extends Controller
             'status' => DataProcessingAgreement::STATUS_DRAFT,
         ]));
 
-        return ApiResponse::success($dpa, 'DPA 已创建');
+        return ApiResponse::success($dpa, __('app.api.gdpr.dpa_created'));
     }
 
     /**
@@ -278,7 +278,7 @@ class GdprComplianceController extends Controller
     public function updateDpa(Request $httpRequest, DataProcessingAgreement $dpa): JsonResponse
     {
         if ($dpa->status === DataProcessingAgreement::STATUS_PUBLISHED) {
-            return ApiResponse::error('CANNOT_UPDATE', '已发布的 DPA 不能编辑', 400);
+            return ApiResponse::error('CANNOT_UPDATE', __('app.api.gdpr.dpa_cannot_edit'), 400);
         }
 
         $validated = $httpRequest->validate([
@@ -299,7 +299,7 @@ class GdprComplianceController extends Controller
 
         $dpa->update($validated);
 
-        return ApiResponse::success($dpa->fresh(), 'DPA 已更新');
+        return ApiResponse::success($dpa->fresh(), __('app.api.gdpr.dpa_updated'));
     }
 
     /**
@@ -311,7 +311,7 @@ class GdprComplianceController extends Controller
     {
         try {
             $result = $this->gdprService->publishDpa($dpa->id);
-            return ApiResponse::success($result, 'DPA 已发布');
+            return ApiResponse::success($result, __('app.api.gdpr.dpa_published'));
         } catch (\Throwable $e) {
             return ApiResponse::error('PUBLISH_FAILED', $e->getMessage(), 400);
         }
@@ -326,12 +326,12 @@ class GdprComplianceController extends Controller
     {
         $tenantId = $httpRequest->user()->tenant_id;
         if (! $tenantId) {
-            return ApiResponse::error('NO_TENANT', '当前用户无关联租户', 400);
+            return ApiResponse::error('NO_TENANT', __('app.api.gdpr.no_tenant'), 400);
         }
 
         try {
             $signature = $this->gdprService->signDpa($dpa->id, $tenantId, $httpRequest->user()->id);
-            return ApiResponse::success($signature, 'DPA 已签署');
+            return ApiResponse::success($signature, __('app.api.gdpr.dpa_signed'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('SIGN_FAILED', $e->getMessage(), 400);
         }

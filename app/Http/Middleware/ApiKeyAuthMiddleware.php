@@ -93,7 +93,7 @@ class ApiKeyAuthMiddleware
 
         // 检查每日配额
         if (! $apiKey->hasDailyQuota()) {
-            return ApiResponse::error(ErrorCode::RATE_LIMITED, 'API Key 每日请求配额已用完', 429);
+            return ApiResponse::error(ErrorCode::RATE_LIMITED, __('app.middleware.api_key_daily_quota_exhausted'), 429);
         }
 
         // 记录使用

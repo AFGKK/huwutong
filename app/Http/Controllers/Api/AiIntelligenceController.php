@@ -63,7 +63,7 @@ class AiIntelligenceController extends Controller
     public function clearAdaptiveCache(Request $request): JsonResponse
     {
         $this->adaptiveSecurity->clearCache($request->user()->tenant_id);
-        return ApiResponse::success(null, '缓存已清除');
+        return ApiResponse::success(null, __('app.api.ai_intelligence.cache_cleared'));
     }
 
     /**

@@ -483,7 +483,7 @@ class HealthScoreService
                 'type' => 'low_activation',
                 'dimension' => 'activation',
                 'severity' => 'high',
-                'message' => 'License 激活率低，客户可能未充分使用产品',
+                'message' => __('app.health_score.warnings.low_activation'),
             ];
         }
 
@@ -492,7 +492,7 @@ class HealthScoreService
                 'type' => 'renewal_risk',
                 'dimension' => 'renewal',
                 'severity' => 'critical',
-                'message' => '续费健康度差，存在高流失风险',
+                'message' => __('app.health_score.warnings.renewal_risk'),
             ];
         }
 
@@ -504,7 +504,7 @@ class HealthScoreService
                 'type' => 'expired_subscription',
                 'dimension' => 'renewal',
                 'severity' => 'critical',
-                'message' => "有 {$expiredSubs} 个订阅已过期",
+                'message' => __('app.health_score.warnings.expired_subscription', ['count' => $expiredSubs]),
             ];
         }
 
@@ -513,7 +513,7 @@ class HealthScoreService
                 'type' => 'poor_ticket_experience',
                 'dimension' => 'ticket',
                 'severity' => 'medium',
-                'message' => '工单处理体验差，近30天有未解决工单',
+                'message' => __('app.health_score.warnings.poor_ticket'),
             ];
         }
 
@@ -522,7 +522,7 @@ class HealthScoreService
                 'type' => 'device_security_risk',
                 'dimension' => 'device',
                 'severity' => 'high',
-                'message' => '设备安全分低，存在黑名单或虚拟设备',
+                'message' => __('app.health_score.warnings.device_security'),
             ];
         }
 
@@ -531,7 +531,7 @@ class HealthScoreService
                 'type' => 'payment_overdue',
                 'dimension' => 'payment',
                 'severity' => 'critical',
-                'message' => '存在逾期未付账单',
+                'message' => __('app.health_score.warnings.payment_overdue'),
             ];
         }
 
@@ -545,7 +545,7 @@ class HealthScoreService
                 'type' => 'unresolved_high_priority',
                 'dimension' => 'ticket',
                 'severity' => 'high',
-                'message' => "有 {$highPriorityOpen} 个高优先级工单未解决",
+                'message' => __('app.health_score.warnings.unresolved_priority', ['count' => $highPriorityOpen]),
             ];
         }
 
@@ -562,43 +562,43 @@ class HealthScoreService
         foreach ($warnings as $w) {
             $suggestion = match ($w['type']) {
                 'low_activation' => [
-                    'action' => '发送使用引导',
-                    'detail' => '推送产品使用教程/最佳实践，安排客户成功经理一对一沟通',
+                    'action' => __('app.health_score.suggestions.low_activation_action'),
+                    'detail' => __('app.health_score.suggestions.low_activation_detail'),
                     'priority' => 'medium',
                 ],
                 'renewal_risk' => [
-                    'action' => '主动续费跟进',
-                    'detail' => '提前联系客户了解续费意向，提供优惠方案或年度折扣',
+                    'action' => __('app.health_score.suggestions.renewal_risk_action'),
+                    'detail' => __('app.health_score.suggestions.renewal_risk_detail'),
                     'priority' => 'high',
                 ],
                 'expired_subscription' => [
-                    'action' => '流失客户挽回',
-                    'detail' => '发送专属回归优惠，了解流失原因，安排销售跟进',
+                    'action' => __('app.health_score.suggestions.expired_sub_action'),
+                    'detail' => __('app.health_score.suggestions.expired_sub_detail'),
                     'priority' => 'high',
                 ],
                 'poor_ticket_experience' => [
-                    'action' => '工单回访',
-                    'detail' => '主动回访未关闭工单客户，加速问题解决流程',
+                    'action' => __('app.health_score.suggestions.poor_ticket_action'),
+                    'detail' => __('app.health_score.suggestions.poor_ticket_detail'),
                     'priority' => 'medium',
                 ],
                 'device_security_risk' => [
-                    'action' => '设备安全审查',
-                    'detail' => '通知客户存在异常设备，建议检查并清理黑名单设备',
+                    'action' => __('app.health_score.suggestions.device_security_action'),
+                    'detail' => __('app.health_score.suggestions.device_security_detail'),
                     'priority' => 'high',
                 ],
                 'payment_overdue' => [
-                    'action' => '催缴通知',
-                    'detail' => '发送逾期账单提醒，提供延期支付选项',
+                    'action' => __('app.health_score.suggestions.payment_overdue_action'),
+                    'detail' => __('app.health_score.suggestions.payment_overdue_detail'),
                     'priority' => 'high',
                 ],
                 'unresolved_high_priority' => [
-                    'action' => '紧急工单处理',
-                    'detail' => '升级高优先级工单，安排技术支持优先处理',
+                    'action' => __('app.health_score.suggestions.unresolved_priority_action'),
+                    'detail' => __('app.health_score.suggestions.unresolved_priority_detail'),
                     'priority' => 'critical',
                 ],
                 default => [
-                    'action' => '定期回访',
-                    'detail' => '安排常规客户满意度回访',
+                    'action' => __('app.health_score.suggestions.default_action'),
+                    'detail' => __('app.health_score.suggestions.default_detail'),
                     'priority' => 'low',
                 ],
             };
@@ -692,27 +692,27 @@ class HealthScoreService
     protected function generateChurnRecommendations(string $riskLevel, array $signals): array
     {
         if ($riskLevel === ChurnPrediction::RISK_LOW) {
-            return [['action' => '常规维护', 'detail' => '保持定期沟通，无明显流失风险']];
+            return [['action' => __('app.health_score.churn_recommendations.low_maintain_action'), 'detail' => __('app.health_score.churn_recommendations.low_maintain_detail')]];
         }
 
         $recommendations = [];
 
         if (in_array('renewal_score_low', $signals)) {
-            $recommendations[] = ['action' => '续费优惠', 'detail' => '提供限时续费折扣或赠送额外服务周期'];
+            $recommendations[] = ['action' => __('app.health_score.churn_recommendations.renewal_discount_action'), 'detail' => __('app.health_score.churn_recommendations.renewal_discount_detail')];
         }
         if (in_array('payment_overdue', $signals)) {
-            $recommendations[] = ['action' => '支付协商', 'detail' => '联系客户协商分期付款或延期方案'];
+            $recommendations[] = ['action' => __('app.health_score.churn_recommendations.payment_negotiate_action'), 'detail' => __('app.health_score.churn_recommendations.payment_negotiate_detail')];
         }
         if (in_array('low_activation', $signals)) {
-            $recommendations[] = ['action' => '启用引导', 'detail' => '安排产品培训，帮助客户充分使用产品功能'];
+            $recommendations[] = ['action' => __('app.health_score.churn_recommendations.onboard_action'), 'detail' => __('app.health_score.churn_recommendations.onboard_detail')];
         }
         if (in_array('ticket_frustration', $signals)) {
-            $recommendations[] = ['action' => '客户成功', 'detail' => '安排客户成功经理回访，解决产品使用障碍'];
+            $recommendations[] = ['action' => __('app.health_score.churn_recommendations.customer_success_action'), 'detail' => __('app.health_score.churn_recommendations.customer_success_detail')];
         }
 
         if ($riskLevel === ChurnPrediction::RISK_CRITICAL || $riskLevel === ChurnPrediction::RISK_HIGH) {
-            $recommendations[] = ['action' => '高层介入', 'detail' => '安排销售总监或客户成功总监直接联系'];
-            $recommendations[] = ['action' => '满意度调研', 'detail' => '发送 NPS 问卷，了解真实流失原因'];
+            $recommendations[] = ['action' => __('app.health_score.churn_recommendations.exec_intervention_action'), 'detail' => __('app.health_score.churn_recommendations.exec_intervention_detail')];
+            $recommendations[] = ['action' => __('app.health_score.churn_recommendations.nps_survey_action'), 'detail' => __('app.health_score.churn_recommendations.nps_survey_detail')];
         }
 
         return $recommendations;

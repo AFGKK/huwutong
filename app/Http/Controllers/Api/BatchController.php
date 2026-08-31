@@ -87,7 +87,7 @@ class BatchController extends Controller
         );
 
         return response()->json([
-            'message' => "批量操作完成: {$batchJob->success_count} 成功, {$batchJob->fail_count} 失败",
+            'message' => __('app.api.batch.completed', ['success' => $batchJob->success_count, 'failed' => $batchJob->fail_count]),
             'data' => $batchJob,
         ]);
     }
@@ -130,7 +130,7 @@ class BatchController extends Controller
         try {
             $result = $this->batchService->undo($batchJob);
             return response()->json([
-                'message' => "撤销完成: {$result['restored']} 项已恢复",
+                'message' => __('app.api.batch.rollback_done', ['restored' => $result['restored']]),
                 'data' => $result,
             ]);
         } catch (\InvalidArgumentException $e) {
@@ -149,7 +149,7 @@ class BatchController extends Controller
         try {
             $path = $this->batchService->export($batchJob, $format);
             return response()->json([
-                'message' => '导出完成',
+                'message' => __('app.api.batch.export_done'),
                 'data' => ['path' => $path],
             ]);
         } catch (\Throwable $e) {
@@ -163,14 +163,14 @@ class BatchController extends Controller
     public function operationTypes(): JsonResponse
     {
         $types = [
-            ['type' => 'batch_activate', 'label' => '批量激活', 'targets' => ['licenses', 'subscriptions']],
-            ['type' => 'batch_renew', 'label' => '批量续期', 'targets' => ['licenses', 'subscriptions']],
-            ['type' => 'batch_suspend', 'label' => '批量挂起', 'targets' => ['licenses', 'subscriptions']],
-            ['type' => 'batch_revoke', 'label' => '批量吊销', 'targets' => ['licenses']],
-            ['type' => 'batch_delete', 'label' => '批量删除', 'targets' => ['licenses', 'subscriptions', 'customers', 'invoices', 'tickets']],
-            ['type' => 'batch_change_status', 'label' => '批量变更状态', 'targets' => ['licenses', 'subscriptions', 'customers', 'invoices', 'tickets']],
-            ['type' => 'batch_change_plan', 'label' => '批量变更计划', 'targets' => ['subscriptions']],
-            ['type' => 'batch_export', 'label' => '批量导出', 'targets' => ['licenses', 'subscriptions', 'customers', 'invoices', 'tickets']],
+            ['type' => 'batch_activate', 'label' => __('app.api.batch.type_batch_activate'), 'targets' => ['licenses', 'subscriptions']],
+            ['type' => 'batch_renew', 'label' => __('app.api.batch.type_batch_renew'), 'targets' => ['licenses', 'subscriptions']],
+            ['type' => 'batch_suspend', 'label' => __('app.api.batch.type_batch_suspend'), 'targets' => ['licenses', 'subscriptions']],
+            ['type' => 'batch_revoke', 'label' => __('app.api.batch.type_batch_revoke'), 'targets' => ['licenses']],
+            ['type' => 'batch_delete', 'label' => __('app.api.batch.type_batch_delete'), 'targets' => ['licenses', 'subscriptions', 'customers', 'invoices', 'tickets']],
+            ['type' => 'batch_change_status', 'label' => __('app.api.batch.type_batch_change_status'), 'targets' => ['licenses', 'subscriptions', 'customers', 'invoices', 'tickets']],
+            ['type' => 'batch_change_plan', 'label' => __('app.api.batch.type_batch_change_plan'), 'targets' => ['subscriptions']],
+            ['type' => 'batch_export', 'label' => __('app.api.batch.type_batch_export'), 'targets' => ['licenses', 'subscriptions', 'customers', 'invoices', 'tickets']],
         ];
 
         return response()->json(['data' => $types]);

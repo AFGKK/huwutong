@@ -22,9 +22,9 @@ class BlogPostPublished extends Mailable
     public function envelope(): Envelope
     {
         $prefix = match ($this->post->type) {
-            'changelog' => '[更新日志]',
-            'release_note' => '[发布说明]',
-            default => '[博客]',
+            'changelog' => __('app.mail.blog_update_log'),
+            'release_note' => __('app.mail.blog_release_note'),
+            default => __('app.mail.blog_default'),
         };
 
         return new Envelope(

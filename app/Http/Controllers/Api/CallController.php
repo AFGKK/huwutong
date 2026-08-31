@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ConversationMessage;
 use App\Models\ConversationParticipant;
 use App\Models\UserConversation;
+use App\Services\WebrtcConfigService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -33,7 +34,7 @@ class CallController extends Controller
         $calleeId = (int) $request->input('callee_id');
 
         if ($myId === $calleeId) {
-            return ApiResponse::error('SELF_CALL', '不能呼叫自己', 400);
+            return ApiResponse::error('SELF_CALL', __('app.api.call.cannot_self'), 400);
         }
 
         // 检查是否已有进行中的通话
@@ -45,7 +46,7 @@ class CallController extends Controller
             ->first();
 
         if ($activeCall) {
-            return ApiResponse::error('CALL_EXISTS', '已有进行中的通话', 409);
+            return ApiResponse::error('CALL_EXISTS', __('app.api.call.already_in_call'), 409);
         }
 
         $convId = $request->input('conversation_id');
@@ -61,7 +62,7 @@ class CallController extends Controller
             } else {
                 // 创建临时通话会话
                 $conv = UserConversation::create([
-                    'name' => '通话',
+                    'name' => __('app.api.call.conv_name'),
                     'type' => 'private',
                     'created_by' => $myId,
                 ]);
@@ -86,7 +87,7 @@ class CallController extends Controller
         ConversationMessage::create([
             'conversation_id' => $convId,
             'sender_id' => $myId,
-            'content' => ($request->input('call_type') === 'video' ? '📹' : '📞') . ' 发起' . ($request->input('call_type') === 'video' ? '视频' : '语音') . '通话',
+            'content' => $request->input('call_type') === 'video' ? __('app.api.call.start_video') : __('app.api.call.start_voice'),
             'message_type' => 'text',
             'client_msg_id' => 'call-' . uniqid(),
         ]);
@@ -95,7 +96,7 @@ class CallController extends Controller
         event(new CallIncoming(
             $callLog->id,
             $myId,
-            $caller->name ?? '未知',
+            $caller->name ?? __('app.api.call.unknown'),
             $calleeId,
             $callLog->call_type,
             $convId,
@@ -108,7 +109,7 @@ class CallController extends Controller
             'callee_id' => $calleeId,
             'call_type' => $callLog->call_type,
             'status' => $callLog->status,
-        ], '呼叫已发起', 201);
+        ], __('app.api.call.initiated'), 201);
     }
 
     /**
@@ -122,21 +123,21 @@ class CallController extends Controller
         $myId = auth()->id();
 
         if ($call->callee_id !== $myId) {
-            return ApiResponse::error('FORBIDDEN', '你不是被叫方', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.call.not_callee'), 403);
         }
 
         if ($call->status !== 'calling') {
-            return ApiResponse::error('INVALID_STATUS', '通话状态已变更', 400);
+            return ApiResponse::error('INVALID_STATUS', __('app.api.call.status_changed'), 400);
         }
 
         $action = $request->input('action');
 
         if ($action === 'accept') {
             $call->update(['status' => 'connected']);
-            return ApiResponse::success(['call_id' => $callId, 'status' => 'connected'], '已接听');
+            return ApiResponse::success(['call_id' => $callId, 'status' => 'connected'], __('app.api.call.answered'));
         } else {
             $call->update(['status' => 'rejected', 'ended_at' => now()]);
-            return ApiResponse::success(['call_id' => $callId, 'status' => 'rejected'], '已拒绝');
+            return ApiResponse::success(['call_id' => $callId, 'status' => 'rejected'], __('app.api.call.rejected'));
         }
     }
 
@@ -149,7 +150,7 @@ class CallController extends Controller
         $myId = auth()->id();
 
         if ($call->caller_id !== $myId && $call->callee_id !== $myId) {
-            return ApiResponse::error('FORBIDDEN', '你不是通话参与者', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.call.not_participant'), 403);
         }
 
         $now = now();
@@ -165,7 +166,7 @@ class CallController extends Controller
             'call_id' => $callId,
             'duration' => $duration,
             'status' => 'ended',
-        ], '通话已结束');
+        ], __('app.api.call.ended'));
     }
 
     /**
@@ -177,7 +178,7 @@ class CallController extends Controller
 
         $myId = auth()->id();
         if ($call->caller_id !== $myId && $call->callee_id !== $myId) {
-            return ApiResponse::error('FORBIDDEN', '你不是通话参与者', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.call.not_participant'), 403);
         }
 
         return ApiResponse::success($call);
@@ -197,7 +198,7 @@ class CallController extends Controller
         $myId = auth()->id();
 
         if ($call->caller_id !== $myId && $call->callee_id !== $myId) {
-            return ApiResponse::error('FORBIDDEN', '你不是通话参与者', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.call.not_participant'), 403);
         }
 
         $signalKey = "call_signal_{$callId}_{$request->input('type')}";
@@ -215,7 +216,7 @@ class CallController extends Controller
             \Illuminate\Support\Facades\Cache::put($signalKey, $payload, now()->addMinutes(5));
         }
 
-        return ApiResponse::success(null, '信令已发送');
+        return ApiResponse::success(null, __('app.api.call.signal_sent'));
     }
 
     /**
@@ -245,7 +246,18 @@ class CallController extends Controller
             return ApiResponse::success(['type' => $type, 'data' => $data]);
         }
 
-        return ApiResponse::success(null, '无新信令');
+        return ApiResponse::success(null, __('app.api.call.no_signal'));
+    }
+
+    /**
+     * WebRTC ICE 服务器配置（STUN/TURN）
+     */
+    public function iceServers(WebrtcConfigService $webrtc): JsonResponse
+    {
+        return ApiResponse::success([
+            'ice_servers' => $webrtc->getIceServers(),
+            'has_turn' => $webrtc->hasTurn(),
+        ]);
     }
 
     /**
@@ -262,13 +274,13 @@ class CallController extends Controller
             ->first();
 
         if (!$call) {
-            return ApiResponse::success(null, '无来电');
+            return ApiResponse::success(null, __('app.api.call.no_incoming'));
         }
 
         return ApiResponse::success([
             'call_id' => $call->id,
             'caller_id' => $call->caller_id,
-            'caller_name' => $call->caller->name ?? '未知',
+            'caller_name' => $call->caller->name ?? __('app.api.call.unknown'),
             'call_type' => $call->call_type,
             'conversation_id' => $call->conversation_id,
             'status' => $call->status,

@@ -120,7 +120,7 @@ class DomainOverviewController extends Controller
             );
         }
 
-        return ApiResponse::success(null, '平台域名配置已更新');
+        return ApiResponse::success(null, __("app.domain_overview.msg_abbebf1f"));
     }
 
     /**
@@ -136,7 +136,7 @@ class DomainOverviewController extends Controller
         $tenant->domain = $validated['domain'] ?? null;
         $tenant->save();
 
-        return ApiResponse::success($tenant, '租户域名已更新');
+        return ApiResponse::success($tenant, __("app.domain_overview.msg_ba060a68"));
     }
 
     /**
@@ -222,14 +222,14 @@ class DomainOverviewController extends Controller
         $ssl = $domain->sslCertificate;
 
         if (!$ssl) {
-            return ApiResponse::error('NOT_FOUND', '该域名未申请 SSL 证书', 404);
+            return ApiResponse::error('NOT_FOUND', __("app.domain_overview.msg_688551d8"), 404);
         }
 
         $ssl->status = 'renewing';
         $ssl->save();
 
         // 实际续期由 AcmeService 后台处理，此处仅触发标记
-        return ApiResponse::success(null, 'SSL 续期请求已提交');
+        return ApiResponse::success(null, __("app.domain_overview.msg_269dc962"));
     }
 
     /**
@@ -246,7 +246,7 @@ class DomainOverviewController extends Controller
             ->where('status', 'issued')
             ->update(['status' => 'renewing']);
 
-        return ApiResponse::success(['renewed' => $updated], "已提交 {$updated} 个 SSL 续期请求");
+        return ApiResponse::success(['renewed' => $updated], __("app.domain_overview.msg_372535d9"));
     }
 
     /**

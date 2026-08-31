@@ -25,7 +25,7 @@ class LicenseService
         $currentStatus = LicenseStatus::tryFrom($license->status);
 
         if (! $currentStatus) {
-            throw new \RuntimeException("未知的 License 状态: {$license->status}");
+            throw new \RuntimeException(__("app.license.msg_6ed9117f"));
         }
 
         // 校验状态转移是否合法

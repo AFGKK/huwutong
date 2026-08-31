@@ -111,7 +111,7 @@ class RefundEngineService
     {
         $assessment = $refund->riskAssessment;
         if (!$assessment) {
-            return ['executed' => false, 'message' => '尚未进行风控评估'];
+            return ['executed' => false, 'message' => __('app.refund_engine.not_assessed')];
         }
 
         $decision = $assessment->decision;
@@ -123,12 +123,12 @@ class RefundEngineService
             'require_review' => [
                 'executed' => false,
                 'action' => 'require_review',
-                'message' => '需人工审核',
+                'message' => __('app.refund_engine.require_review'),
                 'assessment_id' => $assessment->id,
             ],
             default => [
                 'executed' => false,
-                'message' => '未知决策类型',
+                'message' => __('app.refund_engine.unknown_decision'),
             ],
         };
     }
@@ -140,7 +140,7 @@ class RefundEngineService
     {
         $assessment = $refund->riskAssessment;
         if (!$assessment) {
-            throw new \RuntimeException('尚未进行风控评估');
+            throw new \RuntimeException(__('app.refund_engine.not_assessed'));
         }
 
         $assessment->update([
@@ -583,7 +583,7 @@ class RefundEngineService
         foreach ($matchedRules as $rule) {
             foreach ($rule['actions'] as $action) {
                 if (in_array($action['type'], ['auto_approve', 'auto_reject', 'require_review', 'partial_refund'])) {
-                    $reason = "规则匹配: {$rule['rule_name']}";
+                    $reason = __('app.refund_engine.rule_matched', ['name' => $rule['rule_name']]);
                     return ['action' => $action['type'], 'reason' => $reason];
                 }
             }
@@ -591,11 +591,11 @@ class RefundEngineService
 
         // 根据风险等级默认决策
         return match ($riskLevel) {
-            'low' => ['action' => 'auto_approve', 'reason' => '低风险，自动批准'],
-            'medium' => ['action' => 'auto_approve', 'reason' => '中等风险，自动批准（建议关注）'],
-            'high' => ['action' => 'require_review', 'reason' => '高风险，需人工审核'],
-            'critical' => ['action' => 'auto_reject', 'reason' => '极高风险，自动拒绝'],
-            default => ['action' => 'require_review', 'reason' => '无法判定，需人工审核'],
+            'low' => ['action' => 'auto_approve', 'reason' => __('app.refund_engine.risk_low')],
+            'medium' => ['action' => 'auto_approve', 'reason' => __('app.refund_engine.risk_medium')],
+            'high' => ['action' => 'require_review', 'reason' => __('app.refund_engine.risk_high')],
+            'critical' => ['action' => 'auto_reject', 'reason' => __('app.refund_engine.risk_critical')],
+            default => ['action' => 'require_review', 'reason' => __('app.refund_engine.risk_unknown')],
         };
     }
 
@@ -624,7 +624,7 @@ class RefundEngineService
         return [
             'executed' => true,
             'action' => 'approved',
-            'message' => '退款已自动批准',
+            'message' => __('app.refund_engine.auto_approved'),
         ];
     }
 
@@ -635,13 +635,13 @@ class RefundEngineService
     {
         $refund->update([
             'status' => 'failed',
-            'failure_reason' => '风控拒绝: ' . ($assessment->review_note ?? '系统自动拒绝'),
+            'failure_reason' => __('app.refund_engine.risk_decline_prefix', ['reason' => $assessment->review_note ?? __('app.refund_engine.system_auto_reject')]),
         ]);
 
         return [
             'executed' => true,
             'action' => 'rejected',
-            'message' => '退款已被风控拒绝',
+            'message' => __('app.refund_engine.auto_rejected'),
         ];
     }
 
@@ -657,7 +657,7 @@ class RefundEngineService
             'executed' => false,
             'action' => 'partial_refund',
             'recommended_amount' => round($recommendedAmount, 2),
-            'message' => "建议部分退款，推荐金额: {$recommendedAmount}",
+            'message' => __('app.refund_engine.partial_refund_msg', ['amount' => $recommendedAmount]),
         ];
     }
 }

@@ -71,7 +71,7 @@ class ReconciliationService
     {
         $channel = strtolower($channel);
         if (!in_array($channel, ReconciliationImport::CHANNELS, true)) {
-            throw new \InvalidArgumentException("不支持的支付渠道: {$channel}");
+throw new \InvalidArgumentException(__("app.reconciliation.unsupported_payment_channel", ['channel' => $channel]));
         }
 
         $filename = $file->getClientOriginalName();
@@ -159,13 +159,13 @@ class ReconciliationService
     {
         $handle = fopen($file->getRealPath(), 'r');
         if (!$handle) {
-            throw new \RuntimeException('无法读取CSV文件');
+            throw new \RuntimeException(__('app.reconciliation.reconciliation_708a516974'));
         }
 
         $headers = fgetcsv($handle);
         if (!$headers) {
             fclose($handle);
-            throw new \RuntimeException('CSV文件为空');
+            throw new \RuntimeException(__('app.reconciliation.reconciliation_2bc8fdc920'));
         }
 
         // 标准化表头
@@ -194,26 +194,26 @@ class ReconciliationService
     {
         return match ($channel) {
             'wechat' => [
-                'transaction_id' => $row['微信交易号'] ?? $row['transaction_id'] ?? null,
-                'order_id' => $row['商户订单号'] ?? $row['out_trade_no'] ?? null,
-                'amount' => (float) ($row['交易金额'] ?? $row['total_fee'] ?? $row['amount'] ?? 0),
-                'fee' => (float) ($row['手续费'] ?? $row['fee'] ?? 0),
+                'transaction_id' => $row[__('app.reconciliation.reconciliation_067319967f')] ?? $row['transaction_id'] ?? null,
+                'order_id' => $row[__('app.reconciliation.reconciliation_6518aeac44')] ?? $row['out_trade_no'] ?? null,
+                'amount' => (float) ($row[__('app.reconciliation.reconciliation_7184d3bf22')] ?? $row['total_fee'] ?? $row['amount'] ?? 0),
+                'fee' => (float) ($row[__('app.reconciliation.reconciliation_03c168e54a')] ?? $row['fee'] ?? 0),
                 'currency' => 'CNY',
-                'status' => $row['交易状态'] ?? $row['status'] ?? 'SUCCESS',
-                'transaction_time' => $row['交易时间'] ?? $row['time_end'] ?? null,
-                'payer_account' => $row['付款方'] ?? $row['openid'] ?? null,
-                'payee_account' => $row['收款方'] ?? null,
+                'status' => $row[__('app.reconciliation.reconciliation_209f633da1')] ?? $row['status'] ?? 'SUCCESS',
+                'transaction_time' => $row[__('app.reconciliation.reconciliation_f8de2c767b')] ?? $row['time_end'] ?? null,
+                'payer_account' => $row[__('app.reconciliation.reconciliation_d8246c331d')] ?? $row['openid'] ?? null,
+                'payee_account' => $row[__('app.reconciliation.reconciliation_57cbc9de9f')] ?? null,
             ],
             'alipay' => [
-                'transaction_id' => $row['支付宝交易号'] ?? $row['trade_no'] ?? null,
-                'order_id' => $row['商户订单号'] ?? $row['out_trade_no'] ?? null,
-                'amount' => (float) ($row['交易金额'] ?? $row['total_amount'] ?? $row['amount'] ?? 0),
-                'fee' => (float) ($row['手续费'] ?? $row['fee'] ?? 0),
+                'transaction_id' => $row[__('app.reconciliation.reconciliation_a1d79d0c63')] ?? $row['trade_no'] ?? null,
+                'order_id' => $row[__('app.reconciliation.reconciliation_6518aeac44')] ?? $row['out_trade_no'] ?? null,
+                'amount' => (float) ($row[__('app.reconciliation.reconciliation_7184d3bf22')] ?? $row['total_amount'] ?? $row['amount'] ?? 0),
+                'fee' => (float) ($row[__('app.reconciliation.reconciliation_03c168e54a')] ?? $row['fee'] ?? 0),
                 'currency' => 'CNY',
-                'status' => $row['交易状态'] ?? $row['trade_status'] ?? 'TRADE_SUCCESS',
-                'transaction_time' => $row['交易时间'] ?? $row['gmt_create'] ?? null,
-                'payer_account' => $row['付款方'] ?? $row['buyer_logon_id'] ?? null,
-                'payee_account' => $row['收款方'] ?? $row['seller_email'] ?? null,
+                'status' => $row[__('app.reconciliation.reconciliation_209f633da1')] ?? $row['trade_status'] ?? 'TRADE_SUCCESS',
+                'transaction_time' => $row[__('app.reconciliation.reconciliation_f8de2c767b')] ?? $row['gmt_create'] ?? null,
+                'payer_account' => $row[__('app.reconciliation.reconciliation_d8246c331d')] ?? $row['buyer_logon_id'] ?? null,
+                'payee_account' => $row[__('app.reconciliation.reconciliation_57cbc9de9f')] ?? $row['seller_email'] ?? null,
             ],
             'stripe' => [
                 'transaction_id' => $row['id'] ?? $row['charge_id'] ?? $row['transaction_id'] ?? null,
@@ -237,7 +237,7 @@ class ReconciliationService
                 'payer_account' => $row['From Email Address'] ?? $row['payer_email'] ?? null,
                 'payee_account' => $row['To Email Address'] ?? $row['receiver_email'] ?? null,
             ],
-            default => throw new \InvalidArgumentException("不支持的渠道: {$channel}"),
+default => throw new \InvalidArgumentException(__("app.reconciliation.unsupported_channel", ['channel' => $channel])),
         };
     }
 
@@ -372,7 +372,7 @@ class ReconciliationService
             'matched_order_id' => $order->id,
             'matched_order_no' => $order->order_no,
             'difference' => $difference,
-            'notes' => '手动匹配',
+            'notes' => __('app.reconciliation.reconciliation_c69a39e017'),
         ]);
 
         return $row->fresh();

@@ -22,7 +22,7 @@ class ApiGatewayController extends Controller
     {
         $data = $this->gatewayService->getDashboard();
 
-        return ApiResponse::success($data, 'API 网关仪表盘获取成功');
+        return ApiResponse::success($data, __('app.api.api_gateway.dashboard_fetched'));
     }
 
     /**
@@ -33,7 +33,7 @@ class ApiGatewayController extends Controller
     {
         $data = $this->gatewayService->healthCheck();
 
-        return ApiResponse::success($data, '网关健康检查完成');
+        return ApiResponse::success($data, __('app.api.api_gateway.health_check_done'));
     }
 
     /**
@@ -44,7 +44,7 @@ class ApiGatewayController extends Controller
     {
         $data = $this->gatewayService->getRoutes();
 
-        return ApiResponse::success($data, '路由列表获取成功');
+        return ApiResponse::success($data, __('app.api.api_gateway.routes_fetched'));
     }
 
     /**
@@ -55,7 +55,7 @@ class ApiGatewayController extends Controller
     {
         $result = $this->gatewayService->syncRoutes();
 
-        return ApiResponse::success($result, $result['success'] ? '路由同步成功' : '路由同步部分失败');
+        return ApiResponse::success($result, $result['success'] ? __('app.api.api_gateway.routes_synced') : __('app.api.api_gateway.routes_synced_partial'));
     }
 
     /**
@@ -66,7 +66,7 @@ class ApiGatewayController extends Controller
     {
         $data = $this->gatewayService->getServices();
 
-        return ApiResponse::success($data, '服务列表获取成功');
+        return ApiResponse::success($data, __('app.api.api_gateway.services_fetched'));
     }
 
     /**
@@ -77,7 +77,7 @@ class ApiGatewayController extends Controller
     {
         $data = $this->gatewayService->getUpstreams();
 
-        return ApiResponse::success($data, 'Upstream 列表获取成功');
+        return ApiResponse::success($data, __('app.api.api_gateway.upstreams_fetched'));
     }
 
     /**
@@ -88,7 +88,7 @@ class ApiGatewayController extends Controller
     {
         $data = $this->gatewayService->getPlugins();
 
-        return ApiResponse::success($data, '插件列表获取成功');
+        return ApiResponse::success($data, __('app.api.api_gateway.plugins_fetched'));
     }
 
     /**
@@ -99,7 +99,7 @@ class ApiGatewayController extends Controller
     {
         $data = $this->gatewayService->getConfigStatus();
 
-        return ApiResponse::success($data, '网关配置获取成功');
+        return ApiResponse::success($data, __('app.api.api_gateway.config_fetched'));
     }
 
     /**
@@ -110,7 +110,7 @@ class ApiGatewayController extends Controller
     {
         $data = $this->gatewayService->exportDeclarativeConfig();
 
-        return ApiResponse::success($data, '声明式配置导出成功');
+        return ApiResponse::success($data, __('app.api.api_gateway.declarative_exported'));
     }
 
     /**
@@ -121,7 +121,7 @@ class ApiGatewayController extends Controller
     {
         $data = $this->gatewayService->getEngineInfo();
 
-        return ApiResponse::success($data, '引擎信息获取成功');
+        return ApiResponse::success($data, __('app.api.api_gateway.engine_fetched'));
     }
 
     /**
@@ -132,6 +132,6 @@ class ApiGatewayController extends Controller
     {
         $this->gatewayService->clearCache();
 
-        return ApiResponse::success(null, '网关缓存已清除');
+        return ApiResponse::success(null, __('app.api.api_gateway.cache_cleared'));
     }
 }

@@ -97,7 +97,7 @@ class PlanService
 
         // 降级需要路径规则明确允许
         if ($type === 'downgrade' && (!$path || !$path->allow_downgrade)) {
-            throw new RuntimeException('不允许降级到该套餐');
+            throw new RuntimeException(__("app.plan.downgrade_not_allowed"));
         }
 
         $prorationRatio = $path?->proration_ratio ?? 0.5; // 默认50%折算
@@ -131,7 +131,7 @@ class PlanService
         $calculation = $this->calculateUpgrade($fromPlan, $toPlan, $billingPeriod);
 
         if ($calculation['type'] === 'downgrade' && ($options['force'] ?? false) === false) {
-            throw new RuntimeException('降级需在续费周期生效，请使用 force=schedule');
+            throw new RuntimeException(__("app.plan.downgrade_effective_at_renewal"));
         }
 
         return DB::transaction(function () use ($subscription, $toPlan, $fromPlan, $calculation, $billingPeriod, $options) {

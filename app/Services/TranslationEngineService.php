@@ -80,7 +80,7 @@ class TranslationEngineService
         $sourceLocale = Language::defaultLocale();
 
         if ($sourceLocale === $locale) {
-            return ['total' => 0, 'translated' => 0, 'failed' => 0, 'skipped' => 0, 'message' => '源语言无需翻译'];
+            return ['total' => 0, 'translated' => 0, 'failed' => 0, 'skipped' => 0, 'message' => __('app.translation_engine.source_target_same')];
         }
 
         $results = ['total' => 0, 'translated' => 0, 'failed' => 0, 'skipped' => 0];
@@ -243,7 +243,7 @@ class TranslationEngineService
         $targetLocale = $translation->locale;
 
         if ($sourceLocale === $targetLocale || empty($translation->default_value) || empty($translation->value)) {
-            return ['score' => 0, 'issues' => ['缺少源文或译文']];
+            return ['score' => 0, 'issues' => [__('app.translation_engine.missing_source_or_target')]];
         }
 
         $sourceText = $translation->default_value;
@@ -260,7 +260,7 @@ class TranslationEngineService
         // Check 1: Length ratio sanity
         if ($ratio < 0.3 || $ratio > 3.0) {
             $score -= 20;
-            $issues[] = "译文长度与原文差异过大 (ratio: " . round($ratio, 2) . ")";
+            $issues[] = __('app.translation_engine.length_ratio_warning', ['ratio' => round($ratio, 2)]);
         }
 
         // Check 2: Check for source text leaked in target
@@ -271,7 +271,7 @@ class TranslationEngineService
 
         if ($overlapRatio > 0.8 && $sourceLocale !== $targetLocale) {
             $score -= 30;
-            $issues[] = "译文可能未翻译，与原文高度重叠";
+            $issues[] = __('app.translation_engine.untranslated_warning');
         }
 
         // Check 3: Variable placeholders preserved
@@ -280,7 +280,7 @@ class TranslationEngineService
         $missingVars = array_diff($sourceVars[0], $targetVars[0]);
         if (!empty($missingVars)) {
             $score -= 15;
-            $issues[] = "缺少占位符: " . implode(', ', $missingVars);
+            $issues[] = __('app.translation_engine.missing_placeholders', ['vars' => implode(', ', $missingVars)]);
         }
 
         return [

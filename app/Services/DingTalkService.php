@@ -48,6 +48,6 @@ class DingTalkService
     public function testConnection(string $webhookUrl): array
     {
         $ok = $this->send($webhookUrl, '🔄 钉钉连接测试', "测试时间: " . now()->format('Y-m-d H:i:s') . "\n\n状态: **连接成功** ✅", 'low');
-        return ['success' => $ok, 'message' => $ok ? '钉钉连接测试通过' : '钉钉连接测试失败，请检查 Webhook URL'];
+        return ['success' => $ok, 'message' => $ok ? __('app.common.dingtalk_connection_test_passed') : __('app.common.dingtalk_connection_test_failed')];
     }
 }

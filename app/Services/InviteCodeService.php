@@ -151,19 +151,19 @@ class InviteCodeService
             ->first();
 
         if (!$invite) {
-            return ['valid' => false, 'reason' => 'not_found', 'message' => '邀请码不存在'];
+            return ['valid' => false, 'reason' => 'not_found', 'message' => __('app.common.invite_code_not_found')];
         }
 
         if ($invite->status !== 'active') {
-            return ['valid' => false, 'reason' => 'disabled', 'message' => '邀请码已禁用'];
+            return ['valid' => false, 'reason' => 'disabled', 'message' => __('app.common.invite_code_disabled')];
         }
 
         if ($invite->expires_at && $invite->expires_at->isPast()) {
-            return ['valid' => false, 'reason' => 'expired', 'message' => '邀请码已过期'];
+            return ['valid' => false, 'reason' => 'expired', 'message' => __('app.common.invite_code_expired')];
         }
 
         if ($invite->max_uses > 0 && $invite->used_count >= $invite->max_uses) {
-            return ['valid' => false, 'reason' => 'exhausted', 'message' => '邀请码已用完'];
+            return ['valid' => false, 'reason' => 'exhausted', 'message' => __('app.common.invite_code_exhausted')];
         }
 
         return [

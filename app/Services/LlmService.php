@@ -39,14 +39,14 @@ class LlmService
             : LlmProvider::getActive();
 
         if (! $provider) {
-            throw new \RuntimeException('没有可用的 LLM Provider');
+            throw new \RuntimeException(__('app.api.service_llm.no_provider'));
         }
 
         $this->currentProvider = $provider;
 
         $adapterClass = $this->adapters[$provider->driver] ?? null;
         if (! $adapterClass) {
-            throw new \RuntimeException("未知的驱动类型: {$provider->driver}");
+            throw new \RuntimeException(__('app.api.service_llm.unknown_driver', ['driver' => $provider->driver]));
         }
 
         $adapter = app($adapterClass);
@@ -254,26 +254,39 @@ class LlmService
 
     private function getAdapter(array &$options): \App\Contracts\LlmProviderContract
     {
-        $slug = $options['provider'] ?? null;
-        unset($options['provider']);
+        $routing = app(LlmRoutingService::class);
 
-        // 如果未指定 provider，使用降级服务选择当前可用的
-        if (!$slug) {
-            $fallbackProvider = $this->fallbackService->getAvailableProvider();
-            if ($fallbackProvider) {
-                $this->currentProvider = $fallbackProvider;
-                return $this->getAdapterByProvider($fallbackProvider);
+        if (empty($options['provider'])) {
+            $provider = $this->fallbackService->getAvailableProvider()
+                ?? $routing->resolveProvider();
+            if (! $provider) {
+                throw new \RuntimeException(__('app.api.service_llm.no_provider'));
             }
+            $options['provider'] = $provider->slug;
         }
 
-        return $this->driver($slug);
+        $options = $routing->applyDefaults($options);
+
+        $slug = $options['provider'];
+        unset($options['provider']);
+
+        $provider = LlmProvider::where('slug', $slug)->first()
+            ?? ($slug === 'ollama' ? $routing->ensureOllamaProvider() : null);
+
+        if (! $provider) {
+            throw new \RuntimeException(__('app.api.service_llm.unknown_provider_slug', ['slug' => $slug]));
+        }
+
+        $this->currentProvider = $provider;
+
+        return $this->getAdapterByProvider($provider);
     }
 
     private function getAdapterByProvider(LlmProvider $provider): \App\Contracts\LlmProviderContract
     {
         $adapterClass = $this->adapters[$provider->driver] ?? null;
         if (! $adapterClass) {
-            throw new \RuntimeException("未知的驱动类型: {$provider->driver}");
+            throw new \RuntimeException(__('app.api.service_llm.unknown_driver', ['driver' => $provider->driver]));
         }
 
         $adapter = app($adapterClass);
@@ -284,15 +297,15 @@ class LlmService
 
     private function fallback(array $messages, array $options, ?string $function): array
     {
-        // 使用降级服务获取可用的备用 Provider
-        $fallbackProvider = $this->fallbackService->getAvailableProvider();
-        if (!$fallbackProvider) {
-            throw new \RuntimeException('LLM 请求失败，无可用备用 Provider');
+        // 使用降级服务获取可用的备用 Provider（排除刚失败的）
+        $fallbackProvider = $this->fallbackService->getAvailableProvider($this->currentProvider);
+        if (! $fallbackProvider) {
+            throw new \RuntimeException(__('app.api.service_llm.no_fallback'));
         }
 
         // 确保是不同 Provider
         if ($this->currentProvider && $fallbackProvider->id === $this->currentProvider->id) {
-            throw new \RuntimeException('LLM 请求失败，无可用备用 Provider');
+            throw new \RuntimeException(__('app.api.service_llm.no_fallback'));
         }
 
         Log::warning('LLM fallback triggered', [
@@ -318,11 +331,23 @@ class LlmService
             'query_preview' => mb_substr($lastContent, 0, 100),
         ]);
 
+        // D-38：Ollama 可用时尝试本地模型，避免直接返回硬编码文案
+        if (config('local-llm.enabled')) {
+            try {
+                $routing = app(LlmRoutingService::class);
+                $options = $routing->applyDefaults(['provider' => 'ollama', 'no_fallback' => true]);
+
+                return $this->chat($messages, $options, 'local_ollama_fallback');
+            } catch (\Throwable $e) {
+                Log::debug('LLM local ollama fallback failed', ['error' => $e->getMessage()]);
+            }
+        }
+
         // 简单的关键词匹配兜底
         $localResponses = [
-            'help' => '您好！我是互物通智能助手。很抱歉，AI 服务暂时不可用，建议您稍后再试。您也可以查看我们的文档中心或联系技术支持。',
-            'error' => '系统检测到 AI 服务暂时不可用，请稍后重试。如问题持续，请联系技术支持。',
-            'license' => 'License 相关查询功能暂时不可用，请稍后重试或查看文档中心了解 License 管理。',
+            'help' => __('app.api.service_llm.help_fallback'),
+            'error' => __('app.api.service_llm.error_fallback'),
+            'license' => __('app.api.service_llm.license_fallback'),
         ];
 
         // 匹配关键词
@@ -342,7 +367,7 @@ class LlmService
 
         // 默认兜底响应
         return [
-            'content' => 'AI 服务暂时不可用，请稍后重试。如需紧急帮助，请联系技术支持。',
+            'content' => __('app.api.service_llm.chat_fallback'),
             'usage' => [
                 'prompt_tokens' => 0,
                 'completion_tokens' => 0,

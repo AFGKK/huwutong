@@ -69,7 +69,7 @@ class ApiKeyController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_key.validation_failed'), $validator->errors()->toArray());
         }
 
         $tenantId = $request->user()->tenant_id;
@@ -79,7 +79,7 @@ class ApiKeyController extends Controller
         // 检查密钥数量限制（按等级）
         if (! ApiKey::canCreateForTier($tier, $tenantId)) {
             $limits = ApiKey::TIER_LIMITS[$tier] ?? ApiKey::TIER_LIMITS['standard'];
-            return ApiResponse::error(ErrorCode::MAX_KEYS_REACHED->value, "{$tier} 等级最多可创建 {$limits['max_keys']} 个 API 密钥", 422);
+            return ApiResponse::error(ErrorCode::MAX_KEYS_REACHED->value, __('app.api.api_key.max_keys_reached', ['tier' => $tier, 'max' => $limits['max_keys']]), 422);
         }
 
         $keyId = 'ak_' . Str::random(32);
@@ -105,7 +105,7 @@ class ApiKeyController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'API 密钥创建成功',
+            'message' => __('app.api.api_key.created'),
             'data' => array_merge($this->formatKey($key), [
                 'secret' => $secret,
             ]),
@@ -152,7 +152,7 @@ class ApiKeyController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_key.validation_failed'), $validator->errors()->toArray());
         }
 
         $oldValues = $apiKey->toArray();
@@ -162,7 +162,7 @@ class ApiKeyController extends Controller
         $newValues = $apiKey->fresh()->toArray();
         $apiKey->logAction('update', 'user', $request->user()->id, $oldValues, $newValues);
 
-        return ApiResponse::success($this->formatKey($apiKey->fresh()), 'API 密钥已更新');
+        return ApiResponse::success($this->formatKey($apiKey->fresh()), __('app.api.api_key.updated'));
     }
 
     /**
@@ -175,7 +175,7 @@ class ApiKeyController extends Controller
         $apiKey->logAction('delete', 'user', $request->user()->id, $apiKey->toArray());
         $apiKey->delete();
 
-        return ApiResponse::success(null, 'API 密钥已删除');
+        return ApiResponse::success(null, __('app.api.api_key.deleted'));
     }
 
     /**
@@ -198,7 +198,7 @@ class ApiKeyController extends Controller
             'key_id' => $apiKey->key_id,
             'secret' => $newSecret,
             'rotated_at' => $apiKey->rotated_at,
-        ], '密钥已重新生成');
+        ], __('app.api.api_key.regenerated'));
     }
 
     /**
@@ -211,10 +211,10 @@ class ApiKeyController extends Controller
         $apiKey->is_active = ! $apiKey->is_active;
         $apiKey->save();
 
-        $action = $apiKey->is_active ? '启用' : '禁用';
+        $action = $apiKey->is_active ? __('app.api.api_key.enabled') : __('app.api.api_key.disabled');
         $apiKey->logAction('toggle', 'user', $request->user()->id, ['is_active' => !$apiKey->is_active], ['is_active' => $apiKey->is_active]);
 
-        return ApiResponse::success($this->formatKey($apiKey->fresh()), "API 密钥已{$action}");
+        return ApiResponse::success($this->formatKey($apiKey->fresh()), __('app.api.api_key.toggled', ['action' => $action]));
     }
 
     /**
@@ -353,7 +353,7 @@ class ApiKeyController extends Controller
         $tenantId = $request->user()->tenant_id;
 
         if ($apiKey->tenant_id !== $tenantId) {
-            abort(403, '无权操作此 API 密钥');
+            abort(403, __('app.api.api_key.forbidden'));
         }
     }
 }

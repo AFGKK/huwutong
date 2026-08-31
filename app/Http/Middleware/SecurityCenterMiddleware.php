@@ -69,7 +69,7 @@ class SecurityCenterMiddleware
                     ]);
 
                     return response()->json([
-                        'message' => '访问被拒绝：IP 在黑名单中',
+                        'message' => __('app.middleware.ip_in_blacklist'),
                         'code' => 'IP_BLOCKED',
                     ], 403);
                 }
@@ -90,7 +90,7 @@ class SecurityCenterMiddleware
                         ]);
 
                         return response()->json([
-                            'message' => '访问被拒绝：IP 不在白名单中',
+                            'message' => __('app.middleware.ip_not_in_whitelist'),
                             'code' => 'IP_NOT_WHITELISTED',
                         ], 403);
                     }

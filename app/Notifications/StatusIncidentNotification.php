@@ -29,12 +29,17 @@ class StatusIncidentNotification extends Notification
         $unsubscribeUrl = url("/api/status/unsubscribe/{$this->unsubscribeToken}");
 
         $mail = (new MailMessage)
-            ->subject("[{$appName}] 系统状态更新: {$this->incident->title}")
-            ->greeting("{$appName} 系统状态更新")
-            ->line("事件: {$this->incident->title}")
-            ->line("当前状态: {$statusLabel}")
-            ->line("严重程度: {$this->incident->severityLabel()}")
-            ->action('查看详情', url('/status'));
+            ->subject(__('app.notifications.status.subject', [
+                'app' => $appName,
+                'title' => $this->incident->title,
+            ]))
+            ->greeting(__('app.notifications.status.greeting', ['app' => $appName]))
+            ->line(__('app.notifications.status.incident', ['title' => $this->incident->title]))
+            ->line(__('app.notifications.status.status', ['status' => $statusLabel]))
+            ->line(__('app.notifications.status.severity', [
+                'severity' => $this->incident->severityLabel(),
+            ]))
+            ->action(__('app.notifications.status.view'), url('/status'));
 
         if ($this->status === 'resolved') {
             $mail->success();
@@ -43,19 +48,15 @@ class StatusIncidentNotification extends Notification
         }
 
         $mail->line('---')
-            ->line("如果您不想继续接收通知，请<a href='{$unsubscribeUrl}'>点击此处退订</a>。");
+            ->line(__('app.notifications.status.unsubscribe', ['url' => $unsubscribeUrl]));
 
         return $mail;
     }
 
     protected function getStatusLabel(): string
     {
-        return [
-            'investigating' => '调查中',
-            'identified' => '已确认',
-            'monitoring' => '监控中',
-            'resolved' => '已解决',
-            'postmortem' => '事后分析',
-        ][$this->status] ?? $this->status;
+        $key = 'app.notifications.status.' . $this->status;
+
+        return __($key) !== $key ? __($key) : $this->status;
     }
 }

@@ -40,15 +40,77 @@ class NotificationController extends Controller
         if ($request->filled('unread')) {
             $query->where('is_read', false);
         }
+        if ($request->boolean('interactions_only')) {
+            $query->whereIn('type', Notification::INTERACTION_TYPES);
+        }
 
         // 排序
         $sortField = $request->input('sort', '-created_at');
         $direction = str_starts_with($sortField, '-') ? 'desc' : 'asc';
-        $query->orderBy('created_at', $direction);
+        $query->orderByDesc('updated_at')->orderBy('created_at', $direction);
 
         $perPage = min((int) $request->input('per_page', 20), 100);
 
         return ApiResponse::paginated($query->paginate($perPage));
+    }
+
+    /**
+     * 互动通知聚合（收到的赞 / 评论和@ / 新增关注）
+     */
+    public function interactions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $group = $request->input('group', 'all'); // all|likes|comments|follows
+
+        $typeMap = [
+            'likes' => ['interaction_like'],
+            'comments' => ['interaction_comment', 'interaction_mention'],
+            'follows' => ['interaction_follow'],
+            'all' => Notification::INTERACTION_TYPES,
+        ];
+        $types = $typeMap[$group] ?? Notification::INTERACTION_TYPES;
+
+        $base = Notification::where('user_id', $user->id)
+            ->whereIn('type', Notification::INTERACTION_TYPES);
+
+        $unreadByGroup = [
+            'likes' => (clone $base)->where('type', 'interaction_like')->where('is_read', false)->count(),
+            'comments' => (clone $base)->whereIn('type', ['interaction_comment', 'interaction_mention'])->where('is_read', false)->count(),
+            'follows' => (clone $base)->where('type', 'interaction_follow')->where('is_read', false)->count(),
+        ];
+        $unreadByGroup['all'] = array_sum($unreadByGroup);
+
+        $query = Notification::where('user_id', $user->id)
+            ->whereIn('type', $types)
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at');
+
+        if ($request->filled('unread')) {
+            $query->where('is_read', false);
+        }
+
+        $perPage = min((int) $request->input('per_page', 30), 100);
+        $page = $query->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OK',
+            'data' => $page->items(),
+            'meta' => [
+                'current_page' => $page->currentPage(),
+                'per_page' => $page->perPage(),
+                'total' => $page->total(),
+                'last_page' => $page->lastPage(),
+                'from' => $page->firstItem(),
+                'to' => $page->lastItem(),
+                'groups' => [
+                    ['key' => 'all', 'unread' => $unreadByGroup['all']],
+                    ['key' => 'likes', 'unread' => $unreadByGroup['likes']],
+                    ['key' => 'comments', 'unread' => $unreadByGroup['comments']],
+                    ['key' => 'follows', 'unread' => $unreadByGroup['follows']],
+                ],
+            ],
+        ]);
     }
 
     /**
@@ -73,30 +135,66 @@ class NotificationController extends Controller
             ->whereIn('type', ['app_suspended', 'app_force_update', 'system_alert'])
             ->count();
 
+        $interactionCount = Notification::where('user_id', $user->id)
+            ->whereIn('type', Notification::INTERACTION_TYPES)
+            ->where('is_read', false)
+            ->count();
+
+        $systemBase = Notification::where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)
+                ->orWhere(function ($sub) use ($user) {
+                    $sub->whereNull('user_id')
+                        ->where('tenant_id', $user->tenant_id);
+                });
+        })->whereNotIn('type', array_merge(Notification::INTERACTION_TYPES, Notification::IM_TYPES));
+
+        $systemCount = (clone $systemBase)->where('is_read', false)->count();
+        $systemTotal = (clone $systemBase)->count();
+
+        $interactionLatest = Notification::where('user_id', $user->id)
+            ->whereIn('type', Notification::INTERACTION_TYPES)
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->first(['title', 'content', 'updated_at', 'created_at']);
+
+        $systemLatest = (clone $systemBase)
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->first(['title', 'content', 'updated_at', 'created_at']);
+
         return ApiResponse::success([
             'count' => $count,
             'critical_count' => $criticalCount,
+            'interaction_count' => $interactionCount,
+            'system_count' => $systemCount,
+            'system_total' => $systemTotal,
+            'interaction_preview' => $interactionLatest
+                ? ($interactionLatest->content ?: $interactionLatest->title)
+                : null,
+            'system_preview' => $systemLatest
+                ? ($systemLatest->content ?: $systemLatest->title)
+                : null,
         ]);
     }
 
     /**
      * 标记已读
      */
-    public function markRead(int $id, Request $request): JsonResponse
+    public function markRead(int $notification, Request $request): JsonResponse
     {
-        $notification = Notification::where('id', $id)
+        $row = Notification::where('id', $notification)
             ->where(function ($q) use ($request) {
                 $q->where('user_id', $request->user()->id)
                   ->orWhere('tenant_id', $request->user()->tenant_id);
             })
             ->firstOrFail();
 
-        $notification->update([
+        $row->update([
             'is_read' => true,
             'read_at' => now(),
         ]);
 
-        return ApiResponse::success($notification, '已标记为已读');
+        return ApiResponse::success($row, __("app.notification.msg_2d149186"));
     }
 
     /**
@@ -105,18 +203,28 @@ class NotificationController extends Controller
     public function markAllRead(Request $request): JsonResponse
     {
         $user = $request->user();
-        $count = Notification::where(function ($q) use ($user) {
+        $query = Notification::where(function ($q) use ($user) {
             $q->where('user_id', $user->id)
               ->orWhere(function ($sub) use ($user) {
                   $sub->whereNull('user_id')
                       ->where('tenant_id', $user->tenant_id);
               });
-        })->where('is_read', false)->update([
+        })->where('is_read', false);
+
+        if ($request->filled('type')) {
+            $types = explode(',', (string) $request->input('type'));
+            $query->whereIn('type', $types);
+        }
+        if ($request->boolean('interactions_only')) {
+            $query->whereIn('type', Notification::INTERACTION_TYPES);
+        }
+
+        $count = $query->update([
             'is_read' => true,
             'read_at' => now(),
         ]);
 
-        return ApiResponse::success(['affected' => $count], "已标记 {$count} 条为已读");
+        return ApiResponse::success(['affected' => $count], __("app.notification.msg_b9c2d3e0"));
     }
 
     /**
@@ -142,21 +250,21 @@ class NotificationController extends Controller
             'delete' => $query->delete(),
         };
 
-        return ApiResponse::success(null, '操作成功');
+        return ApiResponse::success(null, __("app.notification.msg_33130f5c"));
     }
 
     /**
      * 删除单条
      */
-    public function destroy(int $id, Request $request): JsonResponse
+    public function destroy(int $notification, Request $request): JsonResponse
     {
-        $notification = Notification::where('id', $id)
+        $row = Notification::where('id', $notification)
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
-        $notification->delete();
+        $row->delete();
 
-        return ApiResponse::success(null, '通知已删除');
+        return ApiResponse::success(null, __("app.notification.msg_d4a8eb79"));
     }
 
     /**
@@ -217,6 +325,6 @@ class NotificationController extends Controller
 
         $prefs->save();
 
-        return ApiResponse::success($prefs, '通知偏好已更新');
+        return ApiResponse::success($prefs, __("app.notification.msg_bb908a18"));
     }
 }

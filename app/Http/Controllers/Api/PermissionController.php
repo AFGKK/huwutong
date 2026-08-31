@@ -90,7 +90,7 @@ class PermissionController extends Controller
             null, $validated, $request
         );
 
-        return ApiResponse::created($role->load('permissions'), '角色创建成功');
+        return ApiResponse::created($role->load('permissions'), __('app.api.permission.role_created'));
     }
 
     /**
@@ -131,7 +131,7 @@ class PermissionController extends Controller
             $request
         );
 
-        return ApiResponse::success($role->fresh()->load('permissions'), '角色更新成功');
+        return ApiResponse::success($role->fresh()->load('permissions'), __('app.api.permission.role_updated'));
     }
 
     /**
@@ -143,7 +143,7 @@ class PermissionController extends Controller
 
         // 保护系统角色
         if (in_array($role->name, ['super-admin', 'tenant-admin', 'finance', 'developer', 'readonly'])) {
-            return ApiResponse::error('SYSTEM_ROLE', '系统角色不可删除', 403);
+            return ApiResponse::error('SYSTEM_ROLE', __('app.api.permission.system_role_delete'), 403);
         }
 
         $permSnapshot = $role->permissions->pluck('name')->toArray();
@@ -155,7 +155,7 @@ class PermissionController extends Controller
             ['permissions' => $permSnapshot], null, $request
         );
 
-        return ApiResponse::success(null, '角色已删除');
+        return ApiResponse::success(null, __('app.api.permission.role_deleted'));
     }
 
     /**
@@ -173,7 +173,7 @@ class PermissionController extends Controller
             $request->user()->tenant_id
         );
 
-        return ApiResponse::created($newRole, '角色复制成功');
+        return ApiResponse::created($newRole, __('app.api.permission.role_duplicated'));
     }
 
     // ══════════════════════════════════════════
@@ -218,7 +218,7 @@ class PermissionController extends Controller
             'guard_name' => 'web',
         ]);
 
-        return ApiResponse::created($permission, '权限创建成功');
+        return ApiResponse::created($permission, __('app.api.permission.permission_created'));
     }
 
     /**
@@ -249,7 +249,7 @@ class PermissionController extends Controller
             }
         }
 
-        return ApiResponse::created($created, count($created) . ' 个权限已创建');
+        return ApiResponse::created($created, __('app.api.permission.permissions_created', ['count' => count($created)]));
     }
 
     /**
@@ -260,7 +260,7 @@ class PermissionController extends Controller
         $permission = Permission::findOrFail($id);
         $permission->delete();
 
-        return ApiResponse::success(null, '权限已删除');
+        return ApiResponse::success(null, __('app.api.permission.permission_deleted'));
     }
 
     // ══════════════════════════════════════════
@@ -306,7 +306,7 @@ class PermissionController extends Controller
             $request->user()->tenant_id
         );
 
-        return ApiResponse::created($role, '角色创建成功');
+        return ApiResponse::created($role, __('app.api.permission.role_created'));
     }
 
     /**
@@ -330,7 +330,7 @@ class PermissionController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
-        return ApiResponse::created($template, '模板创建成功');
+        return ApiResponse::created($template, __('app.api.permission.template_created'));
     }
 
     /**
@@ -340,10 +340,10 @@ class PermissionController extends Controller
     {
         $template = RoleTemplate::findOrFail($id);
         if ($template->is_system) {
-            return ApiResponse::error('SYSTEM_TEMPLATE', '系统模板不可删除', 403);
+            return ApiResponse::error('SYSTEM_TEMPLATE', __('app.api.permission.system_template_delete'), 403);
         }
         $template->delete();
-        return ApiResponse::success(null, '模板已删除');
+        return ApiResponse::success(null, __('app.api.permission.template_deleted'));
     }
 
     /**
@@ -354,7 +354,7 @@ class PermissionController extends Controller
         $this->permissionService->seedSystemTemplates();
         return ApiResponse::success(
             RoleTemplate::where('is_system', true)->get(),
-            '系统模板已初始化'
+            __('app.api.permission.system_templates_seeded')
         );
     }
 
@@ -415,7 +415,7 @@ class PermissionController extends Controller
 
         return ApiResponse::success(
             $user->fresh()->load('roles'),
-            '角色分配成功'
+            __('app.api.permission.role_assigned')
         );
     }
 
@@ -504,6 +504,6 @@ class PermissionController extends Controller
             $request
         );
 
-        return ApiResponse::success(null, '直接权限更新成功');
+        return ApiResponse::success(null, __('app.api.permission.direct_permission_updated'));
     }
 }

@@ -46,7 +46,7 @@ class MockServerController extends Controller
         ]);
 
         $rule = $this->mockService->createRule($validated);
-        return response()->json(['data' => $rule, 'message' => 'Mock 规则已创建'], 201);
+        return response()->json(['data' => $rule, 'message' => __('app.controller_compat.mock_server_mock')], 201);
     }
 
     /**
@@ -68,7 +68,7 @@ class MockServerController extends Controller
         ]);
 
         $rule = $this->mockService->updateRule($mockRule, $validated);
-        return response()->json(['data' => $rule, 'message' => 'Mock 规则已更新']);
+        return response()->json(['data' => $rule, 'message' => __('app.controller_compat.mock_server_mock_1')]);
     }
 
     /**
@@ -79,7 +79,7 @@ class MockServerController extends Controller
     public function destroy(MockRule $mockRule): JsonResponse
     {
         $this->mockService->deleteRule($mockRule);
-        return response()->json(['message' => 'Mock 规则已删除']);
+        return response()->json(['message' => __('app.controller_compat.mock_server_mock_2')]);
     }
 
     /**

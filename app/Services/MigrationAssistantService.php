@@ -141,7 +141,7 @@ class MigrationAssistantService
             ->get("{$baseUrl}/licenses", ['limit' => 200]);
 
         if (!$response->successful()) {
-            throw new \RuntimeException('Cryptlex API请求失败: ' . $response->body());
+            throw new \RuntimeException(__("app.migration_assistant.msg_b4981ce7") . $response->body());
         }
 
         return $response->json('results', $response->json('data', []));
@@ -155,7 +155,7 @@ class MigrationAssistantService
             ->get("{$baseUrl}/licenses", ['limit' => 200]);
 
         if (!$response->successful()) {
-            throw new \RuntimeException('Localazy API请求失败: ' . $response->body());
+            throw new \RuntimeException(__("app.migration_assistant.msg_c00eabf0") . $response->body());
         }
 
         return $response->json('data', $response->json('licenses', []));

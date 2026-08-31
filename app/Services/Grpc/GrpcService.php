@@ -172,7 +172,7 @@ abstract class GrpcService
         // if ($status->code !== 0) { throw ... }
         // return $this->protoToArray($response);
 
-        throw new GrpcException('gRPC 扩展未安装，请使用 http2 或 rest 模式');
+        throw new GrpcException(__("app.grpc.msg_4d65394e"));
     }
 
     /**

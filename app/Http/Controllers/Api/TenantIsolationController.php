@@ -49,11 +49,11 @@ class TenantIsolationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.tenant_iso.validation_failed'), $validator->errors()->toArray());
         }
 
         $plan = $this->isolation->createQuotaPlan($validator->validated());
-        return ApiResponse::created($plan, '配额方案已创建');
+        return ApiResponse::created($plan, __('app.api.tenant_iso.quota_plan_created'));
     }
 
     public function updateQuotaPlan(Request $request, int $id): JsonResponse
@@ -74,11 +74,11 @@ class TenantIsolationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.tenant_iso.validation_failed'), $validator->errors()->toArray());
         }
 
         $plan = $this->isolation->updateQuotaPlan($plan, $validator->validated());
-        return ApiResponse::success($plan, '配额方案已更新');
+        return ApiResponse::success($plan, __('app.api.tenant_iso.quota_plan_updated'));
     }
 
     public function deleteQuotaPlan(int $id): JsonResponse
@@ -87,7 +87,7 @@ class TenantIsolationController extends Controller
 
         try {
             $this->isolation->deleteQuotaPlan($plan);
-            return ApiResponse::success(null, '配额方案已删除');
+            return ApiResponse::success(null, __('app.api.tenant_iso.quota_plan_deleted'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('PLAN_IN_USE', $e->getMessage(), 409);
         }
@@ -140,7 +140,7 @@ class TenantIsolationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.tenant_iso.validation_failed'), $validator->errors()->toArray());
         }
 
         $tenant = $this->isolation->updateTenantQuota($tenant, $validator->validated());
@@ -148,14 +148,14 @@ class TenantIsolationController extends Controller
         // 刷新快照
         $this->isolation->refreshUsageSnapshot($tenant);
 
-        return ApiResponse::success($tenant, '租户配额已更新');
+        return ApiResponse::success($tenant, __('app.api.tenant_iso.tenant_quota_updated'));
     }
 
     public function refreshTenantUsage(int $tenantId): JsonResponse
     {
         $tenant = Tenant::findOrFail($tenantId);
         $this->isolation->refreshUsageSnapshot($tenant);
-        return ApiResponse::success(null, '用量已刷新');
+        return ApiResponse::success(null, __('app.api.tenant_iso.usage_refreshed'));
     }
 
     // ─── 隔离审计日志 ───
@@ -171,7 +171,7 @@ class TenantIsolationController extends Controller
     public function resolveAuditLog(int $id): JsonResponse
     {
         $log = $this->isolation->resolveAuditLog($id);
-        return ApiResponse::success($log, '已标记为已处理');
+        return ApiResponse::success($log, __('app.api.tenant_iso.alert_resolved'));
     }
 
     // ─── 跨租户共享 ───
@@ -196,7 +196,7 @@ class TenantIsolationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.tenant_iso.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -211,17 +211,17 @@ class TenantIsolationController extends Controller
 
         if ($existing) {
             $existing->update(['status' => 'active', 'permission' => $data['permission'] ?? 'read']);
-            return ApiResponse::success($existing->fresh(), '共享已更新');
+            return ApiResponse::success($existing->fresh(), __('app.api.tenant_iso.share_updated'));
         }
 
         $share = $this->isolation->createShare($data);
-        return ApiResponse::created($share, '共享已创建');
+        return ApiResponse::created($share, __('app.api.tenant_iso.share_created'));
     }
 
     public function revokeShare(int $id): JsonResponse
     {
         $this->isolation->revokeShare($id);
-        return ApiResponse::success(null, '共享已撤销');
+        return ApiResponse::success(null, __('app.api.tenant_iso.share_revoked'));
     }
 
     // ─── 隔离配置批量操作 ───
@@ -235,7 +235,7 @@ class TenantIsolationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.tenant_iso.validation_failed'), $validator->errors()->toArray());
         }
 
         $tenant->update(['isolation_level' => $request->input('isolation_level')]);
@@ -245,7 +245,7 @@ class TenantIsolationController extends Controller
             'changed_by' => $request->user()->id,
         ]);
 
-        return ApiResponse::success($tenant->fresh(), '隔离等级已更新');
+        return ApiResponse::success($tenant->fresh(), __('app.api.tenant_iso.isolation_updated'));
     }
 
     // ─── 批量刷新 ───
@@ -253,6 +253,6 @@ class TenantIsolationController extends Controller
     public function batchRefresh(): JsonResponse
     {
         $count = $this->isolation->refreshAllSnapshots();
-        return ApiResponse::success(['refreshed' => $count], "已刷新 {$count} 个租户用量");
+        return ApiResponse::success(['refreshed' => $count], __('app.api.tenant_iso.quota_refreshed', ['count' => $count]));
     }
 }

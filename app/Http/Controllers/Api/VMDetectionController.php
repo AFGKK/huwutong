@@ -26,7 +26,7 @@ class VMDetectionController extends Controller
      */
     public function dashboard(): JsonResponse
     {
-        return ApiResponse::success($this->vmDetectionService->getDashboard(), '虚拟环境检测仪表盘获取成功');
+        return ApiResponse::success($this->vmDetectionService->getDashboard(), __('app.vm_detection.dashboard_retrieved'));
     }
 
     /**
@@ -36,7 +36,7 @@ class VMDetectionController extends Controller
     public function devices(Request $request): JsonResponse
     {
         $params = $request->only(['vm_type', 'search', 'per_page', 'page']);
-        return ApiResponse::success($this->vmDetectionService->getDetectedDevices($params), '虚拟环境设备列表获取成功');
+        return ApiResponse::success($this->vmDetectionService->getDetectedDevices($params), __('app.vm_detection.device_list_retrieved'));
     }
 
     /**
@@ -46,7 +46,7 @@ class VMDetectionController extends Controller
     public function detect(Device $device): JsonResponse
     {
         $result = $this->vmDetectionService->detect($device);
-        return ApiResponse::success($result, '虚拟环境检测完成');
+        return ApiResponse::success($result, __("app.vmdetection.msg_7988938b"));
     }
 
     /**
@@ -55,7 +55,7 @@ class VMDetectionController extends Controller
      */
     public function getConfig(): JsonResponse
     {
-        return ApiResponse::success($this->vmDetectionService->getConfig(), '配置获取成功');
+        return ApiResponse::success($this->vmDetectionService->getConfig(), __('app.vm_detection.config_retrieved'));
     }
 
     /**
@@ -72,6 +72,6 @@ class VMDetectionController extends Controller
         ]);
 
         $this->vmDetectionService->updateConfig($validated);
-        return ApiResponse::success($this->vmDetectionService->getConfig(), '配置更新成功');
+        return ApiResponse::success($this->vmDetectionService->getConfig(), __('app.vm_detection.config_updated'));
     }
 }

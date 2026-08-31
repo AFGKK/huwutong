@@ -218,7 +218,7 @@ class PromotionEngineService
         $result = $this->calculateDiscount($rule, $subtotal, $itemCount, $productIds, $categoryIds);
 
         if ($result['discount'] <= 0 && !isset($result['free_items'])) {
-            throw new Exception('不满足促销条件');
+            throw new Exception(__("app.promotion_engine.promotion_conditions_not_met"));
         }
 
         // 2. 验证客户限制
@@ -227,7 +227,7 @@ class PromotionEngineService
                 ->where('customer_id', $customer->id)
                 ->count();
             if ($usageCount >= $rule->usage_limit_per_customer) {
-                throw new Exception('该客户已达到此促销的使用上限');
+                throw new Exception(__("app.promotion_engine.promotion_customer_usage_limit"));
             }
         }
 

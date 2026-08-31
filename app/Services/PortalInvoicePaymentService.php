@@ -38,7 +38,7 @@ class PortalInvoicePaymentService
         $result = $this->billingService->processPayment($invoice->fresh());
 
         if (! ($result['success'] ?? false)) {
-            throw new \RuntimeException($result['error'] ?? '支付失败');
+throw new \RuntimeException($result['error'] ?? __("app.portal_invoice_payment.payment_failed"));
         }
 
         $invoice->refresh();
@@ -114,18 +114,18 @@ class PortalInvoicePaymentService
         $this->assertOwned($customer, $invoice);
 
         if ($invoice->status !== 'pending') {
-            throw new \RuntimeException('该发票当前不可支付');
+            throw new \RuntimeException(__("app.portal_invoice_payment.invoice_not_payable_now"));
         }
 
         if ((float) $invoice->amount <= 0) {
-            throw new \RuntimeException('发票金额无效');
+            throw new \RuntimeException(__("app.portal_invoice_payment.invalid_invoice_amount"));
         }
     }
 
     protected function assertOwned(Customer $customer, Invoice $invoice): void
     {
         if ((int) $invoice->customer_id !== (int) $customer->id) {
-            throw new \RuntimeException('无权操作该发票');
+            throw new \RuntimeException(__("app.portal_invoice_payment.invoice_access_denied"));
         }
     }
 }

@@ -113,7 +113,7 @@ class DependencySecurityController extends Controller
 
         Cache::forget('deps_security_stats');
 
-        return ApiResponse::success($vuln->fresh(), '漏洞状态已更新');
+        return ApiResponse::success($vuln->fresh(), __('app.dependency_security.vuln_status_updated'));
     }
 
     /**
@@ -135,7 +135,7 @@ class DependencySecurityController extends Controller
 
         Cache::forget('deps_security_stats');
 
-        return ApiResponse::success(['updated' => $count], "已更新 {$count} 个漏洞状态");
+        return ApiResponse::success(['updated' => $count], __("app.dependency_security.msg_60062fa5"));
     }
 
     /**
@@ -148,7 +148,7 @@ class DependencySecurityController extends Controller
 
         Cache::put('deps_last_scan_at', now()->toIso8601String(), now()->addDays(1));
 
-        return ApiResponse::success(['started_at' => now()->toIso8601String()], '扫描已启动，将在后台执行');
+        return ApiResponse::success(['started_at' => now()->toIso8601String()], __('app.dependency_security.scan_started_bg'));
     }
 
     /**

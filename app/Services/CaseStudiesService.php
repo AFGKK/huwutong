@@ -32,7 +32,7 @@ class CaseStudiesService
      */
     public function create(array $data): array
     {
-        return ['success' => true, 'message' => '案例已创建'];
+        return ['success' => true, 'message' => __('app.common.case_study_created')];
     }
 
     /**
@@ -40,7 +40,7 @@ class CaseStudiesService
      */
     public function update(int $id, array $data): array
     {
-        return ['success' => true, 'message' => '案例已更新'];
+        return ['success' => true, 'message' => __('app.common.case_study_updated')];
     }
 
     /**
@@ -48,7 +48,7 @@ class CaseStudiesService
      */
     public function delete(int $id): array
     {
-        return ['success' => true, 'message' => '案例已删除'];
+        return ['success' => true, 'message' => __('app.common.case_study_deleted')];
     }
 
     /**

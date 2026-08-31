@@ -83,7 +83,7 @@ class TagService
     public function delete(Tag $tag): bool
     {
         if ($tag->is_system) {
-            throw new \RuntimeException('系统标签不允许删除');
+throw new \RuntimeException(__("app.tag.system_tag_cannot_delete"));
         }
 
         return DB::transaction(function () use ($tag) {
@@ -108,7 +108,7 @@ class TagService
             // 优先级
             ['name' => '紧急', 'slug' => 'urgent', 'color' => '#F56C6C', 'group' => 'priority', 'is_system' => true],
             ['name' => '高', 'slug' => 'high', 'color' => '#E6A23C', 'group' => 'priority', 'is_system' => true],
-            ['name' => '中', 'slug' => 'medium', 'color' => '#409EFF', 'group' => 'priority', 'is_system' => true],
+            ['name' => '中', 'slug' => 'medium', 'color' => '#0f172a', 'group' => 'priority', 'is_system' => true],
             ['name' => '低', 'slug' => 'low', 'color' => '#909399', 'group' => 'priority', 'is_system' => true],
 
             // 工单状态
@@ -118,7 +118,7 @@ class TagService
 
             // 类型标签
             ['name' => 'Bug', 'slug' => 'bug', 'color' => '#F56C6C', 'group' => 'type', 'is_system' => false],
-            ['name' => '功能请求', 'slug' => 'feature-request', 'color' => '#409EFF', 'group' => 'type', 'is_system' => false],
+            ['name' => '功能请求', 'slug' => 'feature-request', 'color' => '#0f172a', 'group' => 'type', 'is_system' => false],
             ['name' => '咨询', 'slug' => 'inquiry', 'color' => '#67C23A', 'group' => 'type', 'is_system' => false],
 
             // License 相关

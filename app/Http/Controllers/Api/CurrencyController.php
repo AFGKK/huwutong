@@ -74,7 +74,7 @@ class CurrencyController extends Controller
         );
 
         return response()->json([
-            'message' => '汇率设置成功',
+            'message' => __('app.controller_compat.currency_msg_77'),
             'data' => $exchangeRate,
         ], 201);
     }
@@ -89,7 +89,7 @@ class CurrencyController extends Controller
 
         $this->currencyService->clearRateCache($rate->from_currency, $rate->to_currency);
 
-        return response()->json(['message' => '汇率已删除']);
+        return response()->json(['message' => __('app.controller_compat.currency_msg_92')]);
     }
 
     /**
@@ -236,7 +236,7 @@ class CurrencyController extends Controller
         $plan->load('prices');
 
         return response()->json([
-            'message' => '定价计划创建成功',
+            'message' => __('app.controller_compat.currency_msg_239'),
             'data' => $plan,
         ], 201);
     }
@@ -294,7 +294,7 @@ class CurrencyController extends Controller
         $plan->load('prices');
 
         return response()->json([
-            'message' => '定价计划更新成功',
+            'message' => __('app.controller_compat.currency_msg_297'),
             'data' => $plan,
         ]);
     }
@@ -308,7 +308,7 @@ class CurrencyController extends Controller
         $plan->prices()->delete();
         $plan->delete();
 
-        return response()->json(['message' => '定价计划已删除']);
+        return response()->json(['message' => __('app.controller_compat.currency_msg_311')]);
     }
 
     // ─── 客户货币偏好 ───
@@ -366,7 +366,7 @@ class CurrencyController extends Controller
         );
 
         return response()->json([
-            'message' => '货币偏好更新成功',
+            'message' => __('app.controller_compat.currency_msg_369'),
             'data' => $pref,
         ]);
     }

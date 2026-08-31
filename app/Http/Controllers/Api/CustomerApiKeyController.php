@@ -25,13 +25,13 @@ class CustomerApiKeyController extends Controller
     public function index(Request $request): JsonResponse
     {
         $keys = $this->apiKeyService->getKeys($request->user()->id, $request->only(['search', 'is_active', 'sort', 'per_page']));
-        return ApiResponse::success($keys, '获取成功');
+        return ApiResponse::success($keys, __('app.api.customer_api_key.fetched'));
     }
 
     /** 仪表盘 */
     public function dashboard(Request $request): JsonResponse
     {
-        return ApiResponse::success($this->apiKeyService->getDashboard($request->user()->id), '获取成功');
+        return ApiResponse::success($this->apiKeyService->getDashboard($request->user()->id), __('app.api.customer_api_key.fetched'));
     }
 
     /** 创建 API Key */
@@ -50,7 +50,7 @@ class CustomerApiKeyController extends Controller
         return ApiResponse::success([
             'api_key' => $result['api_key'],
             'plain_text_key' => $result['plain_text_key'],
-        ], 'API Key 创建成功，请妥善保管密钥，创建后不再显示');
+        ], __('app.api.customer_api_key.created'));
     }
 
     /** 更新 API Key */
@@ -65,27 +65,27 @@ class CustomerApiKeyController extends Controller
         ]);
 
         $apiKey = $this->apiKeyService->update($request->user()->id, $id, $validated);
-        return ApiResponse::success($apiKey, '更新成功');
+        return ApiResponse::success($apiKey, __('app.api.customer_api_key.updated'));
     }
 
     /** 删除 API Key */
     public function destroy(Request $request, int $id): JsonResponse
     {
         $this->apiKeyService->delete($request->user()->id, $id);
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.customer_api_key.deleted'));
     }
 
     /** 切换启用/禁用 */
     public function toggle(Request $request, int $id): JsonResponse
     {
         $apiKey = $this->apiKeyService->toggle($request->user()->id, $id);
-        return ApiResponse::success($apiKey, $apiKey->is_active ? '已启用' : '已禁用');
+        return ApiResponse::success($apiKey, $apiKey->is_active ? __('app.api.customer_api_key.enabled') : __('app.api.customer_api_key.disabled'));
     }
 
     /** 获取可用权限列表 */
     public function abilities(): JsonResponse
     {
-        return ApiResponse::success(config('api-key.api_key.allowed_abilities', []), '获取成功');
+        return ApiResponse::success(config('api-key.api_key.allowed_abilities', []), __('app.api.customer_api_key.fetched'));
     }
 
     // ═══════════════════ 管理端 ═══════════════════
@@ -94,20 +94,20 @@ class CustomerApiKeyController extends Controller
     public function adminIndex(Request $request): JsonResponse
     {
         $keys = $this->apiKeyService->adminIndex($request->only(['user_id', 'search', 'is_active', 'per_page']));
-        return ApiResponse::success($keys, '获取成功');
+        return ApiResponse::success($keys, __('app.api.customer_api_key.fetched'));
     }
 
     /** 管理端仪表盘 */
     public function adminDashboard(): JsonResponse
     {
-        return ApiResponse::success($this->apiKeyService->adminDashboard(), '获取成功');
+        return ApiResponse::success($this->apiKeyService->adminDashboard(), __('app.api.customer_api_key.fetched'));
     }
 
     /** 管理端删除 */
     public function adminDestroy(int $id): JsonResponse
     {
         CustomerApiKey::findOrFail($id)->delete();
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.customer_api_key.deleted'));
     }
 
     /** 管理端切换状态 */
@@ -116,6 +116,6 @@ class CustomerApiKeyController extends Controller
         $apiKey = CustomerApiKey::findOrFail($id);
         $apiKey->is_active = !$apiKey->is_active;
         $apiKey->save();
-        return ApiResponse::success($apiKey->fresh(), $apiKey->is_active ? '已启用' : '已禁用');
+        return ApiResponse::success($apiKey->fresh(), $apiKey->is_active ? __('app.api.customer_api_key.enabled') : __('app.api.customer_api_key.disabled'));
     }
 }

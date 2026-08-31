@@ -41,12 +41,9 @@ class BugBountyHallOfFame extends Model
 
     public static function rankLabel(string $rank): string
     {
-        return match ($rank) {
-            'gold' => '金牌',
-            'silver' => '银牌',
-            'bronze' => '铜牌',
-            'honorable' => '荣誉',
-            default => $rank,
-        };
+        $key = 'bug_bounty.rank.'.$rank;
+        $label = __($key);
+
+        return $label === $key ? $rank : $label;
     }
 }

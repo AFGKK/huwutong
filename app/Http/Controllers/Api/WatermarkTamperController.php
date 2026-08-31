@@ -35,12 +35,12 @@ class WatermarkTamperController extends Controller
         }
 
         if ($license->watermark_key) {
-            return ApiResponse::error('WATERMARK_EXISTS', '该 License 已存在水印', 409);
+            return ApiResponse::error('WATERMARK_EXISTS', __('app.api.watermark.watermark_exists'), 409);
         }
 
         $watermark = $this->watermarkTamper->embedWatermark($license, $sourceInfo);
 
-        return ApiResponse::created($watermark, '水印已嵌入');
+        return ApiResponse::created($watermark, __('app.api.watermark.watermark_embedded'));
     }
 
     /**
@@ -54,7 +54,7 @@ class WatermarkTamperController extends Controller
         $watermark = $this->watermarkTamper->extractWatermark($license);
 
         if (!$watermark) {
-            return ApiResponse::success(null, '该 License 无水印信息');
+            return ApiResponse::success(null, __('app.api.watermark.no_watermark'));
         }
 
         return ApiResponse::success($watermark);
@@ -74,7 +74,7 @@ class WatermarkTamperController extends Controller
             $watermark->license->update(['watermark_key' => null]);
         }
 
-        return ApiResponse::success(null, '水印已吊销');
+        return ApiResponse::success(null, __('app.api.watermark.watermark_revoked'));
     }
 
     /**
@@ -88,13 +88,13 @@ class WatermarkTamperController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.watermark.validation_failed'), $validator->errors()->toArray());
         }
 
         $trace = $this->watermarkTamper->traceByWatermark($request->input('key'));
 
         if (!$trace) {
-            return ApiResponse::success(null, '未找到匹配的水印');
+            return ApiResponse::success(null, __('app.api.watermark.no_match'));
         }
 
         return ApiResponse::success($trace);
@@ -111,7 +111,7 @@ class WatermarkTamperController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('请输入搜索关键词', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.watermark.enter_search_keyword'), $validator->errors()->toArray());
         }
 
         $results = $this->watermarkTamper->searchWatermarks($request->input('q'));
@@ -176,7 +176,7 @@ class WatermarkTamperController extends Controller
         $license = License::findOrFail($licenseId);
         $hash = $this->watermarkTamper->refreshIntegrityHash($license);
 
-        return ApiResponse::success(['integrity_hash' => $hash], '完整性哈希已更新');
+        return ApiResponse::success(['integrity_hash' => $hash], __('app.api.watermark.integrity_hash_updated'));
     }
 
     // ─── 验证日志 ───
@@ -228,13 +228,13 @@ class WatermarkTamperController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('请输入处理说明', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.watermark.enter_resolution'), $validator->errors()->toArray());
         }
 
         $event = TamperEvent::findOrFail($eventId);
         $this->watermarkTamper->resolveTamperEvent($event, $request->input('resolution'));
 
-        return ApiResponse::success($event->fresh()->load('resolver'), '事件已处理');
+        return ApiResponse::success($event->fresh()->load('resolver'), __('app.api.watermark.event_resolved'));
     }
 
     // ─── 防篡改策略管理 ───
@@ -269,12 +269,12 @@ class WatermarkTamperController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.watermark.validation_error'), $validator->errors()->toArray());
         }
 
         $policy->update($validator->validated());
 
-        return ApiResponse::success($policy->fresh(), '防篡改策略已更新');
+        return ApiResponse::success($policy->fresh(), __('app.api.watermark.policy_updated'));
     }
 
     // ─── 仪表盘 ───

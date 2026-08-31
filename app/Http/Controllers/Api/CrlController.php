@@ -60,8 +60,8 @@ class CrlController extends Controller
         ])->validate();
 
         try {
-            $this->crlService->revoke($validated['license_key'], $validated['reason'] ?? '管理员吊销');
-            return ApiResponse::success(null, 'License 已加入吊销列表');
+            $this->crlService->revoke($validated['license_key'], $validated['reason'] ?? __('app.crl.admin_revoked'));
+            return ApiResponse::success(null, __('app.crl.added_to_crl'));
         } catch (\RuntimeException $e) {
             return ApiResponse::success(null, $e->getMessage(), false, 400);
         }
@@ -82,10 +82,10 @@ class CrlController extends Controller
 
         $results = $this->crlService->batchRevoke(
             $validated['license_keys'],
-            $validated['reason'] ?? '批量吊销'
+            $validated['reason'] ?? __('app.crl.batch_revoke')
         );
 
-        return ApiResponse::success($results, "成功吊销 {$results['revoked']} 个 License");
+        return ApiResponse::success($results, __('app.crl.bulk_revoke_result', ['count' => $results['revoked']]));
     }
 
     /**
@@ -100,7 +100,7 @@ class CrlController extends Controller
         ])->validate();
 
         $this->crlService->restore($validated['license_key']);
-        return ApiResponse::success(null, 'License 已移出吊销列表');
+        return ApiResponse::success(null, __('app.crl.removed_from_crl'));
     }
 
     /**
@@ -112,9 +112,9 @@ class CrlController extends Controller
     {
         $info = $this->crlService->getRevocationInfo($licenseKey);
         if ($info) {
-            return ApiResponse::success($info, 'License 已被吊销');
+            return ApiResponse::success($info, __('app.crl.is_revoked'));
         }
-        return ApiResponse::success(null, 'License 未被吊销');
+        return ApiResponse::success(null, __('app.crl.not_revoked'));
     }
 
     /**
@@ -126,6 +126,6 @@ class CrlController extends Controller
     {
         $batchSize = min((int) $request->input('batch', 100), 500);
         $result = $this->crlService->autoCompleteVerification($batchSize);
-        return ApiResponse::success($result, "已处理 {$result['processed']} 条离线记录");
+        return ApiResponse::success($result, __('app.crl.offline_processed', ['count' => $result['processed']]));
     }
 }

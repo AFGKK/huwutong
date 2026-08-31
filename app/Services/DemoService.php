@@ -23,20 +23,24 @@ class DemoService
     /**
      * 演示引导步骤定义
      */
-    public const STEPS = [
-        ['id' => 0, 'title' => '欢迎', 'page' => 'welcome'],
-        ['id' => 1, 'title' => '查看仪表盘', 'page' => 'dashboard'],
-        ['id' => 2, 'title' => '浏览产品', 'page' => 'products'],
-        ['id' => 3, 'title' => '创建License', 'page' => 'create-license'],
-        ['id' => 4, 'title' => '管理客户', 'page' => 'customers'],
-        ['id' => 5, 'title' => '生成报告', 'page' => 'reports'],
-        ['id' => 6, 'title' => '下一步', 'page' => 'next-steps'],
-    ];
+    public static function getSteps(): array
+    {
+        $t = fn(string $k) => __('app.demo_service.' . $k);
+        return [
+            ['id' => 0, 'title' => $t('steps_welcome'), 'page' => 'welcome'],
+            ['id' => 1, 'title' => $t('steps_dashboard'), 'page' => 'dashboard'],
+            ['id' => 2, 'title' => $t('steps_products'), 'page' => 'products'],
+            ['id' => 3, 'title' => $t('steps_create_license'), 'page' => 'create-license'],
+            ['id' => 4, 'title' => $t('steps_customers'), 'page' => 'customers'],
+            ['id' => 5, 'title' => $t('steps_reports'), 'page' => 'reports'],
+            ['id' => 6, 'title' => $t('steps_next'), 'page' => 'next-steps'],
+        ];
+    }
 
     /**
      * 演示数据种子
      */
-    protected array $demoData = [
+    protected function demoData(): array { return [
         'stats' => [
             'total_licenses' => 128,
             'active_licenses' => 95,
@@ -54,7 +58,7 @@ class DemoService
             ['month' => '2026-06', 'new' => 28500, 'renewal' => 15000, 'churn' => 2000],
         ],
         'products' => [
-            ['id' => 1, 'name' => 'HWT License Core', 'slug' => 'hwt-core', 'version' => '3.2.0', 'licenses' => 58, 'revenue' => 14500, 'color' => '#409eff'],
+            ['id' => 1, 'name' => 'HWT License Core', 'slug' => 'hwt-core', 'version' => '3.2.0', 'licenses' => 58, 'revenue' => 14500, 'color' => '#0f172a'],
             ['id' => 2, 'name' => 'HWT Enterprise', 'slug' => 'hwt-enterprise', 'version' => '2.1.0', 'licenses' => 32, 'revenue' => 9800, 'color' => '#67c23a'],
             ['id' => 3, 'name' => 'HWT Security Suite', 'slug' => 'hwt-security', 'version' => '1.8.0', 'licenses' => 22, 'revenue' => 2800, 'color' => '#e6a23c'],
             ['id' => 4, 'name' => 'HWT API Gateway', 'slug' => 'hwt-api', 'version' => '2.0.0', 'licenses' => 16, 'revenue' => 1400, 'color' => '#f56c6c'],
@@ -67,26 +71,26 @@ class DemoService
             ['key' => 'DEMO-ENT-Q7R8S9T0', 'type' => 'enterprise', 'status' => 'active', 'product' => 'HWT Enterprise', 'customer' => 'GlobalSoft', 'expires' => '2027-08-22'],
         ],
         'customers' => [
-            ['name' => 'Acme Corp', 'industry' => '科技', 'plan' => 'Enterprise', 'licenses' => 15, 'status' => 'active'],
-            ['name' => 'TechStart Inc', 'industry' => '互联网', 'plan' => 'Professional', 'licenses' => 8, 'status' => 'active'],
-            ['name' => 'DataFlow Ltd', 'industry' => '金融', 'plan' => 'Standard', 'licenses' => 5, 'status' => 'active'],
-            ['name' => 'WebTech Co', 'industry' => '电商', 'plan' => 'Basic', 'licenses' => 2, 'status' => 'expired'],
-            ['name' => 'GlobalSoft', 'industry' => '软件', 'plan' => 'Enterprise', 'licenses' => 20, 'status' => 'active'],
-            ['name' => 'CloudNine', 'industry' => '云计算', 'plan' => 'Professional', 'licenses' => 10, 'status' => 'active'],
+            ['name' => 'Acme Corp', 'industry' => __('app.demo_service.industry_tech'), 'plan' => 'Enterprise', 'licenses' => 15, 'status' => 'active'],
+            ['name' => 'TechStart Inc', 'industry' => __('app.demo_service.industry_internet'), 'plan' => 'Professional', 'licenses' => 8, 'status' => 'active'],
+            ['name' => 'DataFlow Ltd', 'industry' => __('app.demo_service.industry_finance'), 'plan' => 'Standard', 'licenses' => 5, 'status' => 'active'],
+            ['name' => 'WebTech Co', 'industry' => __('app.demo_service.industry_ecommerce'), 'plan' => 'Basic', 'licenses' => 2, 'status' => 'expired'],
+            ['name' => 'GlobalSoft', 'industry' => __('app.demo_service.industry_software'), 'plan' => 'Enterprise', 'licenses' => 20, 'status' => 'active'],
+            ['name' => 'CloudNine', 'industry' => __('app.demo_service.industry_cloud'), 'plan' => 'Professional', 'licenses' => 10, 'status' => 'active'],
         ],
         'activities' => [
-            ['action' => 'License激活', 'detail' => 'DEMO-ENT-A1B2C3D4 在 Windows Server 2022 上激活', 'time' => '2 分钟前'],
-            ['action' => '新客户', 'detail' => 'CloudNine 注册并购买 Enterprise 套餐', 'time' => '15 分钟前'],
-            ['action' => '设备注册', 'detail' => '新设备 (fingerprint: a1b2c3d4) 注册到 DEMO-ENT-Q7R8S9T0', 'time' => '1 小时前'],
-            ['action' => 'License到期提醒', 'detail' => 'DEMO-STD-I9J0K1L2 将在 30 天后到期', 'time' => '3 小时前'],
-            ['action' => '续费成功', 'detail' => 'TechStart Inc 自动续费 Professional 套餐', 'time' => '1 天前'],
+            ['action' => __('app.demo_service.activity_license_activated'), 'detail' => 'DEMO-ENT-A1B2C3D4 在 Windows Server 2022 上激活', 'time' => '2 分钟前'],
+            ['action' => __('app.demo_service.activity_new_customer'), 'detail' => 'CloudNine 注册并购买 Enterprise 套餐', 'time' => '15 分钟前'],
+            ['action' => __('app.demo_service.activity_device_registered'), 'detail' => '新设备 (fingerprint: a1b2c3d4) 注册到 DEMO-ENT-Q7R8S9T0', 'time' => '1 小时前'],
+            ['action' => __('app.demo_service.activity_license_expiry'), 'detail' => 'DEMO-STD-I9J0K1L2 将在 30 天后到期', 'time' => '3 小时前'],
+            ['action' => __('app.demo_service.activity_renewal_success'), 'detail' => 'TechStart Inc 自动续费 Professional 套餐', 'time' => '1 天前'],
         ],
         'chart_data' => [
             'activation_trend' => [85, 92, 88, 95, 102, 98, 105, 112, 108, 115, 120, 128],
             'revenue_monthly' => [18000, 21000, 23000, 25000, 28000, 28500],
             'device_platform' => ['Windows' => 45, 'macOS' => 25, 'Linux' => 18, 'iOS' => 7, 'Android' => 5],
         ],
-    ];
+    ]; }
 
     /**
      * 创建新演示会话
@@ -132,14 +136,14 @@ class DemoService
 
         $data = match ($type) {
             'dashboard' => [
-                'stats' => $this->demoData['stats'],
-                'revenue_trend' => $this->demoData['revenue_trend'],
-                'activities' => $this->demoData['activities'],
+                'stats' => $this->demoData()['stats'],
+                'revenue_trend' => $this->demoData()['revenue_trend'],
+                'activities' => $this->demoData()['activities'],
             ],
-            'products' => $this->demoData['products'],
-            'licenses' => $this->demoData['licenses'],
-            'customers' => $this->demoData['customers'],
-            'chart-data' => $this->demoData['chart_data'],
+            'products' => $this->demoData()['products'],
+            'licenses' => $this->demoData()['licenses'],
+            'customers' => $this->demoData()['customers'],
+            'chart-data' => $this->demoData()['chart_data'],
             default => $this->demoData,
         };
 
@@ -151,10 +155,10 @@ class DemoService
      */
     public function advanceStep(DemoSession $session, int $step): DemoSession
     {
-        $step = max(0, min($step, count(self::STEPS) - 1));
+        $step = max(0, min($step, count(self::getSteps()) - 1));
         $session->update([
             'step' => $step,
-            'current_page' => self::STEPS[$step]['page'] ?? null,
+            'current_page' => self::getSteps()[$step]['page'] ?? null,
             'last_activity_at' => now(),
         ]);
         return $session->fresh();
@@ -181,8 +185,8 @@ class DemoService
      */
     public function getCurrentStep(DemoSession $session): array
     {
-        $current = self::STEPS[$session->step] ?? self::STEPS[0];
-        $total = count(self::STEPS);
+        $current = self::getSteps()[$session->step] ?? self::getSteps()[0];
+        $total = count(self::getSteps());
 
         return [
             'current' => $current,
@@ -327,8 +331,8 @@ class DemoService
             'extend_minutes' => DemoConfig::getConfig('extend_minutes', 15),
             'enabled' => DemoConfig::getConfig('demo_enabled', true),
             'allowed_ips' => DemoConfig::getConfig('allowed_ips', []),
-            'cta_title' => DemoConfig::getConfig('cta_title', '免费注册'),
-            'cta_description' => DemoConfig::getConfig('cta_description', '创建您的账户，开始管理 License'),
+            'cta_title' => DemoConfig::getConfig('cta_title', __('app.demo_service.cta_title')),
+            'cta_description' => DemoConfig::getConfig('cta_description', __('app.demo_service.cta_description')),
             'seed_data_version' => DemoConfig::getConfig('seed_data_version', '1.0'),
             'auto_cleanup_minutes' => DemoConfig::getConfig('auto_cleanup_minutes', 60),
         ];
@@ -352,8 +356,10 @@ class DemoService
     public function getEmbedCode(): string
     {
         $url = config('app.url');
+        $buttonText = __('app.demo_service.embed_button_text');
+        $comment = __('app.demo_service.embed_comment');
         return <<<HTML
-<!-- HWT License 交互式产品演示 -->
+<!-- {$comment} -->
 <div id="hwt-demo-container"></div>
 <script src="{$url}/demo/embed.js" data-mode="floating"></script>
 <script>
@@ -361,8 +367,8 @@ class DemoService
     container: '#hwt-demo-container',
     mode: 'floating', // 'floating' | 'inline' | 'modal'
     position: 'bottom-right',
-    buttonText: '在线体验',
-    themeColor: '#409eff',
+    buttonText: '{$buttonText}',
+    themeColor: '#0f172a',
   };
 </script>
 HTML;
@@ -384,7 +390,7 @@ HTML;
         $password = $userData['password'] ?? \Illuminate\Support\Str::random(12);
 
         if (empty($name) || empty($email)) {
-            throw new \InvalidArgumentException('姓名和邮箱必填');
+            throw new \InvalidArgumentException(__('app.demo_service.validation_name_email'));
         }
 
         // 检查邮箱是否已注册
@@ -397,7 +403,7 @@ HTML;
             ]);
             return [
                 'new_user' => false,
-                'message' => '欢迎回来，您已有关联账户',
+                'message' => __('app.demo_service.register_welcome_back'),
                 'user_id' => $existing->id,
             ];
         }
@@ -429,7 +435,7 @@ HTML;
 
         return [
             'new_user' => true,
-            'message' => '注册成功！',
+            'message' => __('app.demo_service.register_success'),
             'user_id' => $user->id,
             'token' => $token,
             'password' => $password,

@@ -68,18 +68,14 @@ class BugBountyReport extends Model
     }
 
     /**
-     * 严重级别标签（中文）
+     * 严重级别标签（随 locale）
      */
     public static function severityLabel(string $severity): string
     {
-        return match ($severity) {
-            'critical' => '严重',
-            'high' => '高危',
-            'medium' => '中危',
-            'low' => '低危',
-            'informational' => '信息',
-            default => $severity,
-        };
+        $key = 'bug_bounty.severity.'.$severity;
+        $label = __($key);
+
+        return $label === $key ? $severity : $label;
     }
 
     /**

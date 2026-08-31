@@ -83,7 +83,7 @@ class LlmController extends Controller
             'id' => $provider->id,
             'name' => $provider->name,
             'slug' => $provider->slug,
-        ], 'Provider 已创建');
+        ], __('app.llm.provider'));
     }
 
     /**
@@ -114,7 +114,7 @@ class LlmController extends Controller
             'slug' => $provider->slug,
             'is_active' => $provider->is_active,
             'is_fallback' => $provider->is_fallback,
-        ], 'Provider 配置已更新');
+        ], __('app.llm.provider'));
     }
 
     /**

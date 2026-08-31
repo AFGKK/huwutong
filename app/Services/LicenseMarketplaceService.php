@@ -23,7 +23,7 @@ class LicenseMarketplaceService
     public function listListings(int $tenantId, array $filters = []): array
     {
         $query = LicenseListing::where('tenant_id', $tenantId)
-            ->with(['license:id,license_key', 'seller:id,name']);
+            ->with(['license:id,license_key', 'seller.user:id,name']);
 
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -44,7 +44,7 @@ class LicenseMarketplaceService
         $license = License::findOrFail($licenseId);
 
         if (!in_array($license->status, config('license-marketplace.listing.allowed_statuses', ['active', 'suspended']))) {
-            throw new \InvalidArgumentException('该 License 状态不允许转让');
+            throw new \InvalidArgumentException(__("app.license_marketplace.license_status_not_transferable"));
         }
 
         $activeCount = LicenseListing::where('seller_customer_id', $sellerCustomerId)
@@ -52,7 +52,7 @@ class LicenseMarketplaceService
             ->count();
         $maxActive = config('license-marketplace.listing.max_active_listings_per_tenant', 20);
         if ($activeCount >= $maxActive) {
-            throw new \RuntimeException("已达到最大活跃挂牌数({$maxActive})");
+            throw new \RuntimeException(__("app.license_marketplace.msg_2836c40a"));
         }
 
         $commission = round($price * config('license-marketplace.commission.rate', 0.05), 2);
@@ -163,7 +163,7 @@ class LicenseMarketplaceService
         $maxDisputes = config('license-marketplace.dispute.max_disputes_per_transaction', 1);
         $existingDisputes = LicenseDispute::where('transaction_id', $transactionId)->count();
         if ($existingDisputes >= $maxDisputes) {
-            throw new \RuntimeException('该交易已达到最大纠纷次数');
+            throw new \RuntimeException(__("app.license_marketplace.dispute_limit_reached"));
         }
 
         $timeout = config('license-marketplace.dispute.resolution_timeout_hours', 72);

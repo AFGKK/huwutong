@@ -31,7 +31,7 @@ class ThreadController extends Controller
         $isParticipant = ConversationParticipant::where('conversation_id', $parent->conversation_id)
             ->where('user_id', $myId)->whereNull('deleted_at')->exists();
         if (!$isParticipant) {
-            return ApiResponse::error('FORBIDDEN', '你不是该会话的参与者', 403);
+            return ApiResponse::error('FORBIDDEN', __("app.thread.msg_07d83b66"), 403);
         }
 
         // 如果父消息没有 thread_parent_id，则自己就是 thread 根
@@ -56,7 +56,7 @@ class ThreadController extends Controller
 
         return ApiResponse::success(
             $reply->load('sender:id,name'),
-            '已回复',
+            __('app.thread.replied'),
             201
         );
     }

@@ -39,7 +39,7 @@ class FineGrainedApiKeyService
     {
         // 1. 检查 Key 是否激活
         if (! $apiKey->is_active) {
-            return ['allowed' => false, 'reason' => 'API Key 已被禁用'];
+            return ['allowed' => false, 'reason' => __('app.api.service_fine_grained_api_key.key_disabled')];
         }
 
         // 2. 检查有效期（精确到小时）
@@ -49,7 +49,7 @@ class FineGrainedApiKeyService
                 : Carbon::parse($apiKey->expires_at);
 
             if (now()->greaterThan($expiresAt)) {
-                return ['allowed' => false, 'reason' => 'API Key 已过期'];
+                return ['allowed' => false, 'reason' => __('app.api.service_fine_grained_api_key.key_expired')];
             }
         }
 
@@ -58,13 +58,13 @@ class FineGrainedApiKeyService
             $allowedMethods = $apiKey->endpoint_permissions[$endpoint] ?? [];
 
             if (empty($allowedMethods)) {
-                return ['allowed' => false, 'reason' => "无权访问端点: {$endpoint}"];
+                return ['allowed' => false, 'reason' => __('app.api.service_fine_grained_api_key.no_access', ['endpoint' => $endpoint])];
             }
 
             if (! in_array(strtoupper($method), array_map('strtoupper', $allowedMethods))) {
                 return [
                     'allowed' => false,
-                    'reason' => "端点 {$endpoint} 不允许 {$method} 方法",
+                    'reason' => __('app.api.service_fine_grained_api_key.method_not_allowed', ['endpoint' => $endpoint, 'method' => $method]),
                 ];
             }
 
@@ -82,12 +82,12 @@ class FineGrainedApiKeyService
             }
 
             if (! $hasEndpointAccess) {
-                return ['allowed' => false, 'reason' => "无权访问端点: {$endpoint}"];
+                return ['allowed' => false, 'reason' => __('app.api.service_fine_grained_api_key.no_access', ['endpoint' => $endpoint])];
             }
 
             // 检查方法权限
             if (! $apiKey->canMethod($method)) {
-                return ['allowed' => false, 'reason' => "不允许 {$method} 方法"];
+                return ['allowed' => false, 'reason' => __('app.api.service_fine_grained_api_key.method_not_allowed', ['endpoint' => '', 'method' => $method])];
             }
 
             return ['allowed' => true, 'reason' => null];
@@ -95,7 +95,7 @@ class FineGrainedApiKeyService
 
         // 5. 未配置端点限制，回退到权限级别的方法检查
         if (! $apiKey->canMethod($method)) {
-            return ['allowed' => false, 'reason' => "权限级别不允许 {$method} 方法"];
+            return ['allowed' => false, 'reason' => __('app.api.service_fine_grained_api_key.permission_denied', ['method' => $method])];
         }
 
         return ['allowed' => true, 'reason' => null];
@@ -167,19 +167,19 @@ class FineGrainedApiKeyService
         foreach ($permissions as $endpoint => $methods) {
             // 验证端点名
             if (! in_array($endpoint, $validEndpoints)) {
-                $errors[$endpoint] = "未知端点: {$endpoint}，有效端点: " . implode(', ', $validEndpoints);
+                $errors[$endpoint] = __('app.api.service_fine_grained_api_key.unknown_endpoint', ['endpoint' => $endpoint]) . '，有效端点: ' . implode(', ', $validEndpoints);
                 continue;
             }
 
             // 验证 HTTP 方法
             if (! is_array($methods)) {
-                $errors[$endpoint] = '方法必须是数组';
+                $errors[$endpoint] = __('app.api.service_fine_grained_api_key.method_must_be_array');
                 continue;
             }
 
             foreach ($methods as $method) {
                 if (! in_array(strtoupper($method), $validMethods)) {
-                    $errors[$endpoint] = "无效的 HTTP 方法: {$method}";
+                    $errors[$endpoint] = __('app.api.service_fine_grained_api_key.invalid_method', ['method' => $method]);
                     continue 2;
                 }
             }
@@ -269,11 +269,11 @@ class FineGrainedApiKeyService
         $exceeded = [];
 
         if (! $apiKey->hasQuota()) {
-            $exceeded[] = '总配额已用完';
+            $exceeded[] = __('app.api.service_fine_grained_api_key.quota_exhausted');
         }
 
         if (! $apiKey->hasDailyQuota()) {
-            $exceeded[] = '每日配额已用完';
+            $exceeded[] = __('app.api.service_fine_grained_api_key.daily_quota_exhausted');
         }
 
         return [

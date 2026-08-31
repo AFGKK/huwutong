@@ -45,7 +45,7 @@ class PromotionService
     public function publishPromotion(Promotion $promotion): Promotion
     {
         if (!in_array($promotion->status, ['draft', 'paused'])) {
-            throw new \RuntimeException('当前状态不可发布');
+            throw new \RuntimeException(__("app.promotion.cannot_publish_in_current_state"));
         }
         $promotion->update([
             'status' => 'active',
@@ -93,26 +93,26 @@ class PromotionService
     public function redeemPromotion(Promotion $promotion, Customer $customer, float $amount, ?int $invoiceId = null, array $context = []): array
     {
         if (!$promotion->isActive()) {
-            throw new \RuntimeException('促销活动未激活或已过期');
+            throw new \RuntimeException(__("app.promotion.promotion_inactive_or_expired"));
         }
         if (!$promotion->hasBudget()) {
-            throw new \RuntimeException('促销预算已用完');
+            throw new \RuntimeException(__("app.promotion.promotion_budget_exhausted"));
         }
         if (!$promotion->hasUsageLeft()) {
-            throw new \RuntimeException('促销使用次数已达上限');
+            throw new \RuntimeException(__("app.promotion.promotion_usage_limit_reached"));
         }
         if ($promotion->min_order_amount && $amount < $promotion->min_order_amount) {
-            throw new \RuntimeException('未达到最低订单金额');
+            throw new \RuntimeException(__("app.promotion.min_order_amount_not_met"));
         }
 
         $discount = $promotion->calculateDiscount($amount);
         if ($discount <= 0) {
-            throw new \RuntimeException('折扣金额无效');
+            throw new \RuntimeException(__("app.promotion.invalid_discount_amount"));
         }
 
         // Check if the discount exceeds remaining budget
         if ($promotion->budget && ($promotion->budget_spent + $discount) > $promotion->budget) {
-            throw new \RuntimeException('促销预算不足以支付此折扣');
+            throw new \RuntimeException(__("app.promotion.promotion_budget_insufficient"));
         }
 
         DB::transaction(function () use ($promotion, $customer, $invoiceId, $discount, $context) {
@@ -191,7 +191,7 @@ class PromotionService
     public function approveContract(EnterpriseContract $contract, string $status, ?string $notes = null): EnterpriseContract
     {
         if (!in_array($status, ['approved', 'rejected'])) {
-            throw new \RuntimeException('审批状态无效');
+            throw new \RuntimeException(__("app.promotion.invalid_approval_status"));
         }
         $contract->update([
             'approval_status' => $status,
@@ -261,11 +261,11 @@ class PromotionService
     {
         $coupon = Coupon::where('code', $code)->first();
         if (!$coupon) {
-            throw new \RuntimeException('优惠券不存在');
+            throw new \RuntimeException(__("app.promotion.coupon_not_found"));
         }
 
         if (!$coupon->isValid($amount, $customer->id)) {
-            throw new \RuntimeException('优惠券不可用');
+            throw new \RuntimeException(__("app.promotion.coupon_unavailable"));
         }
 
         $discount = $coupon->calculateDiscount($amount);

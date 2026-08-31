@@ -58,7 +58,7 @@ class TenantRouterController extends Controller
         $hasAccess = $user->tenants()->where('tenants.id', $tenantId)->exists();
 
         if (! $hasAccess && ! $user->hasRole('super-admin')) {
-            return ApiResponse::forbidden('您无权访问该租户');
+            return ApiResponse::forbidden(__("app.tenant_router.msg_d8d1234a"));
         }
 
         // 记住选择的租户
@@ -75,7 +75,7 @@ class TenantRouterController extends Controller
                 'logo' => $tenant->logo,
             ],
             'active_tenant_id' => $tenantId,
-        ], "已切换到租户: {$tenant->name}");
+        ], __('app.common.tenant_switched', ['name' => $tenant->name]));
     }
 
     /**

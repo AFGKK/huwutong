@@ -64,7 +64,7 @@ class SiemExportController extends Controller
         $tenantId = auth()->user()->tenant_id;
         $connection = $this->siemExport->saveConnection($tenantId, $data);
 
-        return ApiResponse::success(['connection' => $connection], 'SIEM 连接已创建');
+        return ApiResponse::success(['connection' => $connection], __("app.siem_export.msg_a770cb14"));
     }
 
     /**
@@ -91,7 +91,7 @@ class SiemExportController extends Controller
         ]);
 
         $updated = $this->siemExport->saveConnection(auth()->user()->tenant_id, $data, $id);
-        return ApiResponse::success(['connection' => $updated], 'SIEM 连接已更新');
+        return ApiResponse::success(['connection' => $updated], __("app.siem_export.msg_babd1758"));
     }
 
     /**
@@ -103,7 +103,7 @@ class SiemExportController extends Controller
             ->findOrFail($id);
 
         $this->siemExport->deleteConnection($id);
-        return ApiResponse::success(null, 'SIEM 连接已删除');
+        return ApiResponse::success(null, __("app.siem_export.msg_666bcbcb"));
     }
 
     /**
@@ -116,8 +116,8 @@ class SiemExportController extends Controller
 
         $result = $this->siemExport->testConnection($id);
         return $result['success']
-            ? ApiResponse::success($result, '连接测试成功')
-            : ApiResponse::error($result['message'] ?? '连接测试失败', 422, $result);
+            ? ApiResponse::success($result, __("app.siem_export.msg_f20bc5e4"))
+            : ApiResponse::error($result['message'] ?? __("app.siem_export.msg_f91780a3"), 422, $result);
     }
 
     /**
@@ -138,8 +138,8 @@ class SiemExportController extends Controller
         $result = $this->siemExport->pushLogs($id, $filters);
 
         return $result['success'] ?? true
-            ? ApiResponse::success($result, '日志推送完成')
-            : ApiResponse::error($result['message'] ?? '推送失败', 422, $result);
+            ? ApiResponse::success($result, __("app.siem_export.msg_b1fd88b6"))
+            : ApiResponse::error($result['message'] ?? __("app.siem_export.msg_3b6ba072"), 422, $result);
     }
 
     /**

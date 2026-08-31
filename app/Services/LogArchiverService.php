@@ -240,7 +240,7 @@ class LogArchiverService
             ->first();
 
         if ($existing) {
-            throw new \RuntimeException('该归档已有待处理的取回请求');
+            throw new \RuntimeException(__("app.log_archiver.msg_4fa1a450"));
         }
 
         $tempDays = config('log-archiver.retrieval.temp_storage_days', 3);
@@ -295,7 +295,7 @@ class LogArchiverService
                 $actualChecksum = hash_file('sha256', $tempPath);
                 if ($actualChecksum !== $record->checksum) {
                     unlink($tempPath);
-                    throw new \RuntimeException("校验和不匹配: 期望 {$record->checksum}, 实际 {$actualChecksum}");
+                    throw new \RuntimeException(__("app.log_archiver.msg_9b6afdd7"));
                 }
             }
 

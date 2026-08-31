@@ -25,7 +25,7 @@ class SmartContractMiddleware
         $entityId = $this->resolveEntityId($request, $entityType, $entityIdSource);
 
         if (!$entityId) {
-            abort(403, '无法确定授权实体');
+            abort(403, __('app.middleware.cannot_determine_auth_entity'));
         }
 
         // 构建评估上下文
@@ -39,7 +39,7 @@ class SmartContractMiddleware
             $deniedContracts = array_filter($result['evaluations'], fn($e) => !$e['granted']);
             $deniedNames = array_map(fn($e) => $e['contract_name'], $deniedContracts);
 
-            abort(403, '智能合约授权拒绝: ' . implode(', ', $deniedNames));
+            abort(403, __('app.middleware.smart_contract_denied') . ': ' . implode(', ', $deniedNames));
         }
 
         // 授权通过，将评估结果注入请求

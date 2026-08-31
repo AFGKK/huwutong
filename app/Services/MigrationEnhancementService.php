@@ -193,7 +193,7 @@ class MigrationEnhancementService
     protected function fetchKeygen(MigrationImport $import): array
     {
         $apiKey = $import->options['api_key'] ?? '';
-        if (empty($apiKey)) throw new \RuntimeException('需要Keygen.sh API Key');
+        if (empty($apiKey)) throw new \RuntimeException(__("app.migration_enhancement.msg_194eb574"));
 
         $accountId = $import->options['account_id'] ?? '';
         $response = Http::withHeaders([
@@ -204,7 +204,7 @@ class MigrationEnhancementService
         ]);
 
         if (!$response->successful()) {
-            throw new \RuntimeException('Keygen.sh API请求失败: ' . $response->body());
+            throw new \RuntimeException(__("app.migration_enhancement.msg_dbd8f1f7") . $response->body());
         }
 
         $data = $response->json();
@@ -231,7 +231,7 @@ class MigrationEnhancementService
     protected function fetchLicenseSpring(MigrationImport $import): array
     {
         $apiKey = $import->options['api_key'] ?? '';
-        if (empty($apiKey)) throw new \RuntimeException('需要LicenseSpring API Key');
+        if (empty($apiKey)) throw new \RuntimeException(__("app.migration_enhancement.msg_8044e90c"));
 
         $response = Http::withHeaders([
             'X-API-Key' => $apiKey,
@@ -241,7 +241,7 @@ class MigrationEnhancementService
         ]);
 
         if (!$response->successful()) {
-            throw new \RuntimeException('LicenseSpring API请求失败: ' . $response->body());
+            throw new \RuntimeException(__("app.migration_enhancement.msg_231ad8c7") . $response->body());
         }
 
         $data = $response->json();
@@ -267,7 +267,7 @@ class MigrationEnhancementService
     {
         $path = $import->file_path;
         if (!$path || !Storage::disk('local')->exists($path)) {
-            throw new \RuntimeException('导入文件不存在');
+            throw new \RuntimeException(__("app.migration_enhancement.msg_6be2de8d"));
         }
 
         $content = Storage::disk('local')->get($path);
@@ -276,7 +276,7 @@ class MigrationEnhancementService
         return match ($format) {
             'json' => json_decode($content, true) ?? [],
             'csv' => $this->parseCsv($content),
-            default => throw new \RuntimeException("不支持的文件格式: {$format}"),
+            default => throw new \RuntimeException(__("app.migration_enhancement.msg_ea9ce381")),
         };
     }
 

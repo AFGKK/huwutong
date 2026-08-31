@@ -39,13 +39,13 @@ class BillingHistoryPortalController extends Controller
         $user = $request->user();
         $customer = $user->customer;
         if (! $customer) {
-            return ApiResponse::notFound('未找到客户资料');
+            return ApiResponse::notFound(__('app.api.billing_portal.customer_missing'));
         }
 
         // 通过 customer 获取 tenant
         $tenant = Tenant::find($customer->tenant_id);
         if (! $tenant) {
-            return ApiResponse::notFound('租户不存在');
+            return ApiResponse::notFound(__('app.api.billing_portal.tenant_missing'));
         }
 
         $filters = $request->only([
@@ -73,18 +73,18 @@ class BillingHistoryPortalController extends Controller
         $user = $request->user();
         $customer = $user->customer;
         if (! $customer) {
-            return ApiResponse::notFound('未找到客户资料');
+            return ApiResponse::notFound(__('app.api.billing_portal.customer_missing'));
         }
 
         $tenant = Tenant::find($customer->tenant_id);
         if (! $tenant) {
-            return ApiResponse::notFound('租户不存在');
+            return ApiResponse::notFound(__('app.api.billing_portal.tenant_missing'));
         }
 
         $invoice = $this->billingService->getInvoiceDetail($tenant, $customer, $id);
 
         if (! $invoice) {
-            return ApiResponse::notFound('账单不存在');
+            return ApiResponse::notFound(__('app.api.billing_portal.invoice_missing'));
         }
 
         return ApiResponse::success($invoice);
@@ -100,12 +100,12 @@ class BillingHistoryPortalController extends Controller
         $user = $request->user();
         $customer = $user->customer;
         if (! $customer) {
-            return ApiResponse::notFound('未找到客户资料');
+            return ApiResponse::notFound(__('app.api.billing_portal.customer_missing'));
         }
 
         $tenant = Tenant::find($customer->tenant_id);
         if (! $tenant) {
-            return ApiResponse::notFound('租户不存在');
+            return ApiResponse::notFound(__('app.api.billing_portal.tenant_missing'));
         }
 
         $stats = $this->billingService->getStats($tenant, $customer);
@@ -123,12 +123,12 @@ class BillingHistoryPortalController extends Controller
         $user = $request->user();
         $customer = $user->customer;
         if (! $customer) {
-            return ApiResponse::notFound('未找到客户资料');
+            return ApiResponse::notFound(__('app.api.billing_portal.customer_missing'));
         }
 
         $tenant = Tenant::find($customer->tenant_id);
         if (! $tenant) {
-            return ApiResponse::notFound('租户不存在');
+            return ApiResponse::notFound(__('app.api.billing_portal.tenant_missing'));
         }
 
         $subscriptions = $this->billingService->getSubscriptions($tenant, $customer);
@@ -146,12 +146,12 @@ class BillingHistoryPortalController extends Controller
         $user = $request->user();
         $customer = $user->customer;
         if (! $customer) {
-            return ApiResponse::notFound('未找到客户资料');
+            return ApiResponse::notFound(__('app.api.billing_portal.customer_missing'));
         }
 
         $tenant = Tenant::find($customer->tenant_id);
         if (! $tenant) {
-            return ApiResponse::notFound('租户不存在');
+            return ApiResponse::notFound(__('app.api.billing_portal.tenant_missing'));
         }
 
         $result = $this->billingService->getFailedPayments($tenant, $customer);
@@ -169,12 +169,12 @@ class BillingHistoryPortalController extends Controller
         $user = $request->user();
         $customer = $user->customer;
         if (! $customer) {
-            return ApiResponse::notFound('未找到客户资料');
+            return ApiResponse::notFound(__('app.api.billing_portal.customer_missing'));
         }
 
         $tenant = Tenant::find($customer->tenant_id);
         if (! $tenant) {
-            return ApiResponse::notFound('租户不存在');
+            return ApiResponse::notFound(__('app.api.billing_portal.tenant_missing'));
         }
 
         $result = $this->billingService->getAutoRenewalRecords($tenant, $customer);
@@ -204,17 +204,17 @@ class BillingHistoryPortalController extends Controller
         $user = $request->user();
         $customer = $user->customer;
         if (! $customer) {
-            return ApiResponse::notFound('未找到客户资料');
+            return ApiResponse::notFound(__('app.api.billing_portal.customer_missing'));
         }
 
         $tenant = Tenant::find($customer->tenant_id);
         if (! $tenant) {
-            return ApiResponse::notFound('租户不存在');
+            return ApiResponse::notFound(__('app.api.billing_portal.tenant_missing'));
         }
 
         $invoice = $this->billingService->getInvoiceDetail($tenant, $customer, $id);
         if (! $invoice) {
-            return ApiResponse::notFound('账单不存在');
+            return ApiResponse::notFound(__('app.api.billing_portal.invoice_missing'));
         }
 
         $validated = $request->validate([
@@ -228,7 +228,7 @@ class BillingHistoryPortalController extends Controller
                 $validated['payment_method'] ?? null,
             );
 
-            return ApiResponse::success($result, $result['status'] === 'paid' ? '支付成功' : '支付已发起');
+            return ApiResponse::success($result, $result['status'] === 'paid' ? __('app.api.billing_portal.pay_ok') : __('app.api.billing_portal.pay_initiated'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('PAYMENT_FAILED', $e->getMessage(), 400);
         }
@@ -244,12 +244,12 @@ class BillingHistoryPortalController extends Controller
         $user = $request->user();
         $customer = $user->customer;
         if (! $customer) {
-            return ApiResponse::notFound('未找到客户资料');
+            return ApiResponse::notFound(__('app.api.billing_portal.customer_missing'));
         }
 
         $invoice = Invoice::where('customer_id', $customer->id)->find($id);
         if (! $invoice) {
-            return ApiResponse::notFound('账单不存在');
+            return ApiResponse::notFound(__('app.api.billing_portal.invoice_missing'));
         }
 
         return ApiResponse::success(

@@ -46,11 +46,11 @@ class PortalBrandingConfig extends Model
     public function toCssVariables(): array
     {
         return [
-            '--brand-primary' => $this->primary_color ?? '#409eff',
+            '--brand-primary' => $this->primary_color ?? '#0f172a',
             '--brand-secondary' => $this->secondary_color ?? '#67c23a',
             '--brand-background' => $this->background_color ?? '#f5f7fa',
             '--brand-text' => $this->text_color ?? '#303133',
-            '--brand-link' => $this->link_color ?? '#409eff',
+            '--brand-link' => $this->link_color ?? '#0f172a',
             '--brand-header-bg' => $this->header_bg_color ?? '#ffffff',
             '--brand-sidebar-bg' => $this->sidebar_bg_color ?? '#304156',
             '--brand-sidebar-text' => $this->sidebar_text_color ?? '#bfcbd9',

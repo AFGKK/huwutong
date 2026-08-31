@@ -262,7 +262,7 @@ class MultiRegionService
             $targetDeployment = RegionDeployment::where('region_key', $targetRegion)->first();
 
             if (!$sourceDeployment || !$targetDeployment) {
-                throw new \RuntimeException("源区域或目标区域不存在");
+                throw new \RuntimeException(__("app.multi_region.msg_8af8a213"));
             }
 
             // 构造同步数据

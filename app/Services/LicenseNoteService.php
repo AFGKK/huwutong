@@ -43,16 +43,16 @@ class LicenseNoteService
         $maxNotes = config('license-notes.limits.max_notes_per_license', 500);
 
         if (mb_strlen($content) > $maxLength) {
-            throw new \InvalidArgumentException("备注内容不能超过 {$maxLength} 个字符");
+            throw new \InvalidArgumentException(__("app.license_note.msg_eae1312c"));
         }
 
         if (count($mentions) > $maxMentions) {
-            throw new \InvalidArgumentException("每次最多 @提及 {$maxMentions} 人");
+            throw new \InvalidArgumentException(__("app.license_note.msg_b3ac9b8b"));
         }
 
         $noteCount = $license->notes()->count();
         if ($noteCount >= $maxNotes) {
-            throw new \RuntimeException("每个 License 最多 {$maxNotes} 条备注");
+            throw new \RuntimeException(__("app.license_note.msg_0202bbbd"));
         }
 
         $note = $license->notes()->create([
@@ -84,11 +84,11 @@ class LicenseNoteService
     public function deleteNote(License $license, LicenseNote $note, User $user): void
     {
         if ($note->license_id !== $license->id) {
-            throw new \RuntimeException('备注不属于该 License');
+            throw new \RuntimeException(__("app.license_note.msg_63d6506b"));
         }
 
         if ($note->user_id !== $user->id && !$user->hasPermissionTo('super-admin')) {
-            throw new \RuntimeException('只能删除自己的备注');
+            throw new \RuntimeException(__("app.license_note.msg_a6c3f93d"));
         }
 
         $note->delete();

@@ -29,7 +29,7 @@ class CollaborationController extends Controller
     {
         $subject = $this->resolveEntity($entityType, $entityId);
         if (!$subject) {
-            return ApiResponse::notFound('实体不存在');
+            return ApiResponse::notFound(__('app.api.collab.entity_missing'));
         }
 
         $notes = $this->collab->getNotes($subject, $request->only(['is_internal', 'user_id']));
@@ -44,7 +44,7 @@ class CollaborationController extends Controller
     {
         $subject = $this->resolveEntity($entityType, $entityId);
         if (!$subject) {
-            return ApiResponse::notFound('实体不存在');
+            return ApiResponse::notFound(__('app.api.collab.entity_missing'));
         }
 
         $validator = Validator::make($request->all(), [
@@ -59,11 +59,11 @@ class CollaborationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.collab.param_validation'), $validator->errors()->toArray());
         }
 
         $note = $this->collab->createNote($subject, $validator->validated());
-        return ApiResponse::created($note, '笔记已创建');
+        return ApiResponse::created($note, __('app.api.collab.note_created'));
     }
 
     /**
@@ -84,11 +84,11 @@ class CollaborationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.collab.param_validation'), $validator->errors()->toArray());
         }
 
         $note = $this->collab->updateNote($note, $validator->validated());
-        return ApiResponse::success($note, '笔记已更新');
+        return ApiResponse::success($note, __('app.api.collab.note_updated'));
     }
 
     /**
@@ -99,7 +99,7 @@ class CollaborationController extends Controller
     {
         $note = Note::findOrFail($id);
         $this->collab->deleteNote($note);
-        return ApiResponse::success(null, '笔记已删除');
+        return ApiResponse::success(null, __('app.api.collab.note_deleted'));
     }
 
     /**
@@ -110,7 +110,7 @@ class CollaborationController extends Controller
     {
         $note = Note::findOrFail($id);
         $isPinned = $this->collab->togglePin($note);
-        return ApiResponse::success(['is_pinned' => $isPinned], $isPinned ? '已置顶' : '已取消置顶');
+        return ApiResponse::success(['is_pinned' => $isPinned], $isPinned ? __('app.api.collab.pinned') : __('app.api.collab.unpinned'));
     }
 
     /**
@@ -126,7 +126,7 @@ class CollaborationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.collab.param_validation'), $validator->errors()->toArray());
         }
 
         $counts = $this->collab->getNoteCounts($request->input('entity_type'), $request->input('entity_ids'));
@@ -145,7 +145,7 @@ class CollaborationController extends Controller
     {
         $subject = $this->resolveEntity($entityType, $entityId);
         if (!$subject) {
-            return ApiResponse::notFound('实体不存在');
+            return ApiResponse::notFound(__('app.api.collab.entity_missing'));
         }
 
         $logs = $this->collab->getChangeLogs($subject);
@@ -191,7 +191,7 @@ class CollaborationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.collab.param_validation'), $validator->errors()->toArray());
         }
 
         $timestamps = $this->collab->getLastActivityTimestamps(
@@ -231,11 +231,11 @@ class CollaborationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.collab.param_validation'), $validator->errors()->toArray());
         }
 
         $reply = $this->collab->createCannedReply($validator->validated());
-        return ApiResponse::created($reply, '快捷回复已创建');
+        return ApiResponse::created($reply, __('app.api.collab.quick_reply_created'));
     }
 
     /**
@@ -254,11 +254,11 @@ class CollaborationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.collab.param_validation'), $validator->errors()->toArray());
         }
 
         $reply = $this->collab->updateCannedReply($reply, $validator->validated());
-        return ApiResponse::success($reply, '快捷回复已更新');
+        return ApiResponse::success($reply, __('app.api.collab.quick_reply_updated'));
     }
 
     /**
@@ -269,7 +269,7 @@ class CollaborationController extends Controller
     {
         $reply = CannedReply::findOrFail($id);
         $this->collab->deleteCannedReply($reply);
-        return ApiResponse::success(null, '快捷回复已删除');
+        return ApiResponse::success(null, __('app.api.collab.quick_reply_deleted'));
     }
 
     // ══════════════════════════════════════════
@@ -294,7 +294,7 @@ class CollaborationController extends Controller
     {
         $subject = $this->resolveEntity($entityType, $entityId);
         if (!$subject) {
-            return ApiResponse::notFound('实体不存在');
+            return ApiResponse::notFound(__('app.api.collab.entity_missing'));
         }
 
         $result = $this->collab->toggleWatch($subject);
@@ -309,7 +309,7 @@ class CollaborationController extends Controller
     {
         $subject = $this->resolveEntity($entityType, $entityId);
         if (!$subject) {
-            return ApiResponse::notFound('实体不存在');
+            return ApiResponse::notFound(__('app.api.collab.entity_missing'));
         }
 
         $isWatching = $this->collab->isWatching($subject);
@@ -345,11 +345,11 @@ class CollaborationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.collab.param_validation'), $validator->errors()->toArray());
         }
 
         $prefs = $this->collab->updatePreferences($request->user()->id, $validator->validated());
-        return ApiResponse::success($prefs, '偏好已更新');
+        return ApiResponse::success($prefs, __('app.api.collab.prefs_updated'));
     }
 
     // ══════════════════════════════════════════

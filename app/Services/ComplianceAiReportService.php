@@ -70,7 +70,7 @@ class ComplianceAiReportService
             $record = ComplianceAiReport::create([
                 'tenant_id' => $tenant->id,
                 'framework' => $framework,
-                'title' => self::FRAMEWORKS[$framework] ?? "{$framework} 合规报告",
+                'title' => self::FRAMEWORKS[$framework] ?? __('app.admin.compliance_ai_report.framework_report_title', ['framework' => $framework]),
                 'status' => 'completed',
                 'sections' => $sections,
                 'evidence_summary' => $this->buildEvidenceSummary($evidence),
@@ -107,7 +107,7 @@ class ComplianceAiReportService
             ->toArray();
 
         if (empty($evidence)) {
-            Log::info("无已验证证据，尝试收集最新证据", [
+            Log::info(__('app.admin.compliance_ai_report.log_no_evidence'), [
                 'tenant_id' => $tenant->id,
                 'framework' => $framework,
             ]);
@@ -179,7 +179,7 @@ class ComplianceAiReportService
                     ]
                 );
             } catch (\Throwable $e) {
-                Log::warning("证据收集失败", [
+                Log::warning(__('app.admin.compliance_ai_report.log_collect_failed'), [
                     'tenant_id' => $tenant->id,
                     'framework' => $framework,
                     'type' => $type,
@@ -366,7 +366,7 @@ class ComplianceAiReportService
                 'raw_response' => $response,
             ];
         } catch (\Throwable $e) {
-            Log::error('AI 合规报告生成失败', [
+            Log::error(__('app.admin.compliance_ai_report.log_ai_generate_failed'), [
                 'tenant_id' => $tenant->id,
                 'framework' => $framework,
                 'error' => $e->getMessage(),
@@ -382,83 +382,60 @@ class ComplianceAiReportService
      */
     protected function fallbackReport(Tenant $tenant, string $framework, string $language, array $evidence, array $gapAnalysis): array
     {
-        $isZh = $language === 'zh';
+        $t = fn(string $key, array $replace = []) => __('app.admin.compliance_ai_report.' . $key, $replace);
+        $fwName = self::FRAMEWORKS[$framework] ?? $framework;
+        $coverage = $gapAnalysis['coverage_rate'];
+        $covered = $gapAnalysis['covered'];
+        $total = $gapAnalysis['total_controls'];
+        $gaps = $gapAnalysis['gaps'];
+        $evCount = count($evidence);
 
         $sections = [
             [
-                'title' => $isZh ? '执行摘要' : 'Executive Summary',
-                'content' => $isZh
-                    ? "本报告为 {$tenant->name} 的 " . (self::FRAMEWORKS[$framework] ?? $framework) . " 合规评估。"
-                    . "当前覆盖率为 {$gapAnalysis['coverage_rate']}%（{$gapAnalysis['covered']}/{$gapAnalysis['total_controls']}）。"
-                    . "系统共收集 " . count($evidence) . " 条证据，发现 {$gapAnalysis['gaps']} 个差距项。"
-                    : "This report presents the " . (self::FRAMEWORKS[$framework] ?? $framework) . " compliance assessment for {$tenant->name}. "
-                    . "Current coverage rate is {$gapAnalysis['coverage_rate']}% ({$gapAnalysis['covered']}/{$gapAnalysis['total_controls']}). "
-                    . "A total of " . count($evidence) . " evidence items collected, with {$gapAnalysis['gaps']} gaps identified.",
+                'title' => $t('section_executive_summary'),
+                'content' => $t('executive_summary_content', compact('name', 'framework', 'coverage', 'covered', 'total', 'evidence_count', 'gaps') + ['name' => $tenant->name, 'framework' => $fwName, 'evidence_count' => $evCount]),
             ],
             [
-                'title' => $isZh ? '范围和方法论' : 'Scope & Methodology',
-                'content' => $isZh
-                    ? "评估范围涵盖互物通授权管理系统的全部控制域。"
-                      . "评估方法包括：自动化证据收集、控制点映射、差距分析。"
-                      . "证据来源包括系统日志、配置快照、访问控制列表、加密设置等。"
-                    : "The assessment covers all control domains of the Huwutong License Management System. "
-                      . "Methodology includes: automated evidence collection, control mapping, and gap analysis. "
-                      . "Evidence sources include system logs, configuration snapshots, access control lists, encryption settings, etc.",
+                'title' => $t('section_scope_methodology'),
+                'content' => $t('scope_methodology_content'),
             ],
             [
-                'title' => $isZh ? '控制域评估' : 'Control Assessment',
-                'content' => $isZh
-                    ? "共评估 {$gapAnalysis['total_controls']} 个控制点，其中 {$gapAnalysis['covered']} 个已覆盖，{$gapAnalysis['gaps']} 个存在差距。"
-                    : "Total {$gapAnalysis['total_controls']} controls assessed, {$gapAnalysis['covered']} covered, {$gapAnalysis['gaps']} gaps identified.",
+                'title' => $t('section_control_assessment'),
+                'content' => $t('control_assessment_content', compact('total', 'covered', 'gaps')),
                 'sub_sections' => array_map(fn($g) => [
                     'title' => $g['control_ref'] . ' - ' . $g['control_name'],
                     'status' => $g['status'],
                     'content' => $g['status'] === 'covered'
-                        ? ($isZh ? "已覆盖，{$g['evidence_count']} 条证据" : "Covered with {$g['evidence_count']} evidence items")
-                        : ($isZh ? '未覆盖，需要补充' : 'Not covered, requires remediation'),
+                        ? $t('control_covered', ['count' => $g['evidence_count']])
+                        : $t('control_not_covered'),
                 ], $gapAnalysis['details'] ?? []),
             ],
             [
-                'title' => $isZh ? '差距分析总结' : 'Gap Analysis Summary',
-                'content' => $isZh
-                    ? "共发现 {$gapAnalysis['gaps']} 个差距项，覆盖率为 {$gapAnalysis['coverage_rate']}%。"
-                      . "建议优先处理未覆盖的关键控制点。"
-                    : "{$gapAnalysis['gaps']} gaps identified with {$gapAnalysis['coverage_rate']}% coverage rate. "
-                      . "Priority should be given to addressing uncovered critical controls.",
+                'title' => $t('section_gap_summary'),
+                'content' => $t('gap_summary_content', compact('gaps', 'coverage')),
             ],
             [
-                'title' => $isZh ? '改进建议' : 'Recommendations',
-                'content' => $isZh
-                    ? "1. 立即补充未覆盖控制点的证据\n"
-                      . "2. 对差距项制定整改计划\n"
-                      . "3. 定期（至少每季度）执行合规评估\n"
-                      . "4. 建立持续监控机制\n"
-                      . "5. 考虑引入自动化合规工具"
-                    : "1. Immediately supplement evidence for uncovered controls\n"
-                      . "2. Develop remediation plans for all gaps\n"
-                      . "3. Conduct compliance assessments regularly (at least quarterly)\n"
-                      . "4. Establish continuous monitoring mechanisms\n"
-                      . "5. Consider introducing automated compliance tools",
+                'title' => $t('section_recommendations'),
+                'content' => $t('recommendations_content'),
             ],
             [
-                'title' => $isZh ? '结论' : 'Conclusion',
-                'content' => $isZh
-                    ? "{$tenant->name} 的 " . (self::FRAMEWORKS[$framework] ?? $framework) . " 合规状态为 " . ($gapAnalysis['coverage_rate'] >= 80 ? '良好' : ($gapAnalysis['coverage_rate'] >= 60 ? '一般' : '需改进')) . "。"
-                      . "建议根据上述改进建议制定行动计划。"
-                    : "The " . (self::FRAMEWORKS[$framework] ?? $framework) . " compliance status of {$tenant->name} is "
-                      . ($gapAnalysis['coverage_rate'] >= 80 ? 'Good' : ($gapAnalysis['coverage_rate'] >= 60 ? 'Fair' : 'Needs Improvement')) . ". "
-                      . "It is recommended to develop an action plan based on the recommendations above.",
+                'title' => $t('section_conclusion'),
+                'content' => $coverage >= 80
+                    ? $t('conclusion_good', ['name' => $tenant->name, 'framework' => $fwName])
+                    : ($coverage >= 60
+                        ? $t('conclusion_fair', ['name' => $tenant->name, 'framework' => $fwName])
+                        : $t('conclusion_poor', ['name' => $tenant->name, 'framework' => $fwName])),
             ],
         ];
 
         return [
             'sections' => $sections,
             'recommendations' => [
-                ['priority' => 'high', 'title' => '补充证据', 'description' => '立即补充未覆盖控制点的合规证据'],
-                ['priority' => 'high', 'title' => '整改计划', 'description' => '对差距项制定详细整改计划和时间表'],
-                ['priority' => 'medium', 'title' => '定期评估', 'description' => '建立定期合规评估机制'],
-                ['priority' => 'medium', 'title' => '持续监控', 'description' => '建立持续合规监控机制'],
-                ['priority' => 'low', 'title' => '自动化工具', 'description' => '评估引入自动化合规管理工具'],
+                ['priority' => 'high', 'title' => $t('rec_evidence'), 'description' => $t('rec_evidence_desc')],
+                ['priority' => 'high', 'title' => $t('rec_remediation'), 'description' => $t('rec_remediation_desc')],
+                ['priority' => 'medium', 'title' => $t('rec_regular'), 'description' => $t('rec_regular_desc')],
+                ['priority' => 'medium', 'title' => $t('rec_monitoring'), 'description' => $t('rec_monitoring_desc')],
+                ['priority' => 'low', 'title' => $t('rec_automation'), 'description' => $t('rec_automation_desc')],
             ],
             'prompt' => '',
             'raw_response' => '',
@@ -498,7 +475,7 @@ class ComplianceAiReportService
         }
 
         return $sections ?: [
-            ['title' => '报告全文', 'content' => $response],
+            ['title' => __('app.admin.compliance_ai_report.full_report'), 'content' => $response],
         ];
     }
 
@@ -522,7 +499,7 @@ class ComplianceAiReportService
         }
 
         return $recommendations ?: [
-            ['priority' => 'medium', 'title' => '请参考正文建议', 'description' => 'AI 未能提取结构化建议，请查看报告正文'],
+            ['priority' => 'medium', 'title' => __('app.admin.compliance_ai_report.ref_report_text'), 'description' => __('app.admin.compliance_ai_report.no_structured_advice')],
         ];
     }
 
@@ -564,7 +541,7 @@ class ComplianceAiReportService
             }
 
             if (! empty($content['recommendations'])) {
-                $fileContent .= "## 改进建议\n\n";
+                $fileContent .= '## ' . __('app.admin.compliance_ai_report.recommendations_section') . "\n\n";
                 foreach ($content['recommendations'] as $rec) {
                     $fileContent .= "- [{$rec['priority']}] {$rec['title']}: {$rec['description']}\n";
                 }
@@ -573,7 +550,7 @@ class ComplianceAiReportService
             Storage::disk('local')->put($fileName, $fileContent);
             return $fileName;
         } catch (\Throwable $e) {
-            Log::error('合规报告文件保存失败', [
+            Log::error(__('app.admin.compliance_ai_report.log_file_save_failed'), [
                 'report_id' => $report->id,
                 'error' => $e->getMessage(),
             ]);
@@ -618,7 +595,7 @@ class ComplianceAiReportService
         try {
             return Storage::disk('local')->get($report->file_path);
         } catch (\Throwable $e) {
-            Log::error('读取报告文件失败', ['path' => $report->file_path, 'error' => $e->getMessage()]);
+            Log::error(__('app.admin.compliance_ai_report.log_file_read_failed'), ['path' => $report->file_path, 'error' => $e->getMessage()]);
             return null;
         }
     }

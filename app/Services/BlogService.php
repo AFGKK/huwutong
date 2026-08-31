@@ -277,12 +277,12 @@ class BlogService
             ->first();
 
         if (!$sub) {
-            return ['success' => false, 'message' => '链接已失效或已验证'];
+            return ['success' => false, 'message' => __('app.common.link_expired_or_verified')];
         }
 
         $sub->update(['verified_at' => now()]);
 
-        return ['success' => true, 'message' => '订阅已确认', 'email' => $sub->email];
+        return ['success' => true, 'message' => __('app.common.subscription_confirmed'), 'email' => $sub->email];
     }
 
     /**
@@ -296,12 +296,12 @@ class BlogService
             ->first();
 
         if (!$sub) {
-            return ['success' => false, 'message' => '订阅不存在或已取消'];
+            return ['success' => false, 'message' => __('app.common.subscription_not_found_or_cancelled')];
         }
 
         $sub->update(['unsubscribed_at' => now()]);
 
-        return ['success' => true, 'message' => '已取消订阅', 'email' => $sub->email];
+        return ['success' => true, 'message' => __('app.common.subscription_cancelled'), 'email' => $sub->email];
     }
 
     /**

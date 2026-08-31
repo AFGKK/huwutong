@@ -108,7 +108,7 @@ class PreSaleService
     public function publishCampaign(int $id): PreSaleCampaign
     {
         $campaign = PreSaleCampaign::findOrFail($id);
-        throw_unless($campaign->status === 'draft', \RuntimeException::class, '只有草稿状态的活动可以发布');
+        throw_unless($campaign->status === 'draft', \RuntimeException::class, __('app.pre_sale.only_draft_can_publish'));
 
         $campaign->update(['status' => 'active']);
         return $campaign->fresh();
@@ -120,7 +120,7 @@ class PreSaleService
     public function cancelCampaign(int $id, ?string $reason = null): PreSaleCampaign
     {
         $campaign = PreSaleCampaign::findOrFail($id);
-        throw_unless(in_array($campaign->status, ['draft', 'pending', 'active']), \RuntimeException::class, '该状态不允许取消');
+        throw_unless(in_array($campaign->status, ['draft', 'pending', 'active']), \RuntimeException::class, __('app.pre_sale.status_not_allowed_to_cancel'));
 
         DB::transaction(function () use ($campaign, $reason) {
             $campaign->update([
@@ -176,7 +176,7 @@ class PreSaleService
     public function completeCampaign(int $id): PreSaleCampaign
     {
         $campaign = PreSaleCampaign::findOrFail($id);
-        throw_unless($campaign->status === 'success', \RuntimeException::class, '只有成功的活动可以完成');
+        throw_unless($campaign->status === 'success', \RuntimeException::class, __('app.pre_sale.only_success_can_complete'));
 
         DB::transaction(function () use ($campaign) {
             $campaign->update(['status' => 'completed']);
@@ -214,7 +214,7 @@ class PreSaleService
     public function deleteCampaign(int $id): void
     {
         $campaign = PreSaleCampaign::findOrFail($id);
-        throw_unless(in_array($campaign->status, ['draft', 'failed', 'cancelled']), \RuntimeException::class, '只有草稿/失败/已取消的活动可以删除');
+        throw_unless(in_array($campaign->status, ['draft', 'failed', 'cancelled']), \RuntimeException::class, __('app.pre_sale.only_draft_failed_cancelled_can_delete'));
         $campaign->delete();
     }
 
@@ -227,7 +227,7 @@ class PreSaleService
     {
         return DB::transaction(function () use ($data) {
             $campaign = PreSaleCampaign::findOrFail($data['campaign_id']);
-            throw_unless($campaign->isActive(), \RuntimeException::class, '该活动当前不可参与');
+            throw_unless($campaign->isActive(), \RuntimeException::class, __('app.pre_sale.campaign_not_active_to_participate'));
 
             $orderNo = 'PS' . date('Ymd') . Str::random(10);
 
@@ -275,7 +275,7 @@ class PreSaleService
     {
         return DB::transaction(function () use ($orderId, $paymentMethod) {
             $order = PreSaleOrder::with('campaign')->findOrFail($orderId);
-            throw_unless($order->payment_status === 'deposit_pending', \RuntimeException::class, '该订单状态不允许支付定金');
+            throw_unless($order->payment_status === 'deposit_pending', \RuntimeException::class, __('app.pre_sale.order_status_not_allow_deposit'));
 
             $deposit = $this->paymentService->calculateDepositAmount($order);
             $this->paymentService->chargeDeposit($order, $paymentMethod);
@@ -299,8 +299,8 @@ class PreSaleService
     {
         return DB::transaction(function () use ($orderId, $paymentMethod) {
             $order = PreSaleOrder::with('campaign')->findOrFail($orderId);
-            throw_unless($order->payment_status === 'deposit_paid', \RuntimeException::class, '该订单状态不允许支付尾款');
-            throw_unless(in_array($order->campaign->status, ['active', 'success']), \RuntimeException::class, '该活动已结束，无法支付尾款');
+            throw_unless($order->payment_status === 'deposit_paid', \RuntimeException::class, __('app.pre_sale.order_status_not_allow_final'));
+            throw_unless(in_array($order->campaign->status, ['active', 'success']), \RuntimeException::class, __('app.pre_sale.campaign_ended_cannot_pay_final'));
 
             $finalAmount = max(0, (float) $order->total_amount - (float) $order->deposit_paid);
             $this->paymentService->chargeFinal($order, $paymentMethod);

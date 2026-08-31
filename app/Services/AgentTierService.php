@@ -20,16 +20,20 @@ class AgentTierService
     /**
      * 默认等级定义（在数据库中创建）
      */
-    const DEFAULT_TIERS = [
-        ['level' => 'regular', 'name' => '普通', 'sort_order' => 1, 'default_rate' => 5.0,
-         'color' => '#909399', 'benefits' => ['基础佣金', '推广链接']],
-        ['level' => 'silver', 'name' => '白银', 'sort_order' => 2, 'default_rate' => 10.0,
-         'color' => '#C0C4CC', 'benefits' => ['基础佣金', '推广链接', '月度奖励', '优先客服']],
-        ['level' => 'gold', 'name' => '黄金', 'sort_order' => 3, 'default_rate' => 20.0,
-         'color' => '#E6A23C', 'benefits' => ['高级佣金', '推广链接', '月度奖励', '优先客服', '专属运营']],
-        ['level' => 'platinum', 'name' => '铂金', 'sort_order' => 4, 'default_rate' => 30.0,
-         'color' => '#409EFF', 'benefits' => ['最高佣金', '推广链接', '季度分红', '专属客服', '专属运营', '品牌授权']],
-    ];
+    protected function getDefaultTiers(): array
+    {
+        $fn = fn(string $k) => __('app.agent_tier_service.' . $k);
+        return [
+            ['level' => 'regular', 'name' => $fn('tier_regular'), 'sort_order' => 1, 'default_rate' => 5.0,
+             'color' => '#909399', 'benefits' => [$fn('benefit_basic_commission'), $fn('benefit_referral_link')]],
+            ['level' => 'silver', 'name' => $fn('tier_silver'), 'sort_order' => 2, 'default_rate' => 10.0,
+             'color' => '#C0C4CC', 'benefits' => [$fn('benefit_basic_commission'), $fn('benefit_referral_link'), $fn('benefit_monthly_bonus'), $fn('benefit_priority_support')]],
+            ['level' => 'gold', 'name' => $fn('tier_gold'), 'sort_order' => 3, 'default_rate' => 20.0,
+             'color' => '#E6A23C', 'benefits' => [$fn('benefit_premium_commission'), $fn('benefit_referral_link'), $fn('benefit_monthly_bonus'), $fn('benefit_priority_support'), $fn('benefit_dedicated_operations')]],
+            ['level' => 'platinum', 'name' => $fn('tier_platinum'), 'sort_order' => 4, 'default_rate' => 30.0,
+             'color' => '#0f172a', 'benefits' => [$fn('benefit_max_commission'), $fn('benefit_referral_link'), $fn('benefit_quarterly_dividend'), $fn('benefit_dedicated_support'), $fn('benefit_dedicated_operations'), $fn('benefit_brand_authorization')]],
+        ];
+    }
 
     /** @var array 等级排序映射 */
     const TIER_ORDER = ['regular' => 1, 'silver' => 2, 'gold' => 3, 'platinum' => 4];
@@ -40,7 +44,7 @@ class AgentTierService
     public function initDefaultTiers(): array
     {
         $created = [];
-        foreach (self::DEFAULT_TIERS as $tier) {
+        foreach ($this->getDefaultTiers() as $tier) {
             $definition = AgentTierDefinition::updateOrCreate(
                 ['level' => $tier['level']],
                 $tier
@@ -102,7 +106,7 @@ class AgentTierService
             return [
                 'can_promote' => false,
                 'current_level' => $currentLevel,
-                'message' => '已达到最高等级',
+                'message' => __('app.agent_tier_service.msg_max_level'),
             ];
         }
 
@@ -119,7 +123,7 @@ class AgentTierService
             return [
                 'can_promote' => false,
                 'current_level' => $currentLevel,
-                'message' => '未找到晋升目标等级',
+                'message' => __('app.agent_tier_service.msg_no_promotion_target'),
             ];
         }
 
@@ -134,7 +138,7 @@ class AgentTierService
                 'can_promote' => false,
                 'current_level' => $currentLevel,
                 'target_level' => $nextLevel,
-                'message' => '未配置晋升规则',
+                'message' => __('app.agent_tier_service.msg_no_promotion_rule'),
             ];
         }
 
@@ -148,7 +152,7 @@ class AgentTierService
             'target_level' => $nextLevel,
             'rule_type' => $rule->period,
             'details' => $details,
-            'message' => $allMet ? '全部条件达标' : '部分条件未达标',
+            'message' => $allMet ? __('app.agent_tier_service.msg_all_conditions_met') : __('app.agent_tier_service.msg_some_conditions_not_met'),
         ];
     }
 
@@ -163,7 +167,7 @@ class AgentTierService
         $daysSinceCreation = $agent->created_at->diffInDays(now());
         $results[] = [
             'condition' => 'minimum_days',
-            'label' => '在册天数',
+            'label' => __('app.agent_tier_service.label_days_registered'),
             'required' => $rule->min_days,
             'current' => $daysSinceCreation,
             'met' => $daysSinceCreation >= $rule->min_days,
@@ -173,7 +177,7 @@ class AgentTierService
         $subscriptionsCount = $agent->tier_subscriptions_total;
         $results[] = [
             'condition' => 'min_subscriptions',
-            'label' => '累计订阅数',
+            'label' => __('app.agent_tier_service.label_total_subscriptions'),
             'required' => $rule->min_subscriptions,
             'current' => $subscriptionsCount,
             'met' => $subscriptionsCount >= $rule->min_subscriptions,
@@ -183,7 +187,7 @@ class AgentTierService
         $totalAmount = $agent->tier_revenue_total;
         $results[] = [
             'condition' => 'min_total_amount',
-            'label' => '累计金额 (¥)',
+            'label' => __('app.agent_tier_service.label_total_amount'),
             'required' => $rule->min_total_amount,
             'current' => $totalAmount,
             'met' => $totalAmount >= $rule->min_total_amount,
@@ -193,7 +197,7 @@ class AgentTierService
         $referrals = $agent->tier_referrals_total;
         $results[] = [
             'condition' => 'min_referrals',
-            'label' => '推荐客户数',
+            'label' => __('app.agent_tier_service.label_referral_count'),
             'required' => $rule->min_referrals,
             'current' => $referrals,
             'met' => $referrals >= $rule->min_referrals,
@@ -204,7 +208,7 @@ class AgentTierService
             $monthly = $agent->tier_monthly_revenue;
             $results[] = [
                 'condition' => 'min_monthly_amount',
-                'label' => '本月金额 (¥)',
+                'label' => __('app.agent_tier_service.label_monthly_amount'),
                 'required' => $rule->min_monthly_amount,
                 'current' => $monthly,
                 'met' => $monthly >= $rule->min_monthly_amount,

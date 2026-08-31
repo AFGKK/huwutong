@@ -10,6 +10,7 @@ use App\Models\BlogPost;
 use App\Models\OaArticle;
 use App\Models\User;
 use App\Models\OfficialAccount;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -60,6 +61,16 @@ class MeilisearchService
     }
 
     /**
+     * 重新探测 Meilisearch 连接（服务启动后可调用）
+     */
+    public function recheckAvailability(): bool
+    {
+        $this->boot();
+
+        return $this->available;
+    }
+
+    /**
      * 获取原始客户端（供高级操作使用）
      */
     public function client(): ?\Meilisearch\Client
@@ -104,9 +115,11 @@ class MeilisearchService
      */
     public function setupIndex(string $indexKey): array
     {
+        $this->ensureAvailable();
+
         $config = config("meilisearch.indexes.{$indexKey}");
         if (!$config) {
-            throw new \RuntimeException("未知索引: {$indexKey}");
+throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $indexKey]));
         }
 
         try {
@@ -131,9 +144,24 @@ class MeilisearchService
                 $this->client->index($indexUid)->updateSortableAttributes($config['sortable_attributes']);
                 return ['uid' => $indexUid, 'status' => 'updated'];
             } catch (\Throwable $e2) {
-                throw new \RuntimeException('设置索引失败: ' . $e2->getMessage());
+                throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_6c06f88c61') . $e2->getMessage());
             }
         }
+    }
+
+    /**
+     * 初始化全部索引配置
+     */
+    public function setupAllIndexes(): array
+    {
+        $this->ensureAvailable();
+
+        $results = [];
+        foreach (array_keys(config('meilisearch.indexes', [])) as $indexKey) {
+            $results[$indexKey] = $this->setupIndex($indexKey);
+        }
+
+        return $results;
     }
 
     /**
@@ -167,8 +195,8 @@ class MeilisearchService
      */
     public function getHealth(): array
     {
-        if (!$this->available) {
-            return ['status' => 'unavailable', 'version' => null];
+        if (! $this->available) {
+            return $this->unavailableHealthPayload();
         }
 
         try {
@@ -179,10 +207,53 @@ class MeilisearchService
                 'status' => $health['status'] ?? 'unknown',
                 'version' => $version,
                 'indexes' => $this->getIndexes(),
+                'host' => config('meilisearch.host'),
+                'meilisearch_available' => true,
             ];
         } catch (\Throwable $e) {
-            return ['status' => 'error', 'message' => $e->getMessage(), 'version' => null];
+            return array_merge($this->unavailableHealthPayload(), [
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ]);
         }
+    }
+
+    /**
+     * 删除并重建全部索引（D-19 运维重建）
+     */
+    public function rebuildAllIndexes(): array
+    {
+        $this->ensureAvailable();
+
+        $deleted = [];
+        foreach (config('meilisearch.indexes', []) as $indexKey => $config) {
+            $uid = $config['name'] ?? $indexKey;
+            $deleted[$indexKey] = $this->deleteIndex($uid);
+        }
+
+        $setup = $this->setupAllIndexes();
+
+        return [
+            'deleted' => $deleted,
+            'setup' => $setup,
+        ];
+    }
+
+    protected function unavailableHealthPayload(): array
+    {
+        return [
+            'status' => 'unavailable',
+            'version' => null,
+            'host' => config('meilisearch.host'),
+            'meilisearch_available' => false,
+            'message' => __('app.meilisearch_service.meilisearch_service_ea54767b0c'),
+            'hint' => __('app.meilisearch_service.meilisearch_service_9397b0a037'),
+            'start_commands' => [
+                'windows' => 'powershell -ExecutionPolicy Bypass -File scripts/start-meilisearch.ps1',
+                'docker' => 'docker compose -f deploy/meilisearch/docker-compose.yml up -d',
+            ],
+            'rebuild_command' => 'php artisan meilisearch:sync --rebuild',
+        ];
     }
 
     // ══════════════════════════════════════════
@@ -194,12 +265,14 @@ class MeilisearchService
      */
     public function syncProducts(?int $chunkSize = null): array
     {
+        $this->ensureAvailable();
+
         $chunkSize = $chunkSize ?: config('meilisearch.sync.chunk_size', 100);
         $indexUid = config('meilisearch.indexes.products.name', 'products');
         $total = 0;
 
         try {
-            Product::with(['category:id,name'])->chunk($chunkSize, function ($products) use ($indexUid, &$total) {
+            Product::with(['category:id,name', 'merchant:id,name'])->chunk($chunkSize, function ($products) use ($indexUid, &$total) {
                 $documents = $products->map(fn($p) => [
                     'id' => $p->id,
                     'name' => $p->name,
@@ -227,7 +300,7 @@ class MeilisearchService
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步商品到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException('同步商品失败: ' . $e->getMessage());
+            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_e3d9f68a65') . $e->getMessage());
         }
     }
 
@@ -236,6 +309,8 @@ class MeilisearchService
      */
     public function syncKbArticles(?int $chunkSize = null): array
     {
+        $this->ensureAvailable();
+
         $chunkSize = $chunkSize ?: config('meilisearch.sync.chunk_size', 100);
         $indexUid = config('meilisearch.indexes.kb_articles.name', 'kb_articles');
         $total = 0;
@@ -269,15 +344,21 @@ class MeilisearchService
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步知识库到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException('同步知识库失败: ' . $e->getMessage());
+            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_dd31ddc1a9') . $e->getMessage());
         }
     }
 
     /**
      * 同步所有索引
      */
-    public function syncAll(): array
+    public function syncAll(bool $setupIndexes = true): array
     {
+        $this->ensureAvailable();
+
+        if ($setupIndexes) {
+            $this->setupAllIndexes();
+        }
+
         $results = [];
         $results['products'] = $this->syncProducts();
         $results['kb_articles'] = $this->syncKbArticles();
@@ -295,6 +376,8 @@ class MeilisearchService
      */
     public function syncMarketplaceApps(?int $chunkSize = null): array
     {
+        $this->ensureAvailable();
+
         $chunkSize = $chunkSize ?: config('meilisearch.sync.chunk_size', 100);
         $indexUid = config('meilisearch.indexes.marketplace_apps.name', 'marketplace_apps');
         $total = 0;
@@ -330,7 +413,7 @@ class MeilisearchService
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步应用市场到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException('同步应用市场失败: ' . $e->getMessage());
+            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_1cc1876555') . $e->getMessage());
         }
     }
 
@@ -348,6 +431,8 @@ class MeilisearchService
      */
     public function syncForumPosts(?int $chunkSize = null): array
     {
+        $this->ensureAvailable();
+
         $chunkSize = $chunkSize ?: config('meilisearch.sync.chunk_size', 100);
         $indexUid = config('meilisearch.indexes.forum_posts.name', 'forum_posts');
         $total = 0;
@@ -377,7 +462,7 @@ class MeilisearchService
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步广场到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException('同步广场失败: ' . $e->getMessage());
+            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_be2f002dfb') . $e->getMessage());
         }
     }
 
@@ -386,6 +471,8 @@ class MeilisearchService
      */
     public function syncBlogPosts(?int $chunkSize = null): array
     {
+        $this->ensureAvailable();
+
         $chunkSize = $chunkSize ?: config('meilisearch.sync.chunk_size', 100);
         $indexUid = config('meilisearch.indexes.blog_posts.name', 'blog_posts');
         $total = 0;
@@ -414,7 +501,7 @@ class MeilisearchService
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步博客到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException('同步博客失败: ' . $e->getMessage());
+            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_69cf325279') . $e->getMessage());
         }
     }
 
@@ -423,6 +510,8 @@ class MeilisearchService
      */
     public function syncOaArticles(?int $chunkSize = null): array
     {
+        $this->ensureAvailable();
+
         $chunkSize = $chunkSize ?: config('meilisearch.sync.chunk_size', 100);
         $indexUid = config('meilisearch.indexes.oa_articles.name', 'oa_articles');
         $total = 0;
@@ -454,7 +543,7 @@ class MeilisearchService
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步互物号到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException('同步互物号失败: ' . $e->getMessage());
+            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_3e74aac5e2') . $e->getMessage());
         }
     }
 
@@ -463,6 +552,8 @@ class MeilisearchService
      */
     public function syncUsers(?int $chunkSize = null): array
     {
+        $this->ensureAvailable();
+
         $chunkSize = $chunkSize ?: config('meilisearch.sync.chunk_size', 100);
         $indexUid = config('meilisearch.indexes.users.name', 'users');
         $total = 0;
@@ -485,7 +576,7 @@ class MeilisearchService
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步用户到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException('同步用户失败: ' . $e->getMessage());
+            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_4237223196') . $e->getMessage());
         }
     }
 
@@ -494,6 +585,8 @@ class MeilisearchService
      */
     public function syncOfficialAccounts(?int $chunkSize = null): array
     {
+        $this->ensureAvailable();
+
         $chunkSize = $chunkSize ?: config('meilisearch.sync.chunk_size', 100);
         $indexUid = config('meilisearch.indexes.official_accounts.name', 'official_accounts');
         $total = 0;
@@ -530,7 +623,7 @@ class MeilisearchService
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步互物号账号到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException('同步互物号账号失败: ' . $e->getMessage());
+            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_68710322ab') . $e->getMessage());
         }
     }
 
@@ -546,9 +639,9 @@ class MeilisearchService
         $results = [];
         $rankedHits = [];
         $labelMap = [
-            'products' => '商品', 'kb_articles' => '帮助中心', 'marketplace_apps' => '应用市场',
-            'forum_posts' => '社区', 'blog_posts' => '博客', 'oa_articles' => '互物号', 'users' => '用户',
-            'official_accounts' => '互物号账号',
+            'products' => __('app.meilisearch_service.meilisearch_service_9897d88453'), 'kb_articles' => __('app.meilisearch_service.meilisearch_service_fe4416f2f8'), 'marketplace_apps' => __('app.meilisearch_service.meilisearch_service_09a5dd13f6'),
+            'forum_posts' => __('app.meilisearch_service.meilisearch_service_888af1f2ce'), 'blog_posts' => __('app.meilisearch_service.meilisearch_service_c50d13646e'), 'oa_articles' => __('app.meilisearch_service.meilisearch_service_c595c43f36'), 'users' => __('app.meilisearch_service.meilisearch_service_1fd02a90c3'),
+            'official_accounts' => __('app.meilisearch_service.meilisearch_service_a575c6a092'),
         ];
 
         foreach ($indexes as $indexKey) {
@@ -773,14 +866,14 @@ class MeilisearchService
     {
         $indexes = array_keys(config('meilisearch.indexes', []));
         $labelMap = [
-            'products' => '📦 商品', 'kb_articles' => '📖 帮助中心', 'marketplace_apps' => '🧩 应用市场',
-            'forum_posts' => '💬 社区', 'blog_posts' => '📝 博客', 'oa_articles' => '📢 互物号', 'users' => '👤 用户',
-            'official_accounts' => '🏢 互物号账号',
+            'products' => __('app.meilisearch_service.meilisearch_service_2e94c5bdba'), 'kb_articles' => __('app.meilisearch_service.meilisearch_service_358499d513'), 'marketplace_apps' => __('app.meilisearch_service.meilisearch_service_4acd9fc5d4'),
+            'forum_posts' => __('app.meilisearch_service.meilisearch_service_ce9e642efe'), 'blog_posts' => __('app.meilisearch_service.meilisearch_service_eaf68eaf19'), 'oa_articles' => __('app.meilisearch_service.meilisearch_service_bf6af8a70e'), 'users' => __('app.meilisearch_service.meilisearch_service_494f9d8ed3'),
+            'official_accounts' => __('app.meilisearch_service.meilisearch_service_de591a9747'),
         ];
         $typeLabelMap = [
-            'products' => '商品', 'kb_articles' => '帮助中心', 'marketplace_apps' => '应用市场',
-            'forum_posts' => '社区', 'blog_posts' => '博客', 'oa_articles' => '互物号', 'users' => '用户',
-            'official_accounts' => '互物号账号',
+            'products' => __('app.meilisearch_service.meilisearch_service_9897d88453'), 'kb_articles' => __('app.meilisearch_service.meilisearch_service_fe4416f2f8'), 'marketplace_apps' => __('app.meilisearch_service.meilisearch_service_09a5dd13f6'),
+            'forum_posts' => __('app.meilisearch_service.meilisearch_service_888af1f2ce'), 'blog_posts' => __('app.meilisearch_service.meilisearch_service_c50d13646e'), 'oa_articles' => __('app.meilisearch_service.meilisearch_service_c595c43f36'), 'users' => __('app.meilisearch_service.meilisearch_service_1fd02a90c3'),
+            'official_accounts' => __('app.meilisearch_service.meilisearch_service_a575c6a092'),
         ];
         $suggestions = [];
 
@@ -829,9 +922,9 @@ class MeilisearchService
     {
         $indexes = array_keys(config('meilisearch.indexes', []));
         $labelMap = [
-            'products' => '商品', 'kb_articles' => '帮助中心', 'marketplace_apps' => '应用市场',
-            'forum_posts' => '社区', 'blog_posts' => '博客', 'oa_articles' => '互物号', 'users' => '用户',
-            'official_accounts' => '互物号账号',
+            'products' => __('app.meilisearch_service.meilisearch_service_9897d88453'), 'kb_articles' => __('app.meilisearch_service.meilisearch_service_fe4416f2f8'), 'marketplace_apps' => __('app.meilisearch_service.meilisearch_service_09a5dd13f6'),
+            'forum_posts' => __('app.meilisearch_service.meilisearch_service_888af1f2ce'), 'blog_posts' => __('app.meilisearch_service.meilisearch_service_c50d13646e'), 'oa_articles' => __('app.meilisearch_service.meilisearch_service_c595c43f36'), 'users' => __('app.meilisearch_service.meilisearch_service_1fd02a90c3'),
+            'official_accounts' => __('app.meilisearch_service.meilisearch_service_a575c6a092'),
         ];
         $iconMap = [
             'products' => '📦', 'kb_articles' => '📖', 'marketplace_apps' => '🧩',
@@ -903,7 +996,7 @@ class MeilisearchService
     public function search(string $indexUid, string $query, array $options = []): array
     {
         if (!$this->available) {
-            throw new \RuntimeException('Meilisearch 不可用');
+            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_547b6e4e4b'));
         }
 
         $limit = $options['limit'] ?? config('meilisearch.search.limit', 20);
@@ -946,7 +1039,7 @@ class MeilisearchService
             ];
         } catch (\Throwable $e) {
             Log::error("Meilisearch 搜索失败 [{$indexUid}]: " . $e->getMessage());
-            throw new \RuntimeException('搜索失败: ' . $e->getMessage());
+            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_744893f8bc') . $e->getMessage());
         }
     }
 
@@ -1094,5 +1187,298 @@ class MeilisearchService
         }
 
         return $this->searchKbArticles($query, $options);
+    }
+
+    // ══════════════════════════════════════════
+    //  增量同步（D-36 Model Observer）
+    // ══════════════════════════════════════════
+
+    /**
+     * @var array<class-string<Model>, string>
+     */
+    protected array $modelIndexMap = [
+        Product::class => 'products',
+        KbArticle::class => 'kb_articles',
+        MarketplaceApp::class => 'marketplace_apps',
+        ForumPost::class => 'forum_posts',
+        BlogPost::class => 'blog_posts',
+        OaArticle::class => 'oa_articles',
+        User::class => 'users',
+        OfficialAccount::class => 'official_accounts',
+    ];
+
+    public function indexKeyForModel(Model $model): ?string
+    {
+        return $this->modelIndexMap[$model::class] ?? null;
+    }
+
+    public function indexUidForKey(string $indexKey): ?string
+    {
+        return config("meilisearch.indexes.{$indexKey}.name");
+    }
+
+    public function shouldIndex(string $indexKey, Model $model): bool
+    {
+        if (method_exists($model, 'trashed') && $model->trashed()) {
+            return false;
+        }
+
+        return match ($indexKey) {
+            'forum_posts' => ($model->status ?? null) === 'published',
+            'blog_posts' => (bool) ($model->is_published ?? false),
+            'oa_articles' => ($model->status ?? null) === 'published',
+            'users' => ($model->status ?? null) === 'active',
+            'official_accounts' => ($model->status ?? null) === 'active',
+            default => true,
+        };
+    }
+
+    public function upsertModel(Model $model): bool
+    {
+        if (! $this->available) {
+            return false;
+        }
+
+        $indexKey = $this->indexKeyForModel($model);
+        if (! $indexKey) {
+            return false;
+        }
+
+        $indexUid = $this->indexUidForKey($indexKey);
+        if (! $indexUid) {
+            return false;
+        }
+
+        if (! $this->shouldIndex($indexKey, $model)) {
+            return $this->deleteDocument($indexUid, $model->getKey());
+        }
+
+        $this->prepareModelForIndexing($indexKey, $model);
+        $document = $this->toDocument($indexKey, $model);
+        if ($document === null) {
+            return false;
+        }
+
+        return $this->addDocument($indexUid, $document);
+    }
+
+    public function removeModel(Model $model): bool
+    {
+        if (! $this->available) {
+            return false;
+        }
+
+        $indexKey = $this->indexKeyForModel($model);
+        $indexUid = $indexKey ? $this->indexUidForKey($indexKey) : null;
+
+        if (! $indexUid || ! $model->getKey()) {
+            return false;
+        }
+
+        return $this->deleteDocument($indexUid, $model->getKey());
+    }
+
+    protected function prepareModelForIndexing(string $indexKey, Model $model): void
+    {
+        match ($indexKey) {
+            'products' => $model->loadMissing(['category:id,name', 'merchant:id,name']),
+            'kb_articles' => $model->loadMissing(['category:id,name']),
+            'marketplace_apps' => $model->loadMissing(['developer:id,display_name,avatar']),
+            'forum_posts' => $model->loadMissing(['user:id,name,avatar']),
+            'blog_posts' => $model->loadMissing(['authorUser:id,name,avatar']),
+            'oa_articles' => $model->loadMissing(['author:id,name,avatar', 'account:id,name,avatar']),
+            'official_accounts' => $model->loadCount(['followers as follower_count', 'articles as article_count'])
+                ->loadMissing(['category:id,name']),
+            default => null,
+        };
+    }
+
+    public function toDocument(string $indexKey, Model $model): ?array
+    {
+        return match ($indexKey) {
+            'products' => $this->productDocument($model),
+            'kb_articles' => $this->kbArticleDocument($model),
+            'marketplace_apps' => $this->marketplaceAppDocument($model),
+            'forum_posts' => $this->forumPostDocument($model),
+            'blog_posts' => $this->blogPostDocument($model),
+            'oa_articles' => $this->oaArticleDocument($model),
+            'users' => $this->userDocument($model),
+            'official_accounts' => $this->officialAccountDocument($model),
+            default => null,
+        };
+    }
+
+    protected function productDocument(Product $product): array
+    {
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'slug' => $product->slug,
+            'description' => $product->description,
+            'long_description' => strip_tags($product->long_description ?? ''),
+            'tags' => is_array($product->tags) ? $product->tags : [],
+            'category_id' => $product->category_id,
+            'category_name' => $product->category?->name,
+            'is_active' => $product->is_active,
+            'is_sellable' => $product->is_sellable,
+            'base_price' => (float) ($product->base_price ?? 0),
+            'sales_count' => $product->sales_count ?? 0,
+            'merchant_id' => $product->merchant_id,
+            'merchant_name' => $product->merchant?->name,
+            'image_url' => $product->image_url,
+            'created_at' => $product->created_at?->toIso8601String(),
+            'updated_at' => $product->updated_at?->toIso8601String(),
+        ];
+    }
+
+    protected function kbArticleDocument(KbArticle $article): array
+    {
+        return [
+            'id' => $article->id,
+            'title' => $article->title,
+            'slug' => $article->slug,
+            'content' => strip_tags($article->content ?? ''),
+            'excerpt' => $article->excerpt,
+            'tags' => is_array($article->tags) ? $article->tags : [],
+            'category_id' => $article->category_id,
+            'category_name' => $article->category?->name,
+            'status' => $article->status,
+            'locale' => $article->locale,
+            'author_id' => $article->author_id,
+            'view_count' => $article->view_count ?? 0,
+            'helpful_count' => $article->helpful_count ?? 0,
+            'created_at' => $article->created_at?->toIso8601String(),
+            'published_at' => $article->published_at?->toIso8601String(),
+            'updated_at' => $article->updated_at?->toIso8601String(),
+        ];
+    }
+
+    protected function marketplaceAppDocument(MarketplaceApp $app): array
+    {
+        return [
+            'id' => $app->id,
+            'name' => $app->name,
+            'slug' => $app->slug,
+            'short_description' => $app->short_description,
+            'description' => strip_tags($app->description ?? ''),
+            'category' => $app->category,
+            'status' => $app->status,
+            'pricing_type' => $app->pricing_type,
+            'price' => (float) ($app->price ?? 0),
+            'developer_id' => $app->developer_id,
+            'developer_name' => $app->developer?->display_name,
+            'developer_avatar' => $app->developer?->avatar,
+            'icon_url' => $app->icon_url,
+            'install_count' => $app->install_count ?? 0,
+            'avg_rating' => (float) ($app->avg_rating ?? 0),
+            'current_version' => $app->current_version,
+            'created_at' => $app->created_at?->toIso8601String(),
+            'published_at' => $app->published_at?->toIso8601String(),
+            'updated_at' => $app->updated_at?->toIso8601String(),
+        ];
+    }
+
+    protected function forumPostDocument(ForumPost $post): array
+    {
+        return [
+            'id' => $post->id,
+            'title' => $post->title,
+            'content' => strip_tags($post->content ?? ''),
+            'tags' => is_array($post->tags) ? $post->tags : [],
+            'category_id' => $post->category_id,
+            'user_id' => $post->user_id,
+            'user_name' => $post->user?->name,
+            'user_avatar' => $post->user?->avatar,
+            'status' => $post->status,
+            'views_count' => $post->views_count ?? 0,
+            'likes_count' => $post->likes_count ?? 0,
+            'created_at' => $post->created_at?->toIso8601String(),
+            'updated_at' => $post->updated_at?->toIso8601String(),
+        ];
+    }
+
+    protected function blogPostDocument(BlogPost $post): array
+    {
+        return [
+            'id' => $post->id,
+            'title' => $post->title,
+            'slug' => $post->slug,
+            'content' => strip_tags($post->content ?? ''),
+            'excerpt' => $post->excerpt,
+            'tags' => is_array($post->tags) ? $post->tags : [],
+            'author' => $post->author,
+            'author_id' => $post->author_id,
+            'author_avatar' => $post->authorUser?->avatar,
+            'category_id' => $post->category_id,
+            'is_published' => $post->is_published,
+            'featured_image' => $post->featured_image,
+            'created_at' => $post->created_at?->toIso8601String(),
+            'published_at' => $post->published_at?->toIso8601String(),
+        ];
+    }
+
+    protected function oaArticleDocument(OaArticle $article): array
+    {
+        return [
+            'id' => $article->id,
+            'title' => $article->title,
+            'content' => strip_tags($article->content ?? ''),
+            'summary' => $article->summary,
+            'tags' => is_array($article->tags) ? $article->tags : [],
+            'account_id' => $article->account_id,
+            'account_name' => $article->account?->name,
+            'account_avatar' => $article->account?->avatar,
+            'author_id' => $article->author_id,
+            'author_name' => $article->author?->name,
+            'author_avatar' => $article->author?->avatar,
+            'status' => $article->status,
+            'cover_image' => $article->cover_image,
+            'created_at' => $article->created_at?->toIso8601String(),
+            'published_at' => $article->published_at?->toIso8601String(),
+        ];
+    }
+
+    protected function userDocument(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'avatar' => $user->avatar,
+            'status' => $user->status,
+            'created_at' => $user->created_at?->toIso8601String(),
+        ];
+    }
+
+    protected function officialAccountDocument(OfficialAccount $account): array
+    {
+        return [
+            'id' => $account->id,
+            'name' => $account->name,
+            'slug' => $account->slug,
+            'description' => $account->description,
+            'avatar' => $account->avatar,
+            'cover_image' => $account->cover_image,
+            'category_id' => $account->category_id,
+            'category_name' => $account->category?->name,
+            'owner_id' => $account->owner_id,
+            'status' => $account->status,
+            'is_verified' => $account->is_verified,
+            'verified_info' => $account->is_verified && isset($account->settings['verified_info']) ? $account->settings['verified_info'] : null,
+            'verified_at' => $account->verified_at ? (is_string($account->verified_at) ? $account->verified_at : $account->verified_at->toIso8601String()) : null,
+            'follower_count' => (int) ($account->follower_count ?? 0),
+            'article_count' => (int) ($account->article_count ?? 0),
+            'created_at' => $account->created_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * 确保 Meilisearch 客户端可用
+     */
+    protected function ensureAvailable(): void
+    {
+        if (!$this->available) {
+            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_1d518fa57f'));
+        }
     }
 }

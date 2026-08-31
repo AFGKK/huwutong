@@ -119,7 +119,7 @@ class InventoryController extends Controller
         $oldStock = $sku->stock;
         $newStock = $oldStock === -1 ? $oldStock : max(0, $oldStock + $validated['delta']);
         if ($newStock === $oldStock) {
-            return ApiResponse::error('库存未发生变化');
+            return ApiResponse::error(__("app.inventory.msg_aecd4f54"));
         }
 
         $sku->update(['stock' => $newStock]);
@@ -139,7 +139,7 @@ class InventoryController extends Controller
             'old_stock' => $oldStock,
             'new_stock' => $newStock,
             'delta' => $newStock - $oldStock,
-        ], '库存已调整');
+        ], __('app.inventory.inventory_adjusted'));
     }
 
     /**
@@ -170,6 +170,6 @@ class InventoryController extends Controller
             'sku_code' => $sku->sku_code,
             'old_stock' => $oldStock,
             'new_stock' => $validated['stock'],
-        ], '库存已初始化');
+        ], __('app.inventory.inventory_initialized'));
     }
 }

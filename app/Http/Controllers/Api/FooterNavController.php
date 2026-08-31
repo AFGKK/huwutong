@@ -56,7 +56,7 @@ class FooterNavController extends Controller
         ]);
 
         $item = $this->footerNav->create($data);
-        return ApiResponse::success(['item' => $item], '链接已创建');
+        return ApiResponse::success(['item' => $item], __('app.api.footer_nav.link_created'));
     }
 
     /**
@@ -76,7 +76,7 @@ class FooterNavController extends Controller
         ]);
 
         $item = $this->footerNav->update($id, $data);
-        return ApiResponse::success(['item' => $item], '链接已更新');
+        return ApiResponse::success(['item' => $item], __('app.api.footer_nav.link_updated'));
     }
 
     /**
@@ -85,7 +85,7 @@ class FooterNavController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $this->footerNav->delete($id);
-        return ApiResponse::success(null, '链接已删除');
+        return ApiResponse::success(null, __('app.api.footer_nav.link_deleted'));
     }
 
     /**
@@ -100,7 +100,7 @@ class FooterNavController extends Controller
         ]);
 
         $this->footerNav->reorder($data['items']);
-        return ApiResponse::success(null, '排序已更新');
+        return ApiResponse::success(null, __('app.api.footer_nav.sort_updated'));
     }
 
     /**
@@ -112,7 +112,7 @@ class FooterNavController extends Controller
         return ApiResponse::success([
             'item' => $item,
             'is_active' => $item->is_active,
-        ], $item->is_active ? '已启用' : '已禁用');
+        ], $item->is_active ? __('app.api.footer_nav.enabled') : __('app.api.footer_nav.disabled'));
     }
 
     /**
@@ -121,7 +121,7 @@ class FooterNavController extends Controller
     public function initDefaults(): JsonResponse
     {
         $count = $this->footerNav->initDefaults();
-        return ApiResponse::success(['created' => $count], "已初始化 {$count} 个默认链接");
+        return ApiResponse::success(['created' => $count], __('app.api.footer_nav.defaults_seeded', ['count' => $count]));
     }
 
     /**
@@ -133,9 +133,9 @@ class FooterNavController extends Controller
             'link_types' => $this->footerNav->getLinkTypes(),
             'social_platforms' => $this->footerNav->getSocialPlatforms(),
             'groups' => [
-                ['value' => 'footer', 'label' => '页脚主区'],
-                ['value' => 'social', 'label' => '社交媒体'],
-                ['value' => 'bottom', 'label' => '底部信息'],
+                ['value' => 'footer', 'label' => __('app.api.footer_nav.label_footer')],
+                ['value' => 'social', 'label' => __('app.api.footer_nav.label_social')],
+                ['value' => 'bottom', 'label' => __('app.api.footer_nav.label_bottom')],
             ],
         ]);
     }

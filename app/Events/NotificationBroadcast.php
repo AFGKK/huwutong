@@ -59,11 +59,13 @@ class NotificationBroadcast implements ShouldBroadcast
         return [
             'id' => $this->notification->id,
             'type' => $this->notification->type,
+            'group_key' => $this->notification->group_key,
             'title' => $this->notification->title,
             'content' => $this->notification->content,
             'payload' => $this->notification->payload,
             'is_read' => false,
             'created_at' => $this->notification->created_at?->toIso8601String(),
+            'updated_at' => $this->notification->updated_at?->toIso8601String(),
         ];
     }
 }

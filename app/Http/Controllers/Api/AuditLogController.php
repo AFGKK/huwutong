@@ -137,7 +137,7 @@ class AuditLogController extends Controller
     {
         $format = $request->input('format', 'csv');
         if (! in_array($format, config('audit.export.allowed_formats', ['csv', 'json']))) {
-            return ApiResponse::error('INVALID_FORMAT', '不支持的导出格式', 422);
+            return ApiResponse::error('INVALID_FORMAT', __("app.audit_log.msg_e0925144"), 422);
         }
 
         $maxRows = config('audit.export.max_rows', 50000);

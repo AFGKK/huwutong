@@ -19,12 +19,12 @@ class TokenMeterController extends Controller
 
     public function dashboard(): JsonResponse
     {
-        return ApiResponse::success($this->tokenMeterService->getDashboard(), '获取成功');
+        return ApiResponse::success($this->tokenMeterService->getDashboard(), __('app.api.token_meter.fetched'));
     }
 
     public function index(Request $request): JsonResponse
     {
-        return ApiResponse::success($this->tokenMeterService->getRecords($request->all()), '获取成功');
+        return ApiResponse::success($this->tokenMeterService->getRecords($request->all()), __('app.api.token_meter.fetched'));
     }
 
     /** 记录消耗（管理端手动录入） */
@@ -43,17 +43,17 @@ class TokenMeterController extends Controller
         ]);
 
         $record = $this->tokenMeterService->record($validated);
-        return ApiResponse::success($record, '记录成功');
+        return ApiResponse::success($record, __('app.api.token_meter.recorded'));
     }
 
     public function models(): JsonResponse
     {
-        return ApiResponse::success($this->tokenMeterService->getModelPricing(), '获取成功');
+        return ApiResponse::success($this->tokenMeterService->getModelPricing(), __('app.api.token_meter.fetched'));
     }
 
     public function features(): JsonResponse
     {
-        return ApiResponse::success($this->tokenMeterService->getFeatures(), '获取成功');
+        return ApiResponse::success($this->tokenMeterService->getFeatures(), __('app.api.token_meter.fetched'));
     }
 
     // ─── 预算管理 ───
@@ -61,7 +61,7 @@ class TokenMeterController extends Controller
     public function budgets(Request $request): JsonResponse
     {
         $budgets = $this->tokenMeterService->getBudgets($request->get('tenant_id'));
-        return ApiResponse::success($budgets, '获取成功');
+        return ApiResponse::success($budgets, __('app.api.token_meter.fetched'));
     }
 
     public function upsertBudget(Request $request): JsonResponse
@@ -77,26 +77,26 @@ class TokenMeterController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        return ApiResponse::success($this->tokenMeterService->upsertBudget($validated), '保存成功');
+        return ApiResponse::success($this->tokenMeterService->upsertBudget($validated), __('app.api.token_meter.saved'));
     }
 
     // ─── 告警 ───
 
     public function alerts(): JsonResponse
     {
-        return ApiResponse::success($this->tokenMeterService->getAlerts(), '获取成功');
+        return ApiResponse::success($this->tokenMeterService->getAlerts(), __('app.api.token_meter.fetched'));
     }
 
     public function resolveAlert(int $id): JsonResponse
     {
         $this->tokenMeterService->resolveAlert($id);
-        return ApiResponse::success(null, '已解决');
+        return ApiResponse::success(null, __('app.api.token_meter.resolved'));
     }
 
     public function checkAlerts(): JsonResponse
     {
         $alerts = $this->tokenMeterService->checkBudgetAlerts(null);
-        return ApiResponse::success($alerts, '检查完成');
+        return ApiResponse::success($alerts, __('app.api.token_meter.check_done'));
     }
 
     // ─── 租户报告 ───
@@ -105,7 +105,7 @@ class TokenMeterController extends Controller
     {
         return ApiResponse::success(
             $this->tokenMeterService->getTenantReport($tenantId, $request->get('month')),
-            '获取成功'
+            __('app.api.token_meter.fetched')
         );
     }
 
@@ -116,7 +116,7 @@ class TokenMeterController extends Controller
     {
         return ApiResponse::success(
             $this->tokenMeterService->getCostAllocationReport($request->get('month')),
-            '获取成功'
+            __('app.api.token_meter.fetched')
         );
     }
 
@@ -125,7 +125,7 @@ class TokenMeterController extends Controller
     {
         return ApiResponse::success(
             $this->tokenMeterService->getAllocationSummary($request->get('month')),
-            '获取成功'
+            __('app.api.token_meter.fetched')
         );
     }
 

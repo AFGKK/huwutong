@@ -27,7 +27,7 @@ class ExtendLicenses extends BaseWorkflowStep
         /** @var Subscription $subscription */
         $subscription = $instance->workflowable;
         if (!$subscription) {
-            throw new \RuntimeException('工作流未关联 Subscription');
+            throw new \RuntimeException(__('app.common.workflow_not_linked_subscription'));
         }
 
         $licenses = License::where('subscription_id', $subscription->id)->get();

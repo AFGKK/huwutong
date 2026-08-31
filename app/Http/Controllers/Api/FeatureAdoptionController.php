@@ -24,7 +24,7 @@ class FeatureAdoptionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.feature_adoption.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $this->adoptionService->getDashboard(
@@ -46,7 +46,7 @@ class FeatureAdoptionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.feature_adoption.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $this->adoptionService->getFeatureDetail(
@@ -69,7 +69,7 @@ class FeatureAdoptionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.feature_adoption.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $this->adoptionService->getCategoryDetail(
@@ -92,7 +92,7 @@ class FeatureAdoptionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.feature_adoption.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $this->adoptionService->getFunnel(
@@ -115,7 +115,7 @@ class FeatureAdoptionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.feature_adoption.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $this->adoptionService->getTrend(
@@ -148,7 +148,7 @@ class FeatureAdoptionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.feature_adoption.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -156,7 +156,7 @@ class FeatureAdoptionController extends Controller
 
         $event = $this->adoptionService->track($data['feature_key'], $data);
 
-        return ApiResponse::success($event ? ['id' => $event->id] : null, '已记录');
+        return ApiResponse::success($event ? ['id' => $event->id] : null, __('app.api.feature_adoption.recorded'));
     }
 
     /**
@@ -170,7 +170,7 @@ class FeatureAdoptionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.feature_adoption.validation_failed'), $validator->errors()->toArray());
         }
 
         $events = $request->input('events');
@@ -180,7 +180,7 @@ class FeatureAdoptionController extends Controller
 
         $count = $this->adoptionService->batchTrack($events);
 
-        return ApiResponse::success(['count' => $count], "已记录 {$count} 个事件");
+        return ApiResponse::success(['count' => $count], __('app.api.feature_adoption.events_recorded', ['count' => $count]));
     }
 
     /**
@@ -189,7 +189,7 @@ class FeatureAdoptionController extends Controller
     public function generateSnapshot(): JsonResponse
     {
         $result = $this->adoptionService->generateDailySnapshot();
-        return ApiResponse::success($result, '快照已生成');
+        return ApiResponse::success($result, __('app.api.feature_adoption.snapshot_generated'));
     }
 
     /**
@@ -211,6 +211,6 @@ class FeatureAdoptionController extends Controller
     {
         $days = (int) $request->input('retention_days', 365);
         $deleted = $this->adoptionService->prune($days);
-        return ApiResponse::success(['deleted' => $deleted], "已清理 {$deleted} 条过期事件");
+        return ApiResponse::success(['deleted' => $deleted], __('app.api.feature_adoption.events_cleaned', ['deleted' => $deleted]));
     }
 }

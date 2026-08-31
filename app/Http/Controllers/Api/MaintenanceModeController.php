@@ -49,12 +49,12 @@ class MaintenanceModeController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__("app.maintenance_mode.msg_e441b11e"), $validator->errors()->toArray());
         }
 
         $config = $this->maintenanceService->enable($validator->validated());
 
-        return ApiResponse::success($config, '维护模式已启用');
+        return ApiResponse::success($config, __("app.maintenance_mode.msg_5878e616"));
     }
 
     /**
@@ -64,7 +64,7 @@ class MaintenanceModeController extends Controller
     {
         $this->maintenanceService->disable();
 
-        return ApiResponse::success(null, '维护模式已关闭');
+        return ApiResponse::success(null, __("app.maintenance_mode.msg_70ce09cd"));
     }
 
     /**
@@ -85,7 +85,7 @@ class MaintenanceModeController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.common.validation_failed'), $validator->errors()->toArray());
         }
 
         $maintenanceConfig->update(array_merge(
@@ -95,7 +95,7 @@ class MaintenanceModeController extends Controller
 
         $this->maintenanceService->clearCache();
 
-        return ApiResponse::success($maintenanceConfig->fresh(), '维护配置已更新');
+        return ApiResponse::success($maintenanceConfig->fresh(), __('app.maintenance_mode.maintenance_updated'));
     }
 
     /**

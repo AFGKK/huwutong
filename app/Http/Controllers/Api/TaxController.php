@@ -132,7 +132,7 @@ class TaxController extends Controller
             'rate' => $taxRate->rate,
             'rate_percent' => round($taxRate->rate * 100, 2),
             'is_active' => $taxRate->is_active,
-        ], '税率已更新');
+        ], __('app.api.tax.rate_updated'));
     }
 
     // ─── 免税证书管理 ───
@@ -144,7 +144,7 @@ class TaxController extends Controller
     {
         $tenant = $request->user()->tenant;
         if (! $tenant) {
-            return ApiResponse::error('NO_TENANT', '未关联租户', 400);
+            return ApiResponse::error('NO_TENANT', __('app.api.tax.no_tenant'), 400);
         }
 
         $query = TaxExemptCertificate::with(['customer', 'approver'])
@@ -187,7 +187,7 @@ class TaxController extends Controller
     {
         $tenant = $request->user()->tenant;
         if (! $tenant) {
-            return ApiResponse::error('NO_TENANT', '未关联租户', 400);
+            return ApiResponse::error('NO_TENANT', __('app.api.tax.no_tenant'), 400);
         }
 
         $validated = $request->validate([
@@ -212,7 +212,7 @@ class TaxController extends Controller
             'valid_until' => $validated['valid_until'],
         ]);
 
-        return ApiResponse::created(['id' => $cert->id], '免税证书已创建，等待审批');
+        return ApiResponse::created(['id' => $cert->id], __('app.api.tax.cert_created'));
     }
 
     /**
@@ -222,7 +222,7 @@ class TaxController extends Controller
     {
         $tenant = $request->user()->tenant;
         if ($certificate->tenant_id !== $tenant?->id) {
-            return ApiResponse::error('FORBIDDEN', '无权操作', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.tax.forbidden'), 403);
         }
 
         $validated = $request->validate([
@@ -240,7 +240,7 @@ class TaxController extends Controller
         return ApiResponse::success([
             'id' => $certificate->id,
             'status' => $certificate->status,
-        ], '免税证书已' . ($validated['status'] === 'approved' ? '批准' : '拒绝'));
+        ], $validated['status'] === 'approved' ? __('app.api.tax.cert_approved') : __('app.api.tax.cert_rejected'));
     }
 
     /**
@@ -249,7 +249,7 @@ class TaxController extends Controller
     public function destroyCertificate(TaxExemptCertificate $certificate): JsonResponse
     {
         $certificate->delete();
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.tax.deleted'));
     }
 
     /**
@@ -335,16 +335,16 @@ class TaxController extends Controller
     public function issueEInvoice(Request $request, Invoice $invoice): JsonResponse
     {
         if (!$this->einvoiceService->isConfigured()) {
-            return ApiResponse::error('电子发票服务未配置', 400);
+            return ApiResponse::error(__('app.api.tax.e_invoice_unconfigured'), 400);
         }
 
         $result = $this->einvoiceService->issueInvoice($invoice, $request->all());
 
         if ($result['success']) {
-            return ApiResponse::success($result, '电子发票开具成功');
+            return ApiResponse::success($result, __('app.api.tax.e_invoice_issued'));
         }
 
-        return ApiResponse::error($result['error'] ?? '开票失败', 500);
+        return ApiResponse::error($result['error'] ?? __('app.api.tax.e_invoice_failed'), 500);
     }
 
     /**
@@ -353,19 +353,19 @@ class TaxController extends Controller
     public function issueCreditNote(Request $request, Invoice $invoice): JsonResponse
     {
         if (!$this->einvoiceService->isConfigured()) {
-            return ApiResponse::error('电子发票服务未配置', 400);
+            return ApiResponse::error(__('app.api.tax.e_invoice_unconfigured'), 400);
         }
 
         $amount = $request->input('amount', $invoice->amount);
-        $reason = $request->input('reason', '销售退回');
+        $reason = $request->input('reason', __('app.api.tax.default_return_reason'));
 
         $result = $this->einvoiceService->issueCreditNote($invoice, (float) $amount, $reason);
 
         if ($result['success']) {
-            return ApiResponse::success($result, '红字发票开具成功');
+            return ApiResponse::success($result, __('app.api.tax.red_invoice_issued'));
         }
 
-        return ApiResponse::error($result['error'] ?? '冲红失败', 500);
+        return ApiResponse::error($result['error'] ?? __('app.api.tax.red_invoice_failed'), 500);
     }
 
     /**

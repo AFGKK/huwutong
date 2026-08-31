@@ -41,7 +41,7 @@ class RoiCalculatorService
             'label' => '合规/安全年费用',
             'default_cny' => 30000,
             'default_usd' => 8000,
-            'description' => 'GDPR、SOC2等合规认证',
+            'description' => '合规与安全相关投入（如评估、审计准备）',
         ],
         'opportunity_cost' => [
             'label' => '机会成本（月延迟损失）',
@@ -199,7 +199,7 @@ class RoiCalculatorService
                 'yearly' => round($savingsYearly, 2),
                 'five_year' => round($fiveYearSaving, 2),
                 'break_even_months' => $monthsToBreakEven,
-                'break_even_label' => $monthsToBreakEven >= 999 ? '超过5年' : "{$monthsToBreakEven}个月",
+                'break_even_label' => $monthsToBreakEven >= 999 ? __('app.roi_calculator.over_5_years') : __('app.roi_calculator.months_label', ['months' => $monthsToBreakEven]),
             ],
 
             // 逐年对比
@@ -251,9 +251,31 @@ class RoiCalculatorService
      */
     public function getParamDefinitions(): array
     {
+        $t = fn(string $k) => __('app.roi_calculator.' . $k);
+        $build = self::BUILD_COST_PARAMS;
+        $platform = self::PLATFORM_COST_PARAMS;
+        // Translate user-visible labels
+        $build['developer_salary']['label'] = $t('label_developer_salary');
+        $build['developer_salary']['description'] = $t('desc_developer_salary');
+        $build['developer_count']['label'] = $t('label_developer_count');
+        $build['devops_cost']['label'] = $t('label_devops_cost');
+        $build['devops_cost']['description'] = $t('desc_devops_cost');
+        $build['infrastructure_cost']['label'] = $t('label_infrastructure_cost');
+        $build['infrastructure_cost']['description'] = $t('desc_infrastructure_cost');
+        $build['maintenance_yearly']['label'] = $t('label_maintenance_yearly');
+        $build['maintenance_yearly']['description'] = $t('desc_maintenance_yearly');
+        $build['compliance_cost']['label'] = $t('label_compliance_cost');
+        $build['compliance_cost']['description'] = $t('desc_compliance_cost');
+        $build['opportunity_cost']['label'] = $t('label_opportunity_cost');
+        $build['opportunity_cost']['description'] = $t('desc_opportunity_cost');
+        $build['development_months']['label'] = $t('label_development_months');
+        $platform['license_fee']['label'] = $t('label_license_fee');
+        $platform['seat_count']['label'] = $t('label_seat_count');
+        $platform['support_fee']['label'] = $t('label_support_fee');
+        $platform['setup_fee']['label'] = $t('label_setup_fee');
         return [
-            'build' => self::BUILD_COST_PARAMS,
-            'platform' => self::PLATFORM_COST_PARAMS,
+            'build' => $build,
+            'platform' => $platform,
         ];
     }
 }

@@ -56,10 +56,10 @@ class MfaController extends Controller
 
         // 先验证 TOTP 码
         if (! $this->mfaService->verifyTOTP($data['secret'], $data['code'])) {
-            return ApiResponse::error('MFA_CODE_INVALID', '验证码无效，请重试', 400);
+            return ApiResponse::error('MFA_CODE_INVALID', __('app.api.mfa.code_invalid_retry'), 400);
         }
 
-        $deviceName = $data['device_name'] ?? '默认设备 (' . now()->format('Y-m-d') . ')';
+        $deviceName = $data['device_name'] ?? __('app.api.mfa.default_device', ['date' => now()->format('Y-m-d')]);
 
         // 启用 MFA
         $device = $this->mfaService->enableMfa($user, $deviceName, $data['secret']);
@@ -70,8 +70,8 @@ class MfaController extends Controller
         return ApiResponse::success([
             'device' => $device,
             'recovery_codes' => $recoveryCodes,
-            'message' => '请立即保存恢复码，关闭后将无法再次查看',
-        ], 'MFA 已启用');
+            'message' => __('app.api.mfa.save_recovery'),
+        ], __('app.api.mfa.enabled'));
     }
 
     // ─── 验证 MFA ───
@@ -91,7 +91,7 @@ class MfaController extends Controller
         $result = $this->mfaService->verifyMfa($user, $data['code']);
 
         if (! $result['verified']) {
-            return ApiResponse::error('MFA_CODE_INVALID', 'MFA 验证码无效', 401);
+            return ApiResponse::error('MFA_CODE_INVALID', __('app.api.mfa.code_invalid'), 401);
         }
 
         // 更新设备最后使用时间
@@ -104,7 +104,7 @@ class MfaController extends Controller
         return ApiResponse::success([
             'verified' => true,
             'method' => $result['method'],
-        ], 'MFA 验证成功');
+        ], __('app.api.mfa.verified'));
     }
 
     // ─── 设备管理 ───
@@ -144,12 +144,12 @@ class MfaController extends Controller
             ->first();
 
         if (! $device) {
-            return ApiResponse::notFound('MFA 设备不存在');
+            return ApiResponse::notFound(__('app.api.mfa.device_missing'));
         }
 
         $this->mfaService->renameDevice($device, $data['name']);
 
-        return ApiResponse::success(['device' => $device], '设备已重命名');
+        return ApiResponse::success(['device' => $device], __('app.api.mfa.device_renamed'));
     }
 
     /**
@@ -164,12 +164,12 @@ class MfaController extends Controller
             ->first();
 
         if (! $device) {
-            return ApiResponse::notFound('MFA 设备不存在');
+            return ApiResponse::notFound(__('app.api.mfa.device_missing'));
         }
 
         $this->mfaService->deleteDevice($device);
 
-        return ApiResponse::success(null, '设备已解绑');
+        return ApiResponse::success(null, __('app.api.mfa.device_unbound'));
     }
 
     // ─── 恢复码管理 ───
@@ -202,7 +202,7 @@ class MfaController extends Controller
 
         return ApiResponse::success([
             'recovery_codes' => $codes,
-        ], '恢复码已重新生成，请立即保存');
+        ], __('app.api.mfa.recovery_regenerated'));
     }
 
     // ─── 禁用 MFA ───
@@ -222,12 +222,12 @@ class MfaController extends Controller
         $result = $this->mfaService->verifyMfa($user, $data['code']);
 
         if (! $result['verified']) {
-            return ApiResponse::error('MFA_CODE_INVALID', 'MFA 验证码无效', 401);
+            return ApiResponse::error('MFA_CODE_INVALID', __('app.api.mfa.code_invalid'), 401);
         }
 
         $this->mfaService->disableMfa($user);
 
-        return ApiResponse::success(null, 'MFA 已禁用');
+        return ApiResponse::success(null, __('app.api.mfa.disabled'));
     }
 
     // ─── 管理员接口 ───
@@ -241,7 +241,7 @@ class MfaController extends Controller
     {
         $this->mfaService->adminResetMfa($user);
 
-        return ApiResponse::success(null, '用户 MFA 已重置');
+        return ApiResponse::success(null, __('app.api.mfa.user_reset'));
     }
 
     /**
@@ -288,14 +288,14 @@ class MfaController extends Controller
         $user = $this->resolveLoginUser($data);
 
         if (! $user || ! \Illuminate\Support\Facades\Hash::check($data['password'], $user->password)) {
-            return ApiResponse::error('AUTH_FAILED', '账号或密码错误', 401);
+            return ApiResponse::error('AUTH_FAILED', __('app.api.mfa.auth_failed'), 401);
         }
 
         // 验证 MFA
         $result = $this->mfaService->verifyMfa($user, $data['mfa_code']);
 
         if (! $result['verified']) {
-            return ApiResponse::error('MFA_CODE_INVALID', 'MFA 验证码无效', 401);
+            return ApiResponse::error('MFA_CODE_INVALID', __('app.api.mfa.code_invalid'), 401);
         }
 
         // 登录成功
@@ -310,7 +310,7 @@ class MfaController extends Controller
             'user' => $user,
             'token' => $token,
             'mfa_method' => $result['method'],
-        ], '登录成功');
+        ], __('app.api.mfa.login_ok'));
     }
 
     /**
@@ -329,7 +329,7 @@ class MfaController extends Controller
         $user = $this->resolveLoginUser($data);
 
         if (! $user || ! \Illuminate\Support\Facades\Hash::check($data['password'], $user->password)) {
-            return ApiResponse::error('AUTH_FAILED', '账号或密码错误', 401);
+            return ApiResponse::error('AUTH_FAILED', __('app.api.mfa.auth_failed'), 401);
         }
 
         $requiresMfa = $this->mfaService->requiresMfa($user);

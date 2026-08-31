@@ -169,7 +169,7 @@ class TrustService
         return $this->updateTrustScore(
             $device,
             self::EVENT_SUCCESS_ACTIVATION,
-            '成功激活',
+            __('app.trust_service.trust_service_48449c376a'),
         );
     }
 
@@ -181,7 +181,7 @@ class TrustService
         return $this->updateTrustScore(
             $device,
             self::EVENT_SUCCESS_VALIDATION,
-            '成功验证',
+            __('app.trust_service.trust_service_a25aff60f4'),
         );
     }
 
@@ -193,7 +193,7 @@ class TrustService
         return $this->updateTrustScore(
             $device,
             self::EVENT_FAILED_ACTIVATION,
-            '激活失败',
+            __('app.trust_service.trust_service_912efdba9d'),
         );
     }
 
@@ -205,7 +205,7 @@ class TrustService
         return $this->updateTrustScore(
             $device,
             self::EVENT_SUSPICIOUS_FINGERPRINT,
-            '指纹异常变更',
+            __('app.trust_service.trust_service_d9ea9c087e'),
         );
     }
 
@@ -217,7 +217,7 @@ class TrustService
         return $this->updateTrustScore(
             $device,
             self::EVENT_GEO_ANOMALY,
-            '地理位置异常',
+            __('app.trust_service.trust_service_b5be1c5e11'),
         );
     }
 
@@ -229,7 +229,7 @@ class TrustService
         return $this->updateTrustScore(
             $device,
             self::EVENT_VM_DETECTED,
-            '虚拟环境',
+            __('app.trust_service.trust_service_b4c3461563'),
         );
     }
 
@@ -241,7 +241,7 @@ class TrustService
         return $this->updateTrustScore(
             $device,
             self::EVENT_MFA_VERIFIED,
-            'MFA 验证通过',
+            __('app.trust_service.trust_service_1f6af9b074'),
         );
     }
 
@@ -274,7 +274,7 @@ class TrustService
         Log::warning('设备已加入黑名单', [
             'device_id' => $device->id,
             'fingerprint' => $device->fingerprint,
-            'reason' => $reason ?: '管理员操作',
+            'reason' => $reason ?: __('app.trust_service.trust_service_1dc6647ea1'),
         ]);
     }
 

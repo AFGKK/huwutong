@@ -94,7 +94,7 @@ class LicenseComplianceReportController extends Controller
         return response()->json([
             'success' => true,
             'data' => $report,
-            'message' => '报告正在生成中，请稍后刷新查看',
+            'message' => __('app.controller_compat.license_compliance_report_msg_97'),
         ], 201);
     }
 
@@ -113,11 +113,11 @@ class LicenseComplianceReportController extends Controller
     public function download(LicenseComplianceReport $report)
     {
         if (!$report->isReady()) {
-            return response()->json(['success' => false, 'message' => '报告尚未生成完成'], 400);
+            return response()->json(['success' => false, 'message' => __('app.controller_compat.license_compliance_report_msg_116')], 400);
         }
 
         if (!Storage::disk('local')->exists($report->file_path)) {
-            return response()->json(['success' => false, 'message' => '报告文件不存在'], 404);
+            return response()->json(['success' => false, 'message' => __('app.controller_compat.license_compliance_report_msg_120')], 404);
         }
 
         // 记录下载
@@ -170,10 +170,10 @@ class LicenseComplianceReportController extends Controller
     protected function buildTitle(string $type, array $filters): string
     {
         $typeLabels = [
-            'full_inventory' => '完整 License 清单',
-            'activation_audit' => '激活使用审计',
-            'compliance_summary' => '合规摘要报告',
-            'custom' => '自定义报告',
+            'full_inventory' => __('app.controller_compat.license_compliance_report_license'),
+            'activation_audit' => __('app.controller_compat.license_compliance_report_msg_174'),
+            'compliance_summary' => __('app.controller_compat.license_compliance_report_msg_175'),
+            'custom' => __('app.controller_compat.license_compliance_report_msg_176'),
         ];
 
         $title = $typeLabels[$type] ?? '合规报告';

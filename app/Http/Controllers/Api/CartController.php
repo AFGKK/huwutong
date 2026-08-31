@@ -60,7 +60,7 @@ class CartController extends Controller
 
         try {
             $item = $this->cartService->addItem($cart, $data['sku_id'], $data['quantity'] ?? 1);
-            return ApiResponse::success($item->load('sku.product'), '已添加到购物车');
+            return ApiResponse::success($item->load('sku.product'), __('app.api.cart.added'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('CART_ERROR', $e->getMessage(), 400);
         }
@@ -81,7 +81,7 @@ class CartController extends Controller
             $this->cartService->updateQuantity($cart, $data['sku_id'], $data['quantity']);
             return ApiResponse::success(
                 $this->cartService->getCartSummary($cart->fresh()),
-                '购物车已更新'
+                __('app.api.cart.updated')
             );
         } catch (\RuntimeException $e) {
             return ApiResponse::error('CART_ERROR', $e->getMessage(), 400);
@@ -100,7 +100,7 @@ class CartController extends Controller
             $this->cartService->removeItem($cart, $data['sku_id']);
         }
 
-        return ApiResponse::success(null, '已从购物车移除');
+        return ApiResponse::success(null, __('app.api.cart.removed'));
     }
 
     /**
@@ -113,7 +113,7 @@ class CartController extends Controller
             $this->cartService->clear($cart);
         }
 
-        return ApiResponse::success(null, '购物车已清空');
+        return ApiResponse::success(null, __('app.api.cart.cleared'));
     }
 
     /**
@@ -145,12 +145,12 @@ class CartController extends Controller
 
         $cart = Cart::where('user_id', $request->user()->id)->first();
         if (!$cart) {
-            return ApiResponse::error('CART_EMPTY', '购物车为空', 400);
+            return ApiResponse::error('CART_EMPTY', __('app.api.cart.empty'), 400);
         }
 
         try {
             $result = $this->cartService->applyCoupon($cart, $data['code']);
-            return ApiResponse::success($result, '优惠券已应用');
+            return ApiResponse::success($result, __('app.api.cart.coupon_applied'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('COUPON_ERROR', $e->getMessage(), 400);
         }
@@ -166,7 +166,7 @@ class CartController extends Controller
             $this->cartService->removeCoupon($cart);
         }
 
-        return ApiResponse::success(null, '优惠券已移除');
+        return ApiResponse::success(null, __('app.api.cart.coupon_removed'));
     }
 
     /**
@@ -186,7 +186,7 @@ class CartController extends Controller
             );
             return ApiResponse::success(
                 $this->cartService->getCartSummary($cart),
-                '购物车已合并'
+                __('app.api.cart.merged')
             );
         } catch (\RuntimeException $e) {
             return ApiResponse::error('MERGE_FAILED', $e->getMessage(), 400);
@@ -200,14 +200,14 @@ class CartController extends Controller
     {
         $cart = Cart::where('user_id', $request->user()->id)->first();
         if (!$cart || $cart->items->isEmpty()) {
-            return ApiResponse::error('CART_EMPTY', '购物车为空', 400);
+            return ApiResponse::error('CART_EMPTY', __('app.api.cart.empty'), 400);
         }
 
         $result = $this->cartService->validateForCheckout($cart);
         if ($result['valid']) {
-            return ApiResponse::success($result, '校验通过');
+            return ApiResponse::success($result, __('app.api.cart.validated'));
         }
-        return ApiResponse::error('CHECKOUT_VALIDATION_FAILED', '下单校验未通过', 400, $result);
+        return ApiResponse::error('CHECKOUT_VALIDATION_FAILED', __('app.api.cart.validation_failed'), 400, $result);
     }
 
     /**
@@ -218,13 +218,13 @@ class CartController extends Controller
         $cart = Cart::where('user_id', $request->user()->id)->first();
 
         if (!$cart || $cart->items->isEmpty()) {
-            return ApiResponse::error('CART_EMPTY', '购物车为空', 400);
+            return ApiResponse::error('CART_EMPTY', __('app.api.cart.empty'), 400);
         }
 
         // 下单前校验
         $validation = $this->cartService->validateForCheckout($cart);
         if (!$validation['valid']) {
-            return ApiResponse::error('CHECKOUT_VALIDATION_FAILED', '下单校验未通过', 400, $validation);
+            return ApiResponse::error('CHECKOUT_VALIDATION_FAILED', __('app.api.cart.validation_failed'), 400, $validation);
         }
 
         try {
@@ -248,15 +248,6 @@ class CartController extends Controller
                 'discount_amount' => $cart->coupon_discount ?? 0,
             ];
 
-            // 扣减库存
-            foreach ($cart->items as $item) {
-                $result = $this->inventoryService->deduct($item->sku_id, $item->quantity, 'cart_checkout');
-                if (!$result['success']) {
-                    // 库存扣减失败，回滚已扣减的
-                    return ApiResponse::error('STOCK_ERROR', $result['message'], 400);
-                }
-            }
-
             $order = $this->orderService->createOrder($orderData);
 
             // 清空购物车
@@ -264,7 +255,7 @@ class CartController extends Controller
 
             return ApiResponse::created(
                 $order->load('items.sku'),
-                '订单创建成功，请完成支付'
+                __('app.api.cart.order_created_pay')
             );
         } catch (\RuntimeException $e) {
             return ApiResponse::error('CHECKOUT_FAILED', $e->getMessage(), 400);
@@ -293,7 +284,7 @@ class CartController extends Controller
             $validation = $this->cartService->validateForCheckout($cart->fresh());
             if (!$validation['valid']) {
                 $this->cartService->clear($cart);
-                return ApiResponse::error('CHECKOUT_VALIDATION_FAILED', '下单校验未通过', 400, $validation);
+                return ApiResponse::error('CHECKOUT_VALIDATION_FAILED', __('app.api.cart.validation_failed'), 400, $validation);
             }
 
             $orderData = [
@@ -310,21 +301,13 @@ class CartController extends Controller
                 'currency' => 'CNY',
             ];
 
-            foreach ($cart->items as $item) {
-                $result = $this->inventoryService->deduct($item->sku_id, $item->quantity, 'quick_buy');
-                if (!$result['success']) {
-                    $this->cartService->clear($cart);
-                    return ApiResponse::error('STOCK_ERROR', $result['message'], 400);
-                }
-            }
-
             $order = $this->orderService->createOrder($orderData);
             $this->cartService->clear($cart);
 
             return ApiResponse::created([
                 'order' => $order->load('items.sku'),
                 'payment' => null,
-            ], '订单创建成功');
+            ], __('app.api.cart.order_created'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('QUICK_BUY_FAILED', $e->getMessage(), 400);
         }

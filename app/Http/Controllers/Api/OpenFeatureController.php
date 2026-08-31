@@ -162,7 +162,7 @@ class OpenFeatureController extends Controller
     public function flagdEvaluate(string $type, Request $request): JsonResponse
     {
         if (! in_array($type, self::SUPPORTED_TYPES, true)) {
-            return ApiResponse::error('INVALID_FLAG_TYPE', "不支持的 Flag 类型: {$type}", 400);
+            return ApiResponse::error('INVALID_FLAG_TYPE', __("app.open_feature.msg_1c6c476c"), 400);
         }
 
         $request->validate([

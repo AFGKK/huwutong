@@ -39,7 +39,7 @@ class CrlService
             ->first();
 
         if (! $certificate) {
-            throw new \RuntimeException('没有活跃的离线证书，无法吊销 License');
+            throw new \RuntimeException(__("app.crl.no_active_cert_cannot_revoke_license"));
         }
 
         OfflineCrlEntry::firstOrCreate([

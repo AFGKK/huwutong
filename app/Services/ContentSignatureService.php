@@ -20,7 +20,7 @@ class ContentSignatureService
         // 从配置或应用密钥派生签名密钥
         $key = config('app.key');
         if (!$key || $key === 'base64:...') {
-            throw new \RuntimeException('APP_KEY 未配置，无法初始化签名服务');
+            throw new \RuntimeException(__("app.content_signature.app_key_not_configured_cannot_init_signing"));
         }
         $this->hmacKey = $key;
     }
@@ -28,7 +28,7 @@ class ContentSignatureService
     protected function ensureInitialized(): void
     {
         if (empty($this->hmacKey)) {
-            throw new \RuntimeException('签名服务未正确初始化');
+            throw new \RuntimeException(__("app.content_signature.signing_service_not_initialized"));
         }
     }
 
@@ -102,7 +102,7 @@ class ContentSignatureService
                 'verified' => false,
                 'hash' => $hash,
                 'record' => null,
-                'message' => '内容已被篡改：哈希不匹配',
+                'message' => __('app.content_signature.hash_mismatch'),
             ];
         }
 
@@ -114,7 +114,7 @@ class ContentSignatureService
                 'verified' => false,
                 'hash' => $hash,
                 'record' => null,
-                'message' => '未找到签名记录，内容来源无法确认',
+                'message' => __('app.content_signature.no_record'),
             ];
         }
 
@@ -126,7 +126,7 @@ class ContentSignatureService
                 'verified' => false,
                 'hash' => $hash,
                 'record' => $record->toArray(),
-                'message' => '签名验证失败（密钥可能已更换）',
+                'message' => __('app.content_signature.verification_failed'),
             ];
         }
 
@@ -134,7 +134,7 @@ class ContentSignatureService
             'verified' => true,
             'hash' => $hash,
             'record' => $record->toArray(),
-            'message' => '内容验证通过，来源可信',
+            'message' => __('app.content_signature.verified'),
             'signed_at' => $record->signed_at->toIso8601String(),
             'source_type' => $record->source_type,
             'content_preview' => $record->content_preview,

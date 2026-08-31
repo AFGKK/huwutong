@@ -125,7 +125,7 @@ class PermissionService
         if ($parentRoleId && $parentRoleId !== $roleId) {
             // 检测循环继承
             if ($this->wouldCreateCycle($roleId, $parentRoleId)) {
-                throw new \InvalidArgumentException('角色继承关系会导致循环引用');
+                throw new \InvalidArgumentException(__("app.permission.role_inheritance_circular_reference"));
             }
             RoleHierarchy::create([
                 'role_id' => $roleId,

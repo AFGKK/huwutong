@@ -89,7 +89,7 @@ class SoftwareHsmProvider implements HsmProvider
     {
         $secretKeyHex = cache()->get("hsm_key:{$keyHandle}");
         if (!$secretKeyHex) {
-            throw new \RuntimeException("HSM 密钥句柄无效: {$keyHandle}");
+            throw new \RuntimeException(__("app.hsm_provider.msg_ded93942"));
         }
         $secretKey = sodium_crypto_sign_secretkey(
             sodium_crypto_sign_seed_keypair(
@@ -131,7 +131,7 @@ class SoftwareHsmProvider implements HsmProvider
     {
         $privateKey = cache()->get("hsm_key:{$keyHandle}");
         if (!$privateKey) {
-            throw new \RuntimeException("HSM 密钥句柄无效: {$keyHandle}");
+throw new \RuntimeException(__("app.hsm_provider.hsm_key_handle_invalid", ['key' => $keyHandle]));
         }
         openssl_sign($data, $signature, $privateKey, OPENSSL_ALGO_SHA256);
         return base64_encode($signature);

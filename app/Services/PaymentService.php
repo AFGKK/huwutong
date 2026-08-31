@@ -137,14 +137,14 @@ class PaymentService
         $payment = Payment::findOrFail($id);
 
         if (!in_array($payment->status, ['completed', 'partially_refunded'])) {
-            return ['success' => false, 'message' => '当前状态不可退款'];
+            return ['success' => false, 'message' => __('app.common.current_status_no_refund')];
         }
 
         $refundAmount = $amount ?? $payment->amount;
         $maxRefund = $payment->amount - $payment->refunded_amount;
 
         if ($refundAmount > $maxRefund) {
-            return ['success' => false, 'message' => '退款金额超出可退余额'];
+            return ['success' => false, 'message' => __('app.common.refund_amount_exceeds_balance')];
         }
 
         DB::beginTransaction();
@@ -169,11 +169,11 @@ class PaymentService
                 'status' => $payment->status,
             ]);
 
-            return ['success' => true, 'message' => '退款成功', 'data' => $payment->fresh()->toArray()];
+            return ['success' => true, 'message' => __('app.common.refund_success'), 'data' => $payment->fresh()->toArray()];
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('退款失败', ['payment_id' => $id, 'error' => $e->getMessage()]);
-            return ['success' => false, 'message' => '退款处理失败：' . $e->getMessage()];
+            return ['success' => false, 'message' => __('app.common.refund_processing_failed', ['message' => $e->getMessage()])];
         }
     }
 

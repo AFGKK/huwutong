@@ -17,21 +17,21 @@ use Illuminate\Support\Facades\Log;
  */
 class ContractConditionEngine
 {
-    const OPERATORS = [
-        'eq' => '等于',
-        'neq', 'ne' => '不等于',
-        'gt' => '大于',
-        'gte', 'ge' => '大于等于',
-        'lt' => '小于',
-        'lte', 'le' => '小于等于',
-        'in' => '包含于',
-        'not_in' => '不包含于',
-        'between' => '介于',
-        'contains' => '包含',
-        'regex' => '正则匹配',
-        'starts_with' => '起始于',
-        'ends_with' => '结束于',
-    ];
+    private static function operators(): array { return [
+        'eq' => __('app.contract_condition.contract_condition_4c35bf2e48'),
+        'neq', 'ne' => __('app.contract_condition.contract_condition_14a8af58ec'),
+        'gt' => __('app.contract_condition.contract_condition_2791dca39c'),
+        'gte', 'ge' => __('app.contract_condition.contract_condition_a1d1e58294'),
+        'lt' => __('app.contract_condition.contract_condition_f09dc0d1d6'),
+        'lte', 'le' => __('app.contract_condition.contract_condition_1ec4aae048'),
+        'in' => __('app.contract_condition.contract_condition_02c1f70b74'),
+        'not_in' => __('app.contract_condition.contract_condition_80a87de435'),
+        'between' => __('app.contract_condition.contract_condition_43ef055625'),
+        'contains' => __('app.contract_condition.contract_condition_e13556bb35'),
+        'regex' => __('app.contract_condition.contract_condition_459947ebab'),
+        'starts_with' => __('app.contract_condition.contract_condition_c2d8e69ec2'),
+        'ends_with' => __('app.contract_condition.contract_condition_9460100bd1'),
+    ]; }
 
     /**
      * 评估合约的全部条件

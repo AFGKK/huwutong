@@ -88,7 +88,7 @@ class UpdateCdnService
         } elseif ($url) {
             $urls = [$url];
         } else {
-            return ['success' => false, 'message' => '请指定要清除的 URL 或更新包'];
+            return ['success' => false, 'message' => __('app.common.specify_url_or_package_to_clear')];
         }
 
         $provider = config('update-cdn.cdn.provider', 'cloudflare');
@@ -314,13 +314,111 @@ class UpdateCdnService
 
     private function purgeAwsCloudFront(string $url): void
     {
-        // AWS CloudFront 失效处理（预留）
-        Log::info("UpdateCdn: AWS CloudFront purge not implemented for {$url}");
+        $distributionId = config('update-cdn.purge.aws_distribution_id');
+        $key = config('update-cdn.purge.aws_access_key_id');
+        $secret = config('update-cdn.purge.aws_secret_access_key');
+
+        if (empty($distributionId)) {
+            Log::warning('UpdateCdn: AWS CloudFront purge skipped, missing distribution_id');
+            return;
+        }
+
+        // 使用 AWS SDK 创建 invalidation（需安装 aws/aws-sdk-php）
+        if (!class_exists('\Aws\CloudFront\CloudFrontClient')) {
+            // 回退：直接调用 CloudFront API
+            $response = Http::withBasicAuth($key ?? '', $secret ?? '')
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                ])->post("https://cloudfront.amazonaws.com/2020-05-31/distribution/{$distributionId}/invalidation", [
+                    'InvalidationBatch' => [
+                        'Paths' => [
+                            'Quantity' => 1,
+                            'Items' => [parse_url($url, PHP_URL_PATH)],
+                        ],
+                        'CallerReference' => 'hwt-' . time(),
+                    ],
+                ]);
+
+            if ($response->status() === 201 || $response->status() === 200) {
+                Log::info("UpdateCdn: AWS CloudFront purge initiated for {$url}");
+            } else {
+                Log::warning("UpdateCdn: AWS CloudFront purge responded {$response->status()}", ['body' => $response->body()]);
+            }
+            return;
+        }
+
+        // 使用 AWS SDK
+        $client = new \Aws\CloudFront\CloudFrontClient([
+            'version' => 'latest',
+            'region' => config('update-cdn.purge.aws_region', 'us-east-1'),
+            'credentials' => [
+                'key' => $key,
+                'secret' => $secret,
+            ],
+        ]);
+
+        $client->createInvalidation([
+            'DistributionId' => $distributionId,
+            'InvalidationBatch' => [
+                'Paths' => [
+                    'Quantity' => 1,
+                    'Items' => [parse_url($url, PHP_URL_PATH)],
+                ],
+                'CallerReference' => 'hwt-' . time(),
+            ],
+        ]);
+
+        Log::info("UpdateCdn: AWS CloudFront purge initiated for {$url}");
     }
 
     private function purgeAliyunCdn(string $url): void
     {
-        // 阿里云 CDN 刷新（预留）
-        Log::info("UpdateCdn: Aliyun CDN purge not implemented for {$url}");
+        $accessKey = config('update-cdn.purge.aliyun_access_key');
+        $accessSecret = config('update-cdn.purge.aliyun_access_secret');
+
+        if (empty($accessKey) || empty($accessSecret)) {
+            Log::warning('UpdateCdn: Aliyun CDN purge skipped, missing access_key or access_secret');
+            return;
+        }
+
+        // 阿里云 CDN 刷新 API (OpenAPI)
+        // 参考: https://help.aliyun.com/document_detail/91164.html
+        $params = [
+            'Action' => 'RefreshObjectCaches',
+            'ObjectPath' => $url,
+            'ObjectType' => 'File',
+            'Format' => 'JSON',
+            'Version' => '2018-05-10',
+            'AccessKeyId' => $accessKey,
+            'Timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
+            'SignatureMethod' => 'HMAC-SHA1',
+            'SignatureVersion' => '1.0',
+            'SignatureNonce' => \Illuminate\Support\Str::uuid()->toString(),
+        ];
+
+        // 排序并生成待签名字符串
+        ksort($params);
+        $queryStr = '';
+        foreach ($params as $k => $v) {
+            $queryStr .= '&' . rawurlencode($k) . '=' . rawurlencode($v);
+        }
+        $stringToSign = 'POST&' . rawurlencode('/') . '&' . rawurlencode(substr($queryStr, 1));
+
+        // 计算签名
+        $signature = base64_encode(hash_hmac('sha1', $stringToSign, $accessSecret . '&', true));
+        $params['Signature'] = $signature;
+
+        $response = Http::timeout(15)
+            ->post('https://cdn.aliyuncs.com', $params);
+
+        $body = $response->json();
+        if ($response->successful() && empty($body['Code'])) {
+            Log::info("UpdateCdn: Aliyun CDN purge initiated for {$url}", ['request_id' => $body['RequestId'] ?? '']);
+        } else {
+            Log::warning("UpdateCdn: Aliyun CDN purge failed", [
+                'code' => $body['Code'] ?? $response->status(),
+                'message' => $body['Message'] ?? $response->body(),
+            ]);
+        }
     }
 }

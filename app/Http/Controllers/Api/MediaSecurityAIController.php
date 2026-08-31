@@ -38,7 +38,7 @@ class MediaSecurityAIController extends Controller
         }
 
         if (empty($imageData)) {
-            return ApiResponse::error('请提供图片 URL 或 base64 数据', 400);
+            return ApiResponse::error(__('app.api.media_ai.provide_image'), 400);
         }
 
         $systemPrompts = [
@@ -54,10 +54,10 @@ class MediaSecurityAIController extends Controller
                 ['role' => 'user', 'content' => "请分析以下图片：{$imageData}"],
             ], ['temperature' => 0.3], "image_analysis_{$mode}");
 
-            $analysis = $result['content'] ?? '分析失败';
+            $analysis = $result['content'] ?? __('app.api.media_ai.analysis_failed');
 
             // 标记 AI 生成内容 (DOM-004)
-            $analysis .= "\n\n---\n🔄 *AI 生成内容，仅供参考*";
+            $analysis .= __('app.api.media_ai.ai_generated_note');
 
             return ApiResponse::success([
                 'analysis' => $analysis,
@@ -65,7 +65,7 @@ class MediaSecurityAIController extends Controller
                 'ai_generated' => true, // DOM-004
             ]);
         } catch (\Throwable $e) {
-            return ApiResponse::error('IMAGE_ANALYSIS_ERROR', '图片分析失败: ' . $e->getMessage());
+            return ApiResponse::error('IMAGE_ANALYSIS_ERROR', __('app.api.media_ai.image_analysis_error', ['error' => $e->getMessage()]));
         }
     }
 
@@ -98,7 +98,7 @@ class MediaSecurityAIController extends Controller
                 ['role' => 'user', 'content' => "视频转录文本：\n{$transcript}"],
             ], ['temperature' => 0.3], 'video_summary');
 
-            $summary = $result['content'] ?? '摘要生成失败';
+            $summary = $result['content'] ?? __('app.api.media_ai.summary_failed');
 
             // 估算关键帧（基于时长）
             $keyframes = [];
@@ -121,7 +121,7 @@ class MediaSecurityAIController extends Controller
                 'ai_generated' => true,
             ]);
         } catch (\Throwable $e) {
-            return ApiResponse::error('VIDEO_SUMMARY_ERROR', '视频摘要生成失败');
+            return ApiResponse::error('VIDEO_SUMMARY_ERROR', __('app.api.media_ai.video_summary_error'));
         }
     }
 
@@ -234,7 +234,7 @@ class MediaSecurityAIController extends Controller
             'risk_level' => $level,
             'flags' => $riskFlags,
             'llm_analysis' => $llmRisk,
-            'recommended_action' => $finalScore >= 70 ? '立即拦截并报告安全团队' : ($finalScore >= 40 ? '标记为可疑，人工审核' : '正常放行'),
+            'recommended_action' => $finalScore >= 70 ? __('app.api.media_ai.phish_immediate_block') : ($finalScore >= 40 ? __('app.api.media_ai.phish_suspicious') : __('app.api.media_ai.phish_normal')),
             'ai_generated' => true,
         ]);
     }
@@ -345,11 +345,11 @@ class MediaSecurityAIController extends Controller
         $speed = $request->input('speed', 1.0);
 
         $voiceLabels = [
-            'default' => '默认音色',
-            'female' => '女声（温柔）',
-            'male' => '男声（沉稳）',
-            'children' => '童声（活泼）',
-            'gentle' => '轻柔声',
+            'default' => __('app.api.media_ai.pii_default_voice'),
+            'female' => __('app.api.media_ai.pii_female'),
+            'male' => __('app.api.media_ai.pii_male'),
+            'children' => __('app.api.media_ai.pii_children'),
+            'gentle' => __('app.api.media_ai.pii_gentle'),
         ];
 
         // 字数统计 + 预估时长
@@ -388,14 +388,14 @@ class MediaSecurityAIController extends Controller
         return ApiResponse::success([
             'text' => $text,
             'voice' => $voice,
-            'voice_label' => $voiceLabels[$voice] ?? '默认',
+            'voice_label' => $voiceLabels[$voice] ?? __('app.api.media_ai.pii_default_voice'),
             'language' => $language,
             'speed' => $speed,
             'char_count' => $charCount,
             'estimated_duration_seconds' => $estimatedDuration,
             'audio_url' => $audioUrl,
             'tts_available' => $ttsAvailable,
-            'message' => $audioUrl ? '语音已生成' : 'TTS 服务未配置，请配置 config/services.tts。支持 Azure TTS、阿里云语音合成等。',
+            'message' => $audioUrl ? __('app.api.media_ai.tts_generated') : __('app.api.media_ai.tts_not_configured'),
             'ai_generated' => true,
         ]);
     }
@@ -418,11 +418,11 @@ class MediaSecurityAIController extends Controller
         $mode = $request->input('mode', 'batch');
 
         $langNames = [
-            'zh' => '中文', 'en' => '英文', 'ja' => '日文',
-            'ko' => '韩文', 'fr' => '法文', 'de' => '德文', 'es' => '西文',
+            'zh' => __('app.api.media_ai.lang_zh'), 'en' => __('app.api.media_ai.lang_en'), 'ja' => __('app.api.media_ai.lang_ja'),
+            'ko' => __('app.api.media_ai.lang_ko'), 'fr' => __('app.api.media_ai.lang_fr'), 'de' => __('app.api.media_ai.lang_de'), 'es' => __('app.api.media_ai.lang_es'),
         ];
 
-        $sourceLabel = $sourceLang === 'auto' ? '自动检测源语言' : ($langNames[$sourceLang] ?? $sourceLang);
+        $sourceLabel = $sourceLang === 'auto' ? __('app.api.media_ai.auto_detect') : ($langNames[$sourceLang] ?? $sourceLang);
         $targetLabel = $langNames[$targetLang] ?? $targetLang;
 
         try {
@@ -444,7 +444,7 @@ class MediaSecurityAIController extends Controller
                 'ai_generated' => true,
             ]);
         } catch (\Throwable $e) {
-            return ApiResponse::error('TRANSLATE_ERROR', '翻译服务暂时不可用');
+            return ApiResponse::error('TRANSLATE_ERROR', __('app.api.media_ai.translate_unavailable'));
         }
     }
 
@@ -460,11 +460,11 @@ class MediaSecurityAIController extends Controller
         ]);
 
         $content = $request->input('content');
-        $source = $request->input('source', 'AI 助手');
+        $source = $request->input('source', 'AI Assistant');
         $addWatermark = $request->input('add_watermark', true);
 
         // AI 生成内容标识
-        $watermark = "\n\n---\n🔄 *此内容由 {$source} 生成" . date(' Y-m-d H:i') . "*";
+        $watermark = __('app.api.media_ai.ai_watermark', ['source' => $source, 'time' => date(' Y-m-d H:i')]);
         if ($addWatermark) {
             // 添加不可见水印（Unicode 零宽字符）
             $hiddenMark = "\u{200B}\u{200C}\u{200D}\u{2060}AI:{$source}:" . date('Ymd');
@@ -484,7 +484,7 @@ class MediaSecurityAIController extends Controller
             'metadata' => $metadata,
             'has_watermark' => $addWatermark,
             'visible_mark' => $addWatermark ? $watermark : null,
-            'compliance_standard' => 'DOM-004 生成式 AI 内容标识',
+            'compliance_standard' => __('app.api.media_ai.compliance_std_004'),
         ]);
     }
 
@@ -547,7 +547,7 @@ class MediaSecurityAIController extends Controller
                 'needs_filing' => $needed,
                 'already_filed' => $filed,
                 'compliance_rate' => $needed > 0 ? round(($filed / $needed) * 100) : 100,
-                'recommendation' => '建议优先完成生成合成类算法的备案申请',
+                'recommendation' => __('app.api.media_ai.filing_rec'),
             ]);
         }
 
@@ -565,7 +565,7 @@ class MediaSecurityAIController extends Controller
                 'ai_ratio' => $totalMessages > 0 ? round(($aiMessages / $totalMessages) * 100, 2) : 0,
                 'daily_avg' => $totalMessages > 0 ? round($totalMessages / max(1, (strtotime($dateTo) - strtotime($dateFrom)) / 86400)) : 0,
                 'export_format' => 'CSV/PDF',
-                'compliance_standard' => 'DOM-005 算法备案支撑',
+                'compliance_standard' => __('app.api.media_ai.compliance_std_005'),
             ]);
         }
 
@@ -574,7 +574,7 @@ class MediaSecurityAIController extends Controller
             'export_url' => route('api.enterprise-ai.filing-export'),
             'formats' => ['csv', 'pdf', 'json'],
             'data_included' => ['algorithm_list', 'usage_stats', 'safety_assessment', 'user_impact_report'],
-            'compliance_standard' => 'DOM-005 算法备案支撑',
+            'compliance_standard' => __('app.api.media_ai.compliance_std_005'),
         ]);
     }
 

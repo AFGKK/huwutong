@@ -17,176 +17,179 @@ use Illuminate\Support\Facades\Log;
 class DiagnosticEngineService
 {
     /**
-     * 已知错误码的中文解释模板
+     * 已知错误码的中英文诊断模板
      */
-    private const DIAGNOSIS_TEMPLATES = [
-        'LICENSE_NOT_FOUND' => [
-            'summary' => 'License Key 不存在',
-            'detail' => '系统数据库中未找到您提供的 License Key。可能原因：输入错误、从未发放过该 Key、或 Key 已被删除。',
-            'suggestions' => [
-                '请检查输入的 License Key 是否完整无误（注意区分大小写和连字符）',
-                '请联系销售或管理员确认该 Key 是否已正确发放',
-                '如果是从邮件中复制的，请检查是否复制了额外的空格',
+    protected function getDiagnosisTemplates(): array
+    {
+        return [
+            'LICENSE_NOT_FOUND' => [
+                'summary' => __('app.diagnostic.LICENSE_NOT_FOUND.summary'),
+                'detail' => __('app.diagnostic.LICENSE_NOT_FOUND.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.LICENSE_NOT_FOUND.suggestions.0'),
+                    __('app.diagnostic.LICENSE_NOT_FOUND.suggestions.1'),
+                    __('app.diagnostic.LICENSE_NOT_FOUND.suggestions.2'),
+                ],
+                'severity' => 'high',
             ],
-            'severity' => 'high',
-        ],
-        'LICENSE_EXPIRED' => [
-            'summary' => 'License 已过期',
-            'detail' => '该 License 的有效期已截止，当前无法激活或使用。',
-            'suggestions' => [
-                '请前往后台续期或购买新的 License',
-                '联系销售代表商议续费方案',
-                '如果认为此过期有误，请联系技术支持并提供 License Key',
+            'LICENSE_EXPIRED' => [
+                'summary' => __('app.diagnostic.LICENSE_EXPIRED.summary'),
+                'detail' => __('app.diagnostic.LICENSE_EXPIRED.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.LICENSE_EXPIRED.suggestions.0'),
+                    __('app.diagnostic.LICENSE_EXPIRED.suggestions.1'),
+                    __('app.diagnostic.LICENSE_EXPIRED.suggestions.2'),
+                ],
+                'severity' => 'high',
             ],
-            'severity' => 'high',
-        ],
-        'LICENSE_NOT_ACTIVATABLE' => [
-            'summary' => 'License 当前不允许激活',
-            'detail' => 'License 的状态不允许执行激活操作。可能已被挂起、冻结、撤销或处于其他非激活状态。',
-            'suggestions' => [
-                '检查 License 当前状态（待激活/已挂起/已冻结/已撤销）',
-                '如果已挂起/冻结，请联系管理员恢复',
-                '如果已撤销，需要重新申请 License',
+            'LICENSE_NOT_ACTIVATABLE' => [
+                'summary' => __('app.diagnostic.LICENSE_NOT_ACTIVATABLE.summary'),
+                'detail' => __('app.diagnostic.LICENSE_NOT_ACTIVATABLE.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.LICENSE_NOT_ACTIVATABLE.suggestions.0'),
+                    __('app.diagnostic.LICENSE_NOT_ACTIVATABLE.suggestions.1'),
+                    __('app.diagnostic.LICENSE_NOT_ACTIVATABLE.suggestions.2'),
+                ],
+                'severity' => 'high',
             ],
-            'severity' => 'high',
-        ],
-        'LICENSE_ALREADY_ACTIVE' => [
-            'summary' => 'License 已激活',
-            'detail' => '该 License 已经在一个设备上激活，无法重复激活。',
-            'suggestions' => [
-                '如果需要在另一台设备使用，可以先在旧设备上解绑',
-                '如果您认为此激活有误，请提供设备指纹信息联系技术支持',
+            'LICENSE_ALREADY_ACTIVE' => [
+                'summary' => __('app.diagnostic.LICENSE_ALREADY_ACTIVE.summary'),
+                'detail' => __('app.diagnostic.LICENSE_ALREADY_ACTIVE.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.LICENSE_ALREADY_ACTIVE.suggestions.0'),
+                    __('app.diagnostic.LICENSE_ALREADY_ACTIVE.suggestions.1'),
+                ],
+                'severity' => 'medium',
             ],
-            'severity' => 'medium',
-        ],
-        'DEVICE_LIMIT_EXCEEDED' => [
-            'summary' => '设备数量已达上限',
-            'detail' => '此 License 允许绑定的设备数量已达到最大值（{max_devices} 台），无法继续添加新设备。',
-            'suggestions' => [
-                '登录管理后台查看已绑定的设备列表',
-                '解绑不再使用的旧设备以释放名额',
-                '升级许可证以获得更多设备绑定名额',
-                '如果确有需要，联系销售人员申请临时扩容',
+            'DEVICE_LIMIT_EXCEEDED' => [
+                'summary' => __('app.diagnostic.DEVICE_LIMIT_EXCEEDED.summary'),
+                'detail' => __('app.diagnostic.DEVICE_LIMIT_EXCEEDED.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.DEVICE_LIMIT_EXCEEDED.suggestions.0'),
+                    __('app.diagnostic.DEVICE_LIMIT_EXCEEDED.suggestions.1'),
+                    __('app.diagnostic.DEVICE_LIMIT_EXCEEDED.suggestions.2'),
+                    __('app.diagnostic.DEVICE_LIMIT_EXCEEDED.suggestions.3'),
+                ],
+                'severity' => 'high',
             ],
-            'severity' => 'high',
-        ],
-        'DEVICE_BLACKLISTED' => [
-            'summary' => '设备已被列入黑名单',
-            'detail' => '该设备因安全原因被系统列入黑名单，不允许激活或使用。',
-            'suggestions' => [
-                '检查设备是否存在异常（如虚拟机/模拟器、频繁更换硬件等）',
-                '如果您认为这是误判，请联系技术支持并提供设备指纹',
-                '可以在后台设备管理中查看黑名单原因',
+            'DEVICE_BLACKLISTED' => [
+                'summary' => __('app.diagnostic.DEVICE_BLACKLISTED.summary'),
+                'detail' => __('app.diagnostic.DEVICE_BLACKLISTED.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.DEVICE_BLACKLISTED.suggestions.0'),
+                    __('app.diagnostic.DEVICE_BLACKLISTED.suggestions.1'),
+                    __('app.diagnostic.DEVICE_BLACKLISTED.suggestions.2'),
+                ],
+                'severity' => 'critical',
             ],
-            'severity' => 'critical',
-        ],
-        'DEVICE_FINGERPRINT_INVALID' => [
-            'summary' => '设备指纹无效',
-            'detail' => '系统无法生成有效的设备指纹，或指纹格式不符合要求。',
-            'suggestions' => [
-                '检查 SDK 版本是否为最新',
-                '确保设备提供了必要的硬件信息（MAC、CPU、主板序列号等）',
-                '检查是否有安全软件阻止了指纹采集',
+            'DEVICE_FINGERPRINT_INVALID' => [
+                'summary' => __('app.diagnostic.DEVICE_FINGERPRINT_INVALID.summary'),
+                'detail' => __('app.diagnostic.DEVICE_FINGERPRINT_INVALID.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.DEVICE_FINGERPRINT_INVALID.suggestions.0'),
+                    __('app.diagnostic.DEVICE_FINGERPRINT_INVALID.suggestions.1'),
+                    __('app.diagnostic.DEVICE_FINGERPRINT_INVALID.suggestions.2'),
+                ],
+                'severity' => 'medium',
             ],
-            'severity' => 'medium',
-        ],
-        'LICENSE_BLACKLISTED' => [
-            'summary' => 'License 已被列入黑名单',
-            'detail' => '该 License 因违反使用条款、退款或其他安全原因被列入黑名单，永久禁用。',
-            'suggestions' => [
-                '此操作不可逆，无法恢复',
-                '如有疑问，请提供 License Key 联系技术支持',
-                '购买新的 License 以继续使用',
+            'LICENSE_BLACKLISTED' => [
+                'summary' => __('app.diagnostic.LICENSE_BLACKLISTED.summary'),
+                'detail' => __('app.diagnostic.LICENSE_BLACKLISTED.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.LICENSE_BLACKLISTED.suggestions.0'),
+                    __('app.diagnostic.LICENSE_BLACKLISTED.suggestions.1'),
+                    __('app.diagnostic.LICENSE_BLACKLISTED.suggestions.2'),
+                ],
+                'severity' => 'critical',
             ],
-            'severity' => 'critical',
-        ],
-        'LICENSE_INVALID_KEY' => [
-            'summary' => 'License Key 格式无效',
-            'detail' => '您提供的 License Key 格式不正确，不符合系统 Key 的格式规范。',
-            'suggestions' => [
-                '确认输入完整的 License Key（包括 HWT- 前缀）',
-                '检查是否有多余的空格或特殊字符',
-                '正确的格式通常是 HWT-XXXXXXXX-XXXXXXXX',
-                '如果是从邮件复制，尝试手动输入',
+            'LICENSE_INVALID_KEY' => [
+                'summary' => __('app.diagnostic.LICENSE_INVALID_KEY.summary'),
+                'detail' => __('app.diagnostic.LICENSE_INVALID_KEY.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.LICENSE_INVALID_KEY.suggestions.0'),
+                    __('app.diagnostic.LICENSE_INVALID_KEY.suggestions.1'),
+                    __('app.diagnostic.LICENSE_INVALID_KEY.suggestions.2'),
+                    __('app.diagnostic.LICENSE_INVALID_KEY.suggestions.3'),
+                ],
+                'severity' => 'medium',
             ],
-            'severity' => 'medium',
-        ],
-        'TRIAL_NOT_ALLOWED' => [
-            'summary' => '不允许创建试用',
-            'detail' => '当前产品/客户不支持试用，或试用功能已被管理员关闭。',
-            'suggestions' => [
-                '联系管理员确认该产品是否开启试用功能',
-                '直接购买正式 License',
+            'TRIAL_NOT_ALLOWED' => [
+                'summary' => __('app.diagnostic.TRIAL_NOT_ALLOWED.summary'),
+                'detail' => __('app.diagnostic.TRIAL_NOT_ALLOWED.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.TRIAL_NOT_ALLOWED.suggestions.0'),
+                    __('app.diagnostic.TRIAL_NOT_ALLOWED.suggestions.1'),
+                ],
+                'severity' => 'low',
             ],
-            'severity' => 'low',
-        ],
-        'TRIAL_ALREADY_USED' => [
-            'summary' => '已使用过试用',
-            'detail' => '该客户已经使用过该产品的试用授权，无法再次创建试用。',
-            'suggestions' => [
-                '试用期结束后请购买正式 License',
-                '如果您认为此限制有误，联系技术支持',
+            'TRIAL_ALREADY_USED' => [
+                'summary' => __('app.diagnostic.TRIAL_ALREADY_USED.summary'),
+                'detail' => __('app.diagnostic.TRIAL_ALREADY_USED.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.TRIAL_ALREADY_USED.suggestions.0'),
+                    __('app.diagnostic.TRIAL_ALREADY_USED.suggestions.1'),
+                ],
+                'severity' => 'low',
             ],
-            'severity' => 'low',
-        ],
-        'TRIAL_EXPIRED' => [
-            'summary' => '试用已过期',
-            'detail' => '试用授权已到期，无法继续使用。',
-            'suggestions' => [
-                '购买正式 License 以继续使用',
-                '需要更多试用时间？联系销售代表商议',
+            'TRIAL_EXPIRED' => [
+                'summary' => __('app.diagnostic.TRIAL_EXPIRED.summary'),
+                'detail' => __('app.diagnostic.TRIAL_EXPIRED.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.TRIAL_EXPIRED.suggestions.0'),
+                    __('app.diagnostic.TRIAL_EXPIRED.suggestions.1'),
+                ],
+                'severity' => 'medium',
             ],
-            'severity' => 'medium',
-        ],
-        'AUTH_FAILED' => [
-            'summary' => '登录认证失败',
-            'detail' => '邮箱/手机号或密码验证未通过。',
-            'suggestions' => [
-                '检查邮箱/手机号是否输入正确',
-                '如果忘记密码，请使用"忘记密码"功能重置',
-                '连续多次失败可能导致账号临时锁定，请稍后再试',
+            'AUTH_FAILED' => [
+                'summary' => __('app.diagnostic.AUTH_FAILED.summary'),
+                'detail' => __('app.diagnostic.AUTH_FAILED.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.AUTH_FAILED.suggestions.0'),
+                    __('app.diagnostic.AUTH_FAILED.suggestions.1'),
+                    __('app.diagnostic.AUTH_FAILED.suggestions.2'),
+                ],
+                'severity' => 'medium',
             ],
-            'severity' => 'medium',
-        ],
-        'TOO_MANY_REQUESTS' => [
-            'summary' => '请求频率过高',
-            'detail' => '短时间内发起了过多请求，系统已触发限流保护。',
-            'suggestions' => [
-                '请稍等片刻后再试（通常需要等待 60 秒）',
-                '如果您的应用需要高频率访问，请联系我们申请 API 配额提升',
-                '检查客户端是否有重试循环，建议加入指数退避策略',
+            'TOO_MANY_REQUESTS' => [
+                'summary' => __('app.diagnostic.TOO_MANY_REQUESTS.summary'),
+                'detail' => __('app.diagnostic.TOO_MANY_REQUESTS.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.TOO_MANY_REQUESTS.suggestions.0'),
+                    __('app.diagnostic.TOO_MANY_REQUESTS.suggestions.1'),
+                    __('app.diagnostic.TOO_MANY_REQUESTS.suggestions.2'),
+                ],
+                'severity' => 'low',
             ],
-            'severity' => 'low',
-        ],
-        'PAYMENT_FAILED' => [
-            'summary' => '支付失败',
-            'detail' => '支付处理失败，无法完成续费或购买。',
-            'suggestions' => [
-                '检查银行卡余额是否充足',
-                '确认银行卡信息（卡号、有效期、CVV）是否正确',
-                '尝试更换其他支付方式',
-                '联系发卡行确认是否有支付限制',
+            'PAYMENT_FAILED' => [
+                'summary' => __('app.diagnostic.PAYMENT_FAILED.summary'),
+                'detail' => __('app.diagnostic.PAYMENT_FAILED.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.PAYMENT_FAILED.suggestions.0'),
+                    __('app.diagnostic.PAYMENT_FAILED.suggestions.1'),
+                    __('app.diagnostic.PAYMENT_FAILED.suggestions.2'),
+                    __('app.diagnostic.PAYMENT_FAILED.suggestions.3'),
+                ],
+                'severity' => 'high',
             ],
-            'severity' => 'high',
-        ],
-        'SUBSCRIPTION_EXPIRED' => [
-            'summary' => '订阅已过期',
-            'detail' => '您的订阅已过期，关联的 License 已被停用。',
-            'suggestions' => [
-                '立即续费以恢复服务',
-                '续费后关联的 License 将自动恢复',
-                '超过宽限期后可能需要重新激活',
+            'SUBSCRIPTION_EXPIRED' => [
+                'summary' => __('app.diagnostic.SUBSCRIPTION_EXPIRED.summary'),
+                'detail' => __('app.diagnostic.SUBSCRIPTION_EXPIRED.detail'),
+                'suggestions' => [
+                    __('app.diagnostic.SUBSCRIPTION_EXPIRED.suggestions.0'),
+                    __('app.diagnostic.SUBSCRIPTION_EXPIRED.suggestions.1'),
+                    __('app.diagnostic.SUBSCRIPTION_EXPIRED.suggestions.2'),
+                ],
+                'severity' => 'high',
             ],
-            'severity' => 'high',
-        ],
-    ];
+        ];
+    }
 
     /**
      * 诊断单个错误码
      */
     public function diagnose(string $errorCode, array $context = []): array
     {
-        $template = self::DIAGNOSIS_TEMPLATES[$errorCode] ?? $this->generateGenericDiagnosis($errorCode);
+        $template = $this->getDiagnosisTemplates()[$errorCode] ?? $this->generateGenericDiagnosis($errorCode);
 
         // 注入上下文详情
         $detail = $this->injectContext($template['detail'], $context);
@@ -306,7 +309,7 @@ class DiagnosticEngineService
     public function getSdkSuggestionMap(): array
     {
         $map = [];
-        foreach (self::DIAGNOSIS_TEMPLATES as $code => $template) {
+        foreach ($this->getDiagnosisTemplates() as $code => $template) {
             $map[$code] = [
                 'summary' => $template['summary'],
                 'suggestions' => $template['suggestions'],
@@ -322,12 +325,12 @@ class DiagnosticEngineService
     protected function generateGenericDiagnosis(string $errorCode): array
     {
         return [
-            'summary' => "系统检测到错误: {$errorCode}",
-            'detail' => "出现未预定义的错误类型 {$errorCode}。",
+            'summary' => __('app.diagnostic.generic.summary', ['code' => $errorCode]),
+            'detail' => __('app.diagnostic.generic.detail', ['code' => $errorCode]),
             'suggestions' => [
-                '记录完整的错误信息和时间戳',
-                '联系技术支持并提供错误代码',
-                '如果问题持续，请提交工单',
+                __('app.diagnostic.generic.suggestions.0'),
+                __('app.diagnostic.generic.suggestions.1'),
+                __('app.diagnostic.generic.suggestions.2'),
             ],
             'severity' => 'medium',
         ];
@@ -375,16 +378,16 @@ class DiagnosticEngineService
             $active = $context['active_devices'] ?? 0;
             $max = $context['max_devices'] ?? 0;
             $over = $context['over_limit_by'] ?? 0;
-            $hints[] = "当前已激活 {$active} 台设备（上限 {$max} 台），已超出 {$over} 台";
-            $hints[] = "建议查看后台设备管理，了解各设备最后活跃时间";
+            $hints[] = __('app.diagnostic.hints.device_limit', ['active' => $active, 'max' => $max, 'over' => $over]);
+            $hints[] = __('app.diagnostic.hints.check_device_mgmt');
         }
 
         if ($errorCode === 'LICENSE_EXPIRED' && isset($context['expires_at'])) {
-            $hints[] = "该 License 于 {$context['expires_at']} 到期";
+            $hints[] = __('app.diagnostic.hints.license_expired', ['date' => $context['expires_at']]);
         }
 
         if ($errorCode === 'PAYMENT_FAILED' && isset($context['attempt_number'])) {
-            $hints[] = "已尝试 {$context['attempt_number']} 次支付均未成功";
+            $hints[] = __('app.diagnostic.hints.payment_attempts', ['count' => $context['attempt_number']]);
         }
 
         return $hints;

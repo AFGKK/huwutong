@@ -26,7 +26,7 @@ class SandboxController extends Controller
         return ApiResponse::success([
             'tenant_id' => $tenant->id,
             'tenant_name' => $tenant->name,
-            'message' => '沙箱环境创建成功！已为您创建 5 个测试 License。',
+            'message' => __('app.sandbox.msg_5_license'),
             'sandbox_info' => $this->sandboxService->status($tenant),
         ]);
     }
@@ -39,7 +39,7 @@ class SandboxController extends Controller
         $tenant = $request->user()->tenant;
 
         if (! $tenant || ! $tenant->is_sandbox) {
-            return ApiResponse::error('NOT_SANDBOX', '当前环境不是沙箱环境', 400);
+            return ApiResponse::error('NOT_SANDBOX', __("app.sandbox.msg_f35bf9d9"), 400);
         }
 
         return ApiResponse::success($this->sandboxService->status($tenant));
@@ -53,7 +53,7 @@ class SandboxController extends Controller
         $tenant = $request->user()->tenant;
 
         if (! $tenant || ! $tenant->is_sandbox) {
-            return ApiResponse::error('NOT_SANDBOX', '当前环境不是沙箱环境', 400);
+            return ApiResponse::error('NOT_SANDBOX', __('app.sandbox.not_sandbox'), 400);
         }
 
         $success = $this->sandboxService->reset($tenant);
@@ -62,10 +62,10 @@ class SandboxController extends Controller
             return ApiResponse::success([
                 'tenant_id' => $tenant->id,
                 'reset_at' => now()->toIso8601String(),
-            ], '沙箱已重置，所有设备绑定已清除');
+            ], __('app.sandbox.sandbox_reset'));
         }
 
-        return ApiResponse::error('RESET_FAILED', '重置失败', 500);
+        return ApiResponse::error('RESET_FAILED', __("app.sandbox.msg_4d713822"), 500);
     }
 
     /**
@@ -76,7 +76,7 @@ class SandboxController extends Controller
         $tenant = $request->user()->tenant;
 
         if (! $tenant || ! $tenant->is_sandbox) {
-            return ApiResponse::error('NOT_SANDBOX', '当前环境不是沙箱环境', 400);
+            return ApiResponse::error('NOT_SANDBOX', __('app.sandbox.not_sandbox'), 400);
         }
 
         $licenses = $tenant->licenses()

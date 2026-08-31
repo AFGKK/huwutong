@@ -50,6 +50,8 @@ use App\Services\SensitiveWordService;
 use App\Services\UserChatConversationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class OfficialAccountController extends Controller
@@ -118,7 +120,7 @@ class OfficialAccountController extends Controller
             ->find($articleId);
 
         if (! $article) {
-            return ApiResponse::notFound('文章不存在');
+            return ApiResponse::notFound(__('app.api.oa.article_missing'));
         }
 
         return ApiResponse::success($article);
@@ -235,7 +237,7 @@ class OfficialAccountController extends Controller
         $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($id);
 
         if ($account->status !== 'active') {
-            $msg = $account->status === 'pending' ? '该互物号正在审核中，审核通过后才能发布文章' : '该互物号已被禁用，无法发布文章';
+            $msg = $account->status === 'pending' ? __('app.api.oa.pending_review') : __('app.api.oa.disabled');
             return ApiResponse::error('ACCOUNT_NOT_ACTIVE', $msg, 422);
         }
 
@@ -258,7 +260,7 @@ class OfficialAccountController extends Controller
 
         // 定时发布必须同时设置 scheduled_at
         if ($status === 'scheduled' && !$scheduledAt) {
-            return ApiResponse::error('定时发布必须设置发布时间', 422);
+            return ApiResponse::error(__('app.api.oa.schedule_required'), 422);
         }
 
         $article = OaArticle::create([
@@ -280,7 +282,7 @@ class OfficialAccountController extends Controller
             OaArticlePublished::dispatch($article);
         }
 
-        $msg = $status === 'published' ? '文章已发布' : ($status === 'scheduled' ? '已设置定时发布' : '草稿已保存');
+        $msg = $status === 'published' ? __('app.api.oa.published') : ($status === 'scheduled' ? __('app.api.oa.scheduled') : __('app.api.oa.draft_saved'));
         return ApiResponse::success($article, $msg, 201);
     }
 
@@ -291,7 +293,7 @@ class OfficialAccountController extends Controller
 
         // 只能修改一次
         if ($article->edited_at) {
-            return ApiResponse::error('文章仅可修改一次，已被编辑过', 422);
+            return ApiResponse::error(__('app.api.oa.edit_once'), 422);
         }
 
         $updateData = $request->only(['title', 'content', 'cover_image', 'images', 'summary', 'tags', 'is_pinned', 'is_original', 'allow_comments']);
@@ -312,7 +314,7 @@ class OfficialAccountController extends Controller
             OaArticlePublished::dispatch($article->fresh());
         }
 
-        return ApiResponse::success($article->fresh(), '已更新');
+        return ApiResponse::success($article->fresh(), __('app.api.oa.updated'));
     }
 
     public function deleteArticle(int $id): JsonResponse
@@ -320,7 +322,7 @@ class OfficialAccountController extends Controller
         $article = OaArticle::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))
             ->findOrFail($id);
         $article->delete();
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.oa.deleted'));
     }
 
     public function togglePinArticle(int $id): JsonResponse
@@ -328,7 +330,7 @@ class OfficialAccountController extends Controller
         $article = OaArticle::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))
             ->findOrFail($id);
         $article->update(['is_pinned' => !$article->is_pinned]);
-        return ApiResponse::success(['is_pinned' => $article->fresh()->is_pinned], '已更新');
+        return ApiResponse::success(['is_pinned' => $article->fresh()->is_pinned], __('app.api.oa.updated'));
     }
 
     // ── 更新阅读行为数据 ──
@@ -341,14 +343,14 @@ class OfficialAccountController extends Controller
         ]);
 
         $userId = auth()->id();
-        if (!$userId) return ApiResponse::error('请先登录', 401);
+        if (!$userId) return ApiResponse::error(__('app.api.oa.login_required'), 401);
 
         $read = OaArticleRead::where('article_id', $articleId)
             ->where('user_id', $userId)
             ->latest()
             ->first();
 
-        if (!$read) return ApiResponse::error('未找到阅读记录', 404);
+        if (!$read) return ApiResponse::error(__('app.api.oa.read_missing'), 404);
 
         $update = [];
         if ($request->has('read_duration')) $update['read_duration'] = $request->input('read_duration');
@@ -359,7 +361,7 @@ class OfficialAccountController extends Controller
             $read->update($update);
         }
 
-        return ApiResponse::success(null, '已记录');
+        return ApiResponse::success(null, __('app.api.oa.recorded'));
     }
 
     // ── 文章阅读留存曲线 ──
@@ -505,7 +507,7 @@ class OfficialAccountController extends Controller
         if (!empty($validated['parent_id'])) {
             $parent = OaMenu::where('account_id', $accountId)->findOrFail($validated['parent_id']);
             if ($parent->parent_id !== null) {
-                return ApiResponse::error('只支持两级菜单', 422);
+                return ApiResponse::error(__('app.api.oa.menu_two_levels'), 422);
             }
         }
 
@@ -513,12 +515,12 @@ class OfficialAccountController extends Controller
         if (empty($validated['parent_id'])) {
             $count = OaMenu::where('account_id', $accountId)->whereNull('parent_id')->count();
             if ($count >= 3) {
-                return ApiResponse::error('一级菜单最多3个', 422);
+                return ApiResponse::error(__('app.api.oa.menu_l1_max'), 422);
             }
         } else {
             $count = OaMenu::where('parent_id', $validated['parent_id'])->count();
             if ($count >= 5) {
-                return ApiResponse::error('二级菜单最多5个', 422);
+                return ApiResponse::error(__('app.api.oa.menu_l2_max'), 422);
             }
         }
 
@@ -528,7 +530,7 @@ class OfficialAccountController extends Controller
         $validated['sort_order'] ??= 0;
 
         $menu = OaMenu::create($validated);
-        return ApiResponse::success($menu->load('children'), '菜单已创建', 201);
+        return ApiResponse::success($menu->load('children'), __('app.api.oa.menu_created'), 201);
     }
 
     public function updateMenu(int $menuId, Request $request): JsonResponse
@@ -547,7 +549,7 @@ class OfficialAccountController extends Controller
         ]);
 
         $menu->update($validated);
-        return ApiResponse::success($menu->fresh()->load('children'), '菜单已更新');
+        return ApiResponse::success($menu->fresh()->load('children'), __('app.api.oa.menu_updated'));
     }
 
     public function deleteMenu(int $menuId): JsonResponse
@@ -557,7 +559,7 @@ class OfficialAccountController extends Controller
         // 删除子菜单
         $menu->children()->delete();
         $menu->delete();
-        return ApiResponse::success(null, '菜单已删除');
+        return ApiResponse::success(null, __('app.api.oa.menu_deleted'));
     }
 
     // ════════════════════════════════════════════
@@ -602,7 +604,7 @@ class OfficialAccountController extends Controller
         $validated['account_id'] = $accountId;
         $material = OaMaterial::create($validated);
 
-        return ApiResponse::success($material, '素材已创建', 201);
+        return ApiResponse::success($material, __('app.api.oa.material_created'), 201);
     }
 
     public function uploadMaterial(int $accountId, Request $request): JsonResponse
@@ -626,7 +628,7 @@ class OfficialAccountController extends Controller
             'group' => $request->input('group'),
         ]);
 
-        return ApiResponse::success($material, '素材已上传', 201);
+        return ApiResponse::success($material, __('app.api.oa.material_uploaded'), 201);
     }
 
     public function updateMaterial(int $materialId, Request $request): JsonResponse
@@ -640,7 +642,7 @@ class OfficialAccountController extends Controller
         ]);
 
         $material->update($validated);
-        return ApiResponse::success($material->fresh(), '已更新');
+        return ApiResponse::success($material->fresh(), __('app.api.oa.updated'));
     }
 
     public function deleteMaterial(int $materialId): JsonResponse
@@ -648,7 +650,7 @@ class OfficialAccountController extends Controller
         $material = OaMaterial::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))
             ->findOrFail($materialId);
         $material->delete();
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.oa.deleted'));
     }
 
     public function qrCode(int $accountId): JsonResponse
@@ -771,7 +773,7 @@ class OfficialAccountController extends Controller
             'reply_to_id' => $validated['reply_to_id'] ?? null,
         ]);
 
-        return ApiResponse::success($msg, '回复已发送', 201);
+        return ApiResponse::success($msg, __('app.api.oa.reply_sent'), 201);
     }
 
     public function unreadMessageCount(int $accountId): JsonResponse
@@ -827,7 +829,7 @@ class OfficialAccountController extends Controller
             }
         }
 
-        return ApiResponse::success($msg->load('user:id,name,avatar'), '消息已发送', 201);
+        return ApiResponse::success($msg->load('user:id,name,avatar'), __('app.api.oa.msg_sent'), 201);
     }
 
     private function getMatchingAutoReply(int $accountId, string $message): ?array
@@ -919,7 +921,7 @@ class OfficialAccountController extends Controller
                 ->exists();
             if ($existing) {
                 return ApiResponse::error(
-                    $validated['type'] === 'welcome' ? '已存在关注回复，请编辑或删除后重试' : '已存在默认回复，请编辑或删除后重试',
+                    $validated['type'] === 'welcome' ? __('app.api.oa.welcome_exists') : __('app.api.oa.default_exists'),
                     422
                 );
             }
@@ -927,7 +929,7 @@ class OfficialAccountController extends Controller
 
         $reply = OaAutoReply::create($validated);
 
-        return ApiResponse::success($reply, '自动回复已创建', 201);
+        return ApiResponse::success($reply, __('app.api.oa.auto_created'), 201);
     }
 
     public function updateAutoReply(int $replyId, Request $request): JsonResponse
@@ -948,7 +950,7 @@ class OfficialAccountController extends Controller
 
         $reply->update($validated);
 
-        return ApiResponse::success($reply->fresh(), '自动回复已更新');
+        return ApiResponse::success($reply->fresh(), __('app.api.oa.auto_updated'));
     }
 
     public function deleteAutoReply(int $replyId): JsonResponse
@@ -957,7 +959,7 @@ class OfficialAccountController extends Controller
             ->findOrFail($replyId);
         $reply->delete();
 
-        return ApiResponse::success(null, '自动回复已删除');
+        return ApiResponse::success(null, __('app.api.oa.auto_deleted'));
     }
 
     // ════════════════════════════════════════════
@@ -1241,7 +1243,7 @@ class OfficialAccountController extends Controller
     {
         $account = OfficialAccount::findOrFail($accountId);
         if ($account->owner_id !== auth()->id()) {
-            return ApiResponse::error('FORBIDDEN', '只有号主才能创建合集', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.oa.collection_owner'), 403);
         }
 
         $validated = $request->validate([
@@ -1263,7 +1265,7 @@ class OfficialAccountController extends Controller
         return ApiResponse::success([
             'id' => $collection->id,
             'name' => $collection->name,
-        ], '合集已创建');
+        ], __('app.api.oa.collection_created'));
     }
 
     // 更新合集
@@ -1271,7 +1273,7 @@ class OfficialAccountController extends Controller
     {
         $collection = OaCollection::with('account')->findOrFail($id);
         if ($collection->account->owner_id !== auth()->id()) {
-            return ApiResponse::error('FORBIDDEN', '无权限', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.oa.forbidden'), 403);
         }
 
         $validated = $request->validate([
@@ -1281,7 +1283,7 @@ class OfficialAccountController extends Controller
         ]);
 
         $collection->update($validated);
-        return ApiResponse::success($collection, '已更新');
+        return ApiResponse::success($collection, __('app.api.oa.updated'));
     }
 
     // 删除合集（文章保留，collection_id 置空）
@@ -1289,12 +1291,12 @@ class OfficialAccountController extends Controller
     {
         $collection = OaCollection::with('account')->findOrFail($id);
         if ($collection->account->owner_id !== auth()->id()) {
-            return ApiResponse::error('FORBIDDEN', '无权限', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.oa.forbidden'), 403);
         }
 
         OaArticle::where('collection_id', $id)->update(['collection_id' => null]);
         $collection->delete();
-        return ApiResponse::success(null, '合集已删除');
+        return ApiResponse::success(null, __('app.api.oa.collection_deleted'));
     }
 
     // 将文章移入/移出合集
@@ -1302,7 +1304,7 @@ class OfficialAccountController extends Controller
     {
         $article = OaArticle::with('account')->findOrFail($articleId);
         if ($article->account->owner_id !== auth()->id()) {
-            return ApiResponse::error('FORBIDDEN', '只有号主才能操作', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.oa.owner_only'), 403);
         }
 
         $validated = $request->validate([
@@ -1313,7 +1315,7 @@ class OfficialAccountController extends Controller
 
         return ApiResponse::success([
             'collection_id' => $article->collection_id,
-        ], '已更新');
+        ], __('app.api.oa.updated'));
     }
 
     // ── 阅读清单 ──
@@ -1358,7 +1360,7 @@ class OfficialAccountController extends Controller
         $myId = auth()->id();
 
         if (OaReadingListItem::where('user_id', $myId)->where('article_id', $validated['article_id'])->exists()) {
-            return ApiResponse::error('ALREADY_EXISTS', '已在阅读清单中');
+            return ApiResponse::error('ALREADY_EXISTS', __('app.api.oa.reading_exists'));
         }
 
         $maxSort = OaReadingListItem::where('user_id', $myId)->max('sort_order') ?? 0;
@@ -1370,7 +1372,7 @@ class OfficialAccountController extends Controller
             'sort_order' => $maxSort + 1,
         ]);
 
-        return ApiResponse::success(['id' => $item->id], '已添加到阅读清单');
+        return ApiResponse::success(['id' => $item->id], __('app.api.oa.reading_added'));
     }
 
     // 从阅读清单移除
@@ -1380,7 +1382,7 @@ class OfficialAccountController extends Controller
             ->where('article_id', $articleId)
             ->delete();
 
-        return ApiResponse::success(null, '已从阅读清单移除');
+        return ApiResponse::success(null, __('app.api.oa.reading_removed'));
     }
 
     // 检查文章是否在阅读清单中
@@ -1398,7 +1400,7 @@ class OfficialAccountController extends Controller
     {
         $item = OaReadingListItem::where('user_id', auth()->id())->findOrFail($id);
         $item->update($request->only(['notes', 'sort_order']));
-        return ApiResponse::success($item, '已更新');
+        return ApiResponse::success($item, __('app.api.oa.updated'));
     }
 
     // ════════════════════════════════════════════
@@ -1410,14 +1412,14 @@ class OfficialAccountController extends Controller
     {
         $article = OaArticle::where('status', 'published')->findOrFail($articleId);
         if (!$article->is_paid) {
-            return ApiResponse::error('NOT_PAID_ARTICLE', '该文章无需付费', 400);
+            return ApiResponse::error('NOT_PAID_ARTICLE', __('app.api.oa.not_paid'), 400);
         }
 
         $userId = auth()->id();
 
         // 已经购买过
         if ($article->isPurchasedBy($userId)) {
-            return ApiResponse::success(null, '已解锁');
+            return ApiResponse::success(null, __('app.api.oa.unlocked'));
         }
 
         // 号主免费
@@ -1429,19 +1431,19 @@ class OfficialAccountController extends Controller
                 'price_type' => $article->price_type,
                 'status'     => 'completed',
             ]);
-            return ApiResponse::success(null, '已解锁（号主免费）');
+            return ApiResponse::success(null, __('app.api.oa.unlocked_owner'));
         }
 
         $price = (float) $article->price;
         if ($price <= 0) {
-            return ApiResponse::error('INVALID_PRICE', '价格无效', 400);
+            return ApiResponse::error('INVALID_PRICE', __('app.api.oa.invalid_price'), 400);
         }
 
         if ($article->price_type === 'points') {
             // 积分支付
-            $spent = UserPoint::spend($userId, $price, "付费解锁文章: {$article->title}");
+            $spent = UserPoint::spend($userId, $price, __('app.api.oa.spend_unlock', ['title' => $article->title]));
             if (!$spent) {
-                return ApiResponse::error('积分余额不足', 400);
+                return ApiResponse::error(__('app.api.oa.insufficient_points'), 400);
             }
 
             // 给文章作者增加积分（扣除平台手续费10%）
@@ -1449,7 +1451,7 @@ class OfficialAccountController extends Controller
             if ($authorId && $authorId !== $userId) {
                 $authorPoints = (int) floor($price * 0.9);
                 if ($authorPoints > 0) {
-                    UserPoint::earn($authorId, $authorPoints, "文章被打赏: {$article->title}");
+                    UserPoint::earn($authorId, $authorPoints, __('app.api.oa.earn_tip', ['title' => $article->title]));
                 }
             }
 
@@ -1461,7 +1463,7 @@ class OfficialAccountController extends Controller
                 'status'     => 'completed',
             ]);
 
-            return ApiResponse::success(null, '🎉 已解锁，积分已扣除');
+            return ApiResponse::success(null, __('app.api.oa.unlocked_spent'));
         }
 
         // 金额支付（返回支付链接，前端跳转）
@@ -1512,13 +1514,13 @@ class OfficialAccountController extends Controller
                 'status'      => 'pending',
                 'fee'         => $platformFee,
                 'net_amount'  => $netAmount,
-                'message'     => '订单已创建，请完成支付',
+                'message'     => __('app.api.oa.order_created_pay'),
                 // 接入支付网关后返回支付链接
                 // 'pay_url'  => $payUrl,
-            ], '订单已创建');
+            ], __('app.api.oa.order_created'));
         }
 
-        return ApiResponse::error('UNSUPPORTED_PRICE_TYPE', '不支持的支付类型', 400);
+        return ApiResponse::error('UNSUPPORTED_PRICE_TYPE', __('app.api.oa.unsupported_pay'), 400);
     }
 
     // 检查当前用户是否已购买文章
@@ -1605,7 +1607,7 @@ class OfficialAccountController extends Controller
                 ->where('type', 'oa_article')->first();
 
         if (!$earningsAccount || $earningsAccount->available_balance < $validated['amount']) {
-            return ApiResponse::error('可提现余额不足', 400);
+            return ApiResponse::error(__('app.api.oa.withdraw_insufficient'), 400);
         }
 
         $fee = round($validated['amount'] * 0.01, 2);
@@ -1630,7 +1632,7 @@ class OfficialAccountController extends Controller
         $earningsAccount->decrement('available_balance', $validated['amount']);
         $earningsAccount->increment('frozen_amount', $validated['amount']);
 
-        return ApiResponse::success($withdrawal, '提现申请已提交，等待审核');
+        return ApiResponse::success($withdrawal, __('app.api.oa.withdraw_submitted'));
     }
 
     // ── 我的提现记录 ──
@@ -1686,7 +1688,7 @@ class OfficialAccountController extends Controller
 
         return ApiResponse::success(
             $poll->load('options'),
-            '投票已创建',
+            __('app.api.oa.poll_created'),
             201
         );
     }
@@ -1736,7 +1738,7 @@ class OfficialAccountController extends Controller
     {
         $poll = Poll::findOrFail($pollId);
         if ($poll->is_closed) {
-            return ApiResponse::error('POLL_CLOSED', '投票已结束', 400);
+            return ApiResponse::error('POLL_CLOSED', __('app.api.oa.poll_ended'), 400);
         }
 
         $validated = $request->validate([
@@ -1751,16 +1753,16 @@ class OfficialAccountController extends Controller
         $submittedIds = $validated['option_ids'];
         foreach ($submittedIds as $oid) {
             if (!in_array($oid, $validOptionIds)) {
-                return ApiResponse::error('INVALID_OPTION', '无效的投票选项', 400);
+                return ApiResponse::error('INVALID_OPTION', __('app.api.oa.poll_invalid_option'), 400);
             }
         }
 
         // 检查最大选择数
         if ($poll->type === 'single' && count($submittedIds) > 1) {
-            return ApiResponse::error('单选投票只能选择一个选项', 400);
+            return ApiResponse::error(__('app.api.oa.poll_single'), 400);
         }
         if (count($submittedIds) > ($poll->max_choices ?? 1)) {
-            return ApiResponse::error('最多选择 ' . ($poll->max_choices ?? 1) . ' 项', 400);
+            return ApiResponse::error(__('app.api.oa.poll_max', ['n' => $poll->max_choices ?? 1]), 400);
         }
 
         // 清除旧投票
@@ -1781,7 +1783,7 @@ class OfficialAccountController extends Controller
         $data = $polls->getData();
         $targetPoll = collect($data->data)->firstWhere('id', $pollId);
 
-        return ApiResponse::success($targetPoll, '投票成功');
+        return ApiResponse::success($targetPoll, __('app.api.oa.poll_ok'));
     }
 
     // ════════════════════════════════════════════
@@ -1810,7 +1812,7 @@ class OfficialAccountController extends Controller
         ]);
         $validated['account_id'] = $accountId;
         $platformAccount = OaPlatformAccount::create($validated);
-        return ApiResponse::success($platformAccount, '平台账号已绑定', 201);
+        return ApiResponse::success($platformAccount, __('app.api.oa.platform_bound'), 201);
     }
 
     // 更新平台账号
@@ -1818,7 +1820,7 @@ class OfficialAccountController extends Controller
     {
         $pa = OaPlatformAccount::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))->findOrFail($platformId);
         $pa->update($request->only(['label', 'app_id', 'app_secret', 'platform_user_id', 'platform_user_name', 'is_active']));
-        return ApiResponse::success($pa->fresh(), '已更新');
+        return ApiResponse::success($pa->fresh(), __('app.api.oa.updated'));
     }
 
     // 删除平台账号
@@ -1827,7 +1829,7 @@ class OfficialAccountController extends Controller
         $pa = OaPlatformAccount::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))->findOrFail($platformId);
         $pa->distributions()->delete();
         $pa->delete();
-        return ApiResponse::success(null, '平台账号已删除');
+        return ApiResponse::success(null, __('app.api.oa.platform_deleted'));
     }
 
     // 分发文章到指定平台
@@ -1849,22 +1851,200 @@ class OfficialAccountController extends Controller
             'status' => 'pending',
         ]);
 
-        // 模拟分发（实际需对接各平台 API）
+        // 调用平台 API 进行实际分发
         try {
-            // TODO: 对接各平台 API 进行实际分发
-            // 微信: 使用公众号素材接口
-            // 微博: 使用微博内容发布接口
+            $platform = $validated['platform'];
+            $result = match ($platform) {
+                'wechat' => $this->distributeToWechat($article, $pa),
+                'weibo' => $this->distributeToWeibo($article, $pa),
+                'twitter' => $this->distributeToTwitter($article, $pa),
+                default => throw new \InvalidArgumentException(__('app.api.oa.unsupported_platform', ['platform' => $platform])),
+            };
+
             $dist->update([
                 'status' => 'success',
-                'external_id' => 'mock_' . $dist->id,
-                'external_url' => url('/oa-article/' . $articleId),
+                'external_id' => $result['external_id'] ?? ('dist_' . $dist->id),
+                'external_url' => $result['external_url'] ?? '',
                 'published_at' => now(),
             ]);
-            return ApiResponse::success($dist->fresh(), '已分发到 ' . $pa->platform_user_name ?: $validated['platform']);
+            return ApiResponse::success($dist->fresh(), __('app.api.oa.distributed', ['name' => $pa->platform_user_name ?: $platform]));
         } catch (\Exception $e) {
             $dist->update(['status' => 'failed', 'error_message' => $e->getMessage()]);
-            return ApiResponse::error('DISTRIBUTE_FAILED', '分发失败: ' . $e->getMessage(), 500);
+            Log::warning('文章分发失败', [
+                'dist_id' => $dist->id,
+                'platform' => $validated['platform'],
+                'error' => $e->getMessage(),
+            ]);
+            return ApiResponse::error('DISTRIBUTE_FAILED', __('app.api.oa.distribute_failed', ['error' => $e->getMessage()]), 500);
         }
+    }
+
+    /**
+     * 分发到微信公众号（素材接口）
+     */
+    private function distributeToWechat(OaArticle $article, OaPlatformAccount $pa): array
+    {
+        if (empty($pa->app_id) || empty($pa->access_token)) {
+            // 尝试刷新 token
+            $pa = $this->refreshWechatToken($pa);
+        }
+
+        // 构建微信图文素材
+        $body = [
+            'articles' => [[
+                'title' => $article->title,
+                'thumb_media_id' => $article->cover_image ? $this->uploadWechatImage($article->cover_image, $pa) : '',
+                'author' => $article->author ?? '',
+                'digest' => Str::limit(strip_tags($article->content ?? ''), 120),
+                'show_cover_pic' => $article->cover_image ? 1 : 0,
+                'content' => $this->buildWechatContent($article->content ?? ''),
+                'content_source_url' => $article->source_url ?? '',
+                'need_open_comment' => 1,
+                'only_fans_can_comment' => 0,
+            ]],
+        ];
+
+        $response = Http::timeout(15)
+            ->post("https://api.weixin.qq.com/cgi-bin/draft/add?access_token={$pa->access_token}", $body);
+
+        $data = $response->json();
+        if (!empty($data['errcode']) && $data['errcode'] !== 0) {
+            throw new \RuntimeException(__('app.api.oa.wechat_upload_fail', ['error' => $data['errmsg'] ?? 'unknown']));
+        }
+
+        return [
+            'external_id' => $data['media_id'] ?? '',
+            'external_url' => '',
+        ];
+    }
+
+    /**
+     * 分发到微博
+     */
+    private function distributeToWeibo(OaArticle $article, OaPlatformAccount $pa): array
+    {
+        if (empty($pa->access_token)) {
+            throw new \RuntimeException(__('app.api.oa.weibo_unauthorized'));
+        }
+
+        // 微博文字内容（含链接）
+        $shortUrl = $article->source_url ?: url('/oa-article/' . $article->id);
+        $text = mb_strlen($article->title) > 100
+            ? mb_substr($article->title, 0, 100) . '... ' . $shortUrl
+            : $article->title . ' ' . $shortUrl;
+
+        $response = Http::timeout(15)
+            ->asForm()->post('https://api.weibo.com/2/statuses/update.json', [
+                'access_token' => $pa->access_token,
+                'status' => $text,
+            ]);
+
+        $data = $response->json();
+        if (!empty($data['error_code'])) {
+            throw new \RuntimeException(__('app.api.oa.weibo_publish_fail', ['error' => $data['error'] ?? 'unknown']));
+        }
+
+        return [
+            'external_id' => (string)($data['id'] ?? ''),
+            'external_url' => "https://weibo.com/{$pa->platform_user_id}/{$data['id']}" ?? '',
+        ];
+    }
+
+    /**
+     * 分发到 Twitter/X
+     */
+    private function distributeToTwitter(OaArticle $article, OaPlatformAccount $pa): array
+    {
+        if (empty($pa->access_token) || empty($pa->app_secret)) {
+            throw new \RuntimeException(__('app.api.oa.twitter_unauthorized'));
+        }
+
+        $shortUrl = $article->source_url ?: url('/oa-article/' . $article->id);
+        $text = mb_strlen($article->title) > 200
+            ? mb_substr($article->title, 0, 200) . '... ' . $shortUrl
+            : $article->title . ' ' . $shortUrl;
+
+        // Twitter API v2
+        $response = Http::timeout(15)
+            ->withToken($pa->access_token)
+            ->post('https://api.twitter.com/2/tweets', [
+                'text' => $text,
+            ]);
+
+        $data = $response->json();
+        if ($response->status() !== 201) {
+            $errMsg = $data['detail'] ?? ($data['title'] ?? 'unknown');
+            throw new \RuntimeException(__('app.api.oa.twitter_publish_fail', ['error' => $errMsg]));
+        }
+
+        return [
+            'external_id' => $data['data']['id'] ?? '',
+            'external_url' => "https://twitter.com/user/status/{$data['data']['id']}" ?? '',
+        ];
+    }
+
+    /**
+     * 刷新微信 access_token
+     */
+    private function refreshWechatToken(OaPlatformAccount $pa): OaPlatformAccount
+    {
+        if (empty($pa->app_id) || empty($pa->app_secret)) {
+            throw new \RuntimeException(__('app.api.oa.wechat_creds_missing'));
+        }
+
+        $response = Http::timeout(10)->get('https://api.weixin.qq.com/cgi-bin/token', [
+            'grant_type' => 'client_credential',
+            'appid' => $pa->app_id,
+            'secret' => $pa->app_secret,
+        ]);
+
+        $data = $response->json();
+        if (empty($data['access_token'])) {
+            throw new \RuntimeException(__('app.api.oa.wechat_token_fail', ['error' => $data['errmsg'] ?? 'unknown']));
+        }
+
+        $pa->update([
+            'access_token' => $data['access_token'],
+            'token_expires_at' => now()->addSeconds($data['expires_in'] ?? 7200),
+        ]);
+
+        return $pa->fresh();
+    }
+
+    /**
+     * 上传图片到微信素材库
+     */
+    private function uploadWechatImage(string $imageUrl, OaPlatformAccount $pa): string
+    {
+        try {
+            $imageContent = Http::timeout(10)->get($imageUrl)->body();
+            $tempPath = tempnam(sys_get_temp_dir(), 'wx_') . '.jpg';
+            file_put_contents($tempPath, $imageContent);
+
+            $response = Http::timeout(15)->attach(
+                'media', file_get_contents($tempPath), basename($tempPath)
+            )->post("https://api.weixin.qq.com/cgi-bin/material/add_material?access_token={$pa->access_token}&type=image");
+
+            @unlink($tempPath);
+
+            $data = $response->json();
+            return $data['media_id'] ?? '';
+        } catch (\Throwable $e) {
+            Log::warning('微信图片上传失败', ['error' => $e->getMessage()]);
+            return '';
+        }
+    }
+
+    /**
+     * 构建微信图文内容（处理外链跳转）
+     */
+    private function buildWechatContent(string $html): string
+    {
+        // 微信不支持外链跳转，转换为纯文本链接
+        $html = preg_replace_callback('/<a\s+[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/i', fn ($m) => __('app.api.oa.wechat_link_fmt', ['text' => $m[2], 'url' => $m[1]]), $html);
+        // 微信不支持 iframe
+        $html = preg_replace('/<iframe[^>]*><\/iframe>/i', '', $html);
+        return $html;
     }
 
     // 获取文章分发记录
@@ -1902,11 +2082,11 @@ class OfficialAccountController extends Controller
             'color' => 'nullable|string|max:20',
         ]);
         $validated['account_id'] = $accountId;
-        $validated['color'] ??= '#409eff';
+        $validated['color'] ??= '#0f172a';
         $maxSort = OaFollowerTag::where('account_id', $accountId)->max('sort_order') ?? 0;
         $validated['sort_order'] = $maxSort + 1;
         $tag = OaFollowerTag::create($validated);
-        return ApiResponse::success($tag, '标签已创建', 201);
+        return ApiResponse::success($tag, __('app.api.oa.tag_created'), 201);
     }
 
     // 更新标签
@@ -1920,7 +2100,7 @@ class OfficialAccountController extends Controller
             'sort_order' => 'nullable|integer|min:0',
         ]);
         $tag->update($validated);
-        return ApiResponse::success($tag->fresh(), '标签已更新');
+        return ApiResponse::success($tag->fresh(), __('app.api.oa.tag_updated'));
     }
 
     // 删除标签
@@ -1930,7 +2110,7 @@ class OfficialAccountController extends Controller
             ->findOrFail($tagId);
         OaFollowerTagRelation::where('tag_id', $tagId)->delete();
         $tag->delete();
-        return ApiResponse::success(null, '标签已删除');
+        return ApiResponse::success(null, __('app.api.oa.tag_deleted'));
     }
 
     // 给粉丝打标签
@@ -1945,7 +2125,7 @@ class OfficialAccountController extends Controller
         // 验证该 follower 属于当前用户管理的账号
         $follower = \App\Models\Follow::with('followable')->findOrFail($followerId);
         if (!$follower->followable || $follower->followable->owner_id !== auth()->id()) {
-            return ApiResponse::error('FORBIDDEN', '无权操作该粉丝', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.oa.forbidden_follower'), 403);
         }
         // 清除旧标签再重新分配
         OaFollowerTagRelation::where('follower_id', $followerId)->delete();
@@ -1956,7 +2136,7 @@ class OfficialAccountController extends Controller
                 'follower_id' => $followerId,
             ]);
         }
-        return ApiResponse::success($relations, '标签已更新');
+        return ApiResponse::success($relations, __('app.api.oa.tag_updated'));
     }
 
     // 获取粉丝的标签
@@ -1964,7 +2144,7 @@ class OfficialAccountController extends Controller
     {
         $follower = \App\Models\Follow::with('followable')->findOrFail($followerId);
         if (!$follower->followable || $follower->followable->owner_id !== auth()->id()) {
-            return ApiResponse::error('FORBIDDEN', '无权查看', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.oa.forbidden_view'), 403);
         }
         $tagIds = OaFollowerTagRelation::where('follower_id', $followerId)
             ->pluck('tag_id');
@@ -2033,7 +2213,7 @@ class OfficialAccountController extends Controller
         $userId = auth()->id();
 
         if ((int) $account->owner_id === (int) $userId) {
-            return ApiResponse::error('INVALID', '不能关注自己的互物号', 422);
+            return ApiResponse::error('INVALID', __('app.api.oa.cannot_follow_self'), 422);
         }
 
         $existing = Follow::where('user_id', $userId)
@@ -2042,7 +2222,7 @@ class OfficialAccountController extends Controller
             ->first();
 
         if ($existing) {
-            return ApiResponse::success(['following' => true], '已关注');
+            return ApiResponse::success(['following' => true], __('app.api.oa.already_following'));
         }
 
         Follow::create([
@@ -2051,7 +2231,7 @@ class OfficialAccountController extends Controller
             'followable_id' => $account->id,
         ]);
 
-        return ApiResponse::success(['following' => true], '关注成功');
+        return ApiResponse::success(['following' => true], __('app.api.oa.follow_ok'));
     }
 
     public function unfollow(int $id): JsonResponse
@@ -2061,7 +2241,7 @@ class OfficialAccountController extends Controller
             ->where('followable_id', $id)
             ->delete();
 
-        return ApiResponse::success(['following' => false], '已取消关注');
+        return ApiResponse::success(['following' => false], __('app.api.oa.unfollowed'));
     }
 
     public function toggleLike(int $articleId): JsonResponse
@@ -2151,7 +2331,11 @@ class OfficialAccountController extends Controller
         ]);
 
         if ($target === 'plaza') {
-            $content = "📢 分享自互物号「{$article->account?->name}」\n{$article->title}\n" . mb_substr(strip_tags((string) $article->summary ?: $article->content), 0, 300);
+            $content = __('app.api.oa.share_plaza_content', [
+                'name' => $article->account?->name,
+                'title' => $article->title,
+                'summary' => mb_substr(strip_tags((string) $article->summary ?: $article->content), 0, 300),
+            ]);
 
             ForumPost::create([
                 'user_id' => $userId,
@@ -2162,7 +2346,7 @@ class OfficialAccountController extends Controller
                 'template' => 'discuss',
             ]);
 
-            return ApiResponse::success(null, '已分享到广场');
+            return ApiResponse::success(null, __('app.api.oa.shared_plaza'));
         }
 
         if ($target === 'chat') {
@@ -2173,14 +2357,14 @@ class OfficialAccountController extends Controller
                 ->exists();
 
             if (! $isParticipant) {
-                return ApiResponse::error('FORBIDDEN', '你不是目标会话的参与者', 403);
+                return ApiResponse::error('FORBIDDEN', __('app.api.oa.not_chat_participant'), 403);
             }
 
             $conv = UserConversation::findOrFail($convId);
             $this->chatConversations->pushTextMessage(
                 $conv,
                 $userId,
-                '📢 互物号文章：' . $article->title,
+                __('app.api.oa.oa_article_msg', ['title' => $article->title]),
                 [
                     'from_oa_article' => true,
                     'article_id' => $article->id,
@@ -2191,7 +2375,7 @@ class OfficialAccountController extends Controller
                 'oa-share-' . uniqid()
             );
 
-            return ApiResponse::success(null, '已分享到聊天');
+            return ApiResponse::success(null, __('app.api.oa.shared_chat'));
         }
 
         if ($target === 'channel') {
@@ -2201,13 +2385,13 @@ class OfficialAccountController extends Controller
                 ->exists();
 
             if (! $isMember) {
-                return ApiResponse::error('FORBIDDEN', '你不是该圈子成员', 403);
+                return ApiResponse::error('FORBIDDEN', __('app.api.oa.not_channel_member'), 403);
             }
 
             ChannelMessage::create([
                 'channel_id' => $channelId,
                 'user_id' => $userId,
-                'content' => '📢 互物号文章：' . $article->title . ' ' . $shareUrl,
+                'content' => __('app.api.oa.oa_article_channel', ['title' => $article->title, 'url' => $shareUrl]),
                 'message_type' => 'text',
                 'metadata' => [
                     'from_oa_article' => true,
@@ -2217,7 +2401,7 @@ class OfficialAccountController extends Controller
                 ],
             ]);
 
-            return ApiResponse::success(null, '已分享到圈子');
+            return ApiResponse::success(null, __('app.api.oa.shared_channel'));
         }
 
         return ApiResponse::success([

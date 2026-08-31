@@ -22,10 +22,10 @@ class WechatPaymentGateway implements PaymentGateway
 
     public function charge(Invoice $invoice, array $options = []): array
     {
-        $appId = $this->config['app_id'] ?? env('WECHAT_APP_ID');
-        $mchId = $this->config['mch_id'] ?? env('WECHAT_MCH_ID');
-        $key = $this->config['key'] ?? env('WECHAT_PAY_KEY');
-        $notifyUrl = $this->config['notify_url'] ?? rtrim(env('APP_URL', ''), '/') . '/api/payment/wechat/webhook';
+        $appId = $this->config['app_id'] ?? config('payment.channels.wechat.app_id', '');
+        $mchId = $this->config['mch_id'] ?? config('payment.channels.wechat.mch_id', '');
+        $key = $this->config['key'] ?? config('payment.channels.wechat.key', '');
+        $notifyUrl = $this->config['notify_url'] ?? config('payment.channels.wechat.notify_url', config('app.url', '') . '/api/payment/wechat/webhook');
 
         if (empty($appId) || empty($mchId) || empty($key)) {
             Log::error('WeChat Pay: missing configuration');
@@ -117,8 +117,8 @@ class WechatPaymentGateway implements PaymentGateway
 
     public function refund(Invoice $invoice, array $options = []): array
     {
-        $mchId = $this->config['mch_id'] ?? env('WECHAT_MCH_ID');
-        $key = $this->config['key'] ?? env('WECHAT_PAY_KEY');
+        $mchId = $this->config['mch_id'] ?? config('payment.channels.wechat.mch_id', '');
+        $key = $this->config['key'] ?? config('payment.channels.wechat.key', '');
 
         try {
             $transactionId = $invoice->metadata['transaction_id'] ?? '';
@@ -136,7 +136,7 @@ class WechatPaymentGateway implements PaymentGateway
             ];
 
             $response = Http::withHeaders([
-                'Authorization' => $this->buildAuthHeader($params, $key),
+                'Authorization' => $this->buildRefundAuthHeader($params, $key),
                 'Content-Type' => 'application/json',
             ])->timeout(10)->post('https://api.mch.weixin.qq.com/v3/refund/domestic/refunds', $params);
 
@@ -164,7 +164,7 @@ class WechatPaymentGateway implements PaymentGateway
 
     public function query(string $transactionId): array
     {
-        $mchId = $this->config['mch_id'] ?? env('WECHAT_MCH_ID');
+        $mchId = $this->config['mch_id'] ?? config('payment.channels.wechat.mch_id', '');
 
         try {
             $response = Http::withHeaders([
@@ -200,11 +200,53 @@ class WechatPaymentGateway implements PaymentGateway
     }
 
     /**
-     * 构建微信支付 V3 认证头（简化版）
+     * 构建微信支付 V3 认证头
+     *
+     * 微信支付 V3 API 使用基于 RSA-SHA256 的 Authorization 签名方案：
+     * Authorization: WECHATPAY2-SHA256-RSA2048
+     *   mchid="...",nonce_str="...",timestamp="...",serial_no="...",signature="..."
+     *
+     * @param array  $body    请求体
+     * @param string $key     商户 API v3 密钥
+     * @param string $method  HTTP 方法 (GET/POST/PATCH)
+     * @param string $urlPath API 路径（如 /v3/pay/transactions/native）
      */
-    private function buildAuthHeader(array $params, string $key): string
+    private function buildAuthHeader(array $body, string $key, string $method = 'POST', string $urlPath = '/v3/pay/transactions/native'): string
     {
-        return 'WECHAT_PAY';
+        $serialNo = config('payment.channels.wechat.serial_no', env('WECHAT_PAY_SERIAL_NO', ''));
+        $privateKey = config('payment.channels.wechat.private_key', env('WECHAT_PAY_PRIVATE_KEY', ''));
+
+        if (empty($serialNo) || empty($privateKey)) {
+            Log::warning('WeChat Pay V3: missing SERIAL_NO or PRIVATE_KEY, using fallback');
+            return 'WECHAT_PAY';
+        }
+
+        $timestamp = (string) time();
+        $nonce = Str::random(32);
+
+        $bodyJson = empty($body) ? '' : json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $message = "{$method}\n{$urlPath}\n{$timestamp}\n{$nonce}\n{$bodyJson}\n";
+
+        $signature = '';
+        openssl_sign($message, $signature, $privateKey, OPENSSL_ALGO_SHA256);
+
+        $mchId = config('payment.channels.wechat.mch_id', env('WECHAT_MCH_ID', ''));
+
+        return sprintf(
+            'WECHATPAY2-SHA256-RSA2048 mchid="%s",nonce_str="%s",timestamp="%s",serial_no="%s",signature="%s"',
+            $mchId,
+            $timestamp,
+            $serialNo,
+            base64_encode($signature)
+        );
+    }
+
+    /**
+     * 构建用于 REFUND API 的认证头（路径不同）
+     */
+    private function buildRefundAuthHeader(array $body, string $key): string
+    {
+        return $this->buildAuthHeader($body, $key, 'POST', '/v3/refund/domestic/refunds');
     }
 
     /**

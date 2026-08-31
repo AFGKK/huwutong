@@ -278,7 +278,7 @@ class FlowDesignerService
     public function getNodePalette(): array
     {
         return [
-            ['type' => 'trigger', 'label' => '触发器', 'icon' => 'VideoPlay', 'color' => '#409eff',
+            ['type' => 'trigger', 'label' => '触发器', 'icon' => 'VideoPlay', 'color' => '#0f172a',
              'description' => '工作流触发条件（事件/定时/手动）'],
             ['type' => 'condition', 'label' => '条件判断', 'icon' => 'QuestionFilled', 'color' => '#e6a23c',
              'description' => '条件分支路由'],

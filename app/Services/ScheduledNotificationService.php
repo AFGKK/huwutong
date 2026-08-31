@@ -30,7 +30,7 @@ class ScheduledNotificationService
     {
         // 已发送或发送中的不能修改
         if (in_array($notification->status, ['sending', 'sent', 'partial'])) {
-            throw new \RuntimeException('发送中的通知不能修改');
+            throw new \RuntimeException(__("app.scheduled_notification.sending_notification_cannot_modify"));
         }
 
         $notification->update($data);
@@ -48,11 +48,11 @@ class ScheduledNotificationService
     public function send(ScheduledNotification $notification): ScheduledNotification
     {
         if ($notification->status === 'sent') {
-            throw new \RuntimeException('通知已经发送完成');
+            throw new \RuntimeException(__("app.scheduled_notification.notification_already_sent"));
         }
 
         if ($notification->is_cancelled) {
-            throw new \RuntimeException('通知已被撤销');
+            throw new \RuntimeException(__("app.scheduled_notification.notification_revoked"));
         }
 
         $notification->update(['status' => 'sending']);
@@ -234,7 +234,7 @@ class ScheduledNotificationService
     public function cancel(ScheduledNotification $notification): ScheduledNotification
     {
         if (in_array($notification->status, ['sent', 'cancelled'])) {
-            throw new \RuntimeException('无法撤销已发送或已撤销的通知');
+            throw new \RuntimeException(__("app.scheduled_notification.cannot_revoke_notification"));
         }
 
         $cancelWindow = config('scheduled-notification.sending.cancel_window_minutes', 30);
@@ -243,7 +243,7 @@ class ScheduledNotificationService
         if ($notification->status === 'sending') {
             $elapsed = $notification->sent_at ? $notification->sent_at->diffInMinutes(now()) : 0;
             if ($elapsed > $cancelWindow) {
-                throw new \RuntimeException("已超过可撤销时间窗口（{$cancelWindow}分钟）");
+                throw new \RuntimeException(__("app.scheduled_notification.msg_2a77d38c"));
             }
         }
 

@@ -45,7 +45,7 @@ class OfflineController extends Controller
 
         return ApiResponse::success(
             $result->toArray(),
-            '离线验证通过',
+            __('app.api.offline.verify_passed'),
         );
     }
 
@@ -68,7 +68,7 @@ class OfflineController extends Controller
             );
 
         if (! $result) {
-            return ApiResponse::notFound('找不到对应的公钥');
+            return ApiResponse::notFound(__('app.api.offline.public_key_not_found'));
         }
 
         return ApiResponse::success($result);
@@ -108,7 +108,7 @@ class OfflineController extends Controller
             ->first();
 
         if (! $certificate) {
-            return ApiResponse::error('NO_ACTIVE_CERTIFICATE', '没有活跃的离线签名证书', 500);
+            return ApiResponse::error('NO_ACTIVE_CERTIFICATE', __('app.api.offline.no_active_cert'), 500);
         }
 
         $keyPair = $this->offlineService->getActiveKeyPair();
@@ -120,7 +120,7 @@ class OfflineController extends Controller
             $certificate->algorithm,
         );
 
-        return ApiResponse::created($result, '离线 License 文件生成成功');
+        return ApiResponse::created($result, __('app.api.offline.license_generated'));
     }
 
     /**
@@ -145,7 +145,7 @@ class OfflineController extends Controller
             ->first();
 
         if (! $certificate) {
-            return ApiResponse::error('NO_ACTIVE_CERTIFICATE', '没有活跃的离线签名证书', 500);
+            return ApiResponse::error('NO_ACTIVE_CERTIFICATE', __('app.api.offline.no_active_cert'), 500);
         }
 
         $keyPair = $this->offlineService->getActiveKeyPair();
@@ -156,7 +156,7 @@ class OfflineController extends Controller
             $certificate->public_key,
         );
 
-        return ApiResponse::created($results, '批量离线 License 文件生成成功');
+        return ApiResponse::created($results, __('app.api.offline.batch_generated'));
     }
 
     /**
@@ -173,10 +173,10 @@ class OfflineController extends Controller
 
         $this->offlineVerifier->revokeLicense(
             $request->input('license_key'),
-            $request->input('reason', '管理员吊销'),
+            $request->input('reason', __('app.api.offline.default_revoke_reason')),
         );
 
-        return ApiResponse::success(null, 'License 已加入离线吊销列表');
+        return ApiResponse::success(null, __('app.api.offline.added_to_revoke_list'));
     }
 
     /**
@@ -192,7 +192,7 @@ class OfflineController extends Controller
 
         $this->offlineVerifier->restoreLicense($request->input('license_key'));
 
-        return ApiResponse::success(null, 'License 已移出离线吊销列表');
+        return ApiResponse::success(null, __('app.api.offline.removed_from_revoke_list'));
     }
 
     /**
@@ -232,6 +232,6 @@ class OfflineController extends Controller
             'key_version' => $newVersion,
             'algorithm' => OfflineLicenseService::ALGORITHM_ED25519,
             'public_key' => $keyPair['public_key'],
-        ], '签名密钥初始化成功');
+        ], __('app.api.offline.keys_initialized'));
     }
 }

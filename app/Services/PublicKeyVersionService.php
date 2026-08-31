@@ -254,7 +254,7 @@ class PublicKeyVersionService
                 ];
             }
 
-            return ['valid' => false, 'test_message' => '', 'signature' => '', 'verification_result' => false, 'note' => '不支持的算法'];
+            return ['valid' => false, 'test_message' => '', 'signature' => '', 'verification_result' => false, 'note' => __('app.common.unsupported_algorithm')];
         } catch (\Throwable $e) {
             return ['valid' => false, 'test_message' => $testMessage ?? '', 'signature' => '', 'verification_result' => false, 'error' => $e->getMessage()];
         }

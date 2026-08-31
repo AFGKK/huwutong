@@ -28,10 +28,10 @@ class ContentPurchaseService
         $purchase = OaArticlePurchase::findOrFail($purchaseId);
 
         if ($purchase->status === 'completed') {
-            return ['success' => true, 'message' => '已确认'];
+            return ['success' => true, 'message' => __('app.common.confirmed')];
         }
         if ($purchase->price_type !== 'money') {
-            return ['success' => false, 'message' => '仅金额支付需要结算'];
+            return ['success' => false, 'message' => __('app.common.only_amount_payment_requires_settlement')];
         }
 
         return DB::transaction(function () use ($purchase) {
@@ -63,13 +63,13 @@ class ContentPurchaseService
 
                 return [
                     'success'  => true,
-                    'message'  => '结算成功',
+                    'message'  => __('app.common.settlement_success'),
                     'author_id' => $earning->author_id,
                     'amount'   => (float) $earning->net_amount,
                 ];
             }
 
-            return ['success' => true, 'message' => '购买已确认（无待结算收益）'];
+            return ['success' => true, 'message' => __('app.common.purchase_confirmed_no_pending_settlement')];
         });
     }
 
@@ -81,10 +81,10 @@ class ContentPurchaseService
         $purchase = ForumPostPurchase::findOrFail($purchaseId);
 
         if ($purchase->status === 'completed') {
-            return ['success' => true, 'message' => '已确认'];
+            return ['success' => true, 'message' => __('app.common.confirmed')];
         }
         if ($purchase->price_type !== 'money') {
-            return ['success' => false, 'message' => '仅金额支付需要结算'];
+            return ['success' => false, 'message' => __('app.common.only_amount_payment_requires_settlement')];
         }
 
         return DB::transaction(function () use ($purchase) {
@@ -116,13 +116,13 @@ class ContentPurchaseService
 
                 return [
                     'success'   => true,
-                    'message'   => '结算成功',
+                    'message'   => __('app.common.settlement_success'),
                     'author_id' => $earning->author_id,
                     'amount'    => (float) $earning->net_amount,
                 ];
             }
 
-            return ['success' => true, 'message' => '购买已确认（无待结算收益）'];
+            return ['success' => true, 'message' => __('app.common.purchase_confirmed_no_pending_settlement')];
         });
     }
 

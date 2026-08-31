@@ -22,7 +22,7 @@ class PricingPlan extends Model
     protected $fillable = [
         'tenant_id', 'product_id',
         'slug', 'name', 'description',
-        'currency',
+        'currency', 'billing_period',
         'price_monthly', 'price_quarterly', 'price_semi_annually', 'price_yearly',
         'features', 'limits',
         'trial_days', 'sort_order',

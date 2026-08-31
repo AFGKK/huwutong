@@ -57,7 +57,7 @@ class LicenseNoteController extends Controller
 
         $note->load('user:id,name,email');
 
-        return ApiResponse::created($note, '备注已添加');
+        return ApiResponse::created($note, __('app.api.license_note.note_added'));
     }
 
     /**
@@ -68,12 +68,12 @@ class LicenseNoteController extends Controller
         $this->authorize('view', $license);
 
         if ($note->user_id !== $request->user()->id && ! $request->user()->hasPermissionTo('super-admin')) {
-            return ApiResponse::error('FORBIDDEN', '只能删除自己的备注', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.license_note.delete_own_only'), 403);
         }
 
         $note->delete();
 
-        return ApiResponse::success(null, '备注已删除');
+        return ApiResponse::success(null, __('app.api.license_note.note_deleted'));
     }
 
     /**

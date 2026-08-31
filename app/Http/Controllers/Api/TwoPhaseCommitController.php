@@ -41,7 +41,7 @@ class TwoPhaseCommitController extends Controller
         $license = License::where('license_key', $data['license_key'])->first();
 
         if (!$license) {
-            return ApiResponse::error('LICENSE_NOT_FOUND', 'License Key 不存在', 404);
+            return ApiResponse::error('LICENSE_NOT_FOUND', __("app.two_phase_commit.msg_9d21147f"), 404);
         }
 
         $result = $this->twoPhaseCommit->reserve($license, [
@@ -57,7 +57,7 @@ class TwoPhaseCommitController extends Controller
         if (!$result['success']) {
             return ApiResponse::error(
                 $result['error'] ?? 'RESERVE_FAILED',
-                $result['message'] ?? '预申请失败',
+                $result['message'] ?? __('app.two_phase_commit.reserve_failed'),
                 422,
                 $result,
             );
@@ -70,7 +70,7 @@ class TwoPhaseCommitController extends Controller
             'expires_at' => $reservation->expires_at,
             'ttl_seconds' => (int) now()->diffInSeconds($reservation->expires_at, false),
             'is_existing' => $result['is_existing'] ?? false,
-        ], '授权预申请成功，请在过期前提交确认');
+        ], __('app.two_phase_commit.reserve_success'));
     }
 
     /**
@@ -95,7 +95,7 @@ class TwoPhaseCommitController extends Controller
             };
             return ApiResponse::error(
                 $result['error'] ?? 'COMMIT_FAILED',
-                $result['message'] ?? '提交确认失败',
+                $result['message'] ?? __('app.two_phase_commit.commit_failed'),
                 $statusCode,
             );
         }
@@ -107,7 +107,7 @@ class TwoPhaseCommitController extends Controller
             'license_key' => $license->license_key,
             'status' => $license->status,
             'expires_at' => $license->expires_at,
-        ], '授权确认成功');
+        ], __('app.two_phase_commit.auth_confirmed'));
     }
 
     /**
@@ -126,12 +126,12 @@ class TwoPhaseCommitController extends Controller
         if (!$result['success']) {
             return ApiResponse::error(
                 $result['error'] ?? 'CANCEL_FAILED',
-                $result['message'] ?? '取消预留失败',
+                $result['message'] ?? __('app.two_phase_commit.cancel_failed'),
                 404,
             );
         }
 
-        return ApiResponse::success(null, '预留已取消');
+        return ApiResponse::success(null, __("app.two_phase_commit.msg_032dfb35"));
     }
 
     /**
@@ -150,7 +150,7 @@ class TwoPhaseCommitController extends Controller
         if (!$result['success']) {
             return ApiResponse::error(
                 $result['error'] ?? 'NOT_FOUND',
-                $result['message'] ?? '预留不存在',
+                $result['message'] ?? __('app.two_phase_commit.reservation_not_found'),
                 404,
             );
         }

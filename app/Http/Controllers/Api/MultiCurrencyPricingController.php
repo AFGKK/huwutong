@@ -55,7 +55,7 @@ class MultiCurrencyPricingController extends Controller
             $request->input('prices'),
         );
 
-        return ApiResponse::success($saved, 200, 'SKU多币种定价已更新');
+        return ApiResponse::success($saved, 200, __('app.api.multi_currency.sku_pricing_updated'));
     }
 
     /**
@@ -103,7 +103,7 @@ class MultiCurrencyPricingController extends Controller
             ];
         }
 
-        return ApiResponse::success($results, 200, '批量更新完成');
+        return ApiResponse::success($results, 200, __('app.api.multi_currency.batch_updated'));
     }
 
     /**
@@ -162,6 +162,6 @@ class MultiCurrencyPricingController extends Controller
         // 清理缓存
         $this->pricingService->clearCache($skuId);
 
-        return ApiResponse::success(['message' => '多币种定价已禁用']);
+        return ApiResponse::success(['message' => __('app.api.multi_currency.pricing_disabled')]);
     }
 }

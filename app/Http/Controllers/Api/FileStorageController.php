@@ -64,7 +64,7 @@ class FileStorageController extends Controller
     {
         try {
             $this->fileStorageService->delete($customerFile);
-            return ApiResponse::success(['message' => '文件已删除']);
+            return ApiResponse::success(['message' => __("app.file_storage.msg_e998fdfe")]);
         } catch (\RuntimeException $e) {
             return ApiResponse::success(['message' => $e->getMessage()], 422);
         }
@@ -74,7 +74,7 @@ class FileStorageController extends Controller
     {
         try {
             $this->fileStorageService->forceDelete($customerFile);
-            return ApiResponse::success(['message' => '文件已永久删除']);
+            return ApiResponse::success(['message' => __("app.file_storage.msg_f0e9d938")]);
         } catch (\RuntimeException $e) {
             return ApiResponse::success(['message' => $e->getMessage()], 422);
         }
@@ -125,7 +125,7 @@ class FileStorageController extends Controller
     public function revokeShareLink(CustomerFile $customerFile, FileShareLink $fileShareLink)
     {
         $this->fileStorageService->revokeShareLink($fileShareLink);
-        return ApiResponse::success(['message' => '分享链接已撤销']);
+        return ApiResponse::success(['message' => __("app.file_storage.msg_011aeba3")]);
     }
 
     // ─── 公开分享访问（无需认证） ───
@@ -135,7 +135,7 @@ class FileStorageController extends Controller
         $file = $this->fileStorageService->getFileByShareToken($token);
 
         if (!$file) {
-            return ApiResponse::success(['message' => '分享链接无效或已过期'], 404);
+            return ApiResponse::success(['message' => __("app.file_storage.msg_2e248a35")], 404);
         }
 
         $url = $this->fileStorageService->getDownloadUrl($file, 300);

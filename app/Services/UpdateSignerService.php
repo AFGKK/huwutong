@@ -173,7 +173,7 @@ class UpdateSignerService
         // 查找可回滚到的版本
         $targetVersion = $package->prev_version;
         if (!$targetVersion) {
-            throw new \RuntimeException("包 {$package->version} 没有可回滚的前置版本");
+            throw new \RuntimeException(__("app.update_signer.msg_ac43ae2d"));
         }
 
         $status = $requireApproval ? 'pending' : 'approved';
@@ -221,7 +221,7 @@ class UpdateSignerService
     public function executeRollback(UpdateRollback $rollback): UpdateRollback
     {
         if ($rollback->status !== 'approved') {
-            throw new \RuntimeException('回滚未审批，无法执行');
+            throw new \RuntimeException(__("app.update_signer.rollback_not_approved"));
         }
 
         $package = $rollback->package;

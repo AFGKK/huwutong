@@ -43,7 +43,7 @@ class WebhookMonitorController extends Controller
             $request->only(['endpoint_id', 'event_type', 'status', 'date_from', 'date_to', 'page', 'per_page'])
         );
 
-        return ApiResponse::success($paginated['data'] ?? $paginated, '查询成功');
+        return ApiResponse::success($paginated['data'] ?? $paginated, __("app.webhook_monitor.msg_d72b49e1"));
     }
 
     /**
@@ -70,6 +70,6 @@ class WebhookMonitorController extends Controller
             $date
         );
 
-        return ApiResponse::success(['aggregated' => $count, 'date' => $date], '聚合完成');
+        return ApiResponse::success(['aggregated' => $count, 'date' => $date], __("app.webhook_monitor.msg_87e3df01"));
     }
 }

@@ -34,7 +34,7 @@ class ContentSignatureController extends Controller
             $validated['source_id'] ?? null,
         );
 
-        return ApiResponse::success($result, '已签名');
+        return ApiResponse::success($result, __("app.content_signature.msg_c57892dd"));
     }
 
     /**

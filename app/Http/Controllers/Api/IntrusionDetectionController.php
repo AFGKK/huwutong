@@ -79,7 +79,7 @@ class IntrusionDetectionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, $validator->errors()->toArray());
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.intrusion_detection.validation_failed'), 422, $validator->errors()->toArray());
         }
 
         $data = $request->all();
@@ -87,7 +87,7 @@ class IntrusionDetectionController extends Controller
 
         $rule = $this->idsService->createRule($data);
 
-        return ApiResponse::success($rule, '规则创建成功', 201);
+        return ApiResponse::success($rule, __('app.api.intrusion_detection.rule_created'), 201);
     }
 
     /**
@@ -108,12 +108,12 @@ class IntrusionDetectionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, $validator->errors()->toArray());
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.intrusion_detection.validation_failed'), 422, $validator->errors()->toArray());
         }
 
         $rule = $this->idsService->updateRule($rule, $request->all());
 
-        return ApiResponse::success($rule, '规则更新成功');
+        return ApiResponse::success($rule, __('app.api.intrusion_detection.rule_updated'));
     }
 
     /**
@@ -124,10 +124,10 @@ class IntrusionDetectionController extends Controller
         $deleted = $this->idsService->deleteRule($rule);
 
         if (!$deleted) {
-            return ApiResponse::error('SYSTEM_RULE', '系统规则不可删除', 403);
+            return ApiResponse::error('SYSTEM_RULE', __('app.api.intrusion_detection.system_rule_delete'), 403);
         }
 
-        return ApiResponse::success(null, '规则已删除');
+        return ApiResponse::success(null, __('app.api.intrusion_detection.rule_deleted'));
     }
 
     /**
@@ -136,7 +136,7 @@ class IntrusionDetectionController extends Controller
     public function seedRules(Request $request)
     {
         $count = $this->idsService->seedSystemRules($request->user()->tenant_id);
-        return ApiResponse::success(['seeded' => $count], "已播种 {$count} 条系统规则");
+        return ApiResponse::success(['seeded' => $count], __('app.api.intrusion_detection.rules_seeded', ['count' => $count]));
     }
 
     /**
@@ -173,7 +173,7 @@ class IntrusionDetectionController extends Controller
         $alert = $this->idsService->getAlert($id);
 
         if (!$alert) {
-            return ApiResponse::error('NOT_FOUND', '告警不存在', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.intrusion_detection.alert_not_found'), 404);
         }
 
         return ApiResponse::success($alert);
@@ -190,12 +190,12 @@ class IntrusionDetectionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', '验证失败', 422, $validator->errors()->toArray());
+            return ApiResponse::error('VALIDATION_ERROR', __('app.api.intrusion_detection.validation_failed'), 422, $validator->errors()->toArray());
         }
 
         $alert = $this->idsService->updateAlertStatus($alert, $request->input('status'), $request->input('notes'));
 
-        return ApiResponse::success($alert, '告警状态已更新');
+        return ApiResponse::success($alert, __('app.api.intrusion_detection.alert_updated'));
     }
 
     /**
@@ -216,6 +216,6 @@ class IntrusionDetectionController extends Controller
         $olderThan = $request->input('older_than', '30 days');
         $count = $this->idsService->clearAlerts($request->user()->tenant_id, $olderThan);
 
-        return ApiResponse::success(['deleted' => $count], "已清除 {$count} 条告警");
+        return ApiResponse::success(['deleted' => $count], __('app.api.intrusion_detection.alerts_cleared', ['count' => $count]));
     }
 }

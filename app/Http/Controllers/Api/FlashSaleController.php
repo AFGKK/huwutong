@@ -65,7 +65,7 @@ class FlashSaleController extends Controller
         ]);
 
         $sale = $this->flashSale->createFlashSale($tenantId, $validated);
-        return ApiResponse::created($sale->load('sku'), '秒杀活动已创建');
+        return ApiResponse::created($sale->load('sku'), __('app.api.flash_sale.created'));
     }
 
     /**
@@ -83,7 +83,7 @@ class FlashSaleController extends Controller
             $this->flashSale->preheatStock($sale);
         }
 
-        return ApiResponse::success($sale->fresh(), '状态已更新');
+        return ApiResponse::success($sale->fresh(), __('app.api.flash_sale.status_updated'));
     }
 
     /**
@@ -93,6 +93,6 @@ class FlashSaleController extends Controller
     public function releaseExpired(int $id): JsonResponse
     {
         $count = $this->flashSale->releaseExpiredReservations($id);
-        return ApiResponse::success(['released' => $count], "已释放 {$count} 个过期预占");
+        return ApiResponse::success(['released' => $count], __('app.api.flash_sale.prehold_released', ['count' => $count]));
     }
 }

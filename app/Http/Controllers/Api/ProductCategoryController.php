@@ -173,7 +173,7 @@ class ProductCategoryController extends Controller
 
         // 防止将自己设为父分类
         if (isset($validated['parent_id']) && $validated['parent_id'] == $productCategory->id) {
-            return ApiResponse::error('不能将自身设为父分类');
+            return ApiResponse::error(__('app.api.product_category.self_parent'));
         }
 
         $productCategory->update($validated);
@@ -183,7 +183,7 @@ class ProductCategoryController extends Controller
     public function destroy(ProductCategory $productCategory): JsonResponse
     {
         if ($productCategory->products()->count() > 0) {
-            return ApiResponse::error('该分类下有 ' . $productCategory->products()->count() . ' 个产品，无法删除');
+            return ApiResponse::error(__('app.api.product_category.has_products', ['count' => $productCategory->products()->count()]));
         }
 
         // 子分类上移
@@ -208,7 +208,7 @@ class ProductCategoryController extends Controller
             ProductCategory::where('id', $item['id'])->update(['sort_order' => $item['sort_order']]);
         }
 
-        return ApiResponse::success(['message' => '排序已更新']);
+        return ApiResponse::success(['message' => __('app.api.product_category.sort_updated')]);
     }
 
     // ──────────────────────────────────────────────
@@ -230,7 +230,7 @@ class ProductCategoryController extends Controller
             ->update(['is_active' => $validated['is_active']]);
 
         return ApiResponse::success([
-            'message' => "已" . ($validated['is_active'] ? '启用' : '停用') . " {$count} 个分类",
+            'message' => __('app.api.product_category.status_toggled', ['action' => $validated['is_active'] ? __('app.api.product_category.enabled') : __('app.api.product_category.disabled'), 'count' => $count]),
             'affected' => $count,
         ]);
     }
@@ -253,7 +253,7 @@ class ProductCategoryController extends Controller
             if (!$category) continue;
 
             if ($category->products()->count() > 0) {
-                $errors[] = "「{$category->name}」下有 {$category->products()->count()} 个产品，跳过";
+                $errors[] = __('app.api.product_category.skip_has_products', ['name' => $category->name, 'count' => $category->products()->count()]);
                 continue;
             }
 
@@ -264,7 +264,7 @@ class ProductCategoryController extends Controller
         }
 
         return ApiResponse::success([
-            'message' => "删除 {$deleted} 个分类",
+            'message' => __('app.api.product_category.deleted_count', ['deleted' => $deleted]),
             'deleted' => $deleted,
             'errors' => $errors,
         ]);
@@ -288,7 +288,7 @@ class ProductCategoryController extends Controller
         if (isset($validated['parent_id'])) {
             $descendantIds = $productCategory->descendantIds();
             if (in_array((int) $validated['parent_id'], $descendantIds)) {
-                return ApiResponse::error('不能将分类移动到其子分类下，会形成循环引用');
+                return ApiResponse::error(__('app.api.product_category.circular_ref'));
             }
         }
 
@@ -384,7 +384,7 @@ class ProductCategoryController extends Controller
         // 循环引用检测
         $descendantIds = $source->descendantIds();
         if (in_array((int) $target->id, $descendantIds)) {
-            return ApiResponse::error('不能合并到子分类中');
+            return ApiResponse::error(__('app.api.product_category.cannot_merge_child'));
         }
 
         // 移动产品
@@ -398,7 +398,7 @@ class ProductCategoryController extends Controller
         $source->delete();
 
         return ApiResponse::success([
-            'message' => "已合并 {$movedProducts} 个产品到「{$target->name}」",
+            'message' => __('app.api.product_category.merged_products', ['count' => $movedProducts, 'target' => $target->name]),
             'moved_products' => $movedProducts,
         ]);
     }
@@ -476,7 +476,7 @@ class ProductCategoryController extends Controller
         }
 
         return ApiResponse::success([
-            'message' => "导入 {$created} 个分类" . ($errors ? "，{$errors} 个错误" : ''),
+            'message' => __('app.api.product_category.imported', ['created' => $created]) . ($errors ? __('app.api.product_category.import_errors', ['errors' => $errors]) : ''),
             'created' => $created,
             'errors' => $errors,
         ]);

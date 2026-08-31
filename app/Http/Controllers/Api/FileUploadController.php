@@ -71,7 +71,7 @@ class FileUploadController extends Controller
         // 查找元数据
         $metaFile = $this->findMetaFile($uploadId);
         if (!$metaFile) {
-            return ApiResponse::error('NOT_FOUND', '上传会话不存在或已过期', 404);
+            return ApiResponse::error('NOT_FOUND', __("app.file_upload.msg_947c2d56"), 404);
         }
 
         $meta = json_decode(Storage::disk('local')->get($metaFile), true);
@@ -177,7 +177,7 @@ class FileUploadController extends Controller
         return ApiResponse::success([
             'files' => $results,
             'count' => count($results),
-        ], '上传成功', 201);
+        ], __('app.common.upload_success'), 201);
     }
 
     /**
@@ -201,7 +201,7 @@ class FileUploadController extends Controller
         }
 
         if (!file_exists($fullPath)) {
-            return ApiResponse::error('NOT_FOUND', '文件不存在', 404);
+            return ApiResponse::error('NOT_FOUND', __("app.file_upload.msg_d9523e34"), 404);
         }
 
         $mime = mime_content_type($fullPath);

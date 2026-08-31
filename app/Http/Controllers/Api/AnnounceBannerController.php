@@ -60,7 +60,7 @@ class AnnounceBannerController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__("app.announce_banner.msg_e441b11e"), $validator->errors()->toArray());
         }
 
         $banner = $this->bannerService->create(array_merge(
@@ -68,7 +68,7 @@ class AnnounceBannerController extends Controller
             ['created_by' => $request->user()?->id],
         ));
 
-        return ApiResponse::created($banner, '公告已创建');
+        return ApiResponse::created($banner, __("app.announce_banner.msg_5a1390a9"));
     }
 
     /**
@@ -101,12 +101,12 @@ class AnnounceBannerController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.common.validation_failed'), $validator->errors()->toArray());
         }
 
         $banner = $this->bannerService->update($announceBanner, $validator->validated());
 
-        return ApiResponse::success($banner, '公告已更新');
+        return ApiResponse::success($banner, __("app.announce_banner.msg_213cf795"));
     }
 
     /**
@@ -116,6 +116,6 @@ class AnnounceBannerController extends Controller
     {
         $this->bannerService->delete($announceBanner);
 
-        return ApiResponse::success(null, '公告已删除');
+        return ApiResponse::success(null, __("app.announce_banner.msg_ec8af3c4"));
     }
 }

@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Notifications\SslCertificateAlertNotification;
 use App\Services\AcmeService;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -80,14 +81,22 @@ class CnameService
             if (empty($cnameRecords)) {
                 $customDomain->update([
                     'status' => 'failed',
-                    'error_message' => '未检测到 CNAME 记录，请添加 CNAME 指向 ' . config('services.cname_target', 'cname.huwutong.com.'),
+                    'error_message' => __('app.cname_service.cname_service_66b4902555') . config('services.cname_target', 'cname.huwutong.com.'),
                 ]);
                 return false;
             }
 
-            $target = rtrim($cnameRecords[0]['target'] ?? '', '.');
+            // 检查所有 CNAME 记录中是否有匹配的目标
+            $target = rtrim(config('services.cname_target', 'cname.huwutong.com.'), '.');
+            $matched = false;
+            foreach ($cnameRecords as $record) {
+                if (rtrim($record['target'] ?? '', '.') === $target) {
+                    $matched = true;
+                    break;
+                }
+            }
 
-            if ($target !== rtrim(config('services.cname_target', 'cname.huwutong.com.'), '.')) {
+            if (! $matched) {
                 $customDomain->update([
                     'status' => 'failed',
                     'error_message' => "CNAME 目标不匹配，当前指向 {$target}，应为 " . config('services.cname_target', 'cname.huwutong.com.'),
@@ -111,7 +120,7 @@ class CnameService
         } catch (\Exception $e) {
             $customDomain->update([
                 'status' => 'failed',
-                'error_message' => 'DNS 查询失败: ' . $e->getMessage(),
+                'error_message' => __('app.cname_service.cname_service_8f45f04e27') . $e->getMessage(),
             ]);
 
             Log::error('域名验证失败', [
@@ -163,7 +172,7 @@ class CnameService
 
             $ssl->update([
                 'status' => 'failed',
-                'error_message' => $result['error'] ?? '证书签发失败',
+                'error_message' => $result['error'] ?? __('app.cname_service.cname_service_0212c694df'),
             ]);
 
             return false;
@@ -181,7 +190,7 @@ class CnameService
 
             $ssl->update([
                 'status' => 'failed',
-                'error_message' => '证书签发失败: ' . $e->getMessage(),
+                'error_message' => __('app.cname_service.cname_service_1abc469838') . $e->getMessage(),
             ]);
 
             Log::error('SSL 证书签发失败', [
@@ -198,33 +207,45 @@ class CnameService
      */
     protected function simulateCertificateIssuance(SslCertificate $ssl, string $domain): void
     {
-        // 生成一个占位证书（用于开发/测试）
-        // 生产环境应通过 ACME 客户端获取真实 Let's Encrypt 证书
-        $placeholderCert = "-----BEGIN CERTIFICATE-----\n" .
-            chunk_split(base64_encode("Placeholder certificate for {$domain}"), 64, "\n") .
-            "-----END CERTIFICATE-----";
+        // 生成自签名占位证书（用于开发/测试环境 ACME 降级）
+        $dn = ['commonName' => $domain, 'organizationName' => 'Huwutong-Dev'];
+        $privKey = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        if (! $privKey) {
+            $ssl->update(['status' => 'failed', 'error_message' => 'OpenSSL key generation failed']);
+            return;
+        }
+        openssl_pkey_export($privKey, $keyPem);
 
-        $placeholderKey = "-----BEGIN PRIVATE KEY-----\n" .
-            chunk_split(base64_encode("Placeholder private key for {$domain}"), 64, "\n") .
-            "-----END PRIVATE KEY-----";
+        $csr = openssl_csr_new($dn, $privKey, ['digest_alg' => 'sha256', 'subjectAltName' => "DNS:{$domain}"]);
+        if (! $csr) {
+            $ssl->update(['status' => 'failed', 'error_message' => 'CSR generation failed']);
+            return;
+        }
+
+        $cert = openssl_csr_sign($csr, null, $privKey, 365, ['digest_alg' => 'sha256']);
+        if (! $cert) {
+            $ssl->update(['status' => 'failed', 'error_message' => 'Self-signed cert signing failed']);
+            return;
+        }
+        openssl_x509_export($cert, $certPem);
 
         $ssl->update([
-            'certificate' => Crypt::encryptString($placeholderCert),
-            'private_key' => Crypt::encryptString($placeholderKey),
+            'certificate'       => Crypt::encryptString($certPem),
+            'private_key'       => Crypt::encryptString($keyPem),
             'certificate_chain' => null,
-            'issued_at' => now(),
-            'expires_at' => now()->addDays(89), // Let's Encrypt 证书 90 天有效期
-            'status' => 'issued',
-            'last_renewed_at' => now(),
+            'issued_at'         => now(),
+            'expires_at'        => now()->addDays(365),
+            'status'            => 'issued',
+            'last_renewed_at'   => now(),
             'acme_challenge_token' => null,
             'acme_challenge_content' => null,
-            'error_message' => null,
+            'error_message'     => null,
         ]);
 
         // 激活自定义域名
-        $ssl->customDomain->update([
+        $ssl->customDomain?->update([
             'is_active' => true,
-            'status' => 'active',
+            'status'    => 'active',
         ]);
     }
 
@@ -285,7 +306,7 @@ class CnameService
                     $ssl = $domain->sslCertificate;
                     $tenant->notify(new SslCertificateAlertNotification(
                         $domain->domain,
-                        $ssl?->expires_at?->toDateTimeString() ?? '未知',
+                        $ssl?->expires_at?->toDateTimeString() ?? __('app.cname_service.cname_service_1622dc9b6b'),
                         0,
                         'renew_failed'
                     ));
@@ -305,7 +326,7 @@ class CnameService
     {
         $alerts = [];
 
-        $expiring = SslCertificate::where('status', 'issued')
+        $expiring = SslCertificate::whereIn('status', ['issued', 'renewing'])
             ->where('expires_at', '<=', now()->addDays(7))
             ->where(function ($q) {
                 $q->whereNull('renewal_alert_sent_at')
@@ -362,7 +383,7 @@ class CnameService
 
             $info['resolved_ip'] = gethostbyname($domain);
             $info['dns_ok'] = $info['resolved_ip'] !== $domain;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $info['error'] = $e->getMessage();
         }
 

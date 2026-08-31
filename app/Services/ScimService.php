@@ -71,11 +71,11 @@ class ScimService
                 ->get(rtrim($config->base_url, '/') . '/ServiceProviderConfigs');
 
             if ($response->successful()) {
-                return ['success' => true, 'message' => '连接成功'];
+                return ['success' => true, 'message' => __('app.common.connection_success')];
             }
-            return ['success' => false, 'message' => '连接失败: HTTP ' . $response->status()];
+            return ['success' => false, 'message' => __('app.common.connection_failed_http', ['status' => $response->status()])];
         } catch (\Throwable $e) {
-            return ['success' => false, 'message' => '连接异常: ' . $e->getMessage()];
+            return ['success' => false, 'message' => __('app.common.connection_exception', ['message' => $e->getMessage()])];
         }
     }
 

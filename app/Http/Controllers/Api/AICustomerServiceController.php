@@ -85,7 +85,7 @@ class AICustomerServiceController extends Controller
             $systemPrompt = $promptService->renderByCategory('chat', [
                 'topic' => '客服FAQ',
                 'intent_history' => '',
-                'rag_context' => $contextInfo ?: '无',
+                'rag_context' => $contextInfo ?: __('app.api.ai_cs.none'),
             ]);
             if (empty($systemPrompt)) {
                 $systemPrompt = '你是一个智能客服助手。请根据 FAQ 知识库和上下文回答用户问题，回复要简洁、准确、友好。如果问题超出知识库范围，请礼貌告知并引导用户联系人工客服。回复末尾附上引用来源（如有）。';
@@ -98,14 +98,14 @@ class AICustomerServiceController extends Controller
             $messages[] = ['role' => 'user', 'content' => $message];
 
             $result = $llm->chat($messages, ['temperature' => 0.3], 'cs_auto_reply');
-            $reply = $result['content'] ?? '抱歉，我暂时无法回答这个问题，已转接人工客服。';
+            $reply = $result['content'] ?? __('app.api.ai_cs.fallback_reply');
 
             // 置信度评估
             $confidence = $this->evaluateConfidence($reply, $message, $matchedFaq, $llm);
 
             $needsReview = $confidence < 0.6;
             if ($needsReview) {
-                $reply .= "\n\n---\n⚠️ *此回复由 AI 生成，置信度较低，建议人工审核后发送*";
+                $reply .= __('app.api.ai_cs.low_confidence_suffix');
             }
 
             return ApiResponse::success([
@@ -123,7 +123,7 @@ class AICustomerServiceController extends Controller
         } catch (\Throwable $e) {
             Log::error('[AI-019] autoReply error: '.$e->getMessage());
             return ApiResponse::success([
-                'reply' => 'AI 客服暂时不可用，已为您转接人工客服。',
+                'reply' => __('app.api.ai_cs.unavailable'),
                 'confidence' => 0,
                 'needs_review' => true,
                 'sources' => [],
@@ -176,7 +176,7 @@ class AICustomerServiceController extends Controller
         $systemPrompt = $promptService->renderByCategory('chat', [
             'topic' => '客服FAQ',
             'intent_history' => '',
-            'rag_context' => $contextInfo ?: '无',
+            'rag_context' => $contextInfo ?: __('app.api.ai_cs.none'),
         ]);
         if (empty($systemPrompt)) {
             $systemPrompt = '你是一个智能客服助手。请根据 FAQ 知识库和上下文回答用户问题，回复要简洁、准确、友好。';
@@ -262,14 +262,14 @@ class AICustomerServiceController extends Controller
         $message = $request->input('message');
 
         $intents = [
-            'inquiry' => '产品咨询（询问功能、价格、方案等）',
-            'complaint' => '投诉（不满、差评、要求赔偿等）',
-            'after_sale' => '售后服务（退换货、维修、退款等）',
-            'purchase' => '购买意向（想下单、询价、签约等）',
-            'technical' => '技术支持（故障报错、使用问题等）',
-            'billing' => '计费问题（账单、发票、扣费等）',
-            'account' => '账户问题（登录、权限、信息修改等）',
-            'other' => '其他',
+            'inquiry' => __('app.api.ai_cs.intent_inquiry'),
+            'complaint' => __('app.api.ai_cs.intent_complaint'),
+            'after_sale' => __('app.api.ai_cs.intent_after_sale'),
+            'purchase' => __('app.api.ai_cs.intent_purchase'),
+            'technical' => __('app.api.ai_cs.intent_technical'),
+            'billing' => __('app.api.ai_cs.intent_billing'),
+            'account' => __('app.api.ai_cs.intent_account'),
+            'other' => __('app.api.ai_cs.intent_other'),
         ];
 
         $intentDescriptions = implode("\n", array_map(fn($k, $v) => "- {$k}: {$v}", array_keys($intents), $intents));
@@ -292,7 +292,7 @@ class AICustomerServiceController extends Controller
 
         return ApiResponse::success([
             'intent' => $intent,
-            'intent_label' => $intents[$intent] ?? '其他',
+            'intent_label' => $intents[$intent] ?? __('app.api.ai_cs.intent_other'),
             'skill_group' => $skillGroup,
             'priority' => in_array($intent, ['complaint', 'after_sale']) ? 'high' : 'normal',
         ]);
@@ -348,7 +348,7 @@ class AICustomerServiceController extends Controller
             'sentiment' => $ruleSentiment,
             'score' => round($ruleScore, 2),
             'needs_priority' => $needsPriority,
-            'suggest_action' => $needsPriority ? '优先转人工客服处理' : '正常流程处理',
+            'suggest_action' => $needsPriority ? __('app.api.ai_cs.action_priority') : __('app.api.ai_cs.action_normal'),
         ]);
     }
 
@@ -365,10 +365,10 @@ class AICustomerServiceController extends Controller
         // 获取最近对话上下文
         $recentMessages = ConversationMessage::where('conversation_id', $convId)
             ->whereNull('deleted_at')->orderBy('created_at', 'desc')->take(15)->get()->reverse();
-        $contextLines = $recentMessages->map(fn($m) => ($m->sender?->name ?? '用户').': '.$m->content)->implode("\n");
+        $contextLines = $recentMessages->map(fn($m) => ($m->sender?->name ?? __('app.api.ai_cs.user')).': '.$m->content)->implode("\n");
 
         $conv = UserConversation::find($convId);
-        $convName = $conv->name ?? '会话';
+        $convName = $conv->name ?? __('app.api.ai_cs.conversation');
 
         try {
             if ($mode === 'suggest_reply') {
@@ -421,8 +421,8 @@ class AICustomerServiceController extends Controller
         } catch (\Throwable $e) {
             return ApiResponse::success([
                 'mode' => $mode,
-                'error' => 'AI 暂时不可用',
-                'suggestions' => ['您好，请问有什么可以帮您的？', '请稍等，我马上为您处理'],
+                'error' => __('app.api.ai_cs.error_unavailable'),
+                'suggestions' => [__('app.api.ai_cs.suggest_1'), __('app.api.ai_cs.suggest_2')],
             ]);
         }
     }
@@ -432,9 +432,9 @@ class AICustomerServiceController extends Controller
     {
         $messages = ConversationMessage::where('conversation_id', $convId)
             ->whereNull('deleted_at')->orderBy('created_at', 'asc')->take(50)->get();
-        if ($messages->isEmpty()) return ApiResponse::error('暂无消息', 400);
+        if ($messages->isEmpty()) return ApiResponse::error(__('app.api.ai_cs.no_messages'), 400);
 
-        $lines = $messages->map(fn($m) => ($m->sender?->name ?? '用户').': '.$m->content)->implode("\n");
+        $lines = $messages->map(fn($m) => ($m->sender?->name ?? __('app.api.ai_cs.user')).': '.$m->content)->implode("\n");
 
         try {
             $promptService = app(\App\Services\PromptTemplateService::class);
@@ -460,8 +460,8 @@ class AICustomerServiceController extends Controller
                 'response_time_score' => 7,
                 'overall_score' => 7,
                 'violations' => [],
-                'suggestions' => ['AI 质检暂时不可用'],
-                'summary' => '无法完成质检分析',
+                'suggestions' => [__('app.api.ai_cs.qa_unavailable')],
+                'summary' => __('app.api.ai_cs.qa_summary_fail'),
             ];
         }
 
@@ -488,7 +488,7 @@ class AICustomerServiceController extends Controller
 
         if ($action === 'reset') {
             Cache::forget($cacheKey);
-            return ApiResponse::success(['step' => 0, 'status' => 'reset', 'message' => '对话已重置']);
+            return ApiResponse::success(['step' => 0, 'status' => 'reset', 'message' => __('app.api.ai_cs.dialog_reset')]);
         }
 
         if ($action === 'status') {
@@ -512,17 +512,17 @@ class AICustomerServiceController extends Controller
 
         // 用 LLM 解析当前步骤和下一步
         $scenarioLabels = [
-            'order_query' => '订单查询',
-            'refund' => '退款处理',
-            'complaint' => '投诉处理',
-            'consultation' => '通用咨询',
+            'order_query' => __('app.api.ai_cs.scenario_order'),
+            'refund' => __('app.api.ai_cs.scenario_refund'),
+            'complaint' => __('app.api.ai_cs.scenario_complaint'),
+            'consultation' => __('app.api.ai_cs.scenario_consult'),
         ];
 
         $scenarioFields = [
-            'order_query' => ['order_id' => '订单号', 'customer_name' => '客户姓名', 'issue' => '问题描述'],
-            'refund' => ['order_id' => '订单号', 'reason' => '退款原因', 'amount' => '退款金额'],
-            'complaint' => ['target' => '投诉对象', 'reason' => '投诉原因', 'detail' => '详细说明'],
-            'consultation' => ['question' => '咨询问题', 'product' => '相关产品'],
+            'order_query' => ['order_id' => __('app.api.ai_cs.field_order_id'), 'customer_name' => __('app.api.ai_cs.field_customer'), 'issue' => __('app.api.ai_cs.field_issue')],
+            'refund' => ['order_id' => __('app.api.ai_cs.field_order_id'), 'reason' => __('app.api.ai_cs.field_reason'), 'amount' => __('app.api.ai_cs.field_amount')],
+            'complaint' => ['target' => __('app.api.ai_cs.field_target'), 'reason' => __('app.api.ai_cs.field_complaint_reason'), 'detail' => __('app.api.ai_cs.field_detail')],
+            'consultation' => ['question' => __('app.api.ai_cs.field_question'), 'product' => __('app.api.ai_cs.field_product')],
         ];
 
         $fields = $scenarioFields[$scenario] ?? $scenarioFields['consultation'];
@@ -543,7 +543,7 @@ class AICustomerServiceController extends Controller
             }
 
             $nextField = $decision['next_field'] ?? 'complete';
-            $prompt = $decision['prompt'] ?? '请提供更多信息';
+            $prompt = $decision['prompt'] ?? __('app.api.ai_cs.need_more_info');
             $summary = $decision['summary'] ?? '';
 
             if ($nextField === 'complete' || $this->isScenarioComplete($state)) {
@@ -554,7 +554,7 @@ class AICustomerServiceController extends Controller
                     'is_complete' => true,
                     'summary' => $summary,
                     'collected' => $state['data'],
-                    'prompt' => '信息已收集完毕，正在为您处理。',
+                    'prompt' => __('app.api.ai_cs.info_complete'),
                 ]);
             }
 
@@ -577,7 +577,7 @@ class AICustomerServiceController extends Controller
             return ApiResponse::success([
                 'step' => $state['step'],
                 'is_complete' => false,
-                'prompt' => '请继续描述您的问题...',
+                'prompt' => __('app.api.ai_cs.continue_desc'),
                 'collected' => $state['data'],
             ]);
         }
@@ -651,16 +651,16 @@ class AICustomerServiceController extends Controller
     protected function routeToGroup(string $intent): string
     {
         $routing = [
-            'complaint' => '客诉处理组',
-            'after_sale' => '售后服务组',
-            'purchase' => '销售组',
-            'technical' => '技术支持组',
-            'billing' => '财务组',
-            'account' => '账户管理组',
-            'inquiry' => '售前咨询组',
-            'other' => '综合组',
+            'complaint' => __('app.api.ai_cs.group_complaint'),
+            'after_sale' => __('app.api.ai_cs.group_after_sale'),
+            'purchase' => __('app.api.ai_cs.group_purchase'),
+            'technical' => __('app.api.ai_cs.group_technical'),
+            'billing' => __('app.api.ai_cs.group_billing'),
+            'account' => __('app.api.ai_cs.group_account'),
+            'inquiry' => __('app.api.ai_cs.group_inquiry'),
+            'other' => __('app.api.ai_cs.group_other'),
         ];
-        return $routing[$intent] ?? '综合组';
+        return $routing[$intent] ?? __('app.api.ai_cs.group_other');
     }
 
     protected function isScenarioComplete(array $state): bool

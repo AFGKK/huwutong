@@ -107,7 +107,7 @@ class EnterpriseAIController extends Controller
             $messages[] = ['role' => 'user', 'content' => $q];
 
             $result = $llm->chat($messages, ['temperature' => 0.3], 'enterprise_kb_query');
-            $reply = $result['content'] ?? '抱歉，未找到相关信息。';
+            $reply = $result['content'] ?? __('app.api.ent_ai.not_found');
 
             // 合并来源
             $allSources = array_merge($sources, $webResults);
@@ -121,7 +121,7 @@ class EnterpriseAIController extends Controller
             ]);
         } catch (\Throwable $e) {
             return ApiResponse::success([
-                'answer' => '查询暂时不可用，请稍后重试。',
+                'answer' => __('app.api.ent_ai.unavailable'),
                 'sources' => [],
                 'has_knowledge' => false,
                 'web_search_enabled' => $enableWeb,
@@ -136,9 +136,9 @@ class EnterpriseAIController extends Controller
     {
         $messages = ConversationMessage::where('conversation_id', $convId)
             ->whereNull('deleted_at')->orderBy('created_at', 'asc')->take(100)->get();
-        if ($messages->isEmpty()) return ApiResponse::error('暂无消息', 400);
+        if ($messages->isEmpty()) return ApiResponse::error(__('app.api.ent_ai.no_messages'), 400);
 
-        $lines = $messages->map(fn($m) => ($m->sender?->name ?? '用户').': '.$m->content)->implode("\n");
+        $lines = $messages->map(fn($m) => ($m->sender?->name ?? __('app.api.ent_ai.user')).': '.$m->content)->implode("\n");
         $conv = UserConversation::find($convId);
 
         try {
@@ -147,7 +147,7 @@ class EnterpriseAIController extends Controller
                 ['role' => 'user', 'content' => "会议名称：{$conv->name}\n对话记录（共{$messages->count()}条消息）：\n{$lines}"],
             ], ['temperature' => 0.3], 'meeting_minutes');
 
-            $minutes = $result['content'] ?? '无法生成会议纪要';
+            $minutes = $result['content'] ?? __('app.api.ent_ai.meeting_fail');
 
             // 提取行动项
             $actionItems = [];
@@ -165,7 +165,7 @@ class EnterpriseAIController extends Controller
                 'conversation_name' => $conv->name,
             ]);
         } catch (\Throwable $e) {
-            return ApiResponse::error('MEETING_ERROR', '生成会议纪要失败');
+            return ApiResponse::error('MEETING_ERROR', __('app.api.ent_ai.meeting_error'));
         }
     }
 
@@ -189,13 +189,13 @@ class EnterpriseAIController extends Controller
         if ($request->date_to) $query->where('last_message_at', '<=', $request->date_to);
 
         $convs = $query->orderBy('last_message_at', 'desc')->take($maxConvs)->get();
-        if ($convs->isEmpty()) return ApiResponse::success(['insights' => '暂无会话数据', 'summary' => '']);
+        if ($convs->isEmpty()) return ApiResponse::success(['insights' => __('app.api.ent_ai.no_conv_data'), 'summary' => '']);
 
         $summaries = [];
         foreach ($convs as $conv) {
             $lastMsgs = ConversationMessage::where('conversation_id', $conv->id)
                 ->whereNull('deleted_at')->orderBy('created_at', 'desc')->take(5)->get()->reverse();
-            $snippet = $lastMsgs->map(fn($m) => ($m->sender?->name ?? '用户').': '.$m->content)->implode("\n");
+            $snippet = $lastMsgs->map(fn($m) => ($m->sender?->name ?? __('app.api.ent_ai.user')).': '.$m->content)->implode("\n");
             $summaries[] = "【{$conv->name}】\n{$snippet}";
         }
 
@@ -207,7 +207,7 @@ class EnterpriseAIController extends Controller
                 ['role' => 'user', 'content' => "以下是最近 {$convs->count()} 个会话的摘要：\n{$allText}"],
             ], ['temperature' => 0.3], 'cross_session_insights');
 
-            $insights = $result['content'] ?? '无法生成洞察';
+            $insights = $result['content'] ?? __('app.api.ent_ai.insights_fail');
 
             // 提取关键决策
             $decisions = [];
@@ -226,7 +226,7 @@ class EnterpriseAIController extends Controller
             ]);
         } catch (\Throwable $e) {
             return ApiResponse::success([
-                'insights' => "分析了 {$convs->count()} 个会话，AI 洞察暂时不可用。",
+                'insights' => __('app.api.ent_ai.insights_unavailable', ['count' => $convs->count()]),
                 'session_count' => $convs->count(),
             ]);
         }
@@ -242,29 +242,29 @@ class EnterpriseAIController extends Controller
 
         $guide = [
             'welcome' => [
-                'title' => '🎉 欢迎加入！',
-                'content' => '欢迎使用互物通平台！我是您的 AI 引导助手，将帮助您快速上手。',
+                'title' => __('app.api.ent_ai.welcome_title'),
+                'content' => __('app.api.ent_ai.welcome_content'),
                 'next_steps' => ['profile', 'features', 'support'],
             ],
             'profile' => [
-                'title' => '📝 完善个人资料',
-                'content' => '请先完善您的个人资料：设置头像、填写联系方式、配置通知偏好。',
-                'actions' => ['前往个人设置'],
+                'title' => __('app.api.ent_ai.profile_title'),
+                'content' => __('app.api.ent_ai.profile_content'),
+                'actions' => [__('app.api.ent_ai.profile_action')],
                 'next_steps' => ['features', 'support'],
             ],
             'features' => [
-                'title' => '🚀 核心功能概览',
-                'content' => '您可以：1）管理 License；2）查看用量报告；3）设置自动续费；4）使用 AI 客服；5）与其他团队成员协作。',
+                'title' => __('app.api.ent_ai.features_title'),
+                'content' => __('app.api.ent_ai.features_content'),
                 'next_steps' => ['support', 'done'],
             ],
             'support' => [
-                'title' => '🆘 获取帮助',
-                'content' => '遇到问题？您可以：1）使用在线客服；2）提交工单；3）查看知识库文档；4）联系您的客户经理。',
+                'title' => __('app.api.ent_ai.help_title'),
+                'content' => __('app.api.ent_ai.help_content'),
                 'next_steps' => ['done'],
             ],
             'done' => [
-                'title' => '✅ 完成引导',
-                'content' => '您已完成基本引导！如有任何问题，随时可以 @AI 或联系客服。祝您使用愉快！',
+                'title' => __('app.api.ent_ai.done_title'),
+                'content' => __('app.api.ent_ai.done_content'),
                 'next_steps' => [],
             ],
         ];
@@ -274,7 +274,7 @@ class EnterpriseAIController extends Controller
 
         // 用 LLM 增强个性化
         try {
-            $userName = auth()->user()?->name ?? '用户';
+            $userName = auth()->user()?->name ?? __('app.api.ent_ai.user');
             $result = $llm->chat([
                 ['role' => 'system', 'content' => "你是一个新人引导助手。根据当前引导步骤「{$current['title']}」，为用户 {$userName} 生成一段个性化的引导文案，语气友好热情。"],
                 ['role' => 'user', 'content' => "当前步骤：{$step}\n基础内容：{$current['content']}"],
@@ -309,11 +309,11 @@ class EnterpriseAIController extends Controller
         $formData = $request->input('form_data');
 
         $formLabels = [
-            'order' => '订单创建',
-            'refund' => '退款申请',
-            'contract' => '合同审批',
-            'ticket' => '工单提交',
-            'license' => 'License 申请',
+            'order' => __('app.api.ent_ai.form_order'),
+            'refund' => __('app.api.ent_ai.form_refund'),
+            'contract' => __('app.api.ent_ai.form_contract'),
+            'ticket' => __('app.api.ent_ai.form_ticket'),
+            'license' => __('app.api.ent_ai.form_license'),
         ];
 
         try {
@@ -388,7 +388,7 @@ class EnterpriseAIController extends Controller
             if (preg_match('/\{.*?\}/s', $content, $matches)) {
                 $decision = json_decode($matches[0], true) ?: [];
             } else {
-                $decision = ['action' => 'reply', 'content' => '无法理解请求'];
+                $decision = ['action' => 'reply', 'content' => __('app.api.ent_ai.cannot_understand')];
             }
 
             // 模拟工具执行（实际应调用真实服务）
@@ -401,7 +401,7 @@ class EnterpriseAIController extends Controller
         } catch (\Throwable $e) {
             return ApiResponse::success([
                 'action' => 'reply',
-                'content' => 'Agent 暂时不可用',
+                'content' => __('app.api.ent_ai.agent_unavailable'),
             ]);
         }
     }
@@ -441,25 +441,25 @@ class EnterpriseAIController extends Controller
                 return ApiResponse::success([
                     'bot_id' => $botId,
                     'config' => $config,
-                    'preview' => "Bot「{$config['name']}」已生成，可进行测试。",
+                    'preview' => __('app.api.ent_ai.bot_preview', ['name' => $config['name']]),
                 ]);
             } catch (\Throwable $e) {
                 return ApiResponse::success([
                     'bot_id' => null,
                     'config' => ['name' => 'Bot', 'prompt' => $description],
-                    'preview' => 'Bot 配置已生成（基础版）',
+                    'preview' => __('app.api.ent_ai.bot_basic'),
                 ]);
             }
         } elseif ($action === 'preview') {
             $config = $request->input('config', []);
-            $name = isset($config['name']) ? $config['name'] : '未命名';
+            $name = isset($config['name']) ? $config['name'] : __('app.api.ent_ai.bot_unnamed');
             $desc = isset($config['description']) ? $config['description'] : '';
             $tone = isset($config['tone']) ? $config['tone'] : 'friendly';
             return ApiResponse::success([
-                'preview' => "Bot「{$name}」\n描述：{$desc}\n语气：{$tone}",
+                'preview' => __('app.api.ent_ai.bot_preview_full', ['name' => $name, 'desc' => $desc, 'tone' => $tone]),
             ]);
         } else {
-            return ApiResponse::success(['test_result' => 'Bot 测试通过 ✓']);
+            return ApiResponse::success(['test_result' => __('app.api.ent_ai.bot_test_ok')]);
         }
     }
 
@@ -477,11 +477,11 @@ class EnterpriseAIController extends Controller
         $pipeline = $request->input('pipeline', ['research', 'write', 'review']);
 
         $agentRoles = [
-            'research' => '研究员 Agent：全面收集和分析相关信息，输出结构化研究报告',
-            'write' => '写作 Agent：基于研究报告撰写内容，输出完整文章/报告',
-            'review' => '审核 Agent：检查内容质量、准确性和完整性，提出修改建议',
-            'summarize' => '摘要 Agent：将长内容压缩为简洁摘要',
-            'translate' => '翻译 Agent：将内容翻译为目标语言',
+            'research' => __('app.api.ent_ai.agent_research'),
+            'write' => __('app.api.ent_ai.agent_write'),
+            'review' => __('app.api.ent_ai.agent_review'),
+            'summarize' => __('app.api.ent_ai.agent_summarize'),
+            'translate' => __('app.api.ent_ai.agent_translate'),
         ];
 
         $results = [];
@@ -502,7 +502,7 @@ class EnterpriseAIController extends Controller
                     ['role' => 'user', 'content' => $contextInfo],
                 ], ['temperature' => 0.5], "multi_agent_{$agent}");
 
-                $output = $result['content'] ?? '(无输出)';
+                $output = $result['content'] ?? __('app.api.ent_ai.agent_no_output');
                 $results[] = [
                     'agent' => $agent,
                     'role' => $roleDesc,
@@ -514,7 +514,7 @@ class EnterpriseAIController extends Controller
                 $results[] = [
                     'agent' => $agent,
                     'role' => $roleDesc,
-                    'output' => 'Agent 执行失败',
+                    'output' => __('app.api.ent_ai.agent_exec_fail'),
                     'status' => 'failed',
                 ];
             }
@@ -565,7 +565,7 @@ class EnterpriseAIController extends Controller
                 'usage' => $result['usage'] ?? [],
             ]);
         } catch (\Throwable $e) {
-            return ApiResponse::error('AI_SERVICE_ERROR', 'AI 服务暂时不可用', 503);
+            return ApiResponse::error('AI_SERVICE_ERROR', __('app.api.ent_ai.service_unavailable'), 503);
         }
     }
 
@@ -597,7 +597,7 @@ class EnterpriseAIController extends Controller
                 'messages_last_30d' => $recentMsgs,
                 'unique_users' => $uniqueUsers,
                 'estimated_tokens' => $totalMsgs * 50,
-                'recommended_action' => $totalMsgs > 10000 ? '数据量充足，可进行微调' : '建议积累更多数据（目标10000+条）',
+                'recommended_action' => $totalMsgs > 10000 ? __('app.api.ent_ai.data_sufficient') : __('app.api.ent_ai.data_insufficient'),
             ]);
         }
 
@@ -609,7 +609,7 @@ class EnterpriseAIController extends Controller
             return ApiResponse::success([
                 'samples' => $sample->map(fn($m) => [
                     'conversation_id' => $m->conversation_id,
-                    'sender' => $m->sender?->name ?? '用户',
+                    'sender' => $m->sender?->name ?? __('app.api.ent_ai.user'),
                     'content' => mb_substr($m->content, 0, 200),
                     'created_at' => $m->created_at,
                 ]),
@@ -669,7 +669,7 @@ class EnterpriseAIController extends Controller
             $result = $moderator->generateAgenda($convId, $topic);
             return ApiResponse::success($result);
         } catch (\Throwable $e) {
-            return ApiResponse::error('MODERATOR_ERROR', '生成议程失败', 500);
+            return ApiResponse::error('MODERATOR_ERROR', __('app.api.ent_ai.moderator_agenda_fail'), 500);
         }
     }
 
@@ -685,7 +685,7 @@ class EnterpriseAIController extends Controller
             $result = $moderator->mediateDebate($convId);
             return ApiResponse::success($result);
         } catch (\Throwable $e) {
-            return ApiResponse::error('MODERATOR_ERROR', '调解分析失败', 500);
+            return ApiResponse::error('MODERATOR_ERROR', __('app.api.ent_ai.moderator_mediation_fail'), 500);
         }
     }
 
@@ -701,7 +701,7 @@ class EnterpriseAIController extends Controller
             $result = $moderator->summarizeDiscussion($convId);
             return ApiResponse::success($result);
         } catch (\Throwable $e) {
-            return ApiResponse::error('MODERATOR_ERROR', '总结失败', 500);
+            return ApiResponse::error('MODERATOR_ERROR', __('app.api.ent_ai.moderator_summary_fail'), 500);
         }
     }
 
@@ -713,7 +713,7 @@ class EnterpriseAIController extends Controller
         $this->checkParticipant($convId);
         $topic = $request->input('topic', '');
         if (empty($topic)) {
-            return ApiResponse::error('VALIDATION', '请指定讨论主题');
+            return ApiResponse::error('VALIDATION', __('app.api.ent_ai.specify_topic'));
         }
 
         try {
@@ -721,7 +721,7 @@ class EnterpriseAIController extends Controller
             $result = $moderator->checkTopicFocus($convId, $topic);
             return ApiResponse::success($result);
         } catch (\Throwable $e) {
-            return ApiResponse::error('MODERATOR_ERROR', '专注度分析失败', 500);
+            return ApiResponse::error('MODERATOR_ERROR', __('app.api.ent_ai.moderator_focus_fail'), 500);
         }
     }
 
@@ -735,7 +735,7 @@ class EnterpriseAIController extends Controller
             ->exists();
 
         if (!$participant) {
-            abort(403, '你不是该会话的参与者');
+            abort(403, __('app.api.ent_ai.not_participant'));
         }
     }
 
@@ -754,7 +754,7 @@ class EnterpriseAIController extends Controller
             'get_license_info' => ['license_key' => $params['license_key'] ?? '', 'status' => 'active', 'expires_at' => '2027-06-18'],
         ];
 
-        return $results[$tool] ?? ['error' => '未知工具'];
+        return $results[$tool] ?? ['error' => __('app.api.ent_ai.unknown_tool')];
     }
 
     protected function onboardingProgress(string $step): array

@@ -137,7 +137,7 @@ class CertificationService
 
         if ($existing) {
             if ($existing->isPassed() && $existing->isValid()) {
-                throw new \RuntimeException('您已通过此认证且仍在有效期');
+                throw new \RuntimeException(__('app.certification.already_passed'));
             }
             if ($existing->canRetake()) {
                 // 重新开始考试
@@ -153,10 +153,10 @@ class CertificationService
                 return $existing->fresh();
             }
             if ($existing->attempts >= $existing->max_attempts) {
-                throw new \RuntimeException('已达到最大重考次数');
+                throw new \RuntimeException(__('app.certification.max_retake'));
             }
             if ($existing->status === DeveloperCertification::STATUS_IN_PROGRESS) {
-                throw new \RuntimeException('您已有一场进行中的考试');
+                throw new \RuntimeException(__('app.certification.exam_in_progress'));
             }
         }
 
@@ -182,7 +182,7 @@ class CertificationService
             ->findOrFail($devCertId);
 
         if ($devCert->status !== DeveloperCertification::STATUS_IN_PROGRESS) {
-            throw new \RuntimeException('考试未在进行中');
+            throw new \RuntimeException(__('app.certification.exam_not_in_progress'));
         }
 
         $questions = $devCert->certificationLevel->activeQuestions;
@@ -206,7 +206,7 @@ class CertificationService
         $devCert = DeveloperCertification::findOrFail($devCertId);
 
         if ($devCert->status !== DeveloperCertification::STATUS_IN_PROGRESS) {
-            throw new \RuntimeException('考试未在进行中');
+            throw new \RuntimeException(__('app.certification.exam_not_in_progress'));
         }
 
         // 检查是否已答过此题
@@ -215,7 +215,7 @@ class CertificationService
             ->first();
 
         if ($existing) {
-            throw new \RuntimeException('此题已作答');
+            throw new \RuntimeException(__('app.certification.question_answered'));
         }
 
         $question = ExamQuestion::findOrFail($questionId);
@@ -240,7 +240,7 @@ class CertificationService
             ->findOrFail($devCertId);
 
         if ($devCert->status !== DeveloperCertification::STATUS_IN_PROGRESS) {
-            throw new \RuntimeException('考试未在进行中');
+            throw new \RuntimeException(__('app.certification.exam_not_in_progress'));
         }
 
         $answers = ExamAnswer::where('developer_certification_id', $devCertId)->get();
@@ -250,7 +250,7 @@ class CertificationService
         $maxPoints = $devCert->certificationLevel->activeQuestions->sum('points');
 
         if ($answers->count() === 0) {
-            throw new \RuntimeException('请至少回答一题');
+            throw new \RuntimeException(__('app.certification.answer_at_least_one'));
         }
 
         $scorePercentage = $maxPoints > 0 ? round(($totalPoints / $maxPoints) * 100) : 0;
@@ -283,7 +283,7 @@ class CertificationService
     protected function issueBadge(DeveloperCertification $devCert): void
     {
         $level = $devCert->certificationLevel;
-        $color = $level->color ?? '#409eff';
+        $color = $level->color ?? '#0f172a';
         $badgeUrl = $this->generateBadgeUrl($devCert, $level, $color);
 
         $devCert->update([
@@ -425,7 +425,7 @@ class CertificationService
             'certificate_number' => $cert->certificate_number,
             'developer_name' => $cert->user?->name ?? 'Unknown',
             'level_name' => $cert->certificationLevel?->name ?? 'N/A',
-            'level_color' => $cert->certificationLevel?->color ?? '#409eff',
+            'level_color' => $cert->certificationLevel?->color ?? '#0f172a',
             'issued_at' => $cert->certificate_issued_at?->toIso8601String(),
             'expires_at' => $cert->expires_at?->toIso8601String(),
             'status' => $cert->status,
@@ -446,7 +446,7 @@ class CertificationService
                 'id' => $cert->id,
                 'developer_name' => $cert->user?->name ?? 'Anonymous',
                 'level_name' => $cert->certificationLevel?->name ?? 'N/A',
-                'level_color' => $cert->certificationLevel?->color ?? '#409eff',
+                'level_color' => $cert->certificationLevel?->color ?? '#0f172a',
                 'certificate_number' => $cert->certificate_number,
                 'certified_at' => $cert->certificate_issued_at?->toIso8601String(),
                 'badge_url' => $cert->badge_url,

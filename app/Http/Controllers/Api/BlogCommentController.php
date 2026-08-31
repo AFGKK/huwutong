@@ -67,7 +67,7 @@ class BlogCommentController extends Controller
             'parent_id' => 'nullable|integer',
         ]);
         if ($validator->fails()) {
-            return ApiResponse::error($validator->errors()->first(), '验证失败', 422);
+            return ApiResponse::error($validator->errors()->first(), __('app.common.validation_failed'), 422);
         }
         $comment = BlogComment::create([
             'blog_id' => $blog->id,
@@ -81,7 +81,7 @@ class BlogCommentController extends Controller
             'content' => $comment->content,
             'created_at' => $comment->created_at,
             'user' => $comment->user ? ['id' => $comment->user->id, 'name' => $comment->user->name, 'avatar' => $comment->user->avatar] : null,
-        ], '评论成功', 201);
+        ], __('app.blog_comment.comment_posted'), 201);
     }
 
     public function store(Request $request, $blogId)
@@ -93,7 +93,7 @@ class BlogCommentController extends Controller
             'image' => 'nullable|string|max:500',
         ]);
         if ($validator->fails()) {
-            return ApiResponse::error($validator->errors()->first(), '验证失败', 422);
+            return ApiResponse::error($validator->errors()->first(), __('app.common.validation_failed'), 422);
         }
         $comment = BlogComment::create([
             'blog_id' => $blogId,
@@ -103,18 +103,18 @@ class BlogCommentController extends Controller
             'image' => $request->image,
         ]);
         $comment->load('user:id,name,avatar');
-        return ApiResponse::success($comment, '评论成功', 201);
+        return ApiResponse::success($comment, __("app.blog_comment.msg_7d2cf0c6"), 201);
     }
 
     public function destroy($blogId, $id)
     {
         $comment = BlogComment::where('blog_id', $blogId)->findOrFail($id);
         if ($comment->user_id !== auth()->id()) {
-            return ApiResponse::error('无权删除', '禁止操作', 403);
+            return ApiResponse::error(__('app.blog_comment.no_delete_permission'), __("app.blog_comment.msg_6bf3429d"), 403);
         }
         $comment->replies()->delete();
         $comment->delete();
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __("app.blog_comment.msg_5cc23262"));
     }
 
     public function toggleLike($blogId, $id)
@@ -174,6 +174,6 @@ class BlogCommentController extends Controller
             'content' => $comment->content,
             'created_at' => $comment->created_at,
             'user' => $comment->user ? ['id' => $comment->user->id, 'name' => $comment->user->name, 'avatar' => $comment->user->avatar] : null,
-        ], '评论成功', 201);
+        ], __('app.blog_comment.comment_posted'), 201);
     }
 }

@@ -102,7 +102,7 @@ class IstioService
         $weight = $params['weight'] ?? 10;
 
         if (empty($service) || empty($version)) {
-            throw new \InvalidArgumentException('service 和 version 必填');
+            throw new \InvalidArgumentException(__("app.istio.service_and_version_required"));
         }
 
         // 记录金丝雀发布配置
@@ -131,7 +131,7 @@ class IstioService
     {
         $canary = Cache::get("istio:canary:{$service}");
         if (!$canary) {
-            throw new \RuntimeException("未找到 {$service} 的金丝雀发布记录");
+            throw new \RuntimeException(__("app.istio.msg_0156daef"));
         }
 
         Cache::put("istio:canary:{$service}", array_merge($canary, [

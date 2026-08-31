@@ -20,7 +20,7 @@ class DemoBookingNotification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '[新Demo预约] ' . $this->booking->company_name . ' — ' . $this->booking->contact_name,
+            subject: __('app.mail.demo_booking_new_subject', ['company' => $this->booking->company_name, 'contact' => $this->booking->contact_name]),
         );
     }
 

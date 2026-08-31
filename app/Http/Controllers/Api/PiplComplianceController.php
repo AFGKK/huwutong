@@ -36,7 +36,7 @@ class PiplComplianceController extends Controller
         $tenantId = $httpRequest->user()->tenant_id ?? 1;
         $result = $this->piplService->scanAndClassify($tenantId, $validated['connection'] ?? null);
 
-        return ApiResponse::success($result, '扫描完成');
+        return ApiResponse::success($result, __('app.api.pipl_compliance.scan_complete'));
     }
 
     /**
@@ -91,7 +91,7 @@ class PiplComplianceController extends Controller
 
         $inventory->update($validated);
 
-        return ApiResponse::success($inventory->fresh(), '已更新');
+        return ApiResponse::success($inventory->fresh(), __('app.api.pipl_compliance.updated'));
     }
 
     /**
@@ -113,7 +113,7 @@ class PiplComplianceController extends Controller
         PersonalDataInventory::whereIn('id', $validated['ids'])
             ->update($validated['data']);
 
-        return ApiResponse::success([], '批量更新完成');
+        return ApiResponse::success([], __('app.api.pipl_compliance.batch_updated'));
     }
 
     // ─── 跨境数据传输 ───
@@ -168,7 +168,7 @@ class PiplComplianceController extends Controller
 
         $transfer = $this->piplService->createCrossBorderTransfer($validated);
 
-        return ApiResponse::success($transfer, '跨境传输记录已创建');
+        return ApiResponse::success($transfer, __('app.api.pipl_compliance.cross_border_recorded'));
     }
 
     /**
@@ -191,7 +191,7 @@ class PiplComplianceController extends Controller
 
         $transfer->update($validated);
 
-        return ApiResponse::success($transfer->fresh(), '已更新');
+        return ApiResponse::success($transfer->fresh(), __('app.api.pipl_compliance.updated'));
     }
 
     /**
@@ -211,7 +211,7 @@ class PiplComplianceController extends Controller
             $httpRequest->user()->id
         );
 
-        return ApiResponse::success($result, '评估完成');
+        return ApiResponse::success($result, __('app.api.pipl_compliance.assessment_complete'));
     }
 
     // ─── DPIA 数据保护影响评估 ───
@@ -260,7 +260,7 @@ class PiplComplianceController extends Controller
 
         $dpia = $this->piplService->createDpia($validated, $httpRequest->user()->id);
 
-        return ApiResponse::success($dpia, 'DPIA 已创建');
+        return ApiResponse::success($dpia, __('app.api.pipl_compliance.dpia_created'));
     }
 
     /**
@@ -297,7 +297,7 @@ class PiplComplianceController extends Controller
 
         $dpia->update($validated);
 
-        return ApiResponse::success($dpia->fresh(), 'DPIA 已更新');
+        return ApiResponse::success($dpia->fresh(), __('app.api.pipl_compliance.dpia_updated'));
     }
 
     /**
@@ -316,7 +316,7 @@ class PiplComplianceController extends Controller
 
         $result = $this->piplService->completeDpia($dpia->id, $validated);
 
-        return ApiResponse::success($result, 'DPIA 评估完成');
+        return ApiResponse::success($result, __('app.api.pipl_compliance.dpia_assessment_done'));
     }
 
     // ─── 统计 ───
@@ -369,7 +369,7 @@ class PiplComplianceController extends Controller
 
         return ApiResponse::success(
             $this->piplService->updateDpoInfo($validated),
-            'DPO 信息已更新'
+            __('app.api.pipl_compliance.dpo_updated')
         );
     }
 
@@ -412,7 +412,7 @@ class PiplComplianceController extends Controller
             $request->user()->id
         );
 
-        return ApiResponse::success($result, '泄露事件已上报');
+        return ApiResponse::success($result, __('app.api.pipl_compliance.breach_reported'));
     }
 
     /**

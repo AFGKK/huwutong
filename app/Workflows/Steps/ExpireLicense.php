@@ -33,7 +33,7 @@ class ExpireLicense extends BaseWorkflowStep
             // 可能是一个 bulk 操作，从 context 中读取 license_id
             $licenseId = $context['license_id'] ?? $input['license_id'] ?? null;
             if (!$licenseId) {
-                throw new \RuntimeException('缺少 license_id');
+                throw new \RuntimeException(__('app.common.missing_license_id'));
             }
             $license = License::findOrFail($licenseId);
         }

@@ -46,7 +46,7 @@ class AffiliateEnhancedController extends Controller
             $agent, $campaign, $creative, $validated['product_id'] ?? null
         );
 
-        return ApiResponse::success($link, '推广链接已生成');
+        return ApiResponse::success($link, __("app.affiliate_enhanced.msg_ac3a7078"));
     }
 
     /**
@@ -90,7 +90,7 @@ class AffiliateEnhancedController extends Controller
             $validated['notes'] ?? null,
         );
 
-        return ApiResponse::success($settlement, '佣金已结算');
+        return ApiResponse::success($settlement, __("app.affiliate_enhanced.msg_f65baacf"));
     }
 
     /**
@@ -115,7 +115,7 @@ class AffiliateEnhancedController extends Controller
         return ApiResponse::success([
             'attributed' => !is_null($result),
             'click' => $result,
-        ], $result ? '转化已归因并结算' : '未找到匹配点击');
+        ], $result ? __('app.affiliate_enhanced.conversion_attributed_settled') : __('app.affiliate_enhanced.no_matching_click'));
     }
 
     /**
@@ -137,7 +137,7 @@ class AffiliateEnhancedController extends Controller
 
         $link = $this->enhancedService->generateProductReferralLink($agent, $product, $campaign);
 
-        return ApiResponse::success($link, '商品推广链接已生成');
+        return ApiResponse::success($link, __("app.affiliate_enhanced.msg_2a33ff75"));
     }
 
     /**
@@ -156,7 +156,7 @@ class AffiliateEnhancedController extends Controller
         $agent = $this->storeService->attributeOrderToAffiliate($order, $validated['referral_code']);
 
         if (!$agent) {
-            return ApiResponse::error('NO_AGENT_FOUND', '未找到推广人', 404);
+            return ApiResponse::error('NO_AGENT_FOUND', __("app.affiliate_enhanced.msg_a35b55f5"), 404);
         }
 
         // 自动结算佣金
@@ -166,7 +166,7 @@ class AffiliateEnhancedController extends Controller
             'order_id' => $order->id,
             'agent_id' => $agent->id,
             'agent_name' => $agent->contact_name ?: $agent->user?->name,
-        ], '订单已关联推广人并结算佣金');
+        ], __('app.affiliate_enhanced.order_linked_settled'));
     }
 
     /**

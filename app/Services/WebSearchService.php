@@ -73,7 +73,7 @@ class WebSearchService
             $result = [
                 'success' => false,
                 'results' => [],
-                'error' => '联网搜索未配置。请在管理员设置中配置 ' . $this->provider . ' API Key。',
+                'error' => __('app.api.service_web_search.not_configured', ['provider' => $this->provider]),
                 'provider' => $this->provider,
             ];
             if ($cacheTtl > 0) {
@@ -88,7 +88,7 @@ class WebSearchService
                 'serpapi' => $this->searchSerpApi($query, $maxResults),
                 'google_cse' => $this->searchGoogleCse($query, $maxResults),
                 'searxng' => $this->searchSearxng($query, $maxResults),
-                default => ['success' => false, 'results' => [], 'error' => '未知搜索 Provider'],
+                default => ['success' => false, 'results' => [], 'error' => __('app.api.service_web_search.unknown_provider')],
             };
 
             if ($cacheTtl > 0 && ($results['success'] ?? false)) {
@@ -105,7 +105,7 @@ class WebSearchService
             return [
                 'success' => false,
                 'results' => [],
-                'error' => '搜索请求失败：' . $e->getMessage(),
+                'error' => __('app.api.service_web_search.search_failed', ['error' => $e->getMessage()]),
                 'provider' => $this->provider,
             ];
         }
@@ -145,7 +145,7 @@ class WebSearchService
         ]);
 
         if (!$response->successful()) {
-            return ['success' => false, 'results' => [], 'error' => 'Tavily API 返回错误: ' . $response->status()];
+            return ['success' => false, 'results' => [], 'error' => __('app.api.service_web_search.tavily_error', ['status' => $response->status()])];
         }
 
         $data = $response->json();
@@ -180,7 +180,7 @@ class WebSearchService
         ]);
 
         if (!$response->successful()) {
-            return ['success' => false, 'results' => [], 'error' => 'SerpAPI 返回错误: ' . $response->status()];
+            return ['success' => false, 'results' => [], 'error' => __('app.api.service_web_search.serpapi_error', ['status' => $response->status()])];
         }
 
         $data = $response->json();
@@ -215,7 +215,7 @@ class WebSearchService
         ]);
 
         if (!$response->successful()) {
-            return ['success' => false, 'results' => [], 'error' => 'Google CSE 返回错误: ' . $response->status()];
+            return ['success' => false, 'results' => [], 'error' => __('app.api.service_web_search.google_error', ['status' => $response->status()])];
         }
 
         $data = $response->json();
@@ -252,7 +252,7 @@ class WebSearchService
         ]);
 
         if (!$response->successful()) {
-            return ['success' => false, 'results' => [], 'error' => 'SearXNG 返回错误: ' . $response->status()];
+            return ['success' => false, 'results' => [], 'error' => __('app.api.service_web_search.searxng_error', ['status' => $response->status()])];
         }
 
         $data = $response->json();

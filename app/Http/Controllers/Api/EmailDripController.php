@@ -54,7 +54,7 @@ class EmailDripController extends Controller
         ]);
 
         $campaign = $this->drip->createCampaign($tenantId, $validated);
-        return ApiResponse::created($campaign, '营销活动已创建');
+        return ApiResponse::created($campaign, __("app.email_drip.msg_65ba4514"));
     }
 
     /**
@@ -83,7 +83,7 @@ class EmailDripController extends Controller
         ]);
 
         $seq = $this->drip->addSequence($campaign->id, $validated);
-        return ApiResponse::created($seq, '序列步骤已添加');
+        return ApiResponse::created($seq, __("app.email_drip.msg_12485b72"));
     }
 
     /**
@@ -93,7 +93,7 @@ class EmailDripController extends Controller
     public function activate(EmailDripCampaign $campaign): JsonResponse
     {
         $campaign = $this->drip->activateCampaign($campaign->id);
-        return ApiResponse::success($campaign, '营销活动已启动');
+        return ApiResponse::success($campaign, __("app.email_drip.msg_daeecc9f"));
     }
 
     /**
@@ -103,7 +103,7 @@ class EmailDripController extends Controller
     public function pause(EmailDripCampaign $campaign): JsonResponse
     {
         $campaign = $this->drip->pauseCampaign($campaign->id);
-        return ApiResponse::success($campaign, '营销活动已暂停');
+        return ApiResponse::success($campaign, __("app.email_drip.msg_ba156693"));
     }
 
     /**

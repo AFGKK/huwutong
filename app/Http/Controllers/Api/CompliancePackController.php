@@ -80,7 +80,7 @@ class CompliancePackController extends Controller
         return response()->json([
             'success' => true,
             'data' => $result,
-            'message' => "已提交 {$result['submitted']} 条回答",
+            'message' => __('app.api.compliance_pack.answers_submitted', ['submitted' => $result['submitted']]),
         ]);
     }
 
@@ -141,7 +141,7 @@ class CompliancePackController extends Controller
         return response()->json([
             'success' => true,
             'data' => $evidence,
-            'message' => '证据已自动收集',
+            'message' => __('app.api.compliance_pack.evidence_collected'),
         ]);
     }
 
@@ -174,7 +174,7 @@ class CompliancePackController extends Controller
         return response()->json([
             'success' => true,
             'data' => $results,
-            'message' => '批量收集完成',
+            'message' => __('app.api.compliance_pack.batch_collection_done'),
         ]);
     }
 
@@ -197,7 +197,7 @@ class CompliancePackController extends Controller
         return response()->json([
             'success' => true,
             'data' => $evidence,
-            'message' => '证据状态已更新',
+            'message' => __('app.api.compliance_pack.evidence_updated'),
         ]);
     }
 
@@ -221,7 +221,7 @@ class CompliancePackController extends Controller
         return response()->json([
             'success' => true,
             'data' => $results,
-            'message' => '差距分析完成',
+            'message' => __('app.api.compliance_pack.gap_analysis_done'),
         ]);
     }
 
@@ -268,7 +268,7 @@ class CompliancePackController extends Controller
         return response()->json([
             'success' => true,
             'data' => $gap,
-            'message' => '整改计划已更新',
+            'message' => __('app.api.compliance_pack.remediation_updated'),
         ]);
     }
 
@@ -299,7 +299,7 @@ class CompliancePackController extends Controller
         return response()->json([
             'success' => true,
             'data' => ['file' => $fileName],
-            'message' => '策略文档已生成',
+            'message' => __('app.api.compliance_pack.policy_generated'),
         ]);
     }
 
@@ -309,7 +309,7 @@ class CompliancePackController extends Controller
     public function downloadPolicyDocument(string $fileName): JsonResponse
     {
         if (!Storage::disk('local')->exists("compliance/policies/{$fileName}")) {
-            return response()->json(['success' => false, 'message' => '文件不存在'], 404);
+            return response()->json(['success' => false, 'message' => __('app.api.compliance_pack.file_not_found')], 404);
         }
 
         return response()->json([
@@ -338,12 +338,12 @@ class CompliancePackController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => ['file' => $fileName],
-                'message' => "合规报告已导出为 {$validated['format']} 格式",
+                'message' => __('app.api.compliance_pack.report_exported', ['format' => $validated['format']]),
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '报告导出失败: ' . $e->getMessage(),
+                'message' => __('app.api.compliance_pack.report_export_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -356,7 +356,7 @@ class CompliancePackController extends Controller
         $directory = 'compliance/reports';
 
         if (!Storage::disk('local')->exists("{$directory}/{$fileName}")) {
-            return response()->json(['success' => false, 'message' => '报告文件不存在'], 404);
+            return response()->json(['success' => false, 'message' => __('app.api.compliance_pack.report_file_not_found')], 404);
         }
 
         return response()->json([

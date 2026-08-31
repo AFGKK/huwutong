@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\ApiResponse;
-use App\Services\CircuitBreakerService;
-use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
+use App\Models\SystemHealthThreshold;
+use App\Services\CircuitBreakerService;
+use App\Services\SystemHealthService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * 健康检查控制器
@@ -17,9 +21,24 @@ use Illuminate\Support\Facades\Redis;
  * - /health/live    → Liveness Probe（K8s 存活探针）：进程是否活着
  * - /health/ready   → Readiness Probe（K8s 就绪探针）：DB/Redis 是否就绪
  * - /health/status  → 详细健康状态（含所有服务、缓存、队列等指标）
+ *
+ * 系统健康管理端点（原 SystemHealthController）：
+ * - GET  /admin/system-health/dashboard
+ * - GET  /admin/system-health/check
+ * - GET  /admin/system-health/trend
+ * - POST /admin/system-health/snapshot
+ * - GET  /admin/system-health/thresholds
+ * - PUT  /admin/system-health/thresholds/{id}
+ * - GET  /admin/system-health/failed-jobs
  */
 class HealthController extends Controller
 {
+    public function __construct(
+        protected SystemHealthService $healthService,
+    ) {}
+
+    // ── 基础健康检查（原 HealthController 方法） ──
+
     /**
      * 存活检查
      *
@@ -98,6 +117,101 @@ class HealthController extends Controller
             $criticalHealthy ? 200 : 503,
         );
     }
+
+    // ── 系统健康管理（原 SystemHealthController 方法） ──
+
+    /**
+     * 系统健康仪表盘
+     * GET /api/admin/system-health/dashboard
+     */
+    public function dashboard(): JsonResponse
+    {
+        return ApiResponse::success($this->healthService->getDashboard());
+    }
+
+    /**
+     * 实时健康检查
+     * GET /api/admin/system-health/check
+     */
+    public function check(): JsonResponse
+    {
+        return ApiResponse::success($this->healthService->performFullCheck());
+    }
+
+    /**
+     * 健康趋势数据
+     * GET /api/admin/system-health/trend?period=24h|7d|30d|90d
+     */
+    public function trend(Request $request): JsonResponse
+    {
+        $period = $request->input('period', '24h');
+        if (!in_array($period, ['24h', '7d', '30d', '90d'])) {
+            $period = '24h';
+        }
+        return ApiResponse::success($this->healthService->getTrend($period));
+    }
+
+    /**
+     * 手动创建健康快照
+     * POST /api/admin/system-health/snapshot
+     */
+    public function snapshot(): JsonResponse
+    {
+        $log = $this->healthService->snapshot();
+        return ApiResponse::created($log, __('app.api.system_health_api.snapshot_recorded'));
+    }
+
+    /**
+     * 获取阈值配置
+     * GET /api/admin/system-health/thresholds
+     */
+    public function thresholds(): JsonResponse
+    {
+        return ApiResponse::success(
+            SystemHealthThreshold::where('is_active', true)->get()
+        );
+    }
+
+    /**
+     * 更新阈值配置
+     * PUT /api/admin/system-health/thresholds/{id}
+     */
+    public function updateThreshold(Request $request, int $id): JsonResponse
+    {
+        $threshold = SystemHealthThreshold::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'warning_threshold' => 'nullable|numeric',
+            'critical_threshold' => 'nullable|numeric',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return ApiResponse::validationError(__('app.api.system_health_api.param_error'), $validator->errors()->toArray());
+        }
+
+        $threshold->update($validator->validated());
+        return ApiResponse::success($threshold->fresh(), __('app.api.system_health_api.threshold_updated'));
+    }
+
+    /**
+     * 获取失败任务列表
+     * GET /api/admin/system-health/failed-jobs
+     */
+    public function failedJobs(): JsonResponse
+    {
+        try {
+            $jobs = \Illuminate\Support\Facades\DB::table('failed_jobs')
+                ->orderByDesc('failed_at')
+                ->limit(50)
+                ->get();
+            return ApiResponse::success($jobs);
+        } catch (\Throwable $e) {
+            return ApiResponse::success([]);
+        }
+    }
+
+    // ── Protected helper methods ──
 
     /**
      * 数据库检查
@@ -199,7 +313,6 @@ class HealthController extends Controller
      */
     protected function getUptime(): string
     {
-        // 通过缓存记录启动时间（在 AppServiceProvider 或类似位置设置）
         $startedAt = Cache::get('app:started_at', now()->timestamp);
         $seconds = time() - $startedAt;
 

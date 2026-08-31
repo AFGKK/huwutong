@@ -60,7 +60,7 @@ class AlertManagerService
     public function aggregateEvents(): array
     {
         if (!config('alert-manager.aggregation.enabled', true)) {
-            return ['aggregated' => 0, 'message' => '聚合已禁用'];
+            return ['aggregated' => 0, 'message' => __('app.common.aggregation_disabled')];
         }
 
         $window = config('alert-manager.aggregation.window_minutes', 60);
@@ -344,7 +344,7 @@ class AlertManagerService
     public function generateDigest(): array
     {
         if (!config('alert-manager.digest.enabled', true)) {
-            return ['digest' => null, 'message' => '摘要已禁用'];
+            return ['digest' => null, 'message' => __('app.common.digest_disabled')];
         }
 
         $since = now()->subMinutes(config('alert-manager.digest.interval_minutes', 30));

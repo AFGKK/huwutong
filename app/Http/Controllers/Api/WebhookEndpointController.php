@@ -77,7 +77,7 @@ class WebhookEndpointController extends Controller
             'is_paused' => false,
         ]);
 
-        return ApiResponse::created($endpoint, 'Webhook 端点创建成功');
+        return ApiResponse::created($endpoint, __('app.api.webhook.created'));
     }
 
     /**
@@ -90,7 +90,7 @@ class WebhookEndpointController extends Controller
         $endpoint = $this->findEndpoint($id);
 
         if (! $endpoint) {
-            return ApiResponse::notFound('Webhook 端点不存在');
+            return ApiResponse::notFound(__('app.api.webhook.not_found'));
         }
 
         $endpoint->loadCount('events');
@@ -109,7 +109,7 @@ class WebhookEndpointController extends Controller
         $endpoint = $this->findEndpoint($id);
 
         if (! $endpoint) {
-            return ApiResponse::notFound('Webhook 端点不存在');
+            return ApiResponse::notFound(__('app.api.webhook.not_found'));
         }
 
         $data = $request->validate([
@@ -131,7 +131,7 @@ class WebhookEndpointController extends Controller
 
         $endpoint->update($data);
 
-        return ApiResponse::success($endpoint->fresh(), 'Webhook 端点已更新');
+        return ApiResponse::success($endpoint->fresh(), __('app.api.webhook.updated'));
     }
 
     /**
@@ -144,7 +144,7 @@ class WebhookEndpointController extends Controller
         $endpoint = $this->findEndpoint($id);
 
         if (! $endpoint) {
-            return ApiResponse::notFound('Webhook 端点不存在');
+            return ApiResponse::notFound(__('app.api.webhook.not_found'));
         }
 
         // 软删除：标记为 inactive 而非实际删除
@@ -153,7 +153,7 @@ class WebhookEndpointController extends Controller
             'is_paused' => true,
         ]);
 
-        return ApiResponse::success(null, 'Webhook 端点已停用');
+        return ApiResponse::success(null, __('app.api.webhook.disabled'));
     }
 
     /**
@@ -166,7 +166,7 @@ class WebhookEndpointController extends Controller
         $endpoint = $this->findEndpoint($id);
 
         if (! $endpoint) {
-            return ApiResponse::notFound('Webhook 端点不存在');
+            return ApiResponse::notFound(__('app.api.webhook.not_found'));
         }
 
         $pause = ! $endpoint->is_paused;
@@ -175,7 +175,7 @@ class WebhookEndpointController extends Controller
         return ApiResponse::success([
             'is_paused' => $pause,
             'paused_at' => $endpoint->fresh()->paused_at,
-        ], $pause ? '端点已暂停' : '端点已恢复');
+        ], $pause ? __('app.api.webhook.paused') : __('app.api.webhook.resumed'));
     }
 
     /**
@@ -188,15 +188,15 @@ class WebhookEndpointController extends Controller
         $endpoint = $this->findEndpoint($id);
 
         if (! $endpoint) {
-            return ApiResponse::notFound('Webhook 端点不存在');
+            return ApiResponse::notFound(__('app.api.webhook.not_found'));
         }
 
         try {
             $result = $this->webhookService->testEndpoint($endpoint);
 
-            return ApiResponse::success($result, $result['success'] ? '连接测试成功' : '连接测试失败');
+            return ApiResponse::success($result, $result['success'] ? __('app.api.webhook.test_ok') : __('app.api.webhook.test_fail'));
         } catch (\Throwable $e) {
-            return ApiResponse::error('TEST_FAILED', '连接测试异常: ' . $e->getMessage(), 500);
+            return ApiResponse::error('TEST_FAILED', __('app.api.webhook.test_error', ['error' => $e->getMessage()]), 500);
         }
     }
 
@@ -208,30 +208,30 @@ class WebhookEndpointController extends Controller
     public function eventTypes(): JsonResponse
     {
         $types = [
-            ['value' => '*', 'label' => '全部事件'],
-            ['value' => 'license.activated', 'label' => 'License 激活'],
-            ['value' => 'license.deactivated', 'label' => 'License 停用'],
-            ['value' => 'license.revoked', 'label' => 'License 吊销'],
-            ['value' => 'license.expired', 'label' => 'License 过期'],
-            ['value' => 'license.suspended', 'label' => 'License 暂停'],
-            ['value' => 'license.restored', 'label' => 'License 恢复'],
-            ['value' => 'license.frozen', 'label' => 'License 冻结'],
-            ['value' => 'license.refunded', 'label' => 'License 退款'],
-            ['value' => 'license.blacklisted', 'label' => 'License 加入黑名单'],
-            ['value' => 'subscription.created', 'label' => '订阅创建'],
-            ['value' => 'subscription.cancelled', 'label' => '订阅取消'],
-            ['value' => 'subscription.renewed', 'label' => '订阅续费'],
-            ['value' => 'subscription.expiring', 'label' => '订阅即将到期'],
-            ['value' => 'subscription.payment_failed', 'label' => '订阅支付失败'],
-            ['value' => 'customer.created', 'label' => '客户创建'],
-            ['value' => 'customer.updated', 'label' => '客户更新'],
-            ['value' => 'device.activated', 'label' => '设备激活'],
-            ['value' => 'device.deactivated', 'label' => '设备停用'],
-            ['value' => 'device.exceeded', 'label' => '设备超限'],
-            ['value' => 'user.login', 'label' => '用户登录'],
-            ['value' => 'user.mfa_enabled', 'label' => '用户启用 MFA'],
-            ['value' => 'ticket.created', 'label' => '工单创建'],
-            ['value' => 'ticket.updated', 'label' => '工单更新'],
+            ['value' => '*', 'label' => __('app.api.webhook.evt_all')],
+            ['value' => 'license.activated', 'label' => __('app.api.webhook.evt_license_activated')],
+            ['value' => 'license.deactivated', 'label' => __('app.api.webhook.evt_license_deactivated')],
+            ['value' => 'license.revoked', 'label' => __('app.api.webhook.evt_license_revoked')],
+            ['value' => 'license.expired', 'label' => __('app.api.webhook.evt_license_expired')],
+            ['value' => 'license.suspended', 'label' => __('app.api.webhook.evt_license_suspended')],
+            ['value' => 'license.restored', 'label' => __('app.api.webhook.evt_license_restored')],
+            ['value' => 'license.frozen', 'label' => __('app.api.webhook.evt_license_frozen')],
+            ['value' => 'license.refunded', 'label' => __('app.api.webhook.evt_license_refunded')],
+            ['value' => 'license.blacklisted', 'label' => __('app.api.webhook.evt_license_blacklisted')],
+            ['value' => 'subscription.created', 'label' => __('app.api.webhook.evt_sub_created')],
+            ['value' => 'subscription.cancelled', 'label' => __('app.api.webhook.evt_sub_cancelled')],
+            ['value' => 'subscription.renewed', 'label' => __('app.api.webhook.evt_sub_renewed')],
+            ['value' => 'subscription.expiring', 'label' => __('app.api.webhook.evt_sub_expiring')],
+            ['value' => 'subscription.payment_failed', 'label' => __('app.api.webhook.evt_sub_payment_failed')],
+            ['value' => 'customer.created', 'label' => __('app.api.webhook.evt_customer_created')],
+            ['value' => 'customer.updated', 'label' => __('app.api.webhook.evt_customer_updated')],
+            ['value' => 'device.activated', 'label' => __('app.api.webhook.evt_device_activated')],
+            ['value' => 'device.deactivated', 'label' => __('app.api.webhook.evt_device_deactivated')],
+            ['value' => 'device.exceeded', 'label' => __('app.api.webhook.evt_device_exceeded')],
+            ['value' => 'user.login', 'label' => __('app.api.webhook.evt_user_login')],
+            ['value' => 'user.mfa_enabled', 'label' => __('app.api.webhook.evt_user_mfa')],
+            ['value' => 'ticket.created', 'label' => __('app.api.webhook.evt_ticket_created')],
+            ['value' => 'ticket.updated', 'label' => __('app.api.webhook.evt_ticket_updated')],
         ];
 
         return ApiResponse::success($types);

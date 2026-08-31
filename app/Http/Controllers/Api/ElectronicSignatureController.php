@@ -40,7 +40,7 @@ class ElectronicSignatureController extends Controller
             $validated['expires_in_days'] ?? 30,
         );
 
-        return ApiResponse::success($result, '已发起签署请求');
+        return ApiResponse::success($result, __("app.electronic_signature.msg_63834a7c"));
     }
 
     /**

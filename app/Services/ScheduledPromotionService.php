@@ -321,12 +321,12 @@ class ScheduledPromotionService
     {
         return match ($type) {
             'flash_sale' => '#F56C6C',
-            'bulk_discount' => '#409EFF',
+            'bulk_discount' => '#0f172a',
             'bundle' => '#67C23A',
             'x_for_y' => '#E6A23C',
             'free_gift' => '#909399',
             'tiered' => '#9B59B6',
-            default => '#409EFF',
+            default => '#0f172a',
         };
     }
 

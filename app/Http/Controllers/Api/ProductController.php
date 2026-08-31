@@ -120,7 +120,7 @@ class ProductController extends Controller
 
         $product = Product::create(array_merge($validated, ['user_id' => $request->user()->id]));
 
-        return ApiResponse::created($product->load('featureFlags', 'creator:id,name,avatar'), '产品创建成功');
+        return ApiResponse::created($product->load('featureFlags', 'creator:id,name,avatar'), __('app.api.product.created'));
     }
 
     public function update(int $id, Request $request): JsonResponse
@@ -149,7 +149,7 @@ class ProductController extends Controller
 
         $product->update($validated);
 
-        return ApiResponse::success($product->fresh()->load('featureFlags'), '产品更新成功');
+        return ApiResponse::success($product->fresh()->load('featureFlags'), __('app.api.product.updated'));
     }
 
     /**
@@ -165,12 +165,12 @@ class ProductController extends Controller
         $path = $file->store('products/' . date('Ymd'), 'public');
 
         if (!$path) {
-            return ApiResponse::error('图片上传失败', 500);
+            return ApiResponse::error(__('app.api.product.image_upload_failed'), 500);
         }
 
         $url = '/storage/' . $path;
 
-        return ApiResponse::success(['url' => $url, 'path' => $path], '上传成功');
+        return ApiResponse::success(['url' => $url, 'path' => $path], __('app.api.product.upload_success'));
     }
 
     /**
@@ -225,7 +225,7 @@ class ProductController extends Controller
 
         return ApiResponse::success(
             $product->fresh()->load('featureFlags'),
-            'Feature Flags 更新成功'
+            __('app.api.product.feature_flags_updated')
         );
     }
 
@@ -261,7 +261,7 @@ class ProductController extends Controller
                 break;
         }
 
-        return ApiResponse::success(['affected' => $count], "批量操作完成，影响 {$count} 个产品");
+        return ApiResponse::success(['affected' => $count], __('app.api.product.batch_done', ['count' => $count]));
     }
 
     /**
@@ -271,13 +271,13 @@ class ProductController extends Controller
     {
         $source = Product::findOrFail($id);
         $clone = $source->replicate();
-        $clone->name = $source->name . ' (副本)';
+        $clone->name = $source->name . __('app.api.product.clone_suffix');
         $clone->slug = $source->slug . '-copy-' . time();
         $clone->sales_count = 0;
         $clone->user_id = $request->user()->id;
         $clone->save();
 
-        return ApiResponse::success($clone->fresh(), '产品已克隆');
+        return ApiResponse::success($clone->fresh(), __('app.api.product.cloned'));
     }
 
     /**
@@ -315,7 +315,7 @@ class ProductController extends Controller
             }
         }
 
-        return ApiResponse::success(null, '规格参数已保存');
+        return ApiResponse::success(null, __('app.api.product.specs_saved'));
     }
 
     /**
@@ -377,7 +377,7 @@ class ProductController extends Controller
         $tenantId = $product->tenant_id ?? auth()->user()->tenant_id;
         $seo = app(SeoService::class)->upsertMetadata($product, $tenantId, $validated);
 
-        return ApiResponse::success($seo, 'SEO 已保存');
+        return ApiResponse::success($seo, __('app.api.product.seo_saved'));
     }
 
     /**
@@ -401,7 +401,7 @@ class ProductController extends Controller
             );
         }
 
-        return ApiResponse::success(null, '翻译已保存');
+        return ApiResponse::success(null, __('app.api.product.translation_saved'));
     }
 
     /**

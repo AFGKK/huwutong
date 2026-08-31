@@ -139,7 +139,7 @@ class DataResidencyController extends Controller
         return response()->json([
             'success' => true,
             'data' => $migration,
-            'message' => '迁移任务已创建',
+            'message' => __('app.controller_compat.data_residency_msg_142'),
         ], 201);
     }
 

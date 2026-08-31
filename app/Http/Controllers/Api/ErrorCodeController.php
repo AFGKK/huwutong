@@ -71,7 +71,7 @@ class ErrorCodeController extends Controller
     {
         $query = $request->input('q');
         if (empty($query)) {
-            return ApiResponse::error(\App\Enums\ErrorCode::VALIDATION_MISSING_FIELD->value, '请输入搜索关键词', 422);
+            return ApiResponse::error(\App\Enums\ErrorCode::VALIDATION_MISSING_FIELD->value, __('app.api.error_code.enter_keyword'), 422);
         }
 
         $query = strtoupper($query);

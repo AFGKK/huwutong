@@ -37,17 +37,31 @@ class MaintenanceModeService
     {
         $config = $this->getConfig();
 
-        if (! $config) {
+        if ($config) {
+            // 检查自动关闭时间
+            if ($config->auto_disable_at && now()->gte($config->auto_disable_at)) {
+                $this->disable($config);
+
+                return $this->isSiteSettingMaintenanceEnabled();
+            }
+
+            return true;
+        }
+
+        // 兼容后台「系统设置」里的 maintenance_enabled 开关
+        return $this->isSiteSettingMaintenanceEnabled();
+    }
+
+    /**
+     * SiteSetting 简易维护开关（与 MaintenanceConfig 并存时的回退源）
+     */
+    public function isSiteSettingMaintenanceEnabled(): bool
+    {
+        if (! function_exists('site_setting')) {
             return false;
         }
 
-        // 检查自动关闭时间
-        if ($config->auto_disable_at && now()->gte($config->auto_disable_at)) {
-            $this->disable($config);
-            return false;
-        }
-
-        return true;
+        return (string) site_setting('maintenance_enabled', '0') === '1';
     }
 
     /**
@@ -57,11 +71,18 @@ class MaintenanceModeService
     {
         $config = $this->getConfig();
 
-        if (! $config) {
+        if ($config) {
+            return $config->isIpWhitelisted($ip) || $config->isPathWhitelisted($path);
+        }
+
+        if (! $this->isSiteSettingMaintenanceEnabled()) {
             return false;
         }
 
-        return $config->isIpWhitelisted($ip) || $config->isPathWhitelisted($path);
+        $allowed = (string) site_setting('maintenance_allowed_ips', '');
+        $ips = array_filter(array_map('trim', preg_split('/[\r\n,]+/', $allowed) ?: []));
+
+        return $ips !== [] && in_array($ip, $ips, true);
     }
 
     /**
@@ -71,12 +92,24 @@ class MaintenanceModeService
     {
         $config = $this->getConfig();
 
+        if ($config) {
+            return [
+                'title' => $config->title ?? '系统维护中',
+                'message' => $config->message ?? '系统正在进行计划内维护，请稍后再试。',
+                'scheduled_end_at' => $config->scheduled_end_at?->toIso8601String(),
+                'retry_after' => $config->retry_after ?? 60,
+                'timestamp' => now()->toIso8601String(),
+                'source' => 'maintenance_config',
+            ];
+        }
+
         return [
-            'title' => $config?->title ?? '系统维护中',
-            'message' => $config?->message ?? '系统正在进行计划内维护，请稍后再试。',
-            'scheduled_end_at' => $config?->scheduled_end_at?->toIso8601String(),
-            'retry_after' => $config?->retry_after ?? 60,
+            'title' => '系统维护中',
+            'message' => (string) site_setting('maintenance_message', '系统维护中，请稍后再试。'),
+            'scheduled_end_at' => null,
+            'retry_after' => 60,
             'timestamp' => now()->toIso8601String(),
+            'source' => 'site_setting',
         ];
     }
 
@@ -93,6 +126,7 @@ class MaintenanceModeService
         ]));
 
         $this->clearCache();
+        $this->syncSiteSettingFlag(true, $config->message ?? null);
 
         // 触发 Laravel 内置维护模式（可选）
         if ($data['system_maintenance'] ?? false) {
@@ -117,10 +151,51 @@ class MaintenanceModeService
         }
 
         $this->clearCache();
+        $this->syncSiteSettingFlag(false);
 
         // 恢复 Laravel 内置维护模式
         if (app()->isDownForMaintenance()) {
             \Artisan::call('up');
+        }
+    }
+
+    /**
+     * 将维护开关镜像到 SiteSetting，避免后台两处状态不一致
+     */
+    public function syncSiteSettingFlag(bool $enabled, ?string $message = null): void
+    {
+        try {
+            if (! class_exists(\App\Models\SiteSetting::class)) {
+                return;
+            }
+
+            \App\Models\SiteSetting::updateOrCreate(
+                ['key' => 'maintenance_enabled'],
+                [
+                    'group' => 'maintenance',
+                    'value' => $enabled ? '1' : '0',
+                    'type' => 'switch',
+                    'is_public' => true,
+                    'description' => '启用维护模式',
+                ]
+            );
+
+            if ($message !== null && $message !== '') {
+                \App\Models\SiteSetting::updateOrCreate(
+                    ['key' => 'maintenance_message'],
+                    [
+                        'group' => 'maintenance',
+                        'value' => $message,
+                        'type' => 'textarea',
+                        'is_public' => true,
+                        'description' => '维护提示信息',
+                    ]
+                );
+            }
+
+            \Illuminate\Support\Facades\Cache::forget('site_settings_all');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::debug('syncSiteSettingFlag failed: '.$e->getMessage());
         }
     }
 

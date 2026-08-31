@@ -91,7 +91,7 @@ class PromotionEngineController extends Controller
 
         $rule = PromotionRule::create($validated);
 
-        return ApiResponse::success($rule->load('creator:id,name'), '促销规则创建成功');
+        return ApiResponse::success($rule->load('creator:id,name'), __('app.promotion_engine.rule_created'));
     }
 
     /**
@@ -143,7 +143,7 @@ class PromotionEngineController extends Controller
 
         $promotionRule->update($validated);
 
-        return ApiResponse::success($promotionRule->fresh()->load('creator:id,name'), '更新成功');
+        return ApiResponse::success($promotionRule->fresh()->load('creator:id,name'), __('app.common.updated'));
     }
 
     /**
@@ -155,11 +155,11 @@ class PromotionEngineController extends Controller
 
         if ($promotionRule->redemptions()->count() > 0) {
             $promotionRule->update(['status' => 'expired']);
-            return ApiResponse::success(null, '该规则已有使用记录，已设为过期而非删除');
+            return ApiResponse::success(null, __("app.promotion_engine.msg_ac8e98bb"));
         }
 
         $promotionRule->delete();
-        return ApiResponse::success(null, '删除成功');
+        return ApiResponse::success(null, __("app.promotion_engine.msg_0007d170"));
     }
 
     /**
@@ -183,12 +183,12 @@ class PromotionEngineController extends Controller
         $currentStatus = $promotionRule->status;
 
         if (!in_array($newStatus, $allowedTransitions[$currentStatus] ?? [])) {
-            return ApiResponse::error("不允许从 {$currentStatus} 切换到 {$newStatus}");
+            return ApiResponse::error(__("app.promotion_engine.msg_d0ec6951"));
         }
 
         $promotionRule->update(['status' => $newStatus]);
 
-        return ApiResponse::success($promotionRule->fresh(), "已切换为 {$newStatus}");
+        return ApiResponse::success($promotionRule->fresh(), __('app.common.status_switched', ['status' => $newStatus]));
     }
 
     /**
@@ -250,7 +250,7 @@ class PromotionEngineController extends Controller
                 ['applied_by' => $request->user()->id],
             );
 
-            return ApiResponse::success($result, '促销应用成功');
+            return ApiResponse::success($result, __("app.promotion_engine.msg_951ff69e"));
         } catch (\Exception $e) {
             return ApiResponse::error($e->getMessage());
         }

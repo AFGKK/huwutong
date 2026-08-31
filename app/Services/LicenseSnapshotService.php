@@ -87,7 +87,7 @@ class LicenseSnapshotService
     public function rollback(License $license, LicenseSnapshot $snapshot, User $operator): array
     {
         if ($snapshot->license_id !== $license->id) {
-            return ['success' => false, 'message' => '快照不属于此 License'];
+            return ['success' => false, 'message' => __('app.common.snapshot_not_belong_to_license')];
         }
 
         $snapshotData = $snapshot->license_data;
@@ -115,14 +115,14 @@ class LicenseSnapshotService
                 }
             });
 
-            return ['success' => true, 'message' => '已回滚到快照 #' . $snapshot->id];
+            return ['success' => true, 'message' => __('app.common.rolled_back_to_snapshot', ['id' => $snapshot->id])];
         } catch (\Throwable $e) {
             Log::error("LicenseSnapshot: rollback failed", [
                 'license_id' => $license->id,
                 'snapshot_id' => $snapshot->id,
                 'error' => $e->getMessage(),
             ]);
-            return ['success' => false, 'message' => '回滚失败: ' . $e->getMessage()];
+            return ['success' => false, 'message' => __('app.common.rollback_failed', ['message' => $e->getMessage()])];
         }
     }
 

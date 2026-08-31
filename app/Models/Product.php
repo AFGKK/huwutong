@@ -74,6 +74,11 @@ class Product extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function merchant()
+    {
+        return $this->belongsTo(OfficialAccount::class, 'merchant_id');
+    }
+
     public function skus()
     {
         return $this->hasMany(ProductSku::class);

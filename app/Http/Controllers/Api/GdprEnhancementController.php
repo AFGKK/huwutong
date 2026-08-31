@@ -54,7 +54,7 @@ class GdprEnhancementController extends Controller
             'controller_dpo' => 'nullable|string|max:100',
         ]);
         $dpia = $this->service->createDpia($validated);
-        return ApiResponse::success($dpia, 'DPIA 已创建', 201);
+        return ApiResponse::success($dpia, __('app.api.gdpr_enhancement.dpia_created'), 201);
     }
 
     public function dpiaUpdate(Request $request, DpiaRecord $dpia): JsonResponse
@@ -73,7 +73,7 @@ class GdprEnhancementController extends Controller
         ]);
         try {
             $dpia = $this->service->updateDpia($dpia, $validated);
-            return ApiResponse::success($dpia, 'DPIA 已更新');
+            return ApiResponse::success($dpia, __('app.api.gdpr_enhancement.dpia_updated'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('CANNOT_UPDATE', $e->getMessage(), 400);
         }
@@ -86,7 +86,7 @@ class GdprEnhancementController extends Controller
             'review_notes' => 'nullable|string|max:1000',
         ]);
         $dpia = $this->service->reviewDpia($dpia, $validated['status'], $validated['review_notes'] ?? null);
-        return ApiResponse::success($dpia, 'DPIA 审核完成');
+        return ApiResponse::success($dpia, __('app.api.gdpr_enhancement.dpia_reviewed'));
     }
 
     public function dpiaStats(): JsonResponse
@@ -121,7 +121,7 @@ class GdprEnhancementController extends Controller
             'evidence_refs' => 'nullable|array',
         ]);
         $breach = $this->service->createBreach($validated);
-        return ApiResponse::success($breach, '泄露事件已记录', 201);
+        return ApiResponse::success($breach, __('app.api.gdpr_enhancement.breach_recorded'), 201);
     }
 
     public function breachUpdate(Request $request, DataBreachNotification $breach): JsonResponse
@@ -144,7 +144,7 @@ class GdprEnhancementController extends Controller
             'evidence_refs' => 'nullable|array',
         ]);
         $breach = $this->service->updateBreach($breach, $validated);
-        return ApiResponse::success($breach, '泄露事件已更新');
+        return ApiResponse::success($breach, __('app.api.gdpr_enhancement.breach_updated'));
     }
 
     public function breachStats(): JsonResponse
@@ -186,7 +186,7 @@ class GdprEnhancementController extends Controller
             'dpia_id' => 'nullable|integer|exists:dpia_records,id',
         ]);
         $ropa = $this->service->createRopa($validated);
-        return ApiResponse::success($ropa, 'ROPA 已创建', 201);
+        return ApiResponse::success($ropa, __('app.api.gdpr_enhancement.ropa_created'), 201);
     }
 
     public function ropaUpdate(Request $request, ProcessingActivityRecord $ropa): JsonResponse
@@ -205,7 +205,7 @@ class GdprEnhancementController extends Controller
             'status' => 'in:active,archived',
         ]);
         $ropa = $this->service->updateRopa($ropa, $validated);
-        return ApiResponse::success($ropa, 'ROPA 已更新');
+        return ApiResponse::success($ropa, __('app.api.gdpr_enhancement.ropa_updated'));
     }
 
     public function ropaStats(): JsonResponse
@@ -239,7 +239,7 @@ class GdprEnhancementController extends Controller
             'safeguards' => 'nullable|array',
         ]);
         $sp = $this->service->createSubProcessor($validated);
-        return ApiResponse::success($sp, '子处理商已添加', 201);
+        return ApiResponse::success($sp, __('app.api.gdpr_enhancement.sub_processor_added'), 201);
     }
 
     public function subProcessorUpdate(Request $request, SubProcessorAssessment $subProcessor): JsonResponse
@@ -257,7 +257,7 @@ class GdprEnhancementController extends Controller
             'safeguards' => 'nullable|array',
         ]);
         $sp = $this->service->updateSubProcessor($subProcessor, $validated);
-        return ApiResponse::success($sp, '子处理商已更新');
+        return ApiResponse::success($sp, __('app.api.gdpr_enhancement.sub_processor_updated'));
     }
 
     // ═══════════════ 自动决策 ═══════════════
@@ -287,7 +287,7 @@ class GdprEnhancementController extends Controller
             'intervention_method' => 'nullable|string|max:100',
         ]);
         $record = $this->service->createAutoDecision($validated);
-        return ApiResponse::success($record, '决策记录已创建', 201);
+        return ApiResponse::success($record, __('app.api.gdpr_enhancement.decision_record_created'), 201);
     }
 
     public function autoDecisionUpdate(Request $request, AutomatedDecisionRecord $autoDecision): JsonResponse
@@ -304,7 +304,7 @@ class GdprEnhancementController extends Controller
             'is_active' => 'boolean',
         ]);
         $record = $this->service->updateAutoDecision($autoDecision, $validated);
-        return ApiResponse::success($record, '决策记录已更新');
+        return ApiResponse::success($record, __('app.api.gdpr_enhancement.decision_record_updated'));
     }
 
     // ═══════════════ 全局统计 ═══════════════

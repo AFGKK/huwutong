@@ -95,7 +95,7 @@ class PersonalizationController extends Controller
     {
         $customerId = $request->input('customer_id', $request->user()->customer_id);
         if (!$customerId) {
-            return ApiResponse::error('REQUEST_ERROR', '缺少客户ID', 400);
+            return ApiResponse::error('REQUEST_ERROR', __('app.api.personalization.missing_customer_id'), 400);
         }
 
         $recs = $this->service->generateRecommendations($request->user()->tenant_id, $customerId);
@@ -106,7 +106,7 @@ class PersonalizationController extends Controller
     {
         $customerId = $request->input('customer_id', $request->user()->customer_id);
         if (!$customerId) {
-            return ApiResponse::error('REQUEST_ERROR', '缺少客户ID', 400);
+            return ApiResponse::error('REQUEST_ERROR', __('app.api.personalization.missing_customer_id'), 400);
         }
 
         return ApiResponse::success(
@@ -139,7 +139,7 @@ class PersonalizationController extends Controller
     {
         $customerId = $request->user()->customer_id;
         if (!$customerId) {
-            return ApiResponse::error('REQUEST_ERROR', '缺少客户信息', 400);
+            return ApiResponse::error('REQUEST_ERROR', __('app.api.personalization.missing_customer_info'), 400);
         }
 
         return ApiResponse::success(

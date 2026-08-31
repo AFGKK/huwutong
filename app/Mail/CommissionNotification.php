@@ -41,7 +41,7 @@ class CommissionNotification extends Mailable
 
     private function buildHtml(): string
     {
-        $greeting = $this->userName ? "您好，{$this->userName}" : '您好';
+        $greeting = $this->userName ? __('app.mail.greeting_name', ['name' => $this->userName]) : __('app.mail.greeting');
         $actionUrl = $this->payload['action_url'] ?? null;
         $actionText = $this->payload['action_text'] ?? null;
 
@@ -73,8 +73,8 @@ class CommissionNotification extends Mailable
             $amount = number_format((float) $this->payload['amount'], 2);
             $amountHighlight = <<<HTML
             <div style="text-align: center; margin: 24px 0;">
-                <div style="font-size: 13px; color: #999; margin-bottom: 4px;">金额</div>
-                <div style="font-size: 32px; font-weight: 700; color: #409eff;">¥{$amount}</div>
+                <div style="font-size: 13px; color: #999; margin-bottom: 4px;">{$amountLabel2}</div>
+                <div style="font-size: 32px; font-weight: 700; color: #0f172a;">¥{$amount}</div>
             </div>
             HTML;
         }
@@ -84,19 +84,20 @@ class CommissionNotification extends Mailable
         $typeLabel = '';
         if ($this->payload && isset($this->payload['type'])) {
             $typeIcons = [
-                'commission_credited' => ['💰', '佣金入账'],
-                'commission_released' => ['🔓', '佣金解冻'],
-                'payout_status' => ['💸', '提现状态'],
-                'monthly_report' => ['📊', '月度报告'],
-                'threshold_reached' => ['🏆', '收益里程碑'],
-                'negative_balance' => ['⚠️', '负余额预警'],
+                'commission_credited' => ['💰', __('app.mail.commission_credited')],
+                'commission_released' => ['🔓', __('app.mail.commission_released')],
+                'payout_status' => ['💸', __('app.mail.payout_status')],
+                'monthly_report' => ['📊', __('app.mail.monthly_report')],
+                'threshold_reached' => ['🏆', __('app.mail.threshold_reached')],
+                'negative_balance' => ['⚠️', __('app.mail.negative_balance')],
             ];
-            $typeInfo = $typeIcons[$this->payload['type']] ?? ['📬', '通知'];
+            $typeInfo = $typeIcons[$this->payload['type']] ?? ['📬', __('app.mail.notification_fallback')];
             $typeIcon = $typeInfo[0];
             $typeLabel = $typeInfo[1];
         }
 
-        return <<<HTML
+                $amountLabel2 = __('app.mail.amount_label');
+return <<<HTML
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -104,13 +105,13 @@ class CommissionNotification extends Mailable
     <div style="max-width: 600px; margin: 0 auto;">
         <!-- Header -->
         <div style="text-align: center; padding: 16px 0;">
-            <span style="font-size: 20px; font-weight: 700; color: #409eff;">HWT License</span>
+            <span style="font-size: 20px; font-weight: 700; color: #0f172a;">HWT License</span>
         </div>
 
         <!-- Body -->
         <div style="background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
             <!-- Type Banner -->
-            <div style="background: linear-gradient(135deg, #409eff, #337ecc); padding: 24px 32px; text-align: center;">
+            <div style="background: linear-gradient(135deg, #0f172a, #1e293b); padding: 24px 32px; text-align: center;">
                 <div style="font-size: 36px; margin-bottom: 8px;">{$typeIcon}</div>
                 <div style="font-size: 18px; color: #fff; font-weight: 600;">{$typeLabel}</div>
             </div>
@@ -130,7 +131,7 @@ class CommissionNotification extends Mailable
 HTML
             . ($actionUrl ? <<<HTML
                 <div style="text-align: center; margin: 24px 0;">
-                    <a href="{$actionUrl}" style="display: inline-block; padding: 12px 32px; background: #409eff; color: #fff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 500;">{$actionText}</a>
+                    <a href="{$actionUrl}" style="display: inline-block; padding: 12px 32px; background: #0f172a; color: #fff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 500;">{$actionText}</a>
                 </div>
 HTML
             : '')
@@ -140,8 +141,8 @@ HTML
 
         <!-- Footer -->
         <div style="text-align: center; padding: 24px 16px;">
-            <p style="color: #999; font-size: 12px; margin: 0;">此邮件由 HWT License 系统根据您的通知设置自动发送。</p>
-            <p style="color: #999; font-size: 12px; margin: 4px 0 0;">如需调整通知偏好，请登录后台进行设置。</p>
+            <p style="color: #999; font-size: 12px; margin: 0;">__('app.mail.auto_send_footer')</p>
+            <p style="color: #999; font-size: 12px; margin: 4px 0 0;">__('app.mail.notification_prefs_hint')</p>
         </div>
     </div>
 </body>

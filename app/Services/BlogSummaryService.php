@@ -40,7 +40,7 @@ class BlogSummaryService
 
             $summary = trim($result['content'] ?? '');
             if (empty($summary)) {
-                throw new \Exception('AI 返回空摘要');
+                throw new \Exception(__("app.blog_summary.ai_empty_summary"));
             }
 
             // 清理可能的引号

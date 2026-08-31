@@ -43,7 +43,7 @@ class DemoController extends Controller
     {
         $session = $this->resolveSession($request);
         if (!$session) {
-            return ApiResponse::success(['message' => '会话已过期或无效'], 401);
+            return ApiResponse::success(['message' => __('app.api.demo.session_expired')], 401);
         }
 
         $type = $request->input('type', 'all');
@@ -60,7 +60,7 @@ class DemoController extends Controller
     {
         $session = $this->resolveSession($request);
         if (!$session) {
-            return ApiResponse::success(['message' => '会话已过期或无效'], 401);
+            return ApiResponse::success(['message' => __('app.api.demo.session_expired')], 401);
         }
 
         $step = (int) $request->input('step', 0);
@@ -77,12 +77,12 @@ class DemoController extends Controller
     {
         $session = $this->resolveSession($request);
         if (!$session) {
-            return ApiResponse::success(['message' => '会话已过期或无效'], 401);
+            return ApiResponse::success(['message' => __('app.api.demo.session_expired')], 401);
         }
 
         $action = $request->input('action', '');
         if (!$action) {
-            return ApiResponse::success(['message' => 'action 必填'], 422);
+            return ApiResponse::success(['message' => __('app.api.demo.action_required')], 422);
         }
 
         $session = $this->demoService->completeAction($session, $action);
@@ -97,7 +97,7 @@ class DemoController extends Controller
     {
         $session = $this->resolveSession($request);
         if (!$session) {
-            return ApiResponse::success(['message' => '会话已过期', 'expired' => true], 401);
+            return ApiResponse::success(['message' => __('app.api.demo.session_expired_please_restart'), 'expired' => true], 401);
         }
 
         return ApiResponse::success($this->demoService->heartbeat($session));
@@ -111,7 +111,7 @@ class DemoController extends Controller
     {
         $session = $this->resolveSession($request);
         if (!$session) {
-            return ApiResponse::success(['message' => '会话已过期或无效'], 401);
+            return ApiResponse::success(['message' => __('app.api.demo.session_expired')], 401);
         }
 
         $minutes = (int) $request->input('minutes', 15);
@@ -131,11 +131,11 @@ class DemoController extends Controller
     {
         $session = $this->resolveSession($request);
         if (!$session) {
-            return ApiResponse::success(['message' => '会话已过期或无效'], 401);
+            return ApiResponse::success(['message' => __('app.api.demo.session_expired')], 401);
         }
 
         $this->demoService->completeSession($session);
-        return ApiResponse::success(['message' => '演示已完成，感谢体验']);
+        return ApiResponse::success(['message' => __('app.api.demo.demo_completed')]);
     }
 
     /**
@@ -160,7 +160,7 @@ class DemoController extends Controller
     {
         $session = $this->resolveSession($request);
         if (!$session) {
-            return ApiResponse::success(['message' => '会话已过期或无效，请重新开始演示'], 401);
+            return ApiResponse::success(['message' => __('app.api.demo.session_expired_restart'), 'expired' => true], 401);
         }
 
         $validated = $request->validate([
@@ -176,7 +176,7 @@ class DemoController extends Controller
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::success(['message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
-            return ApiResponse::success(['message' => '注册失败: ' . $e->getMessage()], 500);
+            return ApiResponse::success(['message' => __('app.api.demo.register_failed', ['error' => $e->getMessage()])], 500);
         }
     }
 

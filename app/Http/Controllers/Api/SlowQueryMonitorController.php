@@ -63,7 +63,7 @@ class SlowQueryMonitorController extends Controller
             $log = $this->monitor->showDetail($id);
             return response()->json(['success' => true, 'data' => $log]);
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => '记录不存在'], 404);
+            return response()->json(['success' => false, 'message' => __('app.controller_compat.record_not_found')], 404);
         }
     }
 
@@ -89,7 +89,7 @@ class SlowQueryMonitorController extends Controller
             $log = $this->monitor->markResolved($id, $request->user()->id);
             return response()->json(['success' => true, 'data' => $log]);
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => '记录不存在'], 404);
+            return response()->json(['success' => false, 'message' => __('app.controller_compat.record_not_found')], 404);
         }
     }
 

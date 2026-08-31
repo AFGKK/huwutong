@@ -86,6 +86,6 @@ class ConversionFunnelController extends Controller
             $validated['metadata'] ?? [],
         );
 
-        return ApiResponse::created($event, '事件已记录');
+        return ApiResponse::created($event, __("app.conversion_funnel.msg_d7e017ec"));
     }
 }

@@ -33,7 +33,7 @@ class OemService
     {
         $config = config("oem.tiers.{$tier}");
         if (!$config) {
-            throw new \InvalidArgumentException("无效的 OEM 套餐: {$tier}");
+            throw new \InvalidArgumentException(__("app.oem.msg_afbf7177"));
         }
 
         $billingPeriod = $options['billing_period'] ?? 'monthly';

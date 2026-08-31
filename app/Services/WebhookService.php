@@ -104,7 +104,7 @@ class WebhookService
                 'endpoint_tenant' => $endpoint->tenant_id,
                 'request_tenant' => $tenantId,
             ]);
-            throw new \RuntimeException('Webhook 端点租户不匹配');
+            throw new \RuntimeException(__("app.webhook.webhook_tenant_mismatch"));
         }
 
         return [

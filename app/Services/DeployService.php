@@ -94,8 +94,8 @@ class DeployService
         $env = DeployEnvironment::findOrFail($data['deploy_environment_id']);
 
         // 检查受保护环境
-        if ($env->is_protected && env('APP_ENV') !== 'production') {
-            throw new \RuntimeException("环境 [{$env->name}] 是受保护的，不允许直接部署");
+        if ($env->is_protected && config('app.env') !== 'production') {
+            throw new \RuntimeException(__('app.deploy_service.protected_env_error', ['name' => $env->name]));
         }
 
         $steps = match ($data['type'] ?? 'full') {
@@ -112,7 +112,7 @@ class DeployService
             'type' => $data['type'] ?? 'full',
             'status' => 'running',
             'steps' => $steps,
-            'triggered_by' => $data['triggered_by'] ?? '系统',
+            'triggered_by' => $data['triggered_by'] ?? __('app.deploy_service.system_trigger'),
             'started_at' => now(),
         ]);
 
@@ -155,7 +155,7 @@ class DeployService
     {
         $job->update([
             'status' => 'rolling_back',
-            'output' => ($job->output ?? '') . "\n--- 开始回滚 ---\n",
+            'output' => ($job->output ?? '') . "\n" . __('app.deploy_service.rollback_started') . "\n",
         ]);
 
         // 创建回滚作业
@@ -166,11 +166,11 @@ class DeployService
             'type' => 'rollback',
             'status' => 'running',
             'steps' => [
-                ['name' => '确认回滚版本', 'status' => 'pending', 'duration_ms' => 0],
-                ['name' => '执行回滚脚本', 'status' => 'pending', 'duration_ms' => 0],
-                ['name' => '验证回滚', 'status' => 'pending', 'duration_ms' => 0],
+                ['name' => __('app.deploy_service.step_confirm_rollback_version'), 'status' => 'pending', 'duration_ms' => 0],
+                ['name' => __('app.deploy_service.step_execute_rollback_script'), 'status' => 'pending', 'duration_ms' => 0],
+                ['name' => __('app.deploy_service.step_verify_rollback'), 'status' => 'pending', 'duration_ms' => 0],
             ],
-            'triggered_by' => '系统(自动回滚)',
+            'triggered_by' => __('app.deploy_service.system_auto_rollback'),
             'started_at' => now(),
         ]);
 
@@ -189,7 +189,7 @@ class DeployService
         // 模拟完成回滚
         $rollbackJob->update([
             'status' => 'success',
-            'output' => "回滚完成：已恢复到上一个稳定版本。",
+            'output' => __('app.deploy_service.rollback_completed'),
             'completed_at' => now(),
         ]);
 
@@ -277,37 +277,37 @@ class DeployService
     protected function getFullDeploySteps(): array
     {
         return [
-            ['name' => '拉取代码', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '安装依赖', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '后端构建', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '前端构建', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '数据库迁移', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '缓存清理', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '服务重启', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '健康检查', 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_pull_code'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_install_deps'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_backend_build'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_frontend_build'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_db_migration'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_cache_clear'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_service_restart'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_health_check'), 'status' => 'pending', 'duration_ms' => 0],
         ];
     }
 
     protected function getBackendDeploySteps(): array
     {
         return [
-            ['name' => '拉取代码', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '安装依赖(Composer)', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '数据库迁移', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '缓存清理', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '服务重启(PHP-FPM)', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '健康检查', 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_pull_code'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_install_composer'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_db_migration'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_cache_clear'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_restart_php_fpm'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_health_check'), 'status' => 'pending', 'duration_ms' => 0],
         ];
     }
 
     protected function getFrontendDeploySteps(): array
     {
         return [
-            ['name' => '拉取代码', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '安装依赖(npm)', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => '前端构建(Vite)', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => 'CDN推送', 'status' => 'pending', 'duration_ms' => 0],
-            ['name' => 'CDN缓存刷新', 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_pull_code'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_install_npm'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_build_vite'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_cdn_push'), 'status' => 'pending', 'duration_ms' => 0],
+            ['name' => __('app.deploy_service.step_cdn_cache_refresh'), 'status' => 'pending', 'duration_ms' => 0],
         ];
     }
 }

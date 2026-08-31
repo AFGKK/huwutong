@@ -54,28 +54,28 @@ class PasswordPolicyService
         $config = $this->getConfig();
 
         if (strlen($password) < $config->min_length) {
-            return "密码至少需要 {$config->min_length} 位字符";
+            return __('app.api.service_password_policy.min_length', ['min' => $config->min_length]);
         }
         if (strlen($password) > $config->max_length) {
-            return "密码不能超过 {$config->max_length} 位字符";
+            return __('app.api.service_password_policy.max_length', ['max' => $config->max_length]);
         }
 
         $checks = [];
         if ($config->require_uppercase && !preg_match('/[A-Z]/', $password)) {
-            $checks[] = '大写字母';
+            $checks[] = __('app.api.service_password_policy.uppercase');
         }
         if ($config->require_lowercase && !preg_match('/[a-z]/', $password)) {
-            $checks[] = '小写字母';
+            $checks[] = __('app.api.service_password_policy.lowercase');
         }
         if ($config->require_number && !preg_match('/[0-9]/', $password)) {
-            $checks[] = '数字';
+            $checks[] = __('app.api.service_password_policy.digits');
         }
         if ($config->require_special && !preg_match('/[!@#$%^&*()_+\-=\[\]{};\'",.<>?~`\\\\|\/]/', $password)) {
-            $checks[] = '特殊字符';
+            $checks[] = __('app.api.service_password_policy.specials');
         }
 
         if (!empty($checks)) {
-            return '密码需要包含至少一个' . implode('、', $checks);
+            return __('app.api.service_password_policy.requires_one_of') . implode('、', $checks);
         }
 
         return null;
@@ -167,7 +167,7 @@ class PasswordPolicyService
 
         $minutes = now()->diffInMinutes($user->locked_until);
         if ($minutes < 1) {
-            return '即将解锁';
+            return __('app.api.service_password_policy.unlocking_soon');
         }
         return "{$minutes} 分钟后自动解锁";
     }

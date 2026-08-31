@@ -83,14 +83,14 @@ class CommissionController extends Controller
         $user = User::findOrFail($request->input('user_id'));
 
         if (Agent::where('user_id', $user->id)->exists()) {
-            return response()->json(['success' => false, 'message' => '该用户已是代理'], 422);
+            return response()->json(['success' => false, 'message' => __('app.api.commission.already_agent')], 422);
         }
 
         $agent = $this->engine->registerAgent($user, $validator->validated());
 
         return response()->json([
             'success' => true,
-            'message' => '代理已创建',
+            'message' => __('app.api.commission.agent_created'),
             'data' => $agent->load('user:id,name,email'),
         ], 201);
     }
@@ -115,7 +115,7 @@ class CommissionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '代理已更新',
+            'message' => __('app.api.commission.agent_updated'),
             'data' => $agent->fresh()->load('user:id,name,email'),
         ]);
     }
@@ -148,7 +148,7 @@ class CommissionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '佣金计划已创建',
+            'message' => __('app.api.commission.plan_created'),
             'data' => $plan,
         ], 201);
     }
@@ -169,7 +169,7 @@ class CommissionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '佣金计划已更新',
+            'message' => __('app.api.commission.plan_updated'),
             'data' => $commissionPlan->fresh()->load('items'),
         ]);
     }
@@ -202,7 +202,7 @@ class CommissionController extends Controller
 
         if (! $request->input('product_id') && ! $request->input('product_category')) {
             return response()->json([
-                'success' => false, 'message' => '请指定产品或产品分类',
+                'success' => false, 'message' => __('app.api.commission.specify_product'),
             ], 422);
         }
 
@@ -210,7 +210,7 @@ class CommissionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '计划明细已创建',
+            'message' => __('app.api.commission.plan_detail_created'),
             'data' => $item->load('product:id,name'),
         ], 201);
     }
@@ -233,7 +233,7 @@ class CommissionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '计划明细已更新',
+            'message' => __('app.api.commission.plan_detail_updated'),
             'data' => $commissionPlanItem->fresh(),
         ]);
     }
@@ -241,7 +241,7 @@ class CommissionController extends Controller
     public function destroyPlanItem(CommissionPlanItem $commissionPlanItem): JsonResponse
     {
         $commissionPlanItem->delete();
-        return response()->json(['success' => true, 'message' => '明细已删除']);
+        return response()->json(['success' => true, 'message' => __('app.api.commission.detail_deleted')]);
     }
 
     // ──────────────── 结算管理 ────────────────
@@ -340,7 +340,7 @@ class CommissionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '提现状态已更新',
+            'message' => __('app.api.commission.withdrawal_updated'),
             'data' => $commissionPayout->fresh(),
         ]);
     }
@@ -386,7 +386,7 @@ class CommissionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '推广链接已创建',
+            'message' => __('app.api.commission.link_created'),
             'data' => $link,
         ], 201);
     }
@@ -394,7 +394,7 @@ class CommissionController extends Controller
     public function destroyReferralLink(ReferralLink $referralLink): JsonResponse
     {
         $referralLink->update(['is_active' => false]);
-        return response()->json(['success' => true, 'message' => '推广链接已停用']);
+        return response()->json(['success' => true, 'message' => __('app.api.commission.link_deactivated')]);
     }
 
     // ──────────────── 统计 ────────────────
@@ -450,7 +450,7 @@ class CommissionController extends Controller
         $agent = Agent::where('user_id', $user->id)->first();
 
         if (! $agent) {
-            return response()->json(['success' => false, 'message' => '您还不是代理'], 403);
+            return response()->json(['success' => false, 'message' => __('app.api.commission.not_agent')], 403);
         }
 
         $stats = $this->engine->getAgentStats($agent);
@@ -488,7 +488,7 @@ class CommissionController extends Controller
         $agent = Agent::where('user_id', $user->id)->first();
 
         if (! $agent) {
-            return response()->json(['success' => false, 'message' => '您还不是代理'], 403);
+            return response()->json(['success' => false, 'message' => __('app.api.commission.not_agent')], 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -511,7 +511,7 @@ class CommissionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '提现请求已提交',
+                'message' => __('app.api.commission.withdrawal_submitted'),
                 'data' => $payout,
             ], 201);
         } catch (\RuntimeException $e) {

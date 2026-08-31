@@ -583,7 +583,7 @@ class RevenueRecognitionService
         $schedule = RevenueRecognitionSchedule::findOrFail($scheduleId);
 
         if ($schedule->status === 'cancelled') {
-            throw new \RuntimeException('排程已被取消');
+            throw new \RuntimeException(__('app.revenue_recognition.revenue_recognition_b42896a413'));
         }
 
         DB::transaction(function () use ($schedule, $reason) {
@@ -625,7 +625,7 @@ class RevenueRecognitionService
         $schedule = RevenueRecognitionSchedule::with('lines')->findOrFail($scheduleId);
 
         if ($schedule->status === 'cancelled') {
-            throw new \RuntimeException('已取消的排程无法重算');
+            throw new \RuntimeException(__('app.revenue_recognition.revenue_recognition_0d7fc743e0'));
         }
 
         DB::transaction(function () use ($schedule) {
@@ -640,7 +640,7 @@ class RevenueRecognitionService
                 ->count();
 
             if ($remainingPeriods <= 0) {
-                throw new \RuntimeException('没有待确认行需要重算');
+                throw new \RuntimeException(__('app.revenue_recognition.revenue_recognition_e2c7a407a8'));
             }
 
             $remainingAmount = $totalAmount - $alreadyRecognized;
@@ -689,28 +689,28 @@ class RevenueRecognitionService
         $lines[] = [
             'period' => $report['report_period'],
             'type' => 'SUMMARY',
-            'description' => '期初递延收入',
+            'description' => __('app.revenue_recognition.revenue_recognition_e65ce5fcef'),
             'amount' => $report['opening_deferred_revenue'],
             'currency' => $report['currency'],
         ];
         $lines[] = [
             'period' => $report['report_period'],
             'type' => 'SUMMARY',
-            'description' => '当月开票总额',
+            'description' => __('app.revenue_recognition.revenue_recognition_4f5a36653f'),
             'amount' => $report['total_invoiced'],
             'currency' => $report['currency'],
         ];
         $lines[] = [
             'period' => $report['report_period'],
             'type' => 'SUMMARY',
-            'description' => '当月已确认收入',
+            'description' => __('app.revenue_recognition.revenue_recognition_c25f47318e'),
             'amount' => $report['recognized_revenue'],
             'currency' => $report['currency'],
         ];
         $lines[] = [
             'period' => $report['report_period'],
             'type' => 'SUMMARY',
-            'description' => '期末递延收入',
+            'description' => __('app.revenue_recognition.revenue_recognition_123cb78268'),
             'amount' => $report['closing_deferred_revenue'],
             'currency' => $report['currency'],
         ];
@@ -728,7 +728,7 @@ class RevenueRecognitionService
 
         // 生成 CSV
         $csv = fopen('php://temp', 'r+');
-        fputcsv($csv, ['期间', '类型', '描述', '金额', '币种']);
+        fputcsv($csv, [__('app.revenue_recognition.revenue_recognition_2f4339d59b'), __('app.revenue_recognition.revenue_recognition_226b091218'), __('app.revenue_recognition.revenue_recognition_3bdd08adab'), __('app.revenue_recognition.revenue_recognition_4cf24aba16'), __('app.revenue_recognition.revenue_recognition_654522d2f1')]);
         foreach ($lines as $line) {
             fputcsv($csv, [$line['period'], $line['type'], $line['description'], $line['amount'], $line['currency']]);
         }

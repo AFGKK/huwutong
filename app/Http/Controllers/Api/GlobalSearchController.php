@@ -35,7 +35,7 @@ class GlobalSearchController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('搜索参数错误', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.global_search.param_error'), $validator->errors()->toArray());
         }
 
         $result = $this->searchService->search(
@@ -80,15 +80,24 @@ class GlobalSearchController extends Controller
 
         if ($type === 'all') {
             $results = $this->searchService->rebuildAll($request->user()->tenant_id);
-            return ApiResponse::success($results, '所有索引已重建');
+            return ApiResponse::success($results, __('app.api.global_search.index_rebuilt'));
         }
 
         if (!in_array($type, SearchIndex::RESOURCE_TYPES)) {
-            return ApiResponse::error('INVALID_TYPE', "不支持的类型: {$type}", 422);
+            return ApiResponse::error('INVALID_TYPE', __('app.api.global_search.unsupported_type', ['type' => $type]), 422);
         }
 
         $count = $this->searchService->rebuildIndex($type, $request->user()->tenant_id);
-        return ApiResponse::success(['type' => $type, 'count' => $count], "{$type} 索引已重建，共 {$count} 条");
+        return ApiResponse::success(['type' => $type, 'count' => $count], __('app.api.global_search.type_index_rebuilt', ['type' => $type, 'count' => $count]));
+    }
+
+    /**
+     * 搜索引擎状态（Meilisearch 降级提示）
+     * GET /api/admin/search/engine-status
+     */
+    public function engineStatus(): JsonResponse
+    {
+        return ApiResponse::success($this->searchService->getEngineStatus());
     }
 
     /**
@@ -133,7 +142,7 @@ class GlobalSearchController extends Controller
     public function clearRecent(Request $request): JsonResponse
     {
         $this->searchService->clearRecentSearches($request->user()->id);
-        return ApiResponse::success(null, '最近搜索已清除');
+        return ApiResponse::success(null, __('app.api.global_search.recent_cleared'));
     }
 
     /**
@@ -143,7 +152,7 @@ class GlobalSearchController extends Controller
     public function deleteRecent(int $id, Request $request): JsonResponse
     {
         $this->searchService->deleteRecentSearch($id, $request->user()->id);
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.global_search.deleted'));
     }
 
     // ─── 搜索收藏 ───
@@ -175,7 +184,7 @@ class GlobalSearchController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数错误', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.global_search.param_error'), $validator->errors()->toArray());
         }
 
         $result = $this->searchService->toggleBookmark(
@@ -196,7 +205,7 @@ class GlobalSearchController extends Controller
     public function deleteBookmark(int $id, Request $request): JsonResponse
     {
         $this->searchService->deleteBookmark($id, $request->user()->id);
-        return ApiResponse::success(null, '收藏已删除');
+        return ApiResponse::success(null, __('app.api.global_search.bookmark_deleted'));
     }
 
     // ─── 搜索偏好 ───
@@ -228,7 +237,7 @@ class GlobalSearchController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数错误', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.global_search.param_error'), $validator->errors()->toArray());
         }
 
         $prefs = $this->searchService->updatePreferences(
@@ -236,7 +245,7 @@ class GlobalSearchController extends Controller
             $validator->validated()
         );
 
-        return ApiResponse::success($prefs, '偏好已更新');
+        return ApiResponse::success($prefs, __('app.api.global_search.prefs_updated'));
     }
 
     // ─── 仪表盘 ───

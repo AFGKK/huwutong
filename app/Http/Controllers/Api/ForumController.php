@@ -67,7 +67,7 @@ class ForumController extends Controller
             'content' => $validated['content'],
         ]);
 
-        return ApiResponse::success($post->load('user:id,name,avatar'), '帖子已发布', 201);
+        return ApiResponse::success($post->load('user:id,name,avatar'), __('app.forum.post_published'), 201);
     }
 
     // ── 回复帖子 ──
@@ -77,7 +77,7 @@ class ForumController extends Controller
         $post = ForumPost::findOrFail($postId);
 
         if ($post->is_locked) {
-            return ApiResponse::error('LOCKED', '帖子已锁定，无法回复', 403);
+            return ApiResponse::error('LOCKED', __("app.forum.msg_b85e167d"), 403);
         }
 
         $reply = ForumReply::create([
@@ -88,7 +88,7 @@ class ForumController extends Controller
 
         $post->increment('replies_count');
 
-        return ApiResponse::success($reply->load('user:id,name,avatar'), '回复已发布', 201);
+        return ApiResponse::success($reply->load('user:id,name,avatar'), __('app.forum.reply_published'), 201);
     }
 
     // ── 点赞/取消点赞（统一 Like 表）──
@@ -105,7 +105,7 @@ class ForumController extends Controller
         if ($existing) {
             $existing->delete();
             $post->decrement('likes_count');
-            return ApiResponse::success(['liked' => false], '已取消点赞');
+            return ApiResponse::success(['liked' => false], __("app.forum.msg_801b82ac"));
         }
 
         \App\Models\Like::create([
@@ -115,7 +115,7 @@ class ForumController extends Controller
         ]);
         $post->increment('likes_count');
 
-        return ApiResponse::success(['liked' => true], '已点赞');
+        return ApiResponse::success(['liked' => true], __("app.forum.msg_96649f48"));
     }
 
     // ── 删除帖子 ──
@@ -123,11 +123,11 @@ class ForumController extends Controller
     {
         $post = ForumPost::findOrFail($id);
         if ($post->user_id !== auth()->id()) {
-            return ApiResponse::error('FORBIDDEN', '只能删除自己的帖子', 403);
+            return ApiResponse::error('FORBIDDEN', __("app.forum.msg_7a81b79e"), 403);
         }
         $post->replies()->delete();
         $post->delete();
-        return ApiResponse::success(null, '帖子已删除');
+        return ApiResponse::success(null, __("app.forum.msg_501516c2"));
     }
 
     // ── 分类列表 ──

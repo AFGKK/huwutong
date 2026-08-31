@@ -93,7 +93,7 @@ class SloController extends Controller
     public function calculateAll()
     {
         $count = $this->sloBudgetService->calculateAllBudgets();
-        return ApiResponse::success(['calculated' => $count], "已计算 {$count} 个SLO错误预算");
+        return ApiResponse::success(['calculated' => $count], __("app.slo.msg_4b9df144"));
     }
 
     // ─── 元数据 ───
@@ -101,10 +101,10 @@ class SloController extends Controller
     public function sliTypes()
     {
         return ApiResponse::success([
-            'latency' => '延迟',
-            'availability' => '可用性',
-            'throughput' => '吞吐量',
-            'error_rate' => '错误率',
+            'latency' => __('app.slo.latency'),
+            'availability' => __('app.slo.availability'),
+            'throughput' => __('app.slo.throughput'),
+            'error_rate' => __('app.slo.error_rate'),
         ]);
     }
 }

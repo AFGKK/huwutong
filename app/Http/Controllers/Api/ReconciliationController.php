@@ -50,7 +50,7 @@ class ReconciliationController extends Controller
             $validated['notes'] ?? null,
         );
 
-        return ApiResponse::success($result, '已标记为已解决');
+        return ApiResponse::success($result, __("app.reconciliation.msg_a606d6a6"));
     }
 
     // ═══════ CSV 导入 ═══════
@@ -81,7 +81,7 @@ class ReconciliationController extends Controller
             $validated['channel'],
         );
 
-        return ApiResponse::success($import, 'CSV 导入' . ($import->status === 'completed' ? '完成' : '处理中'));
+        return ApiResponse::success($import, __('app.reconciliation.csv') . ($import->status === 'completed' ? __('app.reconciliation.completed') : __("app.reconciliation.msg_5d459d55")));
     }
 
     // ═══════ 渠道行管理 ═══════
@@ -109,7 +109,7 @@ class ReconciliationController extends Controller
 
         $row = $this->service->manualMatch($validated['channel_row_id'], $validated['order_id']);
 
-        return ApiResponse::success($row, '手动匹配' . ($row->match_status === 'matched' ? '成功' : '完成（金额不匹配）'));
+        return ApiResponse::success($row, __('app.reconciliation.manual_match') . ($row->match_status === 'matched' ? __('app.reconciliation.success') : __("app.reconciliation.msg_0e6e27a4")));
     }
 
     // ═══════ 对账日历 ═══════
@@ -140,7 +140,7 @@ class ReconciliationController extends Controller
             (int) ($validated['months'] ?? 3),
         );
 
-        return ApiResponse::success($generated, "已生成 " . count($generated) . " 个对账周期");
+        return ApiResponse::success($generated, __('app.reconciliation.cycles_generated', ['count' => count($generated)]));
     }
 
     // ═══════ 报告 ═══════

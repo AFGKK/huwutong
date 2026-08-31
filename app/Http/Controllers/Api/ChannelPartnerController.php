@@ -27,7 +27,7 @@ class ChannelPartnerController extends Controller
     protected function ensureAdmin(): void
     {
         if (Gate::denies('admin')) {
-            abort(403, '需要管理员权限');
+            abort(403, __('app.api.partner.admin_required'));
         }
     }
 
@@ -204,7 +204,7 @@ class ChannelPartnerController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '合作伙伴已批准',
+            'message' => __('app.api.partner.approved'),
         ]);
     }
 
@@ -223,7 +223,7 @@ class ChannelPartnerController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '合作伙伴等级已更新',
+            'message' => __('app.api.partner.level_updated'),
             'data' => $agent->fresh(),
         ]);
     }
@@ -289,7 +289,7 @@ class ChannelPartnerController extends Controller
         $agent = Agent::where('user_id', $user->id)->first();
 
         if (! $agent) {
-            return response()->json(['success' => false, 'message' => '您还不是合作伙伴'], 403);
+            return response()->json(['success' => false, 'message' => __('app.api.partner.not_partner')], 403);
         }
 
         $stats = $this->engine->getAgentStats($agent);
@@ -340,7 +340,7 @@ class ChannelPartnerController extends Controller
         $agent = Agent::where('user_id', $user->id)->first();
 
         if (! $agent) {
-            return response()->json(['success' => false, 'message' => '您还不是合作伙伴'], 403);
+            return response()->json(['success' => false, 'message' => __('app.api.partner.not_partner')], 403);
         }
 
         $payouts = CommissionPayout::where('agent_id', $agent->id)
@@ -374,7 +374,7 @@ class ChannelPartnerController extends Controller
         $agent = Agent::where('user_id', $user->id)->first();
 
         if (! $agent) {
-            return response()->json(['success' => false, 'message' => '您还不是合作伙伴'], 403);
+            return response()->json(['success' => false, 'message' => __('app.api.partner.not_partner')], 403);
         }
 
         $validated = $request->validate([
@@ -393,7 +393,7 @@ class ChannelPartnerController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '提现请求已提交',
+                'message' => __('app.api.partner.withdraw_submitted'),
                 'data' => $payout,
             ], 201);
         } catch (\RuntimeException $e) {
@@ -410,27 +410,27 @@ class ChannelPartnerController extends Controller
             'success' => true,
             'data' => [
                 'regular' => [
-                    'label' => '普通合作伙伴',
-                    'rate' => '最高 5%',
-                    'benefits' => ['基础佣金比例', '标准推广链接', '月度结算'],
+                    'label' => __('app.api.partner.tier_regular'),
+                    'rate' => __('app.api.partner.rate_5'),
+                    'benefits' => [__('app.api.partner.ben_base_rate'), __('app.api.partner.ben_standard_link'), __('app.api.partner.ben_monthly')],
                 ],
                 'silver' => [
-                    'label' => '银牌合作伙伴',
-                    'rate' => '最高 10%',
-                    'min_requirements' => '月销售额 ¥10,000',
-                    'benefits' => ['佣金比例提升至 10%', '专属客户经理', '优先结算'],
+                    'label' => __('app.api.partner.tier_silver'),
+                    'rate' => __('app.api.partner.rate_10'),
+                    'min_requirements' => __('app.api.partner.req_10k'),
+                    'benefits' => [__('app.api.partner.ben_rate_10'), __('app.api.partner.ben_manager'), __('app.api.partner.ben_priority')],
                 ],
                 'gold' => [
-                    'label' => '金牌合作伙伴',
-                    'rate' => '最高 20%',
-                    'min_requirements' => '月销售额 ¥50,000',
-                    'benefits' => ['佣金比例提升至 20%', '专属客户经理', '优先结算', '市场活动支持'],
+                    'label' => __('app.api.partner.tier_gold'),
+                    'rate' => __('app.api.partner.rate_20'),
+                    'min_requirements' => __('app.api.partner.req_50k'),
+                    'benefits' => [__('app.api.partner.ben_rate_20'), __('app.api.partner.ben_manager'), __('app.api.partner.ben_priority'), __('app.api.partner.ben_marketing')],
                 ],
                 'platinum' => [
-                    'label' => '铂金合作伙伴',
-                    'rate' => '最高 30%',
-                    'min_requirements' => '月销售额 ¥200,000',
-                    'benefits' => ['最高佣金比例 30%', '专属客户经理', '优先结算', '市场活动支持', '技术优先支持', '联合品牌推广'],
+                    'label' => __('app.api.partner.tier_platinum'),
+                    'rate' => __('app.api.partner.rate_30'),
+                    'min_requirements' => __('app.api.partner.req_200k'),
+                    'benefits' => [__('app.api.partner.ben_rate_30'), __('app.api.partner.ben_manager'), __('app.api.partner.ben_priority'), __('app.api.partner.ben_marketing'), __('app.api.partner.ben_tech'), __('app.api.partner.ben_cobrand')],
                 ],
             ],
         ]);
@@ -439,10 +439,10 @@ class ChannelPartnerController extends Controller
     protected function getTierBenefits(string $level): array
     {
         $all = [
-            'regular' => ['label' => '普通合作伙伴', 'rate' => '最高 5%', 'color' => '#909399'],
-            'silver' => ['label' => '银牌合作伙伴', 'rate' => '最高 10%', 'color' => '#909399'],
-            'gold' => ['label' => '金牌合作伙伴', 'rate' => '最高 20%', 'color' => '#e6a23c'],
-            'platinum' => ['label' => '铂金合作伙伴', 'rate' => '最高 30%', 'color' => '#409eff'],
+            'regular' => ['label' => __('app.api.partner.tier_regular'), 'rate' => __('app.api.partner.rate_5'), 'color' => '#909399'],
+            'silver' => ['label' => __('app.api.partner.tier_silver'), 'rate' => __('app.api.partner.rate_10'), 'color' => '#909399'],
+            'gold' => ['label' => __('app.api.partner.tier_gold'), 'rate' => __('app.api.partner.rate_20'), 'color' => '#e6a23c'],
+            'platinum' => ['label' => __('app.api.partner.tier_platinum'), 'rate' => __('app.api.partner.rate_30'), 'color' => '#0f172a'],
         ];
 
         $benefits = [];

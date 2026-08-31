@@ -73,7 +73,7 @@ class EarningNotificationController extends Controller
         $user = $request->user();
 
         if ($notification->user_id !== $user->id) {
-            return response()->json(['success' => false, 'message' => '无权操作'], 403);
+            return response()->json(['success' => false, 'message' => __('app.common.no_permission')], 403);
         }
 
         $notification->update([
@@ -83,7 +83,7 @@ class EarningNotificationController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '已标记为已读',
+            'message' => __('app.controller_compat.earning_notification_msg_86'),
             'data' => $notification->fresh(),
         ]);
     }
@@ -226,7 +226,7 @@ class EarningNotificationController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '通知偏好已更新',
+            'message' => __('app.controller_compat.earning_notification_msg_229'),
             'data' => $prefs->fresh(),
         ]);
     }

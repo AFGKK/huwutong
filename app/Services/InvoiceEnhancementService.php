@@ -157,12 +157,12 @@ class InvoiceEnhancementService
         $original = Invoice::where('tenant_id', $tenantId)->findOrFail($originalInvoiceId);
 
         if ($original->status !== 'pending' && $original->status !== 'paid') {
-            throw new \RuntimeException('只能拆分待支付或已支付的发票');
+            throw new \RuntimeException(__("app.invoice_enhancement.invoice_can_only_split_paid_or_pending"));
         }
 
         $remaining = $original->amount - $splitAmount;
         if ($splitAmount <= 0 || $remaining < 0) {
-            throw new \RuntimeException('拆分金额无效');
+            throw new \RuntimeException(__("app.invoice_enhancement.invalid_split_amount"));
         }
 
         $result = DB::transaction(function () use ($tenantId, $original, $splitAmount, $remaining, $reason) {

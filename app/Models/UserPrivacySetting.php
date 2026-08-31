@@ -29,8 +29,9 @@ class UserPrivacySetting extends Model
     const FRIEND_ADD_POLICIES = ['everyone' => '所有人', 'need_question' => '需回答问题', 'nobody' => '不允许'];
 
     const DM_POLICIES = [
-        'everyone' => '所有人可私信（陌生人进消息请求）',
-        'followers_only' => '仅关注的人可私信',
+        'everyone' => '所有人',
+        'followers_only' => '关注我的人',
+        'mutual_follow' => '互相关注',
         'closed' => '关闭私信',
     ];
 

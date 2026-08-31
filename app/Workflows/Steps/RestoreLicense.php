@@ -30,7 +30,7 @@ class RestoreLicense extends BaseWorkflowStep
         if (! $licenseId) {
             $license = $instance->workflowable;
             if (! $license || ! $license instanceof License) {
-                throw new \RuntimeException('缺少 license_id');
+                throw new \RuntimeException(__('app.common.missing_license_id'));
             }
             $licenseId = $license->id;
         }

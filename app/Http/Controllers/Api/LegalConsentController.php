@@ -62,7 +62,7 @@ class LegalConsentController extends Controller
             'effective_at' => $validated['effective_at'] ?? now(),
         ]);
 
-        return ApiResponse::success($consent, '协议版本已创建');
+        return ApiResponse::success($consent, __("app.legal_consent.msg_f8629866"));
     }
 
     /**
@@ -71,7 +71,7 @@ class LegalConsentController extends Controller
     public function update(Request $request, LegalConsent $legalConsent): JsonResponse
     {
         if ($legalConsent->is_current) {
-            return ApiResponse::error('CANNOT_UPDATE_CURRENT', '当前生效版本不能直接编辑，请创建新版本', 422);
+            return ApiResponse::error('CANNOT_UPDATE_CURRENT', __("app.legal_consent.msg_f789c20d"), 422);
         }
 
         $validated = $request->validate([
@@ -82,7 +82,7 @@ class LegalConsentController extends Controller
 
         $legalConsent->update($validated);
 
-        return ApiResponse::success($legalConsent, '协议版本已更新');
+        return ApiResponse::success($legalConsent, __("app.legal_consent.msg_34397cfe"));
     }
 
     /**
@@ -108,7 +108,7 @@ class LegalConsentController extends Controller
             payload: ['legal_consent_id' => $legalConsent->id, 'type' => $legalConsent->type, 'version' => $legalConsent->version],
         );
 
-        return ApiResponse::success($legalConsent, '协议已发布');
+        return ApiResponse::success($legalConsent, __("app.legal_consent.msg_4d7a1302"));
     }
 
     /**
@@ -134,7 +134,7 @@ class LegalConsentController extends Controller
         $consent = LegalConsent::getCurrent($type);
 
         if (!$consent) {
-            return ApiResponse::notFound("未找到当前生效的 {$type}");
+            return ApiResponse::notFound(__("app.legal_consent.msg_59e3ec30"));
         }
 
         return ApiResponse::success($consent);

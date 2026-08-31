@@ -53,7 +53,7 @@ class OnboardingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.onboarding.validation_failed'), $validator->errors()->toArray());
         }
 
         try {
@@ -62,7 +62,7 @@ class OnboardingController extends Controller
                 $step,
                 $validator->validated()
             );
-            return ApiResponse::success($result, '步骤已完成');
+            return ApiResponse::success($result, __('app.api.onboarding.step_completed'));
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::error('INVALID_STEP', $e->getMessage(), 422);
         }
@@ -83,7 +83,7 @@ class OnboardingController extends Controller
             $validator->validated()['reason'] ?? null
         );
 
-        return ApiResponse::success(null, '已跳过后勤');
+        return ApiResponse::success(null, __('app.api.onboarding.logistics_skipped'));
     }
 
     // ─── 快速启动清单 ───
@@ -106,9 +106,9 @@ class OnboardingController extends Controller
     {
         try {
             $item = $this->onboarding->completeQuickStartItem($request->user(), $itemKey);
-            return ApiResponse::success($item, '任务已完成');
+            return ApiResponse::success($item, __('app.api.onboarding.task_completed'));
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return ApiResponse::notFound('未找到该任务');
+            return ApiResponse::notFound(__('app.api.onboarding.task_not_found'));
         }
     }
 
@@ -132,7 +132,7 @@ class OnboardingController extends Controller
     {
         $tutorial = $this->onboarding->getTutorial($slug);
         if (!$tutorial) {
-            return ApiResponse::notFound('未找到该教程');
+            return ApiResponse::notFound(__('app.api.onboarding.tutorial_not_found'));
         }
         return ApiResponse::success($tutorial);
     }
@@ -148,7 +148,7 @@ class OnboardingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.onboarding.validation_failed'), $validator->errors()->toArray());
         }
 
         $progress = $this->onboarding->updateTutorialProgress(
@@ -157,7 +157,7 @@ class OnboardingController extends Controller
             (int) $request->input('step')
         );
 
-        return ApiResponse::success($progress, '进度已更新');
+        return ApiResponse::success($progress, __('app.api.onboarding.progress_updated'));
     }
 
     /**
@@ -180,6 +180,6 @@ class OnboardingController extends Controller
         ]);
 
         $data = $this->onboarding->getDashboard($user);
-        return ApiResponse::success($data, 'Onboarding 已重置');
+        return ApiResponse::success($data, __('app.api.onboarding.onboarding_reset'));
     }
 }

@@ -48,7 +48,7 @@ class PaymentMethodService
         $existingCount = PaymentMethod::where('customer_id', $customer->id)->count();
 
         if ($existingCount >= $maxMethods) {
-            throw new \RuntimeException("支付方式数量已达上限（{$maxMethods}个）");
+            throw new \RuntimeException(__("app.payment_method.msg_ffb4445f"));
         }
 
         $data['tenant_id'] = $customer->tenant_id;
@@ -73,7 +73,7 @@ class PaymentMethodService
     public function setDefault(Customer $customer, PaymentMethod $method): PaymentMethod
     {
         if ($method->customer_id !== $customer->id) {
-            throw new \RuntimeException('无权操作此支付方式');
+            throw new \RuntimeException(__("app.payment_method.payment_method_access_denied"));
         }
 
         $method->setAsDefault();
@@ -86,7 +86,7 @@ class PaymentMethodService
     public function deleteMethod(Customer $customer, PaymentMethod $method): void
     {
         if ($method->customer_id !== $customer->id) {
-            throw new \RuntimeException('无权操作此支付方式');
+throw new \RuntimeException(__("app.payment_method.payment_method_access_denied"));
         }
 
         $wasDefault = $method->is_default;

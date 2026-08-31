@@ -29,7 +29,7 @@ class StockNotifyController extends Controller
         if ($sku->stock === -1 || $sku->stock > 0) {
             return response()->json([
                 'success' => false,
-                'message' => '该商品库存充足，无需订阅到货通知',
+                'message' => __('app.controller_compat.stock_notify_msg_32'),
             ], 400);
         }
 
@@ -40,7 +40,7 @@ class StockNotifyController extends Controller
         if (!$email && !$phone && !$user) {
             return response()->json([
                 'success' => false,
-                'message' => '请提供邮箱或手机号',
+                'message' => __('app.controller_compat.stock_notify_msg_43'),
             ], 422);
         }
 
@@ -53,7 +53,7 @@ class StockNotifyController extends Controller
         if ($existing) {
             return response()->json([
                 'success' => true,
-                'message' => '您已订阅过到货通知，补货后会第一时间通知您',
+                'message' => __('app.controller_compat.stock_notify_msg_56'),
             ]);
         }
 
@@ -66,7 +66,7 @@ class StockNotifyController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '订阅成功！补货后我们会第一时间通知您',
+            'message' => __('app.controller_compat.stock_notify_msg_69'),
         ]);
     }
 }

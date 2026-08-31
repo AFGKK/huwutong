@@ -47,66 +47,71 @@ class ImportService
 
     protected function getLicensesFields(): array
     {
+        $l = fn(string $k) => __('app.admin.import_service.fields.licenses.' . $k);
         return [
-            ['key' => 'license_key', 'label' => 'License Key', 'required' => true, 'type' => 'string'],
-            ['key' => 'product_id', 'label' => '产品ID', 'required' => true, 'type' => 'integer'],
-            ['key' => 'customer_id', 'label' => '客户ID', 'required' => false, 'type' => 'integer'],
-            ['key' => 'customer_name', 'label' => '客户名称', 'required' => false, 'type' => 'string'],
-            ['key' => 'customer_email', 'label' => '客户邮箱', 'required' => false, 'type' => 'string'],
-            ['key' => 'status', 'label' => '状态', 'required' => false, 'type' => 'string'],
-            ['key' => 'expires_at', 'label' => '过期时间', 'required' => false, 'type' => 'datetime'],
-            ['key' => 'max_activations', 'label' => '最大激活数', 'required' => false, 'type' => 'integer'],
-            ['key' => 'notes', 'label' => '备注', 'required' => false, 'type' => 'text'],
-            ['key' => 'metadata', 'label' => '元数据(JSON)', 'required' => false, 'type' => 'json'],
+            ['key' => 'license_key', 'label' => $l('license_key'), 'required' => true, 'type' => 'string'],
+            ['key' => 'product_id', 'label' => $l('product_id'), 'required' => true, 'type' => 'integer'],
+            ['key' => 'customer_id', 'label' => $l('customer_id'), 'required' => false, 'type' => 'integer'],
+            ['key' => 'customer_name', 'label' => $l('customer_name'), 'required' => false, 'type' => 'string'],
+            ['key' => 'customer_email', 'label' => $l('customer_email'), 'required' => false, 'type' => 'string'],
+            ['key' => 'status', 'label' => $l('status'), 'required' => false, 'type' => 'string'],
+            ['key' => 'expires_at', 'label' => $l('expires_at'), 'required' => false, 'type' => 'datetime'],
+            ['key' => 'max_activations', 'label' => $l('max_activations'), 'required' => false, 'type' => 'integer'],
+            ['key' => 'notes', 'label' => $l('notes'), 'required' => false, 'type' => 'text'],
+            ['key' => 'metadata', 'label' => $l('metadata'), 'required' => false, 'type' => 'json'],
         ];
     }
 
     protected function getCustomersFields(): array
     {
+        $l = fn(string $k) => __('app.admin.import_service.fields.customers.' . $k);
         return [
-            ['key' => 'name', 'label' => '客户名称', 'required' => true, 'type' => 'string'],
-            ['key' => 'email', 'label' => '邮箱', 'required' => true, 'type' => 'string'],
-            ['key' => 'phone', 'label' => '电话', 'required' => false, 'type' => 'string'],
-            ['key' => 'company', 'label' => '公司', 'required' => false, 'type' => 'string'],
-            ['key' => 'address', 'label' => '地址', 'required' => false, 'type' => 'text'],
-            ['key' => 'notes', 'label' => '备注', 'required' => false, 'type' => 'text'],
-            ['key' => 'status', 'label' => '状态', 'required' => false, 'type' => 'string'],
+            ['key' => 'name', 'label' => $l('name'), 'required' => true, 'type' => 'string'],
+            ['key' => 'email', 'label' => $l('email'), 'required' => true, 'type' => 'string'],
+            ['key' => 'phone', 'label' => $l('phone'), 'required' => false, 'type' => 'string'],
+            ['key' => 'company', 'label' => $l('company'), 'required' => false, 'type' => 'string'],
+            ['key' => 'address', 'label' => $l('address'), 'required' => false, 'type' => 'text'],
+            ['key' => 'notes', 'label' => $l('notes'), 'required' => false, 'type' => 'text'],
+            ['key' => 'status', 'label' => $l('status'), 'required' => false, 'type' => 'string'],
         ];
     }
 
     protected function getSubscriptionsFields(): array
     {
+        $l = fn(string $k) => __('app.admin.import_service.fields.subscriptions.' . $k);
         return [
-            ['key' => 'customer_id', 'label' => '客户ID', 'required' => true, 'type' => 'integer'],
-            ['key' => 'product_id', 'label' => '产品ID', 'required' => true, 'type' => 'integer'],
-            ['key' => 'status', 'label' => '状态', 'required' => false, 'type' => 'string'],
-            ['key' => 'amount', 'label' => '金额', 'required' => true, 'type' => 'numeric'],
-            ['key' => 'currency', 'label' => '币种', 'required' => false, 'type' => 'string'],
-            ['key' => 'billing_cycle', 'label' => '计费周期', 'required' => false, 'type' => 'string'],
-            ['key' => 'starts_at', 'label' => '开始时间', 'required' => false, 'type' => 'datetime'],
-            ['key' => 'ends_at', 'label' => '结束时间', 'required' => false, 'type' => 'datetime'],
+            ['key' => 'customer_id', 'label' => $l('customer_id'), 'required' => true, 'type' => 'integer'],
+            ['key' => 'product_id', 'label' => $l('product_id'), 'required' => true, 'type' => 'integer'],
+            ['key' => 'status', 'label' => $l('status'), 'required' => false, 'type' => 'string'],
+            ['key' => 'amount', 'label' => $l('amount'), 'required' => true, 'type' => 'numeric'],
+            ['key' => 'currency', 'label' => $l('currency'), 'required' => false, 'type' => 'string'],
+            ['key' => 'billing_cycle', 'label' => $l('billing_cycle'), 'required' => false, 'type' => 'string'],
+            ['key' => 'starts_at', 'label' => $l('starts_at'), 'required' => false, 'type' => 'datetime'],
+            ['key' => 'ends_at', 'label' => $l('ends_at'), 'required' => false, 'type' => 'datetime'],
         ];
     }
 
     protected function getProductsFields(): array
     {
+        $l = fn(string $k) => __('app.admin.import_service.fields.products.' . $k);
         return [
-            ['key' => 'name', 'label' => '产品名称', 'required' => true, 'type' => 'string'],
-            ['key' => 'slug', 'label' => '标识', 'required' => true, 'type' => 'string'],
-            ['key' => 'description', 'label' => '描述', 'required' => false, 'type' => 'text'],
-            ['key' => 'price', 'label' => '价格', 'required' => false, 'type' => 'numeric'],
-            ['key' => 'status', 'label' => '状态', 'required' => false, 'type' => 'string'],
+            ['key' => 'name', 'label' => $l('name'), 'required' => true, 'type' => 'string'],
+            ['key' => 'slug', 'label' => $l('slug'), 'required' => true, 'type' => 'string'],
+            ['key' => 'description', 'label' => $l('description'), 'required' => false, 'type' => 'text'],
+            ['key' => 'price', 'label' => $l('price'), 'required' => false, 'type' => 'numeric'],
+            ['key' => 'status', 'label' => $l('status'), 'required' => false, 'type' => 'string'],
         ];
     }
 
     protected function getTicketsFields(): array
     {
+        $l = fn(string $k) => __('app.admin.import_service.fields.tickets.' . $k);
         return [
-            ['key' => 'title', 'label' => '标题', 'required' => true, 'type' => 'string'],
-            ['key' => 'description', 'label' => '描述', 'required' => false, 'type' => 'text'],
-            ['key' => 'customer_id', 'label' => '客户ID', 'required' => true, 'type' => 'integer'],
-            ['key' => 'priority', 'label' => '优先级', 'required' => false, 'type' => 'string'],
-            ['key' => 'status', 'label' => '状态', 'required' => false, 'type' => 'string'],
+            ['key' => 'title', 'label' => $l('title'), 'required' => true, 'type' => 'string'],
+            ['key' => 'description', 'label' => $l('description'), 'required' => false, 'type' => 'text'],
+            ['key' => 'customer_id', 'label' => $l('customer_id'), 'required' => true, 'type' => 'integer'],
+            ['key' => 'priority', 'label' => $l('priority'), 'required' => false, 'type' => 'string'],
+            ['key' => 'status', 'label' => $l('status'), 'required' => false, 'type' => 'string'],
         ];
     }
 
@@ -154,7 +159,7 @@ class ImportService
         $rows = $this->readFile($task);
 
         if (empty($rows)) {
-            $task->update(['status' => 'failed', 'import_result' => ['error' => '文件为空或无法读取']]);
+            $task->update(['status' => 'failed', 'import_result' => ['error' => __('app.admin.import_service.file_empty')]]);
             return $task->fresh();
         }
 
@@ -276,7 +281,7 @@ class ImportService
 
                 // 必填检查
                 if ($mapping->is_required && empty($rawValue) && empty($mapping->default_value)) {
-                    $rowErrors[] = "{$mapping->target_label} ({$targetField}) 为必填";
+                    $rowErrors[] = __('app.admin.import_service.field_required', ['label' => $mapping->target_label, 'field' => $targetField]);
                     continue;
                 }
 
@@ -296,12 +301,12 @@ class ImportService
                 // 实体特定验证
                 if ($targetField === 'status' && !empty($rawValue) && $task->entity_type === 'licenses') {
                     if (!in_array(strtolower($rawValue), $validStatuses)) {
-                        $rowWarnings[] = "状态值 '{$rawValue}' 非标准 (active/inactive/expired/suspended)";
+                        $rowWarnings[] = __('app.admin.import_service.status_non_standard', ['value' => $rawValue]);
                     }
                 }
                 if ($targetField === 'priority' && !empty($rawValue) && $task->entity_type === 'tickets') {
                     if (!in_array(strtolower($rawValue), $validPriorities)) {
-                        $rowWarnings[] = "优先级 '{$rawValue}' 非标准 (low/medium/high/critical)";
+                        $rowWarnings[] = __('app.admin.import_service.priority_non_standard', ['value' => $rawValue]);
                     }
                 }
             }
@@ -334,11 +339,11 @@ class ImportService
                                           string $entityType, array $row, ?string $defaultValue): ?string
     {
         return match ($type) {
-            'integer' => is_numeric($value) ? null : "{$field} 应为数字",
-            'numeric' => is_numeric($value) ? null : "{$field} 应为数值",
-            'datetime' => $this->validateDate($value) ? null : "{$field} 日期格式无效",
-            'json' => $this->isJson($value) ? null : "{$field} 应为 JSON 格式",
-            'email' => filter_var($value, FILTER_VALIDATE_EMAIL) ? null : "{$field} 邮箱格式无效",
+            'integer' => is_numeric($value) ? null : __('app.admin.import_service.field_should_be_int', ['field' => $field]),
+            'numeric' => is_numeric($value) ? null : __('app.admin.import_service.field_should_be_numeric', ['field' => $field]),
+            'datetime' => $this->validateDate($value) ? null : __('app.admin.import_service.field_date_invalid', ['field' => $field]),
+            'json' => $this->isJson($value) ? null : __('app.admin.import_service.field_should_be_json', ['field' => $field]),
+            'email' => filter_var($value, FILTER_VALIDATE_EMAIL) ? null : __('app.admin.import_service.field_email_invalid', ['field' => $field]),
             default => null,
         };
     }
@@ -364,7 +369,7 @@ class ImportService
     public function execute(ImportTask $task): ImportTask
     {
         if ($task->status !== 'validated' && $task->status !== 'preview') {
-            $task->update(['status' => 'failed', 'import_result' => ['error' => '请先验证数据']]);
+            $task->update(['status' => 'failed', 'import_result' => ['error' => __('app.admin.import_service.validate_first')]]);
             return $task->fresh();
         }
 
@@ -438,7 +443,7 @@ class ImportService
                             'processed_rows' => $processed,
                             'success_rows' => $success,
                             'error_rows' => $errors,
-                            'import_result' => ['error' => '导入失败: ' . $e->getMessage(), 'row' => $rowNum + 2],
+                            'import_result' => ['error' => __('app.admin.import_service.import_failed', ['error' => $e->getMessage()]), 'row' => $rowNum + 2],
                         ]);
                         return $task->fresh();
                     }
@@ -478,7 +483,7 @@ class ImportService
                 'success_rows' => $success,
                 'error_rows' => $errors,
                 'completed_at' => now(),
-                'import_result' => ['error' => '导入异常: ' . $e->getMessage()],
+                'import_result' => ['error' => __('app.admin.import_service.import_exception', ['error' => $e->getMessage()])],
             ]);
         }
 
@@ -502,7 +507,7 @@ class ImportService
             'subscriptions' => $this->processSubscriptionRow($data, $rowNum, $updateExisting),
             'products' => $this->processProductRow($data, $rowNum, $updateExisting),
             'tickets' => $this->processTicketRow($data, $rowNum, $updateExisting),
-            default => ['action' => 'skipped', 'level' => 'warning', 'message' => "未知实体类型: {$entityType}", 'data' => $data],
+            default => ['action' => 'skipped', 'level' => 'warning', 'message' => __('app.admin.import_service.unknown_entity_type', ['type' => $entityType]), 'data' => $data],
         };
     }
 
@@ -548,7 +553,7 @@ class ImportService
     {
         $licenseKey = $data['license_key'] ?? null;
         if (!$licenseKey) {
-            return ['action' => 'failed', 'level' => 'error', 'message' => '缺少 license_key', 'data' => $data];
+            return ['action' => 'failed', 'level' => 'error', 'message' => __('app.admin.import_service.missing_field', ['field' => 'license_key']), 'data' => $data];
         }
 
         // 查找或创建客户
@@ -568,39 +573,39 @@ class ImportService
 
         if ($existing && $updateExisting) {
             $existing->update($data);
-            return ['action' => 'updated', 'level' => 'info', 'message' => '已更新', 'data' => $data];
+            return ['action' => 'updated', 'level' => 'info', 'message' => __('app.admin.import_service.row_updated'), 'data' => $data];
         } elseif ($existing) {
-            return ['action' => 'skipped', 'level' => 'warning', 'message' => '已存在，跳过', 'data' => $data];
+            return ['action' => 'skipped', 'level' => 'warning', 'message' => __('app.admin.import_service.row_skipped'), 'data' => $data];
         }
 
         License::create($data);
-        return ['action' => 'created', 'level' => 'info', 'message' => '已创建', 'data' => $data];
+        return ['action' => 'created', 'level' => 'info', 'message' => __('app.admin.import_service.row_created'), 'data' => $data];
     }
 
     protected function processCustomerRow(array $data, int $rowNum, bool $updateExisting): array
     {
         $email = $data['email'] ?? null;
         if (!$email) {
-            return ['action' => 'failed', 'level' => 'error', 'message' => '缺少 email', 'data' => $data];
+            return ['action' => 'failed', 'level' => 'error', 'message' => __('app.admin.import_service.missing_field', ['field' => 'email']), 'data' => $data];
         }
 
         $existing = Customer::where('email', $email)->first();
 
         if ($existing && $updateExisting) {
             $existing->update($data);
-            return ['action' => 'updated', 'level' => 'info', 'message' => '已更新', 'data' => $data];
+            return ['action' => 'updated', 'level' => 'info', 'message' => __('app.admin.import_service.row_updated'), 'data' => $data];
         } elseif ($existing) {
-            return ['action' => 'skipped', 'level' => 'warning', 'message' => '已存在，跳过', 'data' => $data];
+            return ['action' => 'skipped', 'level' => 'warning', 'message' => __('app.admin.import_service.row_skipped'), 'data' => $data];
         }
 
         Customer::create($data);
-        return ['action' => 'created', 'level' => 'info', 'message' => '已创建', 'data' => $data];
+        return ['action' => 'created', 'level' => 'info', 'message' => __('app.admin.import_service.row_created'), 'data' => $data];
     }
 
     protected function processSubscriptionRow(array $data, int $rowNum, bool $updateExisting): array
     {
         if (empty($data['customer_id']) || empty($data['product_id'])) {
-            return ['action' => 'failed', 'level' => 'error', 'message' => '缺少 customer_id 或 product_id', 'data' => $data];
+            return ['action' => 'failed', 'level' => 'error', 'message' => __('app.admin.import_service.missing_customer_or_product'), 'data' => $data];
         }
 
         $existing = Subscription::where('customer_id', $data['customer_id'])
@@ -609,43 +614,43 @@ class ImportService
 
         if ($existing && $updateExisting) {
             $existing->update($data);
-            return ['action' => 'updated', 'level' => 'info', 'message' => '已更新', 'data' => $data];
+            return ['action' => 'updated', 'level' => 'info', 'message' => __('app.admin.import_service.row_updated'), 'data' => $data];
         } elseif ($existing) {
-            return ['action' => 'skipped', 'level' => 'warning', 'message' => '已存在，跳过', 'data' => $data];
+            return ['action' => 'skipped', 'level' => 'warning', 'message' => __('app.admin.import_service.row_skipped'), 'data' => $data];
         }
 
         Subscription::create($data);
-        return ['action' => 'created', 'level' => 'info', 'message' => '已创建', 'data' => $data];
+        return ['action' => 'created', 'level' => 'info', 'message' => __('app.admin.import_service.row_created'), 'data' => $data];
     }
 
     protected function processProductRow(array $data, int $rowNum, bool $updateExisting): array
     {
         $slug = $data['slug'] ?? null;
         if (empty($data['name']) || !$slug) {
-            return ['action' => 'failed', 'level' => 'error', 'message' => '缺少 name 或 slug', 'data' => $data];
+            return ['action' => 'failed', 'level' => 'error', 'message' => __('app.admin.import_service.missing_name_or_slug'), 'data' => $data];
         }
 
         $existing = Product::where('slug', $slug)->first();
 
         if ($existing && $updateExisting) {
             $existing->update($data);
-            return ['action' => 'updated', 'level' => 'info', 'message' => '已更新', 'data' => $data];
+            return ['action' => 'updated', 'level' => 'info', 'message' => __('app.admin.import_service.row_updated'), 'data' => $data];
         } elseif ($existing) {
-            return ['action' => 'skipped', 'level' => 'warning', 'message' => '已存在，跳过', 'data' => $data];
+            return ['action' => 'skipped', 'level' => 'warning', 'message' => __('app.admin.import_service.row_skipped'), 'data' => $data];
         }
 
         Product::create($data);
-        return ['action' => 'created', 'level' => 'info', 'message' => '已创建', 'data' => $data];
+        return ['action' => 'created', 'level' => 'info', 'message' => __('app.admin.import_service.row_created'), 'data' => $data];
     }
 
     protected function processTicketRow(array $data, int $rowNum, bool $updateExisting): array
     {
         if (empty($data['title']) || empty($data['customer_id'])) {
-            return ['action' => 'failed', 'level' => 'error', 'message' => '缺少 title 或 customer_id', 'data' => $data];
+            return ['action' => 'failed', 'level' => 'error', 'message' => __('app.admin.import_service.missing_title_or_customer'), 'data' => $data];
         }
 
         Ticket::create($data);
-        return ['action' => 'created', 'level' => 'info', 'message' => '已创建', 'data' => $data];
+        return ['action' => 'created', 'level' => 'info', 'message' => __('app.admin.import_service.row_created'), 'data' => $data];
     }
 
     // ─── 文件读取 ───
@@ -819,7 +824,7 @@ class ImportService
             'datetime' => '2026-01-01',
             'email' => 'user@example.com',
             'json' => '{"key": "value"}',
-            default => '示例' . $f['label'],
+            default => __('app.admin.import_service.sample_prefix') . $f['label'],
         }, $fields);
 
         return [

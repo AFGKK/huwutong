@@ -58,7 +58,7 @@ class OnCallController extends Controller
 
         $schedule = OnCallSchedule::create($validated);
 
-        return response()->json(['success' => true, 'data' => $schedule, 'message' => '排班已创建'], 201);
+        return response()->json(['success' => true, 'data' => $schedule, 'message' => __('app.controller_compat.on_call_msg_61')], 201);
     }
 
     public function show(int $id): JsonResponse
@@ -80,13 +80,13 @@ class OnCallController extends Controller
             'channels', 'color', 'status', 'time_restriction', 'escalation_rules',
         ]));
 
-        return response()->json(['success' => true, 'data' => $schedule, 'message' => '排班已更新']);
+        return response()->json(['success' => true, 'data' => $schedule, 'message' => __('app.controller_compat.on_call_msg_83')]);
     }
 
     public function destroy(int $id): JsonResponse
     {
         OnCallSchedule::findOrFail($id)->delete();
-        return response()->json(['success' => true, 'message' => '排班已删除']);
+        return response()->json(['success' => true, 'message' => __('app.controller_compat.on_call_msg_89')]);
     }
 
     // ── 成员管理 ──
@@ -107,13 +107,13 @@ class OnCallController extends Controller
             'is_active' => true,
         ]);
 
-        return response()->json(['success' => true, 'data' => $member->load('user:id,name,email'), 'message' => '成员已添加'], 201);
+        return response()->json(['success' => true, 'data' => $member->load('user:id,name,email'), 'message' => __('app.controller_compat.on_call_msg_110')], 201);
     }
 
     public function removeMember(int $scheduleId, int $memberId): JsonResponse
     {
         OnCallMember::where('schedule_id', $scheduleId)->findOrFail($memberId)->delete();
-        return response()->json(['success' => true, 'message' => '成员已移除']);
+        return response()->json(['success' => true, 'message' => __('app.controller_compat.on_call_msg_116')]);
     }
 
     // ── 排班生成 ──
@@ -146,7 +146,7 @@ class OnCallController extends Controller
 
         $override = OnCallOverride::create($validated + ['status' => 'approved']);
 
-        return response()->json(['success' => true, 'data' => $override, 'message' => '替换已创建'], 201);
+        return response()->json(['success' => true, 'data' => $override, 'message' => __('app.controller_compat.on_call_msg_149')], 201);
     }
 
     // ── 值班日志 ──

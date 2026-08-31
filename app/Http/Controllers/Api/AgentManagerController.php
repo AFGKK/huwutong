@@ -61,7 +61,7 @@ class AgentManagerController extends Controller
         ]);
 
         $agent = $this->agentManager->createAgent($validated);
-        return ApiResponse::success($agent->load('user'), '代理创建成功', 201);
+        return ApiResponse::success($agent->load('user'), __('app.agent_manager.agent_created'), 201);
     }
 
     /**
@@ -93,7 +93,7 @@ class AgentManagerController extends Controller
         ]);
 
         $agent = $this->agentManager->updateAgent($agent->id, $validated);
-        return ApiResponse::success($agent->load('user'), '代理已更新');
+        return ApiResponse::success($agent->load('user'), __('app.agent_manager.agent_updated'));
     }
 
     /**
@@ -104,7 +104,7 @@ class AgentManagerController extends Controller
     public function approve(Agent $agent): JsonResponse
     {
         $agent = $this->agentManager->approveAgent($agent->id);
-        return ApiResponse::success($agent->load('user'), '代理已审核通过');
+        return ApiResponse::success($agent->load('user'), __('app.agent_manager.agent_approved'));
     }
 
     /**

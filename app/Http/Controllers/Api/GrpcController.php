@@ -22,7 +22,7 @@ class GrpcController extends Controller
     {
         $data = $this->grpcManager->getDashboard();
 
-        return ApiResponse::success($data, 'gRPC 仪表盘获取成功');
+        return ApiResponse::success($data, __('app.api.grpc.dashboard_fetched'));
     }
 
     /**
@@ -33,7 +33,7 @@ class GrpcController extends Controller
     {
         $data = $this->grpcManager->healthCheck();
 
-        return ApiResponse::success($data, 'gRPC 健康检查完成');
+        return ApiResponse::success($data, __('app.api.grpc.health_check_done'));
     }
 
     /**
@@ -44,7 +44,7 @@ class GrpcController extends Controller
     {
         $data = $this->grpcManager->getConfig();
 
-        return ApiResponse::success($data, 'gRPC 配置获取成功');
+        return ApiResponse::success($data, __('app.api.grpc.config_fetched'));
     }
 
     /**
@@ -55,7 +55,7 @@ class GrpcController extends Controller
     {
         $data = $this->grpcManager->getEndpoints();
 
-        return ApiResponse::success($data, 'gRPC 端点信息获取成功');
+        return ApiResponse::success($data, __('app.api.grpc.endpoints_fetched'));
     }
 
     /**
@@ -66,7 +66,7 @@ class GrpcController extends Controller
     {
         $data = $this->grpcManager->getAllCircuitBreakerStatus();
 
-        return ApiResponse::success($data, '熔断器状态获取成功');
+        return ApiResponse::success($data, __('app.api.grpc.circuit_breaker_status'));
     }
 
     /**
@@ -77,7 +77,7 @@ class GrpcController extends Controller
     {
         $this->grpcManager->resetAllCircuitBreakers();
 
-        return ApiResponse::success(null, '所有 gRPC 熔断器已重置');
+        return ApiResponse::success(null, __('app.api.grpc.circuit_breaker_reset'));
     }
 
     // ─── gRPC REST 回退端点（内部使用） ────────────
@@ -95,9 +95,9 @@ class GrpcController extends Controller
             $service = $this->grpcManager->license();
             $result = $service->$method(...$this->extractArgs($method, $payload));
 
-            return ApiResponse::success($result, 'License gRPC 调用成功');
+            return ApiResponse::success($result, __('app.api.grpc.license_call_success'));
         } catch (\Throwable $e) {
-            return ApiResponse::success(['error' => $e->getMessage()], 'License gRPC 调用失败', false, 500);
+            return ApiResponse::success(['error' => $e->getMessage()], __('app.api.grpc.license_call_failed'), false, 500);
         }
     }
 
@@ -114,9 +114,9 @@ class GrpcController extends Controller
             $service = $this->grpcManager->device();
             $result = $service->$method(...$this->extractArgs($method, $payload));
 
-            return ApiResponse::success($result, 'Device gRPC 调用成功');
+            return ApiResponse::success($result, __('app.api.grpc.device_call_success'));
         } catch (\Throwable $e) {
-            return ApiResponse::success(['error' => $e->getMessage()], 'Device gRPC 调用失败', false, 500);
+            return ApiResponse::success(['error' => $e->getMessage()], __('app.api.grpc.device_call_failed'), false, 500);
         }
     }
 
@@ -133,9 +133,9 @@ class GrpcController extends Controller
             $service = $this->grpcManager->billing();
             $result = $service->$method(...$this->extractArgs($method, $payload));
 
-            return ApiResponse::success($result, 'Billing gRPC 调用成功');
+            return ApiResponse::success($result, __('app.api.grpc.billing_call_success'));
         } catch (\Throwable $e) {
-            return ApiResponse::success(['error' => $e->getMessage()], 'Billing gRPC 调用失败', false, 500);
+            return ApiResponse::success(['error' => $e->getMessage()], __('app.api.grpc.billing_call_failed'), false, 500);
         }
     }
 
@@ -152,9 +152,9 @@ class GrpcController extends Controller
             $service = $this->grpcManager->notification();
             $result = $service->$method(...$this->extractArgs($method, $payload));
 
-            return ApiResponse::success($result, 'Notification gRPC 调用成功');
+            return ApiResponse::success($result, __('app.api.grpc.notification_call_success'));
         } catch (\Throwable $e) {
-            return ApiResponse::success(['error' => $e->getMessage()], 'Notification gRPC 调用失败', false, 500);
+            return ApiResponse::success(['error' => $e->getMessage()], __('app.api.grpc.notification_call_failed'), false, 500);
         }
     }
 

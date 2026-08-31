@@ -139,7 +139,7 @@ class DunningController extends Controller
     public function storeStrategy(Request $request): JsonResponse
     {
         if ($request->user()->cannot('admin')) {
-            return ApiResponse::error('FORBIDDEN', '无权执行此操作', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.dunning.forbidden'), 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -162,7 +162,7 @@ class DunningController extends Controller
 
         $strategy = DunningStrategy::create($validator->validated());
 
-        return ApiResponse::created($strategy, '催缴策略创建成功');
+        return ApiResponse::created($strategy, __('app.api.dunning.strategy_created'));
     }
 
     /**
@@ -173,7 +173,7 @@ class DunningController extends Controller
     public function updateStrategy(Request $request, DunningStrategy $dunningStrategy): JsonResponse
     {
         if ($request->user()->cannot('admin')) {
-            return ApiResponse::error('FORBIDDEN', '无权执行此操作', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.dunning.forbidden'), 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -196,7 +196,7 @@ class DunningController extends Controller
 
         $dunningStrategy->update($validator->validated());
 
-        return ApiResponse::success($dunningStrategy->fresh(), '催缴策略已更新');
+        return ApiResponse::success($dunningStrategy->fresh(), __('app.api.dunning.strategy_updated'));
     }
 
     /**
@@ -207,16 +207,16 @@ class DunningController extends Controller
     public function destroyStrategy(Request $request, DunningStrategy $dunningStrategy): JsonResponse
     {
         if ($request->user()->cannot('admin')) {
-            return ApiResponse::error('FORBIDDEN', '无权执行此操作', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.dunning.forbidden'), 403);
         }
 
         if ($dunningStrategy->queueItems()->whereIn('status', ['pending', 'in_progress'])->exists()) {
-            return ApiResponse::error('IN_USE', '该策略有正在进行的催缴项，请先停用', 422);
+            return ApiResponse::error('IN_USE', __('app.api.dunning.strategy_in_use'), 422);
         }
 
         $dunningStrategy->delete();
 
-        return ApiResponse::success(null, '催缴策略已删除');
+        return ApiResponse::success(null, __('app.api.dunning.strategy_deleted'));
     }
 
     /**
@@ -227,7 +227,7 @@ class DunningController extends Controller
     public function enqueue(Request $request): JsonResponse
     {
         if ($request->user()->cannot('admin')) {
-            return ApiResponse::error('FORBIDDEN', '无权执行此操作', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.dunning.forbidden'), 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -245,7 +245,7 @@ class DunningController extends Controller
                 $request->input('invoice_id'),
             );
 
-            return ApiResponse::created($item, '已加入催缴队列');
+            return ApiResponse::created($item, __('app.api.dunning.queue_enqueued'));
         } catch (\Throwable $e) {
             return ApiResponse::error('ENQUEUE_FAILED', $e->getMessage(), 422);
         }
@@ -259,12 +259,12 @@ class DunningController extends Controller
     public function run(Request $request): JsonResponse
     {
         if ($request->user()->cannot('admin')) {
-            return ApiResponse::error('FORBIDDEN', '无权执行此操作', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.dunning.forbidden'), 403);
         }
 
         $stats = $this->dunningEngine->processDunningRun();
 
-        return ApiResponse::success($stats, '催缴运行完成');
+        return ApiResponse::success($stats, __('app.api.dunning.run_completed'));
     }
 
     /**
@@ -275,12 +275,12 @@ class DunningController extends Controller
     public function scanOverdue(Request $request): JsonResponse
     {
         if ($request->user()->cannot('admin')) {
-            return ApiResponse::error('FORBIDDEN', '无权执行此操作', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.dunning.forbidden'), 403);
         }
 
         $result = $this->dunningEngine->enqueueAllOverdueInvoices();
 
-        return ApiResponse::success($result, '逾期发票扫描完成');
+        return ApiResponse::success($result, __('app.api.dunning.scan_completed'));
     }
 
     /**
@@ -291,7 +291,7 @@ class DunningController extends Controller
     public function resolve(Request $request, DunningQueue $dunningQueue): JsonResponse
     {
         if ($request->user()->cannot('admin')) {
-            return ApiResponse::error('FORBIDDEN', '无权执行此操作', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.dunning.forbidden'), 403);
         }
 
         $status = $request->input('status', 'resolved');
@@ -312,6 +312,6 @@ class DunningController extends Controller
             'success' => true,
         ]);
 
-        return ApiResponse::success($dunningQueue->fresh(), '催缴项已解决');
+        return ApiResponse::success($dunningQueue->fresh(), __('app.api.dunning.item_resolved'));
     }
 }

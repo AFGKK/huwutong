@@ -7,10 +7,13 @@ use App\Models\Coupon;
 use App\Models\CouponRedemption;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\InvoiceTitle;
 use App\Models\License;
+use App\Models\Order;
 use App\Models\PricingPlan;
 use App\Models\Product;
 use App\Models\Subscription;
+use App\Services\AutoInvoiceService;
 use App\Services\BillingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +24,9 @@ class BillingController extends Controller
 {
     public function __construct(
         protected BillingService $billingService,
-    ) {}
+        protected AutoInvoiceService $autoInvoiceService,
+    ) {
+    }
 
     /**
      * 订阅列表
@@ -107,7 +112,7 @@ class BillingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '订阅创建成功',
+                'message' => __('app.api.billing.subscription_created'),
                 'data' => $subscription->load(['customer.user:id,name', 'product:id,name']),
             ], 201);
         } catch (\Throwable $e) {
@@ -163,7 +168,7 @@ class BillingController extends Controller
         if ($price <= 0) {
             return response()->json([
                 'success' => false,
-                'message' => '所选周期没有定价',
+                'message' => __('app.api.billing.no_pricing'),
             ], 422);
         }
 
@@ -176,7 +181,7 @@ class BillingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '套餐已变更',
+            'message' => __('app.api.billing.plan_changed'),
             'data' => $updated,
         ]);
     }
@@ -200,7 +205,7 @@ class BillingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '订阅已取消（当前周期结束后不再续费）',
+            'message' => __('app.api.billing.subscription_cancelled'),
             'data' => $subscription->fresh(),
         ]);
     }
@@ -215,7 +220,7 @@ class BillingController extends Controller
         if ($subscription->status === 'expired') {
             return response()->json([
                 'success' => false,
-                'message' => '已过期的订阅无法恢复，请重新创建订阅',
+                'message' => __('app.api.billing.expired_cannot_resume'),
             ], 422);
         }
 
@@ -223,7 +228,7 @@ class BillingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '订阅已恢复',
+            'message' => __('app.api.billing.subscription_resumed'),
             'data' => $subscription->fresh(),
         ]);
     }
@@ -238,7 +243,7 @@ class BillingController extends Controller
         if (!in_array($subscription->status, ['active', 'grace'])) {
             return response()->json([
                 'success' => false,
-                'message' => '只有活跃或宽限期的订阅才能暂停',
+                'message' => __('app.api.billing.pause_active_only'),
             ], 422);
         }
 
@@ -255,7 +260,7 @@ class BillingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '订阅已暂停',
+            'message' => __('app.api.billing.subscription_paused'),
             'data' => $subscription->fresh(),
         ]);
     }
@@ -272,14 +277,14 @@ class BillingController extends Controller
         if ($result['success']) {
             return response()->json([
                 'success' => true,
-                'message' => '续费成功',
+                'message' => __('app.api.billing.renew_ok'),
                 'data' => $subscription->fresh()->load('invoices'),
             ]);
         }
 
         return response()->json([
             'success' => false,
-            'message' => '续费失败: ' . ($result['error'] ?? '未知错误'),
+            'message' => __('app.api.billing.renew_failed', ['error' => $result['error'] ?? __('app.api.billing.unknown_error')]),
         ], 502);
     }
 
@@ -348,7 +353,7 @@ class BillingController extends Controller
 
         return response()->json([
             'success' => $result,
-            'message' => $result ? '发票已标记为已支付' : '操作失败',
+            'message' => $result ? __('app.api.billing.invoice_paid') : __('app.api.billing.operation_failed'),
         ]);
     }
 
@@ -468,7 +473,7 @@ class BillingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '定价方案创建成功',
+            'message' => __('app.api.billing.pricing_created'),
             'data' => $plan->load('product:id,name'),
         ], 201);
     }
@@ -504,7 +509,7 @@ class BillingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '定价方案已更新',
+            'message' => __('app.api.billing.pricing_updated'),
             'data' => $plan->fresh()->load('product:id,name'),
         ]);
     }
@@ -517,7 +522,7 @@ class BillingController extends Controller
         if ($plan->subscriptions()->whereIn('status', ['active', 'grace'])->exists()) {
             return response()->json([
                 'success' => false,
-                'message' => '该方案有活跃订阅，无法删除，请先停用',
+                'message' => __('app.api.billing.pricing_has_subs'),
             ], 422);
         }
 
@@ -525,7 +530,7 @@ class BillingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '定价方案已停用',
+            'message' => __('app.api.billing.pricing_disabled'),
         ]);
     }
 
@@ -610,7 +615,7 @@ class BillingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '优惠券创建成功',
+            'message' => __('app.api.billing.coupon_created'),
             'data' => $coupon,
         ], 201);
     }
@@ -653,7 +658,7 @@ class BillingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '优惠券已更新',
+            'message' => __('app.api.billing.coupon_updated'),
             'data' => $coupon->fresh(),
         ]);
     }
@@ -726,5 +731,208 @@ class BillingController extends Controller
             'success' => true,
             'data' => $stats,
         ]);
+    }
+
+    // ═══════════════════════════
+    // 自动开票（合并自 AutoInvoiceController）
+    // ═══════════════════════════
+
+    /**
+     * 从订单生成发票
+     */
+    public function generateFromOrder(Request $request, int $orderId): JsonResponse
+    {
+        $order = Order::with('items')
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->findOrFail($orderId);
+
+        if ($order->status !== 'paid') {
+            return \App\Http\ApiResponse::error('ORDER_NOT_PAID', __('app.api.auto_invoice.order_not_paid'), 400);
+        }
+
+        if ($order->invoice_id) {
+            return \App\Http\ApiResponse::error('INVOICE_EXISTS', __('app.api.auto_invoice.invoice_exists'), 400);
+        }
+
+        $validated = $request->validate([
+            'invoice_title_id' => 'nullable|exists:invoice_titles,id',
+        ]);
+
+        try {
+            $invoice = $this->autoInvoiceService->generateFromOrder(
+                $order,
+                $validated['invoice_title_id'] ?? null
+            );
+            return \App\Http\ApiResponse::success($invoice->load('lineItems'), __('app.api.auto_invoice.invoice_generated'));
+        } catch (\Throwable $e) {
+            return \App\Http\ApiResponse::error('INVOICE_GENERATE_FAILED', __('app.api.auto_invoice.invoice_generate_failed', ['error' => $e->getMessage()]), 500);
+        }
+    }
+
+    /**
+     * 租户发票列表
+     */
+    public function tenantInvoices(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        return \App\Http\ApiResponse::paginated(
+            $this->autoInvoiceService->getTenantInvoices($tenantId, $request->all())
+        );
+    }
+
+    /**
+     * 租户发票详情
+     */
+    public function tenantInvoiceDetail(Request $request, int $invoiceId): JsonResponse
+    {
+        $invoice = Invoice::with([
+            'lineItems', 'customer',
+            'customer.user:id,name,email',
+        ])->where('tenant_id', $request->user()->tenant_id)
+            ->findOrFail($invoiceId);
+
+        return \App\Http\ApiResponse::success($invoice);
+    }
+
+    /**
+     * 发票 HTML 预览
+     */
+    public function invoicePreview(Request $request, int $invoiceId): \Illuminate\Http\Response
+    {
+        $invoice = Invoice::where('tenant_id', $request->user()->tenant_id)
+            ->findOrFail($invoiceId);
+
+        $html = $this->autoInvoiceService->getInvoiceHtml($invoice->id);
+        return response($html, 200, ['Content-Type' => 'text/html; charset=utf-8']);
+    }
+
+    /**
+     * 重发发票邮件
+     */
+    public function resendInvoice(Request $request, int $invoiceId): JsonResponse
+    {
+        $invoice = Invoice::where('tenant_id', $request->user()->tenant_id)
+            ->findOrFail($invoiceId);
+
+        try {
+            $this->autoInvoiceService->resendInvoiceEmail($invoice->id);
+            return \App\Http\ApiResponse::success(null, __('app.api.auto_invoice.invoice_resent'));
+        } catch (\Throwable $e) {
+            return \App\Http\ApiResponse::error('RESEND_FAILED', $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * 自动开票统计（合并原 AutoInvoiceController::stats + BillingController::invoiceStats）
+     */
+    public function autoInvoiceStats(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()->tenant_id;
+        $autoStats = $this->autoInvoiceService->getStats($tenantId);
+
+        return \App\Http\ApiResponse::success($autoStats);
+    }
+
+    // ═══════════════ 发票抬头管理 ═══════════════
+
+    /**
+     * 解析客户 ID
+     */
+    protected function resolveInvoiceCustomerId($user): int
+    {
+        if ($user->customer_id) {
+            return $user->customer_id;
+        }
+        $customer = Customer::where('tenant_id', $user->tenant_id)
+            ->where('user_id', $user->id)
+            ->first();
+        return $customer?->id ?? 0;
+    }
+
+    /**
+     * 发票抬头列表
+     */
+    public function invoiceTitles(Request $request): JsonResponse
+    {
+        $customerId = $this->resolveInvoiceCustomerId($request->user());
+
+        $titles = InvoiceTitle::where('customer_id', $customerId)
+            ->orderByDesc('is_default')
+            ->orderByDesc('created_at')
+            ->get();
+        return \App\Http\ApiResponse::success($titles);
+    }
+
+    /**
+     * 创建发票抬头
+     */
+    public function storeInvoiceTitle(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => 'required|string|max:200',
+            'tax_no' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:300',
+            'phone' => 'nullable|string|max:50',
+            'bank_name' => 'nullable|string|max:200',
+            'bank_account' => 'nullable|string|max:50',
+            'is_default' => 'boolean',
+        ]);
+
+        $user = $request->user();
+        $customerId = $this->resolveInvoiceCustomerId($user);
+
+        if (!$customerId) {
+            return \App\Http\ApiResponse::error('MISSING_CUSTOMER', __('app.api.auto_invoice.missing_customer'), 400);
+        }
+
+        $data['customer_id'] = $customerId;
+        $data['tenant_id'] = $user->tenant_id;
+
+        if (!empty($data['is_default'])) {
+            InvoiceTitle::where('customer_id', $customerId)
+                ->update(['is_default' => false]);
+        }
+
+        $title = InvoiceTitle::create($data);
+        return \App\Http\ApiResponse::success($title, __('app.api.auto_invoice.title_created'));
+    }
+
+    /**
+     * 更新发票抬头
+     */
+    public function updateInvoiceTitle(Request $request, int $titleId): JsonResponse
+    {
+        $title = InvoiceTitle::where('customer_id', $request->user()->customer_id)
+            ->findOrFail($titleId);
+
+        $data = $request->validate([
+            'title' => 'string|max:200',
+            'tax_no' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:300',
+            'phone' => 'nullable|string|max:50',
+            'bank_name' => 'nullable|string|max:200',
+            'bank_account' => 'nullable|string|max:50',
+            'is_default' => 'boolean',
+        ]);
+
+        if (!empty($data['is_default'])) {
+            InvoiceTitle::where('customer_id', $request->user()->customer_id)
+                ->where('id', '!=', $titleId)
+                ->update(['is_default' => false]);
+        }
+
+        $title->update($data);
+        return \App\Http\ApiResponse::success($title->fresh(), __('app.api.auto_invoice.title_updated'));
+    }
+
+    /**
+     * 删除发票抬头
+     */
+    public function destroyInvoiceTitle(Request $request, int $titleId): JsonResponse
+    {
+        $title = InvoiceTitle::where('customer_id', $request->user()->customer_id)
+            ->findOrFail($titleId);
+        $title->delete();
+        return \App\Http\ApiResponse::success(null, __('app.api.auto_invoice.title_deleted'));
     }
 }

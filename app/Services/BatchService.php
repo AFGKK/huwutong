@@ -157,11 +157,11 @@ class BatchService
     public function undo(BatchJob $batchJob): array
     {
         if (!$batchJob->isReversible()) {
-            throw new \InvalidArgumentException('该操作类型不可撤销');
+            throw new \InvalidArgumentException(__('app.api.service_batch.cannot_rollback'));
         }
 
         if (!$batchJob->isFinished()) {
-            throw new \InvalidArgumentException('操作尚未完成，无法撤销');
+            throw new \InvalidArgumentException(__('app.api.service_batch.not_completed'));
         }
 
         $snapshots = BatchSnapshot::where('batch_job_id', $batchJob->id)->get();
@@ -310,7 +310,7 @@ class BatchService
                 break;
 
             default:
-                throw new \InvalidArgumentException("未知操作类型: {$type}");
+                throw new \InvalidArgumentException(__('app.api.service_batch.unknown_type', ['type' => $type]));
         }
 
         return $result;
@@ -330,7 +330,7 @@ class BatchService
             $this->takeSnapshot($batchJob, $target, 'status', $target->status);
             $target->update(['status' => 'active']);
         } else {
-            throw new \InvalidArgumentException('不支持的激活目标类型');
+            throw new \InvalidArgumentException(__('app.api.service_batch.unsupported_target'));
         }
 
         return ['old_status' => $oldStatus, 'new_status' => 'active'];
@@ -348,7 +348,7 @@ class BatchService
             // 状态校验：仅 active/expired 可续期
             $allowedStatuses = ['active', 'expired', 'suspended'];
             if (!in_array($target->status, $allowedStatuses)) {
-                throw new \InvalidArgumentException("License #{$target->id} 状态 [{$target->status}] 不允许续期");
+                throw new \InvalidArgumentException(__('app.api.service_batch.status_not_renewable', ['id' => $target->id, 'status' => $target->status]));
             }
 
             $oldExpiresAt = $target->expires_at ? $target->expires_at->toIso8601String() : null;
@@ -405,7 +405,7 @@ class BatchService
             ];
         }
 
-        throw new \InvalidArgumentException('不支持的续期目标类型');
+        throw new \InvalidArgumentException(__('app.api.service_batch.unsupported_renew_target'));
     }
 
     /**
@@ -414,7 +414,7 @@ class BatchService
     protected function suspendTarget(Model $target, BatchJob $batchJob): array
     {
         if (!$target instanceof License && !$target instanceof Subscription) {
-            throw new \InvalidArgumentException('不支持的挂起目标类型');
+            throw new \InvalidArgumentException(__('app.api.service_batch.unsupported_suspend_target'));
         }
 
         $this->takeSnapshot($batchJob, $target, 'status', $target->status ?? 'active');
@@ -429,7 +429,7 @@ class BatchService
     protected function revokeTarget(Model $target, BatchJob $batchJob): array
     {
         if (!$target instanceof License) {
-            throw new \InvalidArgumentException('仅 License 支持吊销');
+            throw new \InvalidArgumentException(__('app.api.service_batch.revoke_license_only'));
         }
 
         $this->takeSnapshot($batchJob, $target, 'status', $target->status);
@@ -455,7 +455,7 @@ class BatchService
     {
         $newStatus = $params['status'] ?? null;
         if (!$newStatus) {
-            throw new \InvalidArgumentException('未指定目标状态');
+            throw new \InvalidArgumentException(__('app.api.service_batch.no_target_status'));
         }
 
         $this->takeSnapshot($batchJob, $target, 'status', $target->status);
@@ -470,7 +470,7 @@ class BatchService
     protected function changePlan(Model $target, BatchJob $batchJob, array $params): array
     {
         if (!$target instanceof Subscription) {
-            throw new \InvalidArgumentException('仅 Subscription 支持变更计划');
+            throw new \InvalidArgumentException(__('app.api.service_batch.subscription_plan_only'));
         }
 
         $newPlan = $params['plan'] ?? null;
@@ -519,7 +519,7 @@ class BatchService
             BatchJob::TARGET_CUSTOMERS => Customer::class,
             BatchJob::TARGET_INVOICES => Invoice::class,
             BatchJob::TARGET_TICKETS => Ticket::class,
-            default => throw new \InvalidArgumentException("未知目标模型: {$targetModel}"),
+            default => throw new \InvalidArgumentException(__('app.api.service_batch.unknown_model', ['model' => $targetModel])),
         };
     }
 

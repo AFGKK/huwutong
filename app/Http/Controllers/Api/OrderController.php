@@ -8,6 +8,7 @@ use App\Models\BillingCycle;
 use App\Models\Order;
 use App\Models\ProductSku;
 use App\Services\OrderService;
+use App\Services\ProductSearchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -26,6 +27,7 @@ class OrderController extends Controller
 {
     public function __construct(
         protected OrderService $orderService,
+        protected ProductSearchService $productSearch,
     ) {}
 
     /**
@@ -46,14 +48,32 @@ class OrderController extends Controller
                 });
         }
 
-        // 搜索（匹配商品名称+SKU名称+描述）
+        // 搜索（Meilisearch 优先，降级 MySQL LIKE）
         if ($search = $request->input('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku_code', 'like', "%{$search}%")
-                  ->orWhereHas('product', fn($pq) => $pq->where('name', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%"));
-            });
+            $productIds = $this->productSearch->resolveProductIds($search, $request->only([
+                'category_id', 'price_min', 'price_max', 'sort',
+            ]));
+
+            if ($productIds !== null) {
+                if ($productIds === []) {
+                    $perPage = min((int) $request->input('per_page', 20), 100);
+
+                    return ApiResponse::success(new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage));
+                }
+
+                $query->whereIn('product_id', $productIds);
+                $ids = implode(',', $productIds);
+                if (! $request->filled('sort') || $request->input('sort') === '-sold_count') {
+                    $query->orderByRaw("array_position(ARRAY[{$ids}]::bigint[], product_id)");
+                }
+            } else {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('sku_code', 'like', "%{$search}%")
+                        ->orWhereHas('product', fn ($pq) => $pq->where('name', 'like', "%{$search}%")
+                            ->orWhere('description', 'like', "%{$search}%"));
+                });
+            }
         }
 
         // 按产品筛选
@@ -127,7 +147,7 @@ class OrderController extends Controller
 
         $sku = ProductSku::create($validated);
 
-        return ApiResponse::created($sku->load('product'), 'SKU 创建成功');
+        return ApiResponse::created($sku->load('product'), __('app.api.order.sku_created'));
     }
 
     /**
@@ -153,7 +173,7 @@ class OrderController extends Controller
         ]);
 
         $sku->update($validated);
-        return ApiResponse::success($sku->fresh()->load('product'), 'SKU 更新成功');
+        return ApiResponse::success($sku->fresh()->load('product'), __('app.api.order.sku_updated'));
     }
 
     /**
@@ -164,7 +184,7 @@ class OrderController extends Controller
         $sku = ProductSku::findOrFail($id);
         $sku->delete();
 
-        return ApiResponse::success(null, 'SKU 已删除');
+        return ApiResponse::success(null, __('app.api.order.sku_deleted'));
     }
 
     /**
@@ -223,12 +243,12 @@ class OrderController extends Controller
             $order = $this->orderService->createOrder($data);
             return ApiResponse::created(
                 $order->load('items.sku.product'),
-                '订单创建成功'
+                __('app.api.order.created')
             );
         } catch (\RuntimeException $e) {
             return ApiResponse::error('ORDER_CREATE_FAILED', $e->getMessage(), 400);
         } catch (\Exception $e) {
-            return ApiResponse::error('ORDER_CREATE_FAILED', '订单创建失败', 500);
+            return ApiResponse::error('ORDER_CREATE_FAILED', __('app.api.order.create_failed'), 500);
         }
     }
 
@@ -279,7 +299,7 @@ class OrderController extends Controller
 
         try {
             $order = $this->orderService->cancel($order, $request->input('reason'));
-            return ApiResponse::success($order->load('items.sku'), '订单已取消');
+            return ApiResponse::success($order->load('items.sku'), __('app.api.order.cancelled'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('ORDER_CANCEL_FAILED', $e->getMessage(), 400);
         }
@@ -297,7 +317,7 @@ class OrderController extends Controller
         try {
             $gateway = $request->input('gateway', 'alipay');
             $result = $this->orderService->initiatePayment($order, $gateway);
-            return ApiResponse::success($result, '支付请求已创建');
+            return ApiResponse::success($result, __('app.api.order.pay_created'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('PAYMENT_FAILED', $e->getMessage(), 400);
         }
@@ -323,7 +343,7 @@ class OrderController extends Controller
                 $data['transaction_id'],
                 $request->except(['payment_method', 'transaction_id'])
             );
-            return ApiResponse::success($order->load('items.sku'), '支付成功');
+            return ApiResponse::success($order->load('items.sku'), __('app.api.order.paid'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('PAY_MARK_FAILED', $e->getMessage(), 400);
         }

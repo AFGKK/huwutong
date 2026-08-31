@@ -314,14 +314,31 @@ class BugBountyService
     }
 
     /**
-     * 获取政策内容（用于政策页面）
+     * 获取政策内容（用于政策页面 / API；文案随当前 locale）
      */
     public static function getPolicyContent(): array
     {
-        $policy = self::POLICY;
+        $base = self::POLICY;
+        $rewardLabels = trans('bug_bounty.rewards');
+        if (!is_array($rewardLabels)) {
+            $rewardLabels = [];
+        }
+
+        $rewards = [];
+        foreach ($base['rewards'] as $severity => $reward) {
+            $rewards[$severity] = [
+                'min' => $reward['min'],
+                'max' => $reward['max'],
+                'label' => $rewardLabels[$severity] ?? $reward['label'],
+            ];
+        }
+
+        $scope = trans('bug_bounty.scope');
+        $outOfScope = trans('bug_bounty.out_of_scope');
+        $rules = trans('bug_bounty.rules');
 
         $rewardTable = '';
-        foreach ($policy['rewards'] as $severity => $reward) {
+        foreach ($rewards as $severity => $reward) {
             $rewardTable .= sprintf(
                 "| %s | %s | %s |\n",
                 BugBountyReport::severityLabel($severity),
@@ -331,17 +348,17 @@ class BugBountyService
         }
 
         return [
-            'program_name' => $policy['program_name'],
+            'program_name' => __('bug_bounty.program_name'),
             'last_updated' => now()->format('Y-m-d'),
-            'scope' => $policy['scope'],
-            'out_of_scope' => $policy['out_of_scope'],
-            'rewards' => $policy['rewards'],
+            'scope' => is_array($scope) ? $scope : $base['scope'],
+            'out_of_scope' => is_array($outOfScope) ? $outOfScope : $base['out_of_scope'],
+            'rewards' => $rewards,
             'reward_table' => $rewardTable,
-            'rules' => $policy['rules'],
-            'response_time' => $policy['response_time'],
-            'disclosure_policy' => $policy['disclosure_policy'],
-            'legal_safe_harbor' => $policy['legal_safe_harbor'],
-            'contact' => $policy['contact'],
+            'rules' => is_array($rules) ? $rules : $base['rules'],
+            'response_time' => __('bug_bounty.response_time'),
+            'disclosure_policy' => __('bug_bounty.disclosure_policy'),
+            'legal_safe_harbor' => __('bug_bounty.legal_safe_harbor'),
+            'contact' => $base['contact'],
         ];
     }
 

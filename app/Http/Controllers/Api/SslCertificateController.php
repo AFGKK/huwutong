@@ -24,7 +24,7 @@ class SslCertificateController extends Controller
     protected function ensureAdmin(): void
     {
         if (Gate::denies('admin')) {
-            abort(403, '需要管理员权限');
+            abort(403, __('app.api.ssl_cert.admin_required'));
         }
     }
 
@@ -103,7 +103,6 @@ class SslCertificateController extends Controller
                 'expires_at' => $sslCertificate->expires_at?->toIso8601String(),
                 'last_renewed_at' => $sslCertificate->last_renewed_at?->toIso8601String(),
                 'error_message' => $sslCertificate->error_message,
-                'acme_challenge_token' => $sslCertificate->acme_challenge_token,
                 'renewal_alert_sent_at' => $sslCertificate->renewal_alert_sent_at?->toIso8601String(),
                 'created_at' => $sslCertificate->created_at?->toIso8601String(),
             ],
@@ -132,7 +131,7 @@ class SslCertificateController extends Controller
         if ($customDomain->sslCertificate) {
             return response()->json([
                 'success' => false,
-                'message' => '该域名已有 SSL 证书，如需重新签发请先吊销旧证书',
+                'message' => __('app.api.ssl_cert.existing_cert'),
             ], 422);
         }
 
@@ -152,19 +151,19 @@ class SslCertificateController extends Controller
             if (! $result['success']) {
                 $certificate->update([
                     'status' => 'failed',
-                    'error_message' => $result['error'] ?? '签发失败',
+                    'error_message' => $result['error'] ?? __('app.api.ssl_cert.issue_failed'),
                 ]);
             }
         } catch (\Throwable $e) {
             $certificate->update([
                 'status' => 'failed',
-                'error_message' => '签发异常: ' . $e->getMessage(),
+                'error_message' => __('app.api.ssl_cert.issue_exception', ['error' => $e->getMessage()]),
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'SSL 证书申请已提交',
+            'message' => __('app.api.ssl_cert.cert_submitted'),
             'data' => $certificate->fresh()->load('customDomain'),
         ]);
     }
@@ -190,7 +189,7 @@ class SslCertificateController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '证书已更新',
+            'message' => __('app.api.ssl_cert.cert_updated'),
             'data' => $sslCertificate->fresh(),
         ]);
     }
@@ -204,7 +203,7 @@ class SslCertificateController extends Controller
 
         $customDomain = $sslCertificate->customDomain;
         if (! $customDomain) {
-            return response()->json(['success' => false, 'message' => '关联域名不存在'], 404);
+            return response()->json(['success' => false, 'message' => __('app.api.ssl_cert.domain_not_found')], 404);
         }
 
         $sslCertificate->update([
@@ -218,30 +217,30 @@ class SslCertificateController extends Controller
             if ($result['success']) {
                 return response()->json([
                     'success' => true,
-                    'message' => '证书续期成功',
+                    'message' => __('app.api.ssl_cert.renewal_success'),
                     'data' => $sslCertificate->fresh(),
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => $result['error'] ?? '续期失败',
+                'message' => $result['error'] ?? __('app.api.ssl_cert.renewal_failed'),
             ], 502);
         } catch (\Throwable $e) {
             $sslCertificate->update([
                 'status' => 'failed',
-                'error_message' => '续期异常: ' . $e->getMessage(),
+                'error_message' => __('app.api.ssl_cert.renewal_exception', ['error' => $e->getMessage()]),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => '续期异常: ' . $e->getMessage(),
+                'message' => __('app.api.ssl_cert.renewal_exception', ['error' => $e->getMessage()]),
             ], 502);
         }
     }
 
     /**
-     * 吊销证书
+     * 吊销证书（数据库软吊销，不会向 CA 提交 OCSP 撤销请求）
      */
     public function revoke(Request $request, SslCertificate $sslCertificate): JsonResponse
     {
@@ -249,12 +248,12 @@ class SslCertificateController extends Controller
 
         $sslCertificate->update([
             'status' => 'revoked',
-            'error_message' => $request->input('reason', '管理员吊销'),
+            'error_message' => $request->input('reason', __('app.api.ssl_cert.default_revoke_reason')),
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => '证书已吊销',
+            'message' => __('app.api.ssl_cert.cert_revoked'),
         ]);
     }
 
@@ -267,9 +266,18 @@ class SslCertificateController extends Controller
 
         $total = SslCertificate::count();
         $issued = SslCertificate::where('status', 'issued')->count();
-        $valid = SslCertificate::where('status', 'issued')->get()->filter->isValid()->count();
-        $expiringSoon = SslCertificate::where('status', 'issued')->get()->filter->isExpiringSoon()->count();
-        $needsRenewal = SslCertificate::where('status', 'issued')->get()->filter->needsRenewal()->count();
+        $valid = SslCertificate::where('status', 'issued')
+            ->where('issued_at', '<=', now())
+            ->where('expires_at', '>', now())
+            ->count();
+        $expiringSoon = SslCertificate::where('status', 'issued')
+            ->where('expires_at', '<=', now()->addDays(7))
+            ->where('expires_at', '>', now())
+            ->count();
+        $needsRenewal = SslCertificate::where('status', 'issued')
+            ->where('expires_at', '<=', now()->addDays(30))
+            ->where('expires_at', '>', now())
+            ->count();
         $failed = SslCertificate::where('status', 'failed')->count();
         $renewing = SslCertificate::where('status', 'renewing')->count();
         $pending = SslCertificate::where('status', 'pending')->count();
@@ -321,7 +329,6 @@ class SslCertificateController extends Controller
                 'issued_at' => $sslCertificate->issued_at?->toIso8601String(),
                 'expires_at' => $sslCertificate->expires_at?->toIso8601String(),
                 'certificate' => $sslCertificate->certificate ? Crypt::decryptString($sslCertificate->certificate) : null,
-                'private_key' => $sslCertificate->private_key ? Crypt::decryptString($sslCertificate->private_key) : null,
                 'certificate_chain' => $sslCertificate->certificate_chain ? Crypt::decryptString($sslCertificate->certificate_chain) : null,
             ],
         ]);

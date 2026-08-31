@@ -43,7 +43,7 @@ class UserAutoReplyController extends Controller
 
         $rule = UserAutoReply::create($validated);
 
-        return ApiResponse::success($rule, '自动回复已创建', 201);
+        return ApiResponse::success($rule, __('app.api.user_auto_reply.created'), 201);
     }
 
     /**
@@ -66,7 +66,7 @@ class UserAutoReplyController extends Controller
 
         $rule->update($validated);
 
-        return ApiResponse::success($rule->fresh(), '已更新');
+        return ApiResponse::success($rule->fresh(), __('app.api.user_auto_reply.updated'));
     }
 
     /**
@@ -77,7 +77,7 @@ class UserAutoReplyController extends Controller
         $rule = UserAutoReply::where('user_id', $request->user()->id)->findOrFail($id);
         $rule->delete();
 
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.user_auto_reply.deleted'));
     }
 
     /**

@@ -26,7 +26,7 @@ class SessionController extends Controller
      */
     public function dashboard(): JsonResponse
     {
-        return ApiResponse::success($this->sessionService->getDashboard(), '会话仪表盘获取成功');
+        return ApiResponse::success($this->sessionService->getDashboard(), __('app.session.dashboard_ok'));
     }
 
     /**
@@ -39,7 +39,7 @@ class SessionController extends Controller
             'user_id', 'search', 'is_current', 'device_type',
             'date_from', 'date_to', 'per_page', 'page',
         ]);
-        return ApiResponse::success($this->sessionService->getSessions($params), '会话列表获取成功');
+        return ApiResponse::success($this->sessionService->getSessions($params), __('app.session.list_ok'));
     }
 
     /**
@@ -49,7 +49,7 @@ class SessionController extends Controller
     public function show(UserSession $userSession): JsonResponse
     {
         $userSession->load('user');
-        return ApiResponse::success($userSession, '会话详情获取成功');
+        return ApiResponse::success($userSession, __('app.session.detail_ok'));
     }
 
     /**
@@ -86,7 +86,11 @@ class SessionController extends Controller
             $request->user()->id
         );
 
-        return ApiResponse::success($result, "成功踢出 {$result['success']} 个会话" . ($result['failed'] > 0 ? "，{$result['failed']} 个失败" : ''));
+        $msg = __('app.session.kick_result', ['success' => $result['success']]);
+        if ($result['failed'] > 0) {
+            $msg .= __('app.session.kick_failed_extra', ['failed' => $result['failed']]);
+        }
+        return ApiResponse::success($result, $msg);
     }
 
     /**

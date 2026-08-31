@@ -101,7 +101,7 @@ class AuditRetentionPolicyController extends Controller
 
         $policy->update($validator->validated());
 
-        return ApiResponse::success($policy->fresh(), '保留策略已更新');
+        return ApiResponse::success($policy->fresh(), __('app.audit_retention_policy.policy_updated'));
     }
 
     /**
@@ -115,7 +115,7 @@ class AuditRetentionPolicyController extends Controller
         $type = $policy->type;
         $policy->delete();
 
-        return ApiResponse::success(null, '已恢复默认保留策略（' . __('audit.type.' . $type, $type) . '）');
+        return ApiResponse::success(null, __("app.audit_retention_policy.msg_8bdc0563") . __('audit.type.' . $type, $type) . '）');
     }
 
     /**

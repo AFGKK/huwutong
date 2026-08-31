@@ -65,7 +65,7 @@ class FingerprintDriftController extends Controller
             $validated['notes'] ?? null
         );
 
-        return ApiResponse::success($record, '指纹快照已记录');
+        return ApiResponse::success($record, __("app.fingerprint_drift.msg_a19e358c"));
     }
 
     /**
@@ -79,7 +79,7 @@ class FingerprintDriftController extends Controller
 
         $record = $this->driftService->acceptDrift($historyId, $validated['notes'] ?? null);
 
-        return ApiResponse::success($record, '漂移已接受，已更新基准指纹');
+        return ApiResponse::success($record, __("app.fingerprint_drift.msg_e6c7e2aa"));
     }
 
     /**

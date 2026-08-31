@@ -244,13 +244,13 @@ class FileStorageService
     {
         // 检查文件大小
         if ($file->getSize() > self::MAX_FILE_SIZE) {
-            throw new \RuntimeException('文件大小超过限制（最大 ' . ($this->formatBytes(self::MAX_FILE_SIZE)) . '）');
+            throw new \RuntimeException(__("app.file_storage.msg_416e0d5f") . ($this->formatBytes(self::MAX_FILE_SIZE)) . '）');
         }
 
         // 检查MIME类型
         $mime = $file->getMimeType();
         if (!in_array($mime, self::ALLOWED_MIME_TYPES)) {
-            throw new \RuntimeException("不支持的文件类型: {$mime}");
+            throw new \RuntimeException(__("app.file_storage.msg_41515ad9"));
         }
     }
 

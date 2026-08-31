@@ -23,7 +23,7 @@ class UtmTrackerController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => '参数验证失败', 'errors' => $validator->errors()], 422);
+            return response()->json(['message' => __('app.controller_compat.param_validation_failed'), 'errors' => $validator->errors()], 422);
         }
 
         $data = $this->utmService->getDashboard(
@@ -46,7 +46,7 @@ class UtmTrackerController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => '参数验证失败', 'errors' => $validator->errors()], 422);
+            return response()->json(['message' => __('app.controller_compat.param_validation_failed'), 'errors' => $validator->errors()], 422);
         }
 
         $data = $this->utmService->getAttributionReport(
@@ -70,7 +70,7 @@ class UtmTrackerController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => '参数验证失败', 'errors' => $validator->errors()], 422);
+            return response()->json(['message' => __('app.controller_compat.param_validation_failed'), 'errors' => $validator->errors()], 422);
         }
 
         $data = $this->utmService->getSourceDetail(
@@ -99,7 +99,7 @@ class UtmTrackerController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => '参数验证失败', 'errors' => $validator->errors()], 422);
+            return response()->json(['message' => __('app.controller_compat.param_validation_failed'), 'errors' => $validator->errors()], 422);
         }
 
         $record = $this->utmService->record(
@@ -109,7 +109,7 @@ class UtmTrackerController extends Controller
 
         return response()->json([
             'data' => $record,
-            'message' => '记录成功',
+            'message' => __('app.controller_compat.record_success'),
         ]);
     }
 
@@ -124,7 +124,7 @@ class UtmTrackerController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => '参数验证失败', 'errors' => $validator->errors()], 422);
+            return response()->json(['message' => __('app.controller_compat.param_validation_failed'), 'errors' => $validator->errors()], 422);
         }
 
         $record = $this->utmService->associateUser(
@@ -133,10 +133,10 @@ class UtmTrackerController extends Controller
         );
 
         if (!$record) {
-            return response()->json(['message' => '未找到该会话的UTM记录'], 404);
+            return response()->json(['message' => __('app.controller_compat.utm_tracker_utm')], 404);
         }
 
-        return response()->json(['data' => $record, 'message' => '关联成功']);
+        return response()->json(['data' => $record, 'message' => __('app.controller_compat.utm_tracker_msg_139')]);
     }
 
     /**

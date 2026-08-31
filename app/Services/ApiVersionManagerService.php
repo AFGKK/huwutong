@@ -85,7 +85,7 @@ class ApiVersionManagerService
     public function createVersion(array $data): ApiVersion
     {
         if (empty($data['version'])) {
-            throw new \InvalidArgumentException('版本号不能为空');
+            throw new \InvalidArgumentException(__("app.api_version_manager.version_required"));
         }
 
         $version = str_starts_with($data['version'], 'v') ? $data['version'] : 'v' . $data['version'];

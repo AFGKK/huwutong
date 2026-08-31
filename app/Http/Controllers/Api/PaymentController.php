@@ -26,7 +26,7 @@ class PaymentController extends Controller
      */
     public function dashboard(): JsonResponse
     {
-        return ApiResponse::success($this->paymentService->getDashboard(), '支付仪表盘获取成功');
+        return ApiResponse::success($this->paymentService->getDashboard(), __('app.payment.dashboard_retrieved'));
     }
 
     /**
@@ -39,7 +39,7 @@ class PaymentController extends Controller
             'status', 'channel', 'search', 'date_from', 'date_to',
             'amount_min', 'amount_max', 'tenant_id', 'per_page', 'page',
         ]);
-        return ApiResponse::success($this->paymentService->getPayments($params), '支付记录列表获取成功');
+        return ApiResponse::success($this->paymentService->getPayments($params), __('app.payment.records_retrieved'));
     }
 
     /**
@@ -49,7 +49,7 @@ class PaymentController extends Controller
     public function show(Payment $payment): JsonResponse
     {
         $payment->load(['tenant', 'order', 'user', 'customer']);
-        return ApiResponse::success($payment, '支付记录详情获取成功');
+        return ApiResponse::success($payment, __("app.payment.msg_f860d0a5"));
     }
 
     /**
@@ -78,6 +78,6 @@ class PaymentController extends Controller
     public function trend(Request $request): JsonResponse
     {
         $days = min((int) $request->input('days', 30), 365);
-        return ApiResponse::success($this->paymentService->getTrend($days), '支付趋势获取成功');
+        return ApiResponse::success($this->paymentService->getTrend($days), __('app.payment.trends_retrieved'));
     }
 }

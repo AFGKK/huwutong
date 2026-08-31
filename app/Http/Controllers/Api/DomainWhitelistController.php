@@ -97,7 +97,7 @@ class DomainWhitelistController extends Controller
     {
         $userId = $request->user()?->id;
         $this->domainWhitelist->removeDomain($id, $userId);
-        return ApiResponse::success(null, '域名已删除');
+        return ApiResponse::success(null, __("app.domain_whitelist.msg_9fc6487a"));
     }
 
     /**
@@ -118,8 +118,8 @@ class DomainWhitelistController extends Controller
         );
 
         return $result['passed']
-            ? ApiResponse::success($result, '域名验证通过')
-            : ApiResponse::error($result['reason'] ?? '域名不在白名单中', 403, $result);
+            ? ApiResponse::success($result, __("app.domain_whitelist.msg_fbf7197c"))
+            : ApiResponse::error($result['reason'] ?? __("app.domain_whitelist.msg_7d68d565"), 403, $result);
     }
 
     /**
@@ -159,7 +159,7 @@ class DomainWhitelistController extends Controller
     {
         $adminId = $request->user()?->id;
         $this->domainWhitelist->approveDomain($id, $adminId);
-        return ApiResponse::success(null, '已审批通过');
+        return ApiResponse::success(null, __("app.domain_whitelist.msg_c0b5ba1d"));
     }
 
     /**
@@ -169,6 +169,6 @@ class DomainWhitelistController extends Controller
     {
         $adminId = $request->user()?->id;
         $this->domainWhitelist->rejectDomain($id, $adminId);
-        return ApiResponse::success(null, '已拒绝');
+        return ApiResponse::success(null, __("app.domain_whitelist.msg_81233d75"));
     }
 }

@@ -71,13 +71,13 @@ class StatusPageController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '订阅成功',
+                'message' => __('app.api.status_page.subscribed'),
                 'data' => ['email' => $subscriber->email],
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '订阅失败: ' . $e->getMessage(),
+                'message' => __('app.api.status_page.subscribe_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -90,10 +90,10 @@ class StatusPageController extends Controller
         $result = $this->statusService->unsubscribe($token);
 
         if (!$result) {
-            return response()->json(['success' => false, 'message' => '退订链接无效'], 404);
+            return response()->json(['success' => false, 'message' => __('app.api.status_page.unsubscribe_invalid')], 404);
         }
 
-        return response()->json(['success' => true, 'message' => '已退订']);
+        return response()->json(['success' => true, 'message' => __('app.api.status_page.unsubscribed')]);
     }
 
     // ========================
@@ -136,7 +136,7 @@ class StatusPageController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '组件已创建',
+            'message' => __('app.api.status_page.component_created'),
             'data' => $component,
         ], 201);
     }
@@ -165,7 +165,7 @@ class StatusPageController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '组件已更新',
+            'message' => __('app.api.status_page.component_updated'),
             'data' => $component,
         ]);
     }
@@ -179,7 +179,7 @@ class StatusPageController extends Controller
 
         $component->delete();
 
-        return response()->json(['success' => true, 'message' => '组件已删除']);
+        return response()->json(['success' => true, 'message' => __('app.api.status_page.component_deleted')]);
     }
 
     /**
@@ -240,7 +240,7 @@ class StatusPageController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '事件已创建',
+            'message' => __('app.api.status_page.incident_created'),
             'data' => $incident->load('components', 'updates'),
         ], 201);
     }
@@ -271,7 +271,7 @@ class StatusPageController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '事件已更新',
+            'message' => __('app.api.status_page.incident_updated'),
             'data' => $incident->fresh()->load('components', 'updates'),
         ]);
     }
@@ -287,7 +287,7 @@ class StatusPageController extends Controller
         $incident->components()->update(['status' => 'operational']);
         $incident->delete();
 
-        return response()->json(['success' => true, 'message' => '事件已删除']);
+        return response()->json(['success' => true, 'message' => __('app.api.status_page.incident_deleted')]);
     }
 
     /**

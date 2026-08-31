@@ -90,7 +90,7 @@ class SecretController extends Controller
             if ($exists) {
                 return response()->json([
                     'success' => false,
-                    'errors' => ['slug' => ['该租户下 slug 已存在']],
+                    'errors' => ['slug' => [__('app.api.secret.slug_exists')]],
                 ], 422);
             }
 
@@ -112,13 +112,13 @@ class SecretController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '凭据已创建',
+                'message' => __('app.api.secret.created'),
                 'data' => ['id' => $secret->id, 'name' => $secret->name, 'slug' => $secret->slug],
             ], 201);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '创建失败: ' . $e->getMessage(),
+                'message' => __('app.api.secret.create_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -132,7 +132,7 @@ class SecretController extends Controller
         if (!$request->boolean('confirm')) {
             return response()->json([
                 'success' => false,
-                'message' => '查看明文需要确认 (confirm=true)',
+                'message' => __('app.api.secret.confirm_required'),
             ], 403);
         }
 
@@ -142,7 +142,7 @@ class SecretController extends Controller
             if ($value === null) {
                 return response()->json([
                     'success' => false,
-                    'message' => '凭据不可用或已吊销',
+                    'message' => __('app.api.secret.unavailable'),
                 ], 404);
             }
 
@@ -166,7 +166,7 @@ class SecretController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '解密失败',
+                'message' => __('app.api.secret.decrypt_failed'),
             ], 500);
         }
     }
@@ -193,12 +193,12 @@ class SecretController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '凭据已轮换',
+                'message' => __('app.api.secret.rotated'),
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '轮换失败: ' . $e->getMessage(),
+                'message' => __('app.api.secret.rotate_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -213,12 +213,12 @@ class SecretController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '凭据已吊销',
+                'message' => __('app.api.secret.revoked'),
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '吊销失败: ' . $e->getMessage(),
+                'message' => __('app.api.secret.revoke_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -233,7 +233,7 @@ class SecretController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '凭据已恢复',
+                'message' => __('app.api.secret.restored'),
             ]);
         } catch (\Throwable $e) {
             return response()->json([
@@ -297,13 +297,13 @@ class SecretController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '主密钥已生成',
+                'message' => __('app.api.secret.master_generated'),
                 'data' => ['key_id' => $result->key_id],
             ], 201);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '生成失败: ' . $e->getMessage(),
+                'message' => __('app.api.secret.generate_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -318,13 +318,13 @@ class SecretController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "主密钥已轮换，已重新加密 {$result['re_encrypted_secrets']} 个凭据",
+                'message' => __('app.api.secret.master_rotated', ['count' => $result['re_encrypted_secrets']]),
                 'data' => $result,
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '轮换失败: ' . $e->getMessage(),
+                'message' => __('app.api.secret.rotate_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -349,10 +349,10 @@ class SecretController extends Controller
             'success' => true,
             'data' => [
                 ['id' => 'api_key', 'name' => 'API Key'],
-                ['id' => 'password', 'name' => '密码'],
-                ['id' => 'certificate', 'name' => '证书'],
-                ['id' => 'token', 'name' => '令牌'],
-                ['id' => 'connection', 'name' => '连接串'],
+                ['id' => 'password', 'name' => __('app.api.secret.type_password')],
+                ['id' => 'certificate', 'name' => __('app.api.secret.type_certificate')],
+                ['id' => 'token', 'name' => __('app.api.secret.type_token')],
+                ['id' => 'connection', 'name' => __('app.api.secret.type_connection')],
             ],
         ]);
     }

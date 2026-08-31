@@ -74,7 +74,7 @@ class GdprComplianceService
             $user = User::with(['customer', 'tenant'])->find($request->user_id);
 
             if (! $user) {
-                throw new \RuntimeException('用户不存在');
+                throw new \RuntimeException(__('app.gdpr_compliance.user_not_found'));
             }
 
             $personalData = $this->collectPersonalData($user);
@@ -124,7 +124,7 @@ class GdprComplianceService
         try {
             $user = User::find($request->user_id);
             if (! $user) {
-                throw new \RuntimeException('用户不存在');
+                throw new \RuntimeException(__('app.gdpr_compliance.user_not_found'));
             }
 
             $portableData = $this->collectPortableData($user);
@@ -173,7 +173,7 @@ class GdprComplianceService
         try {
             $user = User::find($request->user_id);
             if (! $user) {
-                throw new \RuntimeException('用户不存在');
+                throw new \RuntimeException(__('app.gdpr_compliance.user_not_found'));
             }
 
             DB::transaction(function () use ($user) {
@@ -210,7 +210,7 @@ class GdprComplianceService
         try {
             $user = User::find($request->user_id);
             if (! $user) {
-                throw new \RuntimeException('用户不存在');
+                throw new \RuntimeException(__('app.gdpr_compliance.user_not_found'));
             }
 
             $updated = [];
@@ -403,8 +403,8 @@ class GdprComplianceService
             $tickets = Ticket::where('user_id', $user->id)->get();
             foreach ($tickets as $ticket) {
                 $ticket->updateQuietly([
-                    'subject' => '[已删除]',
-                    'description' => '[此内容已被用户删除]',
+                    'subject' => __('app.gdpr_compliance.deleted_placeholder'),
+                    'description' => __('app.gdpr_compliance.content_deleted_placeholder'),
                     'metadata' => null,
                 ]);
             }
@@ -414,7 +414,7 @@ class GdprComplianceService
 
             // 5. TicketReply 工单回复
             $repliesUpdated = TicketReply::where('user_id', $user->id)
-                ->update(['content' => '[此内容已被用户删除]']);
+                ->update(['content' => __('app.gdpr_compliance.content_deleted_placeholder')]);
             if ($repliesUpdated > 0) {
                 $results['ticket_replies'] = $repliesUpdated;
             }
@@ -422,7 +422,7 @@ class GdprComplianceService
             // 6. Note 笔记
             $notesUpdated = Note::where('user_id', $user->id)
                 ->update([
-                    'content' => '[此内容已被用户删除]',
+                    'content' => __('app.gdpr_compliance.content_deleted_placeholder'),
                     'mentions' => null,
                 ]);
             if ($notesUpdated > 0) {
@@ -434,7 +434,7 @@ class GdprComplianceService
             foreach ($activities as $activity) {
                 $activity->updateQuietly([
                     'ip_address' => '127.0.0.1',
-                    'description' => '[已删除]',
+                    'description' => __('app.gdpr_compliance.deleted_placeholder'),
                     'metadata' => ['anonymized' => true],
                 ]);
             }
@@ -447,7 +447,7 @@ class GdprComplianceService
                 ->update([
                     'ip_address' => '127.0.0.1',
                     'user_agent' => null,
-                    'description' => '[已删除]',
+                    'description' => __('app.gdpr_compliance.deleted_placeholder'),
                     'payload' => null,
                 ]);
             if ($logUpdated > 0) {
@@ -488,7 +488,7 @@ class GdprComplianceService
                 // 11. Invoice 账单地址
                 $invoicesUpdated = Invoice::where('customer_id', $customerId)
                     ->update([
-                        'billing_address_line1' => '[已删除]',
+                        'billing_address_line1' => __('app.gdpr_compliance.deleted_placeholder'),
                         'billing_address_line2' => null,
                         'billing_city' => null,
                         'billing_region' => null,
@@ -542,11 +542,11 @@ class GdprComplianceService
         $user = User::findOrFail($userId);
 
         if ($dpa->status !== DataProcessingAgreement::STATUS_PUBLISHED) {
-            throw new \RuntimeException('DPA 尚未发布');
+            throw new \RuntimeException(__('app.gdpr_compliance.dpa_not_published'));
         }
 
         if ($dpa->isSignedByTenant($tenantId)) {
-            throw new \RuntimeException('该租户已签署此 DPA');
+            throw new \RuntimeException(__('app.gdpr_compliance.tenant_already_signed'));
         }
 
         return DpaSignature::create([

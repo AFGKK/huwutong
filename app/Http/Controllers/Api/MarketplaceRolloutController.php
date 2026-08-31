@@ -53,7 +53,7 @@ class MarketplaceRolloutController extends Controller
         ]);
 
         $rollout = $this->rolloutService->create($validated, $request->user());
-        return response()->json(['success' => true, 'data' => $rollout, 'message' => '灰度发布已创建'], 201);
+        return response()->json(['success' => true, 'data' => $rollout, 'message' => __('app.controller_compat.marketplace_rollout_msg_56')], 201);
     }
 
     /**
@@ -74,7 +74,7 @@ class MarketplaceRolloutController extends Controller
         ]);
 
         $rollout = $this->rolloutService->update($id, $validated);
-        return response()->json(['success' => true, 'data' => $rollout, 'message' => '灰度发布已更新']);
+        return response()->json(['success' => true, 'data' => $rollout, 'message' => __('app.controller_compat.marketplace_rollout_msg_77')]);
     }
 
     /**
@@ -83,7 +83,7 @@ class MarketplaceRolloutController extends Controller
     public function start(int $id): JsonResponse
     {
         $rollout = $this->rolloutService->start($id);
-        return response()->json(['success' => true, 'data' => $rollout, 'message' => '灰度发布已启动']);
+        return response()->json(['success' => true, 'data' => $rollout, 'message' => __('app.controller_compat.marketplace_rollout_msg_86')]);
     }
 
     /**
@@ -92,7 +92,7 @@ class MarketplaceRolloutController extends Controller
     public function pause(int $id): JsonResponse
     {
         $rollout = $this->rolloutService->pause($id);
-        return response()->json(['success' => true, 'data' => $rollout, 'message' => '灰度发布已暂停']);
+        return response()->json(['success' => true, 'data' => $rollout, 'message' => __('app.controller_compat.marketplace_rollout_msg_95')]);
     }
 
     /**
@@ -101,7 +101,7 @@ class MarketplaceRolloutController extends Controller
     public function complete(int $id): JsonResponse
     {
         $rollout = $this->rolloutService->complete($id);
-        return response()->json(['success' => true, 'data' => $rollout, 'message' => '灰度发布已完成，版本已全量上线']);
+        return response()->json(['success' => true, 'data' => $rollout, 'message' => __('app.controller_compat.marketplace_rollout_msg_104')]);
     }
 
     /**
@@ -110,7 +110,7 @@ class MarketplaceRolloutController extends Controller
     public function rollback(int $id, Request $request): JsonResponse
     {
         $rollout = $this->rolloutService->rollback($id, $request->user());
-        return response()->json(['success' => true, 'data' => $rollout, 'message' => '灰度发布已回滚']);
+        return response()->json(['success' => true, 'data' => $rollout, 'message' => __('app.controller_compat.marketplace_rollout_msg_113')]);
     }
 
     /**

@@ -378,6 +378,7 @@ class RagEngineService
     {
         try {
             $llmService = app(LlmService::class);
+            $routing = app(LlmRoutingService::class);
 
             $systemPrompt = "你是一个互物通授权管理系统的智能客服助手。你的职责是基于知识库文档回答用户关于授权、激活、设备管理、计费等问题。\n\n" .
                 "规则：\n" .
@@ -390,9 +391,11 @@ class RagEngineService
             $response = $llmService->chat([
                 ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $query],
-            ], ['no_fallback' => true]);
+            ], $routing->applyDefaults(array_merge($options, [
+                'temperature' => $options['temperature'] ?? 0.7,
+            ])));
 
-            $answer = $response['choices'][0]['message']['content'] ?? '抱歉，我暂时无法回答这个问题。';
+            $answer = $response['content'] ?? $response['choices'][0]['message']['content'] ?? '抱歉，我暂时无法回答这个问题。';
 
             // 如果没有找到相关文档，降低置信度
             $confidence = empty($documents) ? 0.2 : 0.85;

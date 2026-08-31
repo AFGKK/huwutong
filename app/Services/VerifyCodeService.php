@@ -2,180 +2,142 @@
 
 namespace App\Services;
 
-use App\Models\EmailVerification;
-use App\Models\User;
-use Carbon\Carbon;
+use App\Mail\VerifyCodeMail;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 
 /**
- * 验证码服务统一封装 (M2-66)
- *
- * 统一管理邮箱验证码和手机短信验证码的发送、校验、频率控制。
- * 支持多通道自动切换和降级。
+ * 验证码服务统一封装 (M2-66 / D-04)
  */
 class VerifyCodeService
 {
     const CACHE_PREFIX = 'verify_code:';
-    const CACHE_TTL = 300; // 验证码缓存 5 分钟
 
     /**
-     * 发送邮箱验证码
-     *
-     * @param string $email
-     * @param string $action 验证场景: register/login/bind/reset_password
-     * @param int|null $length 验证码长度，默认 6
-     * @return array ['success' => bool, 'message' => string, 'expires_in' => int]
+     * @return array{success: bool, message: string, expires_in: int}
      */
     public function sendEmail(string $email, string $action = 'verify', ?int $length = 6): array
     {
-        // 频率限制：同邮箱同场景 60 秒内不可重复发送
-        $rateKey = self::CACHE_PREFIX . "rate:email:{$email}:{$action}";
+        $rateKey = self::CACHE_PREFIX."rate:email:{$email}:{$action}";
         if (Cache::get($rateKey)) {
-            try {
-                $ttl = Cache::ttl($rateKey);
-            } catch (\Throwable) {
-                $ttl = 60;
-            }
-            return ['success' => false, 'message' => "请 {$ttl} 秒后再试", 'expires_in' => max($ttl, 0)];
+            $ttl = $this->cacheTtl($rateKey, 60);
+
+            return ['success' => false, 'message' => __('app.api.service_verify_code.rate_limit', ['ttl' => $ttl]), 'expires_in' => max($ttl, 0)];
         }
 
         $code = $this->generateCode($length);
+        $expiresMinutes = 10;
+        $ttl = $expiresMinutes * 60;
 
         try {
-            // 入库
-            EmailVerification::create([
-                'email' => $email,
-                'code' => $code,
-                'action' => $action,
-                'expires_at' => now()->addMinutes(10),
-            ]);
+            Mail::to($email)->send(new VerifyCodeMail($code, $action, $expiresMinutes));
 
-            // 发送邮件
-            Mail::send('emails.verify-code', [
-                'code' => $code,
-                'action' => $action,
-                'expires_in' => 10,
-            ], function ($message) use ($email) {
-                $message->to($email)->subject('验证码');
-            });
+            Cache::put($this->emailCodeKey($email, $action), $code, $ttl);
+            Cache::put($rateKey, true, config('sms.verification.rate_limit_seconds', 60));
 
-            // 设置频率限制
-            Cache::put($rateKey, true, 60);
-
-            return ['success' => true, 'message' => '验证码已发送', 'expires_in' => 600];
+            return ['success' => true, 'message' => __('app.api.service_verify_code.code_sent'), 'expires_in' => $ttl];
         } catch (\Throwable $e) {
             Log::error("VerifyCode: email send failed to {$email}", ['error' => $e->getMessage()]);
-            return ['success' => false, 'message' => '发送失败，请稍后重试', 'expires_in' => 0];
+
+            return ['success' => false, 'message' => __('app.api.service_verify_code.send_failed'), 'expires_in' => 0];
         }
     }
 
     /**
-     * 发送手机短信验证码（委托给 SmsService）
-     *
-     * @param string $phone
-     * @param string $action
-     * @param int|null $length
-     * @return array
+     * @return array{success: bool, message: string, expires_in: int}
      */
     public function sendSms(string $phone, string $action = 'login', ?int $length = 6): array
     {
-        // 频率限制
-        $rateKey = self::CACHE_PREFIX . "rate:sms:{$phone}:{$action}";
+        $rateKey = self::CACHE_PREFIX."rate:sms:{$phone}:{$action}";
         if (Cache::get($rateKey)) {
-            try {
-                $ttl = Cache::ttl($rateKey);
-            } catch (\Throwable) {
-                $ttl = 60;
-            }
-            return ['success' => false, 'message' => "请 {$ttl} 秒后再试", 'expires_in' => max($ttl, 0)];
+            $ttl = $this->cacheTtl($rateKey, 60);
+
+            return ['success' => false, 'message' => __('app.api.service_verify_code.rate_limit', ['ttl' => $ttl]), 'expires_in' => max($ttl, 0)];
         }
 
         $code = $this->generateCode($length);
+        $ttl = (int) config('sms.verification.ttl_seconds', 300);
 
         try {
-            /** @var SmsService $smsService */
-            $smsService = app(SmsService::class);
-            $result = $smsService->sendVerificationCode($phone, $code);
+            $result = app(SmsService::class)->sendVerificationCode($phone, $code);
 
-            if (!$result['success']) {
-                return ['success' => false, 'message' => $result['message'] ?? '短信发送失败', 'expires_in' => 0];
+            if (! ($result['success'] ?? false)) {
+                return [
+                    'success' => false,
+                    'message' => $result['message'] ?? __('app.api.service_verify_code.sms_failed'),
+                    'expires_in' => 0,
+                ];
             }
 
-            Cache::put($rateKey, true, 60);
+            Cache::put(self::CACHE_PREFIX."sms:{$phone}", $code, $ttl);
+            Cache::put($rateKey, true, config('sms.verification.rate_limit_seconds', 60));
 
-            return ['success' => true, 'message' => '验证码已发送', 'expires_in' => 300];
+            return ['success' => true, 'message' => __('app.api.service_verify_code.code_sent'), 'expires_in' => $ttl];
         } catch (\Throwable $e) {
             Log::error("VerifyCode: sms send failed to {$phone}", ['error' => $e->getMessage()]);
-            return ['success' => false, 'message' => '发送失败，请稍后重试', 'expires_in' => 0];
+
+            return ['success' => false, 'message' => __('app.api.service_verify_code.send_failed'), 'expires_in' => 0];
         }
     }
 
     /**
-     * 校验邮箱验证码
-     *
-     * @param string $email
-     * @param string $code
-     * @param string|null $action 可选，限定验证场景
-     * @param bool $expireOnUse 验证通过后是否立即过期
-     * @return array ['success' => bool, 'message' => string]
+     * @return array{success: bool, message: string}
      */
     public function verifyEmail(string $email, string $code, ?string $action = null, bool $expireOnUse = true): array
     {
-        $query = EmailVerification::where('email', $email)
-            ->where('code', $code)
-            ->where('expires_at', '>', now())
-            ->where('used', false);
+        $cacheKey = $this->emailCodeKey($email, $action ?? 'verify');
+        $cached = Cache::get($cacheKey);
 
-        if ($action) {
-            $query->where('action', $action);
-        }
-
-        $record = $query->latest()->first();
-
-        if (!$record) {
-            return ['success' => false, 'message' => '验证码无效或已过期'];
+        if (! $cached || $cached !== $code) {
+            return ['success' => false, 'message' => __('app.api.service_verify_code.code_invalid')];
         }
 
         if ($expireOnUse) {
-            $record->update(['used' => true]);
+            Cache::forget($cacheKey);
         }
 
-        return ['success' => true, 'message' => '验证通过'];
+        return ['success' => true, 'message' => __('app.api.service_verify_code.verified')];
     }
 
     /**
-     * 校验手机验证码
-     *
-     * @param string $phone
-     * @param string $code
-     * @return array
+     * @return array{success: bool, message: string}
      */
     public function verifySms(string $phone, string $code): array
     {
-        $cacheKey = self::CACHE_PREFIX . "sms:{$phone}";
-
+        $cacheKey = self::CACHE_PREFIX."sms:{$phone}";
         $cached = Cache::get($cacheKey);
-        if (!$cached || $cached !== $code) {
-            return ['success' => false, 'message' => '验证码无效或已过期'];
+
+        if (! $cached || $cached !== $code) {
+            return ['success' => false, 'message' => __('app.api.service_verify_code.code_invalid')];
         }
 
         Cache::forget($cacheKey);
 
-        return ['success' => true, 'message' => '验证通过'];
+        return ['success' => true, 'message' => __('app.api.service_verify_code.verified')];
     }
 
-    /**
-     * 生成验证码
-     */
     protected function generateCode(int $length = 6): string
     {
         $code = '';
         for ($i = 0; $i < $length; $i++) {
             $code .= random_int(0, 9);
         }
+
         return $code;
+    }
+
+    private function emailCodeKey(string $email, string $action): string
+    {
+        return self::CACHE_PREFIX."email:{$email}:{$action}";
+    }
+
+    private function cacheTtl(string $key, int $default): int
+    {
+        try {
+            return Cache::ttl($key);
+        } catch (\Throwable) {
+            return $default;
+        }
     }
 }

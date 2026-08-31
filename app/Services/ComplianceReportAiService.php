@@ -22,7 +22,7 @@ class ComplianceReportAiService
     {
         $frameworkConfig = config("compliance-report.frameworks.{$framework}");
         if (!$frameworkConfig) {
-            throw new \InvalidArgumentException("不支持的合规框架: {$framework}");
+            throw new \InvalidArgumentException(__("app.compliance_report_ai.msg_fcc8ed76"));
         }
 
         $report = ComplianceAiReport::create([

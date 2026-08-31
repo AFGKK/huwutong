@@ -6,102 +6,61 @@ use App\Models\Product;
 use App\Models\ProductSku;
 use App\Models\Tag;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * 商品搜索/筛选/排序服务 (M2-156 🛒)
  *
- * 覆盖：
- * - 全文搜索（商品名+描述）
- * - 多维筛选（分类/标签/价格/上架时间/计费周期）
- * - 多维度排序（销量/价格/上新/评分）
- * - 搜索结果高亮
- * - 搜索历史管理
- * - 热门搜索词
+ * D-35: 默认走 Meilisearch，不可用时降级 MySQL LIKE。
  */
 class ProductSearchService
 {
+    public function __construct(
+        protected MeilisearchService $meilisearch,
+    ) {}
+
     /**
      * 高级搜索
      */
-    public function search(array $params): array
+    public function search(array $params): LengthAwarePaginator
     {
+        $search = trim((string) ($params['search'] ?? ''));
+        $productIds = $search !== '' ? $this->resolveProductIds($search, $params) : null;
+
+        if ($productIds !== null && $productIds === []) {
+            return $this->emptyPaginator($params);
+        }
+
         $query = ProductSku::with(['product', 'product.tags'])
             ->where('is_active', true);
 
-        // ── 全文搜索 ──
-        if ($search = $params['search'] ?? null) {
-            $query->where(function (Builder $q) use ($search) {
-                // SKU 名 + 编码
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku_code', 'like', "%{$search}%");
-                // 关联商品名 + 描述
-                $q->orWhereHas('product', function (Builder $pq) use ($search) {
-                    $pq->where('name', 'like', "%{$search}%")
-                       ->orWhere('description', 'like', "%{$search}%");
-                });
-            });
-
-            // 记录搜索历史
-            $this->recordSearchHistory($search);
+        if ($productIds !== null) {
+            $query->whereIn('product_id', $productIds);
+            $this->applyMeiliRelevanceOrder($query, $productIds, $params);
+        } elseif ($search !== '') {
+            $this->applyDatabaseSearch($query, $search);
         }
 
-        // ── 标签筛选 ──
-        if ($tagIds = $params['tags'] ?? null) {
-            $tagIds = is_array($tagIds) ? $tagIds : explode(',', $tagIds);
-            $query->whereHas('product.tags', function (Builder $tq) use ($tagIds) {
-                $tq->whereIn('tags.id', $tagIds);
-            });
-        }
+        $this->applyFilters($query, $params);
+        $this->applySort($query, $params, $productIds !== null);
 
-        // ── 产品分类（按 product_id 筛选） ──
-        if ($productId = $params['product_id'] ?? null) {
-            $query->where('product_id', $productId);
-        }
-
-        // ── 计费周期筛选 ──
-        if ($billingCycle = $params['billing_cycle'] ?? null) {
-            $query->where('billing_cycle', $billingCycle);
-        }
-
-        // ── 价格区间 ──
-        if (isset($params['price_min'])) {
-            $query->where('price', '>=', (float) $params['price_min']);
-        }
-        if (isset($params['price_max'])) {
-            $query->where('price', '<=', (float) $params['price_max']);
-        }
-
-        // ── 上架时间范围 ──
-        if ($createdAfter = $params['created_after'] ?? null) {
-            $query->where('created_at', '>=', $createdAfter);
-        }
-        if ($createdBefore = $params['created_before'] ?? null) {
-            $query->where('created_at', '<=', $createdBefore);
-        }
-
-        // ── 排序 ──
-        $sort = $params['sort'] ?? '-sold_count';
-        $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
-        $field = ltrim($sort, '-');
-        $allowedSorts = ['price', 'created_at', 'sold_count', 'name'];
-        $query->orderBy(in_array($field, $allowedSorts) ? $field : 'sold_count', $direction);
-
-        $perPage = min((int) ($params['per_page'] ?? 20), 100);
+        $perPage = min((int) ($params['per_page'] ?? config('product-search.search.per_page', 20)), config('product-search.search.max_per_page', 100));
 
         $results = $query->paginate($perPage);
 
-        // ── 搜索结果高亮处理 ──
-        $highlight = $params['search'] ?? null;
-        $items = collect($results->items())->map(function ($sku) use ($highlight) {
+        if ($search !== '') {
+            $this->recordSearchHistory($search);
+        }
+
+        $highlight = $search !== '' ? $search : null;
+        $results->getCollection()->transform(function ($sku) use ($highlight) {
             return $this->applyHighlight($sku, $highlight);
-        })->toArray();
+        });
 
-        $paginated = $results->toArray();
-        $paginated['data'] = $items;
-
-        return $paginated;
+        return $results;
     }
 
     /**
@@ -113,21 +72,80 @@ class ProductSearchService
             return [];
         }
 
-        // 从商品名匹配
-        $products = Product::where('is_active', true)
-            ->where('name', 'like', "{$query}%")
-            ->limit($limit)
-            ->pluck('name')
-            ->toArray();
+        if ($this->usesMeilisearch()) {
+            try {
+                $result = $this->meilisearch->searchProducts($query, ['limit' => $limit]);
+                $names = collect($result['hits'] ?? [])
+                    ->pluck('name')
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
 
-        // 从 SKU 名匹配
-        $skus = ProductSku::where('is_active', true)
-            ->where('name', 'like', "{$query}%")
-            ->limit($limit)
-            ->pluck('name')
-            ->toArray();
+                if ($names !== []) {
+                    return $names;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Meilisearch 商品 suggest 降级: ' . $e->getMessage());
+            }
+        }
 
-        return array_values(array_unique(array_merge($products, $skus)));
+        return $this->suggestFromDatabase($query, $limit);
+    }
+
+    /**
+     * Meili 全文检索得到 product_id 列表；不可用时返回 null（走 DB LIKE）
+     *
+     * @return array<int>|null
+     */
+    public function resolveProductIds(string $search, array $filters = []): ?array
+    {
+        if (! $this->usesMeilisearch()) {
+            return null;
+        }
+
+        try {
+            $meiliFilters = ['is_active' => true];
+            if ($categoryId = $filters['category_id'] ?? null) {
+                $meiliFilters['category_id'] = (int) $categoryId;
+            }
+            if (isset($filters['price_min'])) {
+                $meiliFilters['price_min'] = (float) $filters['price_min'];
+            }
+            if (isset($filters['price_max'])) {
+                $meiliFilters['price_max'] = (float) $filters['price_max'];
+            }
+
+            $sort = $this->mapSortToMeili((string) ($filters['sort'] ?? '-sold_count'));
+            if ($sort) {
+                $meiliFilters['sort'] = $sort;
+            }
+
+            $result = $this->meilisearch->searchProductsForService(
+                $search,
+                $meiliFilters,
+                500,
+                1,
+            );
+
+            return collect($result['hits'] ?? [])
+                ->pluck('id')
+                ->filter()
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            Log::warning('Meilisearch 商品搜索降级: ' . $e->getMessage());
+
+            return null;
+        }
+    }
+
+    public function usesMeilisearch(): bool
+    {
+        return config('product-search.engine') === 'meilisearch'
+            && $this->meilisearch->isAvailable();
     }
 
     /**
@@ -152,7 +170,7 @@ class ProductSearchService
      */
     public function getSearchHistory(?int $userId, int $limit = 10): array
     {
-        if (!$userId) {
+        if (! $userId) {
             return [];
         }
 
@@ -187,11 +205,134 @@ class ProductSearchService
             ->toArray();
     }
 
+    protected function applyDatabaseSearch(Builder $query, string $search): void
+    {
+        $query->where(function (Builder $q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+                ->orWhere('sku_code', 'like', "%{$search}%")
+                ->orWhereHas('product', function (Builder $pq) use ($search) {
+                    $pq->where('name', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
+        });
+    }
+
+    protected function applyFilters(Builder $query, array $params): void
+    {
+        if ($tagIds = $params['tags'] ?? null) {
+            $tagIds = is_array($tagIds) ? $tagIds : explode(',', (string) $tagIds);
+            $query->whereHas('product.tags', function (Builder $tq) use ($tagIds) {
+                $tq->whereIn('tags.id', $tagIds);
+            });
+        }
+
+        if ($productId = $params['product_id'] ?? null) {
+            $query->where('product_id', $productId);
+        }
+
+        if ($categoryId = $params['category_id'] ?? null) {
+            $query->whereHas('product', fn (Builder $q) => $q->where('category_id', $categoryId));
+        }
+
+        if ($billingCycle = $params['billing_cycle'] ?? null) {
+            $query->where('billing_cycle', $billingCycle);
+        }
+
+        if (isset($params['price_min'])) {
+            $query->where('price', '>=', (float) $params['price_min']);
+        }
+        if (isset($params['price_max'])) {
+            $query->where('price', '<=', (float) $params['price_max']);
+        }
+
+        if ($createdAfter = $params['created_after'] ?? null) {
+            $query->where('created_at', '>=', $createdAfter);
+        }
+        if ($createdBefore = $params['created_before'] ?? null) {
+            $query->where('created_at', '<=', $createdBefore);
+        }
+    }
+
+    protected function applySort(Builder $query, array $params, bool $fromMeili): void
+    {
+        $sort = $params['sort'] ?? '-sold_count';
+
+        if ($fromMeili && ! $this->hasExplicitSort($params)) {
+            return;
+        }
+
+        $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
+        $field = ltrim($sort, '-');
+        $allowedSorts = ['price', 'created_at', 'sold_count', 'name'];
+        $query->orderBy(in_array($field, $allowedSorts) ? $field : 'sold_count', $direction);
+    }
+
+    protected function applyMeiliRelevanceOrder(Builder $query, array $productIds, array $params): void
+    {
+        if ($this->hasExplicitSort($params)) {
+            return;
+        }
+
+        if ($productIds === []) {
+            return;
+        }
+
+        $ids = implode(',', $productIds);
+        $query->orderByRaw("array_position(ARRAY[{$ids}]::bigint[], product_id)");
+    }
+
+    protected function hasExplicitSort(array $params): bool
+    {
+        return array_key_exists('sort', $params) && ($params['sort'] ?? '') !== '-sold_count';
+    }
+
+    protected function mapSortToMeili(string $sort): ?string
+    {
+        $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
+        $field = ltrim($sort, '-');
+
+        return match ($field) {
+            'sold_count', 'sales_count' => "sales_count:{$direction}",
+            'price' => "base_price:{$direction}",
+            'created_at' => "created_at:{$direction}",
+            default => null,
+        };
+    }
+
+    protected function suggestFromDatabase(string $query, int $limit): array
+    {
+        $products = Product::where('is_active', true)
+            ->where('name', 'like', "{$query}%")
+            ->limit($limit)
+            ->pluck('name')
+            ->toArray();
+
+        $skus = ProductSku::where('is_active', true)
+            ->where('name', 'like', "{$query}%")
+            ->limit($limit)
+            ->pluck('name')
+            ->toArray();
+
+        return array_values(array_unique(array_merge($products, $skus)));
+    }
+
+    protected function emptyPaginator(array $params): LengthAwarePaginator
+    {
+        $perPage = min((int) ($params['per_page'] ?? 20), 100);
+        $page = max(1, (int) ($params['page'] ?? 1));
+
+        return new LengthAwarePaginator([], 0, $perPage, $page);
+    }
+
     /**
      * 记录搜索日志
      */
     protected function recordSearchHistory(string $keyword): void
     {
+        if (! config('product-search.logging.enabled', true)) {
+            return;
+        }
+
         $userId = auth()->id();
 
         try {
@@ -205,7 +346,6 @@ class ProductSearchService
             // 静默失败，不阻塞搜索
         }
 
-        // 清除热门搜索缓存，下次自动刷新
         Cache::forget('product_search:hot_terms');
     }
 
@@ -216,7 +356,7 @@ class ProductSearchService
     {
         $data = $sku->toArray();
 
-        if (!$keyword) {
+        if (! $keyword) {
             return $data;
         }
 
@@ -241,6 +381,7 @@ class ProductSearchService
         }
 
         $escaped = preg_quote(e($keyword), '/');
+
         return preg_replace(
             "/({$escaped})/iu",
             '<mark class="search-highlight">$1</mark>',

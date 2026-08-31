@@ -20,7 +20,7 @@ class DemoBookingConfirmation extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '预约确认 — 互物通企业级授权管理系统',
+            subject: __('app.mail.demo_booking_confirm_subject'),
         );
     }
 

@@ -54,7 +54,7 @@ class OpenPlatformController extends Controller
                 $validated['action'],
                 $validated['notes'] ?? null,
             );
-            return ApiResponse::success($result, '开发者状态已更新');
+            return ApiResponse::success($result, __('app.api.open_platform.developer_updated'));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -94,7 +94,7 @@ class OpenPlatformController extends Controller
                 $validated['action'],
                 $validated['notes'] ?? null,
             );
-            return ApiResponse::success($result, '审核完成');
+            return ApiResponse::success($result, __('app.api.open_platform.review_done'));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -114,9 +114,9 @@ class OpenPlatformController extends Controller
                 $app,
                 $request->user(),
                 'suspend',
-                $validated['reason'] ?? '紧急下架',
+                $validated['reason'] ?? __('app.api.open_platform.emergency_reason'),
             );
-            return ApiResponse::success($result, '应用已紧急下架，已通知所有安装用户');
+            return ApiResponse::success($result, __('app.api.open_platform.emergency_taken_down'));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -128,16 +128,16 @@ class OpenPlatformController extends Controller
     public function unsuspendApp(Request $request, MarketplaceApp $app): JsonResponse
     {
         if ($app->status !== 'suspended') {
-            return ApiResponse::validationError('仅已下架的应用可恢复');
+            return ApiResponse::validationError(__('app.api.open_platform.restore_only_taken_down'));
         }
 
         $result = $this->service->reviewApp(
             $app,
             $request->user(),
             'approve',
-            '恢复上架',
+            __('app.api.open_platform.restore_reason'),
         );
-        return ApiResponse::success($result, '应用已恢复上架');
+        return ApiResponse::success($result, __('app.api.open_platform.restored'));
     }
 
     /**
@@ -153,10 +153,10 @@ class OpenPlatformController extends Controller
         try {
             $count = $this->service->forceUpdateNotification(
                 $app,
-                $validated['reason'] ?? '存在安全更新，请立即升级',
+                $validated['reason'] ?? __('app.api.open_platform.force_update_reason'),
                 $validated['version'] ?? null,
             );
-            return ApiResponse::success(['notified_count' => $count], "已向 {$count} 个安装用户推送强制更新通知");
+            return ApiResponse::success(['notified_count' => $count], __('app.api.open_platform.force_update_notified', ['count' => $count]));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -183,7 +183,7 @@ class OpenPlatformController extends Controller
 
         try {
             $developer = $this->service->registerDeveloper($request->user(), $validated);
-            return ApiResponse::created($developer, '开发者注册成功，等待审核');
+            return ApiResponse::created($developer, __('app.api.open_platform.developer_registered'));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -199,7 +199,7 @@ class OpenPlatformController extends Controller
     {
         $developer = $this->service->getDeveloperForUser($request->user());
         if (!$developer) {
-            return ApiResponse::validationError('请先注册为开发者');
+            return ApiResponse::validationError(__('app.api.open_platform.register_first'));
         }
 
         return ApiResponse::success($this->service->listApps(
@@ -212,7 +212,7 @@ class OpenPlatformController extends Controller
     {
         $developer = $this->service->getDeveloperForUser($request->user());
         if (!$developer) {
-            return ApiResponse::validationError('请先注册为开发者');
+            return ApiResponse::validationError(__('app.api.open_platform.register_first'));
         }
 
         $validated = $request->validate([
@@ -235,7 +235,7 @@ class OpenPlatformController extends Controller
 
         try {
             $app = $this->service->createApp($developer, $validated);
-            return ApiResponse::created($app, '应用已创建');
+            return ApiResponse::created($app, __('app.api.open_platform.app_created'));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -260,7 +260,7 @@ class OpenPlatformController extends Controller
         ]);
 
         try {
-            return ApiResponse::success($this->service->updateApp($app, $validated), '应用已更新');
+            return ApiResponse::success($this->service->updateApp($app, $validated), __('app.api.open_platform.app_updated'));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -271,7 +271,7 @@ class OpenPlatformController extends Controller
         $this->ensureAppOwner($request, $app);
 
         try {
-            return ApiResponse::success($this->service->submitForReview($app), '已提交审核');
+            return ApiResponse::success($this->service->submitForReview($app), __('app.api.open_platform.submitted_review'));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -289,7 +289,7 @@ class OpenPlatformController extends Controller
         ]);
 
         $version = $this->service->addVersion($app, $validated);
-        return ApiResponse::created($version, '版本已添加');
+        return ApiResponse::created($version, __('app.api.open_platform.version_added'));
     }
 
     // ─── 应用市场（浏览/安装）───
@@ -315,7 +315,7 @@ class OpenPlatformController extends Controller
                 $request->user()->tenant_id,
                 $validated['config'] ?? [],
             );
-            return ApiResponse::created($installation, '应用安装成功');
+            return ApiResponse::created($installation, __('app.api.open_platform.installed'));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -328,7 +328,7 @@ class OpenPlatformController extends Controller
         }
 
         try {
-            return ApiResponse::success($this->service->uninstallApp($installation), '应用已卸载');
+            return ApiResponse::success($this->service->uninstallApp($installation), __('app.api.open_platform.uninstalled'));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -383,7 +383,7 @@ class OpenPlatformController extends Controller
         $update = $this->service->checkForUpdate($app->id, $validated['current_version']);
 
         if (!$update) {
-            return ApiResponse::success(['update_available' => false, 'message' => '已是最新版本'], '已是最新版本');
+            return ApiResponse::success(['update_available' => false, 'message' => __('app.api.open_platform.up_to_date')], __('app.api.open_platform.up_to_date'));
         }
 
         return ApiResponse::success(array_merge(['update_available' => true], $update));
@@ -410,7 +410,7 @@ class OpenPlatformController extends Controller
 
         try {
             $result = $this->service->uploadPackage($request->file('file'));
-            return ApiResponse::created($result, '上传成功');
+            return ApiResponse::created($result, __('app.api.open_platform.upload_ok'));
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -424,7 +424,7 @@ class OpenPlatformController extends Controller
 
         try {
             $result = $this->service->uploadScreenshot($request->file('file'));
-            return ApiResponse::created($result, '截图上传成功');
+            return ApiResponse::created($result, __('app.api.open_platform.screenshot_ok'));
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -437,16 +437,16 @@ class OpenPlatformController extends Controller
     public function initEarnings(Request $request): JsonResponse
     {
         $developer = $this->service->getDeveloperForUser($request->user());
-        if (!$developer) return ApiResponse::validationError('请先注册为开发者');
+        if (!$developer) return ApiResponse::validationError(__('app.api.open_platform.register_first'));
 
         $account = $this->service->initEarningsAccount($developer);
-        return ApiResponse::success($account, '收益账户已开通');
+        return ApiResponse::success($account, __('app.api.open_platform.earnings_opened'));
     }
 
     public function myEarnings(Request $request): JsonResponse
     {
         $developer = $this->service->getDeveloperForUser($request->user());
-        if (!$developer) return ApiResponse::validationError('请先注册为开发者');
+        if (!$developer) return ApiResponse::validationError(__('app.api.open_platform.register_first'));
 
         return ApiResponse::success($this->service->getDeveloperEarnings($developer->id));
     }
@@ -459,7 +459,7 @@ class OpenPlatformController extends Controller
     public function requestWithdrawal(Request $request): JsonResponse
     {
         $developer = $this->service->getDeveloperForUser($request->user());
-        if (!$developer) return ApiResponse::validationError('请先注册为开发者');
+        if (!$developer) return ApiResponse::validationError(__('app.api.open_platform.register_first'));
 
         $validated = $request->validate([
             'amount' => 'required|numeric|min:1',
@@ -472,7 +472,7 @@ class OpenPlatformController extends Controller
 
         try {
             $withdrawal = $this->service->developerWithdraw($developer->id, $validated['amount'], $validated['channel'], $validated);
-            return ApiResponse::created($withdrawal, '提现请求已提交');
+            return ApiResponse::created($withdrawal, __('app.api.open_platform.withdraw_submitted'));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -481,7 +481,7 @@ class OpenPlatformController extends Controller
     public function myWithdrawals(Request $request): JsonResponse
     {
         $developer = $this->service->getDeveloperForUser($request->user());
-        if (!$developer) return ApiResponse::validationError('请先注册为开发者');
+        if (!$developer) return ApiResponse::validationError(__('app.api.open_platform.register_first'));
 
         return ApiResponse::success($this->service->getDeveloperWithdrawals($developer->id, (int) $request->input('per_page', 20)));
     }
@@ -489,7 +489,7 @@ class OpenPlatformController extends Controller
     public function updateTaxInfo(Request $request): JsonResponse
     {
         $developer = $this->service->getDeveloperForUser($request->user());
-        if (!$developer) return ApiResponse::validationError('请先注册为开发者');
+        if (!$developer) return ApiResponse::validationError(__('app.api.open_platform.register_first'));
 
         $validated = $request->validate([
             'tax_id' => 'nullable|string|max:100',
@@ -500,7 +500,7 @@ class OpenPlatformController extends Controller
 
         return ApiResponse::success(
             $this->service->updateDeveloperTaxInfo($developer->id, $validated),
-            '税务信息已更新'
+            __('app.api.open_platform.tax_updated')
         );
     }
 
@@ -513,7 +513,7 @@ class OpenPlatformController extends Controller
     {
         $developer = $this->service->getDeveloperForUser($request->user());
         if (!$developer || $app->developer_id !== $developer->id) {
-            abort(403, '无权操作此应用');
+            abort(403, __('app.api.open_platform.forbidden_app'));
         }
     }
 }

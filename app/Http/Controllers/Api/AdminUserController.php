@@ -122,7 +122,7 @@ class AdminUserController extends Controller
 
         $user->load('roles:id,name');
 
-        return ApiResponse::created($user, '用户创建成功');
+        return ApiResponse::created($user, __("app.admin_user.msg_a7499d82"));
     }
 
     /**
@@ -169,7 +169,7 @@ class AdminUserController extends Controller
 
         $user->load('roles:id,name');
 
-        return ApiResponse::success($user, '用户更新成功');
+        return ApiResponse::success($user, __("app.admin_user.msg_e58a7585"));
     }
 
     /**
@@ -183,7 +183,7 @@ class AdminUserController extends Controller
         $user->save();
         $user->delete(); // soft delete
 
-        return ApiResponse::success(null, '用户已停用');
+        return ApiResponse::success(null, __("app.admin_user.msg_ce10fc1a"));
     }
 
     /**
@@ -204,7 +204,7 @@ class AdminUserController extends Controller
         $user->password = Hash::make($validator->validated()['password']);
         $user->save();
 
-        return ApiResponse::success(null, '密码重置成功');
+        return ApiResponse::success(null, __("app.admin_user.msg_da0c848a"));
     }
 
     /**
@@ -226,7 +226,7 @@ class AdminUserController extends Controller
             } catch (\RuntimeException $e) {
                 return ApiResponse::error('BAN_FAILED', $e->getMessage(), 422);
             }
-            return ApiResponse::success(['status' => 'inactive'], '用户已封禁');
+            return ApiResponse::success(['status' => 'inactive'], __("app.admin_user.msg_2763cffb"));
         } else {
             // 解封
             try {
@@ -237,7 +237,7 @@ class AdminUserController extends Controller
             } catch (\RuntimeException $e) {
                 return ApiResponse::error('UNBAN_FAILED', $e->getMessage(), 422);
             }
-            return ApiResponse::success(['status' => 'active'], '用户已解封');
+            return ApiResponse::success(['status' => 'active'], __("app.admin_user.msg_c44e531b"));
         }
     }
 

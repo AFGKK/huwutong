@@ -33,7 +33,7 @@ class SeoController extends Controller
 
         $model = $this->resolveModel($validated['model_type'], $validated['model_id']);
         if (!$model) {
-            return ApiResponse::error('NOT_FOUND', '模型不存在', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.seo.model_not_found'), 404);
         }
 
         $metadata = $this->service->getMetadataFor($model);
@@ -63,13 +63,13 @@ class SeoController extends Controller
 
         $model = $this->resolveModel($validated['model_type'], $validated['model_id']);
         if (!$model) {
-            return ApiResponse::error('NOT_FOUND', '模型不存在', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.seo.model_not_found'), 404);
         }
 
         $tenantId = $model->tenant_id ?? auth()->user()->tenant_id;
         $metadata = $this->service->upsertMetadata($model, $tenantId, $validated);
 
-        return ApiResponse::success($metadata, 'SEO元数据已保存');
+        return ApiResponse::success($metadata, __('app.api.seo.metadata_saved'));
     }
 
     /**
@@ -84,11 +84,11 @@ class SeoController extends Controller
 
         $model = $this->resolveModel($validated['model_type'], $validated['model_id']);
         if (!$model) {
-            return ApiResponse::error('NOT_FOUND', '模型不存在', 404);
+            return ApiResponse::error('NOT_FOUND', __('app.api.seo.model_not_found'), 404);
         }
 
         $this->service->deleteMetadata($model);
-        return ApiResponse::success(null, 'SEO元数据已删除');
+        return ApiResponse::success(null, __('app.api.seo.metadata_deleted'));
     }
 
     // ═══════════ URL 重定向 ═══════════
@@ -123,7 +123,7 @@ class SeoController extends Controller
         $tenantId = auth()->user()->tenant_id;
         $redirect = $this->service->createRedirect($tenantId, $validated);
 
-        return ApiResponse::success($redirect, '重定向已创建', 201);
+        return ApiResponse::success($redirect, __('app.api.seo.redirect_created'), 201);
     }
 
     public function updateRedirect(Request $request, UrlRedirect $redirect): JsonResponse
@@ -138,13 +138,13 @@ class SeoController extends Controller
         ]);
 
         $updated = $this->service->updateRedirect($redirect->id, $validated);
-        return ApiResponse::success($updated, '重定向已更新');
+        return ApiResponse::success($updated, __('app.api.seo.redirect_updated'));
     }
 
     public function destroyRedirect(UrlRedirect $redirect): JsonResponse
     {
         $this->service->deleteRedirect($redirect->id);
-        return ApiResponse::success(null, '重定向已删除');
+        return ApiResponse::success(null, __('app.api.seo.redirect_deleted'));
     }
 
     // ═══════════ 站点地图 ═══════════
@@ -187,7 +187,7 @@ class SeoController extends Controller
         $tenantId = auth()->user()->tenant_id;
         $result = $this->service->bulkImportRedirects($tenantId, $validated['entries']);
 
-        return ApiResponse::success($result, "已导入 {$result['imported']} 条，跳过 {$result['skipped']} 条");
+        return ApiResponse::success($result, __('app.api.seo.redirect_imported', ['imported' => $result['imported'], 'skipped' => $result['skipped']]));
     }
 
     // ═══════════ 助手 ═══════════

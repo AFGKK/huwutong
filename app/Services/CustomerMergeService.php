@@ -221,23 +221,23 @@ class CustomerMergeService
     protected function validateMerge(Customer $source, Customer $target): void
     {
         if ($source->id === $target->id) {
-            throw new Exception('不能将客户合并到自身');
+            throw new Exception(__("app.customer_merge.cannot_merge_customer_to_self"));
         }
 
         if ($source->tenant_id !== $target->tenant_id) {
-            throw new Exception('只能合并同一租户下的客户');
+            throw new Exception(__("app.customer_merge.can_only_merge_same_tenant_customers"));
         }
 
         if ($source->status === 'merged') {
-            throw new Exception('源客户已经是已合并状态，不能再次合并');
+            throw new Exception(__("app.customer_merge.source_customer_already_merged"));
         }
 
         if ($target->status === 'merged') {
-            throw new Exception('目标客户已经是已合并状态（源客户已合并到其他账号）');
+            throw new Exception(__("app.customer_merge.target_customer_already_merged"));
         }
 
         if ($source->merged_into_customer_id) {
-            throw new Exception('源客户已经被合并到其他账号，不能再次作为源');
+            throw new Exception(__("app.customer_merge.source_customer_merged_to_other"));
         }
     }
 

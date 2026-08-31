@@ -50,7 +50,7 @@ class InventoryService
         // 无限库存模式
         if ($sku->stock === null || $sku->stock < 0) {
             $sku->increment('sold_count', $quantity);
-            return ['success' => true, 'message' => '无限库存模式'];
+            return ['success' => true, 'message' => __('app.common.unlimited_stock_mode')];
         }
 
         // Redis 分布式锁
@@ -59,12 +59,12 @@ class InventoryService
 
         try {
             if (!$lock->get()) {
-                return ['success' => false, 'message' => '库存操作繁忙，请重试'];
+                return ['success' => false, 'message' => __('app.common.stock_operation_busy')];
             }
 
             $freshSku = $sku->fresh();
             if ($freshSku->stock < $quantity) {
-                return ['success' => false, 'message' => "库存不足: 当前{$freshSku->stock}, 需要{$quantity}"];
+                return ['success' => false, 'message' => __('app.common.insufficient_stock', ['stock' => $freshSku->stock, 'quantity' => $quantity])];
             }
 
             DB::transaction(function () use ($freshSku, $skuId, $quantity, $orderRef) {
@@ -77,10 +77,10 @@ class InventoryService
                 $this->log($skuId, 'deduct', -$quantity, $before, $after, $orderRef);
             });
 
-            return ['success' => true, 'message' => '扣减成功'];
+            return ['success' => true, 'message' => __('app.common.deduction_success')];
         } catch (\Throwable $e) {
             Log::error('库存扣减异常', ['sku_id' => $skuId, 'error' => $e->getMessage()]);
-            return ['success' => false, 'message' => '库存扣减异常: ' . $e->getMessage()];
+            return ['success' => false, 'message' => __('app.common.stock_deduction_exception', ['message' => $e->getMessage()])];
         } finally {
             $lock?->release();
         }
@@ -120,7 +120,7 @@ class InventoryService
             $this->log($skuId, 'rollback', $quantity, $before, $after, $orderRef);
         });
 
-        return ['success' => true, 'message' => '回滚成功'];
+        return ['success' => true, 'message' => __('app.common.rollback_success')];
     }
 
     /**

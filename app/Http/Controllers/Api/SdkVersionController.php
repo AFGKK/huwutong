@@ -51,7 +51,7 @@ class SdkVersionController extends Controller
     public function languageVersions(string $language): JsonResponse
     {
         if (!in_array($language, \App\Models\SdkVersion::LANGUAGES)) {
-            return response()->json(['code' => 1, 'message' => '不支持的语言'], 422);
+            return response()->json(['code' => 1, 'message' => __('app.controller_compat.sdk_version_msg_54')], 422);
         }
 
         return response()->json([
@@ -81,7 +81,7 @@ class SdkVersionController extends Controller
 
         return response()->json([
             'code' => 0,
-            'message' => '版本注册成功',
+            'message' => __('app.controller_compat.sdk_version_msg_84'),
             'data' => $version,
         ]);
     }
@@ -127,7 +127,7 @@ class SdkVersionController extends Controller
 
         return response()->json([
             'code' => 0,
-            'message' => '更新成功',
+            'message' => __('app.common.updated'),
             'data' => $version->fresh(),
         ]);
     }

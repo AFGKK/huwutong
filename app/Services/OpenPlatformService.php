@@ -22,14 +22,7 @@ use Illuminate\Support\Str;
  */
 class OpenPlatformService
 {
-    const CATEGORIES = [
-        'integration' => '集成扩展',
-        'automation' => '自动化',
-        'analytics' => '数据分析',
-        'security' => '安全合规',
-        'billing' => '计费财务',
-        'other' => '其他',
-    ];
+    const CATEGORIES = ['integration', 'automation', 'analytics', 'security', 'billing', 'other'];
 
     const APP_STATUSES = ['draft', 'pending_review', 'published', 'rejected', 'suspended'];
 
@@ -68,7 +61,7 @@ class OpenPlatformService
     public function registerDeveloper(User $user, array $data): MarketplaceDeveloper
     {
         if (MarketplaceDeveloper::where('user_id', $user->id)->exists()) {
-            throw new \RuntimeException('您已注册为开发者');
+            throw new \RuntimeException(__('app.open_platform.already_registered'));
         }
 
         return MarketplaceDeveloper::create([
@@ -84,7 +77,7 @@ class OpenPlatformService
     public function verifyDeveloper(MarketplaceDeveloper $developer, User $reviewer, string $action, ?string $notes = null): MarketplaceDeveloper
     {
         if (!in_array($action, ['approve', 'suspend'])) {
-            throw new \RuntimeException('无效操作');
+            throw new \RuntimeException(__('app.open_platform.invalid_action'));
         }
 
         $developer->update([
@@ -135,7 +128,7 @@ class OpenPlatformService
     public function createApp(MarketplaceDeveloper $developer, array $data): MarketplaceApp
     {
         if (!$developer->isActive()) {
-            throw new \RuntimeException('开发者账号未激活，无法创建应用');
+            throw new \RuntimeException(__('app.open_platform.developer_inactive'));
         }
 
         $slug = Str::slug($data['slug'] ?? $data['name']);
@@ -176,7 +169,7 @@ class OpenPlatformService
     public function updateApp(MarketplaceApp $app, array $data): MarketplaceApp
     {
         if (!in_array($app->status, ['draft', 'rejected'])) {
-            throw new \RuntimeException('仅草稿或被驳回的应用可编辑');
+            throw new \RuntimeException(__('app.open_platform.app_not_editable'));
         }
 
         $app->update(collect($data)->only([
@@ -191,16 +184,16 @@ class OpenPlatformService
     public function submitForReview(MarketplaceApp $app): MarketplaceApp
     {
         if ($app->status !== 'draft' && $app->status !== 'rejected') {
-            throw new \RuntimeException('当前状态不可提交审核');
+            throw new \RuntimeException(__('app.open_platform.cannot_submit_review'));
         }
 
         if (!$app->current_version) {
-            throw new \RuntimeException('请先添加应用版本后再提交审核');
+            throw new \RuntimeException(__('app.open_platform.version_required'));
         }
 
         $app->update(['status' => 'pending_review', 'review_notes' => null]);
 
-        $this->logReview($app, null, 'submit', '开发者提交审核');
+        $this->logReview($app, null, 'submit', __('app.open_platform.review_submit'));
 
         return $app->fresh();
     }
@@ -215,11 +208,11 @@ class OpenPlatformService
         ];
 
         if (!isset($statusMap[$action])) {
-            throw new \RuntimeException('无效审核操作');
+            throw new \RuntimeException(__('app.open_platform.invalid_review_action'));
         }
 
         if ($action === 'approve' && $app->status !== 'pending_review') {
-            throw new \RuntimeException('仅待审核应用可通过');
+            throw new \RuntimeException(__('app.open_platform.only_pending_can_approve'));
         }
 
         $app->update([
@@ -261,7 +254,7 @@ class OpenPlatformService
             return;
         }
 
-        $reasonText = $reason ? "原因：{$reason}" : '违规或存在安全风险';
+        $reasonText = $reason ? "原因：{$reason}" : __('app.open_platform.suspend_fallback_reason');
 
         // 批量标记安装记录为 suspended
         MarketplaceAppInstallation::where('app_id', $app->id)
@@ -275,8 +268,8 @@ class OpenPlatformService
                 $notificationService->send(
                     $inst->user,
                     'app_suspended',
-                    "应用「{$app->name}」已被下架",
-                    "您安装的应用「{$app->name}」因{$reasonText}已被平台下架，请及时处理。如有疑问请联系客服。",
+                    __('app.open_platform.app_suspended_title', ['name' => $app->name]),
+                    __('app.open_platform.app_suspended_body', ['name' => $app->name, 'reason' => $reasonText]),
                     [
                         'app_id' => $app->id,
                         'app_name' => $app->name,
@@ -302,7 +295,7 @@ class OpenPlatformService
             return 0;
         }
 
-        $versionText = $targetVersion ? "请立即升级到 v{$targetVersion}" : '请立即升级到最新版本';
+        $versionText = $targetVersion ? __('app.open_platform.upgrade_to_version', ['version' => $targetVersion]) : __('app.open_platform.upgrade_to_latest');
         $notificationService = app(\App\Services\NotificationService::class);
         $count = 0;
 
@@ -311,8 +304,8 @@ class OpenPlatformService
                 $notificationService->send(
                     $inst->user,
                     'app_force_update',
-                    "紧急更新：{$app->name}",
-                    "您安装的应用「{$app->name}」需要强制更新。原因：{$reason}。{$versionText}",
+                    __('app.open_platform.force_update_title', ['name' => $app->name]),
+                    __('app.open_platform.force_update_body', ['name' => $app->name, 'reason' => $reason, 'version_text' => $versionText]),
                     [
                         'app_id' => $app->id,
                         'app_name' => $app->name,
@@ -350,7 +343,7 @@ class OpenPlatformService
     public function installApp(MarketplaceApp $app, User $user, ?int $tenantId = null, array $config = []): MarketplaceAppInstallation
     {
         if (!$app->isPublished()) {
-            throw new \RuntimeException('应用未上架，无法安装');
+            throw new \RuntimeException(__('app.open_platform.app_not_published'));
         }
 
         $existing = MarketplaceAppInstallation::where('app_id', $app->id)
@@ -359,7 +352,7 @@ class OpenPlatformService
             ->first();
 
         if ($existing && $existing->status === 'active') {
-            throw new \RuntimeException('应用已安装');
+            throw new \RuntimeException(__('app.open_platform.app_already_installed'));
         }
 
         return DB::transaction(function () use ($app, $user, $tenantId, $config, $existing) {
@@ -393,7 +386,7 @@ class OpenPlatformService
     public function uninstallApp(MarketplaceAppInstallation $installation): MarketplaceAppInstallation
     {
         if ($installation->status !== 'active') {
-            throw new \RuntimeException('应用未处于安装状态');
+            throw new \RuntimeException(__('app.open_platform.app_not_active'));
         }
 
         $installation->update([
@@ -441,24 +434,24 @@ class OpenPlatformService
         switch ($type) {
             case 'downloads':
                 $query->orderByDesc('install_count');
-                $label = '下载排行';
+                $label = __('app.open_platform.rank_downloads');
                 break;
             case 'trending':
                 // 近7天下载量最多的
                 $query->orderByDesc('install_count');
-                $label = '趋势上升';
+                $label = __('app.open_platform.rank_trending');
                 break;
             case 'newest':
                 $query->orderByDesc('published_at');
-                $label = '最新上架';
+                $label = __('app.open_platform.rank_newest');
                 break;
             case 'rating':
                 $query->where('review_count', '>', 0)->orderByDesc('avg_rating')->orderByDesc('review_count');
-                $label = '评分最高';
+                $label = __('app.open_platform.rank_rating');
                 break;
             default:
                 $query->orderByDesc('install_count');
-                $label = '热门排行';
+                $label = __('app.open_platform.rank_hot');
         }
 
         return [
@@ -498,9 +491,9 @@ class OpenPlatformService
         return [
             'labels' => $dateLabels,
             'datasets' => [
-                ['name' => '查看详情', 'data' => array_map(fn($d) => $trend[$d]['view_detail'], $dateLabels)],
-                ['name' => '下载', 'data' => array_map(fn($d) => $trend[$d]['download'], $dateLabels)],
-                ['name' => '安装', 'data' => array_map(fn($d) => $trend[$d]['install'], $dateLabels)],
+                ['name' => __('app.open_platform.chart_view_detail'), 'data' => array_map(fn($d) => $trend[$d]['view_detail'], $dateLabels)],
+                ['name' => __('app.open_platform.chart_download'), 'data' => array_map(fn($d) => $trend[$d]['download'], $dateLabels)],
+                ['name' => __('app.open_platform.chart_install'), 'data' => array_map(fn($d) => $trend[$d]['install'], $dateLabels)],
             ],
         ];
     }
@@ -532,10 +525,10 @@ class OpenPlatformService
         return [
             'labels' => $dateLabels,
             'datasets' => [
-                ['name' => '查看详情', 'data' => array_map(fn($d) => $trend[$d]['view_detail'], $dateLabels)],
-                ['name' => '下载', 'data' => array_map(fn($d) => $trend[$d]['download'], $dateLabels)],
-                ['name' => '安装', 'data' => array_map(fn($d) => $trend[$d]['install'], $dateLabels)],
-                ['name' => '卸载', 'data' => array_map(fn($d) => $trend[$d]['uninstall'], $dateLabels)],
+                ['name' => __('app.open_platform.chart_view_detail'), 'data' => array_map(fn($d) => $trend[$d]['view_detail'], $dateLabels)],
+                ['name' => __('app.open_platform.chart_download'), 'data' => array_map(fn($d) => $trend[$d]['download'], $dateLabels)],
+                ['name' => __('app.open_platform.chart_install'), 'data' => array_map(fn($d) => $trend[$d]['install'], $dateLabels)],
+                ['name' => __('app.open_platform.chart_uninstall'), 'data' => array_map(fn($d) => $trend[$d]['uninstall'], $dateLabels)],
             ],
         ];
     }
@@ -616,11 +609,11 @@ class OpenPlatformService
         $ext = strtolower($file->getClientOriginalExtension());
 
         if (!in_array($ext, $allowedExts)) {
-            throw new \InvalidArgumentException('不支持的文件格式，仅支持 APK/IPA/AppImage');
+            throw new \InvalidArgumentException(__('app.open_platform.invalid_file_format'));
         }
 
         if ($file->getSize() > 500 * 1024 * 1024) {
-            throw new \InvalidArgumentException('文件大小不能超过 500MB');
+            throw new \InvalidArgumentException(__('app.open_platform.file_too_large'));
         }
 
         $path = $file->store('marketplace/packages/' . date('Ymd'), 'public');
@@ -704,7 +697,7 @@ class OpenPlatformService
                 'feeable_type' => MarketplaceApp::class,
                 'feeable_id' => $app->id,
                 'fee_type' => 'commission',
-                'name' => $description ?: ('开发者收益抽成: ' . $app->name),
+                'name' => $description ?: __('app.open_platform.commission_name', ['name' => $app->name]),
                 'amount' => $platformFee,
                 'rate' => config('open-platform.commission.platform_fee_percentage', 20) / 100,
                 'currency' => 'CNY',
@@ -751,12 +744,12 @@ class OpenPlatformService
         $account = $dev->earningsAccount;
 
         if (!$account || $account->available_balance < $amount) {
-            throw new \RuntimeException('余额不足');
+            throw new \RuntimeException(__('app.open_platform.insufficient_balance'));
         }
 
         $minPayout = config('open-platform.commission.payout_minimum', 100);
         if ($amount < $minPayout) {
-            throw new \RuntimeException("最低提现金额为 ¥{$minPayout}");
+            throw new \RuntimeException(__('app.open_platform.min_withdrawal', ['amount' => $minPayout]));
         }
 
         return DB::transaction(function () use ($dev, $account, $amount, $channel, $channelInfo) {
@@ -837,12 +830,15 @@ class OpenPlatformService
     public function getMetadata(): array
     {
         return [
-            'categories' => collect(self::CATEGORIES)->map(fn ($label, $value) => ['value' => $value, 'label' => $label])->values(),
+            'categories' => collect(self::CATEGORIES)->map(fn ($value) => [
+                'value' => $value,
+                'label' => __('app.open_platform.category_' . $value),
+            ])->values(),
             'app_statuses' => self::APP_STATUSES,
             'pricing_types' => [
-                ['value' => 'free', 'label' => '免费'],
-                ['value' => 'paid', 'label' => '一次性付费'],
-                ['value' => 'subscription', 'label' => '订阅'],
+                ['value' => 'free', 'label' => __('app.open_platform.pricing_free')],
+                ['value' => 'paid', 'label' => __('app.open_platform.pricing_onetime')],
+                ['value' => 'subscription', 'label' => __('app.open_platform.pricing_subscription')],
             ],
         ];
     }

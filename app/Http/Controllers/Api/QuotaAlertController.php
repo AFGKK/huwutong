@@ -23,7 +23,7 @@ class QuotaAlertController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__("app.quota_alert.msg_f0a154e5"), $validator->errors()->toArray());
         }
         return ApiResponse::success(
             $this->alertService->getDashboard($request->input('start_date'), $request->input('end_date'))
@@ -56,11 +56,11 @@ class QuotaAlertController extends Controller
             'quota_limit' => 'required|integer|min:1',
         ]);
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.quota_alert.param_validation_failed'), $validator->errors()->toArray());
         }
 
         $alert = $this->alertService->updateLimit($id, (int) $request->input('quota_limit'));
-        return ApiResponse::success($alert, '配额上限已更新');
+        return ApiResponse::success($alert, __("app.quota_alert.msg_e1603e17"));
     }
 
     /**
@@ -69,7 +69,7 @@ class QuotaAlertController extends Controller
     public function toggleNotifications(int $id): JsonResponse
     {
         $alert = $this->alertService->toggleNotifications($id);
-        return ApiResponse::success($alert, $alert->notifications_enabled ? '通知已开启' : '通知已关闭');
+        return ApiResponse::success($alert, $alert->notifications_enabled ? __('app.quota_alert.notifications_opened') : __("app.quota_alert.msg_b0a2bb16"));
     }
 
     /**
@@ -86,7 +86,7 @@ class QuotaAlertController extends Controller
     public function checkAll(): JsonResponse
     {
         $results = $this->alertService->checkAll();
-        return ApiResponse::success(['checked' => count($results), 'results' => $results], '检查完成');
+        return ApiResponse::success(['checked' => count($results), 'results' => $results], __('app.quota_alert.check_completed'));
     }
 
     /**

@@ -60,7 +60,7 @@ class CrossSellController extends Controller
             $validated['event_data'] ?? []
         );
 
-        return ApiResponse::success(null, '事件已记录');
+        return ApiResponse::success(null, __("app.cross_sell.msg_d7e017ec"));
     }
 
     /**

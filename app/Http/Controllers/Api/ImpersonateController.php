@@ -48,7 +48,7 @@ class ImpersonateController extends Controller
                 'email' => $target->email,
             ],
             'expires_in' => ImpersonateService::SESSION_TTL,
-        ], '模拟登录开始');
+        ], __('app.impersonate.impersonation_started'));
     }
 
     /**
@@ -65,7 +65,7 @@ class ImpersonateController extends Controller
             $request->user(),
         );
 
-        return ApiResponse::success(null, '已退出模拟模式');
+        return ApiResponse::success(null, __("app.impersonate.msg_44ed80e2"));
     }
 
     /**

@@ -43,13 +43,13 @@ class MigrationAssistantController extends Controller
             $validated
         );
 
-        return ApiResponse::created($job, '迁移任务已创建');
+        return ApiResponse::created($job, __('app.api.migration_assistant.job_created'));
     }
 
     public function run(MigrationAssistantJob $migrationAssistantJob): JsonResponse
     {
         if ($migrationAssistantJob->status === 'importing') {
-            return ApiResponse::error('IN_PROGRESS', '任务正在执行中', 409);
+            return ApiResponse::error('IN_PROGRESS', __('app.api.migration_assistant.job_in_progress'), 409);
         }
 
         // 异步 - 实际用队列
@@ -57,7 +57,7 @@ class MigrationAssistantController extends Controller
 
         return ApiResponse::success(
             $migrationAssistantJob->fresh()->load('user:id,name'),
-            '迁移完成'
+            __('app.api.migration_assistant.migration_done')
         );
     }
 

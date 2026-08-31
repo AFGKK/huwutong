@@ -51,14 +51,14 @@ class DomainWhitelistService
                 ]);
                 return $existing->fresh();
             }
-            throw new \RuntimeException("域名 {$domain} 已存在白名单中");
+            throw new \RuntimeException(__("app.domain_whitelist.msg_029ad2e3"));
         }
 
         // 检查数量上限
         $count = LicenseDomainWhitelist::where('license_id', $licenseId)->count();
         $max = config('domain-whitelist.max_domains_per_license', 20);
         if ($count >= $max) {
-            throw new \RuntimeException("白名单域名已达上限 ({$max}个)");
+            throw new \RuntimeException(__("app.domain_whitelist.msg_dd18d238"));
         }
 
         // 是否需要审批

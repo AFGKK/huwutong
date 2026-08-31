@@ -41,7 +41,7 @@ class CloudUploadService
         $path = $file->storeAs($prefix, $fileName, $disk);
 
         // 生成URL
-        $isPublic = config("cloud-upload.types.{$type}.public", false);
+        $isPublic = $options['is_public'] ?? config("cloud-upload.types.{$type}.public", false);
         $url = null;
         $thumbnailUrl = null;
 
@@ -62,7 +62,7 @@ class CloudUploadService
         }
 
         // 生成缩略图(图片类型)
-        if (str_starts_with($mimeType, 'image/') && $type !== 'screenshot') {
+        if (str_starts_with($mimeType, 'image/')) {
             $thumbnailPath = $this->generateThumbnail($file, $prefix, $fileName, $disk);
             if ($thumbnailPath) {
                 $thumbnailUrl = $isPublic
@@ -95,14 +95,18 @@ class CloudUploadService
      */
     public function getUrl(CloudUpload $upload): string
     {
-        if ($upload->is_public) {
+        if ($upload->is_public || in_array($upload->disk, ['local', 'public'])) {
             return $upload->url ?: Storage::disk($upload->disk)->url($upload->path);
         }
 
-        return Storage::disk($upload->disk)->temporaryUrl(
-            $upload->path,
-            now()->addMinutes(config('cloud-upload.storage.url_expiry_minutes', 60))
-        );
+        try {
+            return Storage::disk($upload->disk)->temporaryUrl(
+                $upload->path,
+                now()->addMinutes(config('cloud-upload.storage.url_expiry_minutes', 60))
+            );
+        } catch (\Throwable $e) {
+            return $upload->url ?: Storage::disk($upload->disk)->url($upload->path);
+        }
     }
 
     /**
@@ -142,6 +146,15 @@ class CloudUploadService
         ];
     }
 
+    /**
+     * Toggle file visibility (public/private)
+     */
+    public function toggleVisibility(CloudUpload $upload): CloudUpload
+    {
+        $upload->update(['is_public' => !$upload->is_public]);
+        return $upload->fresh();
+    }
+
     protected function generateThumbnail(UploadedFile $file, string $prefix, string $fileName, string $disk): ?string
     {
         // 简单缩略图生成 - 实际应使用 Intervention Image
@@ -177,12 +190,12 @@ class CloudUploadService
     {
         $allowedMimes = config("cloud-upload.storage.allowed_types.{$type}", ['*']);
         if ($allowedMimes !== ['*'] && !in_array($file->getMimeType(), $allowedMimes)) {
-            throw new \InvalidArgumentException("文件类型不允许: {$file->getMimeType()}");
+            throw new \InvalidArgumentException(__("app.cloud_upload.msg_db674d78"));
         }
 
         $maxSize = config('cloud-upload.storage.max_file_size_kb', 20480) * 1024;
         if ($file->getSize() > $maxSize) {
-            throw new \InvalidArgumentException('文件大小超过限制');
+            throw new \InvalidArgumentException(__("app.cloud_upload.file_size_limit_exceeded"));
         }
     }
 }

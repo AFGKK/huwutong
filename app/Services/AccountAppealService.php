@@ -18,7 +18,7 @@ class AccountAppealService
 
         // 检查是否为 active 状态 - active 用户不能申诉
         if ($user->status === 'active') {
-            throw new \RuntimeException('账号状态正常，无需申诉');
+            throw new \RuntimeException(__("app.account_appeal.account_status_normal_no_appeal"));
         }
 
         // 检查是否有待处理的申诉
@@ -27,7 +27,7 @@ class AccountAppealService
             ->exists();
 
         if ($pending) {
-            throw new \RuntimeException('已有待处理的申诉，请耐心等待');
+            throw new \RuntimeException(__("app.account_appeal.pending_appeal_exists"));
         }
 
         return DB::transaction(function () use ($userId, $data) {
@@ -71,14 +71,14 @@ class AccountAppealService
         $appeal = UserAppeal::findOrFail($appealId);
 
         if (!in_array($appeal->status, ['pending', 'reviewing'])) {
-            throw new \RuntimeException('申诉已被处理，无法重复审核');
+            throw new \RuntimeException(__("app.account_appeal.appeal_already_reviewed"));
         }
 
         if (!in_array($action, ['approve', 'reject'])) {
-            throw new \RuntimeException('无效的审核操作');
+            throw new \RuntimeException(__("app.account_appeal.invalid_review_action"));
         }
 
-        return DB::transaction(function () use ($appeal, $reviewerId, $action, $comment) {
+        $appeal = DB::transaction(function () use ($appeal, $reviewerId, $action, $comment) {
             $newStatus = $action === 'approve' ? 'approved' : 'rejected';
 
             $appeal->update([
@@ -98,15 +98,17 @@ class AccountAppealService
                 ]);
             }
 
-            // 通知申诉用户
-            try {
-                $appeal->user->notify(new AppealStatusChanged($appeal));
-            } catch (\Exception $e) {
-                // 通知失败不影响审核
-            }
-
             return $appeal->fresh()->load(['user:id,name,email,status', 'reviewer:id,name']);
         });
+
+        // 通知放在事务外，避免 PostgreSQL 事务因通知失败而中止
+        try {
+            $appeal->user->notify(new AppealStatusChanged($appeal));
+        } catch (\Exception $e) {
+            // 通知失败不影响审核
+        }
+
+        return $appeal;
     }
 
     /**
@@ -117,7 +119,7 @@ class AccountAppealService
         $user = User::findOrFail($targetUserId);
 
         if ($user->status === 'inactive' && $user->banned_at) {
-            throw new \RuntimeException('该账号已被封禁');
+            throw new \RuntimeException(__("app.account_appeal.account_already_banned"));
         }
 
         $user->update([

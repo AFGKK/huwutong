@@ -48,10 +48,10 @@ class EarningsNotifier
             return;
         }
 
-        $title = '新佣金入账通知';
+        $title = __('app.earnings_notifier.new_commission_credited');
         $content = $deductedNegative
-            ? "您有一笔 ¥{$actualAmount} 的佣金已入账（已抵扣负余额 ¥{$deductedAmount}），冻结至 {$frozenUntil}。"
-            : "您有一笔 ¥{$actualAmount} 的佣金已入账，冻结至 {$frozenUntil}，到期自动解冻后可提现。";
+            ? __('app.earnings_notifier.commission_credited_with_deduction', ['amount' => $actualAmount, 'deducted' => $deductedAmount, 'frozen_until' => $frozenUntil])
+            : __('app.earnings_notifier.commission_credited_normal', ['amount' => $actualAmount, 'frozen_until' => $frozenUntil]);
 
         $payload = [
             'type' => 'commission_credited',
@@ -62,7 +62,7 @@ class EarningsNotifier
             'deducted_amount' => $deductedAmount,
             'frozen_until' => $frozenUntil,
             'action_url' => '/agent/commission',
-            'action_text' => '查看佣金明细',
+            'action_text' => __('app.earnings_notifier.view_commission_details'),
         ];
 
         $this->sendEarningNotification(
@@ -85,8 +85,8 @@ class EarningsNotifier
             return;
         }
 
-        $title = '佣金解冻通知';
-        $content = "您有 {$commissionCount} 笔、共计 ¥{$amount} 的佣金已解冻，现已转入可用余额，可随时提现。";
+        $title = __('app.earnings_notifier.commission_released');
+        $content = __('app.earnings_notifier.commission_released_content', ['count' => $commissionCount, 'amount' => $amount]);
 
         $payload = [
             'type' => 'commission_released',
@@ -94,7 +94,7 @@ class EarningsNotifier
             'amount' => $amount,
             'commission_count' => $commissionCount,
             'action_url' => '/agent/commission',
-            'action_text' => '去提现',
+            'action_text' => __('app.earnings_notifier.go_withdraw'),
         ];
 
         $this->sendEarningNotification(
@@ -119,28 +119,28 @@ class EarningsNotifier
         }
 
         $statusLabels = [
-            'pending' => '处理中',
-            'pending_review' => '待审核',
-            'approved' => '已审批',
-            'processing' => '打款中',
-            'completed' => '已到账',
-            'failed' => '打款失败',
-            'cancelled' => '已取消',
-            'rejected' => '已拒绝',
+            'pending' => __('app.earnings_notifier.status_pending'),
+            'pending_review' => __('app.earnings_notifier.status_pending_review'),
+            'approved' => __('app.earnings_notifier.status_approved'),
+            'processing' => __('app.earnings_notifier.status_processing'),
+            'completed' => __('app.earnings_notifier.status_completed'),
+            'failed' => __('app.earnings_notifier.status_failed'),
+            'cancelled' => __('app.earnings_notifier.status_cancelled'),
+            'rejected' => __('app.earnings_notifier.status_rejected'),
         ];
 
         $oldLabel = $statusLabels[$oldStatus] ?? $oldStatus;
         $newLabel = $statusLabels[$newStatus] ?? $newStatus;
 
-        $title = '提现状态变更';
-        $content = "您的提现（¥{$payout->amount}）状态已从「{$oldLabel}」变更为「{$newLabel}」。";
+        $title = __('app.earnings_notifier.payout_status_changed');
+        $content = __('app.earnings_notifier.payout_status_generic', ['amount' => $payout->amount, 'old' => $oldLabel, 'new' => $newLabel]);
 
         if ($newStatus === 'completed') {
-            $content = "您的提现（¥{$payout->net_amount}）已到账，预计 1-3 个工作日到账至您的账户。";
+            $content = __('app.earnings_notifier.payout_completed', ['amount' => $payout->net_amount]);
         } elseif ($newStatus === 'failed') {
-            $content = "您的提现（¥{$payout->amount}）打款失败，系统将自动重试或请联系客服处理。";
+            $content = __('app.earnings_notifier.payout_failed', ['amount' => $payout->amount]);
         } elseif ($newStatus === 'rejected') {
-            $content = "您的提现（¥{$payout->amount}）已被拒绝。" . ($payout->notes ? "原因：{$payout->notes}" : '');
+            $content = $payout->notes ? __('app.earnings_notifier.payout_rejected', ['amount' => $payout->amount, 'reason' => $payout->notes]) : __('app.earnings_notifier.payout_rejected_no_reason', ['amount' => $payout->amount]);
         }
 
         $payload = [
@@ -152,7 +152,7 @@ class EarningsNotifier
             'old_status' => $oldStatus,
             'new_status' => $newStatus,
             'action_url' => '/agent/payouts',
-            'action_text' => '查看提现记录',
+            'action_text' => __('app.earnings_notifier.view_payout_records'),
         ];
 
         $this->sendEarningNotification(
@@ -175,13 +175,8 @@ class EarningsNotifier
         }
 
         $period = $stats['period'] ?? now()->subMonth()->format('Y-m');
-        $title = "{$period} 月度收益报告";
-        $content = "【{$period} 月度收益汇总】\n"
-            . "• 新入账佣金：¥{$stats['total_credited']}\n"
-            . "• 已解冻佣金：¥{$stats['total_released']}\n"
-            . "• 已提现金额：¥{$stats['total_withdrawn']}\n"
-            . "• 可用余额：¥{$stats['available_balance']}\n"
-            . "• 待解冻金额：¥{$stats['pending_balance']}";
+        $title = __('app.earnings_notifier.monthly_report_title', ['period' => $period]);
+            $content = __('app.earnings_notifier.monthly_report_content', ['period' => $period, 'credited' => $stats['total_credited'], 'released' => $stats['total_released'], 'withdrawn' => $stats['total_withdrawn'], 'available' => $stats['available_balance'], 'pending' => $stats['pending_balance']]);
 
         $payload = [
             'type' => 'monthly_report',
@@ -189,7 +184,7 @@ class EarningsNotifier
             'period' => $period,
             'stats' => $stats,
             'action_url' => '/agent/commission/report?period=' . $period,
-            'action_text' => '查看详细报告',
+            'action_text' => __('app.earnings_notifier.view_detailed_report'),
         ];
 
         $this->sendEarningNotification(
@@ -212,8 +207,8 @@ class EarningsNotifier
             return;
         }
 
-        $title = '🎉 收益里程碑达成！';
-        $content = "本月收益已达 ¥{$currentMonthEarning}，超过 ¥{$threshold} 里程碑！继续保持！";
+        $title = __('app.earnings_notifier.threshold_title');
+        $content = __('app.earnings_notifier.threshold_content', ['earning' => $currentMonthEarning, 'threshold' => $threshold]);
 
         $payload = [
             'type' => 'threshold_reached',
@@ -221,7 +216,7 @@ class EarningsNotifier
             'current_month_earning' => $currentMonthEarning,
             'threshold' => $threshold,
             'action_url' => '/agent/commission',
-            'action_text' => '查看收益',
+            'action_text' => __('app.earnings_notifier.view_earnings'),
         ];
 
         $this->sendEarningNotification(
@@ -244,12 +239,10 @@ class EarningsNotifier
             return;
         }
 
-        $title = '负余额预警';
-        $content = $daysOverdue > 0
-            ? "您的佣金账户存在负余额 ¥{$negativeAmount}，已逾期 {$daysOverdue} 天。"
-                . "请尽快偿还，否则将冻结提现权限。"
-            : "您的佣金账户存在负余额 ¥{$negativeAmount}。"
-                . "后续新佣金将优先抵扣，请留意。";
+        $title = __('app.earnings_notifier.negative_balance_title');
+            $content = $daysOverdue > 0
+                ? __('app.earnings_notifier.negative_balance_overdue', ['amount' => $negativeAmount, 'days' => $daysOverdue])
+                : __('app.earnings_notifier.negative_balance_normal', ['amount' => $negativeAmount]);
 
         $payload = [
             'type' => 'negative_balance_warning',
@@ -257,7 +250,7 @@ class EarningsNotifier
             'negative_amount' => $negativeAmount,
             'days_overdue' => $daysOverdue,
             'action_url' => '/agent/commission',
-            'action_text' => '查看详情',
+            'action_text' => __('app.earnings_notifier.view_details'),
         ];
 
         $this->sendEarningNotification(

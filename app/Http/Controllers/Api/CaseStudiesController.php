@@ -33,7 +33,7 @@ class CaseStudiesController extends Controller
     {
         $detail = $this->caseStudies->getDetail($id);
         if (!$detail) {
-            return ApiResponse::error('案例不存在', 404);
+            return ApiResponse::error(__("app.case_studies.msg_85d0eda0"), 404);
         }
         return ApiResponse::success($detail);
     }
@@ -60,7 +60,7 @@ class CaseStudiesController extends Controller
             'tags' => 'nullable|array',
         ]);
 
-        return ApiResponse::success($this->caseStudies->create($data), '案例已创建');
+        return ApiResponse::success($this->caseStudies->create($data), __('app.case_studies.case_created'));
     }
 
     /**
@@ -85,7 +85,7 @@ class CaseStudiesController extends Controller
             'tags' => 'nullable|array',
         ]);
 
-        return ApiResponse::success($this->caseStudies->update($id, $data), '案例已更新');
+        return ApiResponse::success($this->caseStudies->update($id, $data), __('app.case_studies.case_updated'));
     }
 
     /**
@@ -106,7 +106,8 @@ class CaseStudiesController extends Controller
             'config' => [
                 'grid_columns' => config('case-studies.logo_wall.grid_columns', 6),
                 'display_count' => config('case-studies.logo_wall.display_count', 12),
-                'trusted_text' => config('case-studies.homepage.trusted_text', 'Trusted by 500+'),
+                'trusted_text' => config('case-studies.homepage.trusted_text')
+                    ?: __('app.landing.trust_industries'),
             ],
         ]);
     }
@@ -130,8 +131,8 @@ class CaseStudiesController extends Controller
         $request->validate(['file' => 'required|image|max:1024']);
         $result = $this->caseStudies->uploadLogo($request->file('file'));
         return $result['success']
-            ? ApiResponse::success($result, 'Logo 上传成功')
-            : ApiResponse::error('上传失败', 400);
+            ? ApiResponse::success($result, __("app.case_studies.msg_0e1bad7a"))
+            : ApiResponse::error(__("app.case_studies.msg_54e5de42"), 400);
     }
 
     /**

@@ -55,7 +55,7 @@ class OpsGenieService
         array $details = []
     ): array {
         if (!$this->isEnabled()) {
-            return ['success' => false, 'message' => 'OpsGenie 未启用'];
+            return ['success' => false, 'message' => __('app.ops_genie_service.not_enabled')];
         }
 
         $alias = $details['alias'] ?? 'hwt-' . md5($message . json_encode($details));
@@ -67,7 +67,7 @@ class OpsGenieService
             'source' => $details['source'] ?? 'huwutong',
             'tags' => $details['tags'] ?? ['huwutong'],
             'details' => array_diff_key($details, array_flip(['alias', 'source', 'tags', 'team_id', 'responders'])),
-            'note' => $details['note'] ?? '由互物通自动创建',
+            'note' => $details['note'] ?? __('app.ops_genie_service.auto_note'),
         ];
 
         if (!empty($details['team_id'])) {
@@ -98,7 +98,7 @@ class OpsGenieService
 
                 return [
                     'success' => true,
-                    'message' => '告警已创建',
+                    'message' => __('app.ops_genie_service.alert_created'),
                     'alert_id' => $alertId,
                     'alias' => $alias,
                 ];
@@ -112,11 +112,11 @@ class OpsGenieService
 
             return [
                 'success' => false,
-                'message' => '创建失败: HTTP ' . $response->status(),
+                'message' => __('app.ops_genie_service.create_failed', ['status' => $response->status()]),
             ];
         } catch (\Throwable $e) {
             Log::error('OpsGenie 告警创建异常', ['error' => $e->getMessage()]);
-            return ['success' => false, 'message' => '创建异常: ' . $e->getMessage()];
+            return ['success' => false, 'message' => __('app.ops_genie_service.create_exception', ['error' => $e->getMessage()])];
         }
     }
 
@@ -149,12 +149,12 @@ class OpsGenieService
                 ]);
 
             if ($response->successful()) {
-                return ['success' => true, 'message' => '备注已添加'];
+                return ['success' => true, 'message' => __('app.ops_genie_service.note_added')];
             }
 
-            return ['success' => false, 'message' => '添加备注失败'];
+            return ['success' => false, 'message' => __('app.ops_genie_service.note_failed')];
         } catch (\Throwable $e) {
-            return ['success' => false, 'message' => '备注异常: ' . $e->getMessage()];
+            return ['success' => false, 'message' => __('app.ops_genie_service.note_exception', ['error' => $e->getMessage()])];
         }
     }
 
@@ -164,7 +164,7 @@ class OpsGenieService
     protected function executeAction(string $identifier, string $identifierType, string $action): array
     {
         if (!$this->isEnabled()) {
-            return ['success' => false, 'message' => 'OpsGenie 未启用'];
+            return ['success' => false, 'message' => __('app.ops_genie_service.not_enabled')];
         }
 
         try {
@@ -173,12 +173,12 @@ class OpsGenieService
                 ->post("{$this->endpoint}/alerts/{$identifier}/{$action}?identifierType={$identifierType}");
 
             if ($response->successful()) {
-                return ['success' => true, 'message' => "告警已{$action}"];
+                return ['success' => true, 'message' => __('app.ops_genie_service.action_completed', ['action' => $action])];
             }
 
-            return ['success' => false, 'message' => "{$action}失败: HTTP " . $response->status()];
+            return ['success' => false, 'message' => __('app.ops_genie_service.action_failed', ['action' => $action, 'status' => $response->status()])];
         } catch (\Throwable $e) {
-            return ['success' => false, 'message' => "{$action}异常: " . $e->getMessage()];
+            return ['success' => false, 'message' => __('app.ops_genie_service.action_exception', ['action' => $action, 'error' => $e->getMessage()])];
         }
     }
 
@@ -218,9 +218,9 @@ class OpsGenieService
                 ];
             }
 
-            return ['success' => false, 'message' => '获取告警列表失败'];
+            return ['success' => false, 'message' => __('app.ops_genie_service.list_failed')];
         } catch (\Throwable $e) {
-            return ['success' => false, 'message' => '获取告警异常: ' . $e->getMessage()];
+            return ['success' => false, 'message' => __('app.ops_genie_service.list_exception', ['error' => $e->getMessage()])];
         }
     }
 
@@ -230,18 +230,18 @@ class OpsGenieService
     public function testConnection(): array
     {
         if (!$this->isEnabled()) {
-            return ['success' => false, 'message' => 'OpsGenie 未启用或 API Key 未配置'];
+            return ['success' => false, 'message' => __('app.ops_genie_service.not_configured')];
         }
 
         $testAlias = 'hwt-test-' . date('YmdHis');
         $result = $this->createAlert(
-            '【互物通】OpsGenie 连接测试',
+            __('app.ops_genie_service.test_title'),
             'P5',
             [
                 'alias' => $testAlias,
                 'tags' => ['huwutong', 'test'],
                 'source' => 'huwutong-test',
-                'note' => '自动连接测试',
+                'note' => __('app.ops_genie_service.test_note'),
             ]
         );
 
@@ -250,7 +250,7 @@ class OpsGenieService
             $this->close($testAlias, 'alias');
             return [
                 'success' => true,
-                'message' => 'OpsGenie 连接正常（测试告警已创建并关闭）',
+                'message' => __('app.ops_genie_service.test_ok'),
                 'alias' => $testAlias,
             ];
         }

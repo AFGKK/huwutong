@@ -68,15 +68,11 @@ class LocalLLMController extends Controller
     /**
      * 删除模型
      */
-    public function deleteModel(Request $request): JsonResponse
+    public function deleteModel(string $modelName): JsonResponse
     {
         $this->authorize('delete', LlmProvider::class);
 
-        $validated = $request->validate([
-            'model_name' => ['required', 'string'],
-        ]);
-
-        $result = $this->localLLM->deleteModel($validated['model_name']);
+        $result = $this->localLLM->deleteModel($modelName);
 
         return response()->json($result, $result['success'] ? 200 : 400);
     }

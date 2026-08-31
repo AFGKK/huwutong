@@ -14,7 +14,7 @@ class SlackService
             'high' => '#fd7e14',
             'medium' => '#ffc107',
             'low' => '#28a745',
-            default => '#409eff',
+            default => '#0f172a',
         };
 
         try {
@@ -51,6 +51,6 @@ class SlackService
     public function testConnection(string $webhookUrl): array
     {
         $ok = $this->send($webhookUrl, '🔄 Slack 连接测试', "测试时间: " . now()->format('Y-m-d H:i:s') . "\n状态: 连接成功 ✅", 'low');
-        return ['success' => $ok, 'message' => $ok ? 'Slack 连接测试通过' : 'Slack 连接测试失败，请检查 Webhook URL'];
+        return ['success' => $ok, 'message' => $ok ? __('app.common.slack_connection_test_passed') : __('app.common.slack_connection_test_failed')];
     }
 }

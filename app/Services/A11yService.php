@@ -2,77 +2,90 @@
 
 namespace App\Services;
 
+use App\Models\ConversationMessage;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
- * WCAG 2.1 AA 无障碍合规管理服务
+ * WCAG 2.1 AA 无障碍合规管理服务 + 无障碍 AI 辅助服务
  *
  * M3-54
  * - 合规声明版本管理
  * - 合规扫描和报告生成
  * - 用户无障碍偏好管理
  * - 已知限制追踪
+ * - AI 图片 ALT 文本生成
+ * - 消息/会话无障碍摘要
+ * - 文字转语音
  */
 class A11yService
 {
+    protected LlmService $llm;
+
+    public function __construct(LlmService $llm)
+    {
+        $this->llm = $llm;
+    }
+
     /**
      * WCAG 2.1 AA 成功准则定义
      */
     public function getGuidelines(): array
     {
         return [
-            ['id' => '1.1.1', 'name' => '非文本内容', 'level' => 'A', 'description' => '所有非文本内容提供替代文本', 'status' => 'compliant'],
-            ['id' => '1.2.1', 'name' => '纯音频/视频（预录）', 'level' => 'A', 'description' => '预录音频提供替代文本', 'status' => 'compliant'],
-            ['id' => '1.2.2', 'name' => '字幕（预录）', 'level' => 'A', 'description' => '预录视频提供字幕', 'status' => 'compliant'],
-            ['id' => '1.2.3', 'name' => '音频描述或媒体替代（预录）', 'level' => 'A', 'description' => '预录视频提供音频描述', 'status' => 'compliant'],
-            ['id' => '1.2.4', 'name' => '字幕（直播）', 'level' => 'AA', 'description' => '直播视频提供字幕', 'status' => 'not_applicable'],
-            ['id' => '1.2.5', 'name' => '音频描述（预录）', 'level' => 'AA', 'description' => '预录视频提供音频描述', 'status' => 'not_applicable'],
-            ['id' => '1.3.1', 'name' => '信息和关系', 'level' => 'A', 'description' => '结构信息可通过程序化方式确定', 'status' => 'compliant'],
-            ['id' => '1.3.2', 'name' => '有含义的序列', 'level' => 'A', 'description' => '内容阅读顺序有逻辑', 'status' => 'compliant'],
-            ['id' => '1.3.3', 'name' => '感官特性', 'level' => 'A', 'description' => '不单纯依赖感官特性理解内容', 'status' => 'compliant'],
-            ['id' => '1.3.4', 'name' => '方向', 'level' => 'AA', 'description' => '不限制内容的显示方向', 'status' => 'compliant'],
-            ['id' => '1.3.5', 'name' => '输入目的', 'level' => 'AA', 'description' => '输入字段autocomplete属性正确', 'status' => 'needs_work'],
-            ['id' => '1.4.1', 'name' => '颜色使用', 'level' => 'AA', 'description' => '颜色不作为唯一信息传达方式', 'status' => 'compliant'],
-            ['id' => '1.4.2', 'name' => '音频控制', 'level' => 'A', 'description' => '自动播放音频可暂停或关闭', 'status' => 'compliant'],
-            ['id' => '1.4.3', 'name' => '对比度（最低）', 'level' => 'AA', 'description' => '文本对比度不低于4.5:1', 'status' => 'compliant'],
-            ['id' => '1.4.4', 'name' => '调整文本大小', 'level' => 'AA', 'description' => '文本可在不损失内容下缩放到200%', 'status' => 'compliant'],
-            ['id' => '1.4.5', 'name' => '文本图像', 'level' => 'AA', 'description' => '使用文本而非文本图像', 'status' => 'compliant'],
-            ['id' => '1.4.10', 'name' => '回流', 'level' => 'AA', 'description' => '内容在400px宽度不丢失信息', 'status' => 'needs_work'],
-            ['id' => '1.4.11', 'name' => '非文本对比度', 'level' => 'AA', 'description' => 'UI组件和图形对比度不低于3:1', 'status' => 'compliant'],
-            ['id' => '1.4.12', 'name' => '文本间距', 'level' => 'AA', 'description' => '文本样式可覆盖不丢失内容', 'status' => 'compliant'],
-            ['id' => '1.4.13', 'name' => '悬停或焦点触发的内容', 'level' => 'AA', 'description' => '悬停/焦点内容可悬停查看', 'status' => 'needs_work'],
-            ['id' => '2.1.1', 'name' => '键盘', 'level' => 'A', 'description' => '所有功能可通过键盘操作', 'status' => 'compliant'],
-            ['id' => '2.1.2', 'name' => '无键盘陷阱', 'level' => 'A', 'description' => '焦点不会陷入组件的某部分', 'status' => 'compliant'],
-            ['id' => '2.1.4', 'name' => '字符键快捷键', 'level' => 'A', 'description' => '字符快捷键可关闭或重新映射', 'status' => 'compliant'],
-            ['id' => '2.2.1', 'name' => '可调时间', 'level' => 'A', 'description' => '时间限制可关闭/调整/延长', 'status' => 'compliant'],
-            ['id' => '2.2.2', 'name' => '暂停、停止、隐藏', 'level' => 'A', 'description' => '移动/闪烁/滚动内容可暂停', 'status' => 'compliant'],
-            ['id' => '2.3.1', 'name' => '三次闪烁或低于阈值', 'level' => 'A', 'description' => '内容不闪烁超过3次/秒', 'status' => 'compliant'],
-            ['id' => '2.4.1', 'name' => '跳过块', 'level' => 'A', 'description' => '提供跳过内容块的方法', 'status' => 'compliant'],
-            ['id' => '2.4.2', 'name' => '页面标题', 'level' => 'A', 'description' => '页面有描述标题', 'status' => 'compliant'],
-            ['id' => '2.4.3', 'name' => '焦点顺序', 'level' => 'A', 'description' => '焦点导航顺序符合语义', 'status' => 'compliant'],
-            ['id' => '2.4.4', 'name' => '链接目的（上下文）', 'level' => 'A', 'description' => '链接目的可在上下文中确定', 'status' => 'compliant'],
-            ['id' => '2.4.5', 'name' => '多种方式', 'level' => 'AA', 'description' => '提供多种方式定位页面', 'status' => 'compliant'],
-            ['id' => '2.4.6', 'name' => '标题和标签', 'level' => 'AA', 'description' => '标题和标签描述清晰', 'status' => 'compliant'],
-            ['id' => '2.4.7', 'name' => '焦点可见', 'level' => 'AA', 'description' => '焦点指示器可见', 'status' => 'compliant'],
-            ['id' => '2.5.1', 'name' => '指针手势', 'level' => 'A', 'description' => '多点/路径手势有单点替代', 'status' => 'compliant'],
-            ['id' => '2.5.2', 'name' => '指针取消', 'level' => 'A', 'description' => '按下可中止或撤销', 'status' => 'compliant'],
-            ['id' => '2.5.3', 'name' => '标签名称', 'level' => 'A', 'description' => '可见标签与ARIA名称匹配', 'status' => 'needs_work'],
-            ['id' => '2.5.4', 'name' => '运动触发', 'level' => 'A', 'description' => '设备运动触发的功能可禁用', 'status' => 'not_applicable'],
-            ['id' => '3.1.1', 'name' => '页面语言', 'level' => 'A', 'description' => '页面lang属性已设置', 'status' => 'compliant'],
-            ['id' => '3.1.2', 'name' => '段落语言', 'level' => 'AA', 'description' => '段落语言有更改时可程序化确定', 'status' => 'compliant'],
-            ['id' => '3.2.1', 'name' => '焦点触发', 'level' => 'A', 'description' => '焦点移动不引起上下文变化', 'status' => 'compliant'],
-            ['id' => '3.2.2', 'name' => '输入触发', 'level' => 'A', 'description' => '输入不自动改变上下文', 'status' => 'compliant'],
-            ['id' => '3.2.3', 'name' => '一致导航', 'level' => 'AA', 'description' => '导航在页面间保持一致', 'status' => 'compliant'],
-            ['id' => '3.2.4', 'name' => '一致标识', 'level' => 'AA', 'description' => '相同功能使用相同图标/标签', 'status' => 'compliant'],
-            ['id' => '3.3.1', 'name' => '错误标识', 'level' => 'A', 'description' => '输入错误被标识并描述', 'status' => 'compliant'],
-            ['id' => '3.3.2', 'name' => '标签或说明', 'level' => 'A', 'description' => '输入提供标签或说明', 'status' => 'compliant'],
-            ['id' => '3.3.3', 'name' => '错误建议', 'level' => 'AA', 'description' => '输入错误提供修正建议', 'status' => 'needs_work'],
-            ['id' => '3.3.4', 'name' => '错误预防（法律/财务/数据）', 'level' => 'AA', 'description' => '重要操作可逆/确认/审核', 'status' => 'compliant'],
-            ['id' => '4.1.1', 'name' => '解析', 'level' => 'A', 'description' => '元素有完整的开始/结束标签', 'status' => 'compliant'],
-            ['id' => '4.1.2', 'name' => '名称、角色、值', 'level' => 'A', 'description' => 'UI组件提供完整名称、角色和值', 'status' => 'compliant'],
-            ['id' => '4.1.3', 'name' => '状态消息', 'level' => 'AA', 'description' => '状态消息可通过ARIA确定', 'status' => 'compliant'],
+            ['id' => '1.1.1', 'name' => __('app.a11y.guidelines.1_1_1.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.1_1_1.description'), 'status' => 'compliant'],
+            ['id' => '1.2.1', 'name' => __('app.a11y.guidelines.1_2_1.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.1_2_1.description'), 'status' => 'compliant'],
+            ['id' => '1.2.2', 'name' => __('app.a11y.guidelines.1_2_2.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.1_2_2.description'), 'status' => 'compliant'],
+            ['id' => '1.2.3', 'name' => __('app.a11y.guidelines.1_2_3.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.1_2_3.description'), 'status' => 'compliant'],
+            ['id' => '1.2.4', 'name' => __('app.a11y.guidelines.1_2_4.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.1_2_4.description'), 'status' => 'not_applicable'],
+            ['id' => '1.2.5', 'name' => __('app.a11y.guidelines.1_2_5.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.1_2_5.description'), 'status' => 'not_applicable'],
+            ['id' => '1.3.1', 'name' => __('app.a11y.guidelines.1_3_1.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.1_3_1.description'), 'status' => 'compliant'],
+            ['id' => '1.3.2', 'name' => __('app.a11y.guidelines.1_3_2.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.1_3_2.description'), 'status' => 'compliant'],
+            ['id' => '1.3.3', 'name' => __('app.a11y.guidelines.1_3_3.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.1_3_3.description'), 'status' => 'compliant'],
+            ['id' => '1.3.4', 'name' => __('app.a11y.guidelines.1_3_4.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.1_3_4.description'), 'status' => 'compliant'],
+            ['id' => '1.3.5', 'name' => __('app.a11y.guidelines.1_3_5.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.1_3_5.description'), 'status' => 'needs_work'],
+            ['id' => '1.4.1', 'name' => __('app.a11y.guidelines.1_4_1.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.1_4_1.description'), 'status' => 'compliant'],
+            ['id' => '1.4.2', 'name' => __('app.a11y.guidelines.1_4_2.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.1_4_2.description'), 'status' => 'compliant'],
+            ['id' => '1.4.3', 'name' => __('app.a11y.guidelines.1_4_3.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.1_4_3.description'), 'status' => 'compliant'],
+            ['id' => '1.4.4', 'name' => __('app.a11y.guidelines.1_4_4.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.1_4_4.description'), 'status' => 'compliant'],
+            ['id' => '1.4.5', 'name' => __('app.a11y.guidelines.1_4_5.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.1_4_5.description'), 'status' => 'compliant'],
+            ['id' => '1.4.10', 'name' => __('app.a11y.guidelines.1_4_10.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.1_4_10.description'), 'status' => 'needs_work'],
+            ['id' => '1.4.11', 'name' => __('app.a11y.guidelines.1_4_11.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.1_4_11.description'), 'status' => 'compliant'],
+            ['id' => '1.4.12', 'name' => __('app.a11y.guidelines.1_4_12.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.1_4_12.description'), 'status' => 'compliant'],
+            ['id' => '1.4.13', 'name' => __('app.a11y.guidelines.1_4_13.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.1_4_13.description'), 'status' => 'needs_work'],
+            ['id' => '2.1.1', 'name' => __('app.a11y.guidelines.2_1_1.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_1_1.description'), 'status' => 'compliant'],
+            ['id' => '2.1.2', 'name' => __('app.a11y.guidelines.2_1_2.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_1_2.description'), 'status' => 'compliant'],
+            ['id' => '2.1.4', 'name' => __('app.a11y.guidelines.2_1_4.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_1_4.description'), 'status' => 'compliant'],
+            ['id' => '2.2.1', 'name' => __('app.a11y.guidelines.2_2_1.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_2_1.description'), 'status' => 'compliant'],
+            ['id' => '2.2.2', 'name' => __('app.a11y.guidelines.2_2_2.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_2_2.description'), 'status' => 'compliant'],
+            ['id' => '2.3.1', 'name' => __('app.a11y.guidelines.2_3_1.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_3_1.description'), 'status' => 'compliant'],
+            ['id' => '2.4.1', 'name' => __('app.a11y.guidelines.2_4_1.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_4_1.description'), 'status' => 'compliant'],
+            ['id' => '2.4.2', 'name' => __('app.a11y.guidelines.2_4_2.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_4_2.description'), 'status' => 'compliant'],
+            ['id' => '2.4.3', 'name' => __('app.a11y.guidelines.2_4_3.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_4_3.description'), 'status' => 'compliant'],
+            ['id' => '2.4.4', 'name' => __('app.a11y.guidelines.2_4_4.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_4_4.description'), 'status' => 'compliant'],
+            ['id' => '2.4.5', 'name' => __('app.a11y.guidelines.2_4_5.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.2_4_5.description'), 'status' => 'compliant'],
+            ['id' => '2.4.6', 'name' => __('app.a11y.guidelines.2_4_6.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.2_4_6.description'), 'status' => 'compliant'],
+            ['id' => '2.4.7', 'name' => __('app.a11y.guidelines.2_4_7.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.2_4_7.description'), 'status' => 'compliant'],
+            ['id' => '2.5.1', 'name' => __('app.a11y.guidelines.2_5_1.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_5_1.description'), 'status' => 'compliant'],
+            ['id' => '2.5.2', 'name' => __('app.a11y.guidelines.2_5_2.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_5_2.description'), 'status' => 'compliant'],
+            ['id' => '2.5.3', 'name' => __('app.a11y.guidelines.2_5_3.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_5_3.description'), 'status' => 'needs_work'],
+            ['id' => '2.5.4', 'name' => __('app.a11y.guidelines.2_5_4.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.2_5_4.description'), 'status' => 'not_applicable'],
+            ['id' => '3.1.1', 'name' => __('app.a11y.guidelines.3_1_1.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.3_1_1.description'), 'status' => 'compliant'],
+            ['id' => '3.1.2', 'name' => __('app.a11y.guidelines.3_1_2.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.3_1_2.description'), 'status' => 'compliant'],
+            ['id' => '3.2.1', 'name' => __('app.a11y.guidelines.3_2_1.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.3_2_1.description'), 'status' => 'compliant'],
+            ['id' => '3.2.2', 'name' => __('app.a11y.guidelines.3_2_2.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.3_2_2.description'), 'status' => 'compliant'],
+            ['id' => '3.2.3', 'name' => __('app.a11y.guidelines.3_2_3.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.3_2_3.description'), 'status' => 'compliant'],
+            ['id' => '3.2.4', 'name' => __('app.a11y.guidelines.3_2_4.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.3_2_4.description'), 'status' => 'compliant'],
+            ['id' => '3.3.1', 'name' => __('app.a11y.guidelines.3_3_1.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.3_3_1.description'), 'status' => 'compliant'],
+            ['id' => '3.3.2', 'name' => __('app.a11y.guidelines.3_3_2.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.3_3_2.description'), 'status' => 'compliant'],
+            ['id' => '3.3.3', 'name' => __('app.a11y.guidelines.3_3_3.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.3_3_3.description'), 'status' => 'needs_work'],
+            ['id' => '3.3.4', 'name' => __('app.a11y.guidelines.3_3_4.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.3_3_4.description'), 'status' => 'compliant'],
+            ['id' => '4.1.1', 'name' => __('app.a11y.guidelines.4_1_1.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.4_1_1.description'), 'status' => 'compliant'],
+            ['id' => '4.1.2', 'name' => __('app.a11y.guidelines.4_1_2.name'), 'level' => 'A', 'description' => __('app.a11y.guidelines.4_1_2.description'), 'status' => 'compliant'],
+            ['id' => '4.1.3', 'name' => __('app.a11y.guidelines.4_1_3.name'), 'level' => 'AA', 'description' => __('app.a11y.guidelines.4_1_3.description'), 'status' => 'compliant'],
         ];
     }
 
@@ -102,32 +115,32 @@ class A11yService
     {
         return [
             [
-                'area' => '第三方图表组件',
-                'description' => '部分集成第三方图表库（如ECharts）的页面，图表数据的键盘导航和屏幕阅读器支持有限',
+                'area' => __('app.a11y.limitations.0.area'),
+                'description' => __('app.a11y.limitations.0.description'),
                 'severity' => 'medium',
-                'workaround' => '图表提供数据表格的替代视图',
-                'planned_fix' => '逐步替换为原生SVG图表组件',
+                'workaround' => __('app.a11y.limitations.0.workaround'),
+                'planned_fix' => __('app.a11y.limitations.0.planned_fix'),
             ],
             [
-                'area' => '历史页面ARIA标签',
-                'description' => '早期开发的页面缺乏完整的ARIA标签和语义角色',
+                'area' => __('app.a11y.limitations.1.area'),
+                'description' => __('app.a11y.limitations.1.description'),
                 'severity' => 'low',
-                'workaround' => '核心业务页面已完成',
-                'planned_fix' => '按访问频率逐步补齐',
+                'workaround' => __('app.a11y.limitations.1.workaround'),
+                'planned_fix' => __('app.a11y.limitations.1.planned_fix'),
             ],
             [
-                'area' => '实时通知屏幕阅读器优化',
-                'description' => 'Laravel Echo实时通知的屏幕阅读器提示需要进一步优化',
+                'area' => __('app.a11y.limitations.2.area'),
+                'description' => __('app.a11y.limitations.2.description'),
                 'severity' => 'low',
-                'workaround' => '通知中心页面支持键盘完全操作',
-                'planned_fix' => '使用aria-live区域优化实时通知播报',
+                'workaround' => __('app.a11y.limitations.2.workaround'),
+                'planned_fix' => __('app.a11y.limitations.2.planned_fix'),
             ],
             [
-                'area' => '复杂表单错误关联',
-                'description' => '多步骤复杂表单的错误提示与表单域的ARIA关联有待改进',
+                'area' => __('app.a11y.limitations.3.area'),
+                'description' => __('app.a11y.limitations.3.description'),
                 'severity' => 'medium',
-                'workaround' => '表单页面顶部显示错误汇总',
-                'planned_fix' => '使用aria-describedby关联错误消息',
+                'workaround' => __('app.a11y.limitations.3.workaround'),
+                'planned_fix' => __('app.a11y.limitations.3.planned_fix'),
             ],
         ];
     }
@@ -215,7 +228,7 @@ class A11yService
             'passes_AA' => $passesAA,
             'passes_AA_large' => $passesAALarge,
             'passes_AAA' => $passesAAA,
-            'rating' => $passesAAA ? 'AAA' : ($passesAA ? 'AA' : ($passesAALarge ? 'AA (大文本)' : 'FAIL')),
+            'rating' => $passesAAA ? 'AAA' : ($passesAA ? 'AA' : ($passesAALarge ? __('app.a11y.rating_AA_large') : 'FAIL')),
         ];
     }
 
@@ -231,7 +244,7 @@ class A11yService
         return [
             'generated_at' => now()->toIso8601String(),
             'standard' => 'WCAG 2.1 AA',
-            'scope' => '管理后台 SPA + 客户门户',
+            'scope' => __('app.a11y.report_scope'),
             'summary' => [
                 'total_criteria' => $stats['total'],
                 'compliant' => $stats['compliant'],
@@ -246,5 +259,127 @@ class A11yService
             'non_compliant_items' => array_values(array_filter($guidelines, fn($g) => $g['status'] === 'needs_work')),
             'known_limitations' => $limitations,
         ];
+    }
+
+    // ── 无障碍 AI 辅助（原 AccessibilityService 方法） ──
+
+    /**
+     * 为图片生成 ALT 描述文本
+     */
+    public function generateImageAlt(string $imageUrl): string
+    {
+        $cacheKey = 'img_alt_' . md5($imageUrl);
+
+        return Cache::remember($cacheKey, 86400 * 30, function () use ($imageUrl) {
+            try {
+                $result = $this->llm->chat([
+                    ['role' => 'system', 'content' => '你是一个图片描述助手，为视障用户生成简洁的图片描述。
+要求：
+- 用一句话描述图片核心内容（15-30字）
+- 描述主体、动作、场景
+- 保持客观，不添加推测
+- 用中文
+- 如果图片包含文字，提取关键文字'],
+                    ['role' => 'user', 'content' => "请描述这张图片：{$imageUrl}"],
+                ], ['temperature' => 0.2, 'max_tokens' => 150], 'a11y_image_alt');
+
+                return $result['content'] ?? '图片';
+            } catch (\Throwable $e) {
+                Log::warning('Image ALT generation failed', ['error' => $e->getMessage()]);
+                return '图片';
+            }
+        });
+    }
+
+    /**
+     * 为聊天消息生成摘要（供屏幕阅读器快速浏览）
+     */
+    public function summarizeMessage(ConversationMessage $msg): string
+    {
+        $sender = $msg->sender?->name ?? '用户';
+        $type = $msg->message_type ?? 'text';
+        $time = $msg->created_at?->format('H:i') ?? '';
+
+        return match ($type) {
+            'text' => "{$sender} 在 {$time} 说：{$msg->content}",
+            'image' => "{$sender} 在 {$time} 发送了一张图片：" . ($msg->metadata['alt_text'] ?? ''),
+            'voice' => "{$sender} 在 {$time} 发送了一条语音消息",
+            'file' => "{$sender} 在 {$time} 发送了文件：" . ($msg->metadata['file_name'] ?? '文件'),
+            'forward' => "{$sender} 在 {$time} 转发了消息",
+            'sticker' => "{$sender} 在 {$time} 发送了一个贴纸",
+            default => "{$sender} 在 {$time} 发送了一条 {$type} 类型消息",
+        };
+    }
+
+    /**
+     * 为整段会话生成无障碍摘要
+     */
+    public function summarizeConversation(int $convId, int $limit = 20): array
+    {
+        $messages = ConversationMessage::where('conversation_id', $convId)
+            ->whereNull('deleted_at')
+            ->latest()
+            ->take($limit)
+            ->get()
+            ->reverse();
+
+        $summaries = [];
+        foreach ($messages as $msg) {
+            $summaries[] = $this->summarizeMessage($msg);
+        }
+
+        return [
+            'total' => count($summaries),
+            'items' => $summaries,
+            'full_text' => implode("\n", $summaries),
+        ];
+    }
+
+    /**
+     * 生成图片的详细无障碍描述（长文，用于独立查看）
+     */
+    public function describeImageDetail(string $imageUrl): array
+    {
+        try {
+            $result = $this->llm->chat([
+                ['role' => 'system', 'content' => '你是一个专业的无障碍描述助手。为视障用户生成详细的图片描述，包含：
+1. 图片类型（照片/插画/图表/截图等）
+2. 主体描述
+3. 颜色和构图
+4. 文字内容（如有）
+5. 整体氛围
+使用中文，描述要准确、客观。'],
+                ['role' => 'user', 'content' => "请详细描述这张图片：{$imageUrl}"],
+            ], ['temperature' => 0.3, 'max_tokens' => 500], 'a11y_image_detail');
+
+            $description = $result['content'] ?? '无法生成描述';
+
+            return [
+                'description' => $description,
+                'short_alt' => $this->generateImageAlt($imageUrl),
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'description' => '图片描述暂时不可用',
+                'short_alt' => '图片',
+            ];
+        }
+    }
+
+    /**
+     * 文字转语音（调用现有 TTS API）
+     */
+    public function textToSpeech(string $text): ?string
+    {
+        try {
+            $asr = app(AsrService::class);
+            if (method_exists($asr, 'synthesize')) {
+                return $asr->synthesize($text);
+            }
+            return null;
+        } catch (\Throwable $e) {
+            Log::warning('TTS failed', ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 }

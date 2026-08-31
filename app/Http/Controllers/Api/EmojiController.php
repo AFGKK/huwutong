@@ -88,7 +88,7 @@ class EmojiController extends Controller
 
         EmojiService::clearCache();
 
-        return ApiResponse::success($emoji, '自定义表情已添加', 201);
+        return ApiResponse::success($emoji, __("app.emoji.msg_936f6567"), 201);
     }
 
     /**
@@ -111,7 +111,7 @@ class EmojiController extends Controller
 
         EmojiService::clearCache();
 
-        return ApiResponse::success($emoji->fresh(), '已更新');
+        return ApiResponse::success($emoji->fresh(), __('app.emoji.updated'));
     }
 
     /**
@@ -121,7 +121,7 @@ class EmojiController extends Controller
     {
         CustomEmoji::findOrFail($id)->delete();
         EmojiService::clearCache();
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __("app.emoji.msg_5cc23262"));
     }
 
     /**
@@ -159,7 +159,7 @@ class EmojiController extends Controller
         return ApiResponse::success([
             'imported' => $imported,
             'skipped' => $skipped,
-        ], "成功导入 {$imported} 个，跳过 {$skipped} 个");
+        ], __('app.common.import_result', ['imported' => $imported, 'skipped' => $skipped]));
     }
 
     /**

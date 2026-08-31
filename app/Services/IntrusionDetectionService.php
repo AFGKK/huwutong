@@ -196,7 +196,7 @@ class IntrusionDetectionService
     public function updateAlertStatus(IdsAlert $alert, string $status, ?string $notes = null): IdsAlert
     {
         if (!array_key_exists($status, IdsAlert::STATUSES)) {
-            throw new \InvalidArgumentException("无效状态: {$status}");
+            throw new \InvalidArgumentException(__("app.intrusion_detection.msg_8074adc4"));
         }
 
         $data = ['status' => $status];

@@ -46,7 +46,7 @@ class FeedbackController extends Controller
         ]);
 
         $updated = $this->service->update($feedback->id, $validated);
-        return ApiResponse::success($updated, '反馈已更新');
+        return ApiResponse::success($updated, __('app.api.feedback.updated'));
     }
 
     public function assign(Request $request, CustomerFeedback $feedback): JsonResponse
@@ -56,7 +56,7 @@ class FeedbackController extends Controller
         ]);
 
         $updated = $this->service->assign($feedback->id, $validated['user_id']);
-        return ApiResponse::success($updated, '已分配处理人');
+        return ApiResponse::success($updated, __('app.api.feedback.assignee_updated'));
     }
 
     public function reply(Request $request, CustomerFeedback $feedback): JsonResponse
@@ -66,20 +66,20 @@ class FeedbackController extends Controller
         ]);
 
         $updated = $this->service->reply($feedback->id, $validated['message']);
-        return ApiResponse::success($updated, '已回复');
+        return ApiResponse::success($updated, __('app.api.feedback.replied'));
     }
 
     public function resolve(Request $request, CustomerFeedback $feedback): JsonResponse
     {
         $status = $request->input('status', 'resolved');
         $updated = $this->service->resolve($feedback->id, $status);
-        return ApiResponse::success($updated, '反馈状态已更新');
+        return ApiResponse::success($updated, __('app.api.feedback.status_updated'));
     }
 
     public function destroy(CustomerFeedback $feedback): JsonResponse
     {
         $feedback->delete();
-        return ApiResponse::success(null, '反馈已删除');
+        return ApiResponse::success(null, __('app.api.feedback.deleted'));
     }
 
     public function stats(): JsonResponse
@@ -100,7 +100,7 @@ class FeedbackController extends Controller
             'name' => 'required|string|max:50|unique:feedback_tags,name',
             'color' => 'nullable|string|max:7',
         ]);
-        return ApiResponse::success($this->service->createTag($validated), '标签已创建', 201);
+        return ApiResponse::success($this->service->createTag($validated), __('app.api.feedback.tag_created'), 201);
     }
 
     // ═══════════ 投票系统 ═══════════
@@ -116,7 +116,7 @@ class FeedbackController extends Controller
 
         $result = $this->service->vote($feedback->id, $request->user(), $validated['vote']);
 
-        return ApiResponse::success($result, '投票成功');
+        return ApiResponse::success($result, __('app.api.feedback.voted'));
     }
 
     /**
@@ -160,13 +160,13 @@ class FeedbackController extends Controller
         ]);
 
         $feedback = $this->service->create($validated, $request->user());
-        return ApiResponse::success($feedback, '感谢您的反馈！', 201);
+        return ApiResponse::success($feedback, __('app.api.feedback.submitted'), 201);
     }
 
     public function myShow(CustomerFeedback $feedback): JsonResponse
     {
         if ($feedback->user_id !== auth()->id()) {
-            return ApiResponse::error('FORBIDDEN', '无权查看此反馈', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.feedback.forbidden'), 403);
         }
         $feedback->load(['tags']);
         return ApiResponse::success($feedback);

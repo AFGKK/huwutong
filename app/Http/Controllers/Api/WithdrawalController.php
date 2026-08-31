@@ -28,7 +28,7 @@ class WithdrawalController extends Controller
     protected function ensureAdmin(): void
     {
         if (Gate::denies('admin')) {
-            abort(403, '需要管理员权限');
+            abort(403, __('app.api.withdrawal.admin_required'));
         }
     }
 
@@ -117,7 +117,7 @@ class WithdrawalController extends Controller
                 $validated['remark'] ?? null,
             );
 
-            $msg = $validated['action'] === 'approve' ? '提现已通过' : '提现已驳回';
+            $msg = $validated['action'] === 'approve' ? __('app.api.withdrawal.approved') : __('app.api.withdrawal.rejected');
             return response()->json(['success' => true, 'message' => $msg, 'data' => $result]);
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -144,7 +144,7 @@ class WithdrawalController extends Controller
             }
 
             $result = $this->withdrawalService->markAsCompleted($withdrawal, $data);
-            return response()->json(['success' => true, 'message' => '打款已完成', 'data' => $result]);
+            return response()->json(['success' => true, 'message' => __('app.api.withdrawal.paid'), 'data' => $result]);
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
@@ -163,7 +163,7 @@ class WithdrawalController extends Controller
 
         try {
             $result = $this->withdrawalService->markAsFailed($withdrawal, $validated['failure_reason']);
-            return response()->json(['success' => true, 'message' => '已标记为失败', 'data' => $result]);
+            return response()->json(['success' => true, 'message' => __('app.api.withdrawal.marked_failed'), 'data' => $result]);
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
@@ -184,7 +184,7 @@ class WithdrawalController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '凭证已上传',
+            'message' => __('app.api.withdrawal.proof_uploaded'),
             'data' => ['proof' => $result->proof],
         ]);
     }
@@ -252,7 +252,7 @@ class WithdrawalController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '打款批次已创建',
+                'message' => __('app.api.withdrawal.batch_created'),
                 'data' => $batch,
             ], 201);
         } catch (\RuntimeException $e) {
@@ -278,7 +278,7 @@ class WithdrawalController extends Controller
                 $validated['failed_ids'] ?? [],
             );
 
-            return response()->json(['success' => true, 'message' => '批次处理完成', 'data' => $batch]);
+            return response()->json(['success' => true, 'message' => __('app.api.withdrawal.batch_completed'), 'data' => $batch]);
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
@@ -324,7 +324,7 @@ class WithdrawalController extends Controller
             $withdrawal = $this->withdrawalService->requestWithdrawal($user, $validated);
             return response()->json([
                 'success' => true,
-                'message' => '提现请求已提交' . ($withdrawal->status === 'pending_review' ? '，需人工审核' : ''),
+                'message' => ($withdrawal->status === 'pending_review' ? __('app.api.withdrawal.submitted_review') : __('app.api.withdrawal.submitted')),
                 'data' => $withdrawal,
             ], 201);
         } catch (\RuntimeException $e) {
@@ -339,7 +339,7 @@ class WithdrawalController extends Controller
     {
         try {
             $result = $this->withdrawalService->cancelWithdrawal($withdrawal, $request->user());
-            return response()->json(['success' => true, 'message' => '提现已取消', 'data' => $result]);
+            return response()->json(['success' => true, 'message' => __('app.api.withdrawal.cancelled'), 'data' => $result]);
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
@@ -389,9 +389,9 @@ class WithdrawalController extends Controller
             $channels[] = [
                 'id' => $ch,
                 'name' => match ($ch) {
-                    'bank' => '银行卡',
-                    'alipay' => '支付宝',
-                    'wechat' => '微信',
+                    'bank' => __('app.api.withdrawal.bank_card'),
+                    'alipay' => __('app.api.withdrawal.alipay'),
+                    'wechat' => __('app.api.withdrawal.wechat_pay'),
                     'paypal' => 'PayPal',
                 },
                 'min_amount' => $limits['min'],
@@ -435,7 +435,7 @@ class WithdrawalController extends Controller
 
         try {
             $result = $this->withdrawalService->retryWithdrawal($withdrawal, $request->user());
-            return response()->json(['success' => true, 'message' => '提现已重置为待处理', 'data' => $result]);
+            return response()->json(['success' => true, 'message' => __('app.api.withdrawal.reset_pending'), 'data' => $result]);
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
@@ -461,7 +461,7 @@ class WithdrawalController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "{$successCount}/" . count($results) . " 条提现已重试",
+            'message' => __('app.api.withdrawal.retried', ['success' => $successCount, 'total' => count($results)]),
             'data' => $results,
         ]);
     }
@@ -479,7 +479,7 @@ class WithdrawalController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "已处理 {$count} 条到期冻结佣金",
+            'message' => __('app.api.withdrawal.frozen_processed', ['count' => $count]),
             'data' => ['released_count' => $count],
         ]);
     }

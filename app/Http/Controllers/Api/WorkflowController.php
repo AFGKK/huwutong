@@ -109,7 +109,7 @@ class WorkflowController extends Controller
     public function cancel(WorkflowInstance $instance): JsonResponse
     {
         $this->temporalService->terminateWorkflow($instance->id, '管理后台取消');
-        return ApiResponse::success(null, '工作流已取消');
+        return ApiResponse::success(null, __("app.workflow.msg_442600c1"));
     }
 
     /**
@@ -118,7 +118,7 @@ class WorkflowController extends Controller
     public function retry(WorkflowInstance $instance): JsonResponse
     {
         if (! $instance->isFailed()) {
-            return ApiResponse::error('WORKFLOW_NOT_FAILED', '只能重试失败的工作流', 422);
+            return ApiResponse::error('WORKFLOW_NOT_FAILED', __("app.workflow.msg_31dac333"), 422);
         }
 
         $instance->update([
@@ -133,7 +133,7 @@ class WorkflowController extends Controller
 
         $this->workflowEngine->continue($instance->fresh());
 
-        return ApiResponse::success(null, '工作流已重新开始');
+        return ApiResponse::success(null, __("app.workflow.msg_ddf7fcb0"));
     }
 
     /**
@@ -152,7 +152,7 @@ class WorkflowController extends Controller
             $validated['workflow_name'] ?? null,
         );
 
-        return ApiResponse::success($results, '批量重试完成');
+        return ApiResponse::success($results, __("app.workflow.msg_25d57db4"));
     }
 
     /**
@@ -205,6 +205,6 @@ class WorkflowController extends Controller
             $validated['input'] ?? [],
         );
 
-        return ApiResponse::success($instance, '工作流已启动');
+        return ApiResponse::success($instance, __("app.workflow.msg_6f8c8d41"));
     }
 }

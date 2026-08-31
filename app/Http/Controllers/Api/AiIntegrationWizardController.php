@@ -22,65 +22,65 @@ class AiIntegrationWizardController extends Controller
                 'id' => 'php',
                 'name' => 'PHP',
                 'icon' => 'php',
-                'description' => 'Laravel / Symfony / 原生 PHP 项目',
+                'description' => __('app.api.integr_wizard.desc_php'),
                 'docs_url' => 'https://docs.huwutong.com/sdk/php',
-                'steps' => ['composer require huwutong/license-sdk', '配置 API Key', '调用激活/验证'],
+                'steps' => ['composer require huwutong/license-sdk', __('app.api.integr_wizard.step_install_sdk'), __('app.api.integr_wizard.step_activate')],
             ],
             [
                 'id' => 'node',
                 'name' => 'Node.js',
                 'icon' => 'nodejs',
-                'description' => 'Express / NestJS / Next.js 项目',
+                'description' => __('app.api.integr_wizard.desc_node'),
                 'docs_url' => 'https://docs.huwutong.com/sdk/node',
-                'steps' => ['npm install huwutong-license-sdk', '初始化客户端', '调用 API'],
+                'steps' => ['npm install huwutong-license-sdk', __('app.api.integr_wizard.step_init_client'), __('app.api.integr_wizard.step_call_api')],
             ],
             [
                 'id' => 'python',
                 'name' => 'Python',
                 'icon' => 'python',
-                'description' => 'Django / Flask / FastAPI 项目',
+                'description' => __('app.api.integr_wizard.desc_python'),
                 'docs_url' => 'https://docs.huwutong.com/sdk/python',
-                'steps' => ['pip install huwutong-license-sdk', '配置凭据', '调用验证'],
+                'steps' => ['pip install huwutong-license-sdk', __('app.api.integr_wizard.step_config_creds'), __('app.api.integr_wizard.step_verify')],
             ],
             [
                 'id' => 'java',
                 'name' => 'Java',
                 'icon' => 'java',
-                'description' => 'Spring Boot / Quarkus / Android 项目',
+                'description' => __('app.api.integr_wizard.desc_java'),
                 'docs_url' => 'https://docs.huwutong.com/sdk/java',
-                'steps' => ['Maven/Gradle 添加依赖', '配置 LicenseClient', '验证许可证'],
+                'steps' => [__('app.api.integr_wizard.step_add_dep'), __('app.api.integr_wizard.step_config_client'), __('app.api.integr_wizard.step_verify_license')],
             ],
             [
                 'id' => 'go',
                 'name' => 'Go',
                 'icon' => 'go',
-                'description' => 'Gin / Echo / 微服务项目',
+                'description' => __('app.api.integr_wizard.desc_go'),
                 'docs_url' => 'https://docs.huwutong.com/sdk/go',
-                'steps' => ['go get github.com/huwutong/license-sdk', '创建客户端', '调用验证'],
+                'steps' => ['go get github.com/huwutong/license-sdk', __('app.api.integr_wizard.step_go_get'), __('app.api.integr_wizard.step_verify')],
             ],
             [
                 'id' => 'dotnet',
                 'name' => '.NET',
                 'icon' => 'dotnet',
-                'description' => 'ASP.NET Core / Blazor / WPF 项目',
+                'description' => __('app.api.integr_wizard.desc_dotnet'),
                 'docs_url' => 'https://docs.huwutong.com/sdk/dotnet',
-                'steps' => ['dotnet add package Huwutong.LicenseSDK', '注册服务', '调用验证'],
+                'steps' => ['dotnet add package Huwutong.LicenseSDK', __('app.api.integr_wizard.step_dotnet_add'), __('app.api.integr_wizard.step_verify')],
             ],
             [
                 'id' => 'rust',
                 'name' => 'Rust',
                 'icon' => 'rust',
-                'description' => '高性能 CLI / 嵌入式 / 区块链项目',
+                'description' => __('app.api.integr_wizard.desc_rust'),
                 'docs_url' => 'https://docs.huwutong.com/sdk/rust',
-                'steps' => ['cargo add huwutong-license-sdk', '初始化验证器', '集成校验'],
+                'steps' => ['cargo add huwutong-license-sdk', __('app.api.integr_wizard.step_cargo_add'), __('app.api.integr_wizard.step_integrate')],
             ],
             [
                 'id' => 'curl',
                 'name' => 'cURL / REST API',
                 'icon' => 'api',
-                'description' => '任意语言直接调用 HTTP API',
+                'description' => __('app.api.integr_wizard.desc_http'),
                 'docs_url' => 'https://docs.huwutong.com/api',
-                'steps' => ['选择产品', '获取 License Key', '调用激活/验证 API'],
+                'steps' => [__('app.api.integr_wizard.step_select_product'), __('app.api.integr_wizard.step_get_key'), __('app.api.integr_wizard.step_call_activate')],
             ],
         ];
 
@@ -156,13 +156,13 @@ class AiIntegrationWizardController extends Controller
             $results['api_reachable'] = [
                 'success' => $healthResponse->successful(),
                 'status' => $healthResponse->status(),
-                'message' => $healthResponse->successful() ? 'API 服务正常' : 'API 返回异常状态',
+                'message' => $healthResponse->successful() ? __('app.api.integr_wizard.api_ok') : __('app.api.integr_wizard.api_abnormal'),
             ];
         } catch (\Exception $e) {
             $results['api_reachable'] = [
                 'success' => false,
                 'status' => 0,
-                'message' => '无法连接到 API 服务: ' . $e->getMessage(),
+                'message' => __('app.api.integr_wizard.api_unreachable', ['error' => $e->getMessage()]),
             ];
         }
 
@@ -182,21 +182,21 @@ class AiIntegrationWizardController extends Controller
                     'status' => $validateResponse->status(),
                     'data' => $body['data'] ?? null,
                     'message' => $validateResponse->successful()
-                        ? 'License 有效'
-                        : ($body['error']['message'] ?? '验证失败'),
+                        ? __('app.api.integr_wizard.license_valid')
+                        : ($body['error']['message'] ?? __('app.api.integr_wizard.verify_failed')),
                 ];
             } catch (\Exception $e) {
                 $results['license_valid'] = [
                     'success' => false,
                     'status' => 0,
-                    'message' => 'License 验证请求失败: ' . $e->getMessage(),
+                    'message' => __('app.api.integr_wizard.verify_req_failed', ['error' => $e->getMessage()]),
                 ];
             }
         } else {
             $results['license_valid'] = [
                 'success' => false,
                 'status' => 0,
-                'message' => '跳过：API 不可达',
+                'message' => __('app.api.integr_wizard.skip_api_down'),
             ];
         }
 
@@ -215,21 +215,21 @@ class AiIntegrationWizardController extends Controller
                     'success' => $activateResponse->successful(),
                     'status' => $activateResponse->status(),
                     'message' => $activateResponse->successful()
-                        ? 'SDK 握手成功，API 可正常调用'
-                        : 'SDK 握手异常',
+                        ? __('app.api.integr_wizard.sdk_handshake_ok')
+                        : __('app.api.integr_wizard.sdk_handshake_err'),
                 ];
             } catch (\Exception $e) {
                 $results['sdk_handshake'] = [
                     'success' => false,
                     'status' => 0,
-                    'message' => 'SDK 握手失败: ' . $e->getMessage(),
+                    'message' => __('app.api.integr_wizard.sdk_handshake_fail', ['error' => $e->getMessage()]),
                 ];
             }
         } else {
             $results['sdk_handshake'] = [
                 'success' => false,
                 'status' => 0,
-                'message' => '跳过：License 无效',
+                'message' => __('app.api.integr_wizard.skip_license_invalid'),
             ];
         }
 
@@ -300,10 +300,10 @@ PHP;
                 $snippets['validate'] = $validateCode;
 
                 $instructions = [
-                    "运行: {$composerRequire}",
-                    "将上方代码复制到您的项目中",
-                    "替换示例 License Key 为实际值",
-                    "测试激活/验证流程",
+                    $composerRequire,
+                    "Copy the code above into your project",
+                    "Replace the example License Key with your actual key",
+                    "Test the activation/verification flow",
                 ];
                 break;
 
@@ -354,10 +354,10 @@ JS;
                 $snippets['validate'] = $validateCode;
 
                 $instructions = [
-                    "运行: {$npmInstall}",
-                    "将上方代码复制到您的项目中",
-                    "根据您的模块系统选择 require/import",
-                    "运行 node 测试激活流程",
+                    $npmInstall,
+                    "Copy the code above into your project",
+                    "Choose require or import based on your module system",
+                    "Run node to test activation flow",
                 ];
                 break;
 
@@ -387,20 +387,20 @@ curl -X POST "{$apiUrl}/api/license/validate" \\
 BASH;
 
                 $instructions = [
-                    "支持任意编程语言调用",
-                    "替换 fingerprint 为您的设备标识",
-                    "建议在服务端调用，避免暴露 License Key",
-                    "参考完整 API 文档查看更多端点",
+                    "Works with any programming language",
+                    "Replace fingerprint with your device identifier",
+                    "Call on server side to avoid exposing License Key",
+                    "See the full API docs for more endpoints",
                 ];
                 break;
 
             default:
                 $snippets = [];
                 $instructions = [
-                    "选择 SDK 语言后会自动生成配置代码",
-                    "复制代码到您的项目中",
-                    "替换 License Key 为实际值",
-                    "运行测试验证连通性",
+                    "Config code auto-generated when SDK language is selected",
+                    "Copy code into your project",
+                    "Replace License Key with actual value",
+                    "Run tests to verify connectivity",
                 ];
         }
 

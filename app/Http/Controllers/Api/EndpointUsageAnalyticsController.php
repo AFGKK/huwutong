@@ -175,12 +175,12 @@ class EndpointUsageAnalyticsController extends Controller
         $customer = $user->customer;
 
         if (! $customer) {
-            return ApiResponse::notFound('未找到客户资料');
+            return ApiResponse::notFound(__("app.endpoint_usage_analytics.msg_d8240117"));
         }
 
         $tenant = Tenant::find($customer->tenant_id);
         if (! $tenant) {
-            return ApiResponse::notFound('租户不存在');
+            return ApiResponse::notFound(__("app.endpoint_usage_analytics.msg_0c0458f2"));
         }
 
         return ['tenant' => $tenant, 'customer' => $customer];

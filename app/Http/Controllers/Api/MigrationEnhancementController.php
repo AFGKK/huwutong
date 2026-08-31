@@ -53,7 +53,7 @@ class MigrationEnhancementController extends Controller
             $validated
         );
 
-        return ApiResponse::created($import, '导入任务已创建');
+        return ApiResponse::created($import, __("app.migration_enhancement.msg_02ba6893"));
     }
 
     /**
@@ -73,7 +73,7 @@ class MigrationEnhancementController extends Controller
             $validated
         );
 
-        return ApiResponse::created($import, '文件导入任务已创建');
+        return ApiResponse::created($import, __("app.migration_enhancement.msg_56648d0c"));
     }
 
     /**
@@ -82,7 +82,7 @@ class MigrationEnhancementController extends Controller
     public function run(MigrationImport $migrationImport): JsonResponse
     {
         if ($migrationImport->status === 'running') {
-            return ApiResponse::error('IMPORT_IN_PROGRESS', '导入任务正在运行', 409);
+            return ApiResponse::error('IMPORT_IN_PROGRESS', __("app.migration_enhancement.msg_b0f75ff3"), 409);
         }
 
         // 异步执行 - 实际应使用队列
@@ -90,7 +90,7 @@ class MigrationEnhancementController extends Controller
 
         return ApiResponse::success(
             $migrationImport->fresh()->load('user:id,name'),
-            '导入完成'
+            __('app.migration_enhancement.import_completed')
         );
     }
 

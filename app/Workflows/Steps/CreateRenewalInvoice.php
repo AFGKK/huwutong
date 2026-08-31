@@ -31,7 +31,7 @@ class CreateRenewalInvoice extends BaseWorkflowStep
         $subscription = $instance->workflowable;
 
         if (!$subscription) {
-            throw new \RuntimeException('工作流未关联 Subscription');
+            throw new \RuntimeException(__('app.common.workflow_not_linked_subscription'));
         }
 
         $this->log('info', '创建续费发票', ['subscription' => $subscription->id]);

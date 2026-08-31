@@ -19,7 +19,7 @@ class ChinaInvoiceService
     {
         $tenantId = $params['tenant_id'];
         $device = ChinaTaxDevice::where('tenant_id', $tenantId)->where('is_active', true)->first();
-        if (!$device) throw new \RuntimeException('请先配置税控设备');
+        if (!$device) throw new \RuntimeException(__("app.china_invoice.tax_device_not_configured"));
 
         $invoiceCode = ChinaInvoice::generateInvoiceCode($tenantId);
         $invoiceNo = ChinaInvoice::generateInvoiceNo($tenantId);
@@ -74,7 +74,7 @@ class ChinaInvoiceService
     public function redLetter(ChinaInvoice $originalInvoice, string $reason = ''): ChinaInvoice
     {
         if ($originalInvoice->status !== 'issued') {
-            throw new \RuntimeException('只能对已开票的发票进行红冲');
+            throw new \RuntimeException(__("app.china_invoice.invoice_can_only_red_stamp_invoiced"));
         }
 
         $params = [
@@ -112,7 +112,7 @@ class ChinaInvoiceService
     public function voidInvoice(ChinaInvoice $invoice): void
     {
         if ($invoice->status !== 'pending') {
-            throw new \RuntimeException('只能作废待开票状态的发票');
+            throw new \RuntimeException(__("app.china_invoice.invoice_can_only_void_pending"));
         }
         $invoice->update(['status' => 'voided', 'voided_at' => now()]);
     }

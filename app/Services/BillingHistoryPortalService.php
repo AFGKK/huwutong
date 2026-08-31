@@ -263,34 +263,36 @@ class BillingHistoryPortalService
      */
     public function getFilterOptions(): array
     {
+        $t = fn(string $k) => __('app.billing_history_portal.' . $k);
+
         return [
             'statuses' => [
-                'pending' => '待支付',
-                'paid' => '已支付',
-                'refunded' => '已退款',
-                'canceled' => '已取消',
+                'pending' => $t('status_pending'),
+                'paid' => $t('status_paid'),
+                'refunded' => $t('status_refunded'),
+                'canceled' => $t('status_canceled'),
             ],
             'billing_reasons' => [
-                'subscription_create' => '订阅创建',
-                'renewal' => '自动续费',
-                'manual_renewal' => '手动续费',
-                'plan_change' => '方案变更',
-                'upgrade' => '升级',
-                'downgrade' => '降级',
+                'subscription_create' => $t('reason_subscription_create'),
+                'renewal' => $t('reason_renewal'),
+                'manual_renewal' => $t('reason_manual_renewal'),
+                'plan_change' => $t('reason_plan_change'),
+                'upgrade' => $t('reason_upgrade'),
+                'downgrade' => $t('reason_downgrade'),
             ],
             'payment_methods' => [
-                'alipay' => '支付宝',
-                'wechat' => '微信支付',
-                'stripe' => 'Stripe',
-                'bank_transfer' => '银行转账',
-                'manual' => '手动',
-                'balance' => '余额',
+                'alipay' => $t('payment_alipay'),
+                'wechat' => $t('payment_wechat'),
+                'stripe' => $t('payment_stripe'),
+                'bank_transfer' => $t('payment_bank_transfer'),
+                'manual' => $t('payment_manual'),
+                'balance' => $t('payment_balance'),
             ],
             'sort_options' => [
-                '-created_at' => '时间（新→旧）',
-                'created_at' => '时间（旧→新）',
-                '-amount' => '金额（高→低）',
-                'amount' => '金额（低→高）',
+                '-created_at' => $t('sort_created_desc'),
+                'created_at' => $t('sort_created_asc'),
+                '-amount' => $t('sort_amount_desc'),
+                'amount' => $t('sort_amount_asc'),
             ],
         ];
     }
@@ -300,13 +302,14 @@ class BillingHistoryPortalService
      */
     public static function getStatusLabel(string $status): string
     {
-        return match ($status) {
-            'paid' => '已支付',
-            'pending' => '待支付',
-            'refunded' => '已退款',
-            'canceled' => '已取消',
-            default => $status,
-        };
+        $map = [
+            'paid' => __('app.billing_history_portal.status_paid'),
+            'pending' => __('app.billing_history_portal.status_pending'),
+            'refunded' => __('app.billing_history_portal.status_refunded'),
+            'canceled' => __('app.billing_history_portal.status_canceled'),
+        ];
+
+        return $map[$status] ?? $status;
     }
 
     public static function getStatusType(string $status): string
@@ -322,14 +325,15 @@ class BillingHistoryPortalService
 
     public static function getBillingReasonLabel(string $reason): string
     {
-        return match ($reason) {
-            'subscription_create' => '订阅创建',
-            'renewal' => '自动续费',
-            'manual_renewal' => '手动续费',
-            'plan_change' => '方案变更',
-            'upgrade' => '升级',
-            'downgrade' => '降级',
-            default => $reason,
-        };
+        $map = [
+            'subscription_create' => __('app.billing_history_portal.reason_subscription_create'),
+            'renewal' => __('app.billing_history_portal.reason_renewal'),
+            'manual_renewal' => __('app.billing_history_portal.reason_manual_renewal'),
+            'plan_change' => __('app.billing_history_portal.reason_plan_change'),
+            'upgrade' => __('app.billing_history_portal.reason_upgrade'),
+            'downgrade' => __('app.billing_history_portal.reason_downgrade'),
+        ];
+
+        return $map[$reason] ?? $reason;
     }
 }

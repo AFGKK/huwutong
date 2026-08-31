@@ -196,6 +196,24 @@ class MarketingCampaignController extends Controller
     }
 
     /**
+     * D-24: 实际执行发送
+     */
+    public function send(Request $request, int $campaignId)
+    {
+        $request->validate([
+            'batch_size' => 'integer|min:1|max:500',
+        ]);
+
+        return ApiResponse::success(
+            $this->service->sendCampaign(
+                $request->user()->tenant_id,
+                $campaignId,
+                ['batch_size' => $request->input('batch_size', 100)]
+            )
+        );
+    }
+
+    /**
      * 活动分析
      */
     public function analytics(Request $request, int $campaignId)

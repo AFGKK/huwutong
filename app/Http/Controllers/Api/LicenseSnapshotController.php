@@ -53,7 +53,7 @@ class LicenseSnapshotController extends Controller
 
         $snapshot = $this->snapshotService->createSnapshot($license, $action, $request->user());
 
-        return ApiResponse::created($snapshot, '快照已创建');
+        return ApiResponse::created($snapshot, __("app.license_snapshot.msg_c1deab42"));
     }
 
     /**

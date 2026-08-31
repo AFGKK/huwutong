@@ -102,7 +102,7 @@ class YonyouService extends BaseAccountingService
                 ];
             }
 
-            return ['success' => false, 'error' => $result['message'] ?? '用友API返回错误'];
+            return ['success' => false, 'error' => $result['message'] ?? __('app.common.yonyou_api_error')];
         } catch (\Exception $e) {
             return ['success' => false, 'error' => $e->getMessage()];
         }

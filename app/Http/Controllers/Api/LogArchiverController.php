@@ -84,7 +84,7 @@ class LogArchiverController extends Controller
 
         return response()->json([
             'code' => 0,
-            'message' => '策略已保存',
+            'message' => __('app.controller_compat.log_archiver_msg_87'),
             'data' => $policy,
         ]);
     }
@@ -140,7 +140,7 @@ class LogArchiverController extends Controller
 
         return response()->json([
             'code' => 0,
-            'message' => '取回请求已提交',
+            'message' => __('app.controller_compat.log_archiver_msg_143'),
             'data' => $restoreRequest,
         ]);
     }
@@ -181,12 +181,12 @@ class LogArchiverController extends Controller
         $result = $this->logArchiver->cancelRestoreRequest($id);
 
         if (!$result) {
-            return response()->json(['code' => 1, 'message' => '该请求无法取消'], 422);
+            return response()->json(['code' => 1, 'message' => __('app.controller_compat.log_archiver_msg_184')], 422);
         }
 
         return response()->json([
             'code' => 0,
-            'message' => '取回请求已取消',
+            'message' => __('app.controller_compat.log_archiver_msg_189'),
             'data' => $result,
         ]);
     }

@@ -58,13 +58,13 @@ class KbAutoGrowController extends Controller
     {
         $article = $this->service->approve($id, auth()->id());
         if (!$article) {
-            return ApiResponse::error('审核失败，草稿可能已处理', 400);
+            return ApiResponse::error(__("app.kb_auto_grow.msg_ec9983f6"), 400);
         }
 
         return ApiResponse::success([
             'article_id' => $article->id,
             'title' => $article->title,
-        ], '已通过并发布为知识库文章');
+        ], __('app.kb_auto_grow.approved_as_kb'));
     }
 
     /**
@@ -74,10 +74,10 @@ class KbAutoGrowController extends Controller
     {
         $ok = $this->service->reject($id, auth()->id());
         if (!$ok) {
-            return ApiResponse::error('拒绝失败，草稿可能已处理', 400);
+            return ApiResponse::error(__("app.kb_auto_grow.msg_1b0048ae"), 400);
         }
 
-        return ApiResponse::success(null, '已拒绝');
+        return ApiResponse::success(null, __("app.kb_auto_grow.msg_81233d75"));
     }
 
     /**
@@ -93,6 +93,6 @@ class KbAutoGrowController extends Controller
             'limit_per_source' => $limit,
         ]);
 
-        return ApiResponse::success($results, '扫描完成');
+        return ApiResponse::success($results, __("app.kb_auto_grow.msg_1df790ce"));
     }
 }

@@ -147,7 +147,7 @@ class EnterpriseContractService
     {
         $contract = $this->findContract($tenantId, $contractId);
         if ($contract->status !== 'draft') {
-            throw new \RuntimeException('只有草稿状态可以提交审批');
+            throw new \RuntimeException(__("app.enterprise_contract.only_draft_can_submit_approval"));
         }
         $contract->update(['status' => 'pending_approval', 'approval_status' => 'pending']);
         return $contract;
@@ -161,7 +161,7 @@ class EnterpriseContractService
         $contract = $this->findContract($tenantId, $contractId);
 
         if ($contract->approval_status !== 'pending') {
-            throw new \RuntimeException('合同不在待审批状态');
+            throw new \RuntimeException(__("app.enterprise_contract.contract_not_pending_approval"));
         }
 
         $data = [
@@ -190,7 +190,7 @@ class EnterpriseContractService
     {
         $contract = $this->findContract($tenantId, $contractId);
         if ($contract->status !== 'active') {
-            throw new \RuntimeException('只有活跃合同可以终止');
+            throw new \RuntimeException(__("app.enterprise_contract.contract_not_active_cannot_terminate"));
         }
         $contract->update(['status' => 'terminated', 'end_date' => now()->toDateString()]);
         return $contract;
@@ -204,7 +204,7 @@ class EnterpriseContractService
         $contract = $this->findContract($tenantId, $contractId);
 
         if (!$contract->auto_renew) {
-            throw new \RuntimeException('该合同未启用自动续签');
+            throw new \RuntimeException(__("app.enterprise_contract.contract_auto_renew_disabled"));
         }
 
         // 创建续签合同
@@ -355,7 +355,7 @@ class EnterpriseContractService
 
         // 验证租户归属
         if ($contract->customer && $contract->customer->tenant_id !== $tenantId) {
-            throw new \RuntimeException('无权访问此合同');
+            throw new \RuntimeException(__("app.enterprise_contract.contract_access_denied"));
         }
 
         return $contract;

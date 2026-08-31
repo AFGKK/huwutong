@@ -50,8 +50,19 @@ class ActivateController extends Controller
             'components.system_uuid' => 'nullable|string',
             'platform' => 'nullable|string',
             'os_version' => 'nullable|string',
+            'device_name' => 'nullable|string|max:100',
             'metadata' => 'nullable|array',
         ]);
+
+        // A5: 小程序激活用 openid 生成稳定指纹（同一微信账号 = 同一设备维度）
+        $authUser = $request->user();
+        if (
+            $authUser
+            && ($data['platform'] ?? '') === 'wechat_miniprogram'
+            && ! empty($authUser->wechat_openid)
+        ) {
+            $data['fingerprint'] = 'wx_mp_' . substr(hash('sha256', $authUser->wechat_openid), 0, 24);
+        }
 
         // 查找 License
         $license = License::where('license_key', $data['license_key'])->first();
@@ -70,60 +81,54 @@ class ActivateController extends Controller
                 return ApiResponse::success([
                     'activated' => true,
                     'license_key' => $data['license_key'],
-                    'message' => '激活成功',
+                    'message' => __('app.api.activate.ok'),
                     'expires_at' => now()->addYear()->toIso8601String(),
                     'device_id' => 'hny-' . substr(md5($data['fingerprint']), 0, 12),
                 ]);
             }
 
-            return ApiResponse::error('LICENSE_NOT_FOUND', 'License Key 不存在', 404);
+            return ApiResponse::error('LICENSE_NOT_FOUND', __('app.api.activate.key_not_found'), 404);
         }
 
-        // 漏洞1修复：Product 匹配检查（License 有绑定 product_id 时必须校验）
+        // 产品匹配：未传 product_id 时默认使用 License 绑定产品（小程序/公开激活场景）
         if ($license->product_id) {
-            $reqProductId = $data['product_id'] ?? null;
-            if (! $reqProductId) {
-                return ApiResponse::error('PRODUCT_ID_REQUIRED', '请提供要激活的产品 ID', 422);
-            }
+            $reqProductId = $data['product_id'] ?? $license->product_id;
             if ($license->product_id != $reqProductId) {
-                return ApiResponse::error('LICENSE_PRODUCT_MISMATCH', 'License Key 不适用于该产品', 422);
+                return ApiResponse::error('LICENSE_PRODUCT_MISMATCH', __('app.api.activate.product_mismatch'), 422);
             }
+            $data['product_id'] = $reqProductId;
         }
 
-        // 漏洞1修复：SKU 匹配检查（License 有绑定 sku_id 时必须校验）
+        // SKU 匹配：未传时默认使用 License 绑定 SKU
         if ($license->sku_id) {
-            $reqSkuId = $data['sku_id'] ?? null;
-            if (! $reqSkuId) {
-                return ApiResponse::error('SKU_ID_REQUIRED', '请提供要激活的方案/SKU ID', 422);
-            }
+            $reqSkuId = $data['sku_id'] ?? $license->sku_id;
             if ($license->sku_id != $reqSkuId) {
-                return ApiResponse::error('LICENSE_SKU_MISMATCH', 'License Key 不适用于该版本/方案', 422);
+                return ApiResponse::error('LICENSE_SKU_MISMATCH', __('app.api.activate.sku_mismatch'), 422);
             }
+            $data['sku_id'] = $reqSkuId;
         }
 
-        // 漏洞2修复：租户隔离检查
+        // 租户隔离：未传时默认使用 License 所属租户
         if ($license->tenant_id) {
-            $reqTenantId = $data['tenant_id'] ?? null;
-            if (! $reqTenantId) {
-                return ApiResponse::error('TENANT_ID_REQUIRED', '请提供租户 ID', 422);
-            }
+            $reqTenantId = $data['tenant_id'] ?? $license->tenant_id;
             if ($license->tenant_id != $reqTenantId) {
-                return ApiResponse::error('LICENSE_TENANT_MISMATCH', 'License Key 不属于该租户', 422);
+                return ApiResponse::error('LICENSE_TENANT_MISMATCH', __('app.api.activate.tenant_mismatch'), 422);
             }
+            $data['tenant_id'] = $reqTenantId;
         }
 
         // 状态校验（含漏洞3修复：suspended/frozen 不可激活新设备）
         $status = LicenseStatus::tryFrom($license->status);
         if (! $status) {
-            return ApiResponse::error('LICENSE_STATUS_INVALID', 'License 状态异常', 422);
+            return ApiResponse::error('LICENSE_STATUS_INVALID', __('app.api.activate.status_invalid'), 422);
         }
         if ($status !== LicenseStatus::Pending && $status !== LicenseStatus::Active) {
-            return ApiResponse::error('LICENSE_NOT_ACTIVATABLE', "License 当前状态「{$license->status}」不允许激活", 422);
+            return ApiResponse::error('LICENSE_NOT_ACTIVATABLE', __('app.api.activate.not_activatable', ['status' => $license->status]), 422);
         }
 
         // 过期检查
         if ($license->expires_at && $license->expires_at->isPast()) {
-            return ApiResponse::error('LICENSE_EXPIRED', 'License 已过期', 422);
+            return ApiResponse::error('LICENSE_EXPIRED', __('app.api.activate.expired'), 422);
         }
 
         // M3-77 时段限制检查
@@ -173,7 +178,7 @@ class ActivateController extends Controller
                 $this->deviceLimiter->release($license);
                 return ApiResponse::error(
                     'DEVICE_LIMIT_EXCEEDED',
-                    "设备数量已达上限 ({$license->max_devices})",
+                    __('app.api.activate.device_limit', ['max' => $license->max_devices]),
                     422,
                     ['max_devices' => $license->max_devices, 'current_count' => $limitResult->currentCount],
                 );
@@ -188,6 +193,7 @@ class ActivateController extends Controller
                 'metadata' => [
                     'components' => $data['components'] ?? [],
                     'client' => $data['metadata'] ?? [],
+                    'device_name' => $data['device_name'] ?? null,
                 ],
             ]);
 
@@ -214,6 +220,8 @@ class ActivateController extends Controller
                     'platform' => $data['platform'] ?? null,
                     'os_version' => $data['os_version'] ?? null,
                     'metadata' => $data['metadata'] ?? null,
+                    'device_name' => $data['device_name'] ?? null,
+                    'user_id' => $request->user()?->id,
                 ],
             ]);
         });
@@ -226,7 +234,7 @@ class ActivateController extends Controller
             'activation_id' => $activation->id,
             'device_id' => $device->id,
             'is_existing_device' => $device->wasRecentlyCreated === false,
-        ], '激活成功');
+        ], __('app.api.activate.ok'));
     }
 
     /**
@@ -260,7 +268,7 @@ class ActivateController extends Controller
                 ]);
             }
 
-            return ApiResponse::error('LICENSE_NOT_FOUND', 'License Key 不存在', 404);
+            return ApiResponse::error('LICENSE_NOT_FOUND', __('app.api.activate.key_not_found'), 404);
         }
 
         $result = $this->licenseService->validate($license);

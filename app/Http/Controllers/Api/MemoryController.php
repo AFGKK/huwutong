@@ -69,7 +69,7 @@ class MemoryController extends Controller
         if (! $memory) {
             return response()->json([
                 'success' => false,
-                'error' => ['code' => 'MEMORY_NOT_FOUND', 'message' => '记忆不存在'],
+                'error' => ['code' => 'MEMORY_NOT_FOUND', 'message' => __('app.api.memory.not_found')],
             ], 404);
         }
 
@@ -114,7 +114,7 @@ class MemoryController extends Controller
         return response()->json([
             'success' => true,
             'data' => $memory,
-            'message' => '记忆已保存',
+            'message' => __('app.api.memory.saved'),
         ], 201);
     }
 
@@ -140,14 +140,14 @@ class MemoryController extends Controller
         if (! $memory) {
             return response()->json([
                 'success' => false,
-                'error' => ['code' => 'MEMORY_NOT_FOUND', 'message' => '记忆不存在'],
+                'error' => ['code' => 'MEMORY_NOT_FOUND', 'message' => __('app.api.memory.not_found')],
             ], 404);
         }
 
         return response()->json([
             'success' => true,
             'data' => $memory,
-            'message' => '记忆已更新',
+            'message' => __('app.api.memory.updated'),
         ]);
     }
 
@@ -161,13 +161,13 @@ class MemoryController extends Controller
         if (! $this->memoryService->forget($id, $userId)) {
             return response()->json([
                 'success' => false,
-                'error' => ['code' => 'MEMORY_NOT_FOUND', 'message' => '记忆不存在'],
+                'error' => ['code' => 'MEMORY_NOT_FOUND', 'message' => __('app.api.memory.not_found')],
             ], 404);
         }
 
         return response()->json([
             'success' => true,
-            'message' => '记忆已遗忘',
+            'message' => __('app.api.memory.forgotten'),
         ]);
     }
 
@@ -186,7 +186,7 @@ class MemoryController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "已遗忘 {$count} 条记忆",
+            'message' => __('app.api.memory.forgotten_count', ['count' => $count]),
             'data' => ['forgotten_count' => $count],
         ]);
     }
@@ -202,14 +202,14 @@ class MemoryController extends Controller
         if (! $memory) {
             return response()->json([
                 'success' => false,
-                'error' => ['code' => 'MEMORY_NOT_FOUND', 'message' => '记忆不存在'],
+                'error' => ['code' => 'MEMORY_NOT_FOUND', 'message' => __('app.api.memory.not_found')],
             ], 404);
         }
 
         return response()->json([
             'success' => true,
             'data' => $memory,
-            'message' => '记忆已确认',
+            'message' => __('app.api.memory.confirmed'),
         ]);
     }
 
@@ -228,14 +228,14 @@ class MemoryController extends Controller
         if (! $memory) {
             return response()->json([
                 'success' => false,
-                'error' => ['code' => 'MEMORY_NOT_FOUND', 'message' => '记忆不存在'],
+                'error' => ['code' => 'MEMORY_NOT_FOUND', 'message' => __('app.api.memory.not_found')],
             ], 404);
         }
 
         return response()->json([
             'success' => true,
             'data' => $memory,
-            'message' => '记忆已纠正',
+            'message' => __('app.api.memory.corrected'),
         ]);
     }
 
@@ -260,7 +260,7 @@ class MemoryController extends Controller
         return response()->json([
             'success' => true,
             'data' => $stored,
-            'message' => '提取完成，新增 ' . count($stored) . ' 条记忆',
+            'message' => __('app.api.memory.extraction_done', ['count' => count($stored)]),
         ]);
     }
 
@@ -275,7 +275,7 @@ class MemoryController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "已清空 {$count} 条记忆",
+            'message' => __('app.api.memory.cleared', ['count' => $count]),
         ]);
     }
 

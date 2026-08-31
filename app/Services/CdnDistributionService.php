@@ -33,7 +33,7 @@ class CdnDistributionService
             ->first();
 
         if (! $certificate) {
-            throw new \RuntimeException('没有活跃的离线签名证书');
+            throw new \RuntimeException(__("app.cdn_distribution.no_active_signing_cert"));
         }
 
         $keyPair = $offlineService->getActiveKeyPair();
@@ -55,7 +55,7 @@ class CdnDistributionService
         // 存储文件
         $stored = Storage::disk(config('license.cdn.disk', 'local'))->put($fileKey, $fileBin);
         if (! $stored) {
-            throw new \RuntimeException('License 文件存储失败');
+            throw new \RuntimeException(__("app.cdn_distribution.license_file_storage_failed"));
         }
 
         // 构建 CDN URL
@@ -125,7 +125,7 @@ class CdnDistributionService
         })->where('status', 'active')->latest()->first();
 
         if (! $record) {
-            throw new \RuntimeException('License 文件不存在或已失效', 404);
+            throw new \RuntimeException(__("app.cdn_distribution.license_file_not_found_or_expired"), 404);
         }
 
         // 记录分发日志

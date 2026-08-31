@@ -45,7 +45,7 @@ class SeatPoolService
                 'status' => 'active',
                 'device_id' => $deviceId ?: $existing->device_id,
             ]);
-            return ['success' => true, 'assignment' => $existing->fresh(), 'message' => '席位已存在，已重新激活', 'queue_position' => null];
+            return ['success' => true, 'assignment' => $existing->fresh(), 'message' => __('app.common.seat_exists_reactivated'), 'queue_position' => null];
         }
 
         // 统计活跃席位
@@ -62,7 +62,7 @@ class SeatPoolService
                     ->where('status', 'active')
                     ->first();
                 if ($existingDevice) {
-                    return ['success' => false, 'assignment' => null, 'message' => '该设备已有独占席位', 'queue_position' => null];
+                    return ['success' => false, 'assignment' => null, 'message' => __('app.common.device_has_exclusive_seat'), 'queue_position' => null];
                 }
             }
         }
@@ -84,12 +84,12 @@ class SeatPoolService
                 'last_active_at' => now(),
                 'assigned_by' => $assignedBy,
             ]);
-            return ['success' => true, 'assignment' => $assignment, 'message' => '席位分配成功', 'queue_position' => null];
+            return ['success' => true, 'assignment' => $assignment, 'message' => __('app.common.seat_assigned_success'), 'queue_position' => null];
         }
 
         // 超出容量
         if ($poolMode === self::MODE_SHARED) {
-            return ['success' => false, 'assignment' => null, 'message' => "席位已满 ({$activeCount}/{$totalSeats})", 'queue_position' => null];
+            return ['success' => false, 'assignment' => null, 'message' => __('app.common.seats_full', ['active' => $activeCount, 'total' => $totalSeats]), 'queue_position' => null];
         }
 
         // AUTO模式：排队等待
@@ -97,7 +97,7 @@ class SeatPoolService
             return $this->joinQueue($license, $seatIdentifier, $label, $deviceId);
         }
 
-        return ['success' => false, 'assignment' => null, 'message' => "席位已满 ({$activeCount}/{$totalSeats})", 'queue_position' => null];
+        return ['success' => false, 'assignment' => null, 'message' => __('app.common.seats_full', ['active' => $activeCount, 'total' => $totalSeats]), 'queue_position' => null];
     }
 
     /**
@@ -177,7 +177,7 @@ class SeatPoolService
             ->first();
 
         if ($existing) {
-            return ['success' => false, 'assignment' => null, 'message' => '已在排队队列中', 'queue_position' => $existing->queue_position];
+            return ['success' => false, 'assignment' => null, 'message' => __('app.common.already_in_queue'), 'queue_position' => $existing->queue_position];
         }
 
         // 检查队列上限
@@ -186,7 +186,7 @@ class SeatPoolService
             ->where('status', 'waiting')->count();
 
         if ($queueCount >= $waitingLimit) {
-            return ['success' => false, 'assignment' => null, 'message' => "排队队列已满 ({$waitingLimit})", 'queue_position' => null];
+            return ['success' => false, 'assignment' => null, 'message' => __('app.common.queue_full', ['limit' => $waitingLimit]), 'queue_position' => null];
         }
 
         // 获取队列位置
@@ -206,7 +206,7 @@ class SeatPoolService
             'expires_at' => now()->addMinutes($license->pool_timeout_minutes ?? 30),
         ]);
 
-        return ['success' => false, 'assignment' => null, 'message' => "已加入排队队列 #{$entry->queue_position}", 'queue_position' => $entry->queue_position];
+        return ['success' => false, 'assignment' => null, 'message' => __('app.common.joined_queue', ['position' => $entry->queue_position]), 'queue_position' => $entry->queue_position];
     }
 
     /**

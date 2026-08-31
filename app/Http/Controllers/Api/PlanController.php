@@ -51,7 +51,7 @@ class PlanController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        return ApiResponse::success($this->service->createBundleRule($validated), '捆绑规则已创建', 201);
+        return ApiResponse::success($this->service->createBundleRule($validated), __('app.plan.bundle_rule_created'), 201);
     }
 
     public function updateBundleRule(Request $request, BundlePlan $bundle): JsonResponse
@@ -64,13 +64,13 @@ class PlanController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        return ApiResponse::success($this->service->updateBundleRule($bundle, $validated), '已更新');
+        return ApiResponse::success($this->service->updateBundleRule($bundle, $validated), __('app.plan.updated'));
     }
 
     public function destroyBundleRule(BundlePlan $bundle): JsonResponse
     {
         $this->service->deleteBundleRule($bundle);
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __("app.plan.msg_5cc23262"));
     }
 
     // ═══════════ 升级路径管理 ═══════════
@@ -91,7 +91,7 @@ class PlanController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        return ApiResponse::success($this->service->createUpgradePath($validated), '升级路径已创建', 201);
+        return ApiResponse::success($this->service->createUpgradePath($validated), __('app.plan.upgrade_path_created'), 201);
     }
 
     public function updateUpgradePath(Request $request, PlanUpgradePath $path): JsonResponse
@@ -103,13 +103,13 @@ class PlanController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        return ApiResponse::success($this->service->updateUpgradePath($path, $validated), '已更新');
+        return ApiResponse::success($this->service->updateUpgradePath($path, $validated), __('app.plan.updated'));
     }
 
     public function destroyUpgradePath(PlanUpgradePath $path): JsonResponse
     {
         $this->service->deleteUpgradePath($path);
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.plan.deleted'));
     }
 
     // ═══════════ 升级计算与执行 ═══════════
@@ -146,7 +146,7 @@ class PlanController extends Controller
 
         try {
             $log = $this->service->executeUpgrade($subscription, $toPlan, $validated);
-            return ApiResponse::success($log, '套餐变更成功');
+            return ApiResponse::success($log, __("app.plan.msg_e8e1d030"));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('UPGRADE_FAILED', $e->getMessage(), 422);
         }
@@ -173,7 +173,7 @@ class PlanController extends Controller
     public function upgradeOptions(Subscription $subscription): JsonResponse
     {
         if ($subscription->customer_id !== auth()->user()?->customer?->id) {
-            return ApiResponse::error('FORBIDDEN', '无权操作', 403);
+            return ApiResponse::error('FORBIDDEN', __("app.plan.msg_3e39511d"), 403);
         }
 
         return ApiResponse::success($this->service->getSubscriptionUpgradeOptions($subscription));

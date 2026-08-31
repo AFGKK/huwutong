@@ -82,7 +82,7 @@ class LicenseFileCdnController extends Controller
                 'file_size' => $record->file_size,
                 'file_hash' => $record->file_hash,
                 'cdn_url' => $record->cdn_url,
-            ], 'License 文件生成并分发成功');
+            ], __('app.license_file_cdn.license'));
         } catch (\Throwable $e) {
             return ApiResponse::error('GENERATE_FAILED', $e->getMessage(), 500);
         }
@@ -108,7 +108,7 @@ class LicenseFileCdnController extends Controller
             'success_count' => $successCount,
             'fail_count' => $failCount,
             'results' => $results,
-        ], "分发完成：{$successCount} 成功，{$failCount} 失败");
+        ], __('app.common.distribute_result', ['success' => $successCount, 'fail' => $failCount]));
     }
 
     /**
@@ -185,7 +185,7 @@ class LicenseFileCdnController extends Controller
 
         $this->cdnService->revokeFile($validated['license_key'], $validated['reason'] ?? null);
 
-        return ApiResponse::success(null, 'License 文件已吊销并加入 CRL');
+        return ApiResponse::success(null, __("app.license_file_cdn.msg_25db8e71"));
     }
 
     /**
@@ -205,7 +205,7 @@ class LicenseFileCdnController extends Controller
                 'id' => $record->id,
                 'license_key' => $license->license_key,
                 'cdn_url' => $record->cdn_url,
-            ], 'License 文件已重新分发');
+            ], __('app.license_file_cdn.license'));
         } catch (\Throwable $e) {
             return ApiResponse::error('REDISTRIBUTE_FAILED', $e->getMessage(), 500);
         }
@@ -232,7 +232,7 @@ class LicenseFileCdnController extends Controller
             'public_key' => $key->public_key,
             'expires_at' => $key->expires_at?->toIso8601String(),
             'compat_window_days' => CdnDistributionService::PUBLIC_KEY_COMPAT_WINDOW,
-        ], '公钥版本已轮换，旧版本将在 ' . CdnDistributionService::PUBLIC_KEY_COMPAT_WINDOW . ' 天后过期');
+        ], __('app.common.key_rotated', ['days' => CdnDistributionService::PUBLIC_KEY_COMPAT_WINDOW]));
     }
 
     /**

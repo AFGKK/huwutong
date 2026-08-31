@@ -84,7 +84,7 @@ class DataResidencyService
         $regions = $this->getRegions();
 
         if (!isset($regions[$region])) {
-            throw new \InvalidArgumentException("未知区域: {$region}");
+            throw new \InvalidArgumentException(__("app.data_residency.msg_d59130c1"));
         }
 
         $tenant->update(['data_region' => $region]);
@@ -104,7 +104,7 @@ class DataResidencyService
     {
         $region = $this->getRegion($regionCode);
         if (!$region) {
-            throw new \InvalidArgumentException("未知区域: {$regionCode}");
+            throw new \InvalidArgumentException(__("app.data_residency.msg_90988a9e"));
         }
 
         $classifications = config('data-residency.data_classifications', []);

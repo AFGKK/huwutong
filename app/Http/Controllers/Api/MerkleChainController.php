@@ -62,14 +62,14 @@ class MerkleChainController extends Controller
         if ($stats['unhashed_logs'] > 0 && !$force) {
             return ApiResponse::error(
                 'UNHASHED_LOGS',
-                "仍有 {$stats['unhashed_logs']} 条日志未哈希，请先回填或使用 force",
+                __('app.api.merkle_chain.unhashed_logs', ['count' => $stats['unhashed_logs']]),
                 422,
             );
         }
 
         $anchor = $this->merkleTreeService->anchor();
 
-        return ApiResponse::success($anchor, 'Merkle 根哈希已锚定');
+        return ApiResponse::success($anchor, __('app.api.merkle_chain.root_anchored'));
     }
 
     /**
@@ -91,7 +91,7 @@ class MerkleChainController extends Controller
 
         return ApiResponse::success([
             'backfilled' => $count,
-            'message' => "已回填 {$count} 条日志的 Merkle 哈希",
+            'message' => __('app.api.merkle_chain.logs_backfilled', ['count' => $count]),
         ]);
     }
 }

@@ -143,13 +143,7 @@ class Subscription extends Model
     {
         $base = $this->ends_at ?: now();
 
-        return match ($this->billing_period) {
-            'monthly' => $base->copy()->addMonth(),
-            'quarterly' => $base->copy()->addMonths(3),
-            'semi_annually' => $base->copy()->addMonths(6),
-            'yearly' => $base->copy()->addYear(),
-            default => $base->copy()->addMonth(),
-        };
+        return BillingCycle::calculateEndDate($this->billing_period, $base);
     }
 
     /**

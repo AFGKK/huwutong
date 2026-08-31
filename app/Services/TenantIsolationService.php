@@ -43,7 +43,7 @@ class TenantIsolationService
     {
         // 检查是否有租户在使用
         if ($plan->tenants()->count() > 0) {
-            throw new \RuntimeException('该方案下有 ' . $plan->tenants()->count() . ' 个租户，无法删除');
+throw new \RuntimeException(__("app.tenant_isolation.plan_has_tenants", ['count' => $plan->tenants()->count()]));
         }
         $plan->delete();
     }

@@ -20,12 +20,12 @@ class WidgetAuthMiddleware
         $token = $request->bearerToken() ?? $request->query('token');
 
         if (!$token) {
-            throw new HttpException(401, '缺少 Widget 令牌');
+            throw new HttpException(401, __('app.common.missing_widget_token'));
         }
 
         $parts = explode('.', $token);
         if (count($parts) !== 3) {
-            throw new HttpException(401, 'Widget 令牌格式无效');
+            throw new HttpException(401, __('app.common.widget_token_invalid_format'));
         }
 
         [$header, $payload, $signature] = $parts;
@@ -35,24 +35,24 @@ class WidgetAuthMiddleware
         $expectedSig = base64url_encode(hash_hmac('sha256', "{$header}.{$payload}", $secret, true));
 
         if (!hash_equals($expectedSig, $signature)) {
-            throw new HttpException(401, 'Widget 令牌签名无效');
+            throw new HttpException(401, __('app.common.widget_token_invalid_signature'));
         }
 
         // 解析 payload
         $data = json_decode(base64url_decode($payload), true);
         if (!$data || !isset($data['customer_id'])) {
-            throw new HttpException(401, 'Widget 令牌数据无效');
+            throw new HttpException(401, __('app.common.widget_token_invalid_data'));
         }
 
         // 检查过期
         if (isset($data['exp']) && $data['exp'] < time()) {
-            throw new HttpException(401, 'Widget 令牌已过期');
+            throw new HttpException(401, __('app.common.widget_token_expired'));
         }
 
         // 检查缓存中是否存在（撤销检测）
         $cached = Cache::get("widget_token:{$data['jti']}");
         if (!$cached) {
-            throw new HttpException(401, 'Widget 令牌已被撤销');
+            throw new HttpException(401, __('app.common.widget_token_revoked'));
         }
 
         // 注入请求

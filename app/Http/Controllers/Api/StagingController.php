@@ -22,7 +22,7 @@ class StagingController extends Controller
     {
         $tenant = $request->user()->tenant;
         if (! $tenant) {
-            return ApiResponse::error('NO_TENANT', '未关联租户', 400);
+            return ApiResponse::error('NO_TENANT', __('app.api.staging.no_tenant'), 400);
         }
 
         $env = StagingEnvironment::where('tenant_id', $tenant->id)->first();
@@ -41,11 +41,11 @@ class StagingController extends Controller
     {
         $tenant = $request->user()->tenant;
         if (! $tenant) {
-            return ApiResponse::error('NO_TENANT', '未关联租户', 400);
+            return ApiResponse::error('NO_TENANT', __('app.api.staging.no_tenant'), 400);
         }
 
         if ($tenant->has_staging) {
-            return ApiResponse::error('STAGING_EXISTS', 'Staging 环境已存在', 400);
+            return ApiResponse::error('STAGING_EXISTS', __('app.api.staging.staging_exists'), 400);
         }
 
         $validated = $request->validate([
@@ -57,7 +57,7 @@ class StagingController extends Controller
 
         return ApiResponse::success(
             $this->stagingService->status($env),
-            'Staging 环境创建成功！已分配独立子域名和 10 个测试 License。'
+            __('app.api.staging.staging_created')
         );
     }
 
@@ -68,7 +68,7 @@ class StagingController extends Controller
     {
         $tenant = $request->user()->tenant;
         if ($staging->tenant_id !== $tenant?->id) {
-            return ApiResponse::error('FORBIDDEN', '无权访问', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.staging.forbidden'), 403);
         }
 
         return ApiResponse::success($this->stagingService->status($staging));
@@ -81,18 +81,18 @@ class StagingController extends Controller
     {
         $tenant = $request->user()->tenant;
         if ($staging->tenant_id !== $tenant?->id) {
-            return ApiResponse::error('FORBIDDEN', '无权访问', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.staging.forbidden'), 403);
         }
 
         $success = $this->stagingService->reset($staging);
         if ($success) {
             return ApiResponse::success(
                 $this->stagingService->status($staging),
-                'Staging 环境已重置，所有设备绑定和激活记录已清除'
+                __('app.api.staging.staging_reset')
             );
         }
 
-        return ApiResponse::error('RESET_FAILED', '重置失败', 500);
+        return ApiResponse::error('RESET_FAILED', __('app.api.staging.reset_failed'), 500);
     }
 
     /**
@@ -102,7 +102,7 @@ class StagingController extends Controller
     {
         $tenant = $request->user()->tenant;
         if ($staging->tenant_id !== $tenant?->id) {
-            return ApiResponse::error('FORBIDDEN', '无权访问', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.staging.forbidden'), 403);
         }
 
         $validated = $request->validate([
@@ -124,7 +124,7 @@ class StagingController extends Controller
 
         return ApiResponse::success(
             $this->stagingService->status($staging),
-            '配置已更新'
+            __('app.api.staging.config_updated')
         );
     }
 
@@ -135,7 +135,7 @@ class StagingController extends Controller
     {
         $tenant = $request->user()->tenant;
         if ($staging->tenant_id !== $tenant?->id) {
-            return ApiResponse::error('FORBIDDEN', '无权访问', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.staging.forbidden'), 403);
         }
 
         $licenses = $tenant->licenses()

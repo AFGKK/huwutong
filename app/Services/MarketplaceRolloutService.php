@@ -106,7 +106,7 @@ class MarketplaceRolloutService
     {
         $rollout = MarketplaceAppRollout::findOrFail($id);
         if (!$rollout->isDraft()) {
-            throw new \RuntimeException('只能编辑草稿状态的灰度发布');
+            throw new \RuntimeException(__("app.marketplace_rollout.msg_b6f8f348"));
         }
 
         $rollout->update($data);
@@ -145,7 +145,7 @@ class MarketplaceRolloutService
             $rollout = MarketplaceAppRollout::with('app')->findOrFail($id);
 
             if (!$rollout->isDraft() && !$rollout->isPaused()) {
-                throw new \RuntimeException('只有草稿或暂停状态的发布才能启动');
+                throw new \RuntimeException(__("app.marketplace_rollout.msg_0cabf28a"));
             }
 
             // If starting from paused, just resume
@@ -206,7 +206,7 @@ class MarketplaceRolloutService
         return DB::transaction(function () use ($id) {
             $rollout = MarketplaceAppRollout::findOrFail($id);
             if (!$rollout->isActive()) {
-                throw new \RuntimeException('只有进行中的发布才能暂停');
+                throw new \RuntimeException(__("app.marketplace_rollout.msg_de83965c"));
             }
             $rollout->update(['status' => 'paused', 'paused_at' => now()]);
             $rollout->events()->create(['event_type' => 'paused', 'message' => '灰度发布已暂停']);
@@ -223,7 +223,7 @@ class MarketplaceRolloutService
             $rollout = MarketplaceAppRollout::with('version')->findOrFail($id);
 
             if (!$rollout->isActive() && !$rollout->isPaused()) {
-                throw new \RuntimeException('只有进行中或暂停的发布才能完成');
+                throw new \RuntimeException(__("app.marketplace_rollout.msg_e30d12b6"));
             }
 
             // Update the app's current_version to the rollout version
@@ -251,7 +251,7 @@ class MarketplaceRolloutService
         return DB::transaction(function () use ($id, $user) {
             $rollout = MarketplaceAppRollout::findOrFail($id);
             if (!$rollout->isActive() && !$rollout->isPaused()) {
-                throw new \RuntimeException('只有进行中或暂停的发布才能回滚');
+                throw new \RuntimeException(__("app.marketplace_rollout.msg_81ab805b"));
             }
 
             // Revert installations that were auto-updated

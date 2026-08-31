@@ -37,7 +37,7 @@ class AuditGovernanceController extends Controller
     {
         $this->governance->seedFrameworks();
         $frameworks = $this->governance->getFrameworks();
-        return ApiResponse::success($frameworks, '合规框架已初始化');
+        return ApiResponse::success($frameworks, __('app.api.audit_gov.frameworks_init'));
     }
 
     /**
@@ -55,7 +55,7 @@ class AuditGovernanceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.audit_gov.param_validation'), $validator->errors()->toArray());
         }
 
         $report = $this->governance->generateReport(
@@ -63,7 +63,7 @@ class AuditGovernanceController extends Controller
             $validator->validated()
         );
 
-        return ApiResponse::created($report->load(['framework', 'generator']), '合规报告已生成');
+        return ApiResponse::created($report->load(['framework', 'generator']), __('app.api.audit_gov.report_generated'));
     }
 
     /**
@@ -110,7 +110,7 @@ class AuditGovernanceController extends Controller
     {
         $report = \App\Models\ComplianceReport::findOrFail($id);
         $report->delete();
-        return ApiResponse::success(null, '合规报告已删除');
+        return ApiResponse::success(null, __('app.api.audit_gov.report_deleted'));
     }
 
     // ─── 审计日志标签 ───
@@ -137,11 +137,11 @@ class AuditGovernanceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.audit_gov.validation_failed'), $validator->errors()->toArray());
         }
 
         $tag = $this->governance->createTag($validator->validated());
-        return ApiResponse::created($tag, '标签已创建');
+        return ApiResponse::created($tag, __('app.api.audit_gov.tag_created'));
     }
 
     /**
@@ -158,11 +158,11 @@ class AuditGovernanceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.audit_gov.validation_failed'), $validator->errors()->toArray());
         }
 
         $tag = $this->governance->updateTag($tag, $validator->validated());
-        return ApiResponse::success($tag, '标签已更新');
+        return ApiResponse::success($tag, __('app.api.audit_gov.tag_updated'));
     }
 
     /**
@@ -173,7 +173,7 @@ class AuditGovernanceController extends Controller
     {
         $tag = AuditLogTag::findOrFail($id);
         $this->governance->deleteTag($tag);
-        return ApiResponse::success(null, '标签已删除');
+        return ApiResponse::success(null, __('app.api.audit_gov.tag_deleted'));
     }
 
     /**
@@ -191,7 +191,7 @@ class AuditGovernanceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.audit_gov.validation_failed'), $validator->errors()->toArray());
         }
 
         $action = $request->input('action', 'add');
@@ -199,7 +199,7 @@ class AuditGovernanceController extends Controller
             ? $this->governance->untagLogs($request->input('log_ids'), $request->input('tag_ids'))
             : $this->governance->tagLogs($request->input('log_ids'), $request->input('tag_ids'));
 
-        return ApiResponse::success(['affected' => $count], '批量操作完成');
+        return ApiResponse::success(['affected' => $count], __('app.api.audit_gov.batch_done'));
     }
 
     // ─── 审计日志备注 ───
@@ -215,11 +215,11 @@ class AuditGovernanceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.audit_gov.validation_failed'), $validator->errors()->toArray());
         }
 
         $annotation = $this->governance->addAnnotation($logId, $request->input('content'));
-        return ApiResponse::created($annotation->load('user'), '备注已添加');
+        return ApiResponse::created($annotation->load('user'), __('app.api.audit_gov.annotation_added'));
     }
 
     /**
@@ -239,7 +239,7 @@ class AuditGovernanceController extends Controller
     public function deleteAnnotation(int $id): JsonResponse
     {
         $this->governance->deleteAnnotation($id);
-        return ApiResponse::success(null, '备注已删除');
+        return ApiResponse::success(null, __('app.api.audit_gov.annotation_deleted'));
     }
 
     // ─── 批量操作历史 ───
@@ -278,7 +278,7 @@ class AuditGovernanceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.audit_gov.param_validation'), $validator->errors()->toArray());
         }
 
         $audit = $this->governance->executeRetentionCleanup(
@@ -286,7 +286,7 @@ class AuditGovernanceController extends Controller
             $request->input('custom_days')
         );
 
-        return ApiResponse::success($audit->load('initiator'), '数据清理完成');
+        return ApiResponse::success($audit->load('initiator'), __('app.api.audit_gov.cleanup_done'));
     }
 
     /**
@@ -342,11 +342,11 @@ class AuditGovernanceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.audit_gov.param_validation'), $validator->errors()->toArray());
         }
 
         $policy = $this->governance->saveRetentionPolicy($validator->validated());
-        return ApiResponse::success($policy, '保留策略已保存');
+        return ApiResponse::success($policy, __('app.api.audit_gov.policy_saved'));
     }
 
     /**
@@ -356,7 +356,7 @@ class AuditGovernanceController extends Controller
     public function toggleRetentionPolicy(int $id): JsonResponse
     {
         $active = $this->governance->toggleRetentionPolicy($id);
-        return ApiResponse::success(['is_active' => $active], '策略状态已切换');
+        return ApiResponse::success(['is_active' => $active], __('app.api.audit_gov.policy_toggled'));
     }
 
     /**
@@ -367,9 +367,9 @@ class AuditGovernanceController extends Controller
     {
         $deleted = $this->governance->deleteRetentionPolicy($id);
         if (!$deleted) {
-            return ApiResponse::error('DELETE_FAILED', '系统预置策略不可删除', 422);
+            return ApiResponse::error('DELETE_FAILED', __('app.api.audit_gov.preset_undeletable'), 422);
         }
-        return ApiResponse::success(null, '策略已删除');
+        return ApiResponse::success(null, __('app.api.audit_gov.policy_deleted'));
     }
 
     /**
@@ -394,7 +394,7 @@ class AuditGovernanceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.audit_gov.param_validation'), $validator->errors()->toArray());
         }
 
         $audit = $this->governance->executeExtendedCleanup(
@@ -402,7 +402,7 @@ class AuditGovernanceController extends Controller
             $request->input('custom_days')
         );
 
-        return ApiResponse::success($audit->load('initiator'), '数据清理完成');
+        return ApiResponse::success($audit->load('initiator'), __('app.api.audit_gov.cleanup_done'));
     }
 
     // ─── 清理调度配置 ───
@@ -433,11 +433,11 @@ class AuditGovernanceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.audit_gov.param_validation'), $validator->errors()->toArray());
         }
 
         $schedule = $this->governance->saveCleanupSchedule($validator->validated());
-        return ApiResponse::success($schedule, '调度配置已保存');
+        return ApiResponse::success($schedule, __('app.api.audit_gov.schedule_saved'));
     }
 
     // ─── 合规报告导出 ───
@@ -463,14 +463,14 @@ class AuditGovernanceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.audit_gov.param_validation'), $validator->errors()->toArray());
         }
 
         try {
             $export = $this->governance->exportReport($reportId, $request->input('format'));
-            return ApiResponse::success($export, '报告已导出');
+            return ApiResponse::success($export, __('app.api.audit_gov.report_exported'));
         } catch (\Exception $e) {
-            return ApiResponse::error('EXPORT_FAILED', '导出失败: ' . $e->getMessage(), 500);
+            return ApiResponse::error('EXPORT_FAILED', __('app.api.audit_gov.export_failed', ['error' => $e->getMessage()]), 500);
         }
     }
 }

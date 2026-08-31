@@ -35,6 +35,7 @@ class NotificationPreference extends Model
         'security' => '安全提醒',
         'system' => '系统公告',
         'im_message' => '私信消息',
+        'interaction' => '互动通知',
         'promotion' => '营销推广',
         'commission' => '佣金通知',
     ];

@@ -26,7 +26,7 @@ class SendExpiryWebhook extends BaseWorkflowStep
         /** @var License $license */
         $license = $instance->workflowable;
         if (!$license) {
-            throw new \RuntimeException('工作流未关联 License');
+            throw new \RuntimeException(__('app.common.workflow_not_linked_license'));
         }
 
         try {

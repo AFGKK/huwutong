@@ -26,7 +26,7 @@ class WafController extends Controller
     {
         $data = $this->wafService->getDashboard();
 
-        return ApiResponse::success($data, 'WAF 仪表盘获取成功');
+        return ApiResponse::success($data, __('app.api.waf.dashboard_fetched'));
     }
 
     // ─── 规则管理 ──────────────────────────────────
@@ -40,7 +40,7 @@ class WafController extends Controller
         $filters = $request->only(['category', 'severity', 'is_active']);
         $data = $this->wafService->getRules($filters);
 
-        return ApiResponse::success($data, '规则列表获取成功');
+        return ApiResponse::success($data, __('app.api.waf.rules_fetched'));
     }
 
     /**
@@ -66,7 +66,7 @@ class WafController extends Controller
 
         $rule = $this->wafService->createRule($validated);
 
-        return ApiResponse::success($rule, '规则创建成功');
+        return ApiResponse::success($rule, __('app.api.waf.rule_created'));
     }
 
     /**
@@ -93,7 +93,7 @@ class WafController extends Controller
 
         $rule = $this->wafService->updateRule($wafRule, $validated);
 
-        return ApiResponse::success($rule, '规则更新成功');
+        return ApiResponse::success($rule, __('app.api.waf.rule_updated'));
     }
 
     /**
@@ -104,7 +104,7 @@ class WafController extends Controller
     {
         $this->wafService->deleteRule($wafRule);
 
-        return ApiResponse::success(null, '规则已删除');
+        return ApiResponse::success(null, __('app.api.waf.rule_deleted'));
     }
 
     /**
@@ -115,7 +115,7 @@ class WafController extends Controller
     {
         $rule = $this->wafService->toggleRule($wafRule);
 
-        return ApiResponse::success($rule, $rule->is_active ? '规则已启用' : '规则已禁用');
+        return ApiResponse::success($rule, $rule->is_active ? __('app.api.waf.rule_enabled') : __('app.api.waf.rule_disabled'));
     }
 
     /**
@@ -140,7 +140,7 @@ class WafController extends Controller
         $type = $request->query('type');
         $data = $this->wafService->getIpList($type);
 
-        return ApiResponse::success($data, 'IP 列表获取成功');
+        return ApiResponse::success($data, __('app.api.waf.ip_list_fetched'));
     }
 
     /**
@@ -158,7 +158,7 @@ class WafController extends Controller
 
         $ip = $this->wafService->addIp($validated);
 
-        return ApiResponse::success($ip, 'IP 已添加');
+        return ApiResponse::success($ip, __('app.api.waf.ip_added'));
     }
 
     /**
@@ -187,7 +187,7 @@ class WafController extends Controller
     {
         $this->wafService->deleteIp($wafIpList);
 
-        return ApiResponse::success(null, 'IP 已删除');
+        return ApiResponse::success(null, __('app.api.waf.ip_deleted'));
     }
 
     /**
@@ -199,7 +199,7 @@ class WafController extends Controller
         $request->validate(['ip' => 'required|string|max:45']);
         $data = $this->wafService->checkIp($request->input('ip'));
 
-        return ApiResponse::success($data, 'IP 检查完成');
+        return ApiResponse::success($data, __('app.api.waf.ip_check_done'));
     }
 
     // ─── 攻击日志 ──────────────────────────────────
@@ -213,7 +213,7 @@ class WafController extends Controller
         $filters = $request->only(['ip', 'category', 'severity', 'date_from', 'date_to', 'page', 'per_page']);
         $data = $this->wafService->getAttackLogs($filters);
 
-        return ApiResponse::success($data, '攻击日志获取成功');
+        return ApiResponse::success($data, __('app.api.waf.attack_logs_fetched'));
     }
 
     /**
@@ -225,7 +225,7 @@ class WafController extends Controller
         $days = (int) $request->query('days', 7);
         $data = $this->wafService->getTrend($days);
 
-        return ApiResponse::success($data, '攻击趋势获取成功');
+        return ApiResponse::success($data, __('app.api.waf.attack_trend_fetched'));
     }
 
     // ─── 配置管理 ──────────────────────────────────
@@ -236,7 +236,7 @@ class WafController extends Controller
      */
     public function getConfig(): JsonResponse
     {
-        return ApiResponse::success($this->wafService->getConfig(), 'WAF 配置获取成功');
+        return ApiResponse::success($this->wafService->getConfig(), __('app.api.waf.config_fetched'));
     }
 
     /**

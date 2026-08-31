@@ -39,7 +39,7 @@ class OrderAfterSalesController extends Controller
         $tenantId = auth()->user()->tenant_id;
         $detail = $this->afterSales->getTicketDetail($ticket->id, $tenantId);
         if (!$detail) {
-            return ApiResponse::notFound('工单不存在');
+            return ApiResponse::notFound(__('app.api.after_sales.ticket_not_found'));
         }
         return ApiResponse::success($detail);
     }
@@ -69,7 +69,7 @@ class OrderAfterSalesController extends Controller
             auth()->id(),
         );
 
-        return ApiResponse::created($ticket->toArray(), '售后工单已创建');
+        return ApiResponse::created($ticket->toArray(), __('app.api.after_sales.ticket_created'));
     }
 
     /**
@@ -89,7 +89,7 @@ class OrderAfterSalesController extends Controller
     {
         $tenantId = auth()->user()->tenant_id;
         if ($ticket->tenant_id !== $tenantId) {
-            return ApiResponse::forbidden('无权操作此工单');
+            return ApiResponse::forbidden(__('app.api.after_sales.forbidden'));
         }
 
         $validated = $request->validate([
@@ -104,7 +104,7 @@ class OrderAfterSalesController extends Controller
             $validated['is_internal'] ?? false,
         );
 
-        return ApiResponse::created($reply->toArray(), '回复成功');
+        return ApiResponse::created($reply->toArray(), __('app.api.after_sales.reply_success'));
     }
 
     /**
@@ -115,10 +115,10 @@ class OrderAfterSalesController extends Controller
     {
         $tenantId = auth()->user()->tenant_id;
         if ($ticket->tenant_id !== $tenantId) {
-            return ApiResponse::forbidden('无权操作此工单');
+            return ApiResponse::forbidden(__('app.api.after_sales.forbidden'));
         }
         $ticket = $this->afterSales->resolveTicket($ticket);
-        return ApiResponse::success($ticket->toArray(), '工单已标记为解决');
+        return ApiResponse::success($ticket->toArray(), __('app.api.after_sales.ticket_resolved'));
     }
 
     /**
@@ -129,10 +129,10 @@ class OrderAfterSalesController extends Controller
     {
         $tenantId = auth()->user()->tenant_id;
         if ($ticket->tenant_id !== $tenantId) {
-            return ApiResponse::forbidden('无权操作此工单');
+            return ApiResponse::forbidden(__('app.api.after_sales.forbidden'));
         }
         $ticket = $this->afterSales->closeTicket($ticket);
-        return ApiResponse::success($ticket->toArray(), '工单已关闭');
+        return ApiResponse::success($ticket->toArray(), __('app.api.after_sales.ticket_closed'));
     }
 
     /**
@@ -143,7 +143,7 @@ class OrderAfterSalesController extends Controller
     {
         $tenantId = auth()->user()->tenant_id;
         if ($ticket->tenant_id !== $tenantId) {
-            return ApiResponse::forbidden('无权操作此工单');
+            return ApiResponse::forbidden(__('app.api.after_sales.forbidden'));
         }
 
         $validated = $request->validate([
@@ -151,7 +151,7 @@ class OrderAfterSalesController extends Controller
         ]);
 
         $ticket = $this->afterSales->assignTicket($ticket, $validated['user_id']);
-        return ApiResponse::success($ticket->toArray(), '工单已分配');
+        return ApiResponse::success($ticket->toArray(), __('app.api.after_sales.ticket_assigned'));
     }
 
     /**
@@ -162,7 +162,7 @@ class OrderAfterSalesController extends Controller
     {
         $tenantId = auth()->user()->tenant_id;
         if ($ticket->tenant_id !== $tenantId) {
-            return ApiResponse::forbidden('无权操作此工单');
+            return ApiResponse::forbidden(__('app.api.after_sales.forbidden'));
         }
 
         $validated = $request->validate([
@@ -172,7 +172,7 @@ class OrderAfterSalesController extends Controller
 
         try {
             $result = $this->afterSales->submitSatisfaction($ticket, $validated['score'], $validated['comment']);
-            return ApiResponse::created($result->toArray(), '评价已提交');
+            return ApiResponse::created($result->toArray(), __('app.api.after_sales.satisfaction_submitted'));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }

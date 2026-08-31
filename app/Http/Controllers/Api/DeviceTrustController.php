@@ -48,7 +48,7 @@ class DeviceTrustController extends Controller
 
         return ApiResponse::success([
             'device' => $device,
-        ], '设备已加入信任列表');
+        ], __('app.device_trust.device_added_trust'));
     }
 
     /**
@@ -67,12 +67,12 @@ class DeviceTrustController extends Controller
     public function destroy(Request $request, TrustedDevice $trustedDevice): JsonResponse
     {
         if ($trustedDevice->user_id !== $request->user()->id) {
-            return ApiResponse::forbidden('无权操作此设备');
+            return ApiResponse::forbidden(__("app.device_trust.msg_021bfc05"));
         }
 
         $trustedDevice->delete();
 
-        return ApiResponse::success(null, '设备已从信任列表移除');
+        return ApiResponse::success(null, __("app.device_trust.msg_3327867a"));
     }
 
     /**
@@ -82,7 +82,7 @@ class DeviceTrustController extends Controller
     {
         TrustedDevice::where('user_id', $request->user()->id)->delete();
 
-        return ApiResponse::success(null, '已清除所有信任设备');
+        return ApiResponse::success(null, __("app.device_trust.msg_0d6b5689"));
     }
 
     /**

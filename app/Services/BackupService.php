@@ -92,7 +92,7 @@ class BackupService
                     $compress,
                     escapeshellarg($tempPath)
                 );
-                $failMessage = 'pg_dump 执行失败';
+                $failMessage = __('app.backup_service.pg_dump_failed');
                 putenv('PGPASSWORD='.$pass);
             } else {
                 $cmd = sprintf(
@@ -107,7 +107,7 @@ class BackupService
                     $compress,
                     escapeshellarg($tempPath)
                 );
-                $failMessage = 'mysqldump 执行失败';
+                $failMessage = __('app.backup_service.mysqldump_failed');
             }
 
             $output = [];
@@ -122,7 +122,7 @@ class BackupService
             }
 
             if (! file_exists($tempPath)) {
-                throw new \RuntimeException('备份文件未生成');
+                throw new \RuntimeException(__('app.backup_service.backup_file_not_generated'));
             }
 
             $fileSize = filesize($tempPath);
@@ -227,7 +227,7 @@ class BackupService
             }
 
             if (empty($included)) {
-                throw new \RuntimeException('没有可备份的文件目录');
+                throw new \RuntimeException(__('app.backup_service.no_files_to_backup'));
             }
 
             // 执行 tar 打包
@@ -244,18 +244,18 @@ class BackupService
             exec($cmd, $output, $returnCode);
 
             if ($returnCode !== 0) {
-                throw new \RuntimeException('tar 打包执行失败');
+                throw new \RuntimeException(__('app.backup_service.tar_pack_failed'));
             }
 
             if (! file_exists($tempPath)) {
-                throw new \RuntimeException('备份文件未生成');
+                throw new \RuntimeException(__('app.backup_service.backup_file_not_generated'));
             }
 
             $fileSize = filesize($tempPath);
 
             if ($maxSizeBytes > 0 && $fileSize > $maxSizeBytes) {
                 @unlink($tempPath);
-                throw new \RuntimeException('备份文件超过大小限制: ' . round($fileSize / 1024 / 1024, 2) . 'MB / ' . $config['max_size_mb'] . 'MB');
+                throw new \RuntimeException(__('app.backup_service.backup_size_exceeded', ['actual' => round($fileSize / 1024 / 1024, 2) . 'MB', 'max' => $config['max_size_mb'] . 'MB']));
             }
 
             $checksum = hash_file('sha256', $tempPath);
@@ -320,7 +320,7 @@ class BackupService
     public function download(BackupRecord $record): string
     {
         if ($record->status !== 'completed') {
-            throw new \RuntimeException('备份未完成');
+            throw new \RuntimeException(__('app.backup_service.backup_not_completed'));
         }
 
         $disk = $record->disk;
@@ -328,7 +328,7 @@ class BackupService
         if ($disk === 'local') {
             $localPath = storage_path("app/{$record->file_path}");
             if (! file_exists($localPath)) {
-                throw new \RuntimeException('备份文件不存在');
+                throw new \RuntimeException(__('app.backup_service.backup_file_not_found'));
             }
             return $localPath;
         }
@@ -400,13 +400,13 @@ class BackupService
     public function restoreDatabase(BackupRecord $record): bool
     {
         if ($record->type !== 'database' || $record->status !== 'completed') {
-            throw new \RuntimeException('备份不可用');
+            throw new \RuntimeException(__('app.backup_service.backup_not_restorable'));
         }
 
         $filePath = $this->getLocalPath($record);
 
         if (! $filePath || ! file_exists($filePath)) {
-            throw new \RuntimeException('备份文件不存在');
+            throw new \RuntimeException(__('app.backup_service.backup_file_not_found'));
         }
 
         $connection = $this->resolveDatabaseConnection();
@@ -429,7 +429,7 @@ class BackupService
                 escapeshellarg($user),
                 escapeshellarg($db)
             );
-            $failMessage = 'PostgreSQL 数据库恢复失败';
+            $failMessage = __('app.backup_service.pgsql_restore_failed');
             putenv('PGPASSWORD='.$pass);
         } else {
             $cmd = sprintf(
@@ -441,7 +441,7 @@ class BackupService
                 escapeshellarg($pass),
                 escapeshellarg($db)
             );
-            $failMessage = '数据库恢复失败';
+            $failMessage = __('app.backup_service.mysql_restore_failed');
         }
 
         $output = [];
@@ -553,7 +553,7 @@ class BackupService
     {
         $locked = Cache::lock(self::CACHE_LOCK_KEY, 600)->get();
         if (! $locked) {
-            throw new \RuntimeException('备份任务已在运行中');
+            throw new \RuntimeException(__('app.backup_service.backup_already_running'));
         }
     }
 

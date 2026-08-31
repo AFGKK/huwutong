@@ -35,7 +35,7 @@ class OrderAfterSalesService
             ->count();
 
         if ($existingCount >= $maxTickets) {
-            throw new \RuntimeException("该订单已有 {$existingCount} 个未关闭售后工单，请先处理完成后再创建");
+            throw new \RuntimeException(__("app.order_after_sales.msg_17cd64b8"));
         }
 
         $reasons = config('order-ticket.reasons', []);

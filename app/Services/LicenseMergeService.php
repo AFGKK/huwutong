@@ -304,11 +304,11 @@ class LicenseMergeService
     protected function validateMerge(Customer $source, Customer $target): void
     {
         if ($source->id === $target->id) {
-            throw new Exception('不能将 License 合并到自身');
+            throw new Exception(__("app.license_merge.cannot_merge_license_to_self"));
         }
 
         if ($source->tenant_id !== $target->tenant_id) {
-            throw new Exception('只能合并同一租户下的客户');
+            throw new Exception(__("app.license_merge.can_only_merge_same_tenant_customers"));
         }
     }
 
@@ -364,12 +364,12 @@ class LicenseMergeService
     public function rollback(LicenseMergeJob $job): LicenseMergeJob
     {
         if ($job->status !== 'completed') {
-            throw new Exception('只能回滚已完成的合并');
+            throw new Exception(__("app.license_merge.can_only_rollback_completed_merge"));
         }
 
         $source = $job->sourceCustomer;
         if (!$source) {
-            throw new Exception('源客户已被删除，无法回滚');
+            throw new Exception(__("app.license_merge.source_customer_deleted_cannot_rollback"));
         }
 
         return DB::transaction(function () use ($job, $source) {

@@ -9,6 +9,8 @@ use App\Models\SslCertificate;
 use App\Services\CnameService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 
 /**
  * 自定义域名 + SSL 管理 API
@@ -44,11 +46,14 @@ class CustomDomainController extends Controller
             $query->where('verified', true);
         }
 
-        $domains = $query->latest()
-            ->get()
-            ->map(fn($d) => $this->cnameService->getDomainStatus($d));
+        $perPage = min((int) $request->input('per_page', 20), 100);
+        $paginated = $query->latest()->paginate($perPage);
 
-        return ApiResponse::success($domains);
+        $paginated->getCollection()->transform(
+            fn($d) => $this->cnameService->getDomainStatus($d),
+        );
+
+        return ApiResponse::paginated($paginated);
     }
 
     /**
@@ -68,12 +73,12 @@ class CustomDomainController extends Controller
         // 检查域名格式
         $domain = strtolower(trim($data['domain']));
         if (! preg_match('/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/', $domain)) {
-            return ApiResponse::validationError('请输入有效的域名格式');
+            return ApiResponse::validationError(__('app.api.custom_domain.invalid_format'));
         }
 
         // 检查是否已存在
         if (CustomDomain::where('domain', $domain)->exists()) {
-            return ApiResponse::error('DOMAIN_EXISTS', '该域名已被绑定', 422);
+            return ApiResponse::error('DOMAIN_EXISTS', __('app.api.custom_domain.domain_exists'), 422);
         }
 
         $customDomain = $this->cnameService->bindDomain(
@@ -84,7 +89,7 @@ class CustomDomainController extends Controller
 
         return ApiResponse::created(
             $this->cnameService->getDomainStatus($customDomain),
-            '域名绑定成功，请添加 CNAME 记录',
+            __('app.api.custom_domain.binding_success'),
         );
     }
 
@@ -117,7 +122,7 @@ class CustomDomainController extends Controller
         if ($domain->verified) {
             return ApiResponse::success(
                 $this->cnameService->getDomainStatus($domain),
-                '域名已验证通过',
+                __('app.api.custom_domain.verified'),
             );
         }
 
@@ -130,7 +135,7 @@ class CustomDomainController extends Controller
 
         return ApiResponse::success(
             $this->cnameService->getDomainStatus($domain),
-            $success ? '域名验证通过，正在申请 SSL 证书' : '域名验证失败',
+            $success ? __('app.api.custom_domain.verify_success') : __('app.api.custom_domain.verify_failed'),
         );
     }
 
@@ -145,14 +150,14 @@ class CustomDomainController extends Controller
             ->findOrFail($domainId);
 
         if (! $domain->verified) {
-            return ApiResponse::error('DOMAIN_NOT_VERIFIED', '请先验证域名所有权', 422);
+            return ApiResponse::error('DOMAIN_NOT_VERIFIED', __('app.api.custom_domain.domain_not_verified'), 422);
         }
 
         $success = $this->cnameService->issueCertificate($domain);
 
         return ApiResponse::success(
             $this->cnameService->getDomainStatus($domain),
-            $success ? 'SSL 证书已签发' : 'SSL 证书签发失败',
+            $success ? __('app.api.custom_domain.ssl_issued') : __('app.api.custom_domain.ssl_issue_failed'),
         );
     }
 
@@ -193,7 +198,7 @@ class CustomDomainController extends Controller
 
         $route = $domain->domainRoute;
         if (! $route) {
-            return ApiResponse::notFound('路由配置不存在');
+            return ApiResponse::notFound(__('app.api.custom_domain.route_not_found'));
         }
 
         $route->update([
@@ -202,7 +207,109 @@ class CustomDomainController extends Controller
             'config' => $data['config'] ?? $route->config,
         ]);
 
-        return ApiResponse::success($route, '路由配置已更新');
+        return ApiResponse::success($route, __('app.api.custom_domain.route_updated'));
+    }
+
+    /**
+     * 上传自有 SSL 证书 + 私钥
+     *
+     * POST /api/domains/{domain}/ssl/upload
+     */
+    public function uploadSsl(int $domainId, Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'certificate' => 'required|string|min:64|max:65535',
+            'private_key' => 'required|string|min:64|max:65535',
+            'certificate_chain' => 'nullable|string|max:65535',
+        ]);
+
+        $domain = $request->user()->tenant->customDomains()
+            ->with('sslCertificate')
+            ->findOrFail($domainId);
+
+        if (! $domain->verified) {
+            return ApiResponse::error('DOMAIN_NOT_VERIFIED', __('app.api.custom_domain.domain_not_verified'), 422);
+        }
+
+        $cert = trim($data['certificate']);
+        $key  = trim($data['private_key']);
+
+        // 验证 PEM 格式
+        if (! $this->isValidPem($cert, 'CERTIFICATE')) {
+            return ApiResponse::validationError(__('app.api.custom_domain.invalid_cert_pem'));
+        }
+        if (! $this->isValidPem($key, 'PRIVATE KEY')) {
+            return ApiResponse::validationError(__('app.api.custom_domain.invalid_key_pem'));
+        }
+
+        // 通过 openssl 验证证书与私钥匹配
+        $certResource = openssl_x509_read($cert);
+        if (! $certResource) {
+            return ApiResponse::validationError(__('app.api.custom_domain.cert_parse_failed'));
+        }
+        $keyResource = openssl_pkey_get_private($key);
+        if (! $keyResource) {
+            return ApiResponse::validationError(__('app.api.custom_domain.key_parse_failed'));
+        }
+        if (! openssl_x509_check_private_key($certResource, $keyResource)) {
+            return ApiResponse::validationError(__('app.api.custom_domain.cert_key_mismatch'));
+        }
+
+        // 读取证书有效期
+        $certInfo = openssl_x509_parse($certResource);
+        $validFrom  = $certInfo['validFrom_time_t'] ?? null;
+        $validTo    = $certInfo['validTo_time_t'] ?? null;
+        $issuerName = $certInfo['issuer']['CN'] ?? ($certInfo['issuer']['O'] ?? 'Unknown');
+
+        $ssl = $domain->sslCertificate;
+        if (! $ssl) {
+            $ssl = SslCertificate::create([
+                'custom_domain_id' => $domain->id,
+                'issuer' => $issuerName,
+                'auto_renew' => false,
+                'status' => 'pending',
+            ]);
+        }
+
+        $ssl->update([
+            'certificate'       => Crypt::encryptString($cert),
+            'private_key'       => Crypt::encryptString($key),
+            'certificate_chain' => ! empty($data['certificate_chain']) ? Crypt::encryptString(trim($data['certificate_chain'])) : $ssl->certificate_chain,
+            'issuer'            => $issuerName,
+            'issued_at'         => $validFrom ? date_create("@{$validFrom}") : now(),
+            'expires_at'        => $validTo   ? date_create("@{$validTo}")   : now()->addYear(),
+            'status'            => 'issued',
+            'auto_renew'        => false, // 用户自传证书不自动续期
+            'last_renewed_at'   => now(),
+            'error_message'     => null,
+        ]);
+
+        // 激活自定义域名
+        $domain->update([
+            'is_active' => true,
+            'status'    => 'active',
+        ]);
+
+        Log::info('用户上传 SSL 证书成功', [
+            'domain_id' => $domain->id,
+            'domain'    => $domain->domain,
+            'issuer'    => $issuerName,
+            'expires_at' => $ssl->expires_at,
+        ]);
+
+        return ApiResponse::success(
+            $this->cnameService->getDomainStatus($domain->fresh()),
+            __('app.api.custom_domain.ssl_uploaded'),
+        );
+    }
+
+    /**
+     * 验证字符串是否为合法 PEM 格式
+     */
+    private function isValidPem(string $content, string $expectedType): bool
+    {
+        $pattern = "/-----BEGIN\s+(?:RSA\s+|EC\s+)?{$expectedType}-----\s*.+?\s*-----END\s+(?:RSA\s+|EC\s+)?{$expectedType}-----/s";
+        return (bool) preg_match($pattern, $content);
     }
 
     /**
@@ -217,6 +324,6 @@ class CustomDomainController extends Controller
 
         $domain->delete();
 
-        return ApiResponse::success(null, '域名绑定已删除');
+        return ApiResponse::success(null, __('app.api.custom_domain.domain_deleted'));
     }
 }

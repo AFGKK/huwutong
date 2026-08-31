@@ -55,7 +55,7 @@ class AutoInvoiceService
                 'tax_type' => $taxResult['tax_type'] ?? 'none',
                 'tax_rate_applied' => $taxResult['tax_rate'] ?? 0,
                 'tax_amount' => $taxResult['tax_amount'] ?? 0,
-                'notes' => "订单 {$order->order_no} 自动生成",
+                'notes' => __('app.api.service_auto_invoice.auto_note', ['order' => $order->order_no]),
                 'metadata' => ['order_id' => $order->id, 'order_no' => $order->order_no],
                 'invoice_pdf_url' => null, // PDF 生成需 dompdf 库
             ]);
@@ -208,7 +208,7 @@ HTML;
         $invoice = Invoice::with('customer.user')->findOrFail($invoiceId);
         $email = $invoice->customer?->user?->email;
         if (!$email) {
-            throw new \RuntimeException('客户无邮箱地址');
+            throw new \RuntimeException(__('app.api.service_auto_invoice.no_email'));
         }
 
         try {

@@ -47,7 +47,7 @@ class VectorSearchController extends Controller
         $force = $request->boolean('force', false);
         $result = $this->service->rebuildEmbeddings($force);
 
-        return ApiResponse::success($result, "已更新 {$result['updated']}/{$result['total']} 条索引");
+        return ApiResponse::success($result, __('app.api.vector_search.index_updated', ['updated' => $result['updated'], 'total' => $result['total']]));
     }
 
     /**

@@ -89,7 +89,7 @@ class DeliveryService
             'license_key' => $this->deliverLicense($order, $item, $delivery),
             'service_activation' => $this->deliverActivation($order, $item, $delivery),
             'api_key' => $this->deliverApiKey($order, $item, $delivery),
-            default => throw new \RuntimeException("未知交付类型: {$delivery->delivery_type}"),
+            default => throw new \RuntimeException(__("app.delivery.msg_d7516460")),
         };
 
         $delivery->update(['status' => 'delivered', 'delivered_at' => now()]);

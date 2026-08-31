@@ -24,18 +24,18 @@ class CodeSandboxService
     public function execute(string $code, string $language = 'php'): array
     {
         if (!($this->config['enabled'] ?? true)) {
-            return $this->error('代码沙箱已禁用');
+            return $this->error(__('app.code_sandbox.disabled'));
         }
 
         $langConfig = $this->config['languages'][$language] ?? null;
         if (!$langConfig || !($langConfig['enabled'] ?? false)) {
-            return $this->error("语言 '{$language}' 未启用或不受支持");
+            return $this->error(__('app.code_sandbox.language_not_supported', ['language' => $language]));
         }
 
         $codeLength = mb_strlen($code);
         $maxLength = $this->config['max_code_length'] ?? 5000;
         if ($codeLength > $maxLength) {
-            return $this->error("代码长度超过限制（{$maxLength} 字符）");
+            return $this->error(__('app.code_sandbox.code_too_long', ['max' => $maxLength]));
         }
 
         $startTime = microtime(true);
@@ -60,7 +60,7 @@ class CodeSandboxService
             return [
                 'success' => false,
                 'output' => '',
-                'error' => '执行异常：' . $e->getMessage(),
+                'error' => __('app.code_sandbox.execution_error') . ': ' . $e->getMessage(),
                 'execution_time' => round((microtime(true) - $startTime) * 1000, 1),
                 'language' => $language,
             ];
@@ -74,12 +74,12 @@ class CodeSandboxService
     {
         $binary = $langConfig['binary'] ?? '';
         if (empty($binary)) {
-            return $this->error("未配置 {$language} 的可执行文件路径");
+            return $this->error(__('app.code_sandbox.binary_not_configured', ['language' => $language]));
         }
 
         // 检查二进制是否存在
         if (!$this->binaryExists($binary)) {
-            return $this->error("未检测到 {$language} 运行环境，请确认已安装");
+            return $this->error(__('app.code_sandbox.runtime_not_found', ['language' => $language]));
         }
 
         // 写入临时文件
@@ -141,7 +141,7 @@ class CodeSandboxService
             );
 
             if (!is_resource($process)) {
-                return $this->error('无法创建子进程');
+                return $this->error(__('app.code_sandbox.cannot_create_process'));
             }
 
             // 关闭 stdin
@@ -153,7 +153,7 @@ class CodeSandboxService
 
             // 限制输出大小
             if (mb_strlen($stdout) > $maxOutput) {
-                $stdout = mb_substr($stdout, 0, $maxOutput) . "\n\n... (输出截断，超过 {$maxOutput} 字节)";
+                $stdout = mb_substr($stdout, 0, $maxOutput) . "\n\n... (" . __('app.code_sandbox.output_truncated', ['max' => $maxOutput]) . ")";
             }
 
             fclose($pipes[1]);
@@ -186,7 +186,7 @@ class CodeSandboxService
         // 检查是否是只读查询
         $upper = strtoupper(trim($code));
         if (preg_match('/^\s*(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|LOAD)\b/i', $upper)) {
-            return $this->error('沙箱仅允许 SELECT 查询，写入操作已禁用');
+            return $this->error(__('app.code_sandbox.select_only'));
         }
 
         // 使用内存 SQLite 数据库
@@ -220,7 +220,7 @@ class CodeSandboxService
             $output = json_encode($rows, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
             if (mb_strlen($output) > $maxOutput) {
-                $output = mb_substr($output, 0, $maxOutput) . "\n\n... (输出截断)";
+                $output = mb_substr($output, 0, $maxOutput) . "\n\n... (" . __('app.code_sandbox.output_truncated_short') . ")";
             }
 
             return [
@@ -230,7 +230,7 @@ class CodeSandboxService
                 'rows' => count($rows),
             ];
         } catch (\PDOException $e) {
-            return $this->error('SQL 错误：' . $e->getMessage());
+            return $this->error(__('app.code_sandbox.sql_error') . ': ' . $e->getMessage());
         }
     }
 
@@ -267,19 +267,19 @@ class CodeSandboxService
     {
         return [
             'php' => [
-                'label' => 'PHP 示例',
+                'label' => __('app.code_sandbox.template_php'),
                 'code' => "// PHP 代码沙箱\n\$data = ['name' => '互物通', 'version' => '2.0', 'features' => ['IM', 'AI', 'License']];\necho json_encode(\$data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);\n\n// 数学运算\n\$a = 42;\n\$b = 7;\necho \"\\n计算: {\$a} * {\$b} = \" . (\$a * \$b) . \"\\n\";\n\n// 数组操作\n\$fruits = ['苹果', '香蕉', '橘子'];\nforeach (\$fruits as \$i => \$f) {\n    echo (\$i + 1) . \". {\$f}\\n\";\n}",
             ],
             'python' => [
-                'label' => 'Python 示例',
+                'label' => __('app.code_sandbox.template_python'),
                 'code' => "# Python 代码沙箱\nimport json\nfrom datetime import datetime\n\ndata = {\n    'name': '互物通',\n    'version': '2.0',\n    'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')\n}\nprint(json.dumps(data, ensure_ascii=False, indent=2))\n\n# 数学计算\nprint(f\"\\n计算: 42 * 7 = {42 * 7}\")\n\n# 列表处理\nfruits = ['苹果', '香蕉', '橘子']\nfor i, f in enumerate(fruits, 1):\n    print(f\"{i}. {f}\")",
             ],
             'node' => [
-                'label' => 'Node.js 示例',
+                'label' => __('app.code_sandbox.template_node'),
                 'code' => "// Node.js 代码沙箱\nconst data = {\n    name: '互物通',\n    version: '2.0',\n    time: new Date().toISOString()\n};\nconsole.log(JSON.stringify(data, null, 2));\n\n// 数学计算\nconsole.log(`\\n计算: 42 * 7 = \${42 * 7}`);\n\n// 数组操作\nconst fruits = ['苹果', '香蕉', '橘子'];\nfruits.forEach((f, i) => console.log(`\${i + 1}. \${f}`));\n\n// 使用内置模块\nconst path = require('path');\nconsole.log(`\\n路径分隔符: \${path.sep}`);",
             ],
             'sql' => [
-                'label' => 'SQL 查询示例',
+                'label' => __('app.code_sandbox.template_sql'),
                 'code' => "-- SQL 沙箱（只读，使用内存 SQLite）\n-- 内置表: users, products, orders\n\n-- 查询所有用户\nSELECT * FROM users;\n\n-- 多表联查\nSELECT o.id, u.name AS 用户, p.name AS 产品, o.total, o.status\nFROM orders o\nJOIN users u ON o.user_id = u.id\nJOIN products p ON o.product_id = p.id\nORDER BY o.total DESC;",
             ],
         ];

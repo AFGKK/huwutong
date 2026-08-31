@@ -71,7 +71,7 @@ class SSOController extends Controller
             $data['attribute_mapping'] ?? null,
         );
 
-        return ApiResponse::success($provider, 'SSO 配置已保存');
+        return ApiResponse::success($provider, __("app.sso.msg_d84b7e01"));
     }
 
     /**
@@ -88,7 +88,7 @@ class SSOController extends Controller
 
         return ApiResponse::success(
             ['is_active' => $provider->fresh()->is_active],
-            $provider->is_active ? 'SSO 已启用' : 'SSO 已停用',
+            $provider->is_active ? __('app.s_s_o.sso') : __('app.s_s_o.sso'),
         );
     }
 
@@ -109,7 +109,7 @@ class SSOController extends Controller
         $provider = SsoProvider::findOrFail($data['provider_id']);
 
         if (! $provider->is_active) {
-            return ApiResponse::error('SSO_PROVIDER_INACTIVE', 'SSO 提供者未启用', 422);
+            return ApiResponse::error('SSO_PROVIDER_INACTIVE', __("app.sso.msg_a6bf3111"), 422);
         }
 
         $attributes = $data['attributes'] ?? [];
@@ -123,7 +123,7 @@ class SSOController extends Controller
             'user' => $this->formatUserWithTenants($user),
             'token' => $token,
             'requires_tenant_selection' => $user->tenants()->count() > 1,
-        ], 'SSO 登录成功');
+        ], __('app.s_s_o.sso'));
     }
 
     /**
@@ -160,7 +160,7 @@ class SSOController extends Controller
 
         $connection->delete();
 
-        return ApiResponse::success(null, 'SSO 绑定已解除');
+        return ApiResponse::success(null, __("app.sso.msg_371c058d"));
     }
 
     /**
@@ -173,7 +173,7 @@ class SSOController extends Controller
         $provider = SsoProvider::findOrFail($providerId);
 
         if (! $provider->is_active) {
-            return ApiResponse::error('SSO_PROVIDER_INACTIVE', 'SSO 提供者未启用', 422);
+            return ApiResponse::error('SSO_PROVIDER_INACTIVE', __('app.s_s_o.sso'), 422);
         }
 
         $url = $this->ssoService->buildLoginUrl($provider);

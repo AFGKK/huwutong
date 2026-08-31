@@ -115,7 +115,7 @@ class RefundController extends Controller
         // 租户检查
         if (!$request->user()->hasRole('super-admin')
             && $license->tenant_id !== $request->user()->tenant_id) {
-            return ApiResponse::error('FORBIDDEN', '无权操作此 License', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_op'), 403);
         }
 
         $refund = DB::transaction(function () use ($data, $request, $license) {
@@ -166,7 +166,7 @@ class RefundController extends Controller
             'processor:id,name',
         ]);
 
-        return ApiResponse::created($refund, '退款已处理');
+        return ApiResponse::created($refund, __('app.api.refund.processed'));
     }
 
     /**
@@ -272,7 +272,7 @@ class RefundController extends Controller
 
         return ApiResponse::success(
             $assessment->load('reviewer'),
-            $validated['action'] === 'approve' ? '退款已批准' : '退款已拒绝'
+            $validated['action'] === 'approve' ? __('app.api.refund.approved') : __('app.api.refund.rejected')
         );
     }
 
@@ -326,7 +326,7 @@ class RefundController extends Controller
         ]);
 
         $rule->update($validated);
-        return ApiResponse::success($rule, '规则已更新');
+        return ApiResponse::success($rule, __('app.api.refund.rule_updated'));
     }
 
     /**
@@ -350,7 +350,7 @@ class RefundController extends Controller
 
         if (!$request->user()->hasRole('super-admin')
             && $license->tenant_id !== $request->user()->tenant_id) {
-            return ApiResponse::error('FORBIDDEN', '无权操作此 License', 403);
+            return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_op'), 403);
         }
 
         $refund = DB::transaction(function () use ($validated, $request, $license) {
@@ -383,6 +383,6 @@ class RefundController extends Controller
             'refund' => $refund->fresh()->load(['riskAssessment', 'license', 'customer', 'processor']),
             'risk_assessment' => $assessment->load('reviewer'),
             'decision_result' => $result,
-        ], '退款已提交风控评估');
+        ], __('app.api.refund.risk_submitted'));
     }
 }

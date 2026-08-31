@@ -38,7 +38,7 @@ class ComplianceReportAiController extends Controller
             $validated['language'] ?? 'zh-CN'
         );
 
-        return ApiResponse::success($report->load('generator:id,name'), '报告生成完成');
+        return ApiResponse::success($report->load('generator:id,name'), __('app.compliance_report_ai.report_generated'));
     }
 
     /**

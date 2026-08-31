@@ -34,22 +34,22 @@ class PostModerationService
         // 1. 敏感词检测
         $sensitive = $this->sensitiveWord->check($content);
         if ($sensitive['hasSensitive']) {
-            $this->lockPost($post, '包含敏感词: ' . implode(', ', $sensitive['matched']));
+            $this->lockPost($post, __('app.api.service_post_moderation.sensitive_words', ['words' => implode(', ', $sensitive['matched'])]));
             return [
                 'passed' => false,
                 'action' => 'locked',
-                'reason' => '内容包含违规词汇，已自动锁定',
+                'reason' => __('app.api.service_post_moderation.rule_violation'),
             ];
         }
 
         // 2. 防火墙规则检测
         $firewallResult = $this->firewall->inspect($content);
         if ($firewallResult['blocked']) {
-            $this->lockPost($post, $firewallResult['reason'] ?? '触发安全策略');
+            $this->lockPost($post, $firewallResult['reason'] ?? __('app.api.service_post_moderation.security_policy'));
             return [
                 'passed' => false,
                 'action' => 'locked',
-                'reason' => $firewallResult['reason'] ?? '内容违反社区规范，已自动锁定',
+                'reason' => $firewallResult['reason'] ?? __('app.api.service_post_moderation.community_violation'),
             ];
         }
 
@@ -59,11 +59,11 @@ class PostModerationService
                 // 此处可接入图片审核 API
                 // 暂简单检查 URL 是否包含违规域名
                 if (is_string($image) && preg_match('/\b(porn|xxx|adult|gambling)\b/i', $image)) {
-                    $this->lockPost($post, '图片包含违规内容');
+                    $this->lockPost($post, __('app.api.service_post_moderation.image_violation'));
                     return [
                         'passed' => false,
                         'action' => 'locked',
-                        'reason' => '图片内容违规，已自动锁定',
+                        'reason' => __('app.api.service_post_moderation.image_locked'),
                     ];
                 }
             }
@@ -85,20 +85,20 @@ class PostModerationService
     public function reviewReport(UserReport $report): array
     {
         if ($report->reportable_type !== ForumPost::class) {
-            return ['action' => 'skipped', 'message' => '非广场帖子，跳过自动审核'];
+            return ['action' => 'skipped', 'message' => __('app.api.service_post_moderation.non_forum_skip')];
         }
 
         /** @var ForumPost|null $post */
         $post = ForumPost::withTrashed()->find($report->reportable_id);
         if (!$post) {
             $report->update(['status' => 'resolved', 'admin_note' => '内容已删除，自动结案', 'handled_at' => now()]);
-            return ['action' => 'resolved', 'message' => '内容已不存在，自动结案'];
+            return ['action' => 'resolved', 'message' => __('app.common.content_not_found_auto_closed')];
         }
 
         // 已被锁定，无需重复处理
         if ($post->is_locked) {
             $report->update(['status' => 'resolved', 'admin_note' => '内容已被锁定，自动结案', 'handled_at' => now()]);
-            return ['action' => 'resolved', 'message' => '内容已被锁定，自动结案'];
+            return ['action' => 'resolved', 'message' => __('app.common.content_locked_auto_closed')];
         }
 
         // 运行审核
@@ -107,7 +107,7 @@ class PostModerationService
         if ($result['passed']) {
             // 审核通过，标记为无需处理
             $report->update(['status' => 'dismissed', 'admin_note' => 'AI 审核通过，未发现违规', 'handled_at' => now()]);
-            return ['action' => 'dismissed', 'message' => 'AI 审核通过，未发现违规'];
+            return ['action' => 'dismissed', 'message' => __('app.common.ai_moderation_passed')];
         }
 
         // 违规，更新举报状态
@@ -123,7 +123,7 @@ class PostModerationService
             'reason' => $result['reason'],
         ]);
 
-        return ['action' => 'locked', 'message' => $result['reason'] ?? '已自动处理'];
+        return ['action' => 'locked', 'message' => $result['reason'] ?? __('app.common.auto_processed')];
     }
 
     /**

@@ -396,7 +396,7 @@ class EcommerceAnalyticsService
             'sales_trend' => $this->exportSalesTrend($tenantId, $days),
             'product_ranking' => $this->exportProductRanking($tenantId, $days),
             'payment_channels' => $this->exportPaymentChannels($tenantId, $days),
-            default => throw new \InvalidArgumentException("不支持的导出类型: {$type}"),
+            default => throw new \InvalidArgumentException(__("app.ecommerce_analytics.msg_73d103cd")),
         };
     }
 

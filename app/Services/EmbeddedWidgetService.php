@@ -72,7 +72,7 @@ class EmbeddedWidgetService
     public function generateEmbedCode(string $token, int $customerId): string
     {
         $origin = config('app.url');
-        $primaryColor = config('embedded-widget.embed.theme.primary_color', '#409EFF');
+        $primaryColor = config('embedded-widget.embed.theme.primary_color', '#0f172a');
 
         return <<<HTML
 <!-- HWT License Embedded Widget -->

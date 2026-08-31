@@ -6,6 +6,7 @@ use App\Contracts\PaymentGateway;
 use App\Models\Coupon;
 use App\Models\CouponRedemption;
 use App\Models\Customer;
+use App\Models\BillingCycle;
 use App\Models\Invoice;
 use App\Models\License;
 use App\Models\PricingPlan;
@@ -59,13 +60,7 @@ class BillingService
             $startsAt = $options['starts_at'] ?? now();
             $trialDays = $options['trial_days'] ?? $pricingPlan->trial_days;
 
-            $endsAt = match ($billingPeriod) {
-                'monthly' => $startsAt->copy()->addMonth(),
-                'quarterly' => $startsAt->copy()->addMonths(3),
-                'semi_annually' => $startsAt->copy()->addMonths(6),
-                'yearly' => $startsAt->copy()->addYear(),
-                default => $startsAt->copy()->addMonth(),
-            };
+            $endsAt = BillingCycle::calculateEndDate($billingPeriod, $startsAt);
 
             $subscription = Subscription::create([
                 'tenant_id' => $tenantId,
@@ -124,7 +119,7 @@ class BillingService
         $coupon = Coupon::where('code', $couponCode)->first();
 
         if (!$coupon) {
-            throw new \RuntimeException("优惠券 {$couponCode} 不存在");
+throw new \RuntimeException(__("app.billing.coupon_not_found", ['code' => $couponCode]));
         }
 
         if (!$coupon->isValid(
@@ -132,11 +127,11 @@ class BillingService
             plan: $subscription->plan,
             productId: $subscription->product_id
         )) {
-            throw new \RuntimeException("优惠券 {$couponCode} 已失效");
+throw new \RuntimeException(__("app.billing.coupon_expired", ['code' => $couponCode]));
         }
 
         if (isset($subscription->customer_id) && $coupon->hasReachedUserLimit((int) $subscription->customer_id)) {
-            throw new \RuntimeException("您已超过该优惠券的使用次数限制");
+throw new \RuntimeException(__("app.billing.coupon_usage_limit_exceeded"));
         }
 
         $originalAmount = (float) $subscription->price;
@@ -222,11 +217,11 @@ class BillingService
         $coupon = Coupon::where('code', $couponCode)->first();
 
         if (!$coupon) {
-            return ['valid' => false, 'error' => '优惠券不存在'];
+            return ['valid' => false, 'error' => __('app.billing_service.billing_service_d49d927c88')];
         }
 
         if (!$coupon->isValid(amount: $amount, plan: $plan, productId: $productId)) {
-            return ['valid' => false, 'error' => '优惠券已失效或不适用于当前订单'];
+            return ['valid' => false, 'error' => __('app.billing_service.billing_service_e54aeac478')];
         }
 
         $discount = $coupon->calculateDiscount($amount);
@@ -383,43 +378,42 @@ class BillingService
                 ];
             }
 
-            // 更新订阅
-            $newEndsAt = $subscription->calculateRenewalEndDate();
-
-            $subscription->update([
-                'ends_at' => $newEndsAt,
-                'next_billing_at' => $newEndsAt,
-                'last_billed_at' => now(),
-                'billing_cycles_completed' => ($subscription->billing_cycles_completed ?? 0) + 1,
-                'total_paid' => ($subscription->total_paid ?? 0) + (float) $subscription->price,
-                'status' => 'active',
-            ]);
-
-            // 延长关联 License 有效期
-            if ($subscription->relationLoaded('licenses') || true) {
-                License::where('subscription_id', $subscription->id)
-                    ->whereIn('status', ['active', 'suspended'])
-                    ->each(function (License $license) use ($newEndsAt) {
-                        $license->update([
-                            'expires_at' => $newEndsAt,
-                        ]);
-                        // 如果被挂起则恢复
-                        if ($license->status === 'suspended') {
-                            $license->update(['status' => 'active']);
-                        }
-                    });
-            }
-
+            // processPayment → markInvoicePaid 已延长订阅并结算佣金
             Log::info('Billing: renewal succeeded', [
                 'subscription_id' => $subscription->id,
-                'new_ends_at' => $newEndsAt->toIso8601String(),
                 'invoice_id' => $invoice->id,
             ]);
 
-            return ['success' => true, 'invoice' => $invoice];
+            return ['success' => true, 'invoice' => $invoice->fresh()];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => $e->getMessage()];
         }
+    }
+
+    /**
+     * 将续费结果应用到订阅与关联 License（不再创建账单/发起支付）
+     */
+    protected function applyRenewalToSubscription(Subscription $subscription): void
+    {
+        $newEndsAt = $subscription->calculateRenewalEndDate();
+
+        $subscription->update([
+            'ends_at' => $newEndsAt,
+            'next_billing_at' => $newEndsAt,
+            'last_billed_at' => now(),
+            'billing_cycles_completed' => ($subscription->billing_cycles_completed ?? 0) + 1,
+            'total_paid' => ($subscription->total_paid ?? 0) + (float) $subscription->price,
+            'status' => 'active',
+        ]);
+
+        License::where('subscription_id', $subscription->id)
+            ->whereIn('status', ['active', 'suspended'])
+            ->each(function (License $license) use ($newEndsAt) {
+                $license->update(['expires_at' => $newEndsAt]);
+                if ($license->status === 'suspended') {
+                    $license->update(['status' => 'active']);
+                }
+            });
     }
 
     /**
@@ -571,21 +565,53 @@ class BillingService
         $paymentResult = $this->paymentManager->charge($invoice);
 
         if ($paymentResult['success']) {
-            $invoice->update([
-                'status' => 'paid',
-                'paid_at' => now(),
+            $gateway = $this->paymentManager->gatewayName();
+            $transactionId = $paymentResult['transaction_id'] ?? null;
+
+            if ($this->paymentManager->isAsyncGateway($gateway)) {
+                $invoice->update([
+                    'metadata' => array_merge($invoice->metadata ?? [], [
+                        'pending_transaction_id' => $transactionId,
+                        'pending_gateway' => $gateway,
+                        'payment_initiated_at' => now()->toIso8601String(),
+                    ]),
+                ]);
+
+                Log::info('Billing: async payment initiated', [
+                    'invoice_id' => $invoice->id,
+                    'gateway' => $gateway,
+                    'transaction_id' => $transactionId,
+                ]);
+
+                return [
+                    'success' => true,
+                    'async' => true,
+                    'transaction_id' => $transactionId,
+                    'redirect_url' => $paymentResult['redirect_url'] ?? null,
+                    'client_secret' => $paymentResult['client_secret'] ?? null,
+                    'payment_form' => $paymentResult['payment_form'] ?? null,
+                    'method' => $gateway,
+                ];
+            }
+
+            $this->markInvoicePaid($invoice, [
+                'transaction_id' => $transactionId,
+                'payment_method' => $gateway,
+                'paid_via' => 'sync',
             ]);
 
             Log::info('Billing: payment processed', [
                 'invoice_id' => $invoice->id,
-                'gateway' => $this->paymentManager->gatewayName(),
-                'transaction_id' => $paymentResult['transaction_id'] ?? null,
+                'gateway' => $gateway,
+                'transaction_id' => $transactionId,
             ]);
 
             return [
                 'success' => true,
-                'transaction_id' => $paymentResult['transaction_id'] ?? null,
+                'async' => false,
+                'transaction_id' => $transactionId,
                 'redirect_url' => $paymentResult['redirect_url'] ?? null,
+                'method' => $gateway,
             ];
         }
 
@@ -614,7 +640,7 @@ class BillingService
 
             // 如果是续费账单，延长订阅
             if ($invoice->billing_reason === 'subscription_renew' && $invoice->subscription) {
-                $this->processRenewal($invoice->subscription);
+                $this->applyRenewalToSubscription($invoice->subscription);
             }
 
             // 如果是首次创建，激活 License
@@ -625,6 +651,11 @@ class BillingService
             // 结算佣金
             $this->commissionEngine->settleInvoice($invoice);
 
+            app(InvoicePaymentSettlementService::class)->settle($invoice->fresh(), [
+                'transaction_id' => $transactionId,
+                'payment_method' => $invoice->metadata['payment_method'] ?? 'gateway',
+            ]);
+
             return true;
         });
     }
@@ -634,6 +665,12 @@ class BillingService
      */
     public function markInvoicePaid(Invoice $invoice, array $paymentInfo): bool
     {
+        if ($invoice->status === 'paid') {
+            app(InvoicePaymentSettlementService::class)->settle($invoice, $paymentInfo);
+
+            return true;
+        }
+
         return DB::transaction(function () use ($invoice, $paymentInfo) {
             $invoice->update([
                 'status' => 'paid',
@@ -649,7 +686,7 @@ class BillingService
             // 激活订阅关联 License
             if ($invoice->subscription) {
                 if ($invoice->billing_reason === 'subscription_renew') {
-                    $this->processRenewal($invoice->subscription);
+                    $this->applyRenewalToSubscription($invoice->subscription);
                 } elseif ($invoice->billing_reason === 'subscription_create' || $invoice->billing_reason === 'subscription_update') {
                     $this->activateLicensesForSubscription($invoice->subscription);
                 }
@@ -657,6 +694,8 @@ class BillingService
 
             // 结算佣金
             $this->commissionEngine->settleInvoice($invoice);
+
+            app(InvoicePaymentSettlementService::class)->settle($invoice->fresh(), $paymentInfo);
 
             return true;
         });

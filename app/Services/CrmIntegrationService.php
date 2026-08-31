@@ -33,7 +33,7 @@ class CrmIntegrationService
             $result = match ($provider) {
                 'hubspot' => $this->connectHubSpot($connection, $credentials),
                 'salesforce' => $this->connectSalesforce($connection, $credentials),
-                default => throw new \InvalidArgumentException("不支持的CRM: {$provider}"),
+                default => throw new \InvalidArgumentException(__("app.crm_integration.msg_eeb71b10")),
             };
 
             $connection->update([
@@ -239,7 +239,7 @@ class CrmIntegrationService
         $response = Http::withToken($apiKey)->get('https://api.hubapi.com/crm/v3/objects/contacts');
 
         if (!$response->successful()) {
-            throw new \RuntimeException('HubSpot 连接失败: ' . $response->body());
+            throw new \RuntimeException(__("app.crm_integration.hubspot_connection_failed") . $response->body());
         }
 
         $connection->update([
@@ -262,7 +262,7 @@ class CrmIntegrationService
         ]);
 
         if (!$response->successful()) {
-            throw new \RuntimeException('Salesforce 连接失败: ' . $response->body());
+            throw new \RuntimeException(__("app.crm_integration.salesforce_connection_failed") . $response->body());
         }
 
         $data = $response->json();

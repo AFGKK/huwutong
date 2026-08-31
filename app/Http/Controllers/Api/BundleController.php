@@ -110,7 +110,7 @@ class BundleController extends Controller
     {
         $bundle = ProductBundle::findOrFail($id);
         $this->bundleService->deleteBundle($bundle);
-        return ApiResponse::success(['message' => '已删除']);
+        return ApiResponse::success(['message' => __("app.bundle.msg_5cc23262")]);
     }
 
     // ─── 公开API ───

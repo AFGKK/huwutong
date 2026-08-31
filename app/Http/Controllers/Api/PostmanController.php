@@ -32,7 +32,7 @@ class PostmanController extends Controller
     {
         $env = $this->postman->generateEnvironment($envName);
         if (!$env) {
-            return response()->json(['success' => false, 'message' => "环境 '{$envName}' 不存在"], 404);
+            return response()->json(['success' => false, 'message' => __('app.api.postman.env_not_found', ['name' => $envName])], 404);
         }
         return response()->json($env);
     }

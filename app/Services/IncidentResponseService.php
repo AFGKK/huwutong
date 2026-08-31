@@ -143,7 +143,7 @@ class IncidentResponseService
             $log[] = [
                 'step_index' => count($log),
                 'step_type' => 'error',
-                'action' => '系统异常',
+                'action' => __('app.incident_response.system_error'),
                 'status' => 'error',
                 'message' => $e->getMessage(),
                 'executed_at' => now()->toIso8601String(),
@@ -152,7 +152,7 @@ class IncidentResponseService
             $execution->update([
                 'status' => 'failed',
                 'execution_log' => $log,
-                'result_summary' => '执行异常：' . $e->getMessage(),
+                'result_summary' => __('app.incident_response.execution_error') . ': ' . $e->getMessage(),
             ]);
         }
 
@@ -177,7 +177,7 @@ class IncidentResponseService
             'send_alert_email' => $this->stepSendAlertEmail($step, $event),
             'create_ticket' => $this->stepCreateTicket($step, $event),
             'custom_webhook' => $this->stepCustomWebhook($step, $event),
-            default => ['status' => 'skipped', 'message' => "未知步骤类型: {$type}"],
+            default => ['status' => 'skipped', 'message' => __('app.incident_response.unknown_step_type', ['type' => $type])],
         };
     }
 
@@ -212,7 +212,7 @@ class IncidentResponseService
         $failed = count(array_filter($log, fn($l) => in_array($l['status'], ['failed', 'error'], true)));
         $total = count($log);
 
-        return "{$total} steps executed, {$success} succeeded, {$failed} failed.";
+        return __('app.incident_response.steps_summary', ['total' => $total, 'success' => $success, 'failed' => $failed]);
     }
 
     // ─── 步骤执行器 ───
@@ -223,96 +223,96 @@ class IncidentResponseService
             'event_id' => $event->id,
             'detail' => $step['detail'] ?? $event->toArray(),
         ]);
-        return ['status' => 'success', 'message' => '事件已记录'];
+        return ['status' => 'success', 'message' => __('app.incident_response.event_logged')];
     }
 
     protected function stepNotifyAdmin(array $step, SecurityEvent $event): array
     {
         $admins = User::role('admin')->where('tenant_id', $event->tenant_id)->get();
-        $message = $step['message'] ?? "安全事件: {$event->event_type}";
+        $message = $step['message'] ?? __('app.incident_response.security_event_type', ['type' => $event->event_type]);
 
         // 触发通知中心发送（委派给 NotificationService）
         foreach ($admins as $admin) {
             event(new \App\Events\SecurityAlertEvent($admin, $event, $message));
         }
 
-        return ['status' => 'success', 'message' => "已通知 " . $admins->count() . " 位管理员"];
+        return ['status' => 'success', 'message' => __('app.incident_response.admin_notified_count', ['count' => $admins->count()])];
     }
 
     protected function stepNotifyUser(array $step, SecurityEvent $event): array
     {
         if (! $event->user_id) {
-            return ['status' => 'skipped', 'message' => '事件无关联用户'];
+            return ['status' => 'skipped', 'message' => __('app.incident_response.event_no_user')];
         }
 
         $user = User::find($event->user_id);
         if (! $user) {
-            return ['status' => 'skipped', 'message' => '用户不存在'];
+            return ['status' => 'skipped', 'message' => __('app.incident_response.user_not_found')];
         }
 
-        event(new \App\Events\SecurityAlertEvent($user, $event, $step['message'] ?? '安全告警'));
-        return ['status' => 'success', 'message' => "已通知用户: {$user->email}"];
+        event(new \App\Events\SecurityAlertEvent($user, $event, $step['message'] ?? __('app.incident_response.security_alert')));
+        return ['status' => 'success', 'message' => __('app.incident_response.user_notified', ['email' => $user->email])];
     }
 
     protected function stepBlockIp(array $step, SecurityEvent $event): array
     {
         $ip = $event->ip_address ?? request()->ip();
         if (! $ip) {
-            return ['status' => 'skipped', 'message' => '无 IP 地址可封禁'];
+            return ['status' => 'skipped', 'message' => __('app.incident_response.no_ip_to_block')];
         }
 
         app(SecurityCenterService::class)->createIpWhitelist([
             'tenant_id' => $event->tenant_id,
             'type' => 'blacklist',
             'ip_address' => $ip,
-            'reason' => $step['reason'] ?? "SOP自动封禁 - {$event->event_type}",
+            'reason' => $step['reason'] ?? __('app.incident_response.sop_auto_block_reason', ['type' => $event->event_type]),
             'is_active' => true,
             'expires_at' => now()->addHours($step['block_hours'] ?? 24),
         ]);
 
-        return ['status' => 'success', 'message' => "IP {$ip} 已封禁"];
+        return ['status' => 'success', 'message' => __('app.incident_response.ip_blocked', ['ip' => $ip])];
     }
 
     protected function stepTerminateSessions(array $step, SecurityEvent $event): array
     {
         $userId = $event->user_id;
         if (! $userId) {
-            return ['status' => 'skipped', 'message' => '事件无关联用户'];
+            return ['status' => 'skipped', 'message' => __('app.incident_response.event_no_user')];
         }
 
         $terminated = \App\Models\UserSession::where('user_id', $userId)
             ->where('expires_at', '>', now())
             ->update(['expires_at' => now()]);
 
-        return ['status' => 'success', 'message' => "已终止 {$terminated} 个会话"];
+        return ['status' => 'success', 'message' => __('app.incident_response.sessions_terminated', ['count' => $terminated])];
     }
 
     protected function stepDisableAccount(array $step, SecurityEvent $event): array
     {
         $userId = $event->user_id;
         if (! $userId) {
-            return ['status' => 'skipped', 'message' => '事件无关联用户'];
+            return ['status' => 'skipped', 'message' => __('app.incident_response.event_no_user')];
         }
 
         $user = User::find($userId);
         if (! $user) {
-            return ['status' => 'skipped', 'message' => '用户不存在'];
+            return ['status' => 'skipped', 'message' => __('app.incident_response.user_not_found')];
         }
 
         $user->update(['is_active' => false]);
-        return ['status' => 'success', 'message' => "账号 {$user->email} 已停用"];
+        return ['status' => 'success', 'message' => __('app.incident_response.account_disabled', ['email' => $user->email])];
     }
 
     protected function stepRequireMfa(array $step, SecurityEvent $event): array
     {
         $userId = $event->user_id;
         if (! $userId) {
-            return ['status' => 'skipped', 'message' => '事件无关联用户'];
+            return ['status' => 'skipped', 'message' => __('app.incident_response.event_no_user')];
         }
 
         // 标记用户需强制 MFA 验证
         Cache::put("force_mfa:{$userId}", true, now()->addDays(7));
-        return ['status' => 'success', 'message' => "用户 {$userId} 已标记强制 MFA"];
+        return ['status' => 'success', 'message' => __('app.incident_response.user_mfa_required', ['id' => $userId])];
     }
 
     protected function stepSendAlertEmail(array $step, SecurityEvent $event): array
@@ -323,12 +323,12 @@ class IncidentResponseService
                 $step['template'] ?? 'emails.security-alert',
                 ['event' => $event, 'message' => $step['message'] ?? ''],
                 fn($mail) => $mail->to($step['to'] ?? config('mail.security_alert_to'))
-                    ->subject($step['subject'] ?? "[安全告警] {$event->event_type}"),
+                    ->subject($step['subject'] ?? ('[' . __('app.incident_response.security_alert_subject_prefix') . '] ' . $event->event_type)),
             );
-            return ['status' => 'success', 'message' => '告警邮件已发送'];
+            return ['status' => 'success', 'message' => __('app.incident_response.alert_email_sent')];
         } catch (\Throwable $e) {
             Log::error('SOP告警邮件发送失败', ['error' => $e->getMessage()]);
-            return ['status' => 'failed', 'message' => '邮件发送失败: ' . $e->getMessage()];
+            return ['status' => 'failed', 'message' => __('app.incident_response.email_send_failed') . ': ' . $e->getMessage()];
         }
     }
 
@@ -338,14 +338,14 @@ class IncidentResponseService
         try {
             $ticket = app(\App\Services\TicketService::class)->create([
                 'tenant_id' => $event->tenant_id,
-                'title' => $step['title'] ?? "[安全事件] {$event->event_type}",
-                'description' => $step['description'] ?? "由 SOP 自动创建\n\n事件ID: {$event->id}\n类型: {$event->event_type}",
+                'title' => $step['title'] ?? ('[' . __('app.incident_response.security_event_title_prefix') . '] ' . $event->event_type),
+                'description' => $step['description'] ?? __('app.incident_response.auto_created_by_sop', ['event_id' => $event->id, 'type' => $event->event_type]),
                 'priority' => $step['priority'] ?? 'high',
                 'category' => 'security',
             ]);
-            return ['status' => 'success', 'message' => "工单 #{$ticket->id} 已创建"];
+            return ['status' => 'success', 'message' => __('app.incident_response.ticket_created', ['id' => $ticket->id])];
         } catch (\Throwable $e) {
-            return ['status' => 'failed', 'message' => '工单创建失败: ' . $e->getMessage()];
+            return ['status' => 'failed', 'message' => __('app.incident_response.ticket_create_failed') . ': ' . $e->getMessage()];
         }
     }
 
@@ -353,7 +353,7 @@ class IncidentResponseService
     {
         $url = $step['webhook_url'] ?? null;
         if (! $url) {
-            return ['status' => 'skipped', 'message' => '未配置 Webhook URL'];
+            return ['status' => 'skipped', 'message' => __('app.incident_response.webhook_url_not_configured')];
         }
 
         try {
@@ -366,10 +366,10 @@ class IncidentResponseService
                     'timestamp' => now()->toIso8601String(),
                     'payload' => $step['payload'] ?? $event->toArray(),
                 ]);
-            return ['status' => 'success', 'message' => "Webhook 已推送至 {$url}"];
+            return ['status' => 'success', 'message' => __('app.incident_response.webhook_pushed', ['url' => $url])];
         } catch (\Throwable $e) {
             Log::warning('SOP Webhook 推送失败', ['url' => $url, 'error' => $e->getMessage()]);
-            return ['status' => 'failed', 'message' => 'Webhook 推送失败'];
+            return ['status' => 'failed', 'message' => __('app.incident_response.webhook_push_failed')];
         }
     }
 
@@ -408,7 +408,7 @@ class IncidentResponseService
             'status' => 'resolved',
             'resolved_by' => $resolvedBy,
             'resolved_at' => now(),
-            'result_summary' => ($execution->result_summary ?? '') . "\n已解决: {$notes}",
+            'result_summary' => ($execution->result_summary ?? '') . __('app.incident_response.resolved_note', ['notes' => $notes]),
         ]);
 
         return $execution->fresh();

@@ -136,10 +136,10 @@ class AccountingController extends Controller
         }
 
         if ($service->handleCallback($code)) {
-            return response()->json(['success' => true, 'message' => '授权成功']);
+            return response()->json(['success' => true, 'message' => __('app.controller_compat.accounting_msg_139')]);
         }
 
-        return response()->json(['success' => false, 'message' => '授权失败'], 500);
+        return response()->json(['success' => false, 'message' => __('app.controller_compat.accounting_msg_142')], 500);
     }
 
     /**

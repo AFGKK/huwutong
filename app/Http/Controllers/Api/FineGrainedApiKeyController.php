@@ -78,7 +78,7 @@ class FineGrainedApiKeyController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__("app.fine_grained_api_key.msg_e441b11e"), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -94,7 +94,7 @@ class FineGrainedApiKeyController extends Controller
             if (! $result['success']) {
                 return ApiResponse::error(
                     ErrorCode::VALIDATION_ERROR,
-                    '端点权限配置无效',
+                    __('app.fine_grained_api_key.invalid_endpoint_perms'),
                     422,
                     $result['errors']
                 );
@@ -118,7 +118,7 @@ class FineGrainedApiKeyController extends Controller
         return ApiResponse::success([
             'key' => $apiKey->fresh(),
             'endpoint_permissions' => $this->fineGrainedService->getKeyEndpointPermissions($apiKey),
-        ], '端点权限已更新');
+        ], __('app.fine_grained_api_key.endpoint_perms_updated'));
     }
 
     /**
@@ -143,7 +143,7 @@ class FineGrainedApiKeyController extends Controller
         $tenantId = $request->user()->tenant_id;
 
         if ($apiKey->tenant_id !== $tenantId) {
-            abort(403, '无权操作此 API 密钥');
+            abort(403, __("app.fine_grained_api_key.msg_b7839d18"));
         }
     }
 }

@@ -48,7 +48,7 @@ class ApprovalWorkflowController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.approval_workflow.validation_failed'), $validator->errors()->toArray());
         }
 
         $license = License::findOrFail($request->input('license_id'));
@@ -61,7 +61,7 @@ class ApprovalWorkflowController extends Controller
             $request->input('reason'),
         );
 
-        return ApiResponse::created($approval, '审批请求已提交');
+        return ApiResponse::created($approval, __('app.api.approval_workflow.submitted'));
     }
 
     /**
@@ -73,10 +73,10 @@ class ApprovalWorkflowController extends Controller
         $success = $this->approvalService->approve($approval, $request->user());
 
         if (!$success) {
-            return ApiResponse::error('审批失败：该请求已处理或已过期', 400);
+            return ApiResponse::error(__('app.api.approval_workflow.already_processed'), 400);
         }
 
-        return ApiResponse::success($approval->fresh(), '已批准');
+        return ApiResponse::success($approval->fresh(), __('app.api.approval_workflow.approved'));
     }
 
     /**
@@ -89,17 +89,17 @@ class ApprovalWorkflowController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('请填写拒绝原因', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.approval_workflow.reject_reason_required'), $validator->errors()->toArray());
         }
 
         $approval = LicenseChangeApproval::findOrFail($id);
         $success = $this->approvalService->reject($approval, $request->user(), $request->input('reason'));
 
         if (!$success) {
-            return ApiResponse::error('拒绝失败：该请求已处理或已过期', 400);
+            return ApiResponse::error(__('app.api.approval_workflow.reject_failed'), 400);
         }
 
-        return ApiResponse::success(null, '已拒绝');
+        return ApiResponse::success(null, __('app.api.approval_workflow.rejected'));
     }
 
     /**
@@ -112,10 +112,10 @@ class ApprovalWorkflowController extends Controller
         $success = $this->approvalService->cancel($approval, request()->user());
 
         if (!$success) {
-            return ApiResponse::error('取消失败：仅申请人或管理员可取消', 400);
+            return ApiResponse::error(__('app.api.approval_workflow.cancel_denied'), 400);
         }
 
-        return ApiResponse::success(null, '已取消');
+        return ApiResponse::success(null, __('app.api.approval_workflow.cancelled'));
     }
 
     /**
@@ -137,7 +137,7 @@ class ApprovalWorkflowController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.approval_workflow.validation_failed'), $validator->errors()->toArray());
         }
 
         return ApiResponse::success([

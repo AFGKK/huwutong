@@ -109,17 +109,17 @@ class PiplComplianceService
 
         // L4 核心数据 - 不可导出/删除
         if (in_array($col, ['password', 'password_history', 'mfa_secret', 'mfa_recovery_codes', 'mfa_recovery_used'])) {
-            return ['category' => 'private', 'level' => 'L4', 'purpose' => '账户安全认证', 'retention_days' => '180'];
+            return ['category' => 'private', 'level' => 'L4', 'purpose' => __('app.pipl_compliance.purpose_account_security'), 'retention_days' => '180'];
         }
 
         // L3 敏感数据
         $sensitiveFields = ['id_card', 'id_number', 'idcard', 'certificate', 'cert_no', 'bank_account', 'bank_card'];
         if (in_array($col, $sensitiveFields)) {
-            return ['category' => 'sensitive', 'level' => 'L3', 'purpose' => '实名认证与支付', 'retention_days' => '365'];
+            return ['category' => 'sensitive', 'level' => 'L3', 'purpose' => __('app.pipl_compliance.purpose_identity_payment'), 'retention_days' => '365'];
         }
 
         if (str_contains($col, 'id_card') || str_contains($col, 'cert_no') || str_contains($col, 'bank_card')) {
-            return ['category' => 'sensitive', 'level' => 'L3', 'purpose' => '实名认证与支付', 'retention_days' => '365'];
+            return ['category' => 'sensitive', 'level' => 'L3', 'purpose' => __('app.pipl_compliance.purpose_identity_payment'), 'retention_days' => '365'];
         }
 
         // L2 一般个人信息
@@ -129,14 +129,14 @@ class PiplComplianceService
             'billing_address_line1', 'billing_address_line2', 'billing_city', 'billing_state',
         ];
         if (in_array($col, $personFields)) {
-            return ['category' => 'person', 'level' => 'L2', 'purpose' => '业务运营与客户服务', 'retention_days' => '365'];
+            return ['category' => 'person', 'level' => 'L2', 'purpose' => __('app.pipl_compliance.purpose_business_ops'), 'retention_days' => '365'];
         }
 
         if ($tbl === 'users' && ! in_array($col, ['id', 'tenant_id', 'created_at', 'updated_at', 'deleted_at',
             'is_active', 'locale', 'timezone', 'email_verified_at', 'phone_verified_at',
             'last_login_at', 'remember_token', 'role',
         ])) {
-            return ['category' => 'person', 'level' => 'L2', 'purpose' => '用户账号管理', 'retention_days' => '365'];
+            return ['category' => 'person', 'level' => 'L2', 'purpose' => __('app.pipl_compliance.purpose_account_mgmt'), 'retention_days' => '365'];
         }
 
         // L1 一般业务数据
@@ -144,7 +144,7 @@ class PiplComplianceService
             'company', 'company_name', 'job_title', 'department',
             'locale', 'timezone', 'language',
         ])) {
-            return ['category' => 'general', 'level' => 'L1', 'purpose' => '业务运营', 'retention_days' => '180'];
+            return ['category' => 'general', 'level' => 'L1', 'purpose' => __('app.pipl_compliance.purpose_business_ops_simple'), 'retention_days' => '180'];
         }
 
         return null; // 非个人相关字段
@@ -295,16 +295,16 @@ class PiplComplianceService
     public function getSensitiveFieldDefinitions(): array
     {
         return [
-            'password' => ['category' => 'private', 'level' => 'L4', 'label' => '密码'],
-            'mfa_secret' => ['category' => 'private', 'level' => 'L4', 'label' => 'MFA 密钥'],
-            'mfa_recovery_codes' => ['category' => 'private', 'level' => 'L4', 'label' => 'MFA 恢复码'],
-            'id_card' => ['category' => 'sensitive', 'level' => 'L3', 'label' => '身份证号'],
-            'bank_account' => ['category' => 'sensitive', 'level' => 'L3', 'label' => '银行账户'],
-            'phone' => ['category' => 'person', 'level' => 'L2', 'label' => '手机号'],
-            'email' => ['category' => 'person', 'level' => 'L2', 'label' => '邮箱'],
-            'address' => ['category' => 'person', 'level' => 'L2', 'label' => '地址'],
-            'name' => ['category' => 'person', 'level' => 'L2', 'label' => '姓名'],
-            'ip_address' => ['category' => 'person', 'level' => 'L2', 'label' => 'IP 地址'],
+            'password' => ['category' => 'private', 'level' => 'L4', 'label' => __('app.pipl_compliance.label_password')],
+            'mfa_secret' => ['category' => 'private', 'level' => 'L4', 'label' => __('app.pipl_compliance.label_mfa_secret')],
+            'mfa_recovery_codes' => ['category' => 'private', 'level' => 'L4', 'label' => __('app.pipl_compliance.label_mfa_recovery')],
+            'id_card' => ['category' => 'sensitive', 'level' => 'L3', 'label' => __('app.pipl_compliance.label_id_card')],
+            'bank_account' => ['category' => 'sensitive', 'level' => 'L3', 'label' => __('app.pipl_compliance.label_bank_account')],
+            'phone' => ['category' => 'person', 'level' => 'L2', 'label' => __('app.pipl_compliance.label_phone')],
+            'email' => ['category' => 'person', 'level' => 'L2', 'label' => __('app.pipl_compliance.label_email')],
+            'address' => ['category' => 'person', 'level' => 'L2', 'label' => __('app.pipl_compliance.label_address')],
+            'name' => ['category' => 'person', 'level' => 'L2', 'label' => __('app.pipl_compliance.label_name')],
+            'ip_address' => ['category' => 'person', 'level' => 'L2', 'label' => __('app.pipl_compliance.label_ip_address')],
         ];
     }
 

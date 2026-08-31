@@ -141,7 +141,7 @@ class TicketService
     public function submitSatisfaction(Ticket $ticket, int $score, ?string $comment = null): TicketSatisfaction
     {
         if ($ticket->satisfaction) {
-            throw new \RuntimeException('该工单已评价过');
+            throw new \RuntimeException(__("app.ticket.ticket_already_rated"));
         }
 
         $satisfaction = TicketSatisfaction::create([

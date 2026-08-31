@@ -84,7 +84,7 @@ class AiFriendController extends Controller
             'visibility' => $validated['visibility'] ?? 'global',
             'creator_id' => $myId,
             'category' => $validated['category'] ?? 'assistant',
-            'welcome_message' => $validated['welcome_message'] ?? '你好！我是' . $validated['name'] . '，有什么可以帮助你的吗？',
+            'welcome_message' => $validated['welcome_message'] ?? __('app.api.ai_friend.welcome_default', ['name' => $validated['name']]),
             'description' => $validated['description'] ?? '',
         ]);
 
@@ -99,13 +99,13 @@ class AiFriendController extends Controller
             'model_name' => $validated['model_name'],
             'api_base_url' => $validated['api_base_url'] ?? null,
             'api_key_encrypted' => $encryptedKey,
-            'system_prompt' => $validated['system_prompt'] ?? '你是一个友好的 AI 助手。',
+            'system_prompt' => $validated['system_prompt'] ?? __('app.api.ai_friend.system_prompt_default'),
             'temperature' => $validated['temperature'] ?? 0.7,
             'max_tokens' => $validated['max_tokens'] ?? 2048,
             'context_window' => $validated['context_window'] ?? 20,
         ]);
 
-        return ApiResponse::success($profile->load('user', 'llmConfig'), 'AI 好友已创建', 201);
+        return ApiResponse::success($profile->load('user', 'llmConfig'), __('app.api.ai_friend.created'), 201);
     }
 
     /**
@@ -121,12 +121,12 @@ class AiFriendController extends Controller
         $path = $file->store('ai-friends', 'public');
 
         if (!$path) {
-            return ApiResponse::error('头像上传失败', 500);
+            return ApiResponse::error(__('app.api.ai_friend.avatar_fail'), 500);
         }
 
         $url = '/storage/' . $path;
 
-        return ApiResponse::success(['url' => $url], '头像上传成功');
+        return ApiResponse::success(['url' => $url], __('app.api.ai_friend.avatar_ok'));
     }
 
     public function adminUpdate(int $id, Request $request): JsonResponse
@@ -147,7 +147,7 @@ class AiFriendController extends Controller
             $profile->llmConfig->update($llmData);
         }
 
-        return ApiResponse::success($profile->fresh()->load('user', 'llmConfig'), '已更新');
+        return ApiResponse::success($profile->fresh()->load('user', 'llmConfig'), __('app.api.ai_friend.updated'));
     }
 
     public function adminPublish(int $id): JsonResponse
@@ -158,19 +158,19 @@ class AiFriendController extends Controller
         // AIF-003: 全局分发 - 懒加载方式（好友列表 API 合并）
         // 实际线上可用队列异步写入
 
-        return ApiResponse::success(null, '已发布');
+        return ApiResponse::success(null, __('app.api.ai_friend.published'));
     }
 
     public function adminTest(int $id, Request $request, LlmService $llm): JsonResponse
     {
         $profile = AiFriendProfile::with('llmConfig', 'user')->findOrFail($id);
         if (!$profile->llmConfig) {
-            return ApiResponse::error('请先配置模型', 400);
+            return ApiResponse::error(__('app.api.ai_friend.configure_model'), 400);
         }
 
         $result = $this->orchestrator->forFriend($profile)->testConnection();
         return $result['success']
-            ? ApiResponse::success($result, '连接成功')
+            ? ApiResponse::success($result, __('app.api.ai_friend.connect_ok'))
             : ApiResponse::error($result['message'], 400);
     }
 
@@ -211,7 +211,7 @@ class AiFriendController extends Controller
                 return [
                     'id' => $f->id,
                     'user_id' => $f->user_id,
-                    'name' => $f->user->name ?? 'AI 助手',
+                    'name' => $f->user->name ?? __('app.api.ai_friend.assistant'),
                     'avatar' => $f->user->avatar ?? '',
                     'category' => $f->category,
                     'description' => $f->description,
@@ -232,7 +232,7 @@ class AiFriendController extends Controller
                 return [
                     'id' => $f->id,
                     'user_id' => $f->user_id,
-                    'name' => $c->remark_name ?? $f->user->name ?? 'AI 助手',
+                    'name' => $c->remark_name ?? $f->user->name ?? __('app.api.ai_friend.assistant'),
                     'avatar' => $f->user->avatar ?? '',
                     'category' => $f->category,
                     'description' => $f->description,
@@ -260,7 +260,7 @@ class AiFriendController extends Controller
 
         $profile = AiFriendProfile::with('llmConfig', 'user')->findOrFail($friendId);
         if (!$profile->llmConfig) {
-            return ApiResponse::error('该 AI 好友暂未配置', 400);
+            return ApiResponse::error(__('app.api.ai_friend.not_configured'), 400);
         }
 
         // 查找或创建会话
@@ -272,7 +272,7 @@ class AiFriendController extends Controller
         if (!$conv) {
             $conv = UserConversation::create([
                 'type' => 'ai_friend',
-                'name' => $profile->user->name ?? 'AI 好友',
+                'name' => $profile->user->name ?? __('app.api.ai_friend.friend_label'),
                 'created_by' => $myId,
             ]);
             ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $myId, 'role' => 'member']);
@@ -291,9 +291,9 @@ class AiFriendController extends Controller
         // 生成 AI 回复
         try {
             $result = $this->orchestrator->forFriend($profile)->generate($conv->id, $validated['message']);
-            $reply = $result['content'] ?? '抱歉，我暂时无法回答。';
+            $reply = $result['content'] ?? __('app.api.ai_friend.sorry_reply');
         } catch (\Throwable $e) {
-            $reply = 'AI 暂时不可用，请稍后再试。';
+            $reply = __('app.api.ai_friend.unavailable');
             Log::error('[AiFriend] chat error: ' . $e->getMessage());
         }
 
@@ -301,7 +301,7 @@ class AiFriendController extends Controller
         $aiMsg = ConversationMessage::create([
             'conversation_id' => $conv->id,
             'sender_id' => $profile->user_id,
-            'content' => $reply . "\n\n— 🤖 *AI 生成*",
+            'content' => $reply . __('app.api.ai_friend.ai_generated_suffix'),
             'message_type' => 'ai_reply',
             'client_msg_id' => 'aif-bot-' . uniqid(),
         ]);
@@ -329,7 +329,7 @@ class AiFriendController extends Controller
 
         $profile = AiFriendProfile::with('llmConfig', 'user')->findOrFail($friendId);
         if (!$profile->llmConfig) {
-            throw new \RuntimeException('AI 好友未配置');
+            throw new \RuntimeException(__('app.api.ai_friend.profile_missing'));
         }
 
         // 查找或创建会话
@@ -341,7 +341,7 @@ class AiFriendController extends Controller
         if (!$conv) {
             $conv = UserConversation::create([
                 'type' => 'ai_friend',
-                'name' => $profile->user->name ?? 'AI 好友',
+                'name' => $profile->user->name ?? __('app.api.ai_friend.friend_label'),
                 'created_by' => $myId,
             ]);
             ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $myId, 'role' => 'member']);
@@ -374,7 +374,7 @@ class AiFriendController extends Controller
                 }
 
                 // 保存 AI 回复（DOM-004）
-                $aiContent = $fullContent . "\n\n— 🤖 *AI 生成*";
+                $aiContent = $fullContent . __('app.api.ai_friend.ai_generated_suffix');
                 ConversationMessage::create([
                     'conversation_id' => $conv->id,
                     'sender_id' => $profile->user_id,
@@ -441,8 +441,8 @@ class AiFriendController extends Controller
             'visibility' => 'private',
             'creator_id' => $myId,
             'category' => 'custom',
-            'welcome_message' => '你好！我是你的私人 AI 好友 ' . $validated['name'] . '。',
-            'description' => '个人创建的 AI 好友',
+            'welcome_message' => __('app.api.ai_friend.private_welcome', ['name' => $validated['name']]),
+            'description' => __('app.api.ai_friend.private_desc'),
             'published_at' => now(),
         ]);
 
@@ -453,7 +453,7 @@ class AiFriendController extends Controller
             'model_name' => $validated['model_name'],
             'api_base_url' => $validated['api_base_url'] ?? null,
             'api_key_encrypted' => encrypt($validated['api_key']),
-            'system_prompt' => $validated['system_prompt'] ?? '你是一个友好的 AI 助手。',
+            'system_prompt' => $validated['system_prompt'] ?? __('app.api.ai_friend.system_prompt_default'),
             'temperature' => 0.7,
             'max_tokens' => 2048,
             'context_window' => 20,
@@ -466,14 +466,14 @@ class AiFriendController extends Controller
             'source' => 'user_created',
         ]);
 
-        return ApiResponse::success($profile->load('user', 'llmConfig'), '私人 AI 好友已创建', 201);
+        return ApiResponse::success($profile->load('user', 'llmConfig'), __('app.api.ai_friend.private_created'), 201);
     }
 
     public function togglePin(int $id): JsonResponse
     {
         $myId = auth()->id();
         $contact = UserAiContact::where('user_id', $myId)->where('ai_friend_id', $id)->first();
-        if (!$contact) return ApiResponse::error('未找到联系人', 404);
+        if (!$contact) return ApiResponse::error(__('app.api.ai_friend.contact_missing'), 404);
         $contact->update(['is_pinned' => !$contact->is_pinned]);
         return ApiResponse::success(['is_pinned' => $contact->fresh()->is_pinned]);
     }
@@ -482,7 +482,7 @@ class AiFriendController extends Controller
     {
         $myId = auth()->id();
         $contact = UserAiContact::where('user_id', $myId)->where('ai_friend_id', $id)->first();
-        if (!$contact) return ApiResponse::error('未找到联系人', 404);
+        if (!$contact) return ApiResponse::error(__('app.api.ai_friend.contact_missing'), 404);
         $contact->update(['is_hidden' => !$contact->is_hidden]);
         return ApiResponse::success(['is_hidden' => $contact->fresh()->is_hidden]);
     }
@@ -494,12 +494,12 @@ class AiFriendController extends Controller
     {
         $myId = auth()->id();
         $contact = UserAiContact::where('user_id', $myId)->where('ai_friend_id', $id)->first();
-        if (!$contact) return ApiResponse::error('未找到联系人', 404);
+        if (!$contact) return ApiResponse::error(__('app.api.ai_friend.contact_missing'), 404);
 
         $profile = AiFriendProfile::find($id);
-        if (!$profile) return ApiResponse::error('AI 好友不存在', 404);
+        if (!$profile) return ApiResponse::error(__('app.api.ai_friend.friend_missing'), 404);
         if ($profile->visibility === 'global') {
-            return ApiResponse::error('不能删除平台 AI 好友', 403);
+            return ApiResponse::error(__('app.api.ai_friend.cannot_delete_platform'), 403);
         }
 
         // 删除关联数据
@@ -510,6 +510,6 @@ class AiFriendController extends Controller
         $profile->llmConfig()->delete();
         $profile->delete();
 
-        return ApiResponse::success(null, 'AI 好友已删除');
+        return ApiResponse::success(null, __('app.api.ai_friend.deleted'));
     }
 }

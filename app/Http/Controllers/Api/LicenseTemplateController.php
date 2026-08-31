@@ -92,7 +92,7 @@ class LicenseTemplateController extends Controller
             'sort_order' => $data['sort_order'] ?? 0,
         ]);
 
-        return ApiResponse::created($template, '模板创建成功');
+        return ApiResponse::created($template, __("app.license_template.msg_49c62b01"));
     }
 
     /**
@@ -121,7 +121,7 @@ class LicenseTemplateController extends Controller
 
         $licenseTemplate->update($validator->validated());
 
-        return ApiResponse::success($licenseTemplate->fresh(), '模板更新成功');
+        return ApiResponse::success($licenseTemplate->fresh(), __('app.license_template.template_updated'));
     }
 
     /**
@@ -133,7 +133,7 @@ class LicenseTemplateController extends Controller
 
         $licenseTemplate->delete();
 
-        return ApiResponse::success(null, '模板已删除');
+        return ApiResponse::success(null, __("app.license_template.msg_979b4faf"));
     }
 
     /**
@@ -148,7 +148,7 @@ class LicenseTemplateController extends Controller
 
         return ApiResponse::success(
             ['is_active' => $licenseTemplate->is_active],
-            $licenseTemplate->is_active ? '模板已启用' : '模板已停用'
+            $licenseTemplate->is_active ? __('app.license_template.template_enabled') : __('app.license_template.template_disabled')
         );
     }
 }

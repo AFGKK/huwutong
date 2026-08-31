@@ -53,7 +53,7 @@ class QueueMonitorController extends Controller
     public function retryDeadLetter(int $id): JsonResponse
     {
         $letter = $this->monitor->retryDeadLetter($id);
-        return ApiResponse::success($letter, '任务已重新加入队列');
+        return ApiResponse::success($letter, __('app.queue_monitor.requeued'));
     }
 
     /**
@@ -68,7 +68,7 @@ class QueueMonitorController extends Controller
         ]);
 
         $results = $this->monitor->batchRetryDeadLetters($validated['ids']);
-        return ApiResponse::success($results, "重试完成: {$results['success']} 成功, {$results['failed']} 失败");
+        return ApiResponse::success($results, __('app.queue_monitor.retry_result', ['success' => $results['success'], 'failed' => $results['failed']]));
     }
 
     /**
@@ -78,7 +78,7 @@ class QueueMonitorController extends Controller
     public function ignoreDeadLetter(int $id): JsonResponse
     {
         $letter = $this->monitor->ignoreDeadLetter($id);
-        return ApiResponse::success($letter, '已忽略');
+        return ApiResponse::success($letter, __('app.queue_monitor.ignored'));
     }
 
     /**
@@ -99,6 +99,6 @@ class QueueMonitorController extends Controller
     public function cleanup(): JsonResponse
     {
         $deleted = $this->monitor->cleanup();
-        return ApiResponse::success(['deleted' => $deleted], "已清理 {$deleted} 条记录");
+        return ApiResponse::success(['deleted' => $deleted], __('app.queue_monitor.cleaned', ['count' => $deleted]));
     }
 }

@@ -84,6 +84,6 @@ class MrrWaterfallController extends Controller
 
         $result = $this->mrrService->scanAndRecordMonthlyChanges($tenantId, $yearMonth);
 
-        return ApiResponse::success($result, "已记录 {$result['recorded']} 条MRR变化");
+        return ApiResponse::success($result, __('app.mrr_waterfall.recorded', ['count' => $result['recorded']]));
     }
 }

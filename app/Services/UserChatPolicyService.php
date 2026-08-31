@@ -14,7 +14,18 @@ class UserChatPolicyService
 {
     public const DM_EVERYONE = 'everyone';
     public const DM_FOLLOWERS_ONLY = 'followers_only';
+    public const DM_MUTUAL_FOLLOW = 'mutual_follow';
     public const DM_CLOSED = 'closed';
+
+    /** Stranger unreplied messages before a 24h mute. */
+    public const STRANGER_UNREPLIED_LIMIT = 5;
+
+    public const DM_POLICIES = [
+        self::DM_EVERYONE,
+        self::DM_FOLLOWERS_ONLY,
+        self::DM_MUTUAL_FOLLOW,
+        self::DM_CLOSED,
+    ];
 
     public function isGloballyMuted(int $userId): bool
     {
@@ -32,7 +43,12 @@ class UserChatPolicyService
 
         $hours = max(1, (int) now()->diffInHours($mute->muted_until, false));
 
-        return "因向陌生人发送过多未回复消息，您已被限制私信 {$hours} 小时";
+        return __('app.api.chat.dm_muted', ['hours' => $hours]);
+    }
+
+    public function areMutuallyFollowing(int $userA, int $userB): bool
+    {
+        return $this->isFollowing($userA, $userB) && $this->isFollowing($userB, $userA);
     }
 
     public function isBlocked(int $userA, int $userB): bool
@@ -82,7 +98,7 @@ class UserChatPolicyService
         $settings = UserPrivacySetting::defaultFor($userId);
         $policy = $settings->dm_policy ?? null;
 
-        if (in_array($policy, [self::DM_EVERYONE, self::DM_FOLLOWERS_ONLY, self::DM_CLOSED], true)) {
+        if (in_array($policy, self::DM_POLICIES, true)) {
             return $policy;
         }
 
@@ -92,10 +108,10 @@ class UserChatPolicyService
     /**
      * @return array{allowed: bool, reason?: string, requires_request?: bool, seller_inquiry?: bool}
      */
-    public function evaluatePrivateMessage(int $senderId, int $recipientId, ?int $productId = null): array
+    public function evaluatePrivateMessage(int $senderId, int $recipientId, ?int $productId = null, bool $bypassDmPolicy = false): array
     {
         if ($senderId === $recipientId) {
-            return ['allowed' => false, 'reason' => '不能给自己发私信'];
+            return ['allowed' => false, 'reason' => __('app.api.chat.cannot_dm_self')];
         }
 
         if ($this->isGloballyMuted($senderId)) {
@@ -103,7 +119,7 @@ class UserChatPolicyService
         }
 
         if ($this->isBlocked($senderId, $recipientId)) {
-            return ['allowed' => false, 'reason' => '无法向已拉黑的用户发送消息'];
+            return ['allowed' => false, 'reason' => __('app.api.chat.cannot_dm_blocked')];
         }
 
         if ($this->areFriends($senderId, $recipientId)) {
@@ -117,17 +133,66 @@ class UserChatPolicyService
             }
         }
 
+        if ($bypassDmPolicy) {
+            return ['allowed' => true, 'requires_request' => false, 'ticket_inquiry' => true];
+        }
+
         $policy = $this->getDmPolicy($recipientId);
 
         if ($policy === self::DM_CLOSED) {
-            return ['allowed' => false, 'reason' => '对方已关闭私信'];
+            return ['allowed' => false, 'reason' => __('app.api.chat.dm_closed')];
         }
 
         if ($policy === self::DM_FOLLOWERS_ONLY && ! $this->isFollowing($senderId, $recipientId)) {
-            return ['allowed' => false, 'reason' => '对方仅接受关注的人私信'];
+            return ['allowed' => false, 'reason' => __('app.api.chat.dm_followers_only')];
+        }
+
+        if ($policy === self::DM_MUTUAL_FOLLOW && ! $this->areMutuallyFollowing($senderId, $recipientId)) {
+            return ['allowed' => false, 'reason' => __('app.api.chat.dm_mutual_follow_only')];
         }
 
         return ['allowed' => true, 'requires_request' => true];
+    }
+
+    /**
+     * Remaining stranger-DM quota for an unreplied conversation (anti-harassment).
+     *
+     * @return array{max: int, sent: int, remaining: int, recipient_replied: bool, muted: bool, muted_until: ?string, reason: ?string, hours_left: int}
+     */
+    public function strangerLimitInfo(int $senderId, int $conversationId): array
+    {
+        $max = self::STRANGER_UNREPLIED_LIMIT;
+        $mute = UserDmMute::where('user_id', $senderId)->first();
+        $muted = $mute && $mute->isActive();
+        $hoursLeft = 0;
+        if ($muted && $mute->muted_until) {
+            $hoursLeft = max(1, (int) now()->diffInHours($mute->muted_until, false));
+        }
+
+        $recipientId = ConversationParticipant::where('conversation_id', $conversationId)
+            ->where('user_id', '!=', $senderId)
+            ->value('user_id');
+
+        $recipientReplied = $recipientId
+            ? ConversationMessage::where('conversation_id', $conversationId)
+                ->where('sender_id', $recipientId)
+                ->exists()
+            : false;
+
+        $sentCount = ConversationMessage::where('conversation_id', $conversationId)
+            ->where('sender_id', $senderId)
+            ->count();
+
+        return [
+            'max' => $max,
+            'sent' => $sentCount,
+            'remaining' => $recipientReplied ? $max : max(0, $max - $sentCount),
+            'recipient_replied' => $recipientReplied,
+            'muted' => $muted,
+            'muted_until' => $muted ? $mute->muted_until?->toIso8601String() : null,
+            'reason' => $muted ? ($mute->reason ?? null) : null,
+            'hours_left' => $hoursLeft,
+        ];
     }
 
     public function markRecipientRequestPending(int $conversationId, int $recipientId): void
@@ -190,7 +255,7 @@ class UserChatPolicyService
             ->where('sender_id', $senderId)
             ->count();
 
-        if ($sentCount < 5) {
+        if ($sentCount < self::STRANGER_UNREPLIED_LIMIT) {
             return null;
         }
 

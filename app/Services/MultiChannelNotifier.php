@@ -172,7 +172,13 @@ class MultiChannelNotifier
 
         // 短信内容需要精简
         $smsContent = substr("{$title}: {$content}", 0, 150);
-        $this->smsService->sendNotification($phone, $smsContent);
+        $result = $this->smsService->sendNotification($phone, $smsContent);
+
+        if (! ($result['success'] ?? false)) {
+            Log::warning("MultiChannelNotifier: sms failed for user {$user->id}", [
+                'message' => $result['message'] ?? 'unknown',
+            ]);
+        }
     }
 
     /**

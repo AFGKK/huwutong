@@ -34,10 +34,21 @@ class KnowledgeBaseService
      */
     public function searchArticles(string $query, array $filters = []): array
     {
+        if (config('product-search.engine') === 'meilisearch') {
+            $meili = app(MeilisearchService::class);
+            if ($meili->isAvailable()) {
+                try {
+                    return $this->searchArticlesViaMeili($meili, $query, $filters);
+                } catch (\Throwable $e) {
+                    // 降级 MySQL
+                }
+            }
+        }
+
         $articles = KbArticle::published()
             ->search($query)
-            ->when($filters['category_id'] ?? null, fn($q, $v) => $q->where('category_id', $v))
-            ->when($filters['locale'] ?? null, fn($q, $v) => $q->where('locale', $v))
+            ->when($filters['category_id'] ?? null, fn ($q, $v) => $q->where('category_id', $v))
+            ->when($filters['locale'] ?? null, fn ($q, $v) => $q->where('locale', $v))
             ->with('category:id,name')
             ->orderBy('helpful_count', 'desc')
             ->paginate($filters['per_page'] ?? 15);
@@ -45,6 +56,42 @@ class KnowledgeBaseService
         return [
             'articles' => $articles,
             'suggestions' => $this->getSearchSuggestions($query),
+            'engine' => 'database',
+        ];
+    }
+
+    protected function searchArticlesViaMeili(MeilisearchService $meili, string $query, array $filters): array
+    {
+        $perPage = (int) ($filters['per_page'] ?? 15);
+        $page = max(1, (int) ($filters['page'] ?? 1));
+
+        $meiliFilters = ['status' => 'published'];
+        if ($categoryId = $filters['category_id'] ?? null) {
+            $meiliFilters['category_id'] = (int) $categoryId;
+        }
+        if ($locale = $filters['locale'] ?? null) {
+            $meiliFilters['locale'] = $locale;
+        }
+
+        $result = $meili->searchKbForService($query, $meiliFilters, $perPage, $page);
+        $ids = collect($result['hits'] ?? [])->pluck('id')->filter()->map(fn ($id) => (int) $id)->all();
+
+        if ($ids === []) {
+            $articles = KbArticle::published()->whereRaw('1 = 0')->paginate($perPage, ['*'], 'page', $page);
+        } else {
+            $idsCsv = implode(',', $ids);
+            $articles = KbArticle::published()
+                ->whereIn('id', $ids)
+                ->with('category:id,name')
+                ->orderByRaw("array_position(ARRAY[{$idsCsv}]::bigint[], id)")
+                ->paginate($perPage, ['*'], 'page', $page);
+        }
+
+        return [
+            'articles' => $articles,
+            'suggestions' => collect($result['hits'] ?? [])->pluck('title')->filter()->take(5)->values()->all(),
+            'engine' => 'meilisearch',
+            'total' => $result['total'] ?? $articles->total(),
         ];
     }
 

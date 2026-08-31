@@ -78,7 +78,7 @@ class AiComplianceController extends Controller
     public function destroySystem(int $id): JsonResponse
     {
         $this->compliance->deleteSystem($id);
-        return response()->json(['success' => true, 'message' => '已删除']);
+        return response()->json(['success' => true, 'message' => __('app.common.deleted')]);
     }
 
     // ─── 风险影响评估 ───
@@ -162,7 +162,7 @@ class AiComplianceController extends Controller
     public function destroyTrainingData(int $id): JsonResponse
     {
         $this->compliance->deleteTrainingData($id);
-        return response()->json(['success' => true, 'message' => '已删除']);
+        return response()->json(['success' => true, 'message' => __('app.common.deleted')]);
     }
 
     // ─── 透明度披露 ───

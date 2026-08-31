@@ -195,7 +195,7 @@ class RevenueRecognitionController extends Controller
                 $id,
                 $request->reason ?? 'manual_cancel',
             );
-            return ApiResponse::success($schedule, '排程已取消');
+            return ApiResponse::success($schedule, __("app.revenue_recognition.msg_73dc3e5c"));
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 400);
         }
@@ -208,7 +208,7 @@ class RevenueRecognitionController extends Controller
     {
         try {
             $schedule = $this->revenueService->recomputeSchedule($id);
-            return ApiResponse::success($schedule, '排程已重算');
+            return ApiResponse::success($schedule, __("app.revenue_recognition.msg_ebb86b91"));
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 400);
         }

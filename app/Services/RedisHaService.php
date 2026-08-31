@@ -120,7 +120,7 @@ class RedisHaService
         if ($this->getMode() !== 'sentinel') {
             return [
                 'service' => $service,
-                'error' => '当前模式不是 Sentinel，请检查 REDIS_MODE 配置',
+                'error' => __('app.redis_ha.redis_ha_c7485711b3'),
                 'mode' => $this->getMode(),
             ];
         }
@@ -172,7 +172,7 @@ class RedisHaService
         if (!$health['ping']) {
             $issues[] = [
                 'severity' => 'critical',
-                'message' => 'Redis 无法连接',
+                'message' => __('app.redis_ha.redis_ha_7d9fc2d6b4'),
                 'component' => 'connectivity',
             ];
         }
@@ -217,7 +217,7 @@ class RedisHaService
         if ($health['role'] === 'slave') {
             $issues[] = [
                 'severity' => 'warning',
-                'message' => '当前连接为从库，主库可能故障',
+                'message' => __('app.redis_ha.redis_ha_3b78d12ffd'),
                 'component' => 'replication',
             ];
         }
@@ -258,7 +258,7 @@ class RedisHaService
     public function triggerFailover(): array
     {
         if ($this->getMode() !== 'sentinel') {
-            return ['success' => false, 'error' => '仅 Sentinel 模式支持手动故障转移'];
+            return ['success' => false, 'error' => __('app.redis_ha.redis_ha_a4dbc68d79')];
         }
 
         $service = config('redis-ha.sentinel.service', 'mymaster');
@@ -298,7 +298,7 @@ class RedisHaService
 
             return [
                 'success' => true,
-                'message' => 'Redis 缓存已清除',
+                'message' => __('app.redis_ha.redis_ha_5193e76e07'),
                 'database' => config('database.redis.default.database', 0),
             ];
         } catch (Exception $e) {

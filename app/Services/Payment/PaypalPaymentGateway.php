@@ -27,7 +27,7 @@ class PaypalPaymentGateway implements PaymentGateway
      */
     private function baseUrl(): string
     {
-        $sandbox = $this->config['sandbox'] ?? env('PAYPAL_SANDBOX', true);
+        $sandbox = $this->config['sandbox'] ?? config('payment.channels.paypal.sandbox', env('PAYPAL_SANDBOX', true));
         return $sandbox
             ? 'https://api-m.sandbox.paypal.com'
             : 'https://api-m.paypal.com';
@@ -42,8 +42,8 @@ class PaypalPaymentGateway implements PaymentGateway
             return $this->accessToken;
         }
 
-        $clientId = $this->config['client_id'] ?? env('PAYPAL_CLIENT_ID');
-        $clientSecret = $this->config['client_secret'] ?? env('PAYPAL_CLIENT_SECRET');
+        $clientId = $this->config['client_id'] ?? config('payment.channels.paypal.client_id', env('PAYPAL_CLIENT_ID'));
+        $clientSecret = $this->config['client_secret'] ?? config('payment.channels.paypal.client_secret', env('PAYPAL_CLIENT_SECRET'));
 
         if (empty($clientId) || empty($clientSecret)) {
             Log::error('PayPal: missing client_id or client_secret');
@@ -85,8 +85,8 @@ class PaypalPaymentGateway implements PaymentGateway
 
         $amount = number_format($invoice->amount, 2, '.', '');
         $currency = $invoice->currency ?? 'USD';
-        $returnUrl = $options['return_url'] ?? rtrim(env('APP_URL', ''), '/') . '/payment/success';
-        $cancelUrl = $options['cancel_url'] ?? rtrim(env('APP_URL', ''), '/') . '/payment/cancel';
+        $returnUrl = $options['return_url'] ?? config('app.url', '') . '/payment/success';
+        $cancelUrl = $options['cancel_url'] ?? config('app.url', '') . '/payment/cancel';
 
         try {
             $response = Http::withToken($accessToken)

@@ -73,7 +73,7 @@ class CircuitBreakerController extends Controller
             Log::info("手动重置所有熔断服务");
         }
 
-        return ApiResponse::success(null, '熔断状态已重置');
+        return ApiResponse::success(null, __('app.api.circuit_breaker.reset_done'));
     }
 
     /**

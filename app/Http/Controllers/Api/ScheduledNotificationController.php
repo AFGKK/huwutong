@@ -25,7 +25,7 @@ class ScheduledNotificationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.scheduled_notification.validation_failed'), $validator->errors()->toArray());
         }
 
         return ApiResponse::success(
@@ -68,7 +68,7 @@ class ScheduledNotificationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.scheduled_notification.validation_failed'), $validator->errors()->toArray());
         }
 
         $notification = $this->service->create(
@@ -76,7 +76,7 @@ class ScheduledNotificationController extends Controller
             $request->user()->id
         );
 
-        return ApiResponse::created($notification, '通知已创建');
+        return ApiResponse::created($notification, __('app.api.scheduled_notification.notification_created'));
     }
 
     /**
@@ -99,12 +99,12 @@ class ScheduledNotificationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('参数验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.scheduled_notification.validation_failed'), $validator->errors()->toArray());
         }
 
         try {
             $notification = $this->service->update($notification, $validator->validated());
-            return ApiResponse::success($notification, '通知已更新');
+            return ApiResponse::success($notification, __('app.api.scheduled_notification.notification_updated'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 400);
         }
@@ -118,13 +118,13 @@ class ScheduledNotificationController extends Controller
         $notification = ScheduledNotification::findOrFail($id);
 
         if (in_array($notification->status, ['sending', 'sent', 'partial'])) {
-            return ApiResponse::error('发送中的通知不能删除', 400);
+            return ApiResponse::error(__('app.api.scheduled_notification.cannot_delete_sending'), 400);
         }
 
         $notification->deliveryLogs()->delete();
         $notification->delete();
 
-        return ApiResponse::success(null, '通知已删除');
+        return ApiResponse::success(null, __('app.api.scheduled_notification.notification_deleted'));
     }
 
     /**
@@ -136,7 +136,7 @@ class ScheduledNotificationController extends Controller
 
         try {
             $notification = $this->service->send($notification);
-            return ApiResponse::success($notification, '发送完成');
+            return ApiResponse::success($notification, __('app.api.scheduled_notification.send_complete'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 400);
         }
@@ -151,7 +151,7 @@ class ScheduledNotificationController extends Controller
 
         try {
             $notification = $this->service->cancel($notification);
-            return ApiResponse::success($notification, '通知已撤销');
+            return ApiResponse::success($notification, __('app.api.scheduled_notification.notification_revoked'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), 400);
         }

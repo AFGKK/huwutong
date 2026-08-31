@@ -19,7 +19,7 @@ class CrmController extends Controller
     protected function ensureAdmin(): void
     {
         if (Gate::denies('admin')) {
-            abort(403, '需要管理员权限');
+            abort(403, __('app.api.crm.admin_required'));
         }
     }
 
@@ -106,7 +106,7 @@ class CrmController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '分群创建成功',
+            'message' => __('app.api.crm.segment_created'),
             'data' => $segment,
         ], 201);
     }
@@ -144,7 +144,7 @@ class CrmController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '分群更新成功',
+            'message' => __('app.api.crm.segment_updated'),
             'data' => $customerSegment->fresh(),
         ]);
     }
@@ -160,7 +160,7 @@ class CrmController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '分群已删除',
+            'message' => __('app.api.crm.segment_deleted'),
         ]);
     }
 
@@ -175,7 +175,7 @@ class CrmController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "分群已刷新，成员数: {$count}",
+            'message' => __('app.api.crm.segment_refreshed', ['count' => $count]),
             'data' => ['member_count' => $count],
         ]);
     }
@@ -227,7 +227,7 @@ class CrmController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '客户已添加到分群',
+            'message' => __('app.api.crm.customer_added'),
         ]);
     }
 
@@ -250,7 +250,7 @@ class CrmController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '客户已从分群移除',
+            'message' => __('app.api.crm.customer_removed'),
         ]);
     }
 
@@ -307,7 +307,7 @@ class CrmController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "RFM 评分已更新，处理 {$result['processed']} 个客户",
+            'message' => __('app.api.crm.rfm_updated', ['processed' => $result['processed']]),
             'data' => $result,
         ]);
     }
@@ -363,7 +363,7 @@ class CrmController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "流失预测已更新，处理 {$result['processed']} 个客户",
+            'message' => __('app.api.crm.churn_updated', ['processed' => $result['processed']]),
             'data' => $result,
         ]);
     }

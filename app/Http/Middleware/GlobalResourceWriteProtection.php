@@ -30,7 +30,7 @@ class GlobalResourceWriteProtection
             return response()->json([
                 'success' => false,
                 'error_code' => 'FORBIDDEN_WRITE',
-                'message' => '无权限修改全局资源，仅超管和管理员可执行此操作',
+                'message' => __('app.middleware.no_permission_global_resource'),
             ], 403);
         }
 

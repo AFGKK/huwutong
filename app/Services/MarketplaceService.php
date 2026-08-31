@@ -47,7 +47,7 @@ class MarketplaceService
             // 检查是否已评价
             $existing = MarketplaceAppReview::byApp($appId)->byUser($userId)->first();
             if ($existing) {
-                throw new \InvalidArgumentException('您已评价过此应用');
+                throw new \InvalidArgumentException(__("app.marketplace.msg_79164f99"));
             }
 
             $review = MarketplaceAppReview::create([
@@ -82,7 +82,7 @@ class MarketplaceService
         $review = MarketplaceAppReview::findOrFail($reviewId);
 
         if ($review->user_id !== $userId) {
-            throw new \InvalidArgumentException('无权修改此评价');
+            throw new \InvalidArgumentException(__("app.marketplace.msg_e2941e5e"));
         }
 
         $review->update([
@@ -104,7 +104,7 @@ class MarketplaceService
         $review = MarketplaceAppReview::findOrFail($reviewId);
 
         if ($review->user_id !== $userId) {
-            throw new \InvalidArgumentException('无权删除此评价');
+            throw new \InvalidArgumentException(__("app.marketplace.msg_2796a418"));
         }
 
         $appId = $review->app_id;

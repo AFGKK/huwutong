@@ -72,14 +72,16 @@ class CheckDomainHealth extends Command
     {
         if (!$expectedCname) return false;
         try {
-            $records = @dns_get_record($domain, DNS_CNAME);
-            foreach ($records as $r) {
-                if (isset($r['target']) && rtrim($r['target'], '.') === rtrim($expectedCname, '.')) {
-                    return true;
+            $records = dns_get_record($domain, DNS_CNAME);
+            if (is_array($records)) {
+                foreach ($records as $r) {
+                    if (isset($r['target']) && rtrim($r['target'], '.') === rtrim($expectedCname, '.')) {
+                        return true;
+                    }
                 }
             }
-            $aRecords = @dns_get_record($domain, DNS_A);
-            return !empty($aRecords);
+            $aRecords = dns_get_record($domain, DNS_A);
+            return is_array($aRecords) && !empty($aRecords);
         } catch (\Throwable $e) {
             return false;
         }

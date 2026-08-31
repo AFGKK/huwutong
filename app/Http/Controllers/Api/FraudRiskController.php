@@ -116,8 +116,8 @@ class FraudRiskController extends Controller
 
         $success = $this->behaviorEngine->unban($request->type, $request->value);
         return $success
-            ? ApiResponse::success(null, '解封成功')
-            : ApiResponse::error('UNBAN_FAILED', '未找到封禁记录', 404);
+            ? ApiResponse::success(null, __("app.fraud_risk.msg_890d809f"))
+            : ApiResponse::error('UNBAN_FAILED', __("app.fraud_risk.msg_45509960"), 404);
     }
 
     /**

@@ -71,16 +71,16 @@ class ElectronicSignatureService
         $sig = ElectronicSignature::findOrFail($signatureId);
 
         if ($sig->user_id !== $userId) {
-            return ['success' => false, 'message' => '非指定签署人'];
+            return ['success' => false, 'message' => __('app.common.not_designated_signer')];
         }
 
         if ($sig->status !== 'pending') {
-            return ['success' => false, 'message' => '已签署或已过期'];
+            return ['success' => false, 'message' => __('app.common.already_signed_or_expired')];
         }
 
         if ($sig->expires_at && $sig->expires_at->isPast()) {
             $sig->update(['status' => 'expired']);
-            return ['success' => false, 'message' => '签署已过期'];
+            return ['success' => false, 'message' => __('app.common.signature_expired')];
         }
 
         // 顺序检查：multi/approval 类型需要按序签署
@@ -91,7 +91,7 @@ class ElectronicSignatureService
                 ->where('status', 'signed')
                 ->exists();
             if (!$prevSigned) {
-                return ['success' => false, 'message' => '需等待前一位签署人完成签署'];
+                return ['success' => false, 'message' => __('app.common.wait_for_previous_signer')];
             }
         }
 
@@ -117,7 +117,7 @@ class ElectronicSignatureService
 
         return [
             'success' => true,
-            'message' => $allSigned ? '签署完成（全部签署）' : '签署成功',
+            'message' => $allSigned ? __('app.common.signed_all_completed') : __('app.common.signed_success'),
             'signature' => $sig->fresh(),
             'all_signed' => $allSigned,
         ];
@@ -131,7 +131,7 @@ class ElectronicSignatureService
         $sig = ElectronicSignature::findOrFail($signatureId);
 
         if ($sig->user_id !== $userId) {
-            return ['success' => false, 'message' => '非指定签署人'];
+            return ['success' => false, 'message' => __('app.common.not_designated_signer')];
         }
 
         $sig->update([
@@ -144,7 +144,7 @@ class ElectronicSignatureService
             'user' => $userId, 'remark' => $remark,
         ]);
 
-        return ['success' => true, 'message' => '已拒绝签署'];
+        return ['success' => true, 'message' => __('app.common.signature_rejected')];
     }
 
     /**
@@ -158,7 +158,7 @@ class ElectronicSignatureService
             ->get();
 
         if ($signatures->isEmpty()) {
-            return ['verified' => false, 'message' => '未找到签名记录'];
+            return ['verified' => false, 'message' => __('app.common.signature_record_not_found')];
         }
 
         $content = $this->getContentForSigning($signableType, $signableId);
@@ -236,7 +236,7 @@ class ElectronicSignatureService
         $payload = "{$sig->id}:{$sig->signature_hash}:{$sig->user_id}:{$timestamp}:{$ip}";
         $signingKey = config('app.key');
         if (!$signingKey || $signingKey === 'base64:...') {
-            throw new \RuntimeException('APP_KEY 未配置，无法生成签名');
+            throw new \RuntimeException(__("app.electronic_signature.msg_44ba89b0"));
         }
         $hmac = hash_hmac('sha256', $payload, $signingKey);
 

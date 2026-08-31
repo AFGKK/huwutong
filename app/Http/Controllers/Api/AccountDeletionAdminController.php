@@ -71,11 +71,11 @@ class AccountDeletionAdminController extends Controller
             ->findOrFail($request->input('id'));
 
         if ($deletionRequest->status !== 'pending') {
-            return ApiResponse::error('REQUEST_PROCESSED', '此申请已被处理', 422);
+            return ApiResponse::error('REQUEST_PROCESSED', __("app.account_deletion_admin.msg_635157d5"), 422);
         }
 
         if (!$deletionRequest->isCoolingOver()) {
-            return ApiResponse::error('COOLING_NOT_OVER', '冷静期尚未结束，无法执行注销', 422);
+            return ApiResponse::error('COOLING_NOT_OVER', __("app.account_deletion_admin.msg_81fe55a4"), 422);
         }
 
         $deletionRequest->update([
@@ -85,7 +85,7 @@ class AccountDeletionAdminController extends Controller
         $executed = $this->authService->executeDeletion($deletionRequest);
 
         if (!$executed) {
-            return ApiResponse::error('EXECUTION_FAILED', '注销执行失败', 500);
+            return ApiResponse::error('EXECUTION_FAILED', __("app.account_deletion_admin.msg_60a305e2"), 500);
         }
 
         // 审计日志
@@ -96,7 +96,7 @@ class AccountDeletionAdminController extends Controller
             payload: ['deletion_request_id' => $deletionRequest->id, 'user_id' => $deletionRequest->user_id],
         );
 
-        return ApiResponse::success(null, '账号已注销');
+        return ApiResponse::success(null, __("app.account_deletion_admin.msg_93f61ee0"));
     }
 
     /**
@@ -113,7 +113,7 @@ class AccountDeletionAdminController extends Controller
             ->findOrFail($request->input('id'));
 
         if ($deletionRequest->status !== 'pending') {
-            return ApiResponse::error('REQUEST_PROCESSED', '此申请已被处理', 422);
+            return ApiResponse::error('REQUEST_PROCESSED', __('app.account_deletion_admin.already_processed'), 422);
         }
 
         $deletionRequest->update([
@@ -130,7 +130,7 @@ class AccountDeletionAdminController extends Controller
             payload: ['deletion_request_id' => $deletionRequest->id, 'user_id' => $deletionRequest->user_id],
         );
 
-        return ApiResponse::success(null, '注销申请已拒绝');
+        return ApiResponse::success(null, __("app.account_deletion_admin.msg_b7bad003"));
     }
 
     /**

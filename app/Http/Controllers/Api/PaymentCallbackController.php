@@ -63,9 +63,9 @@ class PaymentCallbackController extends Controller
     {
         $result = $this->callbackService->retry($id);
         if ($result['success']) {
-            return ApiResponse::success($result, '重试成功');
+            return ApiResponse::success($result, __("app.payment_callback.msg_5c86d115"));
         }
-        return ApiResponse::error('RETRY_FAILED', $result['message'] ?? '重试失败', 400);
+        return ApiResponse::error('RETRY_FAILED', $result['message'] ?? __("app.payment_callback.msg_41b57859"), 400);
     }
 
     /**
@@ -86,7 +86,7 @@ class PaymentCallbackController extends Controller
             ];
         }
 
-        return ApiResponse::success($results, '批量重试完成');
+        return ApiResponse::success($results, __("app.payment_callback.msg_25d57db4"));
     }
 
     /**
@@ -115,8 +115,8 @@ class PaymentCallbackController extends Controller
         $result = $this->callbackService->handle($payload, $validated['gateway']);
 
         if ($result['success']) {
-            return ApiResponse::success($result, '模拟回调处理完成');
+            return ApiResponse::success($result, __("app.payment_callback.msg_5902b720"));
         }
-        return ApiResponse::error('SIMULATION_FAILED', $result['error'] ?? '模拟失败', 500);
+        return ApiResponse::error('SIMULATION_FAILED', $result['error'] ?? __("app.payment_callback.msg_1fe6e011"), 500);
     }
 }

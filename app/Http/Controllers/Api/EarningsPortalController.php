@@ -65,9 +65,9 @@ class EarningsPortalController extends Controller
                 'rate' => (float) $c->rate,
                 'status' => $c->status,
                 'status_label' => match ($c->status) {
-                    'frozen' => '冻结中',
-                    'released' => '可提现',
-                    'refunded' => '已退回',
+                    'frozen' => __('app.api.earnings.status_frozen'),
+                    'released' => __('app.api.earnings.status_released'),
+                    'refunded' => __('app.api.earnings.status_refunded'),
                     default => $c->status,
                 },
                 'frozen_until' => $c->frozen_until?->toDateString(),
@@ -89,13 +89,13 @@ class EarningsPortalController extends Controller
                 'channel_account_masked' => $w->channel_account_masked,
                 'status' => $w->status,
                 'status_label' => match ($w->status) {
-                    'pending_review' => '待审核',
-                    'pending' => '待打款',
-                    'processing' => '处理中',
-                    'completed' => '已到账',
-                    'failed' => '打款失败',
-                    'rejected' => '已驳回',
-                    'cancelled' => '已取消',
+                    'pending_review' => __('app.api.earnings.wd_pending_review'),
+                    'pending' => __('app.api.earnings.wd_pending'),
+                    'processing' => __('app.api.earnings.wd_processing'),
+                    'completed' => __('app.api.earnings.wd_completed'),
+                    'failed' => __('app.api.earnings.wd_failed'),
+                    'rejected' => __('app.api.earnings.wd_rejected'),
+                    'cancelled' => __('app.api.earnings.wd_cancelled'),
                     default => $w->status,
                 },
                 'failure_reason' => $w->failure_reason,
@@ -146,9 +146,9 @@ class EarningsPortalController extends Controller
             'rate' => (float) $c->rate,
             'status' => $c->status,
             'status_label' => match ($c->status) {
-                'frozen' => '冻结中',
-                'released' => '可提现',
-                'refunded' => '已退回',
+                'frozen' => __('app.api.earnings.status_frozen'),
+                'released' => __('app.api.earnings.status_released'),
+                'refunded' => __('app.api.earnings.status_refunded'),
                 default => $c->status,
             },
             'frozen_until' => $c->frozen_until?->toDateString(),
@@ -178,9 +178,9 @@ class EarningsPortalController extends Controller
             $channel = [
                 'id' => $ch,
                 'name' => match ($ch) {
-                    'bank' => '银行卡',
-                    'alipay' => '支付宝',
-                    'wechat' => '微信',
+                    'bank' => __('app.api.earnings.channel_bank'),
+                    'alipay' => __('app.api.earnings.channel_alipay'),
+                    'wechat' => __('app.api.earnings.channel_wechat'),
                     'paypal' => 'PayPal',
                 },
                 'icon' => match ($ch) {
@@ -237,7 +237,7 @@ class EarningsPortalController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '账户信息已保存',
+            'message' => __('app.api.earnings.account_saved'),
             'data' => [
                 'channel' => $channel,
                 'saved_account' => $this->maskSavedAccount($channel, $accountInfo),
@@ -254,7 +254,7 @@ class EarningsPortalController extends Controller
         $account = $this->resolveEarningsAccount($user);
 
         if (!in_array($channel, WithdrawalService::CHANNELS)) {
-            return response()->json(['success' => false, 'message' => '无效的渠道'], 422);
+            return response()->json(['success' => false, 'message' => __('app.api.earnings.invalid_channel')], 422);
         }
 
         $metadata = $account->metadata ?? [];
@@ -263,7 +263,7 @@ class EarningsPortalController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '账户信息已删除',
+            'message' => __('app.api.earnings.account_deleted'),
         ]);
     }
 
@@ -301,7 +301,7 @@ class EarningsPortalController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '偏好设置已保存',
+            'message' => __('app.api.earnings.prefs_saved'),
         ]);
     }
 
@@ -329,10 +329,10 @@ class EarningsPortalController extends Controller
             'total_earned' => (float) $agent->total_earned,
             'level' => $agent->level,
             'level_label' => match ($agent->level) {
-                'regular' => '普通合作伙伴',
-                'silver' => '银牌合作伙伴',
-                'gold' => '金牌合作伙伴',
-                'platinum' => '铂金合作伙伴',
+                'regular' => __('app.api.earnings.tier_regular'),
+                'silver' => __('app.api.earnings.tier_silver'),
+                'gold' => __('app.api.earnings.tier_gold'),
+                'platinum' => __('app.api.earnings.tier_platinum'),
                 default => $agent->level,
             },
             'agent_code' => $agent->agent_code,
@@ -440,7 +440,7 @@ class EarningsPortalController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '税务信息已保存',
+            'message' => __('app.api.earnings.tax_saved'),
         ]);
     }
 
@@ -540,7 +540,7 @@ class EarningsPortalController extends Controller
             $handle = fopen('php://output', 'w');
             // BOM for Excel UTF-8
             fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($handle, ['ID', '金额', '佣金率', '状态', '解冻日期', '入账时间']);
+            fputcsv($handle, __('app.api.earnings.csv_headers'));
 
             foreach ($commissions as $c) {
                 fputcsv($handle, [
@@ -548,9 +548,9 @@ class EarningsPortalController extends Controller
                     (float) $c->amount,
                     (float) $c->rate . '%',
                     match ($c->status) {
-                        'frozen' => '冻结中',
-                        'released' => '可提现',
-                        'refunded' => '已退回',
+                        'frozen' => __('app.api.earnings.status_frozen'),
+                        'released' => __('app.api.earnings.status_released'),
+                        'refunded' => __('app.api.earnings.status_refunded'),
                         default => $c->status,
                     },
                     $c->frozen_until?->toDateString() ?? '',

@@ -21,7 +21,7 @@ class RedisHaController extends Controller
     {
         $status = $this->redisHaService->checkStatus();
 
-        return ApiResponse::success($status, 'Redis HA 状态获取成功');
+        return ApiResponse::success($status, __('app.api.redis_ha.status_fetched'));
     }
 
     /**
@@ -32,7 +32,7 @@ class RedisHaController extends Controller
     {
         $health = $this->redisHaService->healthCheck();
 
-        return ApiResponse::success($health, 'Redis 健康检查完成');
+        return ApiResponse::success($health, __('app.api.redis_ha.health_check_done'));
     }
 
     /**
@@ -43,7 +43,7 @@ class RedisHaController extends Controller
     {
         $status = $this->redisHaService->sentinelStatus();
 
-        return ApiResponse::success($status, 'Sentinel 状态获取成功');
+        return ApiResponse::success($status, __('app.api.redis_ha.sentinel_fetched'));
     }
 
     /**
@@ -54,7 +54,7 @@ class RedisHaController extends Controller
     {
         $stats = $this->redisHaService->getStats();
 
-        return ApiResponse::success($stats, 'Redis 统计信息获取成功');
+        return ApiResponse::success($stats, __('app.api.redis_ha.stats_fetched'));
     }
 
     /**
@@ -66,10 +66,10 @@ class RedisHaController extends Controller
         $result = $this->redisHaService->triggerFailover();
 
         if (!($result['success'] ?? false)) {
-            return ApiResponse::success($result, '故障转移触发失败', false, 500);
+            return ApiResponse::success($result, __('app.api.redis_ha.failover_failed'), false, 500);
         }
 
-        return ApiResponse::success($result, '故障转移已触发');
+        return ApiResponse::success($result, __('app.api.redis_ha.failover_triggered'));
     }
 
     /**
@@ -81,10 +81,10 @@ class RedisHaController extends Controller
         $result = $this->redisHaService->flushCache();
 
         if (!($result['success'] ?? false)) {
-            return ApiResponse::success($result, '缓存清除失败', false, 500);
+            return ApiResponse::success($result, __('app.api.redis_ha.cache_clear_failed'), false, 500);
         }
 
-        return ApiResponse::success($result, 'Redis 缓存已清除');
+        return ApiResponse::success($result, __('app.api.redis_ha.cache_cleared'));
     }
 
     /**
@@ -95,6 +95,6 @@ class RedisHaController extends Controller
     {
         $this->redisHaService->resetCircuitBreaker();
 
-        return ApiResponse::success(null, '熔断器已重置');
+        return ApiResponse::success(null, __('app.api.redis_ha.circuit_reset'));
     }
 }

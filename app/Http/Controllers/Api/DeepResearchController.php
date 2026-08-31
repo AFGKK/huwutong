@@ -39,7 +39,7 @@ class DeepResearchController extends Controller
             'total_tokens' => $task->total_tokens,
             'progress' => $task->progress,
             'created_at' => $task->created_at,
-        ], $task->status === 'completed' ? '研究完成' : '研究已启动');
+        ], $task->status === 'completed' ? __('app.deep_research.research_completed') : __('app.deep_research.research_started'));
     }
 
     /**
@@ -60,7 +60,7 @@ class DeepResearchController extends Controller
     {
         $task = $this->service->getTaskDetail($id, auth()->id());
         if (!$task) {
-            return ApiResponse::error('研究记录不存在', 404);
+            return ApiResponse::error(__("app.deep_research.msg_2325ab94"), 404);
         }
 
         return ApiResponse::success($task);
@@ -73,10 +73,10 @@ class DeepResearchController extends Controller
     {
         $task = DeepResearchTask::byUser(auth()->id())->find($id);
         if (!$task) {
-            return ApiResponse::error('研究记录不存在', 404);
+            return ApiResponse::error(__('app.deep_research.research_not_found'), 404);
         }
 
         $task->delete();
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __("app.deep_research.msg_5cc23262"));
     }
 }

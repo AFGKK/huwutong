@@ -30,7 +30,7 @@ class FreezeCommission extends BaseWorkflowStep
     {
         $settlementId = $context['settlement_id'] ?? $input['settlement_id'] ?? null;
         if (! $settlementId) {
-            throw new \RuntimeException('缺少 settlement_id');
+            throw new \RuntimeException(__('app.common.missing_settlement_id'));
         }
 
         $settlement = CommissionSettlement::findOrFail($settlementId);

@@ -30,7 +30,7 @@ class DatabaseReadWriteController extends Controller
     public function resetCircuitBreaker(): JsonResponse
     {
         $this->readWriteService->resetCircuitBreaker();
-        return ApiResponse::success(null, '熔断器已重置');
+        return ApiResponse::success(null, __("app.database_read_write.msg_97dafaa3"));
     }
 
     /**
@@ -61,7 +61,7 @@ class DatabaseReadWriteController extends Controller
         $result = $this->cacheWarmupService->warmup($source);
 
         return $result['success']
-            ? ApiResponse::success($result, '缓存预热已触发')
+            ? ApiResponse::success($result, __("app.database_read_write.msg_b2631390"))
             : ApiResponse::error($result['message'], 400);
     }
 }

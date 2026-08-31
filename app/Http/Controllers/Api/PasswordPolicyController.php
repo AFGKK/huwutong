@@ -49,7 +49,7 @@ class PasswordPolicyController extends Controller
 
         $config = $this->passwordPolicyService->updateConfig($validated);
 
-        return ApiResponse::success($config, '密码策略已更新');
+        return ApiResponse::success($config, __('app.api.password_policy_api.policy_updated'));
     }
 
     /**
@@ -84,6 +84,6 @@ class PasswordPolicyController extends Controller
             userId: $request->user()->id,
         );
 
-        return ApiResponse::success(null, '账号已解锁');
+        return ApiResponse::success(null, __('app.api.password_policy_api.account_unlocked'));
     }
 }

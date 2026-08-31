@@ -50,48 +50,51 @@ class SslCertificateAlertNotification extends Notification implements ShouldQueu
     protected function expiringSoonMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('【告警】SSL 证书即将到期')
-            ->greeting("您好，{$notifiable->name}")
-            ->line("域名 **{$this->domain}** 的 SSL 证书即将到期")
-            ->line("到期时间：{$this->expiresAt}")
-            ->line("剩余天数：{$this->daysLeft} 天")
-            ->line('请及时续期证书以免影响服务。');
+            ->subject(__('app.notifications.ssl.subject_expiring'))
+            ->greeting(__('app.notifications.greeting', ['name' => $notifiable->name]))
+            ->line(__('app.notifications.ssl.line_expiring', ['domain' => $this->domain]))
+            ->line(__('app.notifications.ssl.expires_at', ['date' => $this->expiresAt]))
+            ->line(__('app.notifications.ssl.days_left', ['days' => $this->daysLeft]))
+            ->line(__('app.notifications.ssl.renew_hint'));
     }
 
     protected function renewedMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('SSL 证书已自动续期')
-            ->greeting("您好，{$notifiable->name}")
-            ->line("域名 **{$this->domain}** 的 SSL 证书已自动续期")
-            ->line("新到期时间：{$this->expiresAt}");
+            ->subject(__('app.notifications.ssl.subject_renewed'))
+            ->greeting(__('app.notifications.greeting', ['name' => $notifiable->name]))
+            ->line(__('app.notifications.ssl.line_renewed', ['domain' => $this->domain]))
+            ->line(__('app.notifications.ssl.new_expires', ['date' => $this->expiresAt]));
     }
 
     protected function renewFailedMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('【紧急】SSL 证书续期失败')
-            ->greeting("您好，{$notifiable->name}")
-            ->line("域名 **{$this->domain}** 的 SSL 证书续期失败")
-            ->line('请手动检查并续期证书。')
-            ->action('管理域名', url('/domains'));
+            ->subject(__('app.notifications.ssl.subject_failed'))
+            ->greeting(__('app.notifications.greeting', ['name' => $notifiable->name]))
+            ->line(__('app.notifications.ssl.line_failed', ['domain' => $this->domain]))
+            ->line(__('app.notifications.ssl.manual_check'))
+            ->action(__('app.notifications.ssl.manage_domains'), url('/domains'));
     }
 
     protected function defaultMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('SSL 证书通知')
-            ->greeting("您好，{$notifiable->name}")
-            ->line("域名 **{$this->domain}** SSL 证书状态更新")
-            ->line("到期时间：{$this->expiresAt}");
+            ->subject(__('app.notifications.ssl.subject_default'))
+            ->greeting(__('app.notifications.greeting', ['name' => $notifiable->name]))
+            ->line(__('app.notifications.ssl.line_default', ['domain' => $this->domain]))
+            ->line(__('app.notifications.ssl.expires_at', ['date' => $this->expiresAt]));
     }
 
     public function toArray(object $notifiable): array
     {
         $messages = [
-            'expiring_soon' => "SSL 证书 {$this->domain} 将在 {$this->daysLeft} 天后到期",
-            'renewed' => "SSL 证书 {$this->domain} 已自动续期",
-            'renew_failed' => "SSL 证书 {$this->domain} 续期失败",
+            'expiring_soon' => __('app.notifications.ssl.db_expiring', [
+                'domain' => $this->domain,
+                'days' => $this->daysLeft,
+            ]),
+            'renewed' => __('app.notifications.ssl.db_renewed', ['domain' => $this->domain]),
+            'renew_failed' => __('app.notifications.ssl.db_failed', ['domain' => $this->domain]),
         ];
 
         return [
@@ -100,7 +103,9 @@ class SslCertificateAlertNotification extends Notification implements ShouldQueu
             'domain' => $this->domain,
             'expires_at' => $this->expiresAt,
             'days_left' => $this->daysLeft,
-            'message' => $messages[$this->action] ?? "SSL 证书 {$this->domain} 状态更新",
+            'message' => $messages[$this->action] ?? __('app.notifications.ssl.db_default', [
+                'domain' => $this->domain,
+            ]),
         ];
     }
 }

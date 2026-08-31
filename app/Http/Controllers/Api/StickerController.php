@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\ConversationMessage;
+use App\Models\ConversationParticipant;
 use App\Models\Sticker;
 use App\Models\StickerPack;
 use App\Models\UserConversation;
+use App\Services\UserChatPolicyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 class StickerController extends Controller
 {
@@ -35,7 +38,7 @@ class StickerController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'description' => 'nullable|string|max:500',
-            'cover_url' => 'nullable|string|max:500',
+            'cover_url' => 'nullable|url|max:2048',
         ]);
 
         $pack = StickerPack::create([
@@ -46,13 +49,13 @@ class StickerController extends Controller
             'is_system' => false,
         ]);
 
-        return ApiResponse::success($pack, '贴纸包已创建', 201);
+        return ApiResponse::success($pack, __('app.api.sticker.pack_created'), 201);
     }
 
     public function addSticker(int $packId, Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'image_url' => 'required|string|max:500',
+            'image_url' => 'required|url|max:2048',
             'emoji' => 'nullable|string|max:20',
         ]);
 
@@ -62,7 +65,7 @@ class StickerController extends Controller
             'emoji' => $validated['emoji'] ?? '',
         ]);
 
-        return ApiResponse::success($sticker, '贴纸已添加', 201);
+        return ApiResponse::success($sticker, __('app.api.sticker.added'), 201);
     }
 
     public function deletePack(int $id): JsonResponse
@@ -70,7 +73,7 @@ class StickerController extends Controller
         $pack = StickerPack::findOrFail($id);
         $pack->stickers()->delete();
         $pack->delete();
-        return ApiResponse::success(null, '已删除');
+        return ApiResponse::success(null, __('app.api.sticker.deleted'));
     }
 
     // ════════════════════════════════════════════
@@ -81,9 +84,56 @@ class StickerController extends Controller
     {
         $request->validate([
             'sticker_id' => 'nullable|integer|exists:stickers,id',
-            'image_url' => 'required_without:sticker_id|string|max:500',
+            'image_url' => 'required_without:sticker_id|url|max:2048',
             'emoji' => 'nullable|string|max:20',
         ]);
+
+        $conv = UserConversation::findOrFail($convId);
+        $myId = auth()->id();
+
+        // 1. 参与者校验
+        $isParticipant = ConversationParticipant::where('conversation_id', $convId)
+            ->where('user_id', $myId)->whereNull('deleted_at')->exists();
+        if (! $isParticipant) {
+            return ApiResponse::error(__('app.api.chat.not_participant'));
+        }
+
+        // 2. 私聊 DM 策略检查
+        if ($conv->type === 'private') {
+            $policy = app(UserChatPolicyService::class);
+            $otherParticipant = ConversationParticipant::where('conversation_id', $convId)
+                ->where('user_id', '!=', $myId)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if ($otherParticipant) {
+                $privateEval = $policy->evaluatePrivateMessage($myId, $otherParticipant->user_id);
+                if (! $privateEval['allowed']) {
+                    return ApiResponse::error($privateEval['reason'] ?? __('app.api.chat.cannot_send_dm'));
+                }
+
+                $myParticipant = ConversationParticipant::where('conversation_id', $convId)
+                    ->where('user_id', $myId)
+                    ->whereNull('deleted_at')
+                    ->first();
+                if ($myParticipant?->request_status === 'pending') {
+                    $policy->acceptMessageRequest($convId, $myId);
+                }
+                if ($otherParticipant->request_status === 'rejected') {
+                    return ApiResponse::error(__('app.api.chat.dm_rejected'));
+                }
+            }
+        }
+
+        // 3. 慢速模式检查
+        if ($conv->slow_mode_interval > 0) {
+            $participant = ConversationParticipant::where('conversation_id', $convId)
+                ->where('user_id', $myId)->first();
+            if ($participant && $participant->slow_mode_until && $participant->slow_mode_until->isFuture()) {
+                $waitSeconds = now()->diffInSeconds($participant->slow_mode_until);
+                return ApiResponse::error(__('app.api.chat.slow_mode', ['n' => $waitSeconds]));
+            }
+        }
 
         $imageUrl = $request->input('image_url');
         $emoji = $request->input('emoji', '');
@@ -99,8 +149,8 @@ class StickerController extends Controller
 
         $msg = ConversationMessage::create([
             'conversation_id' => $convId,
-            'sender_id' => auth()->id(),
-            'content' => $emoji ? "{$emoji} [贴纸]" : '[贴纸]',
+            'sender_id' => $myId,
+            'content' => $emoji ? __('app.api.sticker.sticker_with_emoji', ['emoji' => $emoji]) : __('app.api.sticker.sticker_content'),
             'message_type' => 'sticker',
             'metadata' => [
                 'type' => 'sticker',
@@ -111,9 +161,44 @@ class StickerController extends Controller
             'client_msg_id' => 'sticker-' . uniqid(),
         ]);
 
+        // 更新慢速模式时间戳
+        if ($conv->slow_mode_interval > 0) {
+            ConversationParticipant::where('conversation_id', $convId)
+                ->where('user_id', $myId)
+                ->update(['slow_mode_until' => now()->addSeconds($conv->slow_mode_interval)]);
+        }
+
         UserConversation::where('id', $convId)->update(['last_message_at' => now()]);
 
-        return ApiResponse::success($msg->load('sender:id,name'), '已发送', 201);
+        return ApiResponse::success($msg->load('sender:id,name'), __('app.api.sticker.sent'), 201);
+    }
+
+    // ════════════════════════════════════════════
+    // 上传贴纸文件
+    // ════════════════════════════════════════════
+
+    public function uploadSticker(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:png,gif,webp,jpg,jpeg|max:2048',
+            'pack_id' => 'nullable|integer|exists:sticker_packs,id',
+            'emoji' => 'nullable|string|max:20',
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->store('stickers', 'public');
+        $url = Storage::disk('public')->url($path);
+
+        if ($packId = $request->input('pack_id')) {
+            $sticker = Sticker::create([
+                'sticker_pack_id' => $packId,
+                'image_url' => $url,
+                'emoji' => $request->input('emoji', ''),
+            ]);
+            return ApiResponse::success(['sticker' => $sticker, 'url' => $url], __('app.api.sticker.uploaded'), 201);
+        }
+
+        return ApiResponse::success(['url' => $url], __('app.api.sticker.uploaded'), 201);
     }
 
     // ════════════════════════════════════════════
@@ -177,14 +262,14 @@ class StickerController extends Controller
 
         // 最终降级: 使用占位图服务（真实可访问的图片）
         $placeholders = [
-            ['url' => 'https://via.placeholder.com/200/FF6B6B/ffffff?text=👍', 'preview' => 'https://via.placeholder.com/100/FF6B6B/ffffff?text=👍', 'title' => '👍 赞', 'width' => 200, 'height' => 200],
-            ['url' => 'https://via.placeholder.com/200/4ECDC4/ffffff?text=😂', 'preview' => 'https://via.placeholder.com/100/4ECDC4/ffffff?text=😂', 'title' => '😂 笑', 'width' => 200, 'height' => 200],
-            ['url' => 'https://via.placeholder.com/200/FFE66D/000000?text=🎉', 'preview' => 'https://via.placeholder.com/100/FFE66D/000000?text=🎉', 'title' => '🎉 庆祝', 'width' => 200, 'height' => 200],
-            ['url' => 'https://via.placeholder.com/200/FF6B6B/ffffff?text=❤️', 'preview' => 'https://via.placeholder.com/100/FF6B6B/ffffff?text=❤️', 'title' => '❤️ 爱心', 'width' => 200, 'height' => 200],
-            ['url' => 'https://via.placeholder.com/200/95E1D3/000000?text=😢', 'preview' => 'https://via.placeholder.com/100/95E1D3/000000?text=😢', 'title' => '😢 哭', 'width' => 200, 'height' => 200],
-            ['url' => 'https://via.placeholder.com/200/FF6B6B/ffffff?text=🔥', 'preview' => 'https://via.placeholder.com/100/FF6B6B/ffffff?text=🔥', 'title' => '🔥 火', 'width' => 200, 'height' => 200],
-            ['url' => 'https://via.placeholder.com/200/96CEB4/000000?text=🙏', 'preview' => 'https://via.placeholder.com/100/96CEB4/000000?text=🙏', 'title' => '🙏 拜托', 'width' => 200, 'height' => 200],
-            ['url' => 'https://via.placeholder.com/200/6C5B7B/ffffff?text=💪', 'preview' => 'https://via.placeholder.com/100/6C5B7B/ffffff?text=💪', 'title' => '💪 加油', 'width' => 200, 'height' => 200],
+            ['url' => 'https://via.placeholder.com/200/FF6B6B/ffffff?text=👍', 'preview' => 'https://via.placeholder.com/100/FF6B6B/ffffff?text=👍', 'title' => __('app.api.sticker.gif_like'), 'width' => 200, 'height' => 200],
+            ['url' => 'https://via.placeholder.com/200/4ECDC4/ffffff?text=😂', 'preview' => 'https://via.placeholder.com/100/4ECDC4/ffffff?text=😂', 'title' => __('app.api.sticker.gif_laugh'), 'width' => 200, 'height' => 200],
+            ['url' => 'https://via.placeholder.com/200/FFE66D/000000?text=🎉', 'preview' => 'https://via.placeholder.com/100/FFE66D/000000?text=🎉', 'title' => __('app.api.sticker.gif_party'), 'width' => 200, 'height' => 200],
+            ['url' => 'https://via.placeholder.com/200/FF6B6B/ffffff?text=❤️', 'preview' => 'https://via.placeholder.com/100/FF6B6B/ffffff?text=❤️', 'title' => __('app.api.sticker.gif_heart'), 'width' => 200, 'height' => 200],
+            ['url' => 'https://via.placeholder.com/200/95E1D3/000000?text=😢', 'preview' => 'https://via.placeholder.com/100/95E1D3/000000?text=😢', 'title' => __('app.api.sticker.gif_cry'), 'width' => 200, 'height' => 200],
+            ['url' => 'https://via.placeholder.com/200/FF6B6B/ffffff?text=🔥', 'preview' => 'https://via.placeholder.com/100/FF6B6B/ffffff?text=🔥', 'title' => __('app.api.sticker.gif_fire'), 'width' => 200, 'height' => 200],
+            ['url' => 'https://via.placeholder.com/200/96CEB4/000000?text=🙏', 'preview' => 'https://via.placeholder.com/100/96CEB4/000000?text=🙏', 'title' => __('app.api.sticker.gif_pray'), 'width' => 200, 'height' => 200],
+            ['url' => 'https://via.placeholder.com/200/6C5B7B/ffffff?text=💪', 'preview' => 'https://via.placeholder.com/100/6C5B7B/ffffff?text=💪', 'title' => __('app.api.sticker.gif_strong'), 'width' => 200, 'height' => 200],
         ];
 
         // 简单关键词匹配过滤
@@ -203,9 +288,9 @@ class StickerController extends Controller
         return ApiResponse::success([
             'emojis' => ['👍','❤️','😂','😮','😢','😡','🎉','🔥','💯','❓','👏','🙏','💪','✨','🎊','🤝','💡','📌','🚀','⭐'],
             'categories' => [
-                '表情' => ['😀','😂','🤣','😊','😍','🥰','😎','🤔','😢','😤','😡','🥳'],
-                '手势' => ['👍','👎','👏','🙏','🤝','✌️','🤞','💪'],
-                '物品' => ['🎉','🎊','✨','🔥','💯','⭐','🚀','💡','📌','❤️'],
+                __('app.api.sticker.cat_emoji') => ['😀','😂','🤣','😊','😍','🥰','😎','🤔','😢','😤','😡','🥳'],
+                __('app.api.sticker.cat_gesture') => ['👍','👎','👏','🙏','🤝','✌️','🤞','💪'],
+                __('app.api.sticker.cat_object') => ['🎉','🎊','✨','🔥','💯','⭐','🚀','💡','📌','❤️'],
             ],
         ]);
     }

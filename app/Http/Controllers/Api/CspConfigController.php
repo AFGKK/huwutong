@@ -35,7 +35,7 @@ class CspConfigController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__("app.csp_config.msg_e441b11e"), $validator->errors()->toArray());
         }
 
         $config = $this->cspManager->create(array_merge(
@@ -43,7 +43,7 @@ class CspConfigController extends Controller
             ['created_by' => $request->user()?->id],
         ));
 
-        return ApiResponse::created($config, 'CSP 配置已创建');
+        return ApiResponse::created($config, __("app.csp_config.msg_8c2b32b3"));
     }
 
     public function show(CspConfig $cspConfig): \Illuminate\Http\JsonResponse
@@ -63,18 +63,18 @@ class CspConfigController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.common.validation_failed'), $validator->errors()->toArray());
         }
 
         $config = $this->cspManager->update($cspConfig, $validator->validated());
 
-        return ApiResponse::success($config, 'CSP 配置已更新');
+        return ApiResponse::success($config, __("app.csp_config.msg_43dcd34c"));
     }
 
     public function destroy(CspConfig $cspConfig): \Illuminate\Http\JsonResponse
     {
         $this->cspManager->delete($cspConfig);
-        return ApiResponse::success(null, 'CSP 配置已删除');
+        return ApiResponse::success(null, __("app.csp_config.msg_09567b9f"));
     }
 
     /**
@@ -87,7 +87,7 @@ class CspConfigController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.common.validation_failed'), $validator->errors()->toArray());
         }
 
         $directives = $request->input('directives');

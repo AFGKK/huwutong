@@ -39,7 +39,7 @@ class AirGappedController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => '获取状态失败: ' . $e->getMessage(),
+                'message' => __('app.api.air_gapped.status_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -60,7 +60,7 @@ class AirGappedController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '获取指标失败: ' . $e->getMessage(),
+                'message' => __('app.api.air_gapped.metrics_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -83,7 +83,7 @@ class AirGappedController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '扫描 U 盘失败: ' . $e->getMessage(),
+                'message' => __('app.api.air_gapped.usb_scan_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -108,7 +108,7 @@ class AirGappedController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'License 导入失败: ' . $e->getMessage(),
+                'message' => __('app.api.air_gapped.license_import_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -135,7 +135,7 @@ class AirGappedController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'License 上传失败: ' . $e->getMessage(),
+                'message' => __('app.api.air_gapped.license_upload_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -186,7 +186,7 @@ class AirGappedController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '获取 Docker 信息失败: ' . $e->getMessage(),
+                'message' => __('app.api.air_gapped.docker_info_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -234,7 +234,7 @@ class AirGappedController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '更新失败: ' . $e->getMessage(),
+                'message' => __('app.api.air_gapped.update_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -254,7 +254,7 @@ class AirGappedController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '更新包上传成功',
+                'message' => __('app.api.air_gapped.update_uploaded'),
                 'path' => $storedPath,
                 'name' => $file->getClientOriginalName(),
                 'size' => $file->getSize(),
@@ -262,7 +262,7 @@ class AirGappedController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => '上传失败: ' . $e->getMessage(),
+                'message' => __('app.api.air_gapped.upload_failed', ['error' => $e->getMessage()]),
             ], 500);
         }
     }

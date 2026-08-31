@@ -111,7 +111,7 @@ class CustomerSmtpService
                 'from_address' => $config->from_address,
             ]);
 
-            return ['success' => true, 'message' => 'SMTP 连接成功'];
+            return ['success' => true, 'message' => __('app.common.smtp_connection_success')];
         } catch (\Exception $e) {
             $config->increment('failure_count');
             $config->update(['last_failure_at' => now()]);
@@ -123,7 +123,7 @@ class CustomerSmtpService
                 'error_message' => $e->getMessage(),
             ]);
 
-            return ['success' => false, 'message' => '连接失败: ' . $e->getMessage()];
+            return ['success' => false, 'message' => __('app.common.connection_failed', ['message' => $e->getMessage()])];
         }
     }
 
@@ -175,7 +175,7 @@ class CustomerSmtpService
         // 4. 系统默认也失败，记录告警
         $this->logCriticalAlert($to, $subject, $result['error'] ?? 'All SMTP failed');
 
-        return ['success' => false, 'message' => '所有 SMTP 发送均失败，已触发告警'];
+        return ['success' => false, 'message' => __('app.common.all_smtp_send_failed_alert')];
     }
 
     /**

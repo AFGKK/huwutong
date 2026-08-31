@@ -62,12 +62,12 @@ class ApiVersionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_version.validation_failed'), $validator->errors()->toArray());
         }
 
         $apiVersion = $this->versionManager->createVersion($validator->validated());
 
-        return ApiResponse::created($apiVersion, 'API 版本创建成功');
+        return ApiResponse::created($apiVersion, __('app.api.api_version.version_created'));
     }
 
     /**
@@ -93,12 +93,12 @@ class ApiVersionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_version.validation_failed'), $validator->errors()->toArray());
         }
 
         $apiVersion = $this->versionManager->updateVersion($apiVersion, $validator->validated());
 
-        return ApiResponse::success($apiVersion, 'API 版本更新成功');
+        return ApiResponse::success($apiVersion, __('app.api.api_version.version_updated'));
     }
 
     /**
@@ -113,7 +113,7 @@ class ApiVersionController extends Controller
         }
 
         if ($apiVersion->isRetired()) {
-            return ApiResponse::error('VERSION_RETIRED', '已退役的版本无法标记为废弃', 400);
+            return ApiResponse::error('VERSION_RETIRED', __('app.api.api_version.version_retired_block'), 400);
         }
 
         $validator = Validator::make($request->all(), [
@@ -122,7 +122,7 @@ class ApiVersionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_version.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -137,7 +137,7 @@ class ApiVersionController extends Controller
             'sunset_at' => $apiVersion->sunset_at->format('Y-m-d H:i:s'),
             'grace_period_months' => ApiVersionManagerService::DEPRECATION_GRACE_MONTHS,
             'notice' => "This version will be sunset on {$apiVersion->sunset_at->format('Y-m-d')}",
-        ], 'API 版本已标记为废弃，6个月后自动停用');
+        ], __('app.api.api_version.version_deprecated'));
     }
 
     /**
@@ -152,12 +152,12 @@ class ApiVersionController extends Controller
         }
 
         if (!$apiVersion->isDeprecated()) {
-            return ApiResponse::error('VERSION_NOT_DEPRECATED', '只有已废弃的版本可以停用，请先标记为废弃', 400);
+            return ApiResponse::error('VERSION_NOT_DEPRECATED', __('app.api.api_version.version_sunset_block'), 400);
         }
 
         $this->versionManager->sunsetVersion($apiVersion);
 
-        return ApiResponse::success($apiVersion->fresh(), 'API 版本已停用');
+        return ApiResponse::success($apiVersion->fresh(), __('app.api.api_version.version_sunset'));
     }
 
     /**
@@ -173,7 +173,7 @@ class ApiVersionController extends Controller
 
         $this->versionManager->retireVersion($apiVersion);
 
-        return ApiResponse::success($apiVersion->fresh(), 'API 版本已退役');
+        return ApiResponse::success($apiVersion->fresh(), __('app.api.api_version.version_retired'));
     }
 
     /**
@@ -228,7 +228,7 @@ class ApiVersionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_version.validation_failed'), $validator->errors()->toArray());
         }
 
         $route = $this->versionManager->registerRoute(
@@ -240,7 +240,7 @@ class ApiVersionController extends Controller
             $validator->validated()['action'] ?? null,
         );
 
-        return ApiResponse::created($route, '路由注册成功');
+        return ApiResponse::created($route, __('app.api.api_version.route_registered'));
     }
 
     /**
@@ -264,12 +264,12 @@ class ApiVersionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.api_version.validation_failed'), $validator->errors()->toArray());
         }
 
         $count = $this->versionManager->importRoutes($apiVersion, $validator->validated()['routes']);
 
-        return ApiResponse::success(['imported_count' => $count], "成功导入 {$count} 条路由");
+        return ApiResponse::success(['imported_count' => $count], __('app.api.api_version.routes_imported', ['count' => $count]));
     }
 
     /**
@@ -286,7 +286,7 @@ class ApiVersionController extends Controller
         $route = $apiVersion->routes()->find($routeId);
 
         if (!$route) {
-            return ApiResponse::notFound('路由不存在');
+            return ApiResponse::notFound(__('app.api.api_version.route_not_found'));
         }
 
         $route->delete();

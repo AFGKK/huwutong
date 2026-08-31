@@ -49,7 +49,7 @@ class OemController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__("app.oem.msg_e441b11e"), $validator->errors()->toArray());
         }
 
         $tenantId = $request->user()->tenant_id;
@@ -61,11 +61,11 @@ class OemController extends Controller
                 'operated_by' => $request->user()->id,
             ]);
 
-            return ApiResponse::success($subscription, '套餐订阅成功');
+            return ApiResponse::success($subscription, __("app.oem.msg_fa4e8ec2"));
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::error('INVALID_TIER', $e->getMessage(), 400);
         } catch (\Exception $e) {
-            return ApiResponse::error('SUBSCRIBE_FAILED', '套餐订阅失败', 500);
+            return ApiResponse::error('SUBSCRIBE_FAILED', __("app.oem.msg_379ae26a"), 500);
         }
     }
 
@@ -80,8 +80,8 @@ class OemController extends Controller
         $success = $this->oemService->cancel($tenantId, $reason);
 
         return $success
-            ? ApiResponse::success(null, '套餐已取消')
-            : ApiResponse::error('NO_SUBSCRIPTION', '未找到活跃套餐', 404);
+            ? ApiResponse::success(null, __("app.oem.msg_4a1daebf"))
+            : ApiResponse::error('NO_SUBSCRIPTION', __("app.oem.msg_b3176675"), 404);
     }
 
     /**
@@ -124,7 +124,7 @@ class OemController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.common.validation_failed'), $validator->errors()->toArray());
         }
 
         $tenantId = $request->user()->tenant_id;
@@ -132,7 +132,7 @@ class OemController extends Controller
 
         $config = $this->brandingService->updateConfig($tenantId, $locale, $validator->safe()->except(['locale']));
 
-        return ApiResponse::success($config, '登录页配置已更新');
+        return ApiResponse::success($config, __("app.oem.msg_1ce3d206"));
     }
 
     /**

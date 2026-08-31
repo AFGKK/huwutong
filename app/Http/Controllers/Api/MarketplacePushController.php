@@ -40,7 +40,7 @@ class MarketplacePushController extends Controller
         ]);
 
         $campaign = $this->pushService->createCampaign($validated, $request->user()->id);
-        return ApiResponse::created($campaign, '推送活动已创建');
+        return ApiResponse::created($campaign, __("app.marketplace_push.msg_bf57d7b8"));
     }
 
     public function show(int $id): JsonResponse
@@ -65,7 +65,7 @@ class MarketplacePushController extends Controller
 
         try {
             $campaign = $this->pushService->updateCampaign($id, $validated);
-            return ApiResponse::success($campaign, '推送活动已更新');
+            return ApiResponse::success($campaign, __("app.marketplace_push.msg_7c88f4d1"));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -86,7 +86,7 @@ class MarketplacePushController extends Controller
     {
         try {
             $campaign = $this->pushService->cancelCampaign($id);
-            return ApiResponse::success($campaign, '推送已取消');
+            return ApiResponse::success($campaign, __("app.marketplace_push.msg_713ea743"));
         } catch (\RuntimeException $e) {
             return ApiResponse::validationError($e->getMessage());
         }
@@ -100,6 +100,6 @@ class MarketplacePushController extends Controller
     public function destroy(int $id): JsonResponse
     {
         MarketplacePushCampaign::findOrFail($id)->delete();
-        return ApiResponse::success(null, '推送活动已删除');
+        return ApiResponse::success(null, __("app.marketplace_push.msg_be93d1f5"));
     }
 }

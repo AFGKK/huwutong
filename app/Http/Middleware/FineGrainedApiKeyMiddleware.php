@@ -73,7 +73,7 @@ class FineGrainedApiKeyMiddleware
 
         // 检查 Referer
         if (! $apiKey->matchesReferrer($request->header('Referer'))) {
-            return ApiResponse::error(ErrorCode::FORBIDDEN, 'Referer 不被允许', 403);
+            return ApiResponse::error(ErrorCode::FORBIDDEN, __('app.middleware.referer_not_allowed'), 403);
         }
 
         // 检查端点级细粒度权限
@@ -101,7 +101,7 @@ class FineGrainedApiKeyMiddleware
 
         // 检查每日配额
         if (! $apiKey->hasDailyQuota()) {
-            return ApiResponse::error(ErrorCode::RATE_LIMITED, 'API Key 每日请求配额已用完', 429);
+            return ApiResponse::error(ErrorCode::RATE_LIMITED, __('app.middleware.api_key_daily_quota_exhausted'), 429);
         }
 
         // 记录使用

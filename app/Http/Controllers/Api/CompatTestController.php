@@ -42,7 +42,7 @@ class CompatTestController extends Controller
             $request->user()->tenant_id,
             $request->input('categories', []),
         );
-        return ApiResponse::success(['created_count' => $count], "已创建 {$count} 个平台记录");
+        return ApiResponse::success(['created_count' => $count], __('app.api.compat_test.created_platforms', ['count' => $count]));
     }
 
     // ─── 测试套件管理 ───
@@ -70,11 +70,11 @@ class CompatTestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.compat_test.validation_failed'), $validator->errors()->toArray());
         }
 
         $suite = $this->compatService->createSuite($request->user()->tenant_id, $validator->validated());
-        return ApiResponse::success($suite, '测试套件已创建');
+        return ApiResponse::success($suite, __('app.api.compat_test.suite_created'));
     }
 
     /**
@@ -102,11 +102,11 @@ class CompatTestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.compat_test.validation_failed'), $validator->errors()->toArray());
         }
 
         $testCase = $this->compatService->addTestCase($suiteId, $validator->validated());
-        return ApiResponse::success($testCase, '测试用例已添加');
+        return ApiResponse::success($testCase, __('app.api.compat_test.case_added'));
     }
 
     /**
@@ -123,11 +123,11 @@ class CompatTestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.compat_test.validation_failed'), $validator->errors()->toArray());
         }
 
         $cases = $this->compatService->bulkAddTestCases($suiteId, $validator->validated()['cases']);
-        return ApiResponse::success($cases, count($cases) . ' 个测试用例已导入');
+        return ApiResponse::success($cases, __('app.api.compat_test.cases_imported', ['count' => count($cases)]));
     }
 
     // ─── 测试运行管理 ───
@@ -143,7 +143,7 @@ class CompatTestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.compat_test.validation_failed'), $validator->errors()->toArray());
         }
 
         $run = $this->compatService->createTestRun(
@@ -152,7 +152,7 @@ class CompatTestController extends Controller
             $request->user()->id,
         );
 
-        return ApiResponse::success($run, '测试运行已创建');
+        return ApiResponse::success($run, __('app.api.compat_test.run_created'));
     }
 
     /**
@@ -162,7 +162,7 @@ class CompatTestController extends Controller
     {
         try {
             $run = $this->compatService->startTestRun($id);
-            return ApiResponse::success($run, '测试运行已开始');
+            return ApiResponse::success($run, __('app.api.compat_test.run_started'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('START_FAILED', $e->getMessage(), 400);
         }
@@ -182,7 +182,7 @@ class CompatTestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.compat_test.validation_failed'), $validator->errors()->toArray());
         }
 
         try {
@@ -195,7 +195,7 @@ class CompatTestController extends Controller
                 $request->input('execution_time_ms'),
                 $request->user()->id,
             );
-            return ApiResponse::success($record, '测试结果已记录');
+            return ApiResponse::success($record, __('app.api.compat_test.result_recorded'));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('RECORD_FAILED', $e->getMessage(), 400);
         }
@@ -214,11 +214,11 @@ class CompatTestController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.compat_test.validation_failed'), $validator->errors()->toArray());
         }
 
         $count = $this->compatService->recordBatchResults($id, $validator->validated()['results']);
-        return ApiResponse::success(['recorded' => $count], "已记录 {$count} 条测试结果");
+        return ApiResponse::success(['recorded' => $count], __('app.api.compat_test.results_recorded', ['count' => $count]));
     }
 
     /**
@@ -228,7 +228,7 @@ class CompatTestController extends Controller
     {
         try {
             $run = $this->compatService->completeTestRun($id);
-            $msg = $run->status === 'passed' ? '所有测试通过' : '存在失败的测试';
+            $msg = $run->status === 'passed' ? __('app.api.compat_test.all_passed') : __('app.api.compat_test.has_failures');
             return ApiResponse::success($run, $msg);
         } catch (\RuntimeException $e) {
             return ApiResponse::error('COMPLETE_FAILED', $e->getMessage(), 400);

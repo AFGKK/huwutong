@@ -29,7 +29,7 @@ class EndpointUsageAnalyticsService
             'name' => 'License 激活',
             'method' => 'POST',
             'path' => '/api/activate',
-            'color' => '#409eff',
+            'color' => '#0f172a',
         ],
         'api_call.validate' => [
             'name' => 'License 验证',

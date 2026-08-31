@@ -93,7 +93,7 @@ class InnovationAuthController extends Controller
         ]);
 
         $server = $this->mcp->registerServer($request->user()->tenant_id, $validated);
-        return ApiResponse::created($server, 'MCP Server 注册成功');
+        return ApiResponse::created($server, __("app.innovation_auth.msg_fe12b5a5"));
     }
 
     public function aiAgents(Request $request): JsonResponse
@@ -115,7 +115,7 @@ class InnovationAuthController extends Controller
         ]);
 
         $agent = $this->mcp->registerAgent($request->user()->tenant_id, $validated);
-        return ApiResponse::created($agent, 'AI Agent 注册成功');
+        return ApiResponse::created($agent, __("app.innovation_auth.msg_2bd93bbe"));
     }
 
     public function checkAgentQuota(Request $request, AiAgent $agent): JsonResponse
@@ -150,7 +150,7 @@ class InnovationAuthController extends Controller
         ]);
 
         $func = $this->serverless->registerFunction($request->user()->tenant_id, $validated);
-        return ApiResponse::created($func, '云函数注册成功');
+        return ApiResponse::created($func, __("app.innovation_auth.msg_c2578ea1"));
     }
 
     public function generateServerlessToken(Request $request, ServerlessFunction $function): JsonResponse
@@ -184,7 +184,7 @@ class InnovationAuthController extends Controller
         ]);
 
         $node = $this->edge->registerNode($request->user()->tenant_id, $validated);
-        return ApiResponse::created($node, '边缘节点注册成功');
+        return ApiResponse::created($node, __("app.innovation_auth.msg_b172441c"));
     }
 
     // ═══════════ 批量更新状态 ═══════════
@@ -209,6 +209,6 @@ class InnovationAuthController extends Controller
             ->findOrFail($validated['id']);
         $record->update(['status' => $validated['status']]);
 
-        return ApiResponse::success($record, '状态已更新');
+        return ApiResponse::success($record, __("app.innovation_auth.msg_7d6e0e1a"));
     }
 }

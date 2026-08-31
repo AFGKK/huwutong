@@ -48,7 +48,7 @@ class BodySizeLimiter
         if ($contentLength !== null && (int) $contentLength > $maxBytes) {
             return ApiResponse::error(
                 'PAYLOAD_TOO_LARGE',
-                "请求体过大，最大允许 {$this->formatBytes($maxBytes)}",
+                __("app.middleware.request_body_too_large", ["size" => $this->formatBytes($maxBytes)]),
                 413,
             );
         }
@@ -58,7 +58,7 @@ class BodySizeLimiter
         if (strlen($body) > $maxBytes) {
             return ApiResponse::error(
                 'PAYLOAD_TOO_LARGE',
-                "请求体过大，最大允许 {$this->formatBytes($maxBytes)}",
+                __("app.middleware.request_body_too_large", ["size" => $this->formatBytes($maxBytes)]),
                 413,
             );
         }

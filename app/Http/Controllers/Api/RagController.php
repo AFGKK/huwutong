@@ -105,7 +105,7 @@ class RagController extends Controller
             $request->input('was_helpful')
         );
 
-        return response()->json(['success' => true, 'message' => '感谢反馈']);
+        return response()->json(['success' => true, 'message' => __('app.api.rag.thanks_feedback')]);
     }
 
     /**
@@ -117,7 +117,7 @@ class RagController extends Controller
 
         $this->ragService->indexArticle($article);
 
-        return response()->json(['success' => true, 'message' => '文章已索引到 RAG 知识库']);
+        return response()->json(['success' => true, 'message' => __('app.api.rag.article_indexed')]);
     }
 
     /**
@@ -131,7 +131,7 @@ class RagController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "已重建索引，共索引 {$result['indexed']} 篇文章",
+            'message' => __('app.api.rag.index_rebuilt', ['indexed' => $result['indexed']]),
             'data' => $result,
         ]);
     }

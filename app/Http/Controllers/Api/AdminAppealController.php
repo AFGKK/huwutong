@@ -33,8 +33,8 @@ class AdminAppealController extends Controller
             });
         }
 
-        return ApiResponse::success(
-            $query->latest()->paginate(20)
+        return ApiResponse::paginated(
+            $query->latest()->paginate($request->integer('per_page', 20))
         );
     }
 
@@ -79,6 +79,22 @@ class AdminAppealController extends Controller
     }
 
     /**
+     * 开始审核（pending → reviewing）
+     */
+    public function startReview(int $id): \Illuminate\Http\JsonResponse
+    {
+        $appeal = UserAppeal::with(['user:id,name,email,phone,status', 'reviewer:id,name'])->findOrFail($id);
+
+        if ($appeal->status !== 'pending') {
+            return ApiResponse::error('INVALID_STATE', __("app.admin_appeal.msg_cbe6fd37"), 422);
+        }
+
+        $appeal->update(['status' => 'reviewing']);
+
+        return ApiResponse::success($appeal->fresh()->load(['user:id,name,email,phone,status', 'reviewer:id,name']), __('app.admin_appeal.entered_review'));
+    }
+
+    /**
      * 审核申诉
      */
     public function review(int $id, Request $request): \Illuminate\Http\JsonResponse
@@ -118,7 +134,7 @@ class AdminAppealController extends Controller
                 $request->user()->id,
                 $validated['reason'],
             );
-            return ApiResponse::success($user, '账号已封禁');
+            return ApiResponse::success($user, __("app.admin_appeal.msg_7fce1bf4"));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('BAN_FAILED', $e->getMessage(), 422);
         }
@@ -134,7 +150,7 @@ class AdminAppealController extends Controller
                 $userId,
                 $request->user()->id,
             );
-            return ApiResponse::success($user, '账号已解封');
+            return ApiResponse::success($user, __("app.admin_appeal.msg_d73c8c30"));
         } catch (\RuntimeException $e) {
             return ApiResponse::error('UNBAN_FAILED', $e->getMessage(), 422);
         }

@@ -26,16 +26,16 @@ class AutoDeliveryController extends Controller
             ->findOrFail($orderId);
 
         if ($order->status !== 'paid') {
-            return ApiResponse::error('ORDER_NOT_PAID', '订单未支付，无法发货', 400);
+            return ApiResponse::error('ORDER_NOT_PAID', __("app.auto_delivery.msg_cce3d4c5"), 400);
         }
 
         $result = $this->deliveryEngine->execute($order);
 
         if ($result['success']) {
-            return ApiResponse::success($result, '自动发货完成');
+            return ApiResponse::success($result, __("app.auto_delivery.msg_5dc87a90"));
         }
 
-        return ApiResponse::error('DELIVERY_FAILED', $result['error'] ?? '发货失败', 500);
+        return ApiResponse::error('DELIVERY_FAILED', $result['error'] ?? __("app.auto_delivery.msg_05d62326"), 500);
     }
 
     /**
@@ -49,7 +49,7 @@ class AutoDeliveryController extends Controller
             return ApiResponse::error('RETRY_FAILED', $result['error'], 500);
         }
 
-        return ApiResponse::success($result, '重试成功');
+        return ApiResponse::success($result, __("app.auto_delivery.msg_5c86d115"));
     }
 
     /**
@@ -67,7 +67,7 @@ class AutoDeliveryController extends Controller
             return ApiResponse::error('RESEND_FAILED', $result['error'], 500);
         }
 
-        return ApiResponse::success($result, $result['message'] ?? '补发成功');
+        return ApiResponse::success($result, $result['message'] ?? __("app.auto_delivery.msg_59948ce8"));
     }
 
     /**
@@ -188,6 +188,6 @@ class AutoDeliveryController extends Controller
             ];
         }
 
-        return ApiResponse::success($results, '批量重试完成');
+        return ApiResponse::success($results, __("app.auto_delivery.msg_25d57db4"));
     }
 }

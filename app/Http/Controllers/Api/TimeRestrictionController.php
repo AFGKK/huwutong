@@ -31,7 +31,7 @@ class TimeRestrictionController extends Controller
 
         $summary = $config
             ? $this->timeRestriction->getConfigSummary($config)
-            : ['enabled' => false, 'summary' => '未配置时段限制'];
+            : ['enabled' => false, 'summary' => __('app.api.time_restriction.not_configured')];
 
         $data = $config ? array_merge($config->toArray(), ['summary' => $summary]) : ['summary' => $summary];
 
@@ -63,7 +63,7 @@ class TimeRestrictionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::validationError('验证失败', $validator->errors()->toArray());
+            return ApiResponse::validationError(__('app.api.time_restriction.validation_failed'), $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
@@ -76,7 +76,7 @@ class TimeRestrictionController extends Controller
             $data
         );
 
-        return ApiResponse::success($config->fresh(), '时段限制配置已保存');
+        return ApiResponse::success($config->fresh(), __('app.api.time_restriction.config_saved'));
     }
 
     /**
@@ -89,8 +89,8 @@ class TimeRestrictionController extends Controller
             ->delete();
 
         return $deleted
-            ? ApiResponse::success(null, '时段限制配置已删除')
-            : ApiResponse::success(null, '未找到配置');
+            ? ApiResponse::success(null, __('app.api.time_restriction.config_deleted'))
+            : ApiResponse::success(null, __('app.api.time_restriction.config_not_found'));
     }
 
     /**
@@ -182,18 +182,18 @@ class TimeRestrictionController extends Controller
     {
         return ApiResponse::success([
             'day_options' => [
-                ['value' => 0, 'label' => '周日'],
-                ['value' => 1, 'label' => '周一'],
-                ['value' => 2, 'label' => '周二'],
-                ['value' => 3, 'label' => '周三'],
-                ['value' => 4, 'label' => '周四'],
-                ['value' => 5, 'label' => '周五'],
-                ['value' => 6, 'label' => '周六'],
+                ['value' => 0, 'label' => __('app.api.time_restriction.day_sunday')],
+                ['value' => 1, 'label' => __('app.api.time_restriction.day_monday')],
+                ['value' => 2, 'label' => __('app.api.time_restriction.day_tuesday')],
+                ['value' => 3, 'label' => __('app.api.time_restriction.day_wednesday')],
+                ['value' => 4, 'label' => __('app.api.time_restriction.day_thursday')],
+                ['value' => 5, 'label' => __('app.api.time_restriction.day_friday')],
+                ['value' => 6, 'label' => __('app.api.time_restriction.day_saturday')],
             ],
             'out_of_hours_actions' => [
-                ['value' => 'deny', 'label' => '拒绝访问'],
-                ['value' => 'grace', 'label' => '宽限使用'],
-                ['value' => 'warn', 'label' => '仅警告'],
+                ['value' => 'deny', 'label' => __('app.api.time_restriction.action_deny')],
+                ['value' => 'grace', 'label' => __('app.api.time_restriction.action_grace')],
+                ['value' => 'warn', 'label' => __('app.api.time_restriction.action_warn')],
             ],
             'timezones' => timezone_identifiers_list(),
         ]);

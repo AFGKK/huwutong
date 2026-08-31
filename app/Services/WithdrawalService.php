@@ -70,30 +70,30 @@ class WithdrawalService
         $channel = $data['channel'];
 
         if (!in_array($channel, self::CHANNELS)) {
-            throw new \RuntimeException('不支持的提现渠道');
+            throw new \RuntimeException(__('app.withdrawal.unsupported_channel'));
         }
 
         $amount = (float) $data['amount'];
         $limits = self::CHANNEL_LIMITS[$channel];
 
         if ($amount < $limits['min']) {
-            throw new \RuntimeException("{$channel}渠道最低提现金额为 {$limits['min']} 元");
+            throw new \RuntimeException(__('app.withdrawal.min_withdrawal', ['channel' => $channel, 'min' => $limits['min']]));
         }
         if ($amount > $limits['max']) {
-            throw new \RuntimeException("{$channel}渠道单笔提现上限为 {$limits['max']} 元");
+            throw new \RuntimeException(__('app.withdrawal.max_withdrawal', ['channel' => $channel, 'max' => $limits['max']]));
         }
 
         // 检查每日限额
         $dailyUsed = $this->getDailyWithdrawnByUser($user, $channel);
         $dailyLimit = self::DAILY_LIMITS[$channel];
         if (($dailyUsed + $amount) > $dailyLimit) {
-            throw new \RuntimeException("{$channel}渠道今日已用 ¥{$dailyUsed}，剩余可用 ¥" . max(0, $dailyLimit - $dailyUsed));
+            throw new \RuntimeException(__('app.withdrawal.daily_limit_reached', ['channel' => $channel, 'used' => $dailyUsed, 'remaining' => max(0, $dailyLimit - $dailyUsed)]));
         }
 
         // 获取收益账户并校验余额（优先于风控，返回更明确的用户提示）
         $account = $this->resolveEarningsAccount($user);
         if ((float) $account->available_balance < $amount) {
-            throw new \RuntimeException('可提现余额不足');
+            throw new \RuntimeException(__('app.withdrawal.insufficient_balance'));
         }
 
         // 提现前风控检查 (M2-127b)
@@ -107,7 +107,7 @@ class WithdrawalService
         );
         $riskCheck = $this->riskGuard->preWithdrawalCheck($agent, $amount, $channel);
         if (!$riskCheck['passed']) {
-            throw new \RuntimeException('风控检查未通过：' . implode('；', $riskCheck['reasons']));
+            throw new \RuntimeException(__('app.withdrawal.risk_check_failed') . ': ' . implode('; ', $riskCheck['reasons']));
         }
 
         // 计算手续费
@@ -156,7 +156,7 @@ class WithdrawalService
     public function reviewWithdrawal(Withdrawal $withdrawal, User $reviewer, string $action, ?string $remark = null): Withdrawal
     {
         if (!in_array($withdrawal->status, ['pending_review', 'pending'])) {
-            throw new \RuntimeException('当前状态不可审核');
+            throw new \RuntimeException(__('app.withdrawal.cannot_review'));
         }
 
         return DB::transaction(function () use ($withdrawal, $reviewer, $action, $remark) {
@@ -180,7 +180,7 @@ class WithdrawalService
                     'remark' => $remark,
                 ]);
             } else {
-                throw new \RuntimeException('审核操作无效');
+                throw new \RuntimeException(__('app.withdrawal.invalid_review_action'));
             }
 
             $this->riskGuard->logAudit('withdrawal_reviewed', [
@@ -200,7 +200,7 @@ class WithdrawalService
     public function markAsCompleted(Withdrawal $withdrawal, array $data): Withdrawal
     {
         if (!in_array($withdrawal->status, ['pending', 'processing'])) {
-            throw new \RuntimeException('当前状态不可标记为完成');
+            throw new \RuntimeException(__('app.withdrawal.cannot_mark_completed'));
         }
 
         $updateData = [
@@ -229,7 +229,7 @@ class WithdrawalService
     public function markAsFailed(Withdrawal $withdrawal, string $reason): Withdrawal
     {
         if (!in_array($withdrawal->status, ['pending', 'processing'])) {
-            throw new \RuntimeException('当前状态不可标记为失败');
+            throw new \RuntimeException(__('app.withdrawal.cannot_mark_failed'));
         }
 
         return DB::transaction(function () use ($withdrawal, $reason) {
@@ -258,11 +258,11 @@ class WithdrawalService
     public function cancelWithdrawal(Withdrawal $withdrawal, User $user): Withdrawal
     {
         if ($withdrawal->user_id !== $user->id) {
-            throw new \RuntimeException('无权操作');
+            throw new \RuntimeException(__('app.withdrawal.no_permission'));
         }
 
         if (!in_array($withdrawal->status, ['pending_review', 'pending'])) {
-            throw new \RuntimeException('当前状态不可取消');
+            throw new \RuntimeException(__('app.withdrawal.cannot_cancel'));
         }
 
         return DB::transaction(function () use ($withdrawal) {
@@ -292,7 +292,7 @@ class WithdrawalService
         $withdrawals = $query->get();
 
         if ($withdrawals->isEmpty()) {
-            throw new \RuntimeException('没有可打款的提现记录');
+            throw new \RuntimeException(__('app.withdrawal.no_pending_withdrawals'));
         }
 
         return DB::transaction(function () use ($channel, $title, $withdrawals) {
@@ -300,7 +300,7 @@ class WithdrawalService
 
             $batch = PayoutBatch::create([
                 'batch_no' => $batchNo,
-                'title' => $title ?? "{$channel}打款-" . now()->format('Ymd'),
+                'title' => $title ?? __('app.withdrawal.payout_batch_title', ['channel' => $channel, 'date' => now()->format('Ymd')]),
                 'channel' => $channel,
                 'total_count' => $withdrawals->count(),
                 'total_amount' => $withdrawals->sum('net_amount'),
@@ -474,20 +474,20 @@ class WithdrawalService
 
         switch ($channel) {
             case 'bank':
-                if (empty($accountInfo['bank_name'])) $errors[] = '银行名称不能为空';
-                if (empty($accountInfo['bank_account_name'])) $errors[] = '开户姓名不能为空';
-                if (empty($accountInfo['bank_account_no'])) $errors[] = '银行卡号不能为空';
+                if (empty($accountInfo['bank_name'])) $errors[] = __('app.withdrawal.bank_name_required');
+                if (empty($accountInfo['bank_account_name'])) $errors[] = __('app.withdrawal.account_name_required');
+                if (empty($accountInfo['bank_account_no'])) $errors[] = __('app.withdrawal.account_number_required');
                 break;
             case 'alipay':
-                if (empty($accountInfo['alipay_account'])) $errors[] = '支付宝账号不能为空';
+                if (empty($accountInfo['alipay_account'])) $errors[] = __('app.withdrawal.alipay_required');
                 break;
             case 'wechat':
-                if (empty($accountInfo['wechat_account'])) $errors[] = '微信账号不能为空';
+                if (empty($accountInfo['wechat_account'])) $errors[] = __('app.withdrawal.wechat_required');
                 break;
             case 'paypal':
-                if (empty($accountInfo['paypal_email'])) $errors[] = 'PayPal邮箱不能为空';
+                if (empty($accountInfo['paypal_email'])) $errors[] = __('app.withdrawal.paypal_email_required');
                 if (!empty($accountInfo['paypal_email']) && !filter_var($accountInfo['paypal_email'], FILTER_VALIDATE_EMAIL)) {
-                    $errors[] = 'PayPal邮箱格式不正确';
+                    $errors[] = __('app.withdrawal.paypal_email_invalid');
                 }
                 break;
         }
@@ -582,7 +582,7 @@ class WithdrawalService
     public function retryWithdrawal(Withdrawal $withdrawal, User $operator): Withdrawal
     {
         if (!in_array($withdrawal->status, ['failed', 'rejected'])) {
-            throw new \RuntimeException('只有失败或驳回的提现可以重试');
+            throw new \RuntimeException(__('app.withdrawal.retry_only_failed'));
         }
 
         return DB::transaction(function () use ($withdrawal, $operator) {

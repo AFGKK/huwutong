@@ -55,9 +55,7 @@ class LlmProvider extends Model
      */
     public static function getActive(): ?self
     {
-        return static::where('is_active', true)
-            ->orderBy('sort_order')
-            ->first();
+        return app(\App\Services\LlmRoutingService::class)->resolveProvider();
     }
 
     /**

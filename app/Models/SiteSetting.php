@@ -43,6 +43,18 @@ class SiteSetting extends Model
     }
 
     /**
+     * 获取微信小程序配置
+     */
+    public static function getWechatMiniProgramConfig(): array
+    {
+        return [
+            'appid' => self::where('key', 'wechat_mini_program_appid')->value('value') ?? '',
+            'secret' => self::where('key', 'wechat_mini_program_secret')->value('value') ?? '',
+            'subscribe_template_id' => self::where('key', 'wechat_mini_subscribe_template_id')->value('value') ?? '',
+        ];
+    }
+
+    /**
      * 批量更新设置
      */
     public static function batchUpdate(array $settings): void
