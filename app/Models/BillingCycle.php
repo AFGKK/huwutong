@@ -50,9 +50,23 @@ class BillingCycle extends Model
     {
         $cycle = self::resolvePeriod($code);
         if (!$cycle) {
-            return $startDate->copy()->addMonth();
+            return match ($code) {
+                'yearly' => $startDate->copy()->addYear(),
+                'quarterly' => $startDate->copy()->addMonths(3),
+                'semi_annually' => $startDate->copy()->addMonths(6),
+                default => $startDate->copy()->addMonth(),
+            };
         }
         return $cycle->applyTo($startDate);
+    }
+
+    /**
+     * 按周期编码解析 BillingCycle 记录
+     */
+    public static function resolvePeriod(string $code): ?self
+    {
+        return self::where('code', $code)->where('is_active', true)->first()
+            ?? self::where('code', $code)->first();
     }
 
     /**

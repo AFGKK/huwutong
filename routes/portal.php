@@ -160,6 +160,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::get('/billing/plans/public', [BillingController::class, 'plans']);
     Route::post('/billing/coupons/validate', [BillingController::class, 'validateCoupon']);
     Route::prefix('portal/billing')->group(function () {
+        Route::post('/self-subscribe', [BillingHistoryPortalController::class, 'selfSubscribe']);
         Route::get('/invoices', [BillingHistoryPortalController::class, 'invoices']);
         Route::get('/invoices/{id}', [BillingHistoryPortalController::class, 'show'])->whereNumber('id');
         Route::get('/stats', [BillingHistoryPortalController::class, 'stats']);
@@ -168,6 +169,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
         Route::get('/auto-renewals', [BillingHistoryPortalController::class, 'autoRenewals']);
         Route::get('/filter-options', [BillingHistoryPortalController::class, 'filterOptions']);
         Route::post('/invoices/{id}/pay', [BillingHistoryPortalController::class, 'payInvoice'])->whereNumber('id');
+        Route::get('/invoices/{id}/payment-status', [BillingHistoryPortalController::class, 'paymentStatus'])->whereNumber('id');
     });
 
     // ── 预付费余额 ──

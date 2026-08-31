@@ -1,15 +1,18 @@
 import client from './client';
 
-export default {
-    // Subscriptions
-    subscriptions(params = {}) {
-        return client.get('/billing/subscriptions', { params });
+export default     {
+        // Subscriptions
+        subscriptions(params = {}) {
+        return client.get('/portal/billing/subscriptions', { params });
     },
     list(params = {}) {
         return client.get('/billing/subscriptions', { params });
     },
     create(data) {
         return client.post('/billing/subscriptions', data);
+    },
+    selfSubscribe(data) {
+        return client.post('/portal/billing/self-subscribe', data);
     },
     show(id) {
         return client.get(`/billing/subscriptions/${id}`);
@@ -32,19 +35,19 @@ export default {
 
     // Invoices
     invoices(params = {}) {
-        return client.get('/billing/invoices', { params });
+        return client.get('/portal/billing/invoices', { params });
     },
     showInvoice(id) {
-        return client.get(`/billing/invoices/${id}`);
+        return client.get(`/portal/billing/invoices/${id}`);
     },
     markPaid(id, transactionId) {
         return client.post(`/billing/invoices/${id}/mark-paid`, { transaction_id: transactionId });
     },
     payInvoice(id, paymentMethod = 'gateway') {
-        return client.post(`/billing/invoices/${id}/pay`, { payment_method: paymentMethod });
+        return client.post(`/portal/billing/invoices/${id}/pay`, { payment_method: paymentMethod });
     },
     paymentStatus(id) {
-        return client.get(`/billing/invoices/${id}/payment-status`);
+        return client.get(`/portal/billing/invoices/${id}/payment-status`);
     },
 
     // Stats

@@ -6,8 +6,10 @@ use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\PricingPlan;
 use App\Models\Tenant;
 use App\Services\BillingHistoryPortalService;
+use App\Services\BillingService;
 use App\Services\PortalInvoicePaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,7 +29,62 @@ class BillingHistoryPortalController extends Controller
     public function __construct(
         protected BillingHistoryPortalService $billingService,
         protected PortalInvoicePaymentService $paymentService,
+        protected BillingService $subscriptionBilling,
     ) {}
+
+    /**
+     * 前台自助开通定价套餐
+     *
+     * POST /api/portal/billing/self-subscribe
+     */
+    public function selfSubscribe(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'plan_id' => 'nullable|integer|exists:pricing_plans,id',
+            'plan_slug' => 'nullable|string|exists:pricing_plans,slug',
+            'billing_period' => 'sometimes|in:monthly,quarterly,semi_annually,yearly',
+            'auto_renew' => 'sometimes|boolean',
+            'force_payment' => 'sometimes|boolean',
+            'contact' => 'nullable|array',
+            'contact.email' => 'nullable|email|max:255',
+            'contact.phone' => 'nullable|string|max:20',
+            'contact.name' => 'nullable|string|max:100',
+        ]);
+
+        if (empty($validated['plan_id']) && empty($validated['plan_slug'])) {
+            return ApiResponse::error('VALIDATION_ERROR', 'plan_id 或 plan_slug 必填', 422);
+        }
+
+        $plan = ! empty($validated['plan_id'])
+            ? PricingPlan::findOrFail($validated['plan_id'])
+            : PricingPlan::where('slug', $validated['plan_slug'])->firstOrFail();
+
+        try {
+            $result = $this->subscriptionBilling->selfServeSubscribe(
+                $request->user(),
+                $plan,
+                $validated['billing_period'] ?? 'monthly',
+                [
+                    'auto_renew' => $validated['auto_renew'] ?? true,
+                    'force_payment' => $validated['force_payment'] ?? true,
+                    'contact' => $validated['contact'] ?? null,
+                ],
+            );
+
+            return ApiResponse::success([
+                'requires_payment' => $result['requires_payment'],
+                'status' => $result['status'],
+                'already_active' => $result['already_active'] ?? false,
+                'amount' => $result['amount'],
+                'subscription' => $result['subscription'],
+                'invoice' => $result['invoice'],
+            ], $result['requires_payment']
+                ? '订阅已创建，请完成支付以开通'
+                : (($result['already_active'] ?? false) ? '套餐已开通' : '套餐已开通'));
+        } catch (\Throwable $e) {
+            return ApiResponse::error('SUBSCRIBE_FAILED', $e->getMessage(), 422);
+        }
+    }
 
     /**
      * 获取账单列表

@@ -30,6 +30,17 @@ const routes = [
         meta: { titleKey: 'route_titles.checkout' },
     },
     {
+        path: '/subscribe/:planId',
+        name: 'Subscribe',
+        redirect: (to) => ({
+            path: '/checkout',
+            query: {
+                plan_id: to.params.planId,
+                period: typeof to.query.period === 'string' ? to.query.period : 'monthly',
+            },
+        }),
+    },
+    {
         path: '/status',
         name: 'StatusPage',
         component: () => import('@/views/status/Index.vue'),

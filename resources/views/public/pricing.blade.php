@@ -184,6 +184,7 @@
                 @endphp
                 <div class="plan-card rounded-2xl border-2 {{ $isPopular ? 'border-slate-900 popular shadow-xl shadow-slate-200/60' : 'border-gray-100' }} bg-white p-8 flex flex-col relative"
                      data-slug="{{ $plan['slug'] }}"
+                     data-plan-id="{{ $plan['id'] ?? '' }}"
                      data-price-monthly="{{ $monthlyPrice }}"
                      data-price-quarterly="{{ (float)($plan['price_quarterly'] ?? 0) }}"
                      data-price-semi-annually="{{ (float)($plan['price_semi_annually'] ?? 0) }}"
@@ -223,9 +224,10 @@
                         <li class="text-gray-400 italic">{{ __('app.pricing.no_features') }}</li>
                         @endforelse
                     </ul>
-                    <a href="/build/register{{ $monthlyPrice > 0 ? '?redirect=/plans&period=monthly' : '' }}"
+                    <a href="{{ $monthlyPrice > 0 ? url('/build/subscribe/'.($plan['id'] ?? '').'?period=monthly') : url('/build/register') }}"
                        class="plan-cta block w-full text-center py-3 rounded-xl font-semibold bg-slate-900 text-white hover:bg-slate-800 transition text-sm"
-                       data-plan-paid="{{ $monthlyPrice > 0 ? '1' : '0' }}">
+                       data-plan-paid="{{ $monthlyPrice > 0 ? '1' : '0' }}"
+                       data-plan-id="{{ $plan['id'] ?? '' }}">
                         {{ $monthlyPrice > 0 ? __('app.pricing.subscribe') : __('app.pricing.start_free') }}
                     </a>
                 </div>
@@ -273,19 +275,19 @@
                                 <div class="font-semibold text-gray-600 text-xs">{{ __('app.pricing.plan_basic') }}</div>
                                 <div class="text-base font-bold text-gray-900 mt-0.5 price-display" id="sticky-basic-price" data-plan="basic">¥99</div>
                                 <div class="text-[10px] text-gray-400" id="sticky-basic-period">{{ __('app.pricing.per_month') }}</div>
-                                <a href="/build/register?redirect=/plans" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.subscribe_short') }}</a>
+                                <a href="/build/subscribe/482?period=monthly" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.subscribe_short') }}</a>
                             </th>
                             <th class="text-center" style="width:auto;padding:14px 8px;background:#eff6ff;position:sticky;top:80px;z-index:20">
                                 <div class="font-semibold" style="color:var(--pg-primary);font-size:12px">{{ __('app.pricing.plan_pro') }}</div>
                                 <div class="text-base font-bold text-gray-900 mt-0.5 price-display" id="sticky-pro-price" data-plan="pro">¥299</div>
                                 <div class="text-[10px]" style="color:#6b7280" id="sticky-pro-period">{{ __('app.pricing.per_month') }}</div>
-                                <a href="/build/register?redirect=/plans" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.subscribe_short') }}</a>
+                                <a href="/build/subscribe/483?period=monthly" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.subscribe_short') }}</a>
                             </th>
                             <th class="text-center" style="width:auto;padding:14px 8px;background:#fff;position:sticky;top:80px;z-index:20">
                                 <div class="font-semibold text-gray-600 text-xs">{{ __('app.pricing.plan_ent') }}</div>
                                 <div class="text-base font-bold text-gray-900 mt-0.5 price-display" id="sticky-ent-price" data-plan="ent">¥999</div>
                                 <div class="text-[10px] text-gray-400" id="sticky-ent-period">{{ __('app.pricing.per_month') }}</div>
-                                <a href="/build/register?redirect=/plans" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.subscribe_short') }}</a>
+                                <a href="/build/subscribe/484?period=monthly" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.subscribe_short') }}</a>
                             </th>
                         </tr>
                     </thead>
@@ -486,7 +488,10 @@
                 }
             }
             if (ctaEl && ctaEl.dataset.planPaid === '1') {
-                ctaEl.setAttribute('href', '/build/register?redirect=/plans&period=' + (isYearly ? 'yearly' : 'monthly'));
+                var planId = ctaEl.dataset.planId || card.dataset.planId || '';
+                if (planId) {
+                    ctaEl.setAttribute('href', '/build/subscribe/' + planId + '?period=' + (isYearly ? 'yearly' : 'monthly'));
+                }
             }
             animatePrice(priceEl);
         });

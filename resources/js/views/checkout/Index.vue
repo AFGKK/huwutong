@@ -392,6 +392,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Box, Wallet, Coin, Document } from '@element-plus/icons-vue';
 import orderApi from '@/api/order';
+import billingApi from '@/api/billing';
 import { isMiniProgram, shouldEscapePayment, copyCurrentUrl } from '@/utils/miniprogramEnv';
 
 const { t } = useI18n();
@@ -411,9 +412,13 @@ const discount = ref(0);
 const showPayDialog = ref(false);
 const paymentMethod = ref('alipay');
 const createdOrder = ref(null);
+const createdInvoice = ref(null);
+const createdSubscription = ref(null);
+const isPlanCheckout = ref(false);
+const billingPeriod = ref('monthly');
 const invoiceType = ref('personal');
 const invoice = ref({ title: '', tax_no: '', address: '', phone: '', bank: '', bank_account: '' });
-const autoRenew = ref(false);
+const autoRenew = ref(true);
 const contact = ref({ email: '', phone: '', name: '' });
 const orderNotes = ref('');
 const showPriceDetail = ref(false);
@@ -421,6 +426,36 @@ const expireSeconds = ref(1800); // 30分钟倒计时
 const recommendProducts = ref([]);
 const imgLoadFailed = ref(false);
 let expireTimer = null;
+
+function mapPricingPlan(plan, period = 'monthly') {
+  const cycle = ['monthly', 'quarterly', 'semi_annually', 'yearly'].includes(period) ? period : 'monthly';
+  const priceField = {
+    monthly: 'price_monthly',
+    quarterly: 'price_quarterly',
+    semi_annually: 'price_semi_annually',
+    yearly: 'price_yearly',
+  }[cycle];
+  const price = parseFloat(plan[priceField] ?? plan.price_monthly ?? plan.price ?? 0) || 0;
+  return {
+    id: plan.id,
+    product_id: plan.product_id || null,
+    name: plan.name,
+    description: plan.description || '',
+    slug: plan.slug,
+    price,
+    billing_cycle: cycle,
+    trial_days: plan.trial_days || 0,
+    pricing_plan_id: plan.id,
+    is_pricing_plan: true,
+  };
+}
+
+function normalizePayMethod(method) {
+  if (method === 'wxpay' || method === 'wechat_pay') return 'mock';
+  if (method === 'balance' || method === 'prepaid') return 'prepaid';
+  if (method === 'alipay' || method === 'yipay') return 'mock';
+  return method || 'mock';
+}
 
 function onImgError() {
   imgLoadFailed.value = true;
@@ -489,6 +524,8 @@ onMounted(async () => {
   const planId = route.query.plan_id;
   const skuId = route.query.sku_id;
   const productSlug = route.query.product;
+  const period = typeof route.query.period === 'string' ? route.query.period : 'monthly';
+  billingPeriod.value = ['monthly', 'quarterly', 'semi_annually', 'yearly'].includes(period) ? period : 'monthly';
   try {
     const prodResp = await fetch('/api/public/products?per_page=50').then(r => r.json());
     const allProducts = prodResp.data || [];
@@ -518,18 +555,30 @@ onMounted(async () => {
       try {
         const r = await fetch('/api/public/pricing-plans').then(r => r.json());
         const allPlans = r.data || [];
-        const plan = allPlans.find(p => p.id == planId);
-        if (plan) { selectedPlanId.value = plan.id; product.value = allProducts.find(p => p.id == plan.product_id) || { name: plan.name, id: plan.product_id }; plans.value = allPlans.filter(p => p.product_id == plan.product_id); }
+        const mapped = allPlans.map(p => mapPricingPlan(p, billingPeriod.value));
+        const plan = mapped.find(p => p.id == planId);
+        if (plan) {
+          isPlanCheckout.value = true;
+          selectedPlanId.value = plan.id;
+          product.value = allProducts.find(p => p.id == plan.product_id) || { name: plan.name, id: plan.product_id || 0 };
+          plans.value = mapped.filter(p => (plan.product_id ? p.product_id == plan.product_id : true) && (p.price > 0 || p.id == plan.id));
+          if (!plans.value.find(p => p.id === plan.id)) {
+            plans.value = [plan, ...plans.value];
+          }
+        }
       } catch(e) {}
     }
     if ((!plans.value || plans.value.length === 0) && productSlug) {
       product.value = allProducts.find(p => p.slug === productSlug);
       if (product.value) {
-        try { const r = await fetch('/api/public/pricing-plans').then(r => r.json()); const allPlans = r.data || []; plans.value = allPlans.filter(p => p.product_id == product.value.id); if (plans.value.length > 0) selectedPlanId.value = plans.value[0].id; } catch(e) {}
+        try { const r = await fetch('/api/public/pricing-plans').then(r => r.json()); const allPlans = r.data || []; plans.value = allPlans.filter(p => p.product_id == product.value.id).map(p => mapPricingPlan(p, billingPeriod.value)); if (plans.value.length > 0) selectedPlanId.value = plans.value[0].id; } catch(e) {}
       }
     }
-    if (!product.value && allProducts.length > 0) product.value = allProducts[0];
+    if (!product.value && allProducts.length > 0 && !isPlanCheckout.value) product.value = allProducts[0];
     if ((!plans.value || plans.value.length === 0) && product.value) { plans.value = [{ id: 0, product_id: product.value.id, name: t('checkout_page.default_license'), description: '', price: 0, billing_cycle: 'monthly' }]; selectedPlanId.value = 0; }
+    if (!product.value && isPlanCheckout.value && selectedPlan.value) {
+      product.value = { name: selectedPlan.value.name, id: selectedPlan.value.product_id || 0 };
+    }
     if (!product.value) error.value = t('checkout_page.messages.load_product_failed');
   } catch (e) { error.value = t('checkout_page.messages.load_product_failed'); }
   finally { loading.value = false; }
@@ -561,6 +610,33 @@ async function submitOrder() {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.value.email)) { ElMessage.warning(t('checkout_page.messages.email_invalid')); return; }
   submitting.value = true;
   try {
+    // 定价套餐自助订阅
+    if (isPlanCheckout.value || selectedPlan.value.is_pricing_plan) {
+      const res = await billingApi.selfSubscribe({
+        plan_id: selectedPlan.value.pricing_plan_id || selectedPlan.value.id,
+        billing_period: selectedPlan.value.billing_cycle || billingPeriod.value || 'monthly',
+        auto_renew: autoRenew.value,
+        force_payment: true,
+        contact: { email: contact.value.email, phone: contact.value.phone || '', name: contact.value.name || '' },
+      });
+      const payload = res.data?.data || res.data || {};
+      createdSubscription.value = payload.subscription || null;
+      createdInvoice.value = payload.invoice || null;
+      if (payload.already_active) {
+        ElMessage.success('该套餐已开通');
+        setTimeout(() => router.push('/billing'), 800);
+        return;
+      }
+      if (!payload.requires_payment) {
+        ElMessage.success(payload.status === 'active' ? '套餐已开通' : t('checkout_page.messages.order_created'));
+        setTimeout(() => router.push('/billing'), 1000);
+        return;
+      }
+      ElMessage.success(t('checkout_page.messages.order_created'));
+      showPayDialog.value = true;
+      return;
+    }
+
     const orderPayload = { 
       items: [{ sku_id: selectedPlan.value.sku_id || selectedPlan.value.id, quantity: quantity.value, item_type: 'license', unit_price: selectedPlan.value.price }], 
       currency: 'CNY' 
@@ -597,6 +673,38 @@ async function submitOrder() {
   finally { submitting.value = false; }
 }
 async function handlePay() {
+  if (createdInvoice.value?.id) {
+    paying.value = true;
+    try {
+      if (shouldEscapePayment(paymentMethod.value)) {
+        await copyCurrentUrl();
+        ElMessage.success(t('checkout_page.messages.link_copied_browser'));
+        return;
+      }
+      const method = normalizePayMethod(paymentMethod.value);
+      const res = await billingApi.payInvoice(createdInvoice.value.id, method);
+      const payload = res.data?.data || res.data || {};
+      if (payload.status === 'paid' || payload.redirect_url == null) {
+        ElMessage.success(t('checkout_page.messages.pay_success'));
+        showPayDialog.value = false;
+        setTimeout(() => router.push('/billing'), 1200);
+        return;
+      }
+      if (payload.redirect_url) {
+        window.location.href = payload.redirect_url;
+        return;
+      }
+      ElMessage.success(t('checkout_page.messages.pay_success'));
+      showPayDialog.value = false;
+      setTimeout(() => router.push('/billing'), 1200);
+    } catch (e) {
+      ElMessage.error(e?.response?.data?.error?.message || e?.response?.data?.message || t('checkout_page.messages.pay_failed'));
+    } finally {
+      paying.value = false;
+    }
+    return;
+  }
+
   if (!createdOrder.value) return;
 
   // 小程序 web-view 内微信/支付宝支付易失败 → 引导复制到浏览器

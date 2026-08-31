@@ -12,6 +12,7 @@ use App\Models\License;
 use App\Models\PricingPlan;
 use App\Models\Product;
 use App\Models\Subscription;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -112,8 +113,143 @@ class BillingService
     }
 
     /**
-     * 对订阅应用优惠券
+     * 前台自助订阅（定价套餐 → 待支付账单 → 支付成功自动开通）
+     *
+     * @return array{requires_payment: bool, status: string, subscription: Subscription, invoice: ?Invoice, amount: float, already_active?: bool}
      */
+    public function selfServeSubscribe(
+        User $user,
+        PricingPlan $plan,
+        string $billingPeriod = 'monthly',
+        array $options = []
+    ): array {
+        if (! in_array($billingPeriod, ['monthly', 'quarterly', 'semi_annually', 'yearly'], true)) {
+            throw new \InvalidArgumentException('无效的计费周期');
+        }
+
+        if (! $plan->is_active || ! $plan->is_public) {
+            throw new \RuntimeException('该套餐暂不可订阅');
+        }
+
+        $customer = $this->ensureCustomerForUser($user);
+        $price = (float) $plan->getPrice($billingPeriod);
+        $autoRenew = (bool) ($options['auto_renew'] ?? true);
+
+        $existing = Subscription::where('customer_id', $customer->id)
+            ->where(function ($q) use ($plan) {
+                $q->where('pricing_plan_slug', $plan->slug)
+                    ->orWhere('plan', $plan->slug);
+            })
+            ->whereIn('status', ['active', 'trialing', 'grace'])
+            ->latest('id')
+            ->first();
+
+        if ($existing) {
+            return [
+                'requires_payment' => false,
+                'status' => 'already_active',
+                'subscription' => $existing,
+                'invoice' => null,
+                'amount' => 0.0,
+                'already_active' => true,
+            ];
+        }
+
+        return DB::transaction(function () use ($customer, $plan, $price, $billingPeriod, $autoRenew, $options) {
+            $startsAt = now();
+            $endsAt = BillingCycle::calculateEndDate($billingPeriod, $startsAt);
+            $forcePay = (bool) ($options['force_payment'] ?? true);
+            $wantsTrial = ! $forcePay && $plan->trial_days > 0 && $price > 0;
+            $isFree = $price <= 0;
+
+            $status = ($isFree || $wantsTrial) ? 'active' : 'pending';
+
+            $subscription = Subscription::create([
+                'tenant_id' => $customer->tenant_id,
+                'customer_id' => $customer->id,
+                'product_id' => $plan->product_id,
+                'status' => $status,
+                'plan' => $plan->slug,
+                'price' => $price,
+                'currency' => $plan->currency ?: 'CNY',
+                'billing_period' => $billingPeriod,
+                'starts_at' => $startsAt,
+                'ends_at' => $endsAt,
+                'trial_ends_at' => $wantsTrial ? $startsAt->copy()->addDays((int) $plan->trial_days) : null,
+                'grace_days' => (int) ($options['grace_days'] ?? 7),
+                'auto_renew' => $autoRenew,
+                'next_billing_at' => $endsAt,
+                'pricing_plan_slug' => $plan->slug,
+                'metadata' => array_merge($options['metadata'] ?? [], [
+                    'source' => 'self_serve',
+                    'pricing_plan_id' => $plan->id,
+                    'contact' => $options['contact'] ?? null,
+                ]),
+            ]);
+
+            if ($isFree || $wantsTrial) {
+                Log::info('Billing: self-serve subscription activated without payment', [
+                    'subscription_id' => $subscription->id,
+                    'plan' => $plan->slug,
+                    'free' => $isFree,
+                    'trial' => $wantsTrial,
+                ]);
+
+                return [
+                    'requires_payment' => false,
+                    'status' => 'active',
+                    'subscription' => $subscription,
+                    'invoice' => null,
+                    'amount' => 0.0,
+                ];
+            }
+
+            $invoice = $this->createInvoice($subscription, 'subscription_create');
+
+            Log::info('Billing: self-serve subscription pending payment', [
+                'subscription_id' => $subscription->id,
+                'invoice_id' => $invoice->id,
+                'plan' => $plan->slug,
+                'amount' => $invoice->amount,
+            ]);
+
+            return [
+                'requires_payment' => true,
+                'status' => 'pending_payment',
+                'subscription' => $subscription,
+                'invoice' => $invoice,
+                'amount' => (float) $invoice->amount,
+            ];
+        });
+    }
+
+    /**
+     * 确保用户有对应 Customer 记录（自助订阅用）
+     */
+    public function ensureCustomerForUser(User $user): Customer
+    {
+        if ($user->customer) {
+            return $user->customer;
+        }
+
+        $tenantId = $user->remember_tenant_id ?? $user->tenant_id;
+        if (! $tenantId) {
+            throw new \RuntimeException(__('app.api.billing_portal.tenant_missing'));
+        }
+
+        return Customer::create([
+            'tenant_id' => $tenantId,
+            'user_id' => $user->id,
+            'type' => 'individual',
+            'level' => 'standard',
+            'status' => 'active',
+            'lifecycle_stage' => 'customer',
+            'stage_entered_at' => now(),
+            'billing_method' => 'postpaid',
+        ]);
+    }
+
+    /**
     public function applyCouponToSubscription(Subscription $subscription, string $couponCode): ?array
     {
         $coupon = Coupon::where('code', $couponCode)->first();
@@ -685,10 +821,15 @@ throw new \RuntimeException(__("app.billing.coupon_usage_limit_exceeded"));
 
             // 激活订阅关联 License
             if ($invoice->subscription) {
+                $subscription = $invoice->subscription;
+                if (in_array($subscription->status, ['pending', 'incomplete'], true)) {
+                    $subscription->update(['status' => 'active']);
+                }
+
                 if ($invoice->billing_reason === 'subscription_renew') {
-                    $this->applyRenewalToSubscription($invoice->subscription);
+                    $this->applyRenewalToSubscription($subscription->fresh());
                 } elseif ($invoice->billing_reason === 'subscription_create' || $invoice->billing_reason === 'subscription_update') {
-                    $this->activateLicensesForSubscription($invoice->subscription);
+                    $this->activateLicensesForSubscription($subscription->fresh());
                 }
             }
 
