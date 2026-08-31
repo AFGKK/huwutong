@@ -10,7 +10,7 @@
  *   $result = $client->activate('LICENSE-KEY', $machineInfo);
  * 
  * 安装：
- *   composer require huwutong/sdk
+ *   composer require huwutong/huwutong-sdk-php
  */
 
 namespace Huwutong;

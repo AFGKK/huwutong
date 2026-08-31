@@ -497,6 +497,7 @@ class PublicPageController extends Controller
                 'slug' => $plan->slug,
                 'name' => $plan->name,
                 'description' => $plan->description,
+                'product_id' => $plan->product_id,
                 'price_monthly' => (float) $plan->price_monthly,
                 'price_quarterly' => (float) $plan->price_quarterly,
                 'price_semi_annually' => (float) $plan->price_semi_annually,
@@ -619,9 +620,25 @@ class PublicPageController extends Controller
      */
     public function publicSdks(): JsonResponse
     {
-        $sdks = collect(config('dev-portal.sdks', []))
-            ->map(fn (array $sdk, string $key) => array_merge($sdk, ['id' => $key]))
+        $docs = config('sdk-docs.sdks', []);
+        $sdks = collect($docs)
+            ->map(fn (array $sdk, string $key) => [
+                'id' => $key,
+                'name' => $sdk['name'] ?? $key,
+                'description' => $sdk['description'] ?? '',
+                'install_command' => $sdk['install_command'] ?? '',
+                'docs_url' => $sdk['docs_url'] ?? '/docs/sdk/'.$key,
+                'latest_version' => $sdk['version'] ?? null,
+                'package' => $sdk['package'] ?? null,
+                'requires' => $sdk['requires'] ?? null,
+            ])
             ->values();
+
+        if ($sdks->isEmpty()) {
+            $sdks = collect(config('dev-portal.sdks', []))
+                ->map(fn (array $sdk, string $key) => array_merge($sdk, ['id' => $key]))
+                ->values();
+        }
 
         return response()->json([
             'success' => true,

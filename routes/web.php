@@ -128,9 +128,9 @@ Route::get('/page/{slug}', function (string $slug) {
 // 开发者文档
 Route::view('/sdk', 'public.sdk')->name('sdk');
 Route::redirect('/docs/sdk', '/sdk', 301);
-Route::get('/docs/sdk/{lang}', function (string $lang) {
-    return redirect('/help?search=' . urlencode(strtoupper($lang) . ' SDK'));
-})->where('lang', '[a-z]+');
+Route::get('/docs/sdk/{lang}', [\App\Http\Controllers\Public\SdkDocsController::class, 'show'])
+    ->where('lang', '[A-Za-z0-9\-]+')
+    ->name('sdk.docs');
 Route::view('/docs/quickstart', 'public.quickstart')->name('quickstart');
 
 // 开发者 Blog (M3-57)

@@ -457,7 +457,7 @@
                     <span class="text-slate-400 text-sm ml-2">{{ __('app.landing.how_code_label') }}</span>
                 </div>
 @verbatim
-                <pre class="text-sm text-slate-200 font-mono leading-relaxed overflow-x-auto"><code>// composer require huwutong/sdk
+                <pre class="text-sm text-slate-200 font-mono leading-relaxed overflow-x-auto"><code>// composer require huwutong/huwutong-sdk-php
 <span class="text-sky-300">$client</span> = <span class="text-violet-300">new</span> <span class="text-emerald-300">HWTClient</span>(<span class="text-amber-300">'your_api_key'</span>);
 <span class="text-sky-300">$result</span> = <span class="text-sky-300">$client</span>-><span class="text-yellow-200">validate</span>(<span class="text-amber-300">'HWT-ENT-XXXX-XXXX'</span>);
 

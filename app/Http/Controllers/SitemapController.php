@@ -33,6 +33,7 @@ class SitemapController extends Controller
             ['loc' => '/contact', 'priority' => '0.5', 'changefreq' => 'monthly'],
             ['loc' => '/privacy', 'priority' => '0.4', 'changefreq' => 'monthly'],
             ['loc' => '/terms', 'priority' => '0.4', 'changefreq' => 'monthly'],
+            ['loc' => '/sdk', 'priority' => '0.7', 'changefreq' => 'weekly'],
             ['loc' => '/docs/sdk', 'priority' => '0.7', 'changefreq' => 'weekly'],
             ['loc' => '/docs/quickstart', 'priority' => '0.7', 'changefreq' => 'weekly'],
             ['loc' => '/security-policy', 'priority' => '0.4', 'changefreq' => 'monthly'],
@@ -41,6 +42,14 @@ class SitemapController extends Controller
 
         foreach ($staticPages as $page) {
             $pages[] = $page;
+        }
+
+        foreach (array_keys(config('sdk-docs.sdks', [])) as $sdkLang) {
+            $pages[] = [
+                'loc' => '/docs/sdk/'.$sdkLang,
+                'priority' => '0.7',
+                'changefreq' => 'weekly',
+            ];
         }
 
         // 产品详情页

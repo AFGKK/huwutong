@@ -96,9 +96,19 @@ class MarketingPagesTest extends TestCase
     }
 
     /** @test */
-    public function sdk_doc_route_redirects_to_help_search(): void
+    public function sdk_doc_pages_are_available_per_language(): void
     {
-        $this->get('/docs/sdk/php')
-            ->assertRedirect('/help?search=PHP+SDK');
+        foreach (['php', 'node', 'python', 'go', 'java', 'csharp', 'flutter', 'electron', 'tauri'] as $lang) {
+            $sdk = config('sdk-docs.sdks.'.$lang);
+            $this->assertIsArray($sdk);
+
+            $this->get('/docs/sdk/'.$lang)
+                ->assertOk()
+                ->assertSee($sdk['package'], false)
+                ->assertSee($sdk['name'], false);
+        }
+
+        $this->get('/docs/sdk/javascript')
+            ->assertRedirect('/docs/sdk/node');
     }
 }

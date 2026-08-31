@@ -1317,9 +1317,26 @@ return [
     'sdk_page' => [
         'title' => 'SDK downloads',
         'subtitle' => 'Pick your language and validate licenses with the SDK docs',
-        'meta_desc' => 'Download Huwutong SDKs for PHP, Node.js, Python, Go, Java, and C#.',
+        'meta_desc' => 'Download Huwutong SDKs for PHP, Node.js, Python, Go, Java, C#, Flutter, Electron, and Tauri.',
         'docs' => 'View docs →',
         'examples' => 'Integration examples',
+        'quickstart_link' => 'Read the 5-minute quickstart →',
+    ],
+
+    'sdk_doc_page' => [
+        'guide' => 'integration guide',
+        'package' => 'Package',
+        'version' => 'Version',
+        'requires' => 'Requirements',
+        'steps_title' => 'Integration steps',
+        'install_title' => 'Install',
+        'example_title' => 'Full example',
+        'api_title' => 'Common APIs',
+        'method' => 'Method',
+        'desc' => 'Description',
+        'back_sdk' => 'Back to SDK list',
+        'quickstart' => 'Quickstart',
+        'help' => 'Help center',
     ],
 
     // ─── Live chat widget ───

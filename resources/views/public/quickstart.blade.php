@@ -33,8 +33,11 @@
                     <div class="flex-1">
                         <h2 class="text-xl font-bold text-gray-900 mb-2">{{ __('app.quickstart_page.step2_title') }}</h2>
                         <p class="text-gray-600 mb-3">{{ __('app.quickstart_page.step2_desc') }}</p>
-                        <div class="bg-gray-50 rounded-xl p-4 mb-3"><code class="text-sm text-gray-800">composer require huwutong/sdk</code></div>
+                        <div class="bg-gray-50 rounded-xl p-4 mb-3"><code class="text-sm text-gray-800">composer require huwutong/huwutong-sdk-php</code></div>
+                        <p class="text-sm text-gray-500 mb-3">Node: <code>npm install huwutong-sdk</code> · Python: <code>pip install huwutong-sdk</code></p>
                         <a href="/sdk" class="text-slate-800 font-medium hover:text-slate-900 transition text-sm">{{ __('app.quickstart_page.view_sdk') }}</a>
+                        <span class="text-gray-300 mx-2">·</span>
+                        <a href="/docs/sdk/php" class="text-slate-800 font-medium hover:text-slate-900 transition text-sm">PHP {{ __('app.sdk_page.docs') }}</a>
                     </div>
                 </div>
                 <div class="step-card flex gap-6 p-6 rounded-2xl border border-gray-100 bg-white">

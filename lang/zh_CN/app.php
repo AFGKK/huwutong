@@ -1316,9 +1316,26 @@ return [
     'sdk_page' => [
         'title' => 'SDK 下载',
         'subtitle' => '选择您的编程语言，按文档完成授权验证集成',
-        'meta_desc' => '下载互物通 SDK，支持 PHP、Node.js、Python、Go、Java、C#。',
+        'meta_desc' => '下载互物通 SDK，支持 PHP、Node.js、Python、Go、Java、C#、Flutter、Electron、Tauri。',
         'docs' => '查看文档 →',
         'examples' => '集成示例',
+        'quickstart_link' => '查看 5 分钟快速入门 →',
+    ],
+
+    'sdk_doc_page' => [
+        'guide' => '授权集成教程',
+        'package' => '包名',
+        'version' => '版本',
+        'requires' => '运行环境',
+        'steps_title' => '集成步骤',
+        'install_title' => '安装',
+        'example_title' => '完整示例',
+        'api_title' => '常用 API',
+        'method' => '方法',
+        'desc' => '说明',
+        'back_sdk' => '返回 SDK 列表',
+        'quickstart' => '快速入门',
+        'help' => '帮助中心',
     ],
 
     // ─── Live chat widget ───
