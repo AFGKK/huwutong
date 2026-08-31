@@ -1339,6 +1339,44 @@ return [
         'help' => 'Help center',
     ],
 
+    'docs_hub_page' => [
+        'title' => 'Developer docs',
+        'subtitle' => 'Quickstart, SDKs, API reference, error codes, and webhooks',
+        'meta_desc' => 'Huwutong developer documentation hub',
+        'crumb' => 'Docs',
+        'sdk_title' => 'SDK guides by language',
+        'examples_title' => 'Example projects',
+    ],
+
+    'api_docs_page' => [
+        'title' => 'API docs',
+        'subtitle' => 'License activate, validate, offline, and telemetry endpoints',
+        'meta_desc' => 'Huwutong public API reference with request and response examples',
+        'crumb' => 'API docs',
+        'auth' => 'Authentication',
+        'request' => 'Request example',
+        'response' => 'Response example',
+    ],
+
+    'error_codes_page' => [
+        'title' => 'Error codes',
+        'subtitle' => 'M2-34 standard codes and HTTP status mapping',
+        'meta_desc' => 'Huwutong License API error code reference',
+        'hint' => 'Map SDK business errors with the table below. Full list is also available at /api/error-codes.',
+        'code' => 'Code',
+        'message' => 'Message',
+    ],
+
+    'webhooks_page' => [
+        'title' => 'Webhook guide',
+        'subtitle' => 'Subscribe to license and device events',
+        'meta_desc' => 'Huwutong webhook events, payloads, and signature verification',
+        'setup' => 'Setup',
+        'events' => 'Events',
+        'event' => 'Event',
+        'payload' => 'Payload example',
+    ],
+
     // ─── Live chat widget ───
     'live_chat' => [
         'title_btn' => 'Live chat',

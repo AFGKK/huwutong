@@ -13,7 +13,18 @@ class MarketingPagesTest extends TestCase
     /** @test */
     public function marketing_pages_are_accessible(): void
     {
-        foreach (['/pricing', '/help', '/sdk', '/about', '/contact'] as $path) {
+        foreach ([
+            '/pricing',
+            '/help',
+            '/sdk',
+            '/about',
+            '/contact',
+            '/docs',
+            '/docs/quickstart',
+            '/api-docs',
+            '/docs/error-codes',
+            '/docs/webhooks',
+        ] as $path) {
             $this->get($path)->assertOk();
         }
     }
@@ -110,5 +121,20 @@ class MarketingPagesTest extends TestCase
 
         $this->get('/docs/sdk/javascript')
             ->assertRedirect('/docs/sdk/node');
+    }
+
+    /** @test */
+    public function public_api_docs_json_returns_endpoints(): void
+    {
+        $this->getJson('/api/api-docs/public')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'data' => [
+                    'groups',
+                    'total_endpoints',
+                    'source',
+                ],
+            ]);
     }
 }

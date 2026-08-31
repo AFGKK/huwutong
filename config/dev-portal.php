@@ -97,14 +97,14 @@ return [
     |--------------------------------------------------------------------------
     */
     'quick_links' => [
+        ['title' => '文档中心', 'path' => '/docs', 'icon' => 'Collection'],
         ['title' => '快速开始', 'path' => '/docs/quickstart', 'icon' => 'Rocket'],
-        ['title' => 'SDK 文档', 'path' => '/sdk', 'icon' => 'Document'],
-        ['title' => 'API Playground', 'path' => '/playground', 'icon' => 'Monitor'],
-        ['title' => '错误码参考', 'path' => '/error-codes', 'icon' => 'WarningFilled'],
-        ['title' => 'Webhook 指南', 'path' => '/webhook-endpoints', 'icon' => 'Link'],
-        ['title' => 'SDK Telemetry', 'path' => '/telemetry', 'icon' => 'DataBoard'],
-        ['title' => '开发者沙箱', 'path' => '/sandbox', 'icon' => 'EditPen'],
-        ['title' => 'API 版本', 'path' => '/api-versions', 'icon' => 'Connection'],
+        ['title' => 'API 文档', 'path' => '/api-docs', 'icon' => 'Document'],
+        ['title' => '错误码参考', 'path' => '/docs/error-codes', 'icon' => 'WarningFilled'],
+        ['title' => 'Webhook 指南', 'path' => '/docs/webhooks', 'icon' => 'Link'],
+        ['title' => 'SDK 列表', 'path' => '/sdk', 'icon' => 'Box'],
+        ['title' => 'API Playground', 'path' => '/build/playground', 'icon' => 'Monitor'],
+        ['title' => '开发者沙箱', 'path' => '/build/sandbox', 'icon' => 'EditPen'],
     ],
 
     /*

@@ -34,8 +34,12 @@ class SitemapController extends Controller
             ['loc' => '/privacy', 'priority' => '0.4', 'changefreq' => 'monthly'],
             ['loc' => '/terms', 'priority' => '0.4', 'changefreq' => 'monthly'],
             ['loc' => '/sdk', 'priority' => '0.7', 'changefreq' => 'weekly'],
+            ['loc' => '/docs', 'priority' => '0.8', 'changefreq' => 'weekly'],
             ['loc' => '/docs/sdk', 'priority' => '0.7', 'changefreq' => 'weekly'],
             ['loc' => '/docs/quickstart', 'priority' => '0.7', 'changefreq' => 'weekly'],
+            ['loc' => '/api-docs', 'priority' => '0.8', 'changefreq' => 'weekly'],
+            ['loc' => '/docs/error-codes', 'priority' => '0.6', 'changefreq' => 'monthly'],
+            ['loc' => '/docs/webhooks', 'priority' => '0.6', 'changefreq' => 'monthly'],
             ['loc' => '/security-policy', 'priority' => '0.4', 'changefreq' => 'monthly'],
             ['loc' => '/hall-of-fame', 'priority' => '0.5', 'changefreq' => 'monthly'],
         ];

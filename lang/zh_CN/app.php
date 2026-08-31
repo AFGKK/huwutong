@@ -1338,6 +1338,44 @@ return [
         'help' => '帮助中心',
     ],
 
+    'docs_hub_page' => [
+        'title' => '开发者文档',
+        'subtitle' => '快速入门、SDK、API、错误码与 Webhook 一站式入口',
+        'meta_desc' => '互物通开发者文档中心：SDK 集成、API 参考、错误码与 Webhook 指南',
+        'crumb' => '文档中心',
+        'sdk_title' => '按语言查看 SDK 教程',
+        'examples_title' => '示例工程',
+    ],
+
+    'api_docs_page' => [
+        'title' => 'API 文档',
+        'subtitle' => 'License 激活、验证、离线授权与遥测接口参考',
+        'meta_desc' => '互物通公开 API 文档：端点、请求与响应示例',
+        'crumb' => 'API 文档',
+        'auth' => '鉴权说明',
+        'request' => '请求示例',
+        'response' => '响应示例',
+    ],
+
+    'error_codes_page' => [
+        'title' => '错误码',
+        'subtitle' => 'M2-34 标准错误码与 HTTP 状态对照',
+        'meta_desc' => '互物通 License API 错误码参考',
+        'hint' => 'SDK 抛出的业务错误可对照下表处理；完整列表亦可通过 /api/error-codes 查询。',
+        'code' => '错误码',
+        'message' => '说明',
+    ],
+
+    'webhooks_page' => [
+        'title' => 'Webhook 指南',
+        'subtitle' => '订阅 License 与设备事件，接收实时回调',
+        'meta_desc' => '互物通 Webhook 事件、载荷与验签说明',
+        'setup' => '配置步骤',
+        'events' => '事件列表',
+        'event' => '事件',
+        'payload' => '载荷示例',
+    ],
+
     // ─── Live chat widget ───
     'live_chat' => [
         'title_btn' => '在线客服',

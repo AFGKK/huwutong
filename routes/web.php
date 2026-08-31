@@ -131,7 +131,11 @@ Route::redirect('/docs/sdk', '/sdk', 301);
 Route::get('/docs/sdk/{lang}', [\App\Http\Controllers\Public\SdkDocsController::class, 'show'])
     ->where('lang', '[A-Za-z0-9\-]+')
     ->name('sdk.docs');
-Route::view('/docs/quickstart', 'public.quickstart')->name('quickstart');
+Route::get('/docs', [\App\Http\Controllers\Public\IntegrationDocsController::class, 'hub'])->name('docs.hub');
+Route::get('/docs/quickstart', [\App\Http\Controllers\Public\IntegrationDocsController::class, 'quickstart'])->name('quickstart');
+Route::get('/api-docs', [\App\Http\Controllers\Public\IntegrationDocsController::class, 'apiDocs'])->name('api-docs');
+Route::get('/docs/error-codes', [\App\Http\Controllers\Public\IntegrationDocsController::class, 'errorCodes'])->name('docs.error-codes');
+Route::get('/docs/webhooks', [\App\Http\Controllers\Public\IntegrationDocsController::class, 'webhooks'])->name('docs.webhooks');
 
 // 开发者 Blog (M3-57)
 Route::get('/blog', function () {

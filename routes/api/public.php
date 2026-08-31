@@ -249,6 +249,9 @@ Route::get('/error-codes/by-domain', [ErrorCodeController::class, 'byDomain']);
 Route::get('/error-codes/search', [ErrorCodeController::class, 'search']);
 Route::get('/error-codes/{code}', [ErrorCodeController::class, 'show']);
 
+// 公开 API 文档（配置回退 + DB active 端点）
+Route::get('/api-docs/public', [\App\Http\Controllers\Public\IntegrationDocsController::class, 'publicApiJson']);
+
 // 公开邀请（无需认证）
 Route::get('/invite/{token}', [UserChatController::class, 'inviteInfo']);
 Route::post('/invite/{token}/join', [UserChatController::class, 'joinViaInvite']);

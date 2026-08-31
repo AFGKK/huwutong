@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             SiteSettingsSeeder::class,
             PricingPlanSeeder::class,
             DemoDataSeeder::class,
+            IntegrationDocsSeeder::class,
             ComparePageSeeder::class,
             LegalCmsPagesSeeder::class,
             AutomationRuleSeeder::class,

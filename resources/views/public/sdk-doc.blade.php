@@ -113,8 +113,23 @@
             <div class="flex flex-wrap gap-3 pt-2">
                 <a href="/sdk" class="inline-flex items-center px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition">{{ __('app.sdk_doc_page.back_sdk') }}</a>
                 <a href="/docs/quickstart" class="inline-flex items-center px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition">{{ __('app.sdk_doc_page.quickstart') }}</a>
+                <a href="/api-docs" class="inline-flex items-center px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition">{{ __('app.api_docs_page.title') }}</a>
+                <a href="/docs/error-codes" class="inline-flex items-center px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition">{{ __('app.error_codes_page.title') }}</a>
                 <a href="/help" class="inline-flex items-center px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition">{{ __('app.sdk_doc_page.help') }}</a>
             </div>
+
+            @php($examples = collect(config('integration-docs.examples', []))->filter(fn ($e) => str_contains($e['docs_url'] ?? '', '/'.$sdk['id']) || ($sdk['id'] === 'node' && ($e['id'] ?? '') === 'nodejs'))->values())
+            @if($examples->isNotEmpty())
+                <div class="pt-4">
+                    <h2 class="text-xl font-bold text-slate-900 mb-4">{{ __('app.docs_hub_page.examples_title') }}</h2>
+                    @foreach($examples as $ex)
+                        <div class="rounded-2xl border border-slate-200 p-5 bg-slate-50 mb-3">
+                            <div class="font-medium text-slate-900 mb-2">{{ $ex['name'] }} · <span class="font-mono text-xs text-slate-500">{{ $ex['path'] }}</span></div>
+                            <pre class="text-xs text-slate-700 overflow-x-auto"><code>{{ implode("\n", $ex['commands']) }}</code></pre>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
         </div>
     </section>
 
