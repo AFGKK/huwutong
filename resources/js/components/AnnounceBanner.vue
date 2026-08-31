@@ -16,7 +16,7 @@
                     class="announce-banner__link"
                     target="_blank"
                 >
-                    {{ banner.link_text || '查看详情' }}
+                    {{ banner.link_text || t('actions.view_details') }}
                     <el-icon class="el-icon--right"><TopRight /></el-icon>
                 </el-link>
             </div>
@@ -35,9 +35,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { getActiveBanners } from '@/api/announce-banners';
 import { Close, TopRight } from '@element-plus/icons-vue';
 
+const { t } = useI18n();
 const banners = ref([]);
 const dismissedIds = ref(new Set());
 
@@ -108,7 +110,7 @@ onMounted(() => {
 }
 
 .announce-banner--info {
-    background: #ecf5ff;
+    background: #f1f5f9;
     color: #606266;
 }
 

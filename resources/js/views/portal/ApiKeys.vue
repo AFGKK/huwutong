@@ -2,11 +2,11 @@
   <div class="portal-api-keys">
     <div class="page-header">
       <div>
-        <h2>我的 API Keys</h2>
-        <p class="text-muted">API Key 用于程序化访问互物通 API，请妥善保管，不要分享给他人。</p>
+        <h2>{{ $t('portal.apikeys_title') }}</h2>
+        <p class="text-muted">{{ $t('portal.apikeys_subtitle') }}</p>
       </div>
       <el-button type="primary" @click="showCreate">
-        <el-icon><Plus /></el-icon> 新建 API Key
+        <el-icon><Plus /></el-icon> {{ $t('portal.new_apikey') }}
       </el-button>
     </div>
 
@@ -15,25 +15,25 @@
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value text-primary">{{ stats.total || 0 }}</div>
-          <div class="stat-label">总 Key 数</div>
+          <div class="stat-label">{{ $t('portal.total_keys') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value text-success">{{ stats.active || 0 }}</div>
-          <div class="stat-label">活跃</div>
+          <div class="stat-label">{{ $t('portal.st_active') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value text-warning">{{ stats.expired || 0 }}</div>
-          <div class="stat-label">即将过期 / 已过期</div>
+          <div class="stat-label">{{ $t('portal.keys_expiring') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value text-info">{{ stats.usage_count || 0 }}</div>
-          <div class="stat-label">本月调用次数</div>
+          <div class="stat-label">{{ $t('portal.month_calls') }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -41,7 +41,7 @@
     <!-- API Key 列表 -->
     <el-card shadow="hover">
       <el-table :data="keys" stripe v-loading="loading">
-        <el-table-column label="名称" prop="name" min-width="130" />
+        <el-table-column :label="$t('portal.name')" prop="name" min-width="130" />
         <el-table-column label="Key" width="210">
           <template #default="{ row }">
             <span class="font-mono">{{ maskKey(row.key) }}</span>
@@ -50,18 +50,18 @@
             </el-button>
           </template>
         </el-table-column>
-        <el-table-column label="权限" min-width="140">
+        <el-table-column :label="$t('portal.permissions')" min-width="140">
           <template #default="{ row }">
             <el-tag v-for="ab in (row.abilities || row.permissions ? [row.permissions] : [])" :key="ab" size="small" style="margin-right:4px">{{ abLabel(ab) }}</el-tag>
-            <span v-if="!row.abilities && !row.permissions" class="text-muted">全部</span>
+            <span v-if="!row.abilities && !row.permissions" class="text-muted">{{ $t('portal.all_perms') }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="70">
+        <el-table-column :label="$t('portal.status')" width="70">
           <template #default="{ row }">
-            <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">{{ row.is_active ? '启用' : '已禁用' }}</el-tag>
+            <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">{{ row.is_active ? $t('portal.enabled_status') : $t('portal.disabled_status') }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="用量" width="130">
+        <el-table-column :label="$t('portal.usage')" width="130">
           <template #default="{ row }">
             <el-progress
               v-if="row.daily_quota"
@@ -73,121 +73,124 @@
             >
               {{ row.daily_usage || 0 }}/{{ row.daily_quota }}
             </el-progress>
-            <span v-else class="text-muted">{{ row.usage_count || 0 }} 次</span>
+            <span v-else class="text-muted">{{ $t('portal.times_n', { n: row.usage_count || 0 }) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="到期时间" width="120">
+        <el-table-column :label="$t('portal.expires_at')" width="120">
           <template #default="{ row }">
             <span v-if="row.expires_at" :class="isExpiring(row.expires_at) ? 'expiring-text' : ''">
               {{ formatTime(row.expires_at) }}
             </span>
-            <span v-else class="text-muted">永久</span>
+            <span v-else class="text-muted">{{ $t('portal.lifetime') }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="最后使用" width="140">
-          <template #default="{ row }">{{ row.last_used_at ? formatTime(row.last_used_at) : '从未' }}</template>
+        <el-table-column :label="$t('portal.last_used')" width="140">
+          <template #default="{ row }">{{ row.last_used_at ? formatTime(row.last_used_at) : $t('portal.never') }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="210" fixed="right">
+        <el-table-column :label="$t('portal.actions')" width="210" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="showEdit(row)">编辑</el-button>
+            <el-button size="small" @click="showEdit(row)">{{ $t('portal.edit') }}</el-button>
             <el-button size="small" :type="row.is_active ? 'warning' : 'success'" @click="toggleStatus(row)">
-              {{ row.is_active ? '禁用' : '启用' }}
+              {{ row.is_active ? $t('actions.disable') : $t('actions.enable') }}
             </el-button>
-            <el-popconfirm title="确定删除？关联服务将立即无法使用。" @confirm="handleDelete(row)">
+            <el-popconfirm :title="$t('portal.delete_key_hint')" @confirm="handleDelete(row)">
               <template #reference>
-                <el-button size="small" type="danger">删除</el-button>
+                <el-button size="small" type="danger">{{ $t('actions.delete') }}</el-button>
               </template>
             </el-popconfirm>
           </template>
         </el-table-column>
       </el-table>
-      <el-empty v-if="!keys.length && !loading" description="暂无 API Key，点击右上角创建" :image-size="60" />
+      <el-empty v-if="!keys.length && !loading" :description="$t('portal.no_apikeys')" :image-size="60" />
     </el-card>
 
     <!-- 创建对话框 -->
-    <el-dialog v-model="createVisible" title="新建 API Key" width="520px" :close-on-click-modal="false" destroy-on-close>
+    <el-dialog v-model="createVisible" :title="$t('portal.new_apikey')" width="520px" :close-on-click-modal="false" destroy-on-close>
       <el-form :model="createForm" :rules="formRules" ref="createFormRef" label-position="top">
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="createForm.name" placeholder="例如: 生产环境集成" maxlength="100" />
+        <el-form-item :label="$t('portal.name')" prop="name">
+          <el-input v-model="createForm.name" :placeholder="$t('portal.key_name_ph')" maxlength="100" />
         </el-form-item>
-        <el-form-item label="权限范围" prop="abilities">
+        <el-form-item :label="$t('portal.ability_scope')" prop="abilities">
           <el-checkbox-group v-model="createForm.abilities">
             <el-checkbox v-for="(label, key) in abilityOptions" :key="key" :label="key">{{ label }}</el-checkbox>
           </el-checkbox-group>
-          <div class="text-muted" style="font-size:12px;margin-top:4px">不选择则默认为全部权限</div>
+          <div class="text-muted" style="font-size:12px;margin-top:4px">{{ $t('portal.ability_all_hint') }}</div>
         </el-form-item>
-        <el-form-item label="IP 白名单 (可选)">
-          <el-input v-model="createForm.ip_whitelist" placeholder="逗号分隔，如 192.168.1.1,10.0.0.0/8" />
+        <el-form-item :label="$t('portal.ip_whitelist_opt')">
+          <el-input v-model="createForm.ip_whitelist" :placeholder="$t('portal.ip_whitelist_ph')" />
         </el-form-item>
-        <el-form-item label="过期时间 (可选)">
-          <el-date-picker v-model="createForm.expires_at" type="datetime" placeholder="永不过期" style="width:100%" value-format="YYYY-MM-DD HH:mm:ss" />
+        <el-form-item :label="$t('portal.expires_opt')">
+          <el-date-picker v-model="createForm.expires_at" type="datetime" :placeholder="$t('portal.never_expires')" style="width:100%" value-format="YYYY-MM-DD HH:mm:ss" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleCreate" :loading="submitting">创建</el-button>
+        <el-button @click="createVisible = false">{{ $t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="handleCreate" :loading="submitting">{{ $t('portal.create') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 创建成功：展示 Key -->
-    <el-dialog v-model="showKeyResult" title="API Key 创建成功" width="520px" :close-on-click-modal="false" @close="onKeyResultClose">
+    <el-dialog v-model="showKeyResult" :title="$t('portal.key_created_title')" width="520px" :close-on-click-modal="false" @close="onKeyResultClose">
       <el-alert type="warning" :closable="false" show-icon>
-        <template #title><strong>请立即保存此密钥！</strong>关闭后将不再显示。</template>
+        <template #title><strong>{{ $t('portal.key_save_now') }}</strong></template>
       </el-alert>
       <div class="key-display-box">
         <div class="key-label">API Key</div>
         <div class="key-value-wrap">
           <code class="key-value">{{ lastCreatedKey }}</code>
           <el-button type="primary" size="small" @click="copyKey(lastCreatedKey)">
-            <el-icon><CopyDocument /></el-icon> 复制
+            <el-icon><CopyDocument /></el-icon> {{ $t('portal.copy') }}
           </el-button>
         </div>
       </div>
       <template #footer>
-        <el-button type="primary" @click="showKeyResult = false">我已保存</el-button>
+        <el-button type="primary" @click="showKeyResult = false">{{ $t('portal.saved_key') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 编辑对话框 -->
-    <el-dialog v-model="editVisible" title="编辑 API Key" width="520px" destroy-on-close>
+    <el-dialog v-model="editVisible" :title="$t('portal.edit_apikey')" width="520px" destroy-on-close>
       <el-form :model="editForm" :rules="formRules" ref="editFormRef" label-position="top">
-        <el-form-item label="名称" prop="name">
+        <el-form-item :label="$t('portal.name')" prop="name">
           <el-input v-model="editForm.name" maxlength="100" />
         </el-form-item>
-        <el-form-item label="权限范围">
+        <el-form-item :label="$t('portal.ability_scope')">
           <el-checkbox-group v-model="editForm.abilities">
             <el-checkbox v-for="(label, key) in abilityOptions" :key="key" :label="key">{{ label }}</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
-        <el-form-item label="IP 白名单">
-          <el-input v-model="editForm.ip_whitelist" placeholder="逗号分隔的 IP 地址或 CIDR" />
+        <el-form-item :label="$t('portal.ip_whitelist')">
+          <el-input v-model="editForm.ip_whitelist" :placeholder="$t('portal.ip_whitelist_edit_ph')" />
         </el-form-item>
-        <el-form-item label="过期时间">
-          <el-date-picker v-model="editForm.expires_at" type="datetime" placeholder="永不过期" style="width:100%" value-format="YYYY-MM-DD HH:mm:ss" />
+        <el-form-item :label="$t('portal.expires_at')">
+          <el-date-picker v-model="editForm.expires_at" type="datetime" :placeholder="$t('portal.never_expires')" style="width:100%" value-format="YYYY-MM-DD HH:mm:ss" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleUpdate" :loading="submitting">保存</el-button>
+        <el-button @click="editVisible = false">{{ $t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="handleUpdate" :loading="submitting">{{ $t('actions.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 重新生成对话框 -->
-    <el-dialog v-model="regenerateVisible" title="重新生成 API Key" width="400px">
-      <p>重新生成后，旧 Key 将立即失效。确认继续？</p>
+    <el-dialog v-model="regenerateVisible" :title="$t('portal.regenerate_title')" width="400px">
+      <p>{{ $t('portal.regenerate_confirm') }}</p>
       <template #footer>
-        <el-button @click="regenerateVisible = false">取消</el-button>
-        <el-button type="warning" @click="handleRegenerate" :loading="submitting">确认重新生成</el-button>
+        <el-button @click="regenerateVisible = false">{{ $t('actions.cancel') }}</el-button>
+        <el-button type="warning" @click="handleRegenerate" :loading="submitting">{{ $t('portal.confirm_regenerate') }}</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, CopyDocument } from '@element-plus/icons-vue';
 import apiKeyApi from '@/api/apiKey';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const submitting = ref(false);
@@ -219,9 +222,9 @@ const editForm = reactive({
     expires_at: null,
 });
 
-const formRules = {
-    name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
-};
+const formRules = computed(() => ({
+    name: [{ required: true, message: t('portal.name_required'), trigger: 'blur' }],
+}));
 
 onMounted(() => {
     loadAbilities();
@@ -271,7 +274,7 @@ function maskKey(key) {
 
 function copyKey(key) {
     if (!key) return;
-    navigator.clipboard.writeText(key).then(() => ElMessage.success('已复制'));
+    navigator.clipboard.writeText(key).then(() => ElMessage.success(t('portal.copied')));
 }
 
 function showCreate() {
@@ -300,7 +303,7 @@ async function handleCreate() {
         loadKeys();
         loadStats();
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '创建失败');
+        ElMessage.error(err.response?.data?.message || t('portal.create_failed'));
     } finally { submitting.value = false; }
 }
 
@@ -328,11 +331,11 @@ async function handleUpdate() {
             ip_whitelist: editForm.ip_whitelist || undefined,
             expires_at: editForm.expires_at || undefined,
         });
-        ElMessage.success('更新成功');
+        ElMessage.success(t('portal.update_ok'));
         editVisible.value = false;
         loadKeys();
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '更新失败');
+        ElMessage.error(err.response?.data?.message || t('portal.update_failed'));
     } finally { submitting.value = false; }
 }
 
@@ -350,42 +353,46 @@ async function handleRegenerate() {
         showKeyResult.value = true;
         loadKeys();
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '重新生成失败');
+        ElMessage.error(err.response?.data?.message || t('portal.regenerate_failed'));
     } finally { submitting.value = false; }
 }
 
 async function toggleStatus(row) {
     try {
         await apiKeyApi.toggleActive(row.id);
-        ElMessage.success(row.is_active ? '已禁用' : '已启用');
+        ElMessage.success(row.is_active ? t('portal.disabled_ok') : t('portal.enabled_ok'));
         loadKeys();
         loadStats();
     } catch (err) {
-        ElMessage.error('操作失败');
+        ElMessage.error(t('messages.failed'));
     }
 }
 
 async function handleDelete(row) {
     try {
-        await ElMessageBox.confirm(`确定删除 API Key "${row.name}"？此操作不可撤销。`, '确认删除');
+        await ElMessageBox.confirm(
+            t('portal.delete_key_confirm', { name: row.name }),
+            t('portal.confirm_delete'),
+        );
         await apiKeyApi.delete(row.id);
-        ElMessage.success('已删除');
+        ElMessage.success(t('portal.deleted_ok'));
         loadKeys();
         loadStats();
-    } catch (e) { if (e !== 'cancel') ElMessage.error('删除失败'); }
+    } catch (e) { if (e !== 'cancel') ElMessage.error(t('portal.delete_failed_msg')); }
 }
 
-function formatTime(t) {
-    if (!t) return '—';
-    return new Date(t).toLocaleString('zh-CN', {
+function formatTime(time) {
+    if (!time) return '—';
+    const dateLocale = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(time).toLocaleString(dateLocale, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit',
     });
 }
 
-function isExpiring(t) {
-    if (!t) return false;
-    const days = (new Date(t) - new Date()) / (1000 * 60 * 60 * 24);
+function isExpiring(time) {
+    if (!time) return false;
+    const days = (new Date(time) - new Date()) / (1000 * 60 * 60 * 24);
     return days <= 14 && days > 0;
 }
 </script>
@@ -404,7 +411,7 @@ function isExpiring(t) {
 .stat-card { cursor: default; }
 .stat-card .stat-value { font-size: 28px; font-weight: 700; }
 .stat-card .stat-label { font-size: 13px; color: #909399; margin-top: 4px; }
-.text-primary { color: #409eff; }
+.text-primary { color: #0f172a; }
 .text-success { color: #67c23a; }
 .text-warning { color: #e6a23c; }
 .text-info { color: #909399; }

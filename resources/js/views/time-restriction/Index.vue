@@ -1,10 +1,10 @@
 <template>
     <div class="time-restriction-page">
         <div class="page-header">
-            <h2><el-icon style="vertical-align:middle;margin-right:8px"><Clock /></el-icon>License 使用时段限制管理</h2>
-            <p class="text-muted">管理所有 License 的使用时段限制配置，支持每周排期、特定期日、节假日的灵活设置</p>
+            <h2><el-icon style="vertical-align:middle;margin-right:8px"><Clock /></el-icon>{{ t('time_restriction_page.title') }}</h2>
+            <p class="text-muted">{{ t('time_restriction_page.subtitle') }}</p>
             <div class="header-actions">
-                <el-button @click="refreshAll" :loading="loading" :icon="Refresh">刷新</el-button>
+                <el-button @click="refreshAll" :loading="loading" :icon="Refresh">{{ t('time_restriction_page.refresh') }}</el-button>
             </div>
         </div>
 
@@ -12,25 +12,25 @@
         <el-row :gutter="16" class="mb-4">
             <el-col :span="6">
                 <el-card shadow="hover">
-                    <div class="stat-label">总配置数</div>
+                    <div class="stat-label">{{ t('time_restriction_page.stats.total_configs') }}</div>
                     <div class="stat-value">{{ stats.total_configs }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-active">
-                    <div class="stat-label">已启用</div>
+                    <div class="stat-label">{{ t('time_restriction_page.stats.active_configs') }}</div>
                     <div class="stat-value">{{ stats.active_configs }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-warning">
-                    <div class="stat-label">今日检查次数</div>
+                    <div class="stat-label">{{ t('time_restriction_page.stats.today_checks') }}</div>
                     <div class="stat-value">{{ stats.today_checks }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-danger">
-                    <div class="stat-label">今日拒绝次数</div>
+                    <div class="stat-label">{{ t('time_restriction_page.stats.today_denials') }}</div>
                     <div class="stat-value">{{ stats.today_denials }}</div>
                 </el-card>
             </el-col>
@@ -40,18 +40,16 @@
         <el-card shadow="hover">
             <el-tabs v-model="activeTab">
                 <!-- 配置列表 -->
-                <el-tab-pane label="时段限制配置" name="configs">
+                <el-tab-pane :label="t('time_restriction_page.tabs.configs')" name="configs">
                     <div class="tab-toolbar">
-                        <el-input v-model="search" placeholder="搜索 License ID/描述" clearable style="width:240px" @clear="loadConfigs" @keyup.enter="loadConfigs" />
-                        <el-select v-model="filterActive" placeholder="状态" clearable style="width:120px;margin-left:8px" @change="loadConfigs">
-                            <el-option label="全部" value="" />
-                            <el-option label="已启用" value="1" />
-                            <el-option label="已禁用" value="0" />
+                        <el-input v-model="search" :placeholder="t('time_restriction_page.search_ph')" clearable style="width:240px" @clear="loadConfigs" @keyup.enter="loadConfigs" />
+                        <el-select v-model="filterActive" :placeholder="t('time_restriction_page.filter_status_ph')" clearable style="width:120px;margin-left:8px" @change="loadConfigs">
+                            <el-option v-for="opt in statusFilterOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                         </el-select>
                     </div>
                     <el-table :data="configs" stripe v-loading="configsLoading">
-                        <el-table-column label="ID" width="60" prop="id" />
-                        <el-table-column label="关联对象" min-width="200">
+                        <el-table-column :label="t('time_restriction_page.cols.id')" width="60" prop="id" />
+                        <el-table-column :label="t('time_restriction_page.cols.restrictable')" min-width="200">
                             <template #default="{ row }">
                                 <div class="restrictable-info">
                                     <el-tag size="small" type="info">{{ row.restrictable_type_label }}</el-tag>
@@ -59,46 +57,46 @@
                                 </div>
                             </template>
                         </el-table-column>
-                        <el-table-column label="状态" width="80">
+                        <el-table-column :label="t('time_restriction_page.cols.status')" width="80">
                             <template #default="{ row }">
                                 <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-                                    {{ row.is_active ? '启用' : '禁用' }}
+                                    {{ row.is_active ? t('actions.enable') : t('actions.disable') }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="时区" width="140" prop="timezone" />
-                        <el-table-column label="每周时段" min-width="200">
+                        <el-table-column :label="t('time_restriction_page.cols.timezone')" width="140" prop="timezone" />
+                        <el-table-column :label="t('time_restriction_page.cols.weekly_schedule')" min-width="200">
                             <template #default="{ row }">
                                 <div v-if="row.summary?.weekly_schedule?.length" class="schedule-summary">
                                     <el-tag v-for="s in row.summary.weekly_schedule" :key="s" size="small" class="mr-1">
                                         {{ s }}
                                     </el-tag>
                                 </div>
-                                <span v-else class="no-data">未配置</span>
+                                <span v-else class="no-data">{{ t('time_restriction_page.not_configured') }}</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="节假日" width="80" align="center">
+                        <el-table-column :label="t('time_restriction_page.cols.holidays')" width="80" align="center">
                             <template #default="{ row }">
                                 <el-tag v-if="row.summary?.holiday_count" type="warning" size="small">
-                                    {{ row.summary.holiday_count }} 天
+                                    {{ t('time_restriction_page.holiday_days', { n: row.summary.holiday_count }) }}
                                 </el-tag>
                                 <span v-else class="no-data">-</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="超时行为" width="100">
+                        <el-table-column :label="t('time_restriction_page.cols.out_of_hours_action')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="actionTagType(row.out_of_hours_action)" size="small">
                                     {{ actionLabel(row.out_of_hours_action) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="备注" min-width="120" show-overflow-tooltip prop="description" />
-                        <el-table-column label="操作" width="200" fixed="right">
+                        <el-table-column :label="t('time_restriction_page.cols.description')" min-width="120" show-overflow-tooltip prop="description" />
+                        <el-table-column :label="t('time_restriction_page.cols.actions')" width="200" fixed="right">
                             <template #default="{ row }">
-                                <el-button type="primary" link size="small" @click="viewLicense(row)">查看 License</el-button>
-                                <el-popconfirm title="确定删除此配置？" @confirm="handleDelete(row)">
+                                <el-button type="primary" link size="small" @click="viewLicense(row)">{{ t('time_restriction_page.view_license') }}</el-button>
+                                <el-popconfirm :title="t('time_restriction_page.delete_confirm')" @confirm="handleDelete(row)">
                                     <template #reference>
-                                        <el-button type="danger" link size="small">删除</el-button>
+                                        <el-button type="danger" link size="small">{{ t('actions.delete') }}</el-button>
                                     </template>
                                 </el-popconfirm>
                             </template>
@@ -107,22 +105,22 @@
                 </el-tab-pane>
 
                 <!-- 检查日志 -->
-                <el-tab-pane label="检查日志" name="logs">
+                <el-tab-pane :label="t('time_restriction_page.tabs.logs')" name="logs">
                     <el-table :data="logs" stripe v-loading="logsLoading" max-height="600">
-                        <el-table-column label="时间" width="170">
+                        <el-table-column :label="t('time_restriction_page.cols.time')" width="170">
                             <template #default="{ row }">{{ row.checked_at || row.created_at }}</template>
                         </el-table-column>
-                        <el-table-column label="License ID" width="100" prop="license_id" />
-                        <el-table-column label="结果" width="90">
+                        <el-table-column :label="t('time_restriction_page.cols.license_id')" width="100" prop="license_id" />
+                        <el-table-column :label="t('time_restriction_page.cols.result')" width="90">
                             <template #default="{ row }">
                                 <el-tag :type="row.result === 'allowed' ? 'success' : row.result === 'denied' ? 'danger' : 'warning'" size="small">
-                                    {{ row.result === 'allowed' ? '通过' : row.result === 'denied' ? '拒绝' : '宽限' }}
+                                    {{ resultLabel(row.result) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="原因" min-width="200" prop="reason" show-overflow-tooltip />
-                        <el-table-column label="IP" width="140" prop="ip_address" />
-                        <el-table-column label="时区" width="140" prop="timezone_used" />
+                        <el-table-column :label="t('time_restriction_page.cols.reason')" min-width="200" prop="reason" show-overflow-tooltip />
+                        <el-table-column :label="t('time_restriction_page.cols.ip')" width="140" prop="ip_address" />
+                        <el-table-column :label="t('time_restriction_page.cols.timezone')" width="140" prop="timezone_used" />
                     </el-table>
                     <div v-if="logPagination.total > 0" class="pagination-footer">
                         <el-pagination
@@ -141,15 +139,24 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Clock, Refresh } from '@element-plus/icons-vue'
 import api from '../../api/timeRestriction'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const activeTab = ref('configs')
 const search = ref('')
 const filterActive = ref('')
+
+const statusFilterOptions = computed(() => [
+    { label: t('time_restriction_page.filter_all'), value: '' },
+    { label: t('time_restriction_page.filter_enabled'), value: '1' },
+    { label: t('time_restriction_page.filter_disabled'), value: '0' },
+])
 
 // ─── 统计 ───
 const stats = reactive({
@@ -224,11 +231,11 @@ function viewLicense(row) {
 async function handleDelete(row) {
     try {
         await api.deleteConfig(row.restrictable_id)
-        ElMessage.success('配置已删除')
+        ElMessage.success(t('time_restriction_page.messages.config_deleted'))
         loadConfigs()
         loadStats()
     } catch (e) {
-        ElMessage.error('删除失败')
+        ElMessage.error(t('time_restriction_page.messages.delete_failed'))
     }
 }
 
@@ -237,7 +244,21 @@ function actionTagType(action) {
 }
 
 function actionLabel(action) {
-    return { deny: '拒绝访问', grace: '宽限使用', warn: '仅警告' }[action] || action
+    const map = {
+        deny: t('time_restriction_page.out_of_hours.deny'),
+        grace: t('time_restriction_page.out_of_hours.grace'),
+        warn: t('time_restriction_page.out_of_hours.warn'),
+    }
+    return map[action] || action
+}
+
+function resultLabel(result) {
+    const map = {
+        allowed: t('time_restriction_page.result.allowed'),
+        denied: t('time_restriction_page.result.denied'),
+        grace: t('time_restriction_page.result.grace'),
+    }
+    return map[result] || result
 }
 
 function refreshAll() {

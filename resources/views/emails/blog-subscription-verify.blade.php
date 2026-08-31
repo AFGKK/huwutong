@@ -1,19 +1,19 @@
 <x-mail::message>
-# 确认订阅
+# {{ __('app.mail.blog_verify.heading') }}
 
-感谢你的订阅！你已选择接收以下类型的更新：
+{{ __('app.mail.blog_verify.body') }}
 
 **{{ $types }}**
 
-请点击下方按钮确认你的邮箱地址：
+{{ __('app.mail.blog_verify.confirm_hint') }}
 
 <x-mail::button :url="$verifyUrl">
-确认订阅
+{{ __('app.mail.blog_verify.confirm') }}
 </x-mail::button>
 
-如果你没有请求此订阅，请忽略此邮件。
+{{ __('app.mail.blog_verify.ignore') }}
 
 ---
 
-如果你不想收到此类邮件，可以 <a href="{{ $unsubscribeUrl }}" style="color: #909399;">取消订阅</a>
+{{ __('app.mail.blog_verify.unsubscribe') }} <a href="{{ $unsubscribeUrl }}" style="color: #909399;">{{ __('app.mail.blog_verify.unsubscribe_link') }}</a>
 </x-mail::message>

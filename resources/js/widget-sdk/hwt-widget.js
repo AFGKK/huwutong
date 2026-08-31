@@ -40,7 +40,7 @@
          */
         init: function (options) {
             if (!options.token) {
-                console.error('[HWT Widget] 缺少 token 参数');
+                console.error('[HWT Widget] Missing token');
                 return;
             }
 
@@ -49,7 +49,7 @@
                 : options.container;
 
             if (!container) {
-                console.error('[HWT Widget] 容器元素未找到:', options.container);
+                console.error('[HWT Widget] Container not found:', options.container);
                 return;
             }
 
@@ -69,7 +69,7 @@
             iframe.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
             iframe.style.overflow = 'hidden';
             iframe.setAttribute('loading', 'lazy');
-            iframe.setAttribute('title', 'HWT License 管理');
+            iframe.setAttribute('title', options.brand || 'HWT License');
             iframe.setAttribute('allow', 'same-origin');
 
             // 监听 postMessage

@@ -1,17 +1,16 @@
 <template>
     <div class="portal-devices">
         <div class="page-header">
-            <h2>我的设备</h2>
-            <el-button @click="fetchDevices" :icon="Refresh" :loading="loading">刷新</el-button>
+            <h2>{{ $t('portal.devices_title') }}</h2>
+            <el-button @click="fetchDevices" :icon="Refresh" :loading="loading">{{ $t('portal.refresh') }}</el-button>
         </div>
 
-        <!-- 统计卡片 -->
         <el-row :gutter="16" class="mb-4">
             <el-col :span="8">
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value">{{ stats.total || 0 }}</div>
-                        <div class="mini-label">全部设备</div>
+                        <div class="mini-label">{{ $t('portal.stat_all_devices') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -19,7 +18,7 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value" style="color: #67c23a">{{ stats.active || 0 }}</div>
-                        <div class="mini-label">活跃中</div>
+                        <div class="mini-label">{{ $t('portal.stat_active') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -27,31 +26,30 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value" style="color: #909399">{{ stats.inactive || 0 }}</div>
-                        <div class="mini-label">已离线</div>
+                        <div class="mini-label">{{ $t('portal.stat_offline') }}</div>
                     </div>
                 </el-card>
             </el-col>
         </el-row>
 
-        <!-- 设备列表 -->
         <el-card shadow="never">
             <el-table :data="devices" v-loading="loading" stripe>
-                <el-table-column label="设备名称" min-width="140">
+                <el-table-column :label="$t('portal.device_name')" min-width="140">
                     <template #default="{ row }">
-                        {{ row.name || row.hostname || '未知设备' }}
+                        {{ row.name || row.hostname || $t('portal.unknown_device') }}
                     </template>
                 </el-table-column>
-                <el-table-column label="设备指纹" min-width="160">
+                <el-table-column :label="$t('portal.fingerprint')" min-width="160">
                     <template #default="{ row }">
                         <code class="small-text">{{ row.fingerprint }}</code>
                     </template>
                 </el-table-column>
-                <el-table-column label="平台" width="100">
+                <el-table-column :label="$t('portal.platform')" width="100">
                     <template #default="{ row }">
                         {{ row.platform || row.os || '-' }}
                     </template>
                 </el-table-column>
-                <el-table-column label="关联 License" min-width="160">
+                <el-table-column :label="$t('portal.linked_license')" min-width="160">
                     <template #default="{ row }">
                         <el-link
                             v-if="row.license"
@@ -64,16 +62,16 @@
                         <span v-else>-</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="状态" width="70">
+                <el-table-column :label="$t('portal.status')" width="70">
                     <template #default="{ row }">
                         <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-                            {{ row.is_active ? '在线' : '离线' }}
+                            {{ row.is_active ? $t('portal.online') : $t('portal.offline') }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="last_seen_at" label="最后活动" width="160" />
-                <el-table-column prop="created_at" label="首次激活" width="160" />
-                <el-table-column label="操作" width="100" fixed="right">
+                <el-table-column prop="last_seen_at" :label="$t('portal.last_seen')" width="160" />
+                <el-table-column prop="created_at" :label="$t('portal.first_activated')" width="160" />
+                <el-table-column :label="$t('portal.actions')" width="100" fixed="right">
                     <template #default="{ row }">
                         <el-button
                             type="danger"
@@ -83,13 +81,12 @@
                             :loading="deactivatingId === row.id"
                             :disabled="!row.is_active"
                         >
-                            解绑
+                            {{ $t('portal.unbind') }}
                         </el-button>
                     </template>
                 </el-table-column>
             </el-table>
 
-            <!-- 分页 -->
             <div class="pagination-wrap">
                 <el-pagination
                     v-model:current-page="page"
@@ -107,9 +104,12 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import deviceApi from '@/api/device';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh } from '@element-plus/icons-vue';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const devices = ref([]);
@@ -138,7 +138,7 @@ async function fetchDevices() {
         stats.active = s.active || 0;
         stats.inactive = (s.total || 0) - (s.active || 0);
     } catch {
-        ElMessage.error('获取设备列表失败');
+        ElMessage.error(t('portal.devices_load_failed'));
     } finally {
         loading.value = false;
     }
@@ -146,14 +146,19 @@ async function fetchDevices() {
 
 async function handleDeactivate(dev) {
     try {
+        const name = dev.name || dev.hostname || dev.fingerprint;
         await ElMessageBox.confirm(
-            `确定要解绑设备 "${dev.name || dev.hostname || dev.fingerprint}"？`,
-            '确认解绑',
-            { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+            t('portal.unbind_confirm', { name }),
+            t('portal.unbind_title'),
+            {
+                confirmButtonText: t('actions.confirm'),
+                cancelButtonText: t('actions.cancel'),
+                type: 'warning',
+            }
         );
         deactivatingId.value = dev.id;
         await deviceApi.deactivate(dev.id);
-        ElMessage.success('设备解绑成功');
+        ElMessage.success(t('portal.unbind_ok'));
         await fetchDevices();
     } catch {
         // cancelled or error

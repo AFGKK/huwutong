@@ -2,15 +2,15 @@
     <div class="email-templates-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>邮件模板管理</h2>
-                <span class="header-subtitle">自定义邮件模板，支持变量占位符</span>
+                <h2>{{ t('email_templates_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('email_templates_page.subtitle') }}</span>
             </div>
             <div class="header-right">
                 <el-button @click="initDefaults">
-                    <el-icon><Refresh /></el-icon> 初始化默认模板
+                    <el-icon><Refresh /></el-icon> {{ t('email_templates_page.init_defaults') }}
                 </el-button>
                 <el-button type="primary" @click="openEditDialog(null)">
-                    <el-icon><Plus /></el-icon> 新建模板
+                    <el-icon><Plus /></el-icon> {{ t('email_templates_page.create_template') }}
                 </el-button>
             </div>
         </div>
@@ -18,19 +18,27 @@
         <!-- 筛选 -->
         <el-card shadow="never" class="filter-card">
             <el-form :inline="true" :model="filters">
-                <el-form-item label="搜索">
-                    <el-input v-model="filters.search" placeholder="搜索名称/标识" clearable @input="loadTemplates" />
+                <el-form-item :label="t('actions.search')">
+                    <el-input v-model="filters.search" :placeholder="t('email_templates_page.search_ph')" clearable @input="loadTemplates" />
                 </el-form-item>
-                <el-form-item label="状态">
-                    <el-select v-model="filters.status" placeholder="全部" clearable @change="loadTemplates" style="width:120px;">
-                        <el-option label="已发布" value="published" />
-                        <el-option label="草稿" value="draft" />
+                <el-form-item :label="t('email_templates_page.status')">
+                    <el-select v-model="filters.status" :placeholder="t('email_templates_page.all_ph')" clearable @change="loadTemplates" style="width:120px;">
+                        <el-option
+                            v-for="opt in statusOptions"
+                            :key="opt.value"
+                            :label="opt.label"
+                            :value="opt.value"
+                        />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="语言">
-                    <el-select v-model="filters.locale" placeholder="全部" clearable @change="loadTemplates" style="width:120px;">
-                        <el-option label="中文" value="zh-CN" />
-                        <el-option label="英文" value="en" />
+                <el-form-item :label="t('email_templates_page.locale')">
+                    <el-select v-model="filters.locale" :placeholder="t('email_templates_page.all_ph')" clearable @change="loadTemplates" style="width:120px;">
+                        <el-option
+                            v-for="opt in localeFilterOptions"
+                            :key="opt.value"
+                            :label="opt.label"
+                            :value="opt.value"
+                        />
                     </el-select>
                 </el-form-item>
             </el-form>
@@ -39,35 +47,35 @@
         <!-- 表格 -->
         <el-card shadow="never">
             <el-table :data="templates" v-loading="loading" stripe>
-                <el-table-column label="标识" width="180" prop="code">
+                <el-table-column :label="t('email_templates_page.cols.code')" width="180" prop="code">
                     <template #default="{ row }">
                         <code>{{ row.code }}</code>
                     </template>
                 </el-table-column>
-                <el-table-column label="名称" min-width="180" prop="name" />
-                <el-table-column label="主题" min-width="250" prop="subject" show-overflow-tooltip />
-                <el-table-column label="语言" width="80" prop="locale">
+                <el-table-column :label="t('email_templates_page.cols.name')" min-width="180" prop="name" />
+                <el-table-column :label="t('email_templates_page.cols.subject')" min-width="250" prop="subject" show-overflow-tooltip />
+                <el-table-column :label="t('email_templates_page.locale')" width="80" prop="locale">
                     <template #default="{ row }">
                         <el-tag size="small" effect="plain">{{ row.locale }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="状态" width="100" prop="status">
+                <el-table-column :label="t('email_templates_page.status')" width="100" prop="status">
                     <template #default="{ row }">
                         <el-tag :type="row.status === 'published' ? 'success' : 'info'" size="small">
-                            {{ row.status === 'published' ? '已发布' : '草稿' }}
+                            {{ statusLabels[row.status] || row.status }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="创建时间" width="170" prop="created_at">
+                <el-table-column :label="t('email_templates_page.cols.created_at')" width="170" prop="created_at">
                     <template #default="{ row }">
                         {{ formatDate(row.created_at) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="220" fixed="right">
+                <el-table-column :label="t('email_templates_page.cols.actions')" width="220" fixed="right">
                     <template #default="{ row }">
-                        <el-button text size="small" type="primary" @click="openEditDialog(row)">编辑</el-button>
-                        <el-button text size="small" type="primary" @click="openPreview(row)">预览</el-button>
-                        <el-button text size="small" type="danger" @click="handleDelete(row)">删除</el-button>
+                        <el-button text size="small" type="primary" @click="openEditDialog(row)">{{ t('actions.edit') }}</el-button>
+                        <el-button text size="small" type="primary" @click="openPreview(row)">{{ t('email_templates_page.preview') }}</el-button>
+                        <el-button text size="small" type="danger" @click="handleDelete(row)">{{ t('actions.delete') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -76,59 +84,67 @@
         <!-- 编辑 Dialog -->
         <el-dialog
             v-model="dialogVisible"
-            :title="editingId ? '编辑邮件模板' : '新建邮件模板'"
+            :title="editingId ? t('email_templates_page.dialog_edit') : t('email_templates_page.dialog_create')"
             width="850px"
             :close-on-click-modal="false"
             top="3vh"
         >
             <el-tabs v-model="editTab" type="border-card">
-                <el-tab-pane label="基本信息" name="basic">
+                <el-tab-pane :label="t('email_templates_page.tabs.basic')" name="basic">
                     <el-form ref="formRef" :model="form" :rules="formRules" label-width="100px" label-position="right">
                         <el-row :gutter="20">
                             <el-col :span="12">
-                                <el-form-item label="模板标识" prop="code">
-                                    <el-input v-model="form.code" :disabled="!!editingId" placeholder="如: license_activated" />
+                                <el-form-item :label="t('email_templates_page.form.code')" prop="code">
+                                    <el-input v-model="form.code" :disabled="!!editingId" :placeholder="t('email_templates_page.form.code_ph')" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="12">
-                                <el-form-item label="模板名称" prop="name">
-                                    <el-input v-model="form.name" placeholder="如: License 激活成功" />
+                                <el-form-item :label="t('email_templates_page.form.name')" prop="name">
+                                    <el-input v-model="form.name" :placeholder="t('email_templates_page.form.name_ph')" />
                                 </el-form-item>
                             </el-col>
                         </el-row>
                         <el-row :gutter="20">
                             <el-col :span="12">
-                                <el-form-item label="语言" prop="locale">
+                                <el-form-item :label="t('email_templates_page.form.locale')" prop="locale">
                                     <el-select v-model="form.locale" style="width:100%;">
-                                        <el-option label="中文 (zh-CN)" value="zh-CN" />
-                                        <el-option label="英文 (en)" value="en" />
+                                        <el-option
+                                            v-for="opt in localeFormOptions"
+                                            :key="opt.value"
+                                            :label="opt.label"
+                                            :value="opt.value"
+                                        />
                                     </el-select>
                                 </el-form-item>
                             </el-col>
                             <el-col :span="12">
-                                <el-form-item label="状态" prop="status">
+                                <el-form-item :label="t('email_templates_page.form.status')" prop="status">
                                     <el-select v-model="form.status" style="width:100%;">
-                                        <el-option label="草稿" value="draft" />
-                                        <el-option label="已发布" value="published" />
+                                        <el-option
+                                            v-for="opt in statusOptions"
+                                            :key="opt.value"
+                                            :label="opt.label"
+                                            :value="opt.value"
+                                        />
                                     </el-select>
                                 </el-form-item>
                             </el-col>
                         </el-row>
-                        <el-form-item label="邮件主题" prop="subject">
-                            <el-input v-model="form.subject" placeholder="支持变量，如: 【{{site_name}}】License 激活成功" />
+                        <el-form-item :label="t('email_templates_page.form.subject')" prop="subject">
+                            <el-input v-model="form.subject" :placeholder="t('email_templates_page.form.subject_ph')" />
                         </el-form-item>
                     </el-form>
                 </el-tab-pane>
 
-                <el-tab-pane label="HTML 正文" name="html">
+                <el-tab-pane :label="t('email_templates_page.tabs.html')" name="html">
                     <el-form-item label="">
                         <div class="editor-toolbar">
-                            <span class="toolbar-title">支持 HTML + 变量占位符</span>
+                            <span class="toolbar-title">{{ t('email_templates_page.html_toolbar') }}</span>
                             <el-button text size="small" type="primary" @click="showVariables = !showVariables">
-                                <el-icon><HelpFilled /></el-icon> 查看可用变量
+                                <el-icon><HelpFilled /></el-icon> {{ t('email_templates_page.show_variables') }}
                             </el-button>
                             <el-button text size="small" type="primary" @click="handlePreview">
-                                <el-icon><View /></el-icon> 预览效果
+                                <el-icon><View /></el-icon> {{ t('email_templates_page.preview_effect') }}
                             </el-button>
                         </div>
                     </el-form-item>
@@ -136,22 +152,22 @@
                         v-model="form.body_html"
                         type="textarea"
                         :rows="16"
-                        placeholder="HTML 正文内容，支持 {{变量}} 占位符"
+                        :placeholder="t('email_templates_page.body_html_ph')"
                         style="font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px;"
                     />
                 </el-tab-pane>
 
-                <el-tab-pane label="纯文本" name="text">
+                <el-tab-pane :label="t('email_templates_page.tabs.text')" name="text">
                     <el-form-item label="">
                         <div class="editor-toolbar">
-                            <span class="toolbar-title">纯文本正文（可选，留空自动从 HTML 生成）</span>
+                            <span class="toolbar-title">{{ t('email_templates_page.text_toolbar') }}</span>
                         </div>
                     </el-form-item>
                     <el-input
                         v-model="form.body_text"
                         type="textarea"
                         :rows="12"
-                        placeholder="纯文本内容，支持 {{变量}} 占位符"
+                        :placeholder="t('email_templates_page.body_text_ph')"
                         style="font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px;"
                     />
                 </el-tab-pane>
@@ -160,7 +176,10 @@
             <!-- 变量面板 -->
             <el-collapse-transition>
                 <div v-if="showVariables" class="variables-panel">
-                    <h4>可用变量 <el-tag size="small">复制变量名插入模板</el-tag></h4>
+                    <h4>
+                        {{ t('email_templates_page.variables_title') }}
+                        <el-tag size="small">{{ t('email_templates_page.variables_hint') }}</el-tag>
+                    </h4>
                     <div v-for="(vars, group) in allVariables" :key="group" class="var-group">
                         <div class="var-group-label">{{ groupLabels[group] || group }}</div>
                         <div class="var-tags">
@@ -181,31 +200,31 @@
             </el-collapse-transition>
 
             <template #footer>
-                <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button @click="handlePreview">预览</el-button>
+                <el-button @click="dialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button @click="handlePreview">{{ t('email_templates_page.preview') }}</el-button>
                 <el-button type="primary" :loading="submitting" @click="submitForm">
-                    {{ editingId ? '保存' : '创建' }}
+                    {{ editingId ? t('actions.save') : t('actions.create') }}
                 </el-button>
             </template>
         </el-dialog>
 
         <!-- 预览 Dialog -->
-        <el-dialog v-model="previewVisible" title="模板预览" width="700px" top="5vh">
+        <el-dialog v-model="previewVisible" :title="t('email_templates_page.preview_title')" width="700px" top="5vh">
             <div v-loading="previewLoading">
                 <el-alert
-                    title="以下为使用测试数据渲染后的效果"
+                    :title="t('email_templates_page.preview_alert')"
                     type="info"
                     show-icon
                     :closable="false"
                     class="mb-3"
                 />
-                <el-descriptions title="邮件主题" :column="1" border size="small" class="mb-3">
-                    <el-descriptions-item label="主题">{{ previewData?.subject }}</el-descriptions-item>
+                <el-descriptions :title="t('email_templates_page.preview_subject_title')" :column="1" border size="small" class="mb-3">
+                    <el-descriptions-item :label="t('email_templates_page.cols.subject')">{{ previewData?.subject }}</el-descriptions-item>
                 </el-descriptions>
                 <div class="preview-html" v-html="previewData?.html"></div>
                 <el-divider />
                 <div class="preview-text">
-                    <div class="preview-label">纯文本版本：</div>
+                    <div class="preview-label">{{ t('email_templates_page.preview_text_label') }}</div>
                     <pre>{{ previewData?.text }}</pre>
                 </div>
             </div>
@@ -214,10 +233,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Refresh, View, HelpFilled } from '@element-plus/icons-vue';
 import emailTemplateApi from '@/api/email-template';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const templates = ref([]);
@@ -231,7 +253,6 @@ const showVariables = ref(false);
 const editTab = ref('basic');
 const formRef = ref(null);
 const allVariables = ref({});
-const activeHtml = ref('');
 
 const filters = reactive({
     search: '',
@@ -239,13 +260,33 @@ const filters = reactive({
     locale: '',
 });
 
-const groupLabels = {
-    general: '通用',
-    customer: '客户',
-    license: 'License',
-    account: '账户',
-    invoice: '发票',
-};
+const statusLabels = computed(() => ({
+    published: t('email_templates_page.status_published'),
+    draft: t('email_templates_page.status_draft'),
+}));
+
+const statusOptions = computed(() => [
+    { value: 'published', label: statusLabels.value.published },
+    { value: 'draft', label: statusLabels.value.draft },
+]);
+
+const localeFilterOptions = computed(() => [
+    { value: 'zh-CN', label: t('email_templates_page.locale_zh') },
+    { value: 'en', label: t('email_templates_page.locale_en') },
+]);
+
+const localeFormOptions = computed(() => [
+    { value: 'zh-CN', label: t('email_templates_page.locale_zh_full') },
+    { value: 'en', label: t('email_templates_page.locale_en_full') },
+]);
+
+const groupLabels = computed(() => ({
+    general: t('email_templates_page.var_groups.general'),
+    customer: t('email_templates_page.var_groups.customer'),
+    license: t('email_templates_page.var_groups.license'),
+    account: t('email_templates_page.var_groups.account'),
+    invoice: t('email_templates_page.var_groups.invoice'),
+}));
 
 const form = reactive({
     code: '',
@@ -257,15 +298,16 @@ const form = reactive({
     status: 'draft',
 });
 
-const formRules = {
-    code: [{ required: true, message: '请输入模板标识', trigger: 'blur' }],
-    name: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
-    subject: [{ required: true, message: '请输入邮件主题', trigger: 'blur' }],
-};
+const formRules = computed(() => ({
+    code: [{ required: true, message: t('email_templates_page.rules.code_required'), trigger: 'blur' }],
+    name: [{ required: true, message: t('email_templates_page.rules.name_required'), trigger: 'blur' }],
+    subject: [{ required: true, message: t('email_templates_page.rules.subject_required'), trigger: 'blur' }],
+}));
 
 function formatDate(dateStr) {
     if (!dateStr) return null;
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(dateStr).toLocaleString(loc, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit',
     });
@@ -345,11 +387,11 @@ async function submitForm() {
 
         if (editingId.value) {
             await emailTemplateApi.update(editingId.value, payload);
-            ElMessage.success('模板更新成功');
+            ElMessage.success(t('email_templates_page.messages.updated'));
         } else {
             payload.code = form.code;
             await emailTemplateApi.create(payload);
-            ElMessage.success('模板创建成功');
+            ElMessage.success(t('email_templates_page.messages.created'));
         }
         dialogVisible.value = false;
         loadTemplates();
@@ -362,7 +404,7 @@ async function submitForm() {
 
 async function handlePreview() {
     if (!form.subject && !form.body_html) {
-        ElMessage.warning('请先填写主题和正文');
+        ElMessage.warning(t('email_templates_page.messages.preview_required'));
         return;
     }
     previewLoading.value = true;
@@ -404,12 +446,12 @@ function openPreview(row) {
 async function handleDelete(row) {
     try {
         await ElMessageBox.confirm(
-            `确定要删除模板「${row.name}」({{${row.code}}}) 吗？`,
-            '确认删除',
-            { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+            t('email_templates_page.confirm_delete', { name: row.name, code: row.code }),
+            t('email_templates_page.confirm_delete_title'),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning' }
         );
         await emailTemplateApi.destroy(row.id);
-        ElMessage.success('模板已删除');
+        ElMessage.success(t('email_templates_page.messages.deleted'));
         loadTemplates();
     } catch { /* cancelled */ }
 }
@@ -417,13 +459,13 @@ async function handleDelete(row) {
 async function initDefaults() {
     try {
         await ElMessageBox.confirm(
-            '将创建所有不存在的默认模板（不会覆盖已有模板）。确定继续？',
-            '初始化默认模板',
-            { confirmButtonText: '确定', cancelButtonText: '取消', type: 'info' }
+            t('email_templates_page.init_confirm'),
+            t('email_templates_page.init_confirm_title'),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'info' }
         );
         const { data: res } = await emailTemplateApi.initDefaults();
         if (res.success) {
-            ElMessage.success(`已创建 ${res.data?.created?.length || 0} 个默认模板`);
+            ElMessage.success(t('email_templates_page.messages.init_created', { count: res.data?.created?.length || 0 }));
             loadTemplates();
         }
     } catch { /* cancelled */ }

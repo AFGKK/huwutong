@@ -27,7 +27,7 @@
             <div class="tag-picker">
                 <el-input
                     v-model="searchQuery"
-                    placeholder="搜索标签..."
+                    :placeholder="t('tags.search_ph')"
                     size="small"
                     clearable
                     class="mb-2"
@@ -57,12 +57,12 @@
                             </el-tag>
                         </div>
                     </div>
-                    <el-empty v-if="allTags.length === 0" :image-size="40" description="暂无标签" />
+                    <el-empty v-if="allTags.length === 0" :image-size="40" :description="t('tags.empty')" />
                 </div>
                 <div class="tag-picker-footer">
                     <el-input
                         v-model="newTagName"
-                        placeholder="创建新标签"
+                        :placeholder="t('tags.create_ph')"
                         size="small"
                         class="new-tag-input"
                         @keyup.enter="handleCreate"
@@ -81,8 +81,11 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Plus } from '@element-plus/icons-vue';
 import tagApi from '@/api/tag';
+
+const { t } = useI18n();
 
 const props = defineProps({
     taggableType: { type: String, required: true },
@@ -99,13 +102,13 @@ const newTagName = ref('');
 const loading = ref(false);
 const creating = ref(false);
 
-const groupLabels = {
-    priority: '优先级',
-    status: '状态',
-    type: '类型',
-    tier: '客户等级',
-    alert: '预警',
-};
+const groupLabels = computed(() => ({
+    priority: t('tags.g_priority'),
+    status: t('tags.g_status'),
+    type: t('tags.g_type'),
+    tier: t('tags.g_tier'),
+    alert: t('tags.g_alert'),
+}));
 
 const filteredTags = computed(() => {
     if (!searchQuery.value) return allTags.value;

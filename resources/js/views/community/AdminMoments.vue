@@ -1,20 +1,20 @@
 <template>
     <div>
-        <el-page-header :content="'社区帖子管理 (' + total + ')'" @back="$router.push('/')" />
+        <el-page-header :content="t('admin_moments_page.title', { n: total })" @back="$router.push('/')" />
         <div class="mt-4 flex items-center gap-3 mb-4">
-            <el-input v-model="search" placeholder="搜索帖子内容..." size="small" style="width:240px" clearable @input="loadPosts" />
-            <el-select v-model="statusFilter" placeholder="状态" size="small" style="width:120px" clearable @change="loadPosts">
-                <el-option label="已发布" value="published" />
-                <el-option label="草稿" value="draft" />
+            <el-input v-model="search" :placeholder="t('admin_moments_page.search_ph')" size="small" style="width:240px" clearable @input="loadPosts" />
+            <el-select v-model="statusFilter" :placeholder="t('admin_moments_page.cols.status')" size="small" style="width:120px" clearable @change="loadPosts">
+                <el-option :label="t('admin_moments_page.published')" value="published" />
+                <el-option :label="t('admin_moments_page.draft')" value="draft" />
             </el-select>
-            <el-select v-model="pinnedFilter" placeholder="置顶" size="small" style="width:100px" clearable @change="loadPosts">
-                <el-option label="已置顶" value="1" />
-                <el-option label="未置顶" value="0" />
+            <el-select v-model="pinnedFilter" :placeholder="t('admin_moments_page.cols.pinned')" size="small" style="width:100px" clearable @change="loadPosts">
+                <el-option :label="t('admin_moments_page.pinned_yes')" value="1" />
+                <el-option :label="t('admin_moments_page.pinned_no')" value="0" />
             </el-select>
         </div>
         <el-table :data="posts" v-loading="loading" border stripe size="small" @row-click="showDetail">
             <el-table-column label="ID" prop="id" width="60" />
-            <el-table-column label="内容" min-width="260">
+            <el-table-column :label="t('admin_moments_page.cols.content')" min-width="260">
                 <template #default="{ row }">
                     <div class="flex gap-2 items-start">
                         <img v-if="row.images?.[0]" :src="row.images[0]" class="w-10 h-10 rounded object-cover flex-shrink-0" @click.stop="showDetail(row)" />
@@ -22,55 +22,54 @@
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column label="作者" width="120">
+            <el-table-column :label="t('admin_moments_page.cols.author')" width="120">
                 <template #default="{ row }">
                     <div class="flex items-center gap-1">
                         <el-avatar :size="20" :src="row.user?.avatar_url" v-if="row.user?.avatar_url" />
-                        <span>{{ row.user?.name || '匿名' }}</span>
+                        <span>{{ row.user?.name || t('admin_moments_page.anonymous') }}</span>
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column label="模板" width="60" align="center">
+            <el-table-column :label="t('admin_moments_page.cols.template')" width="60" align="center">
                 <template #default="{ row }">{{ row.template || '—' }}</template>
             </el-table-column>
-            <el-table-column label="浏览" prop="views_count" width="60" align="center" />
-            <el-table-column label="评论" prop="replies_count" width="60" align="center" />
-            <el-table-column label="点赞" prop="likes_count" width="60" align="center" />
-            <el-table-column label="置顶" width="60" align="center">
+            <el-table-column :label="t('admin_moments_page.cols.views')" prop="views_count" width="60" align="center" />
+            <el-table-column :label="t('admin_moments_page.cols.replies')" prop="replies_count" width="60" align="center" />
+            <el-table-column :label="t('admin_moments_page.cols.likes')" prop="likes_count" width="60" align="center" />
+            <el-table-column :label="t('admin_moments_page.cols.pinned')" width="60" align="center">
                 <template #default="{ row }">
-                    <el-tag v-if="row.is_pinned" size="small" type="warning">📌</el-tag>
+                    <el-tag v-if="row.is_pinned" size="small" type="warning">{{ t('admin_moments_page.pin') }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column label="状态" width="70" align="center">
+            <el-table-column :label="t('admin_moments_page.cols.status')" width="70" align="center">
                 <template #default="{ row }">
                     <el-tag :type="row.status === 'published' ? 'success' : 'info'" size="small">{{ row.status }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column label="时间" width="140">
+            <el-table-column :label="t('admin_moments_page.cols.time')" width="140">
                 <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="200" fixed="right">
+            <el-table-column :label="t('admin_moments_page.cols.actions')" width="200" fixed="right">
                 <template #default="{ row }">
-                    <el-button size="small" text type="primary" @click.stop="showDetail(row)">详情</el-button>
-                    <el-button size="small" text type="primary" @click.stop="togglePin(row)">{{ row.is_pinned ? '📌 取消置顶' : '📌 置顶' }}</el-button>
-                    <el-button size="small" text type="danger" @click.stop="deletePost(row)">🗑️ 删除</el-button>
+                    <el-button size="small" text type="primary" @click.stop="showDetail(row)">{{ t('admin_moments_page.detail') }}</el-button>
+                    <el-button size="small" text type="primary" @click.stop="togglePin(row)">{{ row.is_pinned ? t('admin_moments_page.unpin') : t('admin_moments_page.pin') }}</el-button>
+                    <el-button size="small" text type="danger" @click.stop="deletePost(row)">{{ t('actions.delete') }}</el-button>
                 </template>
             </el-table-column>
         </el-table>
         <div v-if="hasMore" class="text-center py-4">
-            <el-button :loading="loadingMore" size="small" @click="loadMore">加载更多</el-button>
+            <el-button :loading="loadingMore" size="small" @click="loadMore">{{ t('admin_moments_page.load_more') }}</el-button>
         </div>
 
-        <!-- 详情弹窗 -->
-        <el-dialog v-model="detailVisible" :title="'帖子 #' + (detail?.id || '')" width="680px" top="5vh">
+        <el-dialog v-model="detailVisible" :title="t('admin_moments_page.detail_title', { id: detail?.id || '' })" width="680px" top="5vh">
             <template v-if="detailLoading">
                 <div class="text-center py-8"><el-icon class="is-loading" :size="32"><Loading /></el-icon></div>
             </template>
             <template v-else-if="detail">
                 <div class="flex items-center gap-2 mb-3">
                     <el-avatar :size="28" :src="detail.user?.avatar_url" />
-                    <span class="font-bold">{{ detail.user?.name || '匿名' }}</span>
-                    <el-tag v-if="detail.is_pinned" size="small" type="warning">📌 置顶</el-tag>
+                    <span class="font-bold">{{ detail.user?.name || t('admin_moments_page.anonymous') }}</span>
+                    <el-tag v-if="detail.is_pinned" size="small" type="warning">{{ t('admin_moments_page.pin') }}</el-tag>
                     <el-tag :type="detail.status === 'published' ? 'success' : 'info'" size="small">{{ detail.status }}</el-tag>
                 </div>
                 <div class="p-3 bg-gray-50 rounded mb-3" v-html="detail.content"></div>
@@ -78,14 +77,14 @@
                     <img v-for="(img, i) in detail.images" :key="i" :src="img" class="w-24 h-24 rounded object-cover border" />
                 </div>
                 <el-descriptions :column="3" border size="small">
-                    <el-descriptions-item label="模板">{{ detail.template || '—' }}</el-descriptions-item>
-                    <el-descriptions-item label="浏览量">{{ detail.views_count }}</el-descriptions-item>
-                    <el-descriptions-item label="评论">{{ detail.replies_count }}</el-descriptions-item>
-                    <el-descriptions-item label="点赞">{{ detail.likes_count }}</el-descriptions-item>
-                    <el-descriptions-item label="收藏">{{ detail.favorites_count }}</el-descriptions-item>
-                    <el-descriptions-item label="付费" v-if="detail.is_paid">💎 {{ detail.price }} {{ detail.price_type }}</el-descriptions-item>
-                    <el-descriptions-item label="创建时间">{{ formatTime(detail.created_at) }}</el-descriptions-item>
-                    <el-descriptions-item label="更新时间">{{ formatTime(detail.updated_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_moments_page.cols.template')">{{ detail.template || '—' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_moments_page.cols.views')">{{ detail.views_count }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_moments_page.cols.replies')">{{ detail.replies_count }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_moments_page.cols.likes')">{{ detail.likes_count }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_moments_page.favorites')">{{ detail.favorites_count }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_moments_page.paid')" v-if="detail.is_paid">{{ detail.price }} {{ detail.price_type }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_moments_page.created')">{{ formatTime(detail.created_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_moments_page.updated')">{{ formatTime(detail.updated_at) }}</el-descriptions-item>
                 </el-descriptions>
             </template>
         </el-dialog>
@@ -94,9 +93,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
 import apiClient from '@/api/client'
+
+const { t, locale } = useI18n()
 
 const posts = ref([])
 const loading = ref(false)
@@ -111,9 +113,10 @@ const detailVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref(null)
 
-function formatTime(t) {
-    if (!t) return ''
-    return new Date(t).toLocaleString('zh-CN')
+function formatTime(time) {
+    if (!time) return ''
+    const loc = locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US'
+    return new Date(time).toLocaleString(loc)
 }
 
 async function loadPosts() {
@@ -167,19 +170,19 @@ async function togglePin(post) {
             headers: { Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
         })
         post.is_pinned = res.data?.data?.is_pinned ?? !post.is_pinned
-        ElMessage.success(post.is_pinned ? '已置顶' : '已取消置顶')
+        ElMessage.success(post.is_pinned ? t('admin_moments_page.messages.pinned') : t('admin_moments_page.messages.unpinned'))
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '操作失败')
+        ElMessage.error(e.response?.data?.message || t('messages.failed'))
     }
 }
 
 async function deletePost(post) {
     try {
-        await ElMessageBox.confirm('确定删除该帖子？所有评论也将一并删除。', '确认删除', { type: 'warning' })
+        await ElMessageBox.confirm(t('admin_moments_page.confirm_delete'), t('admin_moments_page.confirm_title'), { type: 'warning' })
         await apiClient.delete(`/admin/moments/${post.id}`, {
             headers: { Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
         })
-        ElMessage.success('已删除')
+        ElMessage.success(t('admin_moments_page.messages.deleted'))
         posts.value = posts.value.filter(p => p.id !== post.id)
         total.value--
     } catch { /* ignore */ }

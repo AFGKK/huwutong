@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HWT License Widget</title>
+    <script>window.WIDGET_I18N = @json(__('app.widget_embed'));</script>
     <style>
         :root {
             --primary: #1a73e8;
@@ -104,7 +105,7 @@
             </div>
             <div class="error-state" id="error-state" style="display:none">
                 <div class="icon">⚠️</div>
-                <p id="error-message">数据加载失败</p>
+                <p id="error-message">{{ __('app.widget_embed.load_fail') }}</p>
             </div>
         </div>
         <div class="widget-footer">
@@ -116,13 +117,14 @@
     // ─── Widget 主程序 ───
     (function() {
         'use strict';
+        var I = window.WIDGET_I18N || {};
 
         // 从 URL 获取 token
         const params = new URLSearchParams(window.location.search);
         const TOKEN = params.get('token');
 
         if (!TOKEN) {
-            showError('缺少访问令牌');
+            showError(I.missing_token || '');
             return;
         }
 
@@ -145,7 +147,7 @@
                     fetch('/api/widget/config', { headers }),
                 ]);
 
-                if (!dataRes.ok) throw new Error('数据请求失败: ' + dataRes.status);
+                if (!dataRes.ok) throw new Error((I.data_request_fail || '').replace(':status', dataRes.status));
 
                 const data = await dataRes.json();
                 const config = await configRes.json();
@@ -167,7 +169,7 @@
         }
 
         function renderWidget(data) {
-            if (!data) { showError('无数据'); return; }
+            if (!data) { showError(I.no_data || ''); return; }
 
             // 客户名称
             if (data.customer?.name) {
@@ -184,37 +186,37 @@
 
             // Stats
             let html = '<div class="stats-grid">';
-            html += statCard(stats.total_licenses || 0, '全部 License', 'var(--primary)');
-            html += statCard(stats.active_licenses || 0, '活跃中', 'var(--success)');
-            html += statCard(stats.expiring_soon || 0, '即将到期', 'var(--warning)');
-            html += statCard(stats.expired || 0, '已过期', 'var(--danger)');
+            html += statCard(stats.total_licenses || 0, I.stat_all || '', 'var(--primary)');
+            html += statCard(stats.active_licenses || 0, I.stat_active || '', 'var(--success)');
+            html += statCard(stats.expiring_soon || 0, I.stat_expiring || '', 'var(--warning)');
+            html += statCard(stats.expired || 0, I.stat_expired || '', 'var(--danger)');
             html += '</div>';
 
             // Licenses Table
-            html += '<div class="section-title">License <span style="font-weight:400;font-size:11px;color:var(--text-secondary)">最近 50 条</span></div>';
+            html += '<div class="section-title">License <span style="font-weight:400;font-size:11px;color:var(--text-secondary)">' + (I.licenses_recent || '') + '</span></div>';
             if (licenses.length > 0) {
-                html += '<table><thead><tr><th>Key</th><th>状态</th><th>产品</th><th>到期</th></tr></thead><tbody>';
+                html += '<table><thead><tr><th>Key</th><th>' + (I.col_status || '') + '</th><th>' + (I.col_product || '') + '</th><th>' + (I.col_expires || '') + '</th></tr></thead><tbody>';
                 licenses.forEach(l => {
                     const statusClass = `status-${l.status === 'active' ? 'active' : l.status === 'expired' ? 'expired' : 'pending'}`;
                     html += `<tr>
                         <td class="license-key">${l.license_key}</td>
                         <td><span class="status-badge ${statusClass}">${statusLabel(l.status)}</span></td>
                         <td>${l.product?.name || '-'}</td>
-                        <td style="font-size:11px">${l.expires_at ? l.expires_at.substring(0,10) : '永久'}</td>
+                        <td style="font-size:11px">${l.expires_at ? l.expires_at.substring(0,10) : (I.lifetime || '')}</td>
                     </tr>`;
                 });
                 html += '</tbody></table>';
             } else {
-                html += '<div class="empty-state"><p style="font-size:13px">暂无 License</p></div>';
+                html += '<div class="empty-state"><p style="font-size:13px">' + (I.no_licenses || '') + '</p></div>';
             }
 
             // Devices
             if (devices.length > 0) {
-                html += '<div class="section-title" style="margin-top:20px">设备 <span style="font-weight:400;font-size:11px;color:var(--text-secondary)">最近 ' + devices.length + ' 台</span></div>';
-                html += '<table><thead><tr><th>名称</th><th>平台</th><th>最后活动</th></tr></thead><tbody>';
+                html += '<div class="section-title" style="margin-top:20px">' + (I.devices || '') + ' <span style="font-weight:400;font-size:11px;color:var(--text-secondary)">' + (I.devices_recent || '').replace(':n', devices.length) + '</span></div>';
+                html += '<table><thead><tr><th>' + (I.col_name || '') + '</th><th>' + (I.col_platform || '') + '</th><th>' + (I.col_last_seen || '') + '</th></tr></thead><tbody>';
                 devices.forEach(d => {
                     html += `<tr>
-                        <td>${d.name || '未知设备'}</td>
+                        <td>${d.name ||''}</td>
                         <td>${d.platform || '-'}</td>
                         <td style="font-size:11px">${d.last_seen_at ? new Date(d.last_seen_at).toLocaleDateString() : '-'}</td>
                     </tr>`;
@@ -236,7 +238,14 @@
         }
 
         function statusLabel(status) {
-            const map = { active: '活跃', expired: '已过期', pending: '待激活', suspended: '已暂停', revoked: '已吊销', frozen: '已冻结' };
+            const map = {
+                active: I.status_active,
+                expired: I.status_expired,
+                pending: I.status_pending,
+                suspended: I.status_suspended,
+                revoked: I.status_revoked,
+                frozen: I.status_frozen,
+            };
             return map[status] || status;
         }
 

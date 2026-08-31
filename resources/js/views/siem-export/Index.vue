@@ -1,9 +1,9 @@
 <template>
     <div class="siem-export-container">
-        <el-page-header :content="'SIEM 审计日志导出'" @back="$router.push('/admin/dashboard')" />
+        <el-page-header :content="t('siem_export_page.title')" @back="$router.push('/admin/dashboard')" />
 
         <el-alert
-            title="支持将审计日志转换为 Splunk CEF / ELK Stack JSON / 阿里云 SLS 格式，并自动推送到 SIEM 系统。"
+            :title="t('siem_export_page.alert')"
             type="info"
             show-icon
             :closable="false"
@@ -15,19 +15,19 @@
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-value">{{ dashboard.total_connections }}</div>
-                    <div class="stat-label">SIEM 连接总数</div>
+                    <div class="stat-label">{{ t('siem_export_page.stats.total_connections') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-value text-success">{{ dashboard.active_connections }}</div>
-                    <div class="stat-label">活跃连接</div>
+                    <div class="stat-label">{{ t('siem_export_page.stats.active_connections') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-value">{{ dashboard.recent_pushes }}</div>
-                    <div class="stat-label">近7天推送次数</div>
+                    <div class="stat-label">{{ t('siem_export_page.stats.recent_pushes') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
@@ -35,7 +35,7 @@
                     <div class="stat-value" :class="dashboard.recent_success_rate < 90 ? 'text-danger' : 'text-success'">
                         {{ dashboard.recent_success_rate }}%
                     </div>
-                    <div class="stat-label">推送成功率</div>
+                    <div class="stat-label">{{ t('siem_export_page.stats.success_rate') }}</div>
                 </el-card>
             </el-col>
         </el-row>
@@ -44,78 +44,78 @@
         <el-card>
             <el-tabs v-model="activeTab">
                 <!-- 连接管理 -->
-                <el-tab-pane label="连接管理" name="connections">
+                <el-tab-pane :label="t('siem_export_page.tabs.connections')" name="connections">
                     <div class="section-header">
-                        <h3>SIEM 连接</h3>
-                        <el-button type="primary" size="small" @click="openCreateDialog">新建连接</el-button>
+                        <h3>{{ t('siem_export_page.section.connections') }}</h3>
+                        <el-button type="primary" size="small" @click="openCreateDialog">{{ t('bi_export_page.toolbar.new_connection') }}</el-button>
                     </div>
 
                     <el-table :data="connections" v-loading="loading" stripe>
-                        <el-table-column prop="name" label="名称" min-width="150" />
-                        <el-table-column label="格式" width="100">
+                        <el-table-column prop="name" :label="t('siem_export_page.cols.name')" min-width="150" />
+                        <el-table-column :label="t('siem_export_page.cols.format')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="formatTagType(row.format)" size="small">{{ formatLabel(row.format) }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="endpoint_url" label="推送地址" min-width="250" show-overflow-tooltip />
-                        <el-table-column label="自动推送" width="90" align="center">
+                        <el-table-column prop="endpoint_url" :label="t('siem_export_page.cols.endpoint')" min-width="250" show-overflow-tooltip />
+                        <el-table-column :label="t('siem_export_page.cols.auto_push')" width="90" align="center">
                             <template #default="{ row }">
                                 <el-tag :type="row.auto_push ? 'success' : 'info'" size="small">
-                                    {{ row.auto_push ? '开启' : '关闭' }}
+                                    {{ row.auto_push ? toggleLabels.on : toggleLabels.off }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="频率" width="90">
+                        <el-table-column :label="t('siem_export_page.cols.frequency')" width="90">
                             <template #default="{ row }">{{ frequencyLabel(row.push_frequency) }}</template>
                         </el-table-column>
-                        <el-table-column label="状态" width="80">
+                        <el-table-column :label="t('siem_export_page.cols.status')" width="80">
                             <template #default="{ row }">
                                 <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-                                    {{ row.is_active ? '启用' : '停用' }}
+                                    {{ row.is_active ? statusLabels.enabled : statusLabels.disabled }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="260" fixed="right">
+                        <el-table-column :label="t('siem_export_page.cols.actions')" width="260" fixed="right">
                             <template #default="{ row }">
-                                <el-button size="small" @click="testConnection(row)">测试</el-button>
-                                <el-button size="small" @click="handlePushLogs(row)">推送</el-button>
-                                <el-button size="small" @click="editConnection(row)">编辑</el-button>
-                                <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
+                                <el-button size="small" @click="testConnection(row)">{{ t('scim_page.actions.test') }}</el-button>
+                                <el-button size="small" @click="handlePushLogs(row)">{{ t('siem_export_page.row_actions.push') }}</el-button>
+                                <el-button size="small" @click="editConnection(row)">{{ t('actions.edit') }}</el-button>
+                                <el-button size="small" type="danger" plain @click="handleDelete(row)">{{ t('actions.delete') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
                 </el-tab-pane>
 
                 <!-- 推送日志 -->
-                <el-tab-pane label="推送日志" name="logs">
-                    <el-select v-model="logConnectionId" placeholder="选择连接" style="width:300px;margin-bottom:16px" @change="fetchLogs">
+                <el-tab-pane :label="t('siem_export_page.tabs.logs')" name="logs">
+                    <el-select v-model="logConnectionId" :placeholder="t('siem_export_page.select_connection_ph')" style="width:300px;margin-bottom:16px" @change="fetchLogs">
                         <el-option v-for="c in connections" :key="c.id" :label="c.name" :value="c.id" />
                     </el-select>
                     <el-table :data="siemPushLogs" v-loading="loadingLogs" stripe>
-                        <el-table-column prop="status" label="状态" width="100">
+                        <el-table-column prop="status" :label="t('siem_export_page.cols.status')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="row.status === 'success' ? 'success' : 'danger'" size="small">
-                                    {{ row.status === 'success' ? '成功' : '失败' }}
+                                    {{ row.status === 'success' ? statusLabels.success : statusLabels.failed }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="records_count" label="记录数" width="80" align="center" />
-                        <el-table-column prop="response_code" label="HTTP状态" width="100" align="center" />
-                        <el-table-column prop="duration_ms" label="耗时(ms)" width="100" align="center" />
-                        <el-table-column prop="error_message" label="错误信息" min-width="250" show-overflow-tooltip />
-                        <el-table-column prop="created_at" label="推送时间" width="170" />
+                        <el-table-column prop="records_count" :label="t('siem_export_page.cols.records_count')" width="80" align="center" />
+                        <el-table-column prop="response_code" :label="t('siem_export_page.cols.http_status')" width="100" align="center" />
+                        <el-table-column prop="duration_ms" :label="t('siem_export_page.cols.duration_ms')" width="100" align="center" />
+                        <el-table-column prop="error_message" :label="t('siem_export_page.cols.error_message')" min-width="250" show-overflow-tooltip />
+                        <el-table-column prop="created_at" :label="t('siem_export_page.cols.pushed_at')" width="170" />
                     </el-table>
                 </el-tab-pane>
 
                 <!-- 格式预览 -->
-                <el-tab-pane label="格式预览" name="preview">
+                <el-tab-pane :label="t('siem_export_page.tabs.preview')" name="preview">
                     <el-radio-group v-model="previewFormat" @change="fetchPreview" style="margin-bottom:16px">
-                        <el-radio-button value="cef">Splunk CEF</el-radio-button>
-                        <el-radio-button value="elk_json">ELK Stack JSON</el-radio-button>
-                        <el-radio-button value="sls">阿里云 SLS</el-radio-button>
+                        <el-radio-button value="cef">{{ formatLabels.cef }}</el-radio-button>
+                        <el-radio-button value="elk_json">{{ formatLabels.elk_json }}</el-radio-button>
+                        <el-radio-button value="sls">{{ formatLabels.sls }}</el-radio-button>
                     </el-radio-group>
                     <el-alert
-                        :title="`字段映射 (${previewFormat})`"
+                        :title="t('siem_export_page.preview.field_mapping', { format: previewFormat })"
                         type="info"
                         show-icon
                         :closable="false"
@@ -127,73 +127,71 @@
                         </el-descriptions-item>
                     </el-descriptions>
                     <el-divider />
-                    <h4>示例输出</h4>
+                    <h4>{{ t('siem_export_page.preview.sample_output') }}</h4>
                     <pre class="preview-block">{{ previewSample }}</pre>
                 </el-tab-pane>
             </el-tabs>
         </el-card>
 
         <!-- 新建/编辑 Dialog -->
-        <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑连接' : '新建 SIEM 连接'" width="650px">
+        <el-dialog v-model="dialogVisible" :title="isEdit ? t('siem_export_page.dialog.edit_title') : t('siem_export_page.dialog.create_title')" width="650px">
             <el-form :model="form" label-width="130px" :rules="formRules" ref="formRef">
-                <el-form-item label="名称" prop="name">
+                <el-form-item :label="t('bi_export_page.form.name')" prop="name">
                     <el-input v-model="form.name" maxlength="100" />
                 </el-form-item>
-                <el-form-item label="SIEM 格式" prop="format">
+                <el-form-item :label="t('siem_export_page.form.format')" prop="format">
                     <el-select v-model="form.format" style="width:100%">
-                        <el-option v-for="(label, val) in formatOptions" :key="val" :label="label" :value="val" />
+                        <el-option v-for="(label, val) in formatSelectOptions" :key="val" :label="label" :value="val" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="推送端点 URL">
-                    <el-input v-model="form.endpoint_url" placeholder="https://siem.example.com:8080/audit" />
+                <el-form-item :label="t('siem_export_page.form.endpoint_url')">
+                    <el-input v-model="form.endpoint_url" :placeholder="t('siem_export_page.form.endpoint_url_ph')" />
                 </el-form-item>
-                <el-form-item label="认证方式">
+                <el-form-item :label="t('siem_export_page.form.auth_type')">
                     <el-select v-model="form.auth_type" style="width:100%">
-                        <el-option label="无认证" value="none" />
-                        <el-option label="Bearer Token" value="bearer_token" />
-                        <el-option label="Basic 认证" value="basic" />
-                        <el-option label="API Key" value="api_key" />
+                        <el-option v-for="opt in authTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item v-if="form.auth_type !== 'none'" label="认证凭证">
-                    <el-input v-model="form.auth_credentials" type="textarea" :rows="2" placeholder="Token / Key / user:pass" />
+                <el-form-item v-if="form.auth_type !== 'none'" :label="t('siem_export_page.form.auth_credentials')">
+                    <el-input v-model="form.auth_credentials" type="textarea" :rows="2" :placeholder="t('siem_export_page.form.auth_credentials_ph')" />
                 </el-form-item>
-                <el-form-item label="自动推送">
+                <el-form-item :label="t('siem_export_page.form.auto_push')">
                     <el-switch v-model="form.auto_push" />
                 </el-form-item>
-                <el-form-item v-if="form.auto_push" label="推送频率">
+                <el-form-item v-if="form.auto_push" :label="t('siem_export_page.form.push_frequency')">
                     <el-select v-model="form.push_frequency" style="width:100%">
-                        <el-option label="实时" value="realtime" />
-                        <el-option label="每小时" value="hourly" />
-                        <el-option label="每日" value="daily" />
+                        <el-option v-for="opt in frequencyOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="每批最大记录数">
+                <el-form-item :label="t('siem_export_page.form.max_batch_size')">
                     <el-input-number v-model="form.max_batch_size" :min="100" :max="10000" :step="500" />
                 </el-form-item>
-                <el-form-item label="启用连接">
+                <el-form-item :label="t('siem_export_page.form.enable_connection')">
                     <el-switch v-model="form.is_active" />
                 </el-form-item>
-                <el-form-item label="备注">
+                <el-form-item :label="t('siem_export_page.form.notes')">
                     <el-input v-model="form.notes" type="textarea" :rows="2" maxlength="500" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
+                <el-button @click="dialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleSave" :loading="saving">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
     getSiemDashboard, getSiemConnections, createSiemConnection, updateSiemConnection,
     deleteSiemConnection, testSiemConnection, pushSiemLogs,
     getSiemPushLogs, getSiemConnectionStats, getSiemFormats, getSiemFormatPreview,
 } from '@/api/siemExport'
+
+const { t } = useI18n()
 
 const activeTab = ref('connections')
 const loading = ref(false)
@@ -202,6 +200,43 @@ const dashboard = ref({
     total_connections: 0, active_connections: 0, auto_push_enabled: 0,
     format_distribution: {}, recent_pushes: 0, recent_failures: 0, recent_success_rate: 100,
 })
+
+const formatLabels = computed(() => ({
+    cef: t('siem_export_page.formats.cef'),
+    elk_json: t('siem_export_page.formats.elk_json'),
+    sls: t('siem_export_page.formats.sls'),
+}))
+
+const frequencyLabels = computed(() => ({
+    realtime: t('siem_export_page.frequencies.realtime'),
+    hourly: t('siem_export_page.frequencies.hourly'),
+    daily: t('siem_export_page.frequencies.daily'),
+}))
+
+const statusLabels = computed(() => ({
+    enabled: t('im_integration_page.status.enabled'),
+    disabled: t('im_integration_page.status.disabled'),
+    success: t('im_integration_page.filters.success'),
+    failed: t('im_integration_page.filters.failed'),
+}))
+
+const toggleLabels = computed(() => ({
+    on: t('siem_export_page.toggle.on'),
+    off: t('siem_export_page.toggle.off'),
+}))
+
+const authTypeOptions = computed(() => [
+    { label: t('siem_export_page.auth_types.none'), value: 'none' },
+    { label: t('siem_export_page.auth_types.bearer_token'), value: 'bearer_token' },
+    { label: t('siem_export_page.auth_types.basic'), value: 'basic' },
+    { label: t('siem_export_page.auth_types.api_key'), value: 'api_key' },
+])
+
+const frequencyOptions = computed(() => [
+    { label: t('siem_export_page.frequencies.realtime'), value: 'realtime' },
+    { label: t('siem_export_page.frequencies.hourly'), value: 'hourly' },
+    { label: t('siem_export_page.frequencies.daily'), value: 'daily' },
+])
 
 // Dialog
 const dialogVisible = ref(false)
@@ -212,13 +247,19 @@ const form = ref({
     auth_credentials: '', is_active: true, auto_push: false,
     push_frequency: 'realtime', max_batch_size: 1000, notes: '',
 })
-const formRules = {
-    name: [{ required: true, message: '请输入名称' }],
-    format: [{ required: true, message: '请选择格式' }],
-}
+const formRules = computed(() => ({
+    name: [{ required: true, message: t('siem_export_page.validation.name_required') }],
+    format: [{ required: true, message: t('siem_export_page.validation.format_required') }],
+}))
 const formRef = ref(null)
 const saving = ref(false)
 const formatOptions = ref({})
+
+const formatSelectOptions = computed(() => {
+    const keys = Object.keys(formatOptions.value)
+    const source = keys.length ? keys : Object.keys(formatLabels.value)
+    return Object.fromEntries(source.map((key) => [key, formatLabels.value[key] || formatOptions.value[key] || key]))
+})
 
 // Push logs
 const logConnectionId = ref(null)
@@ -289,11 +330,11 @@ async function fetchPreview() {
         const res = await getSiemFormatPreview(previewFormat.value)
         previewMappings.value = res.data?.field_mappings || null
         previewSample.value = JSON.stringify(res.data?.sample, null, 2)
-    } catch { previewSample.value = '加载失败' }
+    } catch { previewSample.value = t('messages.load_failed') }
 }
 
 function formatLabel(f) {
-    return { cef: 'Splunk CEF', elk_json: 'ELK JSON', sls: '阿里云 SLS' }[f] || f
+    return formatLabels.value[f] || f
 }
 
 function formatTagType(f) {
@@ -301,7 +342,7 @@ function formatTagType(f) {
 }
 
 function frequencyLabel(f) {
-    return { realtime: '实时', hourly: '每小时', daily: '每日' }[f] || f
+    return frequencyLabels.value[f] || f
 }
 
 async function handleSave() {
@@ -311,25 +352,28 @@ async function handleSave() {
     try {
         if (isEdit.value && editingId.value) {
             await updateSiemConnection(editingId.value, form.value)
-            ElMessage.success('连接已更新')
+            ElMessage.success(t('siem_export_page.messages.connection_updated'))
         } else {
             await createSiemConnection(form.value)
-            ElMessage.success('连接已创建')
+            ElMessage.success(t('siem_export_page.messages.connection_created'))
         }
         dialogVisible.value = false
         fetchConnections()
         fetchDashboard()
     } catch (e) {
-        ElMessage.error(e.message || '操作失败')
+        ElMessage.error(e.message || t('messages.failed'))
     }
     saving.value = false
 }
 
 async function handleDelete(row) {
     try {
-        await ElMessageBox.confirm(`确定删除 SIEM 连接「${row.name}」？`, '确认')
+        await ElMessageBox.confirm(
+            t('siem_export_page.confirm.delete_connection', { name: row.name }),
+            t('actions.confirm'),
+        )
         await deleteSiemConnection(row.id)
-        ElMessage.success('已删除')
+        ElMessage.success(t('bi_export_page.messages.deleted'))
         fetchConnections()
         fetchDashboard()
     } catch { /* ignore */ }
@@ -337,22 +381,25 @@ async function handleDelete(row) {
 
 async function testConnection(row) {
     try {
-        ElMessage.info('正在测试连接...')
+        ElMessage.info(t('siem_export_page.messages.testing_connection'))
         const res = await testSiemConnection(row.id)
-        ElMessage.success(`连接测试成功 (${res.data?.duration_ms || 0}ms, HTTP ${res.data?.status_code})`)
+        ElMessage.success(t('siem_export_page.messages.test_success', {
+            ms: res.data?.duration_ms || 0,
+            code: res.data?.status_code,
+        }))
     } catch (e) {
-        ElMessage.error(e.message || '连接测试失败')
+        ElMessage.error(e.message || t('siem_export_page.messages.test_failed'))
     }
 }
 
 async function handlePushLogs(row) {
     try {
-        ElMessage.info('正在推送日志...')
+        ElMessage.info(t('siem_export_page.messages.pushing_logs'))
         const res = await pushSiemLogs(row.id, {})
-        ElMessage.success(`已推送 ${res.data?.pushed || 0} 条记录`)
+        ElMessage.success(t('siem_export_page.messages.push_success', { n: res.data?.pushed || 0 }))
         fetchDashboard()
     } catch (e) {
-        ElMessage.error(e.message || '推送失败')
+        ElMessage.error(e.message || t('siem_export_page.messages.push_failed'))
     }
 }
 

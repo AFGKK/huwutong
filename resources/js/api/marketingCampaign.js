@@ -37,6 +37,9 @@ export default {
     simulateSend(id) {
         return apiClient.post(`/admin/marketing/campaigns/${id}/simulate`);
     },
+    sendCampaign(id) {
+        return apiClient.post(`/admin/marketing/campaigns/${id}/send`);
+    },
     analytics(id) {
         return apiClient.get(`/admin/marketing/campaigns/${id}/analytics`);
     },

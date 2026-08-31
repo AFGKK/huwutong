@@ -2,8 +2,8 @@
   <div class="cloud-marketplace-page">
     <!-- 页面标题 -->
     <div class="page-header mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">☁️ 云市场集成</h1>
-      <p class="text-sm text-gray-500 mt-1">管理 AWS Marketplace 的对接</p>
+      <h1 class="text-2xl font-bold text-gray-800">{{ t('nav.cloud_marketplace') }}</h1>
+      <p class="text-sm text-gray-500 mt-1">{{ t('cloud_marketplace_page.subtitle') }}</p>
     </div>
 
     <!-- 加载状态 -->
@@ -21,7 +21,7 @@
               <div>
                 <div class="font-semibold text-gray-800">{{ mp.name }}</div>
                 <el-tag :type="mp.enabled ? 'success' : 'info'" size="small">
-                  {{ mp.enabled ? '已启用' : '未启用' }}
+                  {{ mp.enabled ? t('cloud_marketplace_page.status.enabled') : t('cloud_marketplace_page.status.disabled') }}
                 </el-tag>
               </div>
             </div>
@@ -42,37 +42,35 @@
       <!-- Tabs: 产品映射 / 订阅管理 / 计量记录 -->
       <el-card shadow="never">
         <el-tabs v-model="activeTab">
-          <el-tab-pane label="📦 产品/Offer 映射" name="products">
+          <el-tab-pane :label="t('cloud_marketplace_page.tabs.products')" name="products">
             <div class="mb-4 flex justify-between items-center">
-              <el-select v-model="productFilter.marketplace" placeholder="筛选云市场" clearable size="small" style="width:200px" @change="fetchProducts">
-                <el-option label="全部" value="" />
-                <el-option label="AWS Marketplace" value="aws" />
-
+              <el-select v-model="productFilter.marketplace" :placeholder="t('cloud_marketplace_page.filters.marketplace_ph')" clearable size="small" style="width:200px" @change="fetchProducts">
+                <el-option v-for="opt in marketplaceFilterOptions" :key="opt.value || 'all'" :label="opt.label" :value="opt.value" />
               </el-select>
               <el-button type="primary" size="small" @click="showProductDialog = true">
-                <el-icon><Plus /></el-icon> 新建映射
+                <el-icon><Plus /></el-icon> {{ t('cloud_marketplace_page.btn_create_mapping') }}
               </el-button>
             </div>
             <el-table :data="products" v-loading="productLoading" stripe size="small">
-              <el-table-column prop="marketplace" label="云市场" width="140">
+              <el-table-column prop="marketplace" :label="t('cloud_marketplace_page.columns.marketplace')" width="140">
                 <template #default="{ row }">
                   <el-tag type="warning" size="small">{{ row.marketplace.toUpperCase() }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="offer_id" label="Offer ID" min-width="200" />
-              <el-table-column prop="offer_name" label="名称" min-width="160" />
-              <el-table-column prop="status" label="状态" width="100">
+              <el-table-column prop="offer_id" :label="t('cloud_marketplace_page.columns.offer_id')" min-width="200" />
+              <el-table-column prop="offer_name" :label="t('cloud_marketplace_page.columns.name')" min-width="160" />
+              <el-table-column prop="status" :label="t('licenses_page.status')" width="100">
                 <template #default="{ row }">
-                  <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">{{ row.status }}</el-tag>
+                  <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">{{ productStatusLabel(row.status) }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="created_at" label="创建时间" width="160" />
-              <el-table-column label="操作" width="160" fixed="right">
+              <el-table-column prop="created_at" :label="t('licenses_page.col_created_at')" width="160" />
+              <el-table-column :label="t('licenses_page.col_actions')" width="160" fixed="right">
                 <template #default="{ row }">
-                  <el-button text size="small" @click="editProduct(row)">编辑</el-button>
-                  <el-popconfirm title="删除此映射？" @confirm="deleteProduct(row)">
+                  <el-button text size="small" @click="editProduct(row)">{{ t('actions.edit') }}</el-button>
+                  <el-popconfirm :title="t('cloud_marketplace_page.confirm.delete_mapping')" @confirm="deleteProduct(row)">
                     <template #reference>
-                      <el-button text size="small" type="danger">删除</el-button>
+                      <el-button text size="small" type="danger">{{ t('actions.delete') }}</el-button>
                     </template>
                   </el-popconfirm>
                 </template>
@@ -83,39 +81,33 @@
             </div>
           </el-tab-pane>
 
-          <el-tab-pane label="🔗 订阅管理" name="subscriptions">
+          <el-tab-pane :label="t('cloud_marketplace_page.tabs.subscriptions')" name="subscriptions">
             <div class="mb-4 flex gap-3">
-              <el-select v-model="subFilter.marketplace" placeholder="云市场" clearable size="small" style="width:160px" @change="fetchSubscriptions">
-                <el-option label="全部" value="" />
-                <el-option label="AWS" value="aws" />
-
+              <el-select v-model="subFilter.marketplace" :placeholder="t('cloud_marketplace_page.filters.marketplace')" clearable size="small" style="width:160px" @change="fetchSubscriptions">
+                <el-option v-for="opt in marketplaceShortFilterOptions" :key="opt.value || 'all'" :label="opt.label" :value="opt.value" />
               </el-select>
-              <el-select v-model="subFilter.status" placeholder="状态" clearable size="small" style="width:160px" @change="fetchSubscriptions">
-                <el-option label="全部" value="" />
-                <el-option label="已订阅" value="subscribed" />
-                <el-option label="活跃" value="active" />
-                <el-option label="已暂停" value="suspended" />
-                <el-option label="已取消" value="cancelled" />
+              <el-select v-model="subFilter.status" :placeholder="t('licenses_page.status')" clearable size="small" style="width:160px" @change="fetchSubscriptions">
+                <el-option v-for="opt in subscriptionStatusFilterOptions" :key="opt.value || 'all'" :label="opt.label" :value="opt.value" />
               </el-select>
             </div>
             <el-table :data="subscriptions" v-loading="subLoading" stripe size="small">
-              <el-table-column prop="marketplace" label="云市场" width="100">
+              <el-table-column prop="marketplace" :label="t('cloud_marketplace_page.columns.marketplace')" width="100">
                 <template #default="{ row }">
                   <el-tag type="warning" size="small">{{ row.marketplace.toUpperCase() }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="marketplace_subscription_id" label="三方订阅ID" min-width="200" />
-              <el-table-column prop="customer_name" label="客户" min-width="150" />
-              <el-table-column prop="tier" label="套餐" width="120" />
-              <el-table-column prop="status" label="状态" width="100">
+              <el-table-column prop="marketplace_subscription_id" :label="t('cloud_marketplace_page.columns.marketplace_subscription_id')" min-width="200" />
+              <el-table-column prop="customer_name" :label="t('licenses_page.customer')" min-width="150" />
+              <el-table-column prop="tier" :label="t('cloud_marketplace_page.columns.tier')" width="120" />
+              <el-table-column prop="status" :label="t('licenses_page.status')" width="100">
                 <template #default="{ row }">
-                  <el-tag :type="row.status === 'active' ? 'success' : row.status === 'suspended' ? 'warning' : 'info'" size="small">{{ row.status }}</el-tag>
+                  <el-tag :type="row.status === 'active' ? 'success' : row.status === 'suspended' ? 'warning' : 'info'" size="small">{{ subscriptionStatusLabel(row.status) }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="activated_at" label="激活时间" width="160" />
-              <el-table-column label="操作" width="120" fixed="right">
+              <el-table-column prop="activated_at" :label="t('cloud_marketplace_page.columns.activated_at')" width="160" />
+              <el-table-column :label="t('licenses_page.col_actions')" width="120" fixed="right">
                 <template #default="{ row }">
-                  <el-button text size="small" @click="viewSubscription(row)">详情</el-button>
+                  <el-button text size="small" @click="viewSubscription(row)">{{ t('customers_page.detail') }}</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -124,28 +116,28 @@
             </div>
           </el-tab-pane>
 
-          <el-tab-pane label="📊 计量记录" name="metering">
+          <el-tab-pane :label="t('cloud_marketplace_page.tabs.metering')" name="metering">
             <div class="mb-4">
               <el-button type="primary" size="small" @click="showMeteringDialog = true">
-                <el-icon><Plus /></el-icon> 手动上报计量
+                <el-icon><Plus /></el-icon> {{ t('cloud_marketplace_page.btn_report_metering') }}
               </el-button>
             </div>
             <el-table :data="meteringRecords" v-loading="meteringLoading" stripe size="small">
-              <el-table-column prop="marketplace" label="云市场" width="100">
+              <el-table-column prop="marketplace" :label="t('cloud_marketplace_page.columns.marketplace')" width="100">
                 <template #default="{ row }">
                   <el-tag type="warning" size="small">{{ row.marketplace.toUpperCase() }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="dimension" label="计量维度" width="140" />
-              <el-table-column prop="quantity" label="数量" width="100" />
-              <el-table-column prop="metered_at" label="计量时间" width="160" />
-              <el-table-column prop="reported_at" label="上报时间" width="160" />
-              <el-table-column prop="status" label="状态" width="100">
+              <el-table-column prop="dimension" :label="t('cloud_marketplace_page.columns.dimension')" width="140" />
+              <el-table-column prop="quantity" :label="t('licenses_page.count')" width="100" />
+              <el-table-column prop="metered_at" :label="t('cloud_marketplace_page.columns.metered_at')" width="160" />
+              <el-table-column prop="reported_at" :label="t('cloud_marketplace_page.columns.reported_at')" width="160" />
+              <el-table-column prop="status" :label="t('licenses_page.status')" width="100">
                 <template #default="{ row }">
-                  <el-tag :type="row.status === 'reported' ? 'success' : row.status === 'failed' ? 'danger' : 'warning'" size="small">{{ row.status }}</el-tag>
+                  <el-tag :type="row.status === 'reported' ? 'success' : row.status === 'failed' ? 'danger' : 'warning'" size="small">{{ meteringStatusLabel(row.status) }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="error_message" label="错误信息" min-width="200" />
+              <el-table-column prop="error_message" :label="t('cloud_marketplace_page.columns.error_message')" min-width="200" />
             </el-table>
             <div class="mt-4 flex justify-center" v-if="meteringPagination.total > meteringPagination.per_page">
               <el-pagination v-model:current-page="meteringPagination.current_page" :page-size="meteringPagination.per_page" :total="meteringPagination.total" layout="prev, pager, next" @current-change="fetchMetering" />
@@ -156,81 +148,78 @@
     </template>
 
     <!-- 新建/编辑产品对话框 -->
-    <el-dialog v-model="showProductDialog" :title="editingProduct ? '编辑产品映射' : '新建产品映射'" width="540px">
+    <el-dialog v-model="showProductDialog" :title="editingProduct ? t('cloud_marketplace_page.product_dialog.edit_title') : t('cloud_marketplace_page.product_dialog.create_title')" width="540px">
       <el-form :model="productForm" label-position="top" size="small">
-        <el-form-item label="云市场" required>
+        <el-form-item :label="t('cloud_marketplace_page.columns.marketplace')" required>
           <el-select v-model="productForm.marketplace" :disabled="!!editingProduct" style="width:100%">
-            <el-option label="AWS Marketplace" value="aws" />
-
+            <el-option :label="t('cloud_marketplace_page.aws_marketplace')" value="aws" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Offer ID" required>
-          <el-input v-model="productForm.offer_id" :disabled="!!editingProduct" placeholder="三方平台的 Offer/Product Code" />
+        <el-form-item :label="t('cloud_marketplace_page.columns.offer_id')" required>
+          <el-input v-model="productForm.offer_id" :disabled="!!editingProduct" :placeholder="t('cloud_marketplace_page.product_dialog.offer_id_ph')" />
         </el-form-item>
-        <el-form-item label="名称">
-          <el-input v-model="productForm.offer_name" placeholder="可读名称" />
+        <el-form-item :label="t('cloud_marketplace_page.columns.name')">
+          <el-input v-model="productForm.offer_name" :placeholder="t('cloud_marketplace_page.product_dialog.offer_name_ph')" />
         </el-form-item>
-        <el-form-item label="状态">
+        <el-form-item :label="t('licenses_page.status')">
           <el-select v-model="productForm.status" style="width:100%">
-            <el-option label="启用" value="active" />
-            <el-option label="停用" value="inactive" />
-            <el-option label="已弃用" value="deprecated" />
+            <el-option v-for="opt in productStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="productForm.description" type="textarea" :rows="3" placeholder="可选描述" />
+        <el-form-item :label="t('cloud_marketplace_page.product_dialog.description')">
+          <el-input v-model="productForm.description" type="textarea" :rows="3" :placeholder="t('cloud_marketplace_page.product_dialog.description_ph')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showProductDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveProduct" :loading="saving">保存</el-button>
+        <el-button @click="showProductDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="saveProduct" :loading="saving">{{ t('actions.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 手动上报计量对话框 -->
-    <el-dialog v-model="showMeteringDialog" title="手动上报计量" width="480px">
+    <el-dialog v-model="showMeteringDialog" :title="t('cloud_marketplace_page.metering_dialog.title')" width="480px">
       <el-form :model="meteringForm" label-position="top" size="small">
-        <el-form-item label="订阅" required>
+        <el-form-item :label="t('cloud_marketplace_page.metering_dialog.subscription')" required>
           <el-select v-model="meteringForm.subscription_id" filterable style="width:100%">
             <el-option v-for="sub in subscriptions" :key="sub.id" :label="`[${sub.marketplace}] ${sub.customer_name} - ${sub.tier}`" :value="sub.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="计量维度" required>
-          <el-input v-model="meteringForm.dimension" placeholder="如: api_calls, storage_gb, users" />
+        <el-form-item :label="t('cloud_marketplace_page.columns.dimension')" required>
+          <el-input v-model="meteringForm.dimension" :placeholder="t('cloud_marketplace_page.metering_dialog.dimension_ph')" />
         </el-form-item>
-        <el-form-item label="数量" required>
+        <el-form-item :label="t('licenses_page.count')" required>
           <el-input-number v-model="meteringForm.quantity" :min="0" :precision="2" style="width:100%" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showMeteringDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveMetering" :loading="saving">上报</el-button>
+        <el-button @click="showMeteringDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="saveMetering" :loading="saving">{{ t('cloud_marketplace_page.btn_report') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 订阅详情对话框 -->
-    <el-dialog v-model="showSubDialog" :title="'订阅详情 #' + (subDetail?.id || '')" width="640px">
+    <el-dialog v-model="showSubDialog" :title="t('cloud_marketplace_page.sub_dialog.title', { id: subDetail?.id || '' })" width="640px">
       <template v-if="subDetail">
         <el-descriptions :column="2" border size="small">
-          <el-descriptions-item label="云市场">{{ subDetail.marketplace?.toUpperCase() }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="subDetail.status === 'active' ? 'success' : 'info'" size="small">{{ subDetail.status }}</el-tag>
+          <el-descriptions-item :label="t('cloud_marketplace_page.columns.marketplace')">{{ subDetail.marketplace?.toUpperCase() }}</el-descriptions-item>
+          <el-descriptions-item :label="t('licenses_page.status')">
+            <el-tag :type="subDetail.status === 'active' ? 'success' : 'info'" size="small">{{ subscriptionStatusLabel(subDetail.status) }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="三方订阅ID" :span="2">{{ subDetail.marketplace_subscription_id }}</el-descriptions-item>
-          <el-descriptions-item label="客户名称">{{ subDetail.customer_name }}</el-descriptions-item>
-          <el-descriptions-item label="套餐">{{ subDetail.tier }}</el-descriptions-item>
-          <el-descriptions-item label="订阅时间">{{ subDetail.subscribed_at }}</el-descriptions-item>
-          <el-descriptions-item label="激活时间">{{ subDetail.activated_at }}</el-descriptions-item>
+          <el-descriptions-item :label="t('cloud_marketplace_page.columns.marketplace_subscription_id')" :span="2">{{ subDetail.marketplace_subscription_id }}</el-descriptions-item>
+          <el-descriptions-item :label="t('cloud_marketplace_page.sub_dialog.customer_name')">{{ subDetail.customer_name }}</el-descriptions-item>
+          <el-descriptions-item :label="t('cloud_marketplace_page.columns.tier')">{{ subDetail.tier }}</el-descriptions-item>
+          <el-descriptions-item :label="t('cloud_marketplace_page.sub_dialog.subscribed_at')">{{ subDetail.subscribed_at }}</el-descriptions-item>
+          <el-descriptions-item :label="t('cloud_marketplace_page.columns.activated_at')">{{ subDetail.activated_at }}</el-descriptions-item>
         </el-descriptions>
 
-        <h4 class="text-sm font-semibold text-gray-700 mt-4 mb-2">最近计量记录</h4>
+        <h4 class="text-sm font-semibold text-gray-700 mt-4 mb-2">{{ t('cloud_marketplace_page.sub_dialog.recent_metering') }}</h4>
         <el-table :data="subDetail.metering || []" size="small" max-height="200">
-          <el-table-column prop="dimension" label="维度" />
-          <el-table-column prop="quantity" label="数量" />
-          <el-table-column prop="metered_at" label="时间" />
-          <el-table-column prop="status" label="状态">
+          <el-table-column prop="dimension" :label="t('cloud_marketplace_page.columns.dimension_short')" />
+          <el-table-column prop="quantity" :label="t('licenses_page.count')" />
+          <el-table-column prop="metered_at" :label="t('cloud_marketplace_page.columns.time')" />
+          <el-table-column prop="status" :label="t('licenses_page.status')">
             <template #default="{ row }">
-              <el-tag :type="row.status === 'reported' ? 'success' : 'warning'" size="small">{{ row.status }}</el-tag>
+              <el-tag :type="row.status === 'reported' ? 'success' : 'warning'" size="small">{{ meteringStatusLabel(row.status) }}</el-tag>
             </template>
           </el-table-column>
         </el-table>
@@ -240,7 +229,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import {
@@ -254,6 +244,8 @@ import {
   getMarketplaceMetering,
   reportMarketplaceMetering,
 } from '@/api/cloudMarketplace';
+
+const { t } = useI18n();
 
 const loading = ref(true);
 const activeTab = ref('products');
@@ -287,6 +279,61 @@ const meteringPagination = reactive({ current_page: 1, per_page: 20, total: 0 })
 const showMeteringDialog = ref(false);
 const meteringForm = reactive({ subscription_id: null, dimension: '', quantity: 1 });
 
+const marketplaceFilterOptions = computed(() => [
+  { label: t('licenses_page.all'), value: '' },
+  { label: t('cloud_marketplace_page.aws_marketplace'), value: 'aws' },
+]);
+
+const marketplaceShortFilterOptions = computed(() => [
+  { label: t('licenses_page.all'), value: '' },
+  { label: t('cloud_marketplace_page.aws'), value: 'aws' },
+]);
+
+const subscriptionStatusFilterOptions = computed(() => [
+  { label: t('licenses_page.all'), value: '' },
+  { label: t('cloud_marketplace_page.sub_status.subscribed'), value: 'subscribed' },
+  { label: t('cloud_marketplace_page.sub_status.active'), value: 'active' },
+  { label: t('cloud_marketplace_page.sub_status.suspended'), value: 'suspended' },
+  { label: t('cloud_marketplace_page.sub_status.cancelled'), value: 'cancelled' },
+]);
+
+const productStatusOptions = computed(() => [
+  { label: t('cloud_marketplace_page.product_status.active'), value: 'active' },
+  { label: t('cloud_marketplace_page.product_status.inactive'), value: 'inactive' },
+  { label: t('cloud_marketplace_page.product_status.deprecated'), value: 'deprecated' },
+]);
+
+const productStatusLabels = computed(() => ({
+  active: t('cloud_marketplace_page.product_status.active'),
+  inactive: t('cloud_marketplace_page.product_status.inactive'),
+  deprecated: t('cloud_marketplace_page.product_status.deprecated'),
+}));
+
+const subscriptionStatusLabels = computed(() => ({
+  subscribed: t('cloud_marketplace_page.sub_status.subscribed'),
+  active: t('cloud_marketplace_page.sub_status.active'),
+  suspended: t('cloud_marketplace_page.sub_status.suspended'),
+  cancelled: t('cloud_marketplace_page.sub_status.cancelled'),
+}));
+
+const meteringStatusLabels = computed(() => ({
+  reported: t('cloud_marketplace_page.metering_status.reported'),
+  failed: t('cloud_marketplace_page.metering_status.failed'),
+  pending: t('cloud_marketplace_page.metering_status.pending'),
+}));
+
+function productStatusLabel(status) {
+  return productStatusLabels.value[status] || status;
+}
+
+function subscriptionStatusLabel(status) {
+  return subscriptionStatusLabels.value[status] || status;
+}
+
+function meteringStatusLabel(status) {
+  return meteringStatusLabels.value[status] || status;
+}
+
 // ─── 加载初始数据 ───
 async function loadData() {
   loading.value = true;
@@ -295,17 +342,17 @@ async function loadData() {
     if (res.data?.success) {
       marketplaces.value = res.data.data.marketplaces;
       stats.value = [
-        { label: '产品映射', value: res.data.data.total_products },
-        { label: '活跃订阅', value: res.data.data.active_subscriptions },
-        { label: '总订阅数', value: res.data.data.total_subscriptions },
-        { label: '待上报计量', value: res.data.data.pending_metering },
+        { label: t('cloud_marketplace_page.stats.product_mappings'), value: res.data.data.total_products },
+        { label: t('cloud_marketplace_page.stats.active_subscriptions'), value: res.data.data.active_subscriptions },
+        { label: t('cloud_marketplace_page.stats.total_subscriptions'), value: res.data.data.total_subscriptions },
+        { label: t('cloud_marketplace_page.stats.pending_metering'), value: res.data.data.pending_metering },
       ];
     }
     await fetchProducts();
     await fetchSubscriptions();
     await fetchMetering();
   } catch (e) {
-    ElMessage.error('加载云市场数据失败');
+    ElMessage.error(t('cloud_marketplace_page.messages.load_failed'));
   } finally {
     loading.value = false;
   }
@@ -352,16 +399,16 @@ async function saveProduct() {
   try {
     if (editingProduct.value) {
       await updateMarketplaceProduct(editingProduct.value.id, productForm);
-      ElMessage.success('更新成功');
+      ElMessage.success(t('messages.success'));
     } else {
       await createMarketplaceProduct(productForm);
-      ElMessage.success('创建成功');
+      ElMessage.success(t('messages.success'));
     }
     showProductDialog.value = false;
     resetProductForm();
     await fetchProducts();
   } catch (e) {
-    ElMessage.error('操作失败');
+    ElMessage.error(t('messages.failed'));
   } finally {
     saving.value = false;
   }
@@ -370,10 +417,10 @@ async function saveProduct() {
 async function deleteProduct(row) {
   try {
     await deleteMarketplaceProduct(row.id);
-    ElMessage.success('删除成功');
+    ElMessage.success(t('cloud_marketplace_page.messages.delete_ok'));
     await fetchProducts();
   } catch (e) {
-    ElMessage.error('删除失败');
+    ElMessage.error(t('cloud_marketplace_page.messages.delete_failed'));
   }
 }
 
@@ -400,7 +447,7 @@ async function viewSubscription(row) {
       showSubDialog.value = true;
     }
   } catch (e) {
-    ElMessage.error('加载订阅详情失败');
+    ElMessage.error(t('cloud_marketplace_page.messages.load_sub_failed'));
   }
 }
 
@@ -423,14 +470,14 @@ async function saveMetering() {
   saving.value = true;
   try {
     await reportMarketplaceMetering(meteringForm);
-    ElMessage.success('计量已上报');
+    ElMessage.success(t('cloud_marketplace_page.messages.metering_reported'));
     showMeteringDialog.value = false;
     meteringForm.subscription_id = null;
     meteringForm.dimension = '';
     meteringForm.quantity = 1;
     await fetchMetering();
   } catch (e) {
-    ElMessage.error('上报失败');
+    ElMessage.error(t('cloud_marketplace_page.messages.report_failed'));
   } finally {
     saving.value = false;
   }

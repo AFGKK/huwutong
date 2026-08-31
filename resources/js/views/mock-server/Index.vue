@@ -1,34 +1,34 @@
 <template>
     <div>
         <el-breadcrumb separator="/" class="mb-4">
-            <el-breadcrumb-item :to="{ path: '/admin/dashboard' }">首页</el-breadcrumb-item>
-            <el-breadcrumb-item>开发者工具</el-breadcrumb-item>
-            <el-breadcrumb-item>API Mock Server</el-breadcrumb-item>
+            <el-breadcrumb-item :to="{ path: '/admin/dashboard' }">{{ t('nav.home') }}</el-breadcrumb-item>
+            <el-breadcrumb-item>{{ t('mock_server_page.breadcrumb_dev_tools') }}</el-breadcrumb-item>
+            <el-breadcrumb-item>{{ t('nav.mock_server') }}</el-breadcrumb-item>
         </el-breadcrumb>
 
         <el-row :gutter="20" class="mb-4">
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="text-3xl font-bold text-gray-800">{{ rules.length }}</div>
-                    <div class="text-sm text-gray-500 mt-1">Mock 规则数</div>
+                    <div class="text-sm text-gray-500 mt-1">{{ t('mock_server_page.stats.rules') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="text-3xl font-bold text-success">{{ activeCount }}</div>
-                    <div class="text-sm text-gray-500 mt-1">已启用</div>
+                    <div class="text-sm text-gray-500 mt-1">{{ t('mock_server_page.stats.active') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="text-3xl font-bold text-primary">{{ config.defaults?.delay_ms ?? 0 }}ms</div>
-                    <div class="text-sm text-gray-500 mt-1">默认延迟</div>
+                    <div class="text-sm text-gray-500 mt-1">{{ t('mock_server_page.stats.default_delay') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="text-3xl font-bold text-warning">{{ config.defaults?.error_rate ?? 0 }}%</div>
-                    <div class="text-sm text-gray-500 mt-1">默认错误率</div>
+                    <div class="text-sm text-gray-500 mt-1">{{ t('mock_server_page.stats.default_error_rate') }}</div>
                 </el-card>
             </el-col>
         </el-row>
@@ -36,88 +36,84 @@
         <el-card>
             <template #header>
                 <div class="flex items-center justify-between">
-                    <span class="font-semibold">Mock 规则管理</span>
+                    <span class="font-semibold">{{ t('mock_server_page.rules_title') }}</span>
                     <div>
-                        <el-button @click="handleImport" :loading="importing">导入预建规则</el-button>
-                        <el-button type="primary" @click="showCreate = true">新建规则</el-button>
+                        <el-button @click="handleImport" :loading="importing">{{ t('mock_server_page.import_prebuilt') }}</el-button>
+                        <el-button type="primary" @click="showCreate = true">{{ t('mock_server_page.create_rule') }}</el-button>
                     </div>
                 </div>
             </template>
 
             <el-table :data="rules" v-loading="loading" stripe style="width:100%">
-                <el-table-column label="方法" width="80">
+                <el-table-column :label="t('mock_server_page.columns.method')" width="80">
                     <template #default="{ row }">
                         <el-tag :type="methodTag(row.method)" size="small">{{ row.method }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="path" label="路径" min-width="250" />
-                <el-table-column prop="status_code" label="状态码" width="80" />
-                <el-table-column prop="description" label="描述" min-width="180" />
-                <el-table-column label="延迟" width="70">
+                <el-table-column prop="path" :label="t('mock_server_page.columns.path')" min-width="250" />
+                <el-table-column prop="status_code" :label="t('mock_server_page.columns.status_code')" width="80" />
+                <el-table-column prop="description" :label="t('mock_server_page.columns.description')" min-width="180" />
+                <el-table-column :label="t('mock_server_page.columns.delay')" width="70">
                     <template #default="{ row }">{{ row.delay_ms || '-' }}ms</template>
                 </el-table-column>
-                <el-table-column label="状态" width="70">
+                <el-table-column :label="t('mock_server_page.columns.status')" width="70">
                     <template #default="{ row }">
-                        <el-tag :type="row.is_active ? 'success' : 'info'" size="small">{{ row.is_active ? '启用' : '禁用' }}</el-tag>
+                        <el-tag :type="row.is_active ? 'success' : 'info'" size="small">{{ activeStatusLabel(row.is_active) }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="160" fixed="right">
+                <el-table-column :label="t('mock_server_page.columns.actions')" width="160" fixed="right">
                     <template #default="{ row }">
-                        <el-button size="small" @click="showEdit(row)">编辑</el-button>
-                        <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
+                        <el-button size="small" @click="showEdit(row)">{{ t('actions.edit') }}</el-button>
+                        <el-button size="small" type="danger" @click="handleDelete(row)">{{ t('actions.delete') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
         </el-card>
 
         <!-- 创建/编辑对话框 -->
-        <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑 Mock 规则' : '新建 Mock 规则'" width="700px">
+        <el-dialog v-model="dialogVisible" :title="dialogTitle" width="700px">
             <el-form :model="form" label-position="top">
                 <el-row :gutter="16">
                     <el-col :span="8">
-                        <el-form-item label="HTTP 方法" required>
+                        <el-form-item :label="t('mock_server_page.form.method')" required>
                             <el-select v-model="form.method" style="width:100%">
-                                <el-option label="GET" value="GET" />
-                                <el-option label="POST" value="POST" />
-                                <el-option label="PUT" value="PUT" />
-                                <el-option label="PATCH" value="PATCH" />
-                                <el-option label="DELETE" value="DELETE" />
+                                <el-option v-for="opt in httpMethodOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="路径" required>
-                            <el-input v-model="form.path" placeholder="/api/license/activate" />
+                        <el-form-item :label="t('mock_server_page.form.path')" required>
+                            <el-input v-model="form.path" :placeholder="t('mock_server_page.form.path_ph')" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="4">
-                        <el-form-item label="状态码">
+                        <el-form-item :label="t('mock_server_page.form.status_code')">
                             <el-input-number v-model="form.status_code" :min="100" :max="599" style="width:100%" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-form-item label="描述">
-                    <el-input v-model="form.description" placeholder="规则说明" />
+                <el-form-item :label="t('mock_server_page.form.description')">
+                    <el-input v-model="form.description" :placeholder="t('mock_server_page.form.description_ph')" />
                 </el-form-item>
-                <el-form-item label="响应 JSON" required>
-                    <el-input v-model="responseText" type="textarea" :rows="8" class="font-mono" placeholder='{"success": true, "data": {...}}' />
+                <el-form-item :label="t('mock_server_page.form.response_json')" required>
+                    <el-input v-model="responseText" type="textarea" :rows="8" class="font-mono" :placeholder="t('mock_server_page.form.response_ph')" />
                 </el-form-item>
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="延迟 (ms)">
+                        <el-form-item :label="t('mock_server_page.form.delay_ms')">
                             <el-input-number v-model="form.delay_ms" :min="0" :max="30000" style="width:100%" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="启用">
+                        <el-form-item :label="t('mock_server_page.form.enabled')">
                             <el-switch v-model="form.is_active" />
                         </el-form-item>
                     </el-col>
                 </el-row>
             </el-form>
             <template #footer>
-                <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="handleSave" :loading="saving">{{ isEdit ? '更新' : '创建' }}</el-button>
+                <el-button @click="dialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleSave" :loading="saving">{{ isEdit ? t('actions.update') : t('actions.create') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -125,8 +121,25 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import mockServerApi from '../../api/mockServer';
+
+const { t } = useI18n();
+
+const httpMethodKeys = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+
+const httpMethodOptions = computed(() =>
+    httpMethodKeys.map((value) => ({ value, label: value }))
+);
+
+const dialogTitle = computed(() =>
+    isEdit.value ? t('mock_server_page.edit_dialog_title') : t('mock_server_page.create_dialog_title')
+);
+
+function activeStatusLabel(isActive) {
+    return isActive ? t('actions.enable') : t('actions.disable');
+}
 
 const rules = ref([]);
 const loading = ref(false);
@@ -198,15 +211,15 @@ async function handleSave() {
     try {
         if (isEdit.value) {
             await mockServerApi.updateRule(editingId.value, form.value);
-            ElMessage.success('规则已更新');
+            ElMessage.success(t('mock_server_page.messages.updated'));
         } else {
             await mockServerApi.createRule(form.value);
-            ElMessage.success('规则已创建');
+            ElMessage.success(t('mock_server_page.messages.created'));
         }
         dialogVisible.value = false;
         await fetchRules();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '操作失败');
+        ElMessage.error(e.response?.data?.message || t('messages.failed'));
     } finally {
         saving.value = false;
     }
@@ -214,9 +227,13 @@ async function handleSave() {
 
 async function handleDelete(row) {
     try {
-        await ElMessageBox.confirm(`确定删除规则 "${row.description || row.path}"？`, '确认', { type: 'warning' });
+        await ElMessageBox.confirm(
+            t('mock_server_page.delete_confirm', { name: row.description || row.path }),
+            t('actions.confirm'),
+            { type: 'warning' }
+        );
         await mockServerApi.deleteRule(row.id);
-        ElMessage.success('规则已删除');
+        ElMessage.success(t('mock_server_page.messages.deleted'));
         await fetchRules();
     } catch { /* cancelled */ }
 }
@@ -228,7 +245,7 @@ async function handleImport() {
         ElMessage.success(res.data.message);
         await fetchRules();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '导入失败');
+        ElMessage.error(e.response?.data?.message || t('mock_server_page.messages.import_failed'));
     } finally {
         importing.value = false;
     }
@@ -242,7 +259,7 @@ onMounted(() => {
 
 <style scoped>
 .font-mono :deep(textarea) { font-family: 'Courier New', Courier, monospace; }
-.text-primary { color: #409eff; }
+.text-primary { color: #0f172a; }
 .text-warning { color: #e6a23c; }
 .text-success { color: #67c23a; }
 </style>

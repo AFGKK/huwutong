@@ -3,7 +3,7 @@
         <el-card shadow="never">
             <template #header>
                 <div class="card-header">
-                    <span>已信任的设备</span>
+                    <span>{{ t('device_trust_page.title') }}</span>
                     <div class="header-actions">
                         <el-button
                             type="danger"
@@ -13,7 +13,7 @@
                             :disabled="!devices.length"
                             @click="handleClearAll"
                         >
-                            清除所有信任
+                            {{ t('device_trust_page.btn.clear_all') }}
                         </el-button>
                     </div>
                 </div>
@@ -26,44 +26,44 @@
                 class="mb-4"
             >
                 <template #title>
-                    信任的设备在登录时将跳过安全验证（如 MFA）。新设备登录时会收到站内通知提醒。
+                    {{ t('device_trust_page.alert') }}
                 </template>
             </el-alert>
 
             <el-table :data="devices" v-loading="loading" stripe style="width: 100%">
-                <el-table-column label="设备名称" min-width="200">
+                <el-table-column :label="t('device_trust_page.columns.device_name')" min-width="200">
                     <template #default="{ row }">
                         <el-icon class="mr-1"><Monitor /></el-icon>
-                        {{ row.device_name || '未知设备' }}
+                        {{ row.device_name || t('device_trust_page.unknown_device') }}
                     </template>
                 </el-table-column>
-                <el-table-column label="指纹" min-width="120">
+                <el-table-column :label="t('device_trust_page.columns.fingerprint')" min-width="120">
                     <template #default="{ row }">
                         <el-tag size="small" type="info">
                             {{ row.device_fingerprint?.substring(0, 16) + '...' }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="IP 地址" width="150" prop="ip_address" />
-                <el-table-column label="信任时间" width="180">
+                <el-table-column :label="t('device_trust_page.columns.ip_address')" width="150" prop="ip_address" />
+                <el-table-column :label="t('device_trust_page.columns.trusted_at')" width="180">
                     <template #default="{ row }">
                         {{ formatDate(row.trusted_at) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="最近活跃" width="180">
+                <el-table-column :label="t('device_trust_page.columns.last_seen')" width="180">
                     <template #default="{ row }">
                         {{ formatDate(row.last_seen_at) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="120" fixed="right">
+                <el-table-column :label="t('device_trust_page.columns.actions')" width="120" fixed="right">
                     <template #default="{ row }">
                         <el-popconfirm
-                            title="确定取消对此设备的信任？"
+                            :title="t('device_trust_page.confirm.remove')"
                             @confirm="handleRemove(row.id)"
                         >
                             <template #reference>
                                 <el-button type="danger" size="small" :icon="Delete" plain>
-                                    移除
+                                    {{ t('device_trust_page.btn.remove') }}
                                 </el-button>
                             </template>
                         </el-popconfirm>
@@ -71,19 +71,28 @@
                 </el-table-column>
             </el-table>
 
-            <el-empty v-if="!loading && !devices.length" description="暂无已信任设备" />
+            <el-empty v-if="!loading && !devices.length" :description="t('device_trust_page.empty')" />
         </el-card>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Monitor } from '@element-plus/icons-vue'
 import { getTrustedDevices, removeTrustedDevice, clearAllTrustedDevices } from '@/api/device-trust'
 
+const { t, locale } = useI18n()
+
 const devices = ref([])
 const loading = ref(false)
+
+const clearAllConfirmOptions = computed(() => ({
+    confirmButtonText: t('device_trust_page.btn.confirm_clear'),
+    cancelButtonText: t('actions.cancel'),
+    type: 'warning',
+}))
 
 async function fetchDevices() {
     loading.value = true
@@ -91,7 +100,7 @@ async function fetchDevices() {
         const res = await getTrustedDevices()
         devices.value = res.data?.data || []
     } catch (e) {
-        ElMessage.error('获取信任设备列表失败')
+        ElMessage.error(t('device_trust_page.messages.fetch_failed'))
     } finally {
         loading.value = false
     }
@@ -100,33 +109,34 @@ async function fetchDevices() {
 async function handleRemove(id) {
     try {
         await removeTrustedDevice(id)
-        ElMessage.success('设备信任已取消')
+        ElMessage.success(t('device_trust_page.messages.remove_success'))
         fetchDevices()
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '操作失败')
+        ElMessage.error(e.response?.data?.message || t('messages.failed'))
     }
 }
 
 async function handleClearAll() {
     try {
-        await ElMessageBox.confirm('确定清除所有已信任设备？之后所有设备登录都需要重新验证。', '确认操作', {
-            confirmButtonText: '确认清除',
-            cancelButtonText: '取消',
-            type: 'warning',
-        })
+        await ElMessageBox.confirm(
+            t('device_trust_page.confirm.clear_all'),
+            t('device_trust_page.confirm.title'),
+            clearAllConfirmOptions.value,
+        )
         await clearAllTrustedDevices()
-        ElMessage.success('已清除所有信任设备')
+        ElMessage.success(t('device_trust_page.messages.clear_success'))
         fetchDevices()
     } catch (e) {
         if (e !== 'cancel') {
-            ElMessage.error('操作失败')
+            ElMessage.error(t('messages.failed'))
         }
     }
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN'
+    return new Date(dateStr).toLocaleString(loc, {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',

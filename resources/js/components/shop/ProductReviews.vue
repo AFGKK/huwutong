@@ -1,20 +1,19 @@
 <template>
   <div class="product-reviews">
-    <!-- 评分概览 -->
     <div class="reviews-header" v-if="stats">
       <div class="rating-summary">
         <div class="rating-score">{{ stats.avg_rating || '—' }}</div>
         <div class="rating-stars">
           <el-rate :model-value="Math.round(stats.avg_rating || 0)" disabled show-score :score-template="''" />
         </div>
-        <div class="rating-count">{{ stats.total || 0 }} 条评价</div>
+        <div class="rating-count">{{ t('reviews.count', { n: stats.total || 0 }) }}</div>
       </div>
       <div class="rating-bars" v-if="stats.distribution">
         <div v-for="i in 5" :key="i" class="rating-bar-row">
-          <span class="bar-label">{{ 6 - i }}星</span>
+          <span class="bar-label">{{ t('reviews.stars', { n: 6 - i }) }}</span>
           <el-progress
             :percentage="stats.distribution[6 - i]?.percent || 0"
-            :color="['#f56c6c','#f7ba2a','#f7ba2a','#409eff','#67c23a'][6 - i]"
+            :color="['#f56c6c','#f7ba2a','#f7ba2a','#0f172a','#67c23a'][6 - i]"
             :show-text="false"
             class="rating-bar"
           />
@@ -23,10 +22,9 @@
       </div>
     </div>
 
-    <!-- 评论列表 -->
     <div class="reviews-list" v-loading="loading">
       <div v-if="!reviews.length && !loading" class="no-reviews">
-        <el-empty :description="'暂无评价'" :image-size="60" />
+        <el-empty :description="t('reviews.empty')" :image-size="60" />
       </div>
       <div v-for="review in reviews" :key="review.id" class="review-item">
         <div class="review-header">
@@ -34,13 +32,13 @@
             {{ (review.user?.name || '?').charAt(0) }}
           </el-avatar>
           <div class="review-user">
-            <span class="user-name">{{ review.is_anonymous ? '匿名用户' : review.user?.name || '用户' }}</span>
+            <span class="user-name">{{ review.is_anonymous ? t('reviews.anonymous') : review.user?.name || t('reviews.user') }}</span>
             <el-rate :model-value="review.rating" disabled size="small" />
           </div>
           <span class="review-time">{{ formatTime(review.created_at) }}</span>
         </div>
         <div class="review-body">
-          <el-tag v-if="review.is_verified_purchase" size="small" type="success" class="verified-tag">已购</el-tag>
+          <el-tag v-if="review.is_verified_purchase" size="small" type="success" class="verified-tag">{{ t('reviews.verified') }}</el-tag>
           <el-tag v-for="tag in review.tags" :key="tag" size="small" class="review-tag">{{ tag }}</el-tag>
           <p class="review-content">{{ review.content }}</p>
           <div v-if="review.images?.length" class="review-images">
@@ -56,14 +54,13 @@
         <div v-if="review.admin_reply" class="review-reply">
           <el-icon><ChatDotSquare /></el-icon>
           <div>
-            <span class="reply-label">商家回复：</span>
+            <span class="reply-label">{{ t('reviews.seller_reply') }}</span>
             <span>{{ review.admin_reply }}</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 分页 -->
     <div v-if="pagination.total > pagination.per_page" class="pagination-wrap">
       <el-pagination
         background
@@ -76,43 +73,45 @@
       />
     </div>
 
-    <!-- 发表评论 -->
     <div v-if="showReviewForm" class="review-form-section">
       <el-divider />
-      <h4 class="form-title">发表评价</h4>
+      <h4 class="form-title">{{ t('reviews.write_title') }}</h4>
       <el-form ref="formRef" :model="form" :rules="rules" size="small">
         <el-form-item prop="rating">
-          <el-rate v-model="form.rating" :texts="['非常差','差','一般','好','非常好']" show-text />
+          <el-rate v-model="form.rating" :texts="rateTexts" show-text />
         </el-form-item>
         <el-form-item prop="content">
           <el-input
             v-model="form.content"
             type="textarea"
             :rows="4"
-            placeholder="分享您的使用体验…（至少5个字）"
+            :placeholder="t('reviews.content_ph')"
             maxlength="5000"
             show-word-limit
           />
         </el-form-item>
         <el-form-item>
-          <el-checkbox v-model="form.is_anonymous">匿名评价</el-checkbox>
+          <el-checkbox v-model="form.is_anonymous">{{ t('reviews.anonymous_check') }}</el-checkbox>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="submitReview" :loading="submitting">提交评价</el-button>
+          <el-button type="primary" @click="submitReview" :loading="submitting">{{ t('reviews.submit') }}</el-button>
         </el-form-item>
       </el-form>
     </div>
     <el-button v-else-if="canReview" text type="primary" class="write-review-btn" @click="showReviewForm = true">
-      <el-icon><EditPen /></el-icon> 写评价
+      <el-icon><EditPen /></el-icon> {{ t('reviews.write') }}
     </el-button>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { ChatDotSquare, EditPen } from '@element-plus/icons-vue';
 import shopApi from '@/api/shop';
+
+const { t } = useI18n();
 
 const props = defineProps({
   productId: { type: [Number, String], required: true },
@@ -135,10 +134,18 @@ const form = reactive({
   is_anonymous: false,
 });
 
-const rules = {
-  rating: [{ required: true, message: '请选择评分' }],
-  content: [{ required: true, min: 5, message: '评论至少5个字', trigger: 'blur' }],
-};
+const rateTexts = computed(() => [
+  t('reviews.rate_1'),
+  t('reviews.rate_2'),
+  t('reviews.rate_3'),
+  t('reviews.rate_4'),
+  t('reviews.rate_5'),
+]);
+
+const rules = computed(() => ({
+  rating: [{ required: true, message: t('reviews.rating_required') }],
+  content: [{ required: true, min: 5, message: t('reviews.content_min'), trigger: 'blur' }],
+}));
 
 const canReview = computed(() => {
   return !!localStorage.getItem('auth_token');
@@ -184,7 +191,7 @@ async function submitReview() {
       content: form.content,
       is_anonymous: form.is_anonymous,
     });
-    ElMessage.success('评论已提交，等待审核');
+    ElMessage.success(t('reviews.submitted'));
     showReviewForm.value = false;
     form.content = '';
     form.rating = 5;
@@ -192,13 +199,13 @@ async function submitReview() {
     loadReviews();
     loadStats();
   } catch (e) {
-    ElMessage.error(e?.response?.data?.message || '提交失败');
+    ElMessage.error(e?.response?.data?.message || t('reviews.submit_fail'));
   } finally { submitting.value = false; }
 }
 
-function formatTime(t) {
-  if (!t) return '';
-  return t?.substring(0, 10);
+function formatTime(date) {
+  if (!date) return '';
+  return date?.substring(0, 10);
 }
 </script>
 
@@ -210,7 +217,7 @@ function formatTime(t) {
 .rating-count { font-size: 12px; color: #909399; margin-top: 4px; }
 .rating-bars { flex: 1; display: flex; flex-direction: column; gap: 4px; }
 .rating-bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-.bar-label { width: 24px; color: #606266; }
+.bar-label { min-width: 48px; color: #606266; white-space: nowrap; }
 .rating-bar { flex: 1; }
 .bar-count { width: 24px; text-align: right; color: #909399; }
 .review-item { padding: 16px 0; border-bottom: 1px solid #f0f0f0; }

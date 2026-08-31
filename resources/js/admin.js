@@ -1,13 +1,12 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
-import ElementPlus from 'element-plus';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
-import 'element-plus/dist/index.css';
 import router from './router';
 import App from './App.vue';
 import './bootstrap';
 import errorReporter from './utils/errorReporter';
 import './pwa/register-sw'; // PWA Service Worker 注册
+import i18n from './i18n'; // D-22: vue-i18n
 
 const app = createApp(App);
 
@@ -18,10 +17,10 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 app.use(createPinia());
 app.use(router);
-app.use(ElementPlus, { size: 'default' });
+app.use(i18n); // D-22: 使用 vue-i18n
 
-// 轻量 i18n — 未配置翻译时直接返回 key 本身
-app.config.globalProperties.$t = (key) => key;
+// D-22: 通过全局属性提供 $t 兼容旧代码（vue-i18n 也会注册 $t）
+// 已有的 app.config.globalProperties.$t 将被 vue-i18n 覆盖
 
 // 全局错误处理器
 app.config.errorHandler = (err, instance, info) => {

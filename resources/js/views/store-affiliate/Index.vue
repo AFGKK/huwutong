@@ -1,10 +1,10 @@
 <template>
   <div class="store-affiliate-page">
     <div class="page-header">
-      <h2>🤝 分销/联盟推广</h2>
+      <h2>{{ t(`${ns}.title`) }}</h2>
       <div class="header-actions">
         <el-button @click="loadAll" :loading="loading">
-          <el-icon><Refresh /></el-icon> 刷新
+          <el-icon><Refresh /></el-icon> {{ t(`${ns}.buttons.refresh`) }}
         </el-button>
       </div>
     </div>
@@ -13,25 +13,25 @@
     <el-row :gutter="16" class="mb-6">
       <el-col :xs="12" :sm="6">
         <el-card shadow="hover">
-          <div class="stat-label">总订单数</div>
+          <div class="stat-label">{{ t(`${ns}.stats.total_orders`) }}</div>
           <div class="stat-value">{{ dashboard.total_orders }}</div>
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="6">
         <el-card shadow="hover">
-          <div class="stat-label">总佣金</div>
+          <div class="stat-label">{{ t(`${ns}.stats.total_commission`) }}</div>
           <div class="stat-value">¥{{ formatNum(dashboard.total_commission) }}</div>
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="6">
         <el-card shadow="hover">
-          <div class="stat-label">待结算</div>
+          <div class="stat-label">{{ t(`${ns}.stats.pending_commission`) }}</div>
           <div class="stat-value text-warning">¥{{ formatNum(dashboard.pending_commission) }}</div>
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="6">
         <el-card shadow="hover">
-          <div class="stat-label">本月佣金</div>
+          <div class="stat-label">{{ t(`${ns}.stats.month_commission`) }}</div>
           <div class="stat-value">¥{{ formatNum(dashboard.month_commission) }}</div>
         </el-card>
       </el-col>
@@ -43,13 +43,13 @@
         <el-card shadow="hover">
           <template #header>
             <div class="card-header-flex">
-              <span>📦 推广商品</span>
+              <span>{{ t(`${ns}.sections.promote_products`) }}</span>
               <div class="header-actions">
                 <el-button size="small" :disabled="!selectedSkus.length" type="primary" @click="generateLinks">
-                  生成推广链接 ({{ selectedSkus.length }})
+                  {{ t(`${ns}.buttons.generate_links`, { count: selectedSkus.length }) }}
                 </el-button>
                 <el-button size="small" @click="selectAllSkus" :type="allSelected ? 'warning' : 'default'">
-                  {{ allSelected ? '取消全选' : '全选' }}
+                  {{ allSelected ? t(`${ns}.buttons.deselect_all`) : t(`${ns}.buttons.select_all`) }}
                 </el-button>
               </div>
             </div>
@@ -60,7 +60,7 @@
             <button
               :class="['cat-pill', { active: activeCategory === '' }]"
               @click="activeCategory = ''"
-            >全部分类 ({{ skus.length }})</button>
+            >{{ t(`${ns}.filters.all_categories`, { count: skus.length }) }}</button>
             <button
               v-for="cat in categories"
               :key="cat.id"
@@ -78,7 +78,7 @@
             >
               <div v-if="group.category_name" class="section-header">
                 <span class="section-badge">{{ group.category_name }}</span>
-                <span class="section-count">{{ group.items.length }} 件商品</span>
+                <span class="section-count">{{ t(`${ns}.product.item_count`, { count: group.items.length }) }}</span>
               </div>
               <div class="affiliate-product-grid">
                 <div
@@ -103,7 +103,7 @@
                     <div class="apc-name" :title="(sku.product_name || sku.name) + ' - ' + sku.sku_code">{{ sku.product_name || sku.name }}</div>
                     <div class="apc-meta">
                       <span v-if="sku.category_name" class="apc-category">{{ sku.category_name }}</span>
-                      <span class="apc-sold">已售 {{ sku.sold_count || 0 }}</span>
+                      <span class="apc-sold">{{ t(`${ns}.product.sold`, { count: sku.sold_count || 0 }) }}</span>
                     </div>
                     <div class="apc-price-row">
                       <div class="apc-price">¥{{ formatNum(sku.price) }}</div>
@@ -114,30 +114,30 @@
                   <div class="apc-footer">
                     <div class="apc-commission-tag">
                       <span class="apc-rate">{{ sku.commission_rate }}%</span>
-                      <span class="apc-amount">佣 ¥{{ formatNum(sku.commission_amount) }}</span>
+                      <span class="apc-amount">{{ t(`${ns}.product.commission_prefix`) }} ¥{{ formatNum(sku.commission_amount) }}</span>
                     </div>
                     <div class="apc-actions" @click.stop>
                       <el-dropdown trigger="click" @command="(cmd) => handlePromote(sku, cmd)">
                         <el-button size="small" class="apc-copy-btn">
-                          <el-icon><Promotion /></el-icon> 推广
+                          <el-icon><Promotion /></el-icon> {{ t(`${ns}.buttons.promote`) }}
                           <el-icon class="el-icon--right"><ArrowDown /></el-icon>
                         </el-button>
                         <template #dropdown>
                           <el-dropdown-menu>
                             <el-dropdown-item command="link">
-                              <el-icon><Link /></el-icon> 复制推广链接
+                              <el-icon><Link /></el-icon> {{ t(`${ns}.promote.copy_link`) }}
                             </el-dropdown-item>
                             <el-dropdown-item command="text">
-                              <el-icon><DocumentCopy /></el-icon> 复制推广文案
+                              <el-icon><DocumentCopy /></el-icon> {{ t(`${ns}.promote.copy_text`) }}
                             </el-dropdown-item>
                             <el-dropdown-item command="html">
-                              <el-icon><Document /></el-icon> 复制图文推广
+                              <el-icon><Document /></el-icon> {{ t(`${ns}.promote.copy_html`) }}
                             </el-dropdown-item>
                             <el-dropdown-item command="qrcode">
-                              <el-icon><FullScreen /></el-icon> 推广二维码
+                              <el-icon><FullScreen /></el-icon> {{ t(`${ns}.promote.qrcode`) }}
                             </el-dropdown-item>
                             <el-dropdown-item command="image" divided>
-                              <el-icon><Picture /></el-icon> 保存商品图片
+                              <el-icon><Picture /></el-icon> {{ t(`${ns}.promote.save_image`) }}
                             </el-dropdown-item>
                           </el-dropdown-menu>
                         </template>
@@ -148,21 +148,21 @@
               </div>
             </div>
           </div>
-          <el-empty v-else description="暂无符合条件的推广商品" :image-size="60" />
+          <el-empty v-else :description="t(`${ns}.empty.no_products`)" :image-size="60" />
 
           <!-- 生成的推广链接 -->
           <div v-if="generatedLinks.length" class="generated-links-section">
             <el-divider />
-            <h4 class="section-title">已生成的推广链接</h4>
+            <h4 class="section-title">{{ t(`${ns}.sections.generated_links`) }}</h4>
             <div v-for="link in generatedLinks" :key="link.click_id" class="generated-link-item">
               <div class="gl-product">
                 <strong>{{ link.product_name || link.sku_name }}</strong>
-                <span class="gl-rate">佣金 {{ link.commission_rate }}% (¥{{ formatNum(link.commission_amount) }})</span>
+                <span class="gl-rate">{{ t(`${ns}.link.commission`, { rate: link.commission_rate, amount: formatNum(link.commission_amount) }) }}</span>
               </div>
               <div class="gl-link-row">
                 <el-input :model-value="link.link" readonly size="small" class="gl-input">
                   <template #append>
-                    <el-button @click="copyLink(link.link)" size="small">复制链接</el-button>
+                    <el-button @click="copyLink(link.link)" size="small">{{ t('affiliate_enhanced_page.buttons.copy_link') }}</el-button>
                   </template>
                 </el-input>
               </div>
@@ -170,18 +170,18 @@
           </div>
 
           <!-- 推广二维码弹窗 -->
-          <el-dialog v-model="qrDialog.visible" :title="'📱 推广二维码 - ' + qrDialog.title" width="360px" align-center>
+          <el-dialog v-model="qrDialog.visible" :title="t(`${ns}.qr.title`, { name: qrDialog.title })" width="360px" align-center>
             <div class="qr-container">
               <div class="qr-canvas-wrap">
-                <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(qrDialog.link)" alt="推广二维码" class="qr-canvas" />
+                <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(qrDialog.link)" :alt="t(`${ns}.qr.alt`)" class="qr-canvas" />
               </div>
               <p class="qr-link-text">{{ qrDialog.link }}</p>
               <div class="qr-actions">
-                <el-button size="small" class="apc-copy-btn" @click="copyToClipboard(qrDialog.link, '推广链接已复制')">
-                  复制推广链接
+                <el-button size="small" class="apc-copy-btn" @click="copyToClipboard(qrDialog.link, t(`${ns}.messages.promo_link_copied`))">
+                  {{ t(`${ns}.promote.copy_link`) }}
                 </el-button>
                 <el-button size="small" @click="downloadQr(qrDialog.link, qrDialog.title)">
-                  保存二维码
+                  {{ t(`${ns}.buttons.save_qrcode`) }}
                 </el-button>
               </div>
             </div>
@@ -192,7 +192,7 @@
       <!-- 近7天趋势 -->
       <el-col :xs="24" :lg="12" class="mb-4">
         <el-card shadow="hover">
-          <template #header><span>📈 近7天趋势</span></template>
+          <template #header><span>{{ t(`${ns}.sections.trend_7d`) }}</span></template>
           <div v-if="dashboard.trend?.length" class="trend-chart">
             <div v-for="t in dashboard.trend" :key="t.date" class="trend-bar-item">
               <div class="trend-label">{{ t.label }}</div>
@@ -202,49 +202,49 @@
               <div class="trend-value">¥{{ formatNum(t.commission) }}</div>
             </div>
           </div>
-          <el-empty v-else description="暂无趋势数据" :image-size="60" />
+          <el-empty v-else :description="t(`${ns}.empty.no_trend`)" :image-size="60" />
         </el-card>
       </el-col>
     </el-row>
 
     <!-- 商品推广排行 -->
     <el-card shadow="hover" class="mb-6">
-      <template #header><span>🏆 商品推广排行</span></template>
+      <template #header><span>{{ t(`${ns}.sections.product_ranking`) }}</span></template>
       <el-table v-if="dashboard.product_ranking?.length" :data="dashboard.product_ranking" size="small" stripe>
         <el-table-column label="#" type="index" width="50" />
-        <el-table-column prop="name" label="商品名称" min-width="160" />
-        <el-table-column prop="qty" label="销量" width="80" align="center" />
-        <el-table-column prop="revenue" label="推广金额" width="120" align="right">
+        <el-table-column prop="name" :label="t(`${ns}.cols.product_name`)" min-width="160" />
+        <el-table-column prop="qty" :label="t(`${ns}.cols.qty`)" width="80" align="center" />
+        <el-table-column prop="revenue" :label="t(`${ns}.cols.revenue`)" width="120" align="right">
           <template #default="{ row }">¥{{ formatNum(row.revenue) }}</template>
         </el-table-column>
       </el-table>
-      <el-empty v-else description="暂无推广数据" :image-size="60" />
+      <el-empty v-else :description="t(`${ns}.empty.no_ranking`)" :image-size="60" />
     </el-card>
 
     <!-- Tab: 推广订单 / 推广链接 -->
     <el-card shadow="hover">
       <el-tabs v-model="activeTab">
-        <el-tab-pane label="推广订单" name="orders">
+        <el-tab-pane :label="t(`${ns}.tabs.orders`)" name="orders">
           <el-table :data="affiliateOrders" v-loading="loadingOrders" size="small" stripe>
-            <el-table-column prop="order_no" label="订单号" width="160" />
-            <el-table-column prop="customer_name" label="客户" min-width="120" />
-            <el-table-column prop="final_amount" label="金额" width="100" align="right">
+            <el-table-column prop="order_no" :label="t(`${ns}.cols.order_no`)" width="160" />
+            <el-table-column prop="customer_name" :label="t('affiliate_enhanced_page.cols.customer')" min-width="120" />
+            <el-table-column prop="final_amount" :label="t(`${ns}.cols.amount`)" width="100" align="right">
               <template #default="{ row }">¥{{ formatNum(row.final_amount) }}</template>
             </el-table-column>
-            <el-table-column prop="commission_amount" label="佣金" width="100" align="right">
+            <el-table-column prop="commission_amount" :label="t('affiliate_enhanced_page.cols.commission')" width="100" align="right">
               <template #default="{ row }">¥{{ formatNum(row.commission_amount) }}</template>
             </el-table-column>
-            <el-table-column prop="commission_rate" label="比例" width="60" align="center">
+            <el-table-column prop="commission_rate" :label="t(`${ns}.cols.rate`)" width="60" align="center">
               <template #default="{ row }">{{ row.commission_rate }}%</template>
             </el-table-column>
-            <el-table-column prop="status" label="状态" width="80">
+            <el-table-column prop="status" :label="t(`${ns}.cols.status`)" width="80">
               <template #default="{ row }">
                 <el-tag :type="row.status === 'settled' ? 'success' : row.status === 'cancelled' ? 'danger' : 'warning'" size="small">
-                  {{ row.status === 'settled' ? '已结算' : row.status === 'cancelled' ? '已取消' : '待结算' }}
+                  {{ orderStatusLabel(row.status) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="created_at" label="时间" width="160" />
+            <el-table-column prop="created_at" :label="t(`${ns}.cols.time`)" width="160" />
           </el-table>
           <el-pagination
             v-if="orderPagination.total > orderPagination.per_page"
@@ -255,21 +255,21 @@
             style="margin-top:12px;justify-content:center"
           />
         </el-tab-pane>
-        <el-tab-pane label="推广链接" name="links">
+        <el-tab-pane :label="t(`${ns}.tabs.links`)" name="links">
           <el-table :data="affiliateLinks" v-loading="loadingLinks" size="small" stripe>
-            <el-table-column label="落地页" min-width="300" show-overflow-tooltip>
+            <el-table-column :label="t('affiliate_enhanced_page.cols.landing_page')" min-width="300" show-overflow-tooltip>
               <template #default="{ row }">{{ row.landing_url }}</template>
             </el-table-column>
-            <el-table-column prop="referral_code" label="推广码" width="100" />
-            <el-table-column prop="converted" label="已转化" width="80" align="center">
+            <el-table-column prop="referral_code" :label="t('affiliate_enhanced_page.cols.referral_code')" width="100" />
+            <el-table-column prop="converted" :label="t(`${ns}.cols.converted`)" width="80" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.converted ? 'success' : 'info'" size="small">{{ row.converted ? '是' : '否' }}</el-tag>
+                <el-tag :type="row.converted ? 'success' : 'info'" size="small">{{ convertedLabel(row.converted) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="commission_amount" label="佣金" width="100" align="right">
+            <el-table-column prop="commission_amount" :label="t('affiliate_enhanced_page.cols.commission')" width="100" align="right">
               <template #default="{ row }">¥{{ formatNum(row.commission_amount) }}</template>
             </el-table-column>
-            <el-table-column prop="created_at" label="创建时间" width="160" />
+            <el-table-column prop="created_at" :label="t(`${ns}.cols.created_at`)" width="160" />
           </el-table>
           <el-pagination
             v-if="linkPagination.total > linkPagination.per_page"
@@ -287,12 +287,17 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Refresh, Promotion, ArrowDown, Link, DocumentCopy, Document, FullScreen, Picture } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getPromotableSkus, generateAffiliateLinks,
   getStoreAffiliateDashboard, getStoreAffiliateOrders, getStoreAffiliateLinks,
 } from '@/api/storeAffiliate'
+
+const { t, locale } = useI18n()
+const ns = 'store_affiliate_page'
+const ae = 'affiliate_enhanced_page'
 
 const loading = ref(false)
 const loadingOrders = ref(false)
@@ -311,9 +316,24 @@ const affiliateLinks = ref([])
 const orderPagination = reactive({ current_page: 1, per_page: 20, total: 0 })
 const linkPagination = reactive({ current_page: 1, per_page: 20, total: 0 })
 
+const orderStatusMap = computed(() => ({
+  settled: t(`${ns}.order_status.settled`),
+  cancelled: t(`${ns}.order_status.cancelled`),
+  pending: t(`${ns}.order_status.pending`),
+}))
+
+function orderStatusLabel(status) {
+  return orderStatusMap.value[status] || orderStatusMap.value.pending
+}
+
+function convertedLabel(value) {
+  return value ? t(`${ae}.bool.yes`) : t(`${ae}.bool.no`)
+}
+
 function formatNum(val) {
   if (val === null || val === undefined) return '0.00'
-  return Number(val).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const loc = locale.value === 'en' ? 'en-US' : 'zh-CN'
+  return Number(val).toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function trendBarHeight(val) {
@@ -346,17 +366,17 @@ async function generateLinks() {
     const res = await generateAffiliateLinks(selectedSkus.value)
     generatedLinks.value = res.data?.data || res.data || []
     if (generatedLinks.value.length) {
-      ElMessage.success(`已生成 ${generatedLinks.value.length} 个推广链接`)
+      ElMessage.success(t(`${ns}.messages.links_generated`, { count: generatedLinks.value.length }))
     }
   } catch (e) {
-    const msg = e?.response?.data?.message || e?.response?.data?.error?.message || '生成推广链接失败'
+    const msg = e?.response?.data?.message || e?.response?.data?.error?.message || t(`${ns}.messages.generate_links_failed`)
     ElMessage.warning(msg)
   }
 }
 
 function copyLink(link) {
   navigator.clipboard?.writeText(link)
-  ElMessage.success('链接已复制')
+  ElMessage.success(t(`${ns}.messages.link_copied`))
 }
 
 async function loadOrders(page = 1) {
@@ -392,7 +412,7 @@ const categories = computed(() => {
   const map = {}
   skus.value.forEach(s => {
     const id = s.category_id || '0'
-    if (!map[id]) map[id] = { id: s.category_id, name: s.category_name || '未分类', count: 0 }
+    if (!map[id]) map[id] = { id: s.category_id, name: s.category_name || t(`${ns}.labels.uncategorized`), count: 0 }
     map[id].count++
   })
   return Object.values(map).sort((a, b) => b.count - a.count)
@@ -407,7 +427,7 @@ const groupedSkus = computed(() => {
   const map = {}
   filteredSkus.value.forEach(s => {
     const key = s.category_id || '0'
-    if (!map[key]) map[key] = { category_id: s.category_id, category_name: s.category_name || '未分类', items: [] }
+    if (!map[key]) map[key] = { category_id: s.category_id, category_name: s.category_name || t(`${ns}.labels.uncategorized`), items: [] }
     map[key].items.push(s)
   })
   return Object.values(map)
@@ -442,14 +462,17 @@ function buildPromoText(sku) {
   const price = `¥${formatNum(sku.price)}`
   const commission = `¥${formatNum(sku.commission_amount)}`
   const rate = `${sku.commission_rate}%`
+  const original = sku.compare_at_price && sku.compare_at_price > sku.price
+    ? t(`${ns}.promo.original_price`, { price: formatNum(sku.compare_at_price) })
+    : ''
   return [
     `【${name}】`,
-    `💰 售价：${price}${sku.compare_at_price && sku.compare_at_price > sku.price ? ` 原价¥${formatNum(sku.compare_at_price)}` : ''}`,
-    `💵 佣金：${commission}（${rate}）`,
-    `📊 已售：${sku.sold_count || 0}`,
-    `🔗 推广链接：${generateTempLink(sku)}`,
+    t(`${ns}.promo.price`, { price }) + original,
+    t(`${ns}.promo.commission`, { amount: commission, rate }),
+    t(`${ns}.promo.sold`, { count: sku.sold_count || 0 }),
+    t(`${ns}.promo.link`, { link: generateTempLink(sku) }),
     '',
-    '— 来自 互物通 分销联盟',
+    t(`${ns}.promo.footer`),
   ].join('\n')
 }
 
@@ -466,7 +489,7 @@ function buildPromoHtml(sku) {
     `</td><td style="padding-left:12px;vertical-align:top;">` +
     `<div style="font-size:14px;font-weight:bold;margin-bottom:6px;">${name}</div>` +
     `<div style="font-size:18px;color:#f56c6c;font-weight:bold;">${price}</div>` +
-    `<div style="font-size:12px;color:#e6a23c;margin-top:4px;">推广佣金 ${commission}（${sku.commission_rate}%）</div>` +
+    `<div style="font-size:12px;color:#e6a23c;margin-top:4px;">${t(`${ns}.promo.html_commission`, { amount: commission, rate: `${sku.commission_rate}%` })}</div>` +
     `</td></tr></table></a>`
 }
 
@@ -481,16 +504,16 @@ async function handlePromote(sku, cmd) {
     selectedSkus.value = [sku.id]
     await generateLinks()
     if (generatedLinks.value.length) {
-      copyToClipboard(generatedLinks.value[0].link, '推广链接已复制')
+      copyToClipboard(generatedLinks.value[0].link, t(`${ns}.messages.promo_link_copied`))
     }
     return
   }
   if (cmd === 'text') {
-    copyToClipboard(buildPromoText(sku), '推广文案已复制，可直接粘贴发送')
+    copyToClipboard(buildPromoText(sku), t(`${ns}.messages.promo_text_copied`))
     return
   }
   if (cmd === 'html') {
-    copyToClipboard(buildPromoHtml(sku), '图文推广代码已复制，可粘贴到网页/互物号编辑器')
+    copyToClipboard(buildPromoHtml(sku), t(`${ns}.messages.promo_html_copied`))
     return
   }
   if (cmd === 'qrcode') {
@@ -500,33 +523,33 @@ async function handlePromote(sku, cmd) {
   }
   if (cmd === 'image') {
     const imgUrl = sku.image_url
-    if (!imgUrl) { ElMessage.warning('该商品暂无图片'); return }
+    if (!imgUrl) { ElMessage.warning(t(`${ns}.messages.no_product_image`)); return }
     // 在新标签页打开图片，用户可右键保存
     window.open(imgUrl, '_blank')
-    ElMessage.success('已打开商品图片，可右键保存')
+    ElMessage.success(t(`${ns}.messages.image_opened`))
   }
 }
 
 function copyToClipboard(text, msg) {
   navigator.clipboard?.writeText(text).then(() => {
-    ElMessage.success(msg || '已复制')
+    ElMessage.success(msg || t(`${ae}.messages.copied`))
   }).catch(() => {
     // Fallback
     const ta = document.createElement('textarea')
     ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'
     document.body.appendChild(ta); ta.select(); document.execCommand('copy')
     document.body.removeChild(ta)
-    ElMessage.success(msg || '已复制')
+    ElMessage.success(msg || t(`${ae}.messages.copied`))
   })
 }
 
 function downloadQr(link, title) {
   const url = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(link)}`
   const a = document.createElement('a')
-  a.href = url; a.download = `推广二维码_${title || 'product'}.png`
+  a.href = url; a.download = `promo-qr_${title || 'product'}.png`
   a.target = '_blank'
   a.click()
-  ElMessage.success('二维码图片已打开，可右键保存')
+  ElMessage.success(t(`${ns}.messages.qrcode_opened`))
 }
 
 function loadAll() {
@@ -555,14 +578,14 @@ onMounted(() => {
 /* ===== 分类筛选 ===== */
 .category-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #f0f0f0; }
 .cat-pill { padding: 6px 16px; border-radius: 20px; border: 1px solid #e4e7ed; background: #fff; font-size: 13px; color: #606266; cursor: pointer; transition: all .2s; }
-.cat-pill:hover { border-color: #409eff; color: #409eff; }
-.cat-pill.active { background: #409eff; color: #fff; border-color: #409eff; }
+.cat-pill:hover { border-color: #0f172a; color: #0f172a; }
+.cat-pill.active { background: #0f172a; color: #fff; border-color: #0f172a; }
 
 /* ===== 分类分组标题 ===== */
 .affiliate-sections { display: flex; flex-direction: column; gap: 28px; }
 .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #e8f4ff; }
 .section-badge { font-size: 16px; font-weight: 700; color: #303133; position: relative; padding-left: 14px; }
-.section-badge::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 4px; height: 18px; background: #409eff; border-radius: 2px; }
+.section-badge::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 4px; height: 18px; background: #0f172a; border-radius: 2px; }
 .section-count { font-size: 12px; color: #909399; }
 
 /* ===== 商品卡片网格 ===== */
@@ -580,8 +603,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
 }
-.affiliate-product-card:hover { border-color: #409eff; box-shadow: 0 6px 20px rgba(64,158,255,.12); transform: translateY(-3px); }
-.affiliate-product-card.selected { border-color: #409eff; box-shadow: 0 0 0 2px rgba(64,158,255,.2); }
+.affiliate-product-card:hover { border-color: #0f172a; box-shadow: 0 6px 20px rgba(15,23,42,.12); transform: translateY(-3px); }
+.affiliate-product-card.selected { border-color: #0f172a; box-shadow: 0 0 0 2px rgba(15,23,42,.2); }
 
 /* 选中遮罩 */
 .apc-select-mask { position: absolute; top: 8px; left: 8px; z-index: 2; background: rgba(255,255,255,.85); border-radius: 4px; padding: 2px; line-height: 1; }
@@ -595,9 +618,9 @@ onMounted(() => {
 /* 商品信息 */
 .apc-body { padding: 12px 14px 8px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
 .apc-name { font-size: 14px; font-weight: 600; color: #303133; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 40px; }
-.apc-name:hover { color: #409eff; }
+.apc-name:hover { color: #0f172a; }
 .apc-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.apc-category { font-size: 11px; color: #409eff; background: #ecf5ff; padding: 1px 8px; border-radius: 3px; }
+.apc-category { font-size: 11px; color: #0f172a; background: #f1f5f9; padding: 1px 8px; border-radius: 3px; }
 .apc-sold { font-size: 11px; color: #c0c4cc; }
 .apc-price-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
 .apc-price { font-size: 20px; font-weight: 700; color: #f56c6c; }
@@ -635,6 +658,6 @@ onMounted(() => {
 .trend-bar-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .trend-label { font-size: 11px; color: #909399; }
 .trend-bar-wrapper { flex: 1; display: flex; align-items: flex-end; width: 100%; }
-.trend-bar { width: 100%; max-width: 32px; background: linear-gradient(to top, #409eff, #79bbff); border-radius: 4px 4px 0 0; min-height: 4px; margin: 0 auto; transition: height .3s; }
+.trend-bar { width: 100%; max-width: 32px; background: linear-gradient(to top, #0f172a, #94a3b8); border-radius: 4px 4px 0 0; min-height: 4px; margin: 0 auto; transition: height .3s; }
 .trend-value { font-size: 10px; color: #606266; }
 </style>

@@ -2,8 +2,8 @@
   <div class="error-code-reference">
     <!-- 页面头部 -->
     <div class="page-header">
-      <h2>错误码参考手册</h2>
-      <p class="text-muted">互物通标准化 SDK 错误码，按域分组，便于集成和调试</p>
+      <h2>{{ t('error_codes_page.title') }}</h2>
+      <p class="text-muted">{{ t('error_codes_page.subtitle') }}</p>
     </div>
 
     <!-- 统计概览 -->
@@ -12,7 +12,7 @@
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value">{{ stats.total }}</div>
-            <div class="stat-label">错误码总数</div>
+            <div class="stat-label">{{ t('error_codes_page.stat_total') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -20,7 +20,7 @@
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value">{{ Object.keys(stats.by_domain || {}).length }}</div>
-            <div class="stat-label">域数量</div>
+            <div class="stat-label">{{ t('error_codes_page.stat_domains') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -28,7 +28,7 @@
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value">{{ stats.retry_safe_count }}</div>
-            <div class="stat-label">可安全重试</div>
+            <div class="stat-label">{{ t('error_codes_page.stat_retry_safe') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -38,18 +38,18 @@
             <div class="stat-value">
               {{ Object.keys(stats.by_http_status || {}).length }}
             </div>
-            <div class="stat-label">HTTP 状态码种类</div>
+            <div class="stat-label">{{ t('error_codes_page.stat_http_status_types') }}</div>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 搜索 & 语言切换 -->
+    <!-- 搜索 & 筛选 -->
     <el-row :gutter="16" class="toolbar-row">
       <el-col :span="12">
         <el-input
           v-model="searchQuery"
-          placeholder="搜索错误码或消息..."
+          :placeholder="t('error_codes_page.search_ph')"
           clearable
           @input="onSearch"
         >
@@ -59,7 +59,7 @@
         </el-input>
       </el-col>
       <el-col :span="4">
-        <el-select v-model="activeDomain" placeholder="按域筛选" clearable filterable @change="filterData">
+        <el-select v-model="activeDomain" :placeholder="t('error_codes_page.filter_domain_ph')" clearable filterable @change="filterData">
           <el-option
             v-for="domain in domains"
             :key="domain"
@@ -69,17 +69,21 @@
         </el-select>
       </el-col>
       <el-col :span="4">
-        <el-select v-model="statusFilter" placeholder="按状态码" clearable @change="filterData">
-          <el-option label="4xx 客户端错误" value="4xx" />
-          <el-option label="5xx 服务器错误" value="5xx" />
+        <el-select v-model="statusFilter" :placeholder="t('error_codes_page.filter_status_ph')" clearable @change="filterData">
+          <el-option
+            v-for="opt in statusFilterPresets"
+            :key="opt.value"
+            :label="opt.label"
+            :value="opt.value"
+          />
           <el-option v-for="s in Object.keys(stats.by_http_status || {}).sort()" :key="s" :label="s" :value="s" />
         </el-select>
       </el-col>
       <el-col :span="4" class="text-right">
         <el-switch
           v-model="showRetrySafe"
-          active-text="仅可重试"
-          inactive-text="全部"
+          :active-text="t('error_codes_page.switch_retry_only')"
+          :inactive-text="t('error_codes_page.switch_all')"
           @change="filterData"
         />
       </el-col>
@@ -87,17 +91,17 @@
 
     <!-- 错误码列表 -->
     <div v-loading="loading" class="error-code-list">
-      <template v-if="filteredDomains.length > 0">
+      <template v-if="Object.keys(filteredDomains).length > 0">
         <el-card v-for="(codes, domain) in filteredDomains" :key="domain" class="domain-card">
           <template #header>
             <div class="domain-header">
               <span class="domain-badge">{{ domainLabel(domain) }}</span>
-              <el-tag size="small" type="info">{{ codes.length }} 个错误码</el-tag>
+              <el-tag size="small" type="info">{{ t('error_codes_page.codes_count', { n: codes.length }) }}</el-tag>
             </div>
           </template>
 
           <el-table :data="codes" stripe style="width: 100%" size="small">
-            <el-table-column label="错误码" width="260">
+            <el-table-column :label="t('error_codes_page.col_code')" width="260">
               <template #default="{ row }">
                 <el-tag
                   :type="row.http_status >= 500 ? 'danger' : row.http_status >= 400 ? 'warning' : 'info'"
@@ -107,72 +111,76 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="消息描述" min-width="300">
+            <el-table-column :label="t('error_codes_page.col_message')" min-width="300">
               <template #default="{ row }">
                 <span>{{ row.message }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="HTTP 状态" width="100" align="center">
+            <el-table-column :label="t('error_codes_page.col_http_status')" width="100" align="center">
               <template #default="{ row }">
                 <el-tag :type="statusType(row.http_status)" size="small" effect="dark">
                   {{ row.http_status }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="可重试" width="80" align="center">
+            <el-table-column :label="t('error_codes_page.col_retry')" width="80" align="center">
               <template #default="{ row }">
-                <el-tag v-if="row.retry_safe" type="success" size="small" effect="plain">是</el-tag>
-                <el-tag v-else type="info" size="small" effect="plain">否</el-tag>
+                <el-tag v-if="row.retry_safe" type="success" size="small" effect="plain">{{ t('error_codes_page.yes') }}</el-tag>
+                <el-tag v-else type="info" size="small" effect="plain">{{ t('error_codes_page.no') }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="80" align="center">
+            <el-table-column :label="t('error_codes_page.col_actions')" width="100" align="center">
               <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="showDetail(row)">详情</el-button>
+                <el-button link type="primary" size="small" @click="showDetail(row)">{{ t('actions.view_details') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-card>
       </template>
-      <el-empty v-else description="未找到匹配的错误码" />
+      <el-empty v-else :description="t('error_codes_page.empty')" />
     </div>
 
     <!-- 详情对话框 -->
-    <el-dialog v-model="detailVisible" title="错误码详情" width="600px">
+    <el-dialog v-model="detailVisible" :title="t('error_codes_page.detail_dialog_title')" width="600px">
       <template v-if="selectedCode">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="错误码" :span="2">
+          <el-descriptions-item :label="t('error_codes_page.col_code')" :span="2">
             <el-tag type="danger">{{ selectedCode.code }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="所属域">{{ domainLabel(selectedCode.domain) }}</el-descriptions-item>
-          <el-descriptions-item label="HTTP 状态码">
+          <el-descriptions-item :label="t('error_codes_page.detail_domain')">{{ domainLabel(selectedCode.domain) }}</el-descriptions-item>
+          <el-descriptions-item :label="t('error_codes_page.detail_http_status')">
             <el-tag :type="statusType(selectedCode.http_status)" size="small">
               {{ selectedCode.http_status }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="消息描述" :span="2">
+          <el-descriptions-item :label="t('error_codes_page.detail_message')" :span="2">
             {{ selectedCode.message }}
           </el-descriptions-item>
-          <el-descriptions-item label="可安全重试">
-            <el-tag v-if="selectedCode.retry_safe" type="success">是</el-tag>
-            <el-tag v-else type="info">否</el-tag>
+          <el-descriptions-item :label="t('error_codes_page.detail_retry_safe')">
+            <el-tag v-if="selectedCode.retry_safe" type="success">{{ t('error_codes_page.yes') }}</el-tag>
+            <el-tag v-else type="info">{{ t('error_codes_page.no') }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="错误类型">
-            <el-tag v-if="selectedCode.http_status >= 500" type="danger">服务器错误</el-tag>
-            <el-tag v-else type="warning">客户端错误</el-tag>
+          <el-descriptions-item :label="t('error_codes_page.detail_error_type')">
+            <el-tag v-if="selectedCode.http_status >= 500" type="danger">{{ t('error_codes_page.error_type_server') }}</el-tag>
+            <el-tag v-else type="warning">{{ t('error_codes_page.error_type_client') }}</el-tag>
           </el-descriptions-item>
         </el-descriptions>
 
         <div class="detail-sdk-note">
-          <h4>SDK 集成指南</h4>
+          <h4>{{ t('error_codes_page.sdk_guide_title') }}</h4>
           <p>
-            错误码由 <code>X-Error-Code</code> 响应头或响应体中的 <code>error.code</code> 字段返回。
-            {{ selectedCode.retry_safe ? '此错误可安全重试，建议使用指数退避策略。' : '此错误不可重试，请检查请求参数后重试。' }}
+            {{ t('error_codes_page.sdk_guide_p1') }}
+            <code>X-Error-Code</code>
+            {{ t('error_codes_page.sdk_guide_p2') }}
+            <code>error.code</code>
+            {{ t('error_codes_page.sdk_guide_p3') }}
+            {{ selectedCode.retry_safe ? t('error_codes_page.sdk_retry_hint') : t('error_codes_page.sdk_no_retry_hint') }}
           </p>
           <el-alert
             v-if="selectedCode.http_status >= 500"
-            title="服务器错误"
+            :title="t('error_codes_page.server_error_alert_title')"
             type="warning"
-            :description="'错误码 ' + selectedCode.code + ' 表示服务器端问题，请联系互物通技术支持。'"
+            :description="t('error_codes_page.server_error_alert_desc', { code: selectedCode.code })"
             show-icon
             :closable="false"
           />
@@ -184,9 +192,12 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Search } from '@element-plus/icons-vue';
 import errorCodesApi from '../../api/errorCodes';
 import { ElMessage } from 'element-plus';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const searchQuery = ref('');
@@ -199,38 +210,18 @@ const selectedCode = ref(null);
 const rawData = ref({});
 const searchResults = ref(null);
 
-const domainLabels = {
-  AUTH: '认证与授权',
-  SDK: 'SDK 通用',
-  LICENSE: 'License',
-  ACTIVATION: '激活/离线',
-  API_KEY: 'API 密钥',
-  MFA: '多因素认证',
-  SSO: '单点登录',
-  RATE_LIMIT: '频率限制',
-  SIGNATURE: '签名验证',
-  IDEMPOTENT: '幂等请求',
-  BILLING: '计费与订阅',
-  INVOICE: '发票',
-  TAX: '税务',
-  DEVICE: '设备',
-  DOMAIN: '自定义域名',
-  WEBHOOK: 'Webhook',
-  LLM: 'AI/LLM',
-  VALIDATION: '验证',
-  PERMISSION: '权限',
-  SYSTEM: '系统内部',
-  TENANT: '租户',
-  FEATURE_FLAG: 'Feature Flag',
-  CUSTOMER: '客户',
-  TAG: '标签',
-  FILE: '文件',
-  ACCOUNT: '账户操作',
-  API_VERSION: 'API 版本',
-  ERRCODE: '错误码系统',
-  UNKNOWN: '未知',
-  TEST: '测试',
-};
+const DOMAIN_KEYS = [
+  'AUTH', 'SDK', 'LICENSE', 'ACTIVATION', 'API_KEY', 'MFA', 'SSO',
+  'RATE_LIMIT', 'SIGNATURE', 'IDEMPOTENT', 'BILLING', 'INVOICE', 'TAX',
+  'DEVICE', 'DOMAIN', 'WEBHOOK', 'LLM', 'VALIDATION', 'PERMISSION', 'SYSTEM',
+  'TENANT', 'FEATURE_FLAG', 'CUSTOMER', 'TAG', 'FILE', 'ACCOUNT',
+  'API_VERSION', 'ERRCODE', 'UNKNOWN', 'TEST',
+];
+
+const statusFilterPresets = computed(() => [
+  { label: t('error_codes_page.filter_4xx'), value: '4xx' },
+  { label: t('error_codes_page.filter_5xx'), value: '5xx' },
+]);
 
 const domains = computed(() => Object.keys(rawData.value));
 
@@ -283,7 +274,12 @@ const statusType = (status) => {
   return 'success';
 };
 
-const domainLabel = (key) => domainLabels[key] || key;
+const domainLabel = (key) => {
+  if (DOMAIN_KEYS.includes(key)) {
+    return t(`error_codes_page.domains.${key}`);
+  }
+  return key;
+};
 
 const fetchData = async () => {
   loading.value = true;
@@ -295,7 +291,7 @@ const fetchData = async () => {
     rawData.value = codesRes.data?.data || {};
     stats.value = statsRes.data?.data || stats.value;
   } catch (e) {
-    ElMessage.error('获取错误码列表失败');
+    ElMessage.error(t('error_codes_page.messages.fetch_failed'));
   } finally {
     loading.value = false;
   }
@@ -367,7 +363,7 @@ onMounted(fetchData);
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: #409eff;
+  color: #0f172a;
 }
 
 .stat-label {
@@ -406,7 +402,7 @@ onMounted(fetchData);
   display: inline-block;
   width: 4px;
   height: 16px;
-  background: #409eff;
+  background: #0f172a;
   border-radius: 2px;
   margin-right: 8px;
   vertical-align: middle;

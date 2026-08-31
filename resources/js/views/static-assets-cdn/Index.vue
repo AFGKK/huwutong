@@ -5,25 +5,25 @@
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.total_files }}</div>
-          <div class="stat-label">总文件数</div>
+          <div class="stat-label">{{ t('static_assets_cdn_page.stat_total_files') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.current_version }}</div>
-          <div class="stat-label">当前版本</div>
+          <div class="stat-label">{{ t('static_assets_cdn_page.stat_current_version') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.total_versions }}</div>
-          <div class="stat-label">历史版本</div>
+          <div class="stat-label">{{ t('static_assets_cdn_page.stat_total_versions') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.total_size_mb }} MB</div>
-          <div class="stat-label">总大小</div>
+          <div class="stat-label">{{ t('static_assets_cdn_page.stat_total_size') }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -33,10 +33,10 @@
       <div class="action-bar">
         <div class="action-left">
           <el-tag v-if="stats.cdn_configured" type="success" effect="dark">
-            CDN 已配置
+            {{ t('static_assets_cdn_page.cdn_configured') }}
           </el-tag>
           <el-tag v-else type="warning" effect="dark">
-            CDN 未配置（使用本地模式）
+            {{ t('static_assets_cdn_page.cdn_not_configured') }}
           </el-tag>
           <span v-if="stats.cdn_domain" class="cdn-domain-info">
             {{ stats.cdn_domain }}
@@ -45,11 +45,11 @@
         <div class="action-right">
           <el-button type="primary" :loading="deploying" @click="handleDeploy">
             <el-icon><Upload /></el-icon>
-            部署到 CDN
+            {{ t('static_assets_cdn_page.deploy_to_cdn') }}
           </el-button>
           <el-button :loading="loading" @click="loadStats">
             <el-icon><Refresh /></el-icon>
-            刷新
+            {{ t('static_assets_cdn_page.refresh') }}
           </el-button>
         </div>
       </div>
@@ -59,22 +59,22 @@
     <el-card class="versions-card">
       <template #header>
         <div class="card-header">
-          <span>版本列表</span>
-          <el-tag type="info">{{ versions.length }} 个版本</el-tag>
+          <span>{{ t('static_assets_cdn_page.version_list') }}</span>
+          <el-tag type="info">{{ t('static_assets_cdn_page.version_count', { count: versions.length }) }}</el-tag>
         </div>
       </template>
 
       <el-table :data="versions" v-loading="loading" stripe style="width: 100%">
-        <el-table-column prop="version" label="版本号" width="200" />
-        <el-table-column label="状态" width="120">
+        <el-table-column prop="version" :label="t('static_assets_cdn_page.col_version')" width="200" />
+        <el-table-column :label="t('static_assets_cdn_page.col_status')" width="120">
           <template #default="{ row }">
-            <el-tag v-if="row.is_current" type="success" size="small">当前版本</el-tag>
-            <el-tag v-else type="info" size="small">历史版本</el-tag>
+            <el-tag v-if="row.is_current" type="success" size="small">{{ t('static_assets_cdn_page.status_current') }}</el-tag>
+            <el-tag v-else type="info" size="small">{{ t('static_assets_cdn_page.status_history') }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="file_count" label="文件数" width="100" align="center" />
-        <el-table-column prop="deployed_at" label="部署时间" min-width="180" />
-        <el-table-column label="操作" width="260" fixed="right">
+        <el-table-column prop="file_count" :label="t('static_assets_cdn_page.col_file_count')" width="100" align="center" />
+        <el-table-column prop="deployed_at" :label="t('static_assets_cdn_page.col_deployed_at')" min-width="180" />
+        <el-table-column :label="t('static_assets_cdn_page.col_actions')" width="260" fixed="right">
           <template #default="{ row }">
             <el-button
               v-if="!row.is_current"
@@ -83,7 +83,7 @@
               plain
               @click="handleActivate(row.version)"
             >
-              激活
+              {{ t('static_assets_cdn_page.activate') }}
             </el-button>
             <el-button
               v-if="!row.is_current"
@@ -92,7 +92,7 @@
               plain
               @click="handleRollback(row.version)"
             >
-              回滚
+              {{ t('static_assets_cdn_page.rollback') }}
             </el-button>
             <el-button
               v-if="!row.is_current"
@@ -101,7 +101,7 @@
               plain
               @click="handleDelete(row.version)"
             >
-              删除
+              {{ t('actions.delete') }}
             </el-button>
           </template>
         </el-table-column>
@@ -112,9 +112,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Upload, Refresh } from '@element-plus/icons-vue';
 import staticAssetCdnApi from '@/api/staticAssetCdn';
+
+const { t } = useI18n();
 
 const stats = ref({
   total_files: 0,
@@ -140,7 +143,7 @@ async function loadStats() {
     stats.value = statsRes.data.data;
     versions.value = versionsRes.data.data.versions || [];
   } catch (err) {
-    ElMessage.error('加载 CDN 状态失败');
+    ElMessage.error(t('static_assets_cdn_page.messages.load_failed'));
     console.error(err);
   } finally {
     loading.value = false;
@@ -152,7 +155,7 @@ async function loadVersions() {
     const res = await staticAssetCdnApi.versions();
     versions.value = res.data.data.versions || [];
   } catch (err) {
-    console.error('加载版本列表失败', err);
+    console.error(t('static_assets_cdn_page.messages.load_failed'), err);
   }
 }
 
@@ -160,10 +163,10 @@ async function handleDeploy() {
   deploying.value = true;
   try {
     const res = await staticAssetCdnApi.deploy();
-    ElMessage.success(`部署成功: ${res.data.data.total} 个文件`);
+    ElMessage.success(t('static_assets_cdn_page.messages.deploy_success', { count: res.data.data.total }));
     await loadStats();
   } catch (err) {
-    ElMessage.error(err.response?.data?.message || '部署失败');
+    ElMessage.error(err.response?.data?.message || t('static_assets_cdn_page.messages.deploy_failed'));
   } finally {
     deploying.value = false;
   }
@@ -172,26 +175,26 @@ async function handleDeploy() {
 async function handleActivate(version) {
   try {
     await staticAssetCdnApi.activate(version);
-    ElMessage.success(`已激活版本 ${version}`);
+    ElMessage.success(t('static_assets_cdn_page.messages.activate_success', { version }));
     await loadStats();
   } catch (err) {
-    ElMessage.error(err.response?.data?.message || '激活失败');
+    ElMessage.error(err.response?.data?.message || t('static_assets_cdn_page.messages.activate_failed'));
   }
 }
 
 async function handleRollback(version) {
   try {
     await ElMessageBox.confirm(
-      `确定回滚到版本 ${version}？`,
-      '确认回滚',
-      { type: 'warning', confirmButtonText: '确认回滚', cancelButtonText: '取消' }
+      t('static_assets_cdn_page.rollback_confirm_msg', { version }),
+      t('static_assets_cdn_page.rollback_confirm_title'),
+      { type: 'warning', confirmButtonText: t('static_assets_cdn_page.rollback_confirm_btn'), cancelButtonText: t('actions.cancel') }
     );
     await staticAssetCdnApi.rollback(version);
-    ElMessage.success(`已回滚到版本 ${version}`);
+    ElMessage.success(t('static_assets_cdn_page.messages.rollback_success', { version }));
     await loadStats();
   } catch (err) {
     if (err !== 'cancel') {
-      ElMessage.error(err.response?.data?.message || '回滚失败');
+      ElMessage.error(err.response?.data?.message || t('static_assets_cdn_page.messages.rollback_failed'));
     }
   }
 }
@@ -199,16 +202,16 @@ async function handleRollback(version) {
 async function handleDelete(version) {
   try {
     await ElMessageBox.confirm(
-      `确定删除版本 ${version} 的所有文件？此操作不可恢复。`,
-      '确认删除',
-      { type: 'error', confirmButtonText: '确认删除', cancelButtonText: '取消' }
+      t('static_assets_cdn_page.delete_confirm_msg', { version }),
+      t('static_assets_cdn_page.delete_confirm_title'),
+      { type: 'error', confirmButtonText: t('static_assets_cdn_page.delete_confirm_btn'), cancelButtonText: t('actions.cancel') }
     );
     await staticAssetCdnApi.deleteVersion(version);
-    ElMessage.success(`版本 ${version} 已删除`);
+    ElMessage.success(t('static_assets_cdn_page.messages.delete_success', { version }));
     await loadStats();
   } catch (err) {
     if (err !== 'cancel') {
-      ElMessage.error(err.response?.data?.message || '删除失败');
+      ElMessage.error(err.response?.data?.message || t('static_assets_cdn_page.messages.delete_failed'));
     }
   }
 }

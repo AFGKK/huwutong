@@ -2,69 +2,69 @@
   <div>
     <el-row :gutter="12" class="mb-4">
       <el-col :span="6">
-        <el-select v-model="filterStatus" placeholder="状态" clearable style="width:100%" @change="fetchCodes">
-          <el-option label="全部" value="" />
-          <el-option label="活跃" value="active" />
-          <el-option label="已用完" value="exhausted" />
-          <el-option label="已过期" value="expired" />
-          <el-option label="已禁用" value="disabled" />
+        <el-select v-model="filterStatus" :placeholder="t('invite_code_list.cols.status')" clearable style="width:100%" @change="fetchCodes">
+          <el-option :label="t('invite_code_list.all')" value="" />
+          <el-option :label="t('invite_code_list.statuses.active')" value="active" />
+          <el-option :label="t('invite_code_list.statuses.exhausted')" value="exhausted" />
+          <el-option :label="t('invite_code_list.statuses.expired')" value="expired" />
+          <el-option :label="t('invite_code_list.statuses.disabled')" value="disabled" />
         </el-select>
       </el-col>
       <el-col :span="6">
-        <el-select v-model="filterChannel" placeholder="渠道" clearable style="width:100%" @change="fetchCodes">
-          <el-option label="全部渠道" value="" />
+        <el-select v-model="filterChannel" :placeholder="t('invite_code_list.cols.channel')" clearable style="width:100%" @change="fetchCodes">
+          <el-option :label="t('invite_code_list.all_channels')" value="" />
           <el-option v-for="ch in channels" :key="ch.id" :label="ch.name" :value="ch.id" />
         </el-select>
       </el-col>
       <el-col :span="6">
-        <el-input v-model="searchCode" placeholder="搜索邀请码..." clearable @clear="fetchCodes" @keyup.enter="fetchCodes" />
+        <el-input v-model="searchCode" :placeholder="t('invite_code_list.search_ph')" clearable @clear="fetchCodes" @keyup.enter="fetchCodes" />
       </el-col>
       <el-col :span="6" class="text-right">
         <el-button type="primary" @click="openGenerate">
-          <el-icon><Plus /></el-icon> 生成邀请码
+          <el-icon><Plus /></el-icon> {{ t('invite_code_list.generate') }}
         </el-button>
       </el-col>
     </el-row>
 
     <el-table :data="codes" v-loading="loading" stripe style="width:100%">
-      <el-table-column prop="code" label="邀请码" min-width="160">
+      <el-table-column prop="code" :label="t('invite_code_list.cols.code')" min-width="160">
         <template #default="{ row }">
           <span class="code-text">{{ row.code }}</span>
           <el-button text size="small" :icon="CopyDocument" @click="copyCode(row.code)" />
         </template>
       </el-table-column>
-      <el-table-column label="渠道" width="130">
+      <el-table-column :label="t('invite_code_list.cols.channel')" width="130">
         <template #default="{ row }">
           <el-tag v-if="row.channel" size="small">{{ row.channel.name }}</el-tag>
-          <span v-else class="text-gray-400 text-xs">通用</span>
+          <span v-else class="text-gray-400 text-xs">{{ t('invite_code_list.generic') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="状态" width="90">
+      <el-table-column :label="t('invite_code_list.cols.status')" width="90">
         <template #default="{ row }">
           <el-tag :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="使用量" width="120">
+      <el-table-column :label="t('invite_code_list.cols.usage')" width="120">
         <template #default="{ row }">
           <el-progress :percentage="usagePercent(row)" :stroke-width="14" striped>
             {{ row.used_count }}/{{ row.max_uses || '∞' }}
           </el-progress>
         </template>
       </el-table-column>
-      <el-table-column label="过期时间" width="140">
+      <el-table-column :label="t('invite_code_list.cols.expires')" width="140">
         <template #default="{ row }">
-          {{ row.expires_at ? formatDate(row.expires_at) : '永不过期' }}
+          {{ row.expires_at ? formatDate(row.expires_at) : t('invite_code_list.never_expires') }}
         </template>
       </el-table-column>
-      <el-table-column label="最近使用" width="140">
+      <el-table-column :label="t('invite_code_list.cols.last_used')" width="140">
         <template #default="{ row }">{{ row.last_used_at ? formatDate(row.last_used_at) : '—' }}</template>
       </el-table-column>
-      <el-table-column label="备注" min-width="120" prop="remarks" />
-      <el-table-column label="操作" width="100" fixed="right">
+      <el-table-column :label="t('invite_code_list.cols.remarks')" min-width="120" prop="remarks" />
+      <el-table-column :label="t('invite_code_list.cols.actions')" width="100" fixed="right">
         <template #default="{ row }">
-          <el-popconfirm title="禁用此邀请码？" @confirm="disableCode(row)">
+          <el-popconfirm :title="t('invite_code_list.disable_confirm')" @confirm="disableCode(row)">
             <template #reference>
-              <el-button size="small" type="danger" link :disabled="row.status !== 'active'">禁用</el-button>
+              <el-button size="small" type="danger" link :disabled="row.status !== 'active'">{{ t('actions.disable') }}</el-button>
             </template>
           </el-popconfirm>
         </template>
@@ -77,34 +77,33 @@
         @current-change="page => fetchCodes(page)" @size-change="s => { perPage = s; fetchCodes() }" />
     </div>
 
-    <!-- 生成对话框 -->
-    <el-dialog v-model="dialogVisible" title="生成邀请码" width="520px">
+    <el-dialog v-model="dialogVisible" :title="t('invite_code_list.generate_title')" width="520px">
       <el-form :model="form" label-width="120px">
-        <el-form-item label="生成数量">
+        <el-form-item :label="t('invite_code_list.form.count')">
           <el-input-number v-model="form.count" :min="1" :max="500" />
-          <span class="form-help">1~500 个</span>
+          <span class="form-help">{{ t('invite_code_list.form.count_hint') }}</span>
         </el-form-item>
-        <el-form-item label="所属渠道">
-          <el-select v-model="form.channel_id" clearable style="width:100%" placeholder="通用(无渠道)">
+        <el-form-item :label="t('invite_code_list.form.channel')">
+          <el-select v-model="form.channel_id" clearable style="width:100%" :placeholder="t('invite_code_list.form.channel_ph')">
             <el-option v-for="ch in channels" :key="ch.id" :label="ch.name" :value="ch.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="最大使用次数">
+        <el-form-item :label="t('invite_code_list.form.max_uses')">
           <el-input-number v-model="form.max_uses" :min="1" :max="10000" />
-          <span class="form-help">每个邀请码可用次数</span>
+          <span class="form-help">{{ t('invite_code_list.form.max_uses_hint') }}</span>
         </el-form-item>
-        <el-form-item label="过期时间">
-          <el-date-picker v-model="form.expires_at" type="datetime" placeholder="永不过期" clearable
+        <el-form-item :label="t('invite_code_list.form.expires')">
+          <el-date-picker v-model="form.expires_at" type="datetime" :placeholder="t('invite_code_list.never_expires')" clearable
             value-format="YYYY-MM-DD HH:mm:ss" style="width:100%" />
         </el-form-item>
-        <el-form-item label="备注">
+        <el-form-item :label="t('invite_code_list.cols.remarks')">
           <el-input v-model="form.remarks" type="textarea" :rows="2" maxlength="500" show-word-limit
-            placeholder="选填：用于区分不同批次" />
+            :placeholder="t('invite_code_list.form.remarks_ph')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleGenerate" :loading="generating">生成</el-button>
+        <el-button @click="dialogVisible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="handleGenerate" :loading="generating">{{ t('invite_code_list.generate_btn') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -112,9 +111,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Plus, CopyDocument } from '@element-plus/icons-vue'
 import { getInviteCodes, generateInviteCodes, disableInviteCode, getChannels } from '../../../api/invite-codes'
+
+const { t, locale } = useI18n()
 
 const codes = ref([])
 const channels = ref([])
@@ -139,7 +141,7 @@ async function fetchCodes(page = 1) {
     codes.value = res.data?.data?.data || res.data?.data || []
     total.value = res.data?.data?.total || 0
   } catch (e) {
-    ElMessage.error('获取邀请码列表失败')
+    ElMessage.error(t('invite_code_list.messages.load_failed'))
   } finally {
     loading.value = false
   }
@@ -148,7 +150,7 @@ async function fetchCodes(page = 1) {
 async function loadChannels() {
   try {
     const { data } = await getChannels()
-    channels.value = data?.data || []
+    channels.value = data?.data?.data || []
   } catch (e) { /* ignore */ }
 }
 
@@ -166,11 +168,11 @@ async function handleGenerate() {
       remarks: form.value.remarks,
       channel_id: form.value.channel_id || undefined,
     })
-    ElMessage.success(`成功生成 ${form.value.count} 个邀请码`)
+    ElMessage.success(t('invite_code_list.messages.generated', { n: form.value.count }))
     dialogVisible.value = false
     fetchCodes()
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '生成失败')
+    ElMessage.error(e.response?.data?.message || t('invite_code_list.messages.generate_failed'))
   } finally {
     generating.value = false
   }
@@ -179,23 +181,24 @@ async function handleGenerate() {
 async function disableCode(row) {
   try {
     await disableInviteCode(row.id)
-    ElMessage.success('邀请码已禁用')
+    ElMessage.success(t('invite_code_list.messages.disabled'))
     row.status = 'disabled'
   } catch (e) {
-    ElMessage.error('操作失败')
+    ElMessage.error(t('messages.failed'))
   }
 }
 
 function copyCode(code) {
-  navigator.clipboard.writeText(code).then(() => ElMessage.success('已复制'))
-    .catch(() => ElMessage.warning('复制失败'))
+  navigator.clipboard.writeText(code).then(() => ElMessage.success(t('invite_code_list.messages.copied')))
+    .catch(() => ElMessage.warning(t('invite_code_list.messages.copy_failed')))
 }
 
 function statusType(status) {
   return { active: 'success', exhausted: 'warning', expired: 'info', disabled: 'danger' }[status] || 'info'
 }
 function statusLabel(status) {
-  return { active: '活跃', exhausted: '已用完', expired: '已过期', disabled: '已禁用' }[status] || status
+  const key = { active: 'active', exhausted: 'exhausted', expired: 'expired', disabled: 'disabled' }[status]
+  return key ? t(`invite_code_list.statuses.${key}`) : status
 }
 function usagePercent(row) {
   if (!row.max_uses) return 0
@@ -203,7 +206,8 @@ function usagePercent(row) {
 }
 function formatDate(d) {
   if (!d) return '-'
-  return new Date(d).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  const loc = locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US'
+  return new Date(d).toLocaleString(loc, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 onMounted(() => { fetchCodes(); loadChannels() })

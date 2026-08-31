@@ -2,16 +2,14 @@
     <div class="profile-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>账户中心</h2>
-                <span class="header-subtitle">管理您的账户信息与互动数据</span>
+                <h2>{{ t('profile_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('profile_page.subtitle') }}</span>
             </div>
         </div>
 
         <el-tabs v-model="activeTab" type="border-card">
-            <!-- ═══ 个人资料 ═══ -->
-            <el-tab-pane label="📋 个人资料" name="profile">
+            <el-tab-pane :label="tabLabels.profile" name="profile">
                 <el-row :gutter="24">
-                    <!-- 头像区域 -->
                     <el-col :span="8">
                         <el-card shadow="never" class="avatar-card">
                             <div class="avatar-section">
@@ -24,14 +22,14 @@
                             </el-avatar>
                             <div v-show="showOverlay" class="avatar-overlay" @click="triggerUpload">
                                 <el-icon :size="24"><Camera /></el-icon>
-                                <span>更换头像</span>
+                                <span>{{ t('profile_page.avatar.change') }}</span>
                             </div>
                         </div>
-                        <p class="avatar-hint">支持 JPG/PNG/GIF/WebP，最大 2MB</p>
+                        <p class="avatar-hint">{{ t('profile_page.avatar.hint') }}</p>
 
                         <div class="avatar-actions">
                             <el-button size="small" @click="triggerUpload">
-                                <el-icon><Upload /></el-icon> 上传头像
+                                <el-icon><Upload /></el-icon> {{ t('profile_page.avatar.upload') }}
                             </el-button>
                             <el-button
                                 v-if="pendingFile"
@@ -40,14 +38,14 @@
                                 @click="confirmUpload"
                                 :loading="uploading"
                             >
-                                <el-icon><Check /></el-icon> 保存头像
+                                <el-icon><Check /></el-icon> {{ t('profile_page.avatar.save') }}
                             </el-button>
                             <el-button
                                 v-if="pendingFile"
                                 size="small"
                                 @click="cancelUpload"
                             >
-                                取消
+                                {{ t('actions.cancel') }}
                             </el-button>
                             <el-button
                                 v-if="hasAvatar && !pendingFile"
@@ -57,7 +55,7 @@
                                 @click="handleDeleteAvatar"
                                 :loading="deleting"
                             >
-                                <el-icon><Delete /></el-icon> 恢复默认
+                                <el-icon><Delete /></el-icon> {{ t('profile_page.avatar.restore_default') }}
                             </el-button>
                         </div>
 
@@ -72,66 +70,63 @@
                 </el-card>
             </el-col>
 
-            <!-- 资料编辑 -->
             <el-col :span="16">
                 <el-card shadow="never" class="info-card">
                     <template #header>
-                        <span>基本信息</span>
+                        <span>{{ t('profile_page.basic_info') }}</span>
                     </template>
 
                     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" label-position="left">
-                        <el-form-item label="邮箱">
+                        <el-form-item :label="t('auth.email')">
                             <el-input :model-value="user.email" disabled>
                                 <template #append>
-                                    <el-tag v-if="user.email_verified_at" type="success" size="small">已验证</el-tag>
-                                    <el-tag v-else type="warning" size="small">未验证</el-tag>
+                                    <el-tag v-if="user.email_verified_at" type="success" size="small">{{ t('portal.verified') }}</el-tag>
+                                    <el-tag v-else type="warning" size="small">{{ t('portal.unverified') }}</el-tag>
                                 </template>
                             </el-input>
                         </el-form-item>
 
-                        <el-form-item label="名称" prop="name">
-                            <el-input v-model="form.name" placeholder="请输入您的名称" maxlength="100" />
+                        <el-form-item :label="t('auth.name')" prop="name">
+                            <el-input v-model="form.name" :placeholder="t('profile_page.name_ph')" maxlength="100" />
                         </el-form-item>
 
-                        <el-form-item label="手机号" prop="phone">
-                            <el-input v-model="form.phone" placeholder="请输入手机号" maxlength="20" />
+                        <el-form-item :label="t('auth.phone')" prop="phone">
+                            <el-input v-model="form.phone" :placeholder="t('profile_page.phone_ph')" maxlength="20" />
                         </el-form-item>
 
-                        <el-form-item label="角色">
+                        <el-form-item :label="t('profile_page.role')">
                             <el-tag v-for="role in user.roles" :key="role.id" style="margin-right: 4px;">{{ role.name }}</el-tag>
                             <span v-if="!user.roles?.length" class="text-muted">—</span>
                         </el-form-item>
 
-                        <el-form-item label="注册时间">
+                        <el-form-item :label="t('portal.registered_at')">
                             <span>{{ user.created_at }}</span>
                         </el-form-item>
 
                         <el-form-item>
-                            <el-button type="primary" @click="handleSave" :loading="saving">保存修改</el-button>
+                            <el-button type="primary" @click="handleSave" :loading="saving">{{ t('profile_page.save_profile') }}</el-button>
                         </el-form-item>
                     </el-form>
                 </el-card>
 
-                <!-- 账户信息 -->
                 <el-card shadow="never" class="info-card" style="margin-top: 16px;">
                     <template #header>
-                        <span>账户安全</span>
+                        <span>{{ t('profile_page.account_security') }}</span>
                     </template>
                     <el-descriptions :column="1" border>
-                        <el-descriptions-item label="上次登录">{{ user.last_login_at || '—' }}</el-descriptions-item>
-                        <el-descriptions-item label="登录 IP">{{ user.last_login_ip || '—' }}</el-descriptions-item>
-                        <el-descriptions-item label="MFA 状态">
+                        <el-descriptions-item :label="t('profile_page.last_login')">{{ user.last_login_at || '—' }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('profile_page.login_ip')">{{ user.last_login_ip || '—' }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('profile_page.mfa_status')">
                             <el-tag :type="user.mfa_enabled ? 'success' : 'info'" size="small">
-                                {{ user.mfa_enabled ? '已开启' : '未开启' }}
+                                {{ user.mfa_enabled ? t('profile_page.mfa_on') : t('profile_page.mfa_off') }}
                             </el-tag>
                         </el-descriptions-item>
                     </el-descriptions>
                 </el-card>
 
-                <!-- 安全评分 -->
                 <el-card shadow="never" class="info-card" style="margin-top: 16px;">
                     <template #header>
-                        <span>🛡️ 安全评分</span>
+                        <span>{{ t('profile_page.security_score') }}</span>
                     </template>
                     <div v-if="secLoading" style="text-align:center;padding:20px"><el-icon class="is-loading" :size="20"><Loading /></el-icon></div>
                     <div v-else-if="secScore" class="security-score-panel">
@@ -144,7 +139,7 @@
                         </div>
                         <div class="sec-items">
                             <div v-for="item in secScore.items" :key="item.key" class="sec-item" :class="{ passed: item.passed }">
-                                <div class="sec-item-icon">{{ item.passed ? '✅' : '⚠️' }}</div>
+                                <div class="sec-item-icon" :class="item.passed ? 'sec-icon-pass' : 'sec-icon-warn'"></div>
                                 <div class="sec-item-body">
                                     <div class="sec-item-label">{{ item.label }}</div>
                                     <div class="sec-item-detail">{{ item.detail }}</div>
@@ -158,54 +153,44 @@
                     </div>
                 </el-card>
 
-                <!-- 🎨 个性化偏好 -->
                 <el-card shadow="never" class="info-card" style="margin-top: 16px;">
                     <template #header>
-                        <span>🎨 个性化偏好</span>
+                        <span>{{ t('profile_page.preferences') }}</span>
                     </template>
                     <div v-if="prefLoading" style="text-align:center;padding:20px"><el-icon class="is-loading" :size="20"><Loading /></el-icon></div>
                     <div v-else class="pref-form">
                         <el-form label-width="100px" label-position="left" size="small">
-                            <el-form-item label="界面主题">
+                            <el-form-item :label="t('profile_page.ui_theme')">
                                 <el-radio-group v-model="prefs.theme">
-                                    <el-radio value="system">☀️ 跟随系统</el-radio>
-                                    <el-radio value="light">🌞 浅色</el-radio>
-                                    <el-radio value="dark">🌙 深色</el-radio>
-                                    <el-radio value="sepia">📜 羊皮纸</el-radio>
+                                    <el-radio v-for="opt in themeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</el-radio>
                                 </el-radio-group>
                             </el-form-item>
-                            <el-form-item label="博客字体">
+                            <el-form-item :label="t('profile_page.blog_font')">
                                 <el-select v-model="prefs.blog_font" style="width:160px">
-                                    <el-option label="默认字体" value="default" />
-                                    <el-option label="衬线字体" value="serif" />
-                                    <el-option label="等宽字体" value="monospace" />
+                                    <el-option v-for="opt in fontOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                 </el-select>
                             </el-form-item>
-                            <el-form-item label="博客字号">
+                            <el-form-item :label="t('profile_page.blog_font_size')">
                                 <el-radio-group v-model="prefs.blog_font_size">
-                                    <el-radio value="small">小</el-radio>
-                                    <el-radio value="medium">中</el-radio>
-                                    <el-radio value="large">大</el-radio>
+                                    <el-radio v-for="opt in fontSizeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</el-radio>
                                 </el-radio-group>
                             </el-form-item>
                             <el-divider />
-                            <el-form-item label="通知偏好">
+                            <el-form-item :label="t('profile_page.notify_prefs')">
                                 <div style="display:flex;flex-direction:column;gap:6px">
-                                    <el-checkbox v-model="prefs.notify_new_article">新文章通知</el-checkbox>
-                                    <el-checkbox v-model="prefs.notify_comment_reply">评论回复通知</el-checkbox>
-                                    <el-checkbox v-model="prefs.notify_follow_update">关注动态通知</el-checkbox>
+                                    <el-checkbox v-model="prefs.notify_new_article">{{ t('profile_page.notify.new_article') }}</el-checkbox>
+                                    <el-checkbox v-model="prefs.notify_comment_reply">{{ t('profile_page.notify.comment_reply') }}</el-checkbox>
+                                    <el-checkbox v-model="prefs.notify_follow_update">{{ t('profile_page.notify.follow_update') }}</el-checkbox>
                                 </div>
                             </el-form-item>
-                            <el-form-item label="邮件摘要">
+                            <el-form-item :label="t('profile_page.email_digest')">
                                 <el-select v-model="prefs.email_digest" style="width:160px">
-                                    <el-option label="不发送" value="none" />
-                                    <el-option label="每日摘要" value="daily" />
-                                    <el-option label="每周摘要" value="weekly" />
+                                    <el-option v-for="opt in digestOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                 </el-select>
                             </el-form-item>
                             <el-form-item>
-                                <el-button type="primary" @click="savePrefs" :loading="prefSaving">保存偏好</el-button>
-                                <span v-if="prefSaved" style="color:#67c23a;font-size:12px;margin-left:8px">✅ 已保存</span>
+                                <el-button type="primary" @click="savePrefs" :loading="prefSaving">{{ t('profile_page.save_prefs') }}</el-button>
+                                <span v-if="prefSaved" class="prefs-saved">{{ t('profile_page.prefs_saved') }}</span>
                             </el-form-item>
                         </el-form>
                     </div>
@@ -214,13 +199,11 @@
         </el-row>
             </el-tab-pane>
 
-            <!-- ═══ 积分签到 ═══ -->
-            <el-tab-pane label="📅 积分签到" name="points">
+            <el-tab-pane :label="tabLabels.points" name="points">
                 <PointsDaily />
             </el-tab-pane>
 
-            <!-- ═══ 我的互动 ═══ -->
-            <el-tab-pane label="💬 我的互动" name="interactions">
+            <el-tab-pane :label="tabLabels.interactions" name="interactions">
                 <UserInteractions />
             </el-tab-pane>
         </el-tabs>
@@ -230,6 +213,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Loading } from '@element-plus/icons-vue';
 import profileApi from '@/api/profile';
@@ -238,8 +222,38 @@ import { getSecurityScore, getPreferences, savePreferences } from '@/api/interac
 import UserInteractions from './UserInteractions.vue';
 import PointsDaily from './PointsDaily.vue';
 
+const { t } = useI18n();
 const route = useRoute();
 const profileTabs = ['profile', 'points', 'interactions'];
+
+const tabLabels = computed(() =>
+    Object.fromEntries(profileTabs.map((key) => [key, t(`profile_page.tabs.${key}`)]))
+);
+
+const themeOptions = computed(() => [
+    { label: t('profile_page.themes.system'), value: 'system' },
+    { label: t('profile_page.themes.light'), value: 'light' },
+    { label: t('profile_page.themes.dark'), value: 'dark' },
+    { label: t('profile_page.themes.sepia'), value: 'sepia' },
+]);
+
+const fontOptions = computed(() => [
+    { label: t('profile_page.fonts.default'), value: 'default' },
+    { label: t('profile_page.fonts.serif'), value: 'serif' },
+    { label: t('profile_page.fonts.monospace'), value: 'monospace' },
+]);
+
+const fontSizeOptions = computed(() => [
+    { label: t('profile_page.font_sizes.small'), value: 'small' },
+    { label: t('profile_page.font_sizes.medium'), value: 'medium' },
+    { label: t('profile_page.font_sizes.large'), value: 'large' },
+]);
+
+const digestOptions = computed(() => [
+    { label: t('portal.digest_none'), value: 'none' },
+    { label: t('portal.digest_daily'), value: 'daily' },
+    { label: t('portal.digest_weekly'), value: 'weekly' },
+]);
 
 const authStore = useAuthStore();
 
@@ -275,9 +289,9 @@ const initials = computed(() => {
     return user.value.name.charAt(0).toUpperCase();
 });
 
-const rules = {
-    name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
-};
+const rules = computed(() => ({
+    name: [{ required: true, message: t('auth.name_required'), trigger: 'blur' }],
+}));
 
 function triggerUpload() {
     fileInput.value?.click();
@@ -287,7 +301,6 @@ async function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 预览（不上传）
     const reader = new FileReader();
     reader.onload = (ev) => {
         avatarUrl.value = ev.target.result;
@@ -295,7 +308,6 @@ async function handleFileChange(e) {
     };
     reader.readAsDataURL(file);
 
-    // 重置 input
     e.target.value = '';
 }
 
@@ -308,10 +320,10 @@ async function confirmUpload() {
         await loadUser();
         const data = res.data?.data || res.data;
         authStore.setUser({ avatar_url: data.avatar_url || avatarUrl.value });
-        ElMessage.success('头像已更新');
+        ElMessage.success(t('profile_page.messages.avatar_updated'));
     } catch (err) {
         await loadUser();
-        ElMessage.error(err.response?.data?.message || '上传失败');
+        ElMessage.error(err.response?.data?.message || t('profile_page.messages.upload_failed'));
     } finally {
         uploading.value = false;
     }
@@ -319,24 +331,28 @@ async function confirmUpload() {
 
 function cancelUpload() {
     pendingFile.value = null;
-    loadUser(); // 恢复原头像
+    loadUser();
 }
 
 async function handleDeleteAvatar() {
     try {
-        await ElMessageBox.confirm('确定恢复默认头像吗？', '确认', {
-            type: 'info',
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-        });
+        await ElMessageBox.confirm(
+            t('profile_page.confirm.restore_avatar_msg'),
+            t('profile_page.confirm.restore_avatar_title'),
+            {
+                type: 'info',
+                confirmButtonText: t('actions.confirm'),
+                cancelButtonText: t('actions.cancel'),
+            },
+        );
         deleting.value = true;
         await profileApi.deleteAvatar();
         await loadUser();
         authStore.setUser({ avatar_url: '' });
-        ElMessage.success('已恢复默认头像');
+        ElMessage.success(t('profile_page.messages.avatar_restored'));
     } catch (e) {
         if (e !== 'cancel') {
-            ElMessage.error('操作失败');
+            ElMessage.error(t('messages.failed'));
         }
     } finally {
         deleting.value = false;
@@ -352,9 +368,9 @@ async function handleSave() {
         const res = await profileApi.updateProfile(form.value);
         const data = res.data?.data || res.data;
         authStore.setUser(data);
-        ElMessage.success('资料已更新');
+        ElMessage.success(t('profile_page.messages.profile_updated'));
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '保存失败');
+        ElMessage.error(e.response?.data?.message || t('auth.save_fail'));
     } finally {
         saving.value = false;
     }
@@ -370,7 +386,7 @@ async function loadUser() {
         avatarUrl.value = data.avatar_url || '';
         hasAvatar.value = !!data.avatar;
     } catch (e) {
-        ElMessage.error('加载用户信息失败');
+        ElMessage.error(t('profile_page.messages.load_user_failed'));
     }
 }
 
@@ -400,8 +416,8 @@ async function savePrefs() {
         await savePreferences({ ...prefs });
         prefSaved.value = true;
         setTimeout(() => { prefSaved.value = false; }, 3000);
-        ElMessage.success('偏好设置已保存');
-    } catch { ElMessage.error('保存失败'); }
+        ElMessage.success(t('profile_page.messages.prefs_saved'));
+    } catch { ElMessage.error(t('auth.save_fail')); }
     finally { prefSaving.value = false; }
 }
 
@@ -441,7 +457,6 @@ onMounted(() => {
     min-height: 200px;
 }
 
-/* 安全评分 */
 .security-score-panel { display: flex; gap: 24px; align-items: flex-start; }
 .sec-score-ring { flex-shrink: 0; text-align: center; padding-top: 8px; }
 .sec-score-circle {
@@ -458,18 +473,20 @@ onMounted(() => {
 .sec-items { flex: 1; display: flex; flex-direction: column; gap: 8px; }
 .sec-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; background: #f8f9fa; }
 .sec-item.passed { background: #f0f9f0; }
-.sec-item-icon { font-size: 16px; flex-shrink: 0; }
+.sec-item-icon { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+.sec-icon-pass { background: #67c23a; }
+.sec-icon-warn { background: #e6a23c; }
 .sec-item-body { flex: 1; min-width: 0; }
 .sec-item-label { font-size: 13px; font-weight: 500; color: #303133; }
 .sec-item-detail { font-size: 11px; color: #909399; }
 .sec-item-score { font-size: 12px; font-weight: 600; color: #67c23a; flex-shrink: 0; }
 .sec-item-action { flex-shrink: 0; }
 
-/* 个性化偏好 */
 .pref-form { padding: 4px 0; }
 .pref-form .el-form-item { margin-bottom: 6px; }
 .pref-form .el-divider { margin: 12px 0; }
 .pref-form .el-checkbox { margin-right: 0; }
+.prefs-saved { color: #67c23a; font-size: 12px; margin-left: 8px; }
 
 .avatar-section {
     display: flex;

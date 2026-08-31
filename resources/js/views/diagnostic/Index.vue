@@ -2,18 +2,18 @@
     <div class="diagnostic-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>AI 错误诊断助手</h2>
-                <span class="header-subtitle">智能分析 License 激活/验证失败原因，提供解决方案</span>
+                <h2>{{ t('diagnostic_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('diagnostic_page.subtitle') }}</span>
             </div>
         </div>
 
         <el-alert
-            title="AI 驱动诊断"
+            :title="t('diagnostic_page.alert_title')"
             type="info"
             :closable="false"
             show-icon
             class="mb-4"
-            description="输入 License Key、设备指纹或错误码，AI 将自动分析根因并给出缓解建议。支持常见错误：LICENSE_EXPIRED、DEVICE_LIMIT、FINGERPRINT_MISMATCH 等。"
+            :description="t('diagnostic_page.alert_desc')"
         />
 
         <el-row :gutter="16">
@@ -22,45 +22,37 @@
                 <el-card shadow="never">
                     <template #header>
                         <div class="card-header">
-                            <span>诊断输入</span>
-                            <el-tag type="warning" size="small" effect="dark">AI</el-tag>
+                            <span>{{ t('diagnostic_page.input_card') }}</span>
+                            <el-tag type="warning" size="small" effect="dark">{{ t('diagnostic_page.ai_tag') }}</el-tag>
                         </div>
                     </template>
 
                     <el-form :model="form" label-position="top">
-                        <el-form-item label="License Key">
+                        <el-form-item :label="t('diagnostic_page.license_key')">
                             <el-input
                                 v-model="form.license_key"
-                                placeholder="输入 License Key"
+                                :placeholder="t('diagnostic_page.license_key_ph')"
                                 clearable
                             />
                         </el-form-item>
-                        <el-form-item label="设备指纹">
+                        <el-form-item :label="t('diagnostic_page.device_fingerprint')">
                             <el-input
                                 v-model="form.device_fingerprint"
-                                placeholder="输入设备指纹（可选）"
+                                :placeholder="t('diagnostic_page.device_fingerprint_ph')"
                                 clearable
                             />
                         </el-form-item>
-                        <el-form-item label="错误码">
-                            <el-select v-model="form.error_code" clearable placeholder="选择或输入错误码" filterable allow-create style="width: 100%">
-                                <el-option label="LICENSE_EXPIRED" value="LICENSE_EXPIRED" />
-                                <el-option label="DEVICE_LIMIT" value="DEVICE_LIMIT" />
-                                <el-option label="FINGERPRINT_MISMATCH" value="FINGERPRINT_MISMATCH" />
-                                <el-option label="LICENSE_REVOKED" value="LICENSE_REVOKED" />
-                                <el-option label="LICENSE_SUSPENDED" value="LICENSE_SUSPENDED" />
-                                <el-option label="INVALID_LICENSE_KEY" value="INVALID_LICENSE_KEY" />
-                                <el-option label="ACTIVATION_EXPIRED" value="ACTIVATION_EXPIRED" />
-                                <el-option label="OFFLINE_ACTIVATION_FAILED" value="OFFLINE_ACTIVATION_FAILED" />
-                                <el-option label="RATE_LIMIT_EXCEEDED" value="RATE_LIMIT_EXCEEDED" />
+                        <el-form-item :label="t('diagnostic_page.error_code')">
+                            <el-select v-model="form.error_code" clearable :placeholder="t('diagnostic_page.error_code_ph')" filterable allow-create style="width: 100%">
+                                <el-option v-for="code in errorCodeOptions" :key="code" :label="code" :value="code" />
                             </el-select>
                         </el-form-item>
-                        <el-form-item label="错误消息（可选）">
+                        <el-form-item :label="t('diagnostic_page.error_message')">
                             <el-input
                                 v-model="form.error_message"
                                 type="textarea"
                                 :rows="3"
-                                placeholder="粘贴完整的错误消息"
+                                :placeholder="t('diagnostic_page.error_message_ph')"
                             />
                         </el-form-item>
                         <el-form-item>
@@ -72,7 +64,7 @@
                                 style="width: 100%"
                             >
                                 <el-icon><MagicStick /></el-icon>
-                                AI 诊断分析
+                                {{ t('diagnostic_page.run_diagnosis') }}
                             </el-button>
                         </el-form-item>
                     </el-form>
@@ -82,8 +74,8 @@
                 <el-card shadow="never" class="mt-4">
                     <template #header>
                         <div class="card-header">
-                            <span>SDK 错误码建议</span>
-                            <el-button text size="small" @click="loadSdkSuggestions">刷新</el-button>
+                            <span>{{ t('diagnostic_page.sdk_suggestions') }}</span>
+                            <el-button text size="small" @click="loadSdkSuggestions">{{ t('diagnostic_page.refresh') }}</el-button>
                         </div>
                     </template>
                     <div v-loading="loadingSuggestions" class="sdk-suggestions">
@@ -91,7 +83,7 @@
                             <code class="suggestion-code">{{ key }}</code>
                             <span class="suggestion-action">{{ suggestion }}</span>
                         </div>
-                        <el-empty v-if="!Object.keys(sdkSuggestions).length" description="暂无数据" :image-size="50" />
+                        <el-empty v-if="!Object.keys(sdkSuggestions).length" :description="t('messages.no_data')" :image-size="50" />
                     </div>
                 </el-card>
             </el-col>
@@ -101,7 +93,7 @@
                 <el-card shadow="never">
                     <template #header>
                         <div class="card-header">
-                            <span>诊断结果</span>
+                            <span>{{ t('diagnostic_page.result_card') }}</span>
                             <el-tag v-if="diagnosisResult" :type="resultType" size="small">
                                 {{ resultStatus }}
                             </el-tag>
@@ -111,7 +103,7 @@
                     <div v-if="!diagnosisResult && !diagnosing" class="result-placeholder">
                         <el-empty
                             :image-size="100"
-                            description="输入信息后点击「AI 诊断分析」获取结果"
+                            :description="t('diagnostic_page.empty_result')"
                         >
                             <template #image>
                                 <el-icon :size="80" color="#c0c4cc"><MagicStick /></el-icon>
@@ -124,16 +116,16 @@
                         <div class="result-section">
                             <h4 class="section-title">
                                 <el-icon color="#e6a23c"><WarningFilled /></el-icon>
-                                根因分析
+                                {{ t('diagnostic_page.root_cause') }}
                             </h4>
                             <div class="section-content" v-if="diagnosisResult.root_cause">
                                 <div class="cause-item" v-for="(cause, idx) in diagnosisResult.root_cause" :key="idx">
                                     <el-tag :type="cause.severity === 'critical' ? 'danger' : cause.severity === 'warning' ? 'warning' : 'info'" size="small" effect="dark" style="margin-right: 8px">
-                                        {{ cause.severity === 'critical' ? '严重' : cause.severity === 'warning' ? '警告' : '提示' }}
+                                        {{ severityLabel(cause.severity) }}
                                     </el-tag>
                                     <span>{{ cause.message }}</span>
                                 </div>
-                                <div v-if="!diagnosisResult.root_cause.length" class="no-detail">未检测到具体根因</div>
+                                <div v-if="!diagnosisResult.root_cause.length" class="no-detail">{{ t('diagnostic_page.no_root_cause') }}</div>
                             </div>
                         </div>
 
@@ -141,7 +133,7 @@
                         <div class="result-section" v-if="diagnosisResult.suggestions?.length">
                             <h4 class="section-title">
                                 <el-icon color="#67c23a"><CircleCheck /></el-icon>
-                                建议解决方案
+                                {{ t('diagnostic_page.suggestions') }}
                             </h4>
                             <div class="suggestion-list">
                                 <div v-for="(s, idx) in diagnosisResult.suggestions" :key="idx" class="suggestion-step" :class="'priority-' + (s.priority || 'medium')">
@@ -157,8 +149,8 @@
                         <!-- 相关资源 -->
                         <div class="result-section" v-if="diagnosisResult.related_resources?.length">
                             <h4 class="section-title">
-                                <el-icon color="#409eff"><Link /></el-icon>
-                                相关资源
+                                <el-icon color="#0f172a"><Link /></el-icon>
+                                {{ t('diagnostic_page.related_resources') }}
                             </h4>
                             <div class="resource-list">
                                 <el-link
@@ -177,26 +169,26 @@
                         <!-- License 信息 -->
                         <div class="result-section" v-if="diagnosisResult.license_info">
                             <h4 class="section-title">
-                                <el-icon color="#409eff"><InfoFilled /></el-icon>
-                                License 信息
+                                <el-icon color="#0f172a"><InfoFilled /></el-icon>
+                                {{ t('diagnostic_page.license_info') }}
                             </h4>
                             <div class="info-grid">
                                 <div class="info-row">
-                                    <span class="info-label">状态</span>
+                                    <span class="info-label">{{ t('diagnostic_page.license_status') }}</span>
                                     <el-tag :type="licenseStatusType(diagnosisResult.license_info.status)" size="small">
                                         {{ diagnosisResult.license_info.status }}
                                     </el-tag>
                                 </div>
                                 <div class="info-row">
-                                    <span class="info-label">类型</span>
+                                    <span class="info-label">{{ t('diagnostic_page.license_type') }}</span>
                                     <span>{{ diagnosisResult.license_info.type || '-' }}</span>
                                 </div>
                                 <div class="info-row">
-                                    <span class="info-label">过期时间</span>
+                                    <span class="info-label">{{ t('diagnostic_page.expires_at') }}</span>
                                     <span>{{ diagnosisResult.license_info.expires_at ? formatDate(diagnosisResult.license_info.expires_at) : '-' }}</span>
                                 </div>
                                 <div class="info-row">
-                                    <span class="info-label">设备数</span>
+                                    <span class="info-label">{{ t('diagnostic_page.device_count') }}</span>
                                     <span>{{ diagnosisResult.license_info.active_devices || 0 }} / {{ diagnosisResult.license_info.max_devices || '-' }}</span>
                                 </div>
                             </div>
@@ -210,9 +202,12 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { MagicStick, WarningFilled, CircleCheck, Link, InfoFilled } from '@element-plus/icons-vue';
-import apiClient from '@/api/client';
+import diagnosticApi from '@/api/diagnostic';
+
+const { t, locale } = useI18n();
 
 const diagnosing = ref(false);
 const loadingSuggestions = ref(false);
@@ -226,6 +221,18 @@ const form = reactive({
     error_message: '',
 });
 
+const errorCodeOptions = computed(() => [
+    'LICENSE_EXPIRED',
+    'DEVICE_LIMIT',
+    'FINGERPRINT_MISMATCH',
+    'LICENSE_REVOKED',
+    'LICENSE_SUSPENDED',
+    'INVALID_LICENSE_KEY',
+    'ACTIVATION_EXPIRED',
+    'OFFLINE_ACTIVATION_FAILED',
+    'RATE_LIMIT_EXCEEDED',
+]);
+
 const resultType = computed(() => {
     if (!diagnosisResult.value) return 'info';
     const hasCritical = diagnosisResult.value.root_cause?.some(c => c.severity === 'critical');
@@ -238,14 +245,21 @@ const resultType = computed(() => {
 const resultStatus = computed(() => {
     if (!diagnosisResult.value) return '';
     const hasCritical = diagnosisResult.value.root_cause?.some(c => c.severity === 'critical');
-    if (hasCritical) return '需立即处理';
-    if (diagnosisResult.value.suggestions?.length) return '建议处理';
-    return '无需处理';
+    if (hasCritical) return t('diagnostic_page.result_status.urgent');
+    if (diagnosisResult.value.suggestions?.length) return t('diagnostic_page.result_status.suggested');
+    return t('diagnostic_page.result_status.none');
 });
+
+function severityLabel(severity) {
+    const key = `diagnostic_page.severity.${severity}`;
+    const translated = t(key);
+    return translated !== key ? translated : severity;
+}
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(dateStr).toLocaleString(loc, {
         year: 'numeric', month: '2-digit', day: '2-digit',
     });
 }
@@ -260,7 +274,7 @@ function licenseStatusType(status) {
 
 async function handleDiagnose() {
     if (!form.license_key && !form.error_code) {
-        ElMessage.warning('请输入 License Key 或选择错误码');
+        ElMessage.warning(t('diagnostic_page.messages.require_input'));
         return;
     }
 
@@ -274,14 +288,14 @@ async function handleDiagnose() {
         if (form.error_code) payload.error_code = form.error_code;
         if (form.error_message) payload.error_message = form.error_message;
 
-        const { data: res } = await apiClient.post('/diagnostic/activation', payload);
+        const { data: res } = await diagnosticApi.diagnoseActivation(payload);
         diagnosisResult.value = res.data || {};
-        ElMessage.success('诊断完成');
+        ElMessage.success(t('diagnostic_page.messages.diagnosis_complete'));
     } catch (err) {
         if (err?.response?.status === 422) {
-            ElMessage.warning('请输入有效的诊断信息');
+            ElMessage.warning(t('diagnostic_page.messages.invalid_input'));
         } else {
-            ElMessage.error('诊断请求失败，请稍后重试');
+            ElMessage.error(t('diagnostic_page.messages.request_failed'));
         }
     } finally {
         diagnosing.value = false;
@@ -291,7 +305,7 @@ async function handleDiagnose() {
 async function loadSdkSuggestions() {
     loadingSuggestions.value = true;
     try {
-        const { data: res } = await apiClient.get('/diagnostic/sdk-suggestions');
+        const { data: res } = await diagnosticApi.sdkSuggestions();
         sdkSuggestions.value = res.data || {};
     } catch {
         sdkSuggestions.value = {};

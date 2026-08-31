@@ -2,19 +2,19 @@
     <div class="tax-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>税务自动计算引擎</h2>
-                <span class="header-subtitle">VAT / GST / Sales Tax / EU OSS/IOSS / 免税证书管理</span>
+                <h2>{{ t('tax_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('tax_page.subtitle') }}</span>
             </div>
         </div>
 
         <el-alert
-            title="支持 50+ 国家税率自动计算，覆盖 EU VAT、亚太 GST、北美 Sales Tax，含 EU 反向征收/B2B 规则"
+            :title="t('tax_page.alert')"
             type="success" show-icon :closable="false" class="alert-bar"
         />
 
         <el-tabs v-model="activeTab">
             <!-- 税率管理 -->
-            <el-tab-pane label="税率管理" name="rates">
+            <el-tab-pane :label="t('tax_page.tabs.rates')" name="rates">
                 <el-row :gutter="16" class="stats-row">
                     <el-col :span="6" v-for="s in statCards" :key="s.label">
                         <el-card shadow="never" class="stat-card">
@@ -26,44 +26,44 @@
 
                 <el-card shadow="never" class="filter-card">
                     <div class="filter-bar">
-                        <el-input v-model="rateSearch" size="small" placeholder="搜索国家代码/名称" clearable style="width: 220px;" @clear="loadRates" @keyup.enter="loadRates" />
-                        <el-select v-model="rateFilterCountry" size="small" placeholder="国家" filterable clearable style="width: 130px; margin-left: 8px;" @change="loadRates">
+                        <el-input v-model="rateSearch" size="small" :placeholder="t('tax_page.filters.search_ph')" clearable style="width: 220px;" @clear="loadRates" @keyup.enter="loadRates" />
+                        <el-select v-model="rateFilterCountry" size="small" :placeholder="t('tax_compliance_page.filters.country')" filterable clearable style="width: 130px; margin-left: 8px;" @change="loadRates">
                             <el-option v-for="c in countryOptions" :key="c.country_code" :label="c.country_code + ' - ' + c.name" :value="c.country_code" />
                         </el-select>
                         <el-select v-model="rateFilterActive" size="small" style="width: 100px; margin-left: 8px;" @change="loadRates">
-                            <el-option label="全部" value="" />
-                            <el-option label="活跃" :value="true" />
-                            <el-option label="停用" :value="false" />
+                            <el-option :label="t('tax_compliance_page.filters.all')" value="" />
+                            <el-option :label="t('tax_compliance_page.filters.active')" :value="true" />
+                            <el-option :label="t('tax_compliance_page.filters.inactive')" :value="false" />
                         </el-select>
                     </div>
                 </el-card>
 
                 <el-table :data="rateList" v-loading="loadingRates" stripe size="small" max-height="500">
-                    <el-table-column label="国家" width="70" prop="country_code" align="center" />
-                    <el-table-column label="州/省" width="70" prop="region_code" align="center" />
-                    <el-table-column label="税种" width="100" prop="name" />
-                    <el-table-column label="类型" width="80" prop="type" />
-                    <el-table-column label="税率" width="90" align="right">
+                    <el-table-column :label="t('tax_compliance_page.cols.country')" width="70" prop="country_code" align="center" />
+                    <el-table-column :label="t('tax_page.cols.region')" width="70" prop="region_code" align="center" />
+                    <el-table-column :label="t('tax_page.cols.tax_name')" width="100" prop="name" />
+                    <el-table-column :label="t('tax_compliance_page.cols.type')" width="80" prop="type" />
+                    <el-table-column :label="t('tax_page.cols.rate')" width="90" align="right">
                         <template #default="{ row }">{{ row.rate_percent }}%</template>
                     </el-table-column>
-                    <el-table-column label="EU" width="50" align="center">
+                    <el-table-column :label="t('tax_page.cols.eu')" width="50" align="center">
                         <template #default="{ row }">
                             <el-tag v-if="row.is_eu" size="small" type="primary">EU</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="状态" width="70">
+                    <el-table-column :label="t('tax_compliance_page.cols.status')" width="70">
                         <template #default="{ row }">
                             <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-                                {{ row.is_active ? '活跃' : '停用' }}
+                                {{ row.is_active ? t('tax_compliance_page.filters.active') : t('tax_compliance_page.filters.inactive') }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="生效" width="100" prop="effective_from" />
-                    <el-table-column label="失效" width="100" prop="effective_until" />
-                    <el-table-column label="描述" min-width="160" prop="description" />
-                    <el-table-column label="操作" width="120" fixed="right">
+                    <el-table-column :label="t('tax_page.cols.effective_from')" width="100" prop="effective_from" />
+                    <el-table-column :label="t('tax_page.cols.effective_until')" width="100" prop="effective_until" />
+                    <el-table-column :label="t('tax_compliance_page.cols.description')" min-width="160" prop="description" />
+                    <el-table-column :label="t('tax_compliance_page.cols.actions')" width="120" fixed="right">
                         <template #default="{ row }">
-                            <el-button text size="small" type="primary" @click="openRateEdit(row)">编辑</el-button>
+                            <el-button text size="small" type="primary" @click="openRateEdit(row)">{{ t('actions.edit') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -80,24 +80,24 @@
             </el-tab-pane>
 
             <!-- 税额计算器 -->
-            <el-tab-pane label="税额计算器" name="calculator">
+            <el-tab-pane :label="t('tax_page.tabs.calculator')" name="calculator">
                 <el-card shadow="never" class="calc-card">
                     <el-form label-position="top" size="small" :model="calcForm">
                         <el-row :gutter="16">
                             <el-col :span="8">
-                                <el-form-item label="金额">
+                                <el-form-item :label="t('tax_page.calc.amount')">
                                     <el-input-number v-model="calcForm.amount" :min="0" :precision="2" style="width: 100%;" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="8">
-                                <el-form-item label="国家">
+                                <el-form-item :label="t('tax_compliance_page.filters.country')">
                                     <el-select v-model="calcForm.country_code" filterable style="width: 100%;" @change="onCalcCountryChange">
                                         <el-option v-for="c in countryOptions" :key="c.country_code" :label="`${c.country_code} - ${c.name} (${c.rate_percent || (c.rate*100).toFixed(1)}%)`" :value="c.country_code" />
                                     </el-select>
                                 </el-form-item>
                             </el-col>
                             <el-col :span="8">
-                                <el-form-item label="州/省">
+                                <el-form-item :label="t('tax_page.calc.region')">
                                     <el-select v-model="calcForm.region_code" filterable clearable style="width: 100%;" :disabled="regionOptions.length === 0">
                                         <el-option v-for="r in regionOptions" :key="r.region_code" :label="`${r.region_code} - ${(r.rate*100).toFixed(1)}%`" :value="r.region_code" />
                                     </el-select>
@@ -106,18 +106,18 @@
                         </el-row>
                         <el-row :gutter="16">
                             <el-col :span="8">
-                                <el-form-item label="B2B 交易">
+                                <el-form-item :label="t('tax_page.calc.b2b')">
                                     <el-switch v-model="calcForm.is_b2b" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="8">
-                                <el-form-item label="卖家所在国家">
-                                    <el-input v-model="calcForm.seller_country" maxlength="2" placeholder="如 CN" />
+                                <el-form-item :label="t('tax_page.calc.seller_country')">
+                                    <el-input v-model="calcForm.seller_country" maxlength="2" :placeholder="t('tax_page.calc.seller_country_ph')" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="8" style="display: flex; align-items: flex-end;">
                                 <el-button type="primary" :loading="calculating" @click="handleCalculate" style="margin-bottom: 2px;">
-                                    计算税额
+                                    {{ t('tax_page.calc.calculate') }}
                                 </el-button>
                             </el-col>
                         </el-row>
@@ -129,37 +129,37 @@
                         <el-row :gutter="24">
                             <el-col :span="6">
                                 <div class="result-item">
-                                    <span class="result-label">应税金额</span>
+                                    <span class="result-label">{{ t('tax_page.calc.taxable_amount') }}</span>
                                     <span class="result-value">${{ calcResult.taxable_amount.toFixed(2) }}</span>
                                 </div>
                             </el-col>
                             <el-col :span="6">
                                 <div class="result-item">
-                                    <span class="result-label">税种</span>
+                                    <span class="result-label">{{ t('tax_page.calc.tax_type') }}</span>
                                     <span class="result-value">{{ calcResult.type_label }}</span>
                                 </div>
                             </el-col>
                             <el-col :span="6">
                                 <div class="result-item highlight">
-                                    <span class="result-label">税额</span>
+                                    <span class="result-label">{{ t('tax_page.calc.tax_amount') }}</span>
                                     <span class="result-value">${{ calcResult.tax_amount.toFixed(2) }}</span>
                                 </div>
                             </el-col>
                             <el-col :span="6">
                                 <div class="result-item">
-                                    <span class="result-label">含税总额</span>
+                                    <span class="result-label">{{ t('tax_page.calc.total') }}</span>
                                     <span class="result-value">${{ calcResult.total.toFixed(2) }}</span>
                                 </div>
                             </el-col>
                         </el-row>
                         <el-row :gutter="24" class="mt-2">
                             <el-col :span="6">
-                                <span class="result-sub">税率: {{ calcResult.tax_percent }}%</span>
+                                <span class="result-sub">{{ t('tax_page.calc.rate_sub', { rate: calcResult.tax_percent }) }}</span>
                             </el-col>
                             <el-col :span="6">
-                                <el-tag v-if="calcResult.exempt_reason === 'exempt'" type="success" size="small">免税</el-tag>
-                                <el-tag v-else-if="calcResult.exempt_reason === 'reverse_charge'" type="warning" size="small">反向征收</el-tag>
-                                <el-tag v-else-if="calcResult.exempt_reason === 'ioss_threshold'" type="info" size="small">IOSS 阈值内</el-tag>
+                                <el-tag v-if="calcResult.exempt_reason === 'exempt'" type="success" size="small">{{ t('tax_page.calc.exempt') }}</el-tag>
+                                <el-tag v-else-if="calcResult.exempt_reason === 'reverse_charge'" type="warning" size="small">{{ t('tax_page.calc.reverse_charge') }}</el-tag>
+                                <el-tag v-else-if="calcResult.exempt_reason === 'ioss_threshold'" type="info" size="small">{{ t('tax_page.calc.ioss_threshold') }}</el-tag>
                             </el-col>
                             <el-col :span="6">
                                 <el-tag v-if="calcResult.reporting_code" type="primary" size="small">{{ calcResult.reporting_code }}</el-tag>
@@ -170,110 +170,108 @@
             </el-tab-pane>
 
             <!-- 免税证书 -->
-            <el-tab-pane label="免税证书" name="certificates">
+            <el-tab-pane :label="t('tax_page.tabs.certificates')" name="certificates">
                 <div class="section-header">
                     <el-button type="primary" size="small" @click="showCertDialog = true">
-                        <el-icon><Plus /></el-icon> 新增证书
+                        <el-icon><Plus /></el-icon> {{ t('tax_page.buttons.add_certificate') }}
                     </el-button>
                 </div>
                 <el-table :data="certList" v-loading="loadingCerts" stripe size="small">
-                    <el-table-column label="证书编号" min-width="160" prop="certificate_number" />
-                    <el-table-column label="类型" width="130" prop="certificate_type" />
-                    <el-table-column label="国家" width="70" prop="issuing_country" align="center" />
-                    <el-table-column label="客户" min-width="140" prop="customer_name" />
-                    <el-table-column label="有效期" width="200">
+                    <el-table-column :label="t('tax_page.cols.certificate_number')" min-width="160" prop="certificate_number" />
+                    <el-table-column :label="t('tax_compliance_page.cols.type')" width="130" prop="certificate_type" />
+                    <el-table-column :label="t('tax_compliance_page.cols.country')" width="70" prop="issuing_country" align="center" />
+                    <el-table-column :label="t('tax_page.cols.customer')" min-width="140" prop="customer_name" />
+                    <el-table-column :label="t('tax_page.cols.validity')" width="200">
                         <template #default="{ row }">{{ row.valid_from }} ~ {{ row.valid_until }}</template>
                     </el-table-column>
-                    <el-table-column label="状态" width="90">
+                    <el-table-column :label="t('tax_compliance_page.cols.status')" width="90">
                         <template #default="{ row }">
                             <el-tag :type="row.status === 'approved' ? 'success' : row.status === 'rejected' ? 'danger' : 'warning'" size="small">
-                                {{ row.status === 'approved' ? '已批准' : row.status === 'rejected' ? '已拒绝' : '待审批' }}
+                                {{ certStatusLabels[row.status] || row.status }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="有效" width="60" align="center">
+                    <el-table-column :label="t('tax_page.cols.valid')" width="60" align="center">
                         <template #default="{ row }">
-                            <el-tag :type="row.is_valid ? 'success' : 'info'" size="small">{{ row.is_valid ? '是' : '否' }}</el-tag>
+                            <el-tag :type="row.is_valid ? 'success' : 'info'" size="small">{{ row.is_valid ? t('tax_page.yes') : t('tax_page.no') }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="操作" width="160" fixed="right">
+                    <el-table-column :label="t('tax_compliance_page.cols.actions')" width="160" fixed="right">
                         <template #default="{ row }">
-                            <el-button v-if="row.status === 'pending'" text size="small" type="success" @click="handleCertApprove(row, 'approved')">批准</el-button>
-                            <el-button v-if="row.status === 'pending'" text size="small" type="danger" @click="handleCertApprove(row, 'rejected')">拒绝</el-button>
-                            <el-button text size="small" type="danger" @click="handleCertDelete(row)">删除</el-button>
+                            <el-button v-if="row.status === 'pending'" text size="small" type="success" @click="handleCertApprove(row, 'approved')">{{ t('actions.approve') }}</el-button>
+                            <el-button v-if="row.status === 'pending'" text size="small" type="danger" @click="handleCertApprove(row, 'rejected')">{{ t('actions.reject') }}</el-button>
+                            <el-button text size="small" type="danger" @click="handleCertDelete(row)">{{ t('actions.delete') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
             </el-tab-pane>
 
             <!-- 税率编辑对话框 -->
-            <el-dialog v-model="rateEditVisible" title="编辑税率" width="460px">
+            <el-dialog v-model="rateEditVisible" :title="t('tax_page.dialogs.edit_rate')" width="460px">
                 <el-form :model="rateEditForm" label-position="top" size="small">
                     <el-row :gutter="16">
                         <el-col :span="12">
-                            <el-form-item label="税率百分比">
+                            <el-form-item :label="t('tax_page.forms.rate_percent')">
                                 <el-input-number v-model="rateEditForm.rate_percent" :min="0" :max="100" :precision="2" style="width: 100%;" />
                             </el-form-item>
                         </el-col>
                         <el-col :span="12">
-                            <el-form-item label="状态">
+                            <el-form-item :label="t('tax_compliance_page.cols.status')">
                                 <el-switch v-model="rateEditForm.is_active" />
                             </el-form-item>
                         </el-col>
                     </el-row>
-                    <el-form-item label="生效日期">
+                    <el-form-item :label="t('tax_page.forms.effective_from')">
                         <el-date-picker v-model="rateEditForm.effective_from" type="date" style="width: 100%;" />
                     </el-form-item>
-                    <el-form-item label="失效日期">
+                    <el-form-item :label="t('tax_page.forms.effective_until')">
                         <el-date-picker v-model="rateEditForm.effective_until" type="date" style="width: 100%;" />
                     </el-form-item>
-                    <el-form-item label="描述">
+                    <el-form-item :label="t('tax_compliance_page.cols.description')">
                         <el-input v-model="rateEditForm.description" type="textarea" :rows="2" />
                     </el-form-item>
                 </el-form>
                 <template #footer>
-                    <el-button @click="rateEditVisible = false">取消</el-button>
-                    <el-button type="primary" :loading="savingRate" @click="handleSaveRate">保存</el-button>
+                    <el-button @click="rateEditVisible = false">{{ t('actions.cancel') }}</el-button>
+                    <el-button type="primary" :loading="savingRate" @click="handleSaveRate">{{ t('actions.save') }}</el-button>
                 </template>
             </el-dialog>
 
             <!-- 新建证书对话框 -->
-            <el-dialog v-model="showCertDialog" title="新增免税证书" width="460px">
+            <el-dialog v-model="showCertDialog" :title="t('tax_page.dialogs.add_certificate')" width="460px">
                 <el-form :model="certForm" label-position="top" size="small">
-                    <el-form-item label="证书类型">
+                    <el-form-item :label="t('tax_page.forms.certificate_type')">
                         <el-select v-model="certForm.certificate_type" style="width: 100%;">
-                            <el-option label="VAT 免税" value="vat_exempt" />
-                            <el-option label="Sales Tax 免税" value="sales_tax_exempt" />
-                            <el-option label="经销商证书" value="reseller" />
+                            <el-option v-for="(label, key) in certTypeLabels" :key="key" :label="label" :value="key" />
                         </el-select>
                     </el-form-item>
-                    <el-form-item label="证书编号">
+                    <el-form-item :label="t('tax_page.forms.certificate_number')">
                         <el-input v-model="certForm.certificate_number" />
                     </el-form-item>
-                    <el-form-item label="颁发国家">
+                    <el-form-item :label="t('tax_page.forms.issuing_country')">
                         <el-select v-model="certForm.issuing_country" filterable style="width: 100%;">
                             <el-option v-for="c in countryOptions" :key="c.country_code" :label="`${c.country_code} - ${c.name}`" :value="c.country_code" />
                         </el-select>
                     </el-form-item>
                     <el-row :gutter="16">
                         <el-col :span="12">
-                            <el-form-item label="生效日期">
+                            <el-form-item :label="t('tax_page.forms.effective_from')">
                                 <el-date-picker v-model="certForm.valid_from" type="date" style="width: 100%;" />
                             </el-form-item>
                         </el-col>
                         <el-col :span="12">
-                            <el-form-item label="失效日期">
+                            <el-form-item :label="t('tax_page.forms.effective_until')">
                                 <el-date-picker v-model="certForm.valid_until" type="date" style="width: 100%;" />
                             </el-form-item>
                         </el-col>
                     </el-row>
-                    <el-form-item label="免税理由">
+                    <el-form-item :label="t('tax_page.forms.reason')">
                         <el-input v-model="certForm.reason" type="textarea" :rows="2" />
                     </el-form-item>
                 </el-form>
                 <template #footer>
-                    <el-button @click="showCertDialog = false">取消</el-button>
-                    <el-button type="primary" :loading="savingCert" @click="handleCreateCert">提交</el-button>
+                    <el-button @click="showCertDialog = false">{{ t('actions.cancel') }}</el-button>
+                    <el-button type="primary" :loading="savingCert" @click="handleCreateCert">{{ t('actions.submit') }}</el-button>
                 </template>
             </el-dialog>
         </el-tabs>
@@ -281,21 +279,36 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import taxApi from '@/api/tax';
+
+const { t } = useI18n();
 
 const activeTab = ref('rates');
 
 // Stats
 const stats = reactive({ total_rates: 0, active_rates: 0, eu_countries: 0, pending_certificates: 0 });
 const statCards = computed(() => [
-    { label: '总税率数', value: stats.total_rates, color: '#409EFF' },
-    { label: '活跃税率', value: stats.active_rates, color: '#67C23A' },
-    { label: 'EU 国家', value: stats.eu_countries, color: '#E6A23C' },
-    { label: '待审批证书', value: stats.pending_certificates, color: '#F56C6C' },
+    { label: t('tax_page.stats.total_rates'), value: stats.total_rates, color: '#0f172a' },
+    { label: t('tax_page.stats.active_rates'), value: stats.active_rates, color: '#67C23A' },
+    { label: t('tax_page.stats.eu_countries'), value: stats.eu_countries, color: '#E6A23C' },
+    { label: t('tax_page.stats.pending_certificates'), value: stats.pending_certificates, color: '#F56C6C' },
 ]);
+
+const certStatusLabels = computed(() => ({
+    approved: t('tax_page.status.approved'),
+    rejected: t('tax_page.status.rejected'),
+    pending: t('tax_page.status.pending'),
+}));
+
+const certTypeLabels = computed(() => ({
+    vat_exempt: t('tax_page.cert_types.vat_exempt'),
+    sales_tax_exempt: t('tax_page.cert_types.sales_tax_exempt'),
+    reseller: t('tax_page.cert_types.reseller'),
+}));
 
 // Rates
 const loadingRates = ref(false);
@@ -388,12 +401,12 @@ async function handleSaveRate() {
             description: rateEditForm.description,
         });
         if (res.success) {
-            ElMessage.success('税率已更新');
+            ElMessage.success(t('tax_page.messages.rate_updated'));
             rateEditVisible.value = false;
             await loadRates();
         }
     } catch {
-        ElMessage.error('更新失败');
+        ElMessage.error(t('messages.failed'));
     } finally {
         savingRate.value = false;
     }
@@ -430,7 +443,7 @@ async function handleCalculate() {
         );
         if (res.success) calcResult.value = res.data;
     } catch {
-        ElMessage.error('计算失败');
+        ElMessage.error(t('tax_page.messages.calculate_failed'));
     } finally {
         calculating.value = false;
     }
@@ -458,13 +471,13 @@ async function handleCreateCert() {
             reason: certForm.reason,
         });
         if (res.success) {
-            ElMessage.success('证书已提交');
+            ElMessage.success(t('tax_page.messages.cert_submitted'));
             showCertDialog.value = false;
             await loadCerts();
             await loadStats();
         }
     } catch {
-        ElMessage.error('提交失败');
+        ElMessage.error(t('messages.failed'));
     } finally {
         savingCert.value = false;
     }
@@ -472,29 +485,34 @@ async function handleCreateCert() {
 
 async function handleCertApprove(cert, status) {
     try {
-        const tips = status === 'approved' ? '批准此免税证书？' : '拒绝此免税证书？';
-        await ElMessageBox.confirm(tips, '确认操作');
+        const tips = status === 'approved'
+            ? t('tax_page.messages.approve_confirm')
+            : t('tax_page.messages.reject_confirm');
+        await ElMessageBox.confirm(tips, t('tax_page.messages.confirm_action_title'));
         const { data: res } = await taxApi.approveCertificate(cert.id, status);
         if (res.success) {
-            ElMessage.success(res.message || '操作成功');
+            ElMessage.success(res.message || t('messages.success'));
             await loadCerts();
             await loadStats();
         }
     } catch (e) {
-        if (e !== 'cancel') ElMessage.error('操作失败');
+        if (e !== 'cancel') ElMessage.error(t('messages.failed'));
     }
 }
 
 async function handleCertDelete(cert) {
     try {
-        await ElMessageBox.confirm('确定删除此证书？', '确认删除');
+        await ElMessageBox.confirm(
+            t('tax_page.messages.delete_cert_confirm'),
+            t('tax_page.messages.confirm_delete_title'),
+        );
         const { data: res } = await taxApi.deleteCertificate(cert.id);
         if (res.success) {
-            ElMessage.success('已删除');
+            ElMessage.success(t('tax_page.messages.deleted'));
             await loadCerts();
         }
     } catch (e) {
-        if (e !== 'cancel') ElMessage.error('删除失败');
+        if (e !== 'cancel') ElMessage.error(t('messages.failed'));
     }
 }
 

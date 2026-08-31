@@ -1,33 +1,31 @@
 <template>
   <div class="cart-page">
     <div class="page-header">
-      <h1>购物车</h1>
-      <el-button text @click="$router.push('/portal/shop')">← 继续购物</el-button>
+      <h1>{{ t('shop_cart.title') }}</h1>
+      <el-button text @click="$router.push('/portal/shop')">← {{ t('shop_cart.continue') }}</el-button>
     </div>
 
-    <!-- 加载中 -->
     <el-skeleton v-if="loading" :rows="4" animated />
 
-    <!-- 价格变动提示 -->
     <el-alert
       v-if="summary.price_changed"
-      title="部分商品价格已变动，请确认"
+      :title="t('shop_cart.price_changed')"
       type="warning"
       show-icon
       :closable="false"
       class="mb-4"
     />
 
-    <!-- 商品列表 -->
     <template v-if="items.length > 0">
-      <el-card shadow="hover">
+      <el-card v-if="!isMobile" shadow="hover">
+        <div class="table-scroll-wrap">
         <el-table :data="items" stripe>
-          <el-table-column label="商品" min-width="200">
+          <el-table-column :label="t('shop_cart.col_product')" min-width="200">
             <template #default="{ row }">
               <div class="product-info">
                 <el-image v-if="row.image_url" :src="row.image_url" class="product-img" fit="cover" />
                 <div>
-                  <div class="product-name">{{ row.product_name || (row.sku?.product_name || '商品') }}</div>
+                  <div class="product-name">{{ row.product_name || (row.sku?.product_name || t('shop_cart.product')) }}</div>
                   <div class="product-spec">{{ cycleLabel(row.billing_cycle || row.sku?.billing_cycle) }}</div>
                   <div v-if="row.price_changed" class="price-warning">
                     <el-tag size="small" type="warning">¥{{ row.current_price }}</el-tag>
@@ -37,10 +35,10 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="单价" width="120" align="center">
+          <el-table-column :label="t('shop_cart.col_price')" width="120" align="center">
             <template #default="{ row }">¥{{ (row.unit_price || row.sku?.price || 0).toFixed(2) }}</template>
           </el-table-column>
-          <el-table-column label="数量" width="140" align="center">
+          <el-table-column :label="t('shop_cart.col_qty')" width="140" align="center">
             <template #default="{ row }">
               <el-input-number
                 :model-value="row.quantity"
@@ -52,21 +50,57 @@
               />
             </template>
           </el-table-column>
-          <el-table-column label="小计" width="120" align="center">
+          <el-table-column :label="t('shop_cart.col_subtotal')" width="120" align="center">
             <template #default="{ row }">¥{{ (row.subtotal || (row.unit_price || row.sku?.price || 0) * row.quantity).toFixed(2) }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="80" align="center">
+          <el-table-column :label="t('shop_cart.col_actions')" width="80" align="center">
             <template #default="{ row }">
-              <el-button type="danger" size="small" text @click="removeItem(row)">删除</el-button>
+              <el-button type="danger" size="small" text @click="removeItem(row)">{{ t('shop_cart.remove') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
+        </div>
       </el-card>
 
-      <!-- 优惠券 -->
+      <div v-else class="cart-mobile-list">
+        <el-card v-for="row in items" :key="row.sku_id || row.id" shadow="hover" class="cart-mobile-item">
+          <div class="product-info">
+            <el-image v-if="row.image_url" :src="row.image_url" class="product-img" fit="cover" />
+            <div class="product-info-text">
+              <div class="product-name">{{ row.product_name || (row.sku?.product_name || t('shop_cart.product')) }}</div>
+              <div class="product-spec">{{ cycleLabel(row.billing_cycle || row.sku?.billing_cycle) }}</div>
+              <div v-if="row.price_changed" class="price-warning">
+                <el-tag size="small" type="warning">¥{{ row.current_price }}</el-tag>
+                <span class="old-price">¥{{ row.unit_price }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="cart-mobile-row">
+            <span class="cart-mobile-label">{{ t('shop_cart.col_price') }}</span>
+            <span>¥{{ (row.unit_price || row.sku?.price || 0).toFixed(2) }}</span>
+          </div>
+          <div class="cart-mobile-row">
+            <span class="cart-mobile-label">{{ t('shop_cart.col_qty') }}</span>
+            <el-input-number
+              :model-value="row.quantity"
+              :min="1"
+              :max="99"
+              size="small"
+              :disabled="updating === row.sku_id"
+              @change="(val) => updateQuantity(row, val)"
+            />
+          </div>
+          <div class="cart-mobile-row">
+            <span class="cart-mobile-label">{{ t('shop_cart.col_subtotal') }}</span>
+            <strong>¥{{ (row.subtotal || (row.unit_price || row.sku?.price || 0) * row.quantity).toFixed(2) }}</strong>
+          </div>
+          <el-button type="danger" size="small" text class="cart-mobile-remove" @click="removeItem(row)">{{ t('shop_cart.remove') }}</el-button>
+        </el-card>
+      </div>
+
       <el-card shadow="hover" class="mt-4">
         <div class="coupon-section">
-          <span class="coupon-label">优惠券:</span>
+          <span class="coupon-label">{{ t('shop_cart.coupon') }}</span>
           <div v-if="summary.coupon_code" class="coupon-applied">
             <el-tag closable type="success" @close="handleRemoveCoupon">
               {{ summary.coupon_code }}
@@ -74,51 +108,53 @@
             <span class="coupon-discount">-¥{{ (summary.coupon_discount || 0).toFixed(2) }}</span>
           </div>
           <div v-else class="coupon-input">
-            <el-input v-model="couponCode" placeholder="请输入优惠码" size="small" class="coupon-input-field" />
-            <el-button size="small" :loading="couponLoading" @click="handleApplyCoupon">应用</el-button>
+            <el-input v-model="couponCode" :placeholder="t('shop_cart.coupon_ph')" size="small" class="coupon-input-field" />
+            <el-button size="small" :loading="couponLoading" @click="handleApplyCoupon">{{ t('shop_cart.apply') }}</el-button>
           </div>
         </div>
       </el-card>
 
-      <!-- 汇总 -->
       <el-card shadow="hover" class="mt-4">
         <div class="cart-summary">
           <div class="summary-row">
-            <span>商品小计:</span>
+            <span>{{ t('shop_cart.items_subtotal') }}</span>
             <span>¥{{ (summary.subtotal || totalAmount).toFixed(2) }}</span>
           </div>
           <div v-if="summary.coupon_discount > 0" class="summary-row discount">
-            <span>优惠折扣:</span>
+            <span>{{ t('shop_cart.discount') }}</span>
             <span>-¥{{ (summary.coupon_discount || 0).toFixed(2) }}</span>
           </div>
           <div class="summary-row total">
-            <span>应付金额:</span>
+            <span>{{ t('shop_cart.payable') }}</span>
             <span class="total-price">¥{{ (summary.final_amount || totalAmount).toFixed(2) }}</span>
           </div>
         </div>
         <div class="cart-actions">
-          <el-button @click="handleClear">清空购物车</el-button>
+          <el-button @click="handleClear">{{ t('shop_cart.clear') }}</el-button>
           <el-button type="primary" size="large" :loading="checkoutLoading" @click="goCheckout">
-            去结算
+            {{ t('shop_cart.checkout') }}
           </el-button>
         </div>
       </el-card>
     </template>
 
-    <!-- 空购物车 -->
-    <el-empty v-else description="购物车是空的" :image-size="80">
-      <el-button type="primary" @click="$router.push('/portal/shop')">去逛逛</el-button>
+    <el-empty v-else :description="t('shop_cart.empty')" :image-size="80">
+      <el-button type="primary" @click="$router.push('/portal/shop')">{{ t('shop_cart.go_shop') }}</el-button>
     </el-empty>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRouter } from 'vue-router';
+import { useResponsive } from '@/composables/useResponsive';
 import shopApi from '@/api/shop';
 
+const { t } = useI18n();
 const router = useRouter();
+const { isMobile } = useResponsive();
 
 const loading = ref(false);
 const items = ref([]);
@@ -160,7 +196,7 @@ async function updateQuantity(row, val) {
     await shopApi.updateCartItem({ sku_id: row.sku_id, quantity: val });
     await loadCart();
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '更新失败');
+    ElMessage.error(e.response?.data?.message || t('shop_cart.update_fail'));
     await loadCart();
   } finally {
     updating.value = null;
@@ -170,35 +206,35 @@ async function updateQuantity(row, val) {
 async function removeItem(row) {
   try {
     await shopApi.removeFromCart(row.sku_id);
-    ElMessage.success('已移除');
+    ElMessage.success(t('shop_cart.removed'));
     await loadCart();
   } catch {
-    ElMessage.error('移除失败');
+    ElMessage.error(t('shop_cart.remove_fail'));
   }
 }
 
 async function handleClear() {
   try {
-    await ElMessageBox.confirm('确定清空购物车？');
+    await ElMessageBox.confirm(t('shop_cart.clear_confirm'));
     await shopApi.clearCart();
-    ElMessage.success('已清空');
+    ElMessage.success(t('shop_cart.cleared'));
     await loadCart();
   } catch {}
 }
 
 async function handleApplyCoupon() {
   if (!couponCode.value.trim()) {
-    ElMessage.warning('请输入优惠码');
+    ElMessage.warning(t('shop_cart.coupon_required'));
     return;
   }
   couponLoading.value = true;
   try {
     const res = await shopApi.applyCoupon(couponCode.value.trim());
-    ElMessage.success(res.data?.message || '优惠券已应用');
+    ElMessage.success(res.data?.message || t('shop_cart.coupon_applied'));
     couponCode.value = '';
     await loadCart();
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '优惠券无效');
+    ElMessage.error(e.response?.data?.message || t('shop_cart.coupon_invalid'));
   } finally {
     couponLoading.value = false;
   }
@@ -207,43 +243,47 @@ async function handleApplyCoupon() {
 async function handleRemoveCoupon() {
   try {
     await shopApi.removeCoupon();
-    ElMessage.success('优惠券已移除');
+    ElMessage.success(t('shop_cart.coupon_removed'));
     await loadCart();
   } catch {
-    ElMessage.error('移除失败');
+    ElMessage.error(t('shop_cart.remove_fail'));
   }
 }
 
 async function goCheckout() {
   if (!items.value.length) {
-    ElMessage.warning('购物车为空');
+    ElMessage.warning(t('shop_cart.cart_empty_warn'));
     return;
   }
 
   checkoutLoading.value = true;
   try {
-    // 直接下单
     const res = await shopApi.checkout({});
     const order = res.data?.data || res.data;
     const orderId = order?.id;
     if (orderId) {
-      ElMessage.success('订单已创建');
+      ElMessage.success(t('shop_cart.order_ok'));
       window.location.href = `/portal/payment-result/${orderId}`;
     }
   } catch (e) {
-    ElMessage.error(e?.response?.data?.message || '下单失败');
+    ElMessage.error(e?.response?.data?.message || t('shop_cart.order_fail'));
   } finally {
     checkoutLoading.value = false;
   }
 }
 
 function cycleLabel(c) {
-  return { monthly: '月付', yearly: '年付', lifetime: '终身', 'one-time': '一次性' }[c] || c || '';
+  return {
+    monthly: t('shop_cart.cycle_monthly'),
+    yearly: t('shop_cart.cycle_yearly'),
+    lifetime: t('shop_cart.cycle_lifetime'),
+    'one-time': t('shop_cart.cycle_onetime'),
+  }[c] || c || '';
 }
 </script>
 
 <style scoped>
-.cart-page { padding: 24px; max-width: 960px; margin: 0 auto; }
+.cart-page { padding: 24px; max-width: 960px; margin: 0 auto; min-width: 0; overflow-x: clip; }
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .page-header h1 { margin: 0; font-size: 22px; }
 .mb-4 { margin-bottom: 16px; }
@@ -270,6 +310,13 @@ function cycleLabel(c) {
 .total-price { font-size: 24px; font-weight: 700; color: #F56C6C; }
 
 .cart-actions { display: flex; justify-content: flex-end; gap: 12px; }
+
+.cart-mobile-list { display: flex; flex-direction: column; gap: 12px; }
+.cart-mobile-item { width: 100%; }
+.cart-mobile-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 14px; }
+.cart-mobile-label { color: #909399; font-size: 13px; flex-shrink: 0; }
+.cart-mobile-remove { margin-top: 8px; padding-left: 0; }
+.product-info-text { min-width: 0; flex: 1; }
 
 @media (max-width: 768px) {
     .cart-page { padding: 12px; }

@@ -1,12 +1,17 @@
 <template>
     <div class="not-found">
-        <el-result icon="warning" title="404" sub-title="页面不存在">
+        <el-result icon="warning" title="404" :sub-title="t('not_found.subtitle')">
             <template #extra>
-                <el-button type="primary" @click="$router.push('/dashboard')">返回首页</el-button>
+                <el-button type="primary" @click="$router.push('/dashboard')">{{ t('not_found.back_home') }}</el-button>
             </template>
         </el-result>
     </div>
 </template>
+
+<script setup>
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
+</script>
 
 <style scoped>
 .not-found {

@@ -1,14 +1,13 @@
 <template>
   <div class="personalization-admin">
-    <h2 class="mb-4">AI 个性化管理</h2>
+    <h2 class="mb-4">{{ t('personalization_page.title') }}</h2>
 
-    <!-- 概览统计 -->
     <el-row :gutter="20" class="mb-4">
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value">{{ adminStats.total_events }}</div>
-            <div class="stat-label">总行为事件</div>
+            <div class="stat-label">{{ t('personalization_page.stats.total_events') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -16,7 +15,7 @@
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value text-success">{{ adminStats.today_events }}</div>
-            <div class="stat-label">今日事件</div>
+            <div class="stat-label">{{ t('personalization_page.stats.today_events') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -24,7 +23,7 @@
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value text-warning">{{ adminStats.active_recommendations }}</div>
-            <div class="stat-label">活跃推荐</div>
+            <div class="stat-label">{{ t('personalization_page.stats.active_recs') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -32,38 +31,36 @@
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value">{{ adminStats.clicked_recommendations }}</div>
-            <div class="stat-label">已点击推荐</div>
+            <div class="stat-label">{{ t('personalization_page.stats.clicked_recs') }}</div>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 操作栏 -->
     <el-row :gutter="20" class="mb-4">
       <el-col :span="24">
         <el-card shadow="hover">
-          <template #header>操作</template>
+          <template #header>{{ t('personalization_page.actions_title') }}</template>
           <el-button type="primary" :loading="refreshing" @click="refreshAll">
-            刷新所有客户推荐
+            {{ t('personalization_page.refresh_all') }}
           </el-button>
-          <el-button type="success" @click="loadData">刷新统计</el-button>
+          <el-button type="success" @click="loadData">{{ t('personalization_page.refresh_stats') }}</el-button>
           <span class="text-muted ml-3" v-if="adminStats.customer_count">
-            共 {{ adminStats.customer_count }} 个客户
+            {{ t('personalization_page.customer_count', { n: adminStats.customer_count }) }}
           </span>
         </el-card>
       </el-col>
     </el-row>
 
     <el-tabs v-model="activeTab" type="border-card">
-      <!-- 行为分析 -->
-      <el-tab-pane label="行为分析" name="behaviors">
+      <el-tab-pane :label="t('personalization_page.tabs.behaviors')" name="behaviors">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-card shadow="hover" class="mb-3">
-              <template #header>事件类型分布</template>
+              <template #header>{{ t('personalization_page.event_type_dist') }}</template>
               <el-table :data="behaviorStats.by_type" stripe size="small">
-                <el-table-column label="事件类型" prop="event_type" min-width="160" />
-                <el-table-column label="次数" prop="cnt" width="100">
+                <el-table-column :label="t('personalization_page.cols.event_type')" prop="event_type" min-width="160" />
+                <el-table-column :label="t('personalization_page.cols.count')" prop="cnt" width="100">
                   <template #default="{ row }"><el-tag>{{ row.cnt }}</el-tag></template>
                 </el-table-column>
               </el-table>
@@ -71,10 +68,10 @@
           </el-col>
           <el-col :span="12">
             <el-card shadow="hover" class="mb-3">
-              <template #header>近7天趋势</template>
+              <template #header>{{ t('personalization_page.daily_trend') }}</template>
               <el-table :data="behaviorStats.daily_trend" stripe size="small">
-                <el-table-column label="日期" prop="date" width="140" />
-                <el-table-column label="事件数" prop="cnt" width="100">
+                <el-table-column :label="t('personalization_page.cols.date')" prop="date" width="140" />
+                <el-table-column :label="t('personalization_page.cols.event_count')" prop="cnt" width="100">
                   <template #default="{ row }"><el-tag :type="row.cnt > 50 ? 'success' : 'info'">{{ row.cnt }}</el-tag></template>
                 </el-table-column>
               </el-table>
@@ -83,59 +80,57 @@
         </el-row>
 
         <el-card shadow="hover">
-          <template #header>活跃客户 Top 10</template>
+          <template #header>{{ t('personalization_page.top_customers') }}</template>
           <el-table :data="behaviorStats.top_customers" stripe size="small">
-            <el-table-column label="客户" prop="customer?.name" min-width="200" />
-            <el-table-column label="事件数" prop="cnt" width="120">
+            <el-table-column :label="t('personalization_page.cols.customer')" prop="customer?.name" min-width="200" />
+            <el-table-column :label="t('personalization_page.cols.event_count')" prop="cnt" width="120">
               <template #default="{ row }"><el-tag type="warning">{{ row.cnt }}</el-tag></template>
             </el-table-column>
           </el-table>
         </el-card>
       </el-tab-pane>
 
-      <!-- 个性化推荐 -->
-      <el-tab-pane label="个性化推荐" name="recommendations">
+      <el-tab-pane :label="t('personalization_page.tabs.recommendations')" name="recommendations">
         <el-card shadow="hover">
           <template #header>
             <div class="flex justify-between items-center">
-              <span>活跃推荐列表</span>
+              <span>{{ t('personalization_page.active_recs_list') }}</span>
               <div>
-                <el-button size="small" type="primary" @click="generateForCustomer">为指定客户生成</el-button>
+                <el-button size="small" type="primary" @click="generateForCustomer">{{ t('personalization_page.gen_for_customer') }}</el-button>
               </div>
             </div>
           </template>
-          <el-table :data="recommendations" stripe v-loading="loading.recs" size="small" empty-text="暂无活跃推荐">
-            <el-table-column label="类型" prop="recommendation_type" width="100">
+          <el-table :data="recommendations" stripe v-loading="loading.recs" size="small" :empty-text="t('personalization_page.empty_recs')">
+            <el-table-column :label="t('personalization_page.cols.type')" prop="recommendation_type" width="100">
               <template #default="{ row }">
                 <el-tag :type="recTypeTag(row.recommendation_type)" size="small">{{ recTypeLabel(row.recommendation_type) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="推荐理由" prop="reason" min-width="240" show-overflow-tooltip />
-            <el-table-column label="分数" prop="score" width="80">
+            <el-table-column :label="t('personalization_page.cols.reason')" prop="reason" min-width="240" show-overflow-tooltip />
+            <el-table-column :label="t('personalization_page.cols.score')" prop="score" width="80">
               <template #default="{ row }">
                 <el-tag :type="row.score > 0.8 ? 'success' : row.score > 0.5 ? 'warning' : 'info'" size="small">{{ row.score }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="来源" prop="source" width="80">
+            <el-table-column :label="t('personalization_page.cols.source')" prop="source" width="80">
               <template #default="{ row }">
                 <el-tag size="small">{{ sourceLabel(row.source) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="创建时间" prop="created_at" width="160" />
+            <el-table-column :label="t('personalization_page.cols.created_at')" prop="created_at" width="160" />
           </el-table>
         </el-card>
       </el-tab-pane>
 
-      <!-- 偏好管理 -->
-      <el-tab-pane label="偏好管理" name="preferences">
+      <el-tab-pane :label="t('personalization_page.tabs.preferences')" name="preferences">
         <el-card shadow="hover">
-          <template #header>用户偏好设置</template>
+          <template #header>{{ t('personalization_page.pref_title') }}</template>
           <el-table :data="preferenceKeys" stripe size="small">
-            <el-table-column label="偏好键" prop="key" width="180" />
-            <el-table-column label="说明" prop="label" min-width="200" />
-            <el-table-column label="操作" width="120">
+            <el-table-column :label="t('personalization_page.cols.pref_key')" prop="key" width="180" />
+            <el-table-column :label="t('personalization_page.cols.pref_label')" prop="label" min-width="200" />
+            <el-table-column :label="t('personalization_page.cols.actions')" width="120">
               <template #default="{ row }">
-                <el-button link size="small" type="primary" @click="editPreference(row)">设置</el-button>
+                <el-button link size="small" type="primary" @click="editPreference(row)">{{ t('personalization_page.set') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -143,44 +138,45 @@
       </el-tab-pane>
     </el-tabs>
 
-    <!-- 生成推荐对话框 -->
-    <el-dialog v-model="genDialog.visible" title="为客户生成推荐" width="420">
+    <el-dialog v-model="genDialog.visible" :title="t('personalization_page.gen_dialog_title')" width="420">
       <el-form :model="genDialog">
-        <el-form-item label="客户ID">
+        <el-form-item :label="t('personalization_page.customer_id')">
           <el-input-number v-model="genDialog.customer_id" :min="1" style="width:100%" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="genDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="genDialog.loading" @click="doGenerateForCustomer">生成</el-button>
+        <el-button @click="genDialog.visible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="genDialog.loading" @click="doGenerateForCustomer">{{ t('personalization_page.generate') }}</el-button>
       </template>
     </el-dialog>
 
-    <!-- 设置偏好对话框 -->
-    <el-dialog v-model="prefDialog.visible" title="设置偏好" width="420">
+    <el-dialog v-model="prefDialog.visible" :title="t('personalization_page.pref_dialog_title')" width="420">
       <el-form :model="prefDialog">
-        <el-form-item label="键">
+        <el-form-item :label="t('personalization_page.pref_key')">
           <el-input v-model="prefDialog.key" disabled />
         </el-form-item>
-        <el-form-item label="值">
+        <el-form-item :label="t('personalization_page.pref_value')">
           <el-input v-model="prefDialog.value" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="prefDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="prefDialog.saving" @click="doSetPreference">保存</el-button>
+        <el-button @click="prefDialog.visible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="prefDialog.saving" @click="doSetPreference">{{ t('actions.save') }}</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import {
   getPersonalizationAdminDashboard, getBehaviorStats, getRecommendations,
   generateRecommendations, refreshAllRecommendations, setPreference,
 } from '../../api/personalization'
+
+const { t } = useI18n()
 
 const activeTab = ref('behaviors')
 const refreshing = ref(false)
@@ -192,25 +188,25 @@ const recommendations = ref([])
 const genDialog = reactive({ visible: false, customer_id: null, loading: false })
 const prefDialog = reactive({ visible: false, key: '', value: '', saving: false })
 
-const preferenceKeys = [
-  { key: 'preferred_layout', label: '偏好布局' },
-  { key: 'content_focus', label: '内容焦点' },
-  { key: 'notification_freq', label: '通知频率' },
-  { key: 'dashboard_widgets', label: '仪表盘组件' },
-  { key: 'theme', label: '主题偏好' },
-]
+const preferenceKeys = computed(() => [
+  { key: 'preferred_layout', label: t('personalization_page.prefs.preferred_layout') },
+  { key: 'content_focus', label: t('personalization_page.prefs.content_focus') },
+  { key: 'notification_freq', label: t('personalization_page.prefs.notification_freq') },
+  { key: 'dashboard_widgets', label: t('personalization_page.prefs.dashboard_widgets') },
+  { key: 'theme', label: t('personalization_page.prefs.theme') },
+])
 
-function recTypeTag(t) {
+function recTypeTag(type) {
   const map = { license: 'success', feature: 'primary', addon: 'warning', article: 'info', product: 'danger' }
-  return map[t] || ''
+  return map[type] || ''
 }
-function recTypeLabel(t) {
-  const map = { license: '套餐', feature: '功能', addon: '增值', article: '文章', product: '产品' }
-  return map[t] || t
+function recTypeLabel(type) {
+  const key = { license: 'license', feature: 'feature', addon: 'addon', article: 'article', product: 'product' }[type]
+  return key ? t(`personalization_page.rec_types.${key}`) : type
 }
 function sourceLabel(s) {
-  const map = { rule: '规则', rfm: 'RFM', behavior: '行为', llm: 'LLM' }
-  return map[s] || s
+  const key = { rule: 'rule', rfm: 'rfm', behavior: 'behavior', llm: 'llm' }[s]
+  return key ? t(`personalization_page.sources.${key}`) : s
 }
 
 async function loadData() {
@@ -223,16 +219,16 @@ async function loadData() {
     adminStats.value = statsRes.data || {}
     behaviorStats.value = behavRes.data || {}
     recommendations.value = Array.isArray(recsRes.data) ? recsRes.data : []
-  } catch (e) { ElMessage.error('加载数据失败') }
+  } catch (e) { ElMessage.error(t('personalization_page.messages.load_failed')) }
 }
 
 async function refreshAll() {
   refreshing.value = true
   try {
     const { data } = await refreshAllRecommendations()
-    ElMessage.success(`已刷新 ${data.refreshed}/${data.total} 个客户的推荐`)
+    ElMessage.success(t('personalization_page.messages.refreshed', { refreshed: data.refreshed, total: data.total }))
     loadData()
-  } catch (e) { ElMessage.error('刷新失败') }
+  } catch (e) { ElMessage.error(t('personalization_page.messages.refresh_failed')) }
   finally { refreshing.value = false }
 }
 
@@ -245,9 +241,9 @@ async function doGenerateForCustomer() {
   genDialog.loading = true
   try {
     await generateRecommendations(genDialog.customer_id)
-    ElMessage.success('推荐已生成')
+    ElMessage.success(t('personalization_page.messages.generated'))
     genDialog.visible = false
-  } catch (e) { ElMessage.error('生成失败') }
+  } catch (e) { ElMessage.error(t('personalization_page.messages.gen_failed')) }
   finally { genDialog.loading = false }
 }
 
@@ -261,9 +257,9 @@ async function doSetPreference() {
   prefDialog.saving = true
   try {
     await setPreference(prefDialog.key, prefDialog.value)
-    ElMessage.success('偏好已保存')
+    ElMessage.success(t('personalization_page.messages.pref_saved'))
     prefDialog.visible = false
-  } catch (e) { ElMessage.error('保存失败') }
+  } catch (e) { ElMessage.error(t('personalization_page.messages.save_failed')) }
   finally { prefDialog.saving = false }
 }
 

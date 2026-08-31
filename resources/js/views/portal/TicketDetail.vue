@@ -1,11 +1,9 @@
 <template>
     <div class="portal-ticket-detail" v-loading="loading">
-        <el-page-header @back="$router.push('/portal/tickets')" :content="`工单 #${ticket.id}`" />
+        <el-page-header @back="$router.push('/portal/tickets')" :content="$t('portal.ticket_n', { id: ticket.id })" />
 
         <el-row :gutter="16" class="mt-4">
-            <!-- 左侧：工单内容和回复 -->
             <el-col :span="16">
-                <!-- 工单主体 -->
                 <el-card class="mb-4">
                     <div class="ticket-header">
                         <div class="ticket-meta">
@@ -24,15 +22,14 @@
                     <h3 class="ticket-title">{{ ticket.subject || ticket.title }}</h3>
                     <div class="ticket-description">{{ ticket.description }}</div>
                     <div class="ticket-footer">
-                        <span class="ticket-author">{{ ticket.customer?.name || ticket.user?.name || '您' }}</span>
+                        <span class="ticket-author">{{ ticket.customer?.name || ticket.user?.name || $t('portal.you') }}</span>
                         <span class="ticket-time">{{ ticket.created_at }}</span>
                     </div>
                 </el-card>
 
-                <!-- 回复列表 -->
                 <el-card class="mb-4">
                     <template #header>
-                        <span>回复 ({{ replies.length }})</span>
+                        <span>{{ $t('portal.replies_n', { n: replies.length }) }}</span>
                     </template>
 
                     <div v-if="replies.length" class="replies-list">
@@ -46,8 +43,8 @@
                                         </template>
                                     </el-avatar>
                                     <span class="reply-name">
-                                        {{ reply.user?.name || reply.admin?.name || '客服' }}
-                                        <el-tag v-if="reply.is_admin" size="small" type="primary" class="staff-tag">客服</el-tag>
+                                        {{ reply.user?.name || reply.admin?.name || $t('portal.staff') }}
+                                        <el-tag v-if="reply.is_admin" size="small" type="primary" class="staff-tag">{{ $t('portal.staff') }}</el-tag>
                                     </span>
                                 </div>
                                 <span class="reply-time">{{ reply.created_at }}</span>
@@ -55,43 +52,49 @@
                             <div class="reply-body">{{ reply.content || reply.body || reply.message }}</div>
                         </div>
                     </div>
-                    <el-empty v-else description="暂无回复，请耐心等待" :image-size="60" />
+                    <el-empty v-else :description="$t('portal.no_replies')" :image-size="60" />
                 </el-card>
 
-                <!-- 回复框 -->
                 <el-card v-if="canReply" shadow="never">
                     <template #header>
-                        <span>添加回复</span>
+                        <span>{{ $t('portal.add_reply') }}</span>
                     </template>
                     <el-input
                         v-model="replyBody"
                         type="textarea"
                         :rows="4"
-                        placeholder="输入您的回复内容..."
+                        :placeholder="$t('portal.reply_ph')"
                     />
                     <div class="reply-actions">
                         <el-button type="primary" @click="handleReply" :loading="replying" :disabled="!replyBody.trim()">
-                            发送回复
+                            {{ $t('portal.send_reply') }}
                         </el-button>
                     </div>
                 </el-card>
             </el-col>
 
-            <!-- 右侧：操作面板 -->
             <el-col :span="8">
-                <!-- 状态操作 -->
                 <el-card class="mb-4">
                     <template #header>
-                        <span>工单操作</span>
+                        <span>{{ $t('portal.ticket_actions') }}</span>
                     </template>
                     <div class="action-list">
+                        <el-button
+                            class="action-btn"
+                            type="primary"
+                            plain
+                            :loading="contactingSupport"
+                            @click="contactAftersale"
+                        >
+                            {{ $t('portal.contact_aftersale') }}
+                        </el-button>
                         <el-button
                             v-if="ticket.status === 'resolved'"
                             class="action-btn"
                             @click="handleAction('reopen')"
                             :icon="Refresh"
                         >
-                            重新打开
+                            {{ $t('portal.reopen_ticket') }}
                         </el-button>
                         <el-button
                             v-if="ticket.status === 'open' || ticket.status === 'in_progress'"
@@ -100,7 +103,7 @@
                             @click="handleAction('resolve')"
                             :icon="CircleCheck"
                         >
-                            标记已解决
+                            {{ $t('portal.mark_resolved') }}
                         </el-button>
                         <el-button
                             v-if="ticket.status !== 'closed'"
@@ -110,34 +113,32 @@
                             @click="handleAction('close')"
                             :icon="CircleClose"
                         >
-                            关闭工单
+                            {{ $t('portal.close_ticket') }}
                         </el-button>
                     </div>
                 </el-card>
 
-                <!-- 工单信息 -->
                 <el-card class="mb-4">
                     <template #header>
-                        <span>工单信息</span>
+                        <span>{{ $t('portal.ticket_info') }}</span>
                     </template>
                     <el-descriptions :column="1" direction="vertical" border size="small">
-                        <el-descriptions-item label="创建时间">{{ ticket.created_at }}</el-descriptions-item>
-                        <el-descriptions-item label="最后更新">{{ ticket.updated_at }}</el-descriptions-item>
-                        <el-descriptions-item label="优先级">
+                        <el-descriptions-item :label="$t('portal.created_at')">{{ ticket.created_at }}</el-descriptions-item>
+                        <el-descriptions-item :label="$t('portal.updated_at')">{{ ticket.updated_at }}</el-descriptions-item>
+                        <el-descriptions-item :label="$t('portal.priority')">
                             <el-tag :type="priorityType(ticket.priority)" size="small">
                                 {{ priorityLabel(ticket.priority) }}
                             </el-tag>
                         </el-descriptions-item>
-                        <el-descriptions-item label="处理人">{{ ticket.assigned_to?.name || '未分配' }}</el-descriptions-item>
+                        <el-descriptions-item :label="$t('portal.assignee')">{{ ticket.assigned_to?.name || $t('portal.unassigned') }}</el-descriptions-item>
                     </el-descriptions>
                 </el-card>
 
-                <!-- 满意度评价 -->
                 <el-card v-if="ticket.status === 'resolved' && !rated" shadow="never">
                     <template #header>
-                        <span>满意度评价</span>
+                        <span>{{ $t('portal.satisfaction') }}</span>
                     </template>
-                    <p class="rate-hint">请对我们的服务进行评价</p>
+                    <p class="rate-hint">{{ $t('portal.rate_hint') }}</p>
                     <div class="rate-stars">
                         <el-rate v-model="satisfactionRating" :max="5" @change="handleSatisfaction" />
                     </div>
@@ -149,11 +150,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import ticketApi from '@/api/ticket';
+import apiClient from '@/utils/request';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh, CircleCheck, CircleClose } from '@element-plus/icons-vue';
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const loading = ref(false);
@@ -163,30 +167,39 @@ const replies = ref([]);
 const replyBody = ref('');
 const satisfactionRating = ref(0);
 const rated = ref(false);
+const contactingSupport = ref(false);
 
 const canReply = computed(() => {
     return ['open', 'replied', 'in_progress'].includes(ticket.value.status);
 });
 
-const STATUS_MAP = {
-    open: { type: 'danger', label: '待处理' },
-    replied: { type: 'warning', label: '已回复' },
-    in_progress: { type: 'primary', label: '处理中' },
-    resolved: { type: 'success', label: '已解决' },
-    closed: { type: 'info', label: '已关闭' },
-};
-
-const PRIORITY_MAP = {
-    low: { type: 'info', label: '低' },
-    medium: { type: '', label: '普通' },
-    high: { type: 'warning', label: '高' },
-    urgent: { type: 'danger', label: '紧急' },
-};
-
-function statusType(s) { return STATUS_MAP[s]?.type || 'info'; }
-function statusLabel(s) { return STATUS_MAP[s]?.label || s; }
-function priorityType(p) { return PRIORITY_MAP[p]?.type || 'info'; }
-function priorityLabel(p) { return PRIORITY_MAP[p]?.label || p; }
+function statusType(s) {
+    const map = { open: 'danger', replied: 'warning', in_progress: 'primary', resolved: 'success', closed: 'info' };
+    return map[s] || 'info';
+}
+function statusLabel(s) {
+    const map = {
+        open: t('portal.ticket_open'),
+        replied: t('portal.ticket_replied'),
+        in_progress: t('portal.ticket_progress'),
+        resolved: t('portal.ticket_resolved'),
+        closed: t('portal.ticket_closed'),
+    };
+    return map[s] || s;
+}
+function priorityType(p) {
+    const map = { low: 'info', medium: '', high: 'warning', urgent: 'danger' };
+    return map[p] || 'info';
+}
+function priorityLabel(p) {
+    const map = {
+        low: t('portal.priority_low'),
+        medium: t('portal.priority_medium'),
+        high: t('portal.priority_high'),
+        urgent: t('portal.priority_urgent'),
+    };
+    return map[p] || p;
+}
 
 async function fetchDetail() {
     const id = route.params.id;
@@ -197,15 +210,33 @@ async function fetchDetail() {
         ticket.value = res.data || {};
         replies.value = res.data?.public_replies || res.data?.publicReplies || res.data?.replies || [];
 
-        // Check if already rated
         if (res.data?.satisfaction_rating) {
             rated.value = true;
             satisfactionRating.value = res.data.satisfaction_rating;
         }
     } catch {
-        ElMessage.error('获取工单详情失败');
+        ElMessage.error(t('portal.ticket_detail_failed'));
     } finally {
         loading.value = false;
+    }
+}
+
+async function contactAftersale() {
+    if (!ticket.value?.id || contactingSupport.value) return;
+    contactingSupport.value = true;
+    try {
+        const res = await apiClient.post('/user-chat/ticket-inquiry', { ticket_id: ticket.value.id });
+        const conv = res.data?.data?.conversation;
+        ElMessage.success(t('portal.ticket_inquiry_sent'));
+        if (conv?.id) {
+            router.push({ name: 'UserChat', query: { conv: String(conv.id) } });
+        } else {
+            router.push({ name: 'UserChat' });
+        }
+    } catch (e) {
+        ElMessage.error(e.response?.data?.message || t('portal.ticket_inquiry_failed'));
+    } finally {
+        contactingSupport.value = false;
     }
 }
 
@@ -214,11 +245,11 @@ async function handleReply() {
     replying.value = true;
     try {
         await ticketApi.reply(ticket.value.id, { content: replyBody.value });
-        ElMessage.success('回复已发送');
+        ElMessage.success(t('portal.reply_sent'));
         replyBody.value = '';
         await fetchDetail();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '发送回复失败');
+        ElMessage.error(e.response?.data?.message || t('portal.reply_failed'));
     } finally {
         replying.value = false;
     }
@@ -226,22 +257,22 @@ async function handleReply() {
 
 async function handleAction(action) {
     const confirmMessages = {
-        resolve: '确认将此工单标记为已解决？',
-        close: '确认关闭此工单？关闭后如需继续沟通可重新打开。',
-        reopen: '确认重新打开此工单？',
+        resolve: t('portal.confirm_resolve'),
+        close: t('portal.confirm_close_ticket'),
+        reopen: t('portal.confirm_reopen'),
     };
     try {
         await ElMessageBox.confirm(
-            confirmMessages[action] || `确认执行 ${action} 操作？`,
-            '操作确认',
-            { confirmButtonText: '确认', cancelButtonText: '取消', type: 'info' }
+            confirmMessages[action] || t('portal.confirm_action', { action }),
+            t('portal.action_confirm_title'),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'info' }
         );
         await ticketApi[action](ticket.value.id);
-        ElMessage.success('操作成功');
+        ElMessage.success(t('portal.action_ok'));
         await fetchDetail();
     } catch (e) {
         if (e !== 'cancel') {
-            ElMessage.error(e.response?.data?.message || '操作失败');
+            ElMessage.error(e.response?.data?.message || t('messages.failed'));
         }
     }
 }
@@ -250,9 +281,9 @@ async function handleSatisfaction(rating) {
     try {
         await ticketApi.satisfaction(ticket.value.id, rating);
         rated.value = true;
-        ElMessage.success('感谢您的评价！');
+        ElMessage.success(t('portal.thanks_rating'));
     } catch {
-        ElMessage.error('提交评价失败');
+        ElMessage.error(t('portal.rating_failed'));
     }
 }
 

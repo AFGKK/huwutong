@@ -1,8 +1,8 @@
 <template>
     <div class="prepaid-balance-page">
         <div class="page-header">
-            <h2>预付余额 & 信用额度管理</h2>
-            <p class="text-muted">管理客户预付余额、充值扣款、信用额度设置与交易对账</p>
+            <h2>{{ t('prepaid_balance_page.title') }}</h2>
+            <p class="text-muted">{{ t('prepaid_balance_page.subtitle') }}</p>
         </div>
 
         <!-- 统计概览 -->
@@ -10,38 +10,38 @@
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ formatMoney(stats.total_balance) }}</div>
-                    <div class="stat-label">总余额</div>
+                    <div class="stat-label">{{ t('prepaid_balance_page.stats.total_balance') }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ formatMoney(stats.total_recharged) }}</div>
-                    <div class="stat-label">累计充值</div>
+                    <div class="stat-label">{{ t('prepaid_balance_page.stats.total_recharged') }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ formatMoney(stats.total_consumed) }}</div>
-                    <div class="stat-label">累计消费</div>
+                    <div class="stat-label">{{ t('prepaid_balance_page.stats.total_consumed') }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ stats.active_accounts }}</div>
-                    <div class="stat-label">活跃账户数</div>
-                    <div class="stat-sub">{{ stats.penetration_rate }}% 渗透率</div>
+                    <div class="stat-label">{{ t('prepaid_balance_page.stats.active_accounts') }}</div>
+                    <div class="stat-sub">{{ t('prepaid_balance_page.stats.penetration_rate', { rate: stats.penetration_rate }) }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ formatMoney(stats.recent_30d_recharges) }}</div>
-                    <div class="stat-label">近30天充值</div>
+                    <div class="stat-label">{{ t('prepaid_balance_page.stats.recent_30d_recharges') }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ stats.auto_recharge_users }}</div>
-                    <div class="stat-label">自动充值用户</div>
+                    <div class="stat-label">{{ t('prepaid_balance_page.stats.auto_recharge_users') }}</div>
                 </el-card>
             </el-col>
         </el-row>
@@ -51,32 +51,32 @@
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card credit">
                     <div class="stat-value">{{ formatMoney(stats.credit?.total_limit) }}</div>
-                    <div class="stat-label">总授信额度</div>
+                    <div class="stat-label">{{ t('prepaid_balance_page.stats.total_credit_limit') }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card credit">
                     <div class="stat-value">{{ formatMoney(stats.credit?.total_used) }}</div>
-                    <div class="stat-label">已使用额度</div>
+                    <div class="stat-label">{{ t('prepaid_balance_page.stats.credit_used') }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card credit">
                     <div class="stat-value">{{ stats.credit?.utilization_rate }}%</div>
-                    <div class="stat-label">额度使用率</div>
+                    <div class="stat-label">{{ t('prepaid_balance_page.stats.credit_utilization') }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card credit">
                     <div class="stat-value">{{ stats.credit?.total_accounts }}</div>
-                    <div class="stat-label">授信账户数</div>
+                    <div class="stat-label">{{ t('prepaid_balance_page.stats.credit_accounts') }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card warning">
                     <div class="stat-value">{{ stats.low_balance_accounts }}</div>
-                    <div class="stat-label">低余额账户</div>
-                    <div class="stat-sub">&lt; ¥50</div>
+                    <div class="stat-label">{{ t('prepaid_balance_page.stats.low_balance_accounts') }}</div>
+                    <div class="stat-sub">{{ t('prepaid_balance_page.stats.low_balance_threshold') }}</div>
                 </el-card>
             </el-col>
         </el-row>
@@ -84,35 +84,38 @@
         <!-- 工具条 -->
         <el-card class="toolbar-card">
             <el-form :inline="true" :model="searchForm" size="small">
-                <el-form-item label="交易类型">
-                    <el-select v-model="searchForm.type" clearable placeholder="全部类型" style="width: 140px">
-                        <el-option label="充值" value="recharge" />
-                        <el-option label="消费" value="consume" />
-                        <el-option label="退款" value="refund" />
-                        <el-option label="调账" value="adjust" />
-                        <el-option label="信用使用" value="credit_use" />
-                        <el-option label="信用偿还" value="credit_repay" />
+                <el-form-item :label="t('prepaid_balance_page.filters.transaction_type')">
+                    <el-select v-model="searchForm.type" clearable :placeholder="t('prepaid_balance_page.placeholders.all_types')" style="width: 140px">
+                        <el-option
+                            v-for="opt in transactionTypeOptions"
+                            :key="opt.value"
+                            :label="opt.label"
+                            :value="opt.value"
+                        />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="状态">
-                    <el-select v-model="searchForm.status" clearable placeholder="全部状态" style="width: 120px">
-                        <el-option label="已完成" value="completed" />
-                        <el-option label="处理中" value="pending" />
-                        <el-option label="失败" value="failed" />
+                <el-form-item :label="t('billing_page.col_status')">
+                    <el-select v-model="searchForm.status" clearable :placeholder="t('prepaid_balance_page.placeholders.all_status')" style="width: 120px">
+                        <el-option
+                            v-for="opt in transactionStatusOptions"
+                            :key="opt.value"
+                            :label="opt.label"
+                            :value="opt.value"
+                        />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="客户ID">
-                    <el-input v-model="searchForm.customer_id" placeholder="输入客户ID" style="width: 120px" clearable />
+                <el-form-item :label="t('prepaid_balance_page.filters.customer_id')">
+                    <el-input v-model="searchForm.customer_id" :placeholder="t('prepaid_balance_page.placeholders.customer_id')" style="width: 120px" clearable />
                 </el-form-item>
-                <el-form-item label="开始日期">
-                    <el-date-picker v-model="searchForm.date_from" type="date" placeholder="开始日期" style="width: 140px" />
+                <el-form-item :label="t('prepaid_balance_page.filters.date_from')">
+                    <el-date-picker v-model="searchForm.date_from" type="date" :placeholder="t('prepaid_balance_page.placeholders.date_from')" style="width: 140px" />
                 </el-form-item>
-                <el-form-item label="结束日期">
-                    <el-date-picker v-model="searchForm.date_to" type="date" placeholder="结束日期" style="width: 140px" />
+                <el-form-item :label="t('prepaid_balance_page.filters.date_to')">
+                    <el-date-picker v-model="searchForm.date_to" type="date" :placeholder="t('prepaid_balance_page.placeholders.date_to')" style="width: 140px" />
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="loadTransactions" :icon="Search">查询</el-button>
-                    <el-button @click="resetSearch" :icon="Refresh">重置</el-button>
+                    <el-button type="primary" @click="loadTransactions" :icon="Search">{{ t('actions.search') }}</el-button>
+                    <el-button @click="resetSearch" :icon="Refresh">{{ t('actions.reset') }}</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -121,57 +124,57 @@
         <el-card class="table-card">
             <template #header>
                 <div class="card-header">
-                    <span><el-icon><List /></el-icon> 交易流水</span>
+                    <span><el-icon><List /></el-icon> {{ t('prepaid_balance_page.table.title') }}</span>
                     <div>
-                        <el-button size="small" @click="loadTransactions" :icon="Refresh">刷新</el-button>
+                        <el-button size="small" @click="loadTransactions" :icon="Refresh">{{ t('prepaid_balance_page.refresh') }}</el-button>
                     </div>
                 </div>
             </template>
 
-            <el-table :data="transactions" v-loading="loading" stripe empty-text="暂无交易记录" style="width: 100%">
-                <el-table-column prop="id" label="ID" width="70" />
-                <el-table-column prop="customer_id" label="客户" width="80">
+            <el-table :data="transactions" v-loading="loading" stripe :empty-text="t('prepaid_balance_page.table.empty')" style="width: 100%">
+                <el-table-column prop="id" :label="t('prepaid_balance_page.table.col_id')" width="70" />
+                <el-table-column prop="customer_id" :label="t('billing_page.col_customer')" width="80">
                     <template #default="{ row }">
                         <router-link :to="`/customers/${row.customer_id}`" class="link">#{{ row.customer_id }}</router-link>
                     </template>
                 </el-table-column>
-                <el-table-column prop="type" label="类型" width="100">
+                <el-table-column prop="type" :label="t('billing_page.col_type')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="typeTag(row.type)" size="small">{{ typeLabel(row.type) }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="amount" label="金额" width="130">
+                <el-table-column prop="amount" :label="t('billing_page.col_amount')" width="130">
                     <template #default="{ row }">
                         <span :class="row.amount >= 0 ? 'text-success' : 'text-danger'">
                             {{ row.amount >= 0 ? '+' : '' }}{{ formatMoney(row.amount) }}
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="balance_before" label="前余额" width="100">
+                <el-table-column prop="balance_before" :label="t('prepaid_balance_page.table.col_balance_before')" width="100">
                     <template #default="{ row }">{{ formatMoney(row.balance_before) }}</template>
                 </el-table-column>
-                <el-table-column prop="balance_after" label="后余额" width="100">
+                <el-table-column prop="balance_after" :label="t('prepaid_balance_page.table.col_balance_after')" width="100">
                     <template #default="{ row }">{{ formatMoney(row.balance_after) }}</template>
                 </el-table-column>
-                <el-table-column prop="status" label="状态" width="90">
+                <el-table-column prop="status" :label="t('billing_page.col_status')" width="90">
                     <template #default="{ row }">
                         <el-tag :type="row.status === 'completed' ? 'success' : row.status === 'pending' ? 'warning' : 'danger'" size="small">
-                            {{ row.status === 'completed' ? '成功' : row.status === 'pending' ? '处理中' : '失败' }}
+                            {{ statusLabel(row.status) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="payment_method" label="支付方式" width="100">
+                <el-table-column prop="payment_method" :label="t('prepaid_balance_page.table.col_payment_method')" width="100">
                     <template #default="{ row }">
                         <span>{{ methodLabel(row.payment_method) }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="description" label="描述" min-width="180" show-overflow-tooltip />
-                <el-table-column prop="created_at" label="时间" width="170">
+                <el-table-column prop="description" :label="t('billing_page.form_description')" min-width="180" show-overflow-tooltip />
+                <el-table-column prop="created_at" :label="t('prepaid_balance_page.table.col_time')" width="170">
                     <template #default="{ row }">{{ row.created_at }}</template>
                 </el-table-column>
-                <el-table-column label="操作" width="120" fixed="right">
+                <el-table-column :label="t('billing_page.col_actions')" width="120" fixed="right">
                     <template #default="{ row }">
-                        <el-button text size="small" type="primary" @click="showTransactionDetail(row)">详情</el-button>
+                        <el-button text size="small" type="primary" @click="showTransactionDetail(row)">{{ t('billing_page.detail') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -188,45 +191,45 @@
         </el-card>
 
         <!-- 交易详情弹窗 -->
-        <el-dialog v-model="detailVisible" title="交易详情" width="600px">
+        <el-dialog v-model="detailVisible" :title="t('prepaid_balance_page.dialog.transaction_detail')" width="600px">
             <el-descriptions v-if="selectedTransaction" :column="2" border>
-                <el-descriptions-item label="交易ID">{{ selectedTransaction.id }}</el-descriptions-item>
-                <el-descriptions-item label="类型">{{ typeLabel(selectedTransaction.type) }}</el-descriptions-item>
-                <el-descriptions-item label="金额" :span="2">
+                <el-descriptions-item :label="t('prepaid_balance_page.detail.transaction_id')">{{ selectedTransaction.id }}</el-descriptions-item>
+                <el-descriptions-item :label="t('billing_page.col_type')">{{ typeLabel(selectedTransaction.type) }}</el-descriptions-item>
+                <el-descriptions-item :label="t('billing_page.col_amount')" :span="2">
                     <span :class="selectedTransaction.amount >= 0 ? 'text-success' : 'text-danger'">
                         {{ selectedTransaction.amount >= 0 ? '+' : '' }}{{ formatMoney(selectedTransaction.amount) }}
                     </span>
                 </el-descriptions-item>
-                <el-descriptions-item label="交易前余额">{{ formatMoney(selectedTransaction.balance_before) }}</el-descriptions-item>
-                <el-descriptions-item label="交易后余额">{{ formatMoney(selectedTransaction.balance_after) }}</el-descriptions-item>
-                <el-descriptions-item label="支付方式">{{ methodLabel(selectedTransaction.payment_method) }}</el-descriptions-item>
-                <el-descriptions-item label="网关交易号">{{ selectedTransaction.gateway_transaction_id || '-' }}</el-descriptions-item>
-                <el-descriptions-item label="币种">{{ selectedTransaction.currency }}</el-descriptions-item>
-                <el-descriptions-item label="状态">
+                <el-descriptions-item :label="t('prepaid_balance_page.detail.balance_before')">{{ formatMoney(selectedTransaction.balance_before) }}</el-descriptions-item>
+                <el-descriptions-item :label="t('prepaid_balance_page.detail.balance_after')">{{ formatMoney(selectedTransaction.balance_after) }}</el-descriptions-item>
+                <el-descriptions-item :label="t('prepaid_balance_page.table.col_payment_method')">{{ methodLabel(selectedTransaction.payment_method) }}</el-descriptions-item>
+                <el-descriptions-item :label="t('prepaid_balance_page.detail.gateway_transaction_id')">{{ selectedTransaction.gateway_transaction_id || '-' }}</el-descriptions-item>
+                <el-descriptions-item :label="t('prepaid_balance_page.detail.currency')">{{ selectedTransaction.currency }}</el-descriptions-item>
+                <el-descriptions-item :label="t('billing_page.col_status')">
                     <el-tag :type="selectedTransaction.status === 'completed' ? 'success' : 'warning'" size="small">
-                        {{ selectedTransaction.status }}
+                        {{ statusLabel(selectedTransaction.status) }}
                     </el-tag>
                 </el-descriptions-item>
-                <el-descriptions-item label="描述" :span="2">{{ selectedTransaction.description }}</el-descriptions-item>
-                <el-descriptions-item label="完成时间">{{ selectedTransaction.completed_at || '-' }}</el-descriptions-item>
-                <el-descriptions-item label="创建时间">{{ selectedTransaction.created_at }}</el-descriptions-item>
+                <el-descriptions-item :label="t('billing_page.form_description')" :span="2">{{ selectedTransaction.description }}</el-descriptions-item>
+                <el-descriptions-item :label="t('prepaid_balance_page.detail.completed_at')">{{ selectedTransaction.completed_at || '-' }}</el-descriptions-item>
+                <el-descriptions-item :label="t('billing_page.col_created')">{{ selectedTransaction.created_at }}</el-descriptions-item>
             </el-descriptions>
         </el-dialog>
 
         <!-- 手动充值/扣款/调账弹窗 -->
         <el-dialog v-model="actionDialog.visible" :title="actionDialog.title" width="500px">
             <el-form :model="actionForm" :rules="actionRules" ref="actionFormRef" label-width="120px">
-                <el-form-item label="客户" v-if="!actionForm.customer_id">
-                    <el-select v-model="actionForm.customer_id" filterable placeholder="选择客户" style="width: 100%">
+                <el-form-item :label="t('billing_page.form_customer')" v-if="!actionForm.customer_id">
+                    <el-select v-model="actionForm.customer_id" filterable :placeholder="t('prepaid_balance_page.placeholders.select_customer')" style="width: 100%">
                         <el-option
                             v-for="c in customerOptions"
                             :key="c.id"
-                            :label="`#${c.id} - ${c.user?.name || 'Unknown'}`"
+                            :label="`#${c.id} - ${c.user?.name || t('prepaid_balance_page.unknown_customer')}`"
                             :value="c.id"
                         />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="金额" prop="amount">
+                <el-form-item :label="t('billing_page.col_amount')" prop="amount">
                     <el-input-number
                         v-model="actionForm.amount"
                         :min="actionDialog.type === 'deduct' ? 0.01 : undefined"
@@ -236,43 +239,43 @@
                         style="width: 200px"
                     />
                     <span class="ml-2">CNY</span>
-                    <div v-if="actionDialog.type === 'adjust'" class="text-muted small">正数=增加，负数=扣减</div>
+                    <div v-if="actionDialog.type === 'adjust'" class="text-muted small">{{ t('prepaid_balance_page.form.adjust_amount_hint') }}</div>
                 </el-form-item>
-                <el-form-item label="说明">
+                <el-form-item :label="t('prepaid_balance_page.form.description')">
                     <el-input v-model="actionForm.description" type="textarea" :rows="2" maxlength="200" show-word-limit />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="actionDialog.visible = false">取消</el-button>
-                <el-button type="primary" @click="executeAction" :loading="actionSubmitting">确认执行</el-button>
+                <el-button @click="actionDialog.visible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="executeAction" :loading="actionSubmitting">{{ t('prepaid_balance_page.actions.confirm_execute') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 信用额度设置弹窗 -->
-        <el-dialog v-model="creditDialog.visible" title="设置信用额度" width="500px">
+        <el-dialog v-model="creditDialog.visible" :title="t('prepaid_balance_page.dialog.set_credit')" width="500px">
             <el-form :model="creditForm" :rules="creditRules" ref="creditFormRef" label-width="140px">
-                <el-form-item label="客户" v-if="!creditForm.customer_id">
-                    <el-select v-model="creditForm.customer_id" filterable placeholder="选择客户" style="width: 100%">
+                <el-form-item :label="t('billing_page.form_customer')" v-if="!creditForm.customer_id">
+                    <el-select v-model="creditForm.customer_id" filterable :placeholder="t('prepaid_balance_page.placeholders.select_customer')" style="width: 100%">
                         <el-option
                             v-for="c in customerOptions"
                             :key="c.id"
-                            :label="`#${c.id} - ${c.user?.name || 'Unknown'}`"
+                            :label="`#${c.id} - ${c.user?.name || t('prepaid_balance_page.unknown_customer')}`"
                             :value="c.id"
                         />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="信用额度上限" prop="credit_limit">
+                <el-form-item :label="t('prepaid_balance_page.form.credit_limit')" prop="credit_limit">
                     <el-input-number v-model="creditForm.credit_limit" :min="0" :max="9999999.99" :precision="2" style="width: 200px" />
                     <span class="ml-2">CNY</span>
                 </el-form-item>
-                <el-form-item label="宽限天数">
+                <el-form-item :label="t('billing_page.form_grace_days')">
                     <el-input-number v-model="creditForm.grace_days" :min="0" :max="365" style="width: 200px" />
-                    <div class="text-muted small">负余额宽限天数</div>
+                    <div class="text-muted small">{{ t('prepaid_balance_page.form.grace_days_hint') }}</div>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="creditDialog.visible = false">取消</el-button>
-                <el-button type="primary" @click="executeSetCreditLimit" :loading="creditSubmitting">确认设置</el-button>
+                <el-button @click="creditDialog.visible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="executeSetCreditLimit" :loading="creditSubmitting">{{ t('prepaid_balance_page.actions.confirm_set') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -280,10 +283,13 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Search, Refresh, List } from '@element-plus/icons-vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import prepaidBalanceApi from '../../api/prepaidBalance';
 import customerApi from '@/api/customer';
+
+const { t, locale } = useI18n();
 
 // ─── 状态 ───
 const loading = ref(false);
@@ -352,31 +358,69 @@ const creditSubmitting = ref(false);
 // 客户选项
 const customerOptions = ref([]);
 
-// ─── 校验规则 ───
-const actionRules = {
-    amount: [{ required: true, type: 'number', min: 0.01, message: '金额必须大于 0', trigger: 'blur' }],
-};
-const creditRules = {
-    credit_limit: [{ required: true, type: 'number', min: 0, message: '请输入信用额度', trigger: 'blur' }],
-};
+const typeLabels = computed(() => ({
+    recharge: t('prepaid_balance_page.types.recharge'),
+    consume: t('prepaid_balance_page.types.consume'),
+    refund: t('prepaid_balance_page.types.refund'),
+    adjust: t('prepaid_balance_page.types.adjust'),
+    credit_use: t('prepaid_balance_page.types.credit_use'),
+    credit_repay: t('prepaid_balance_page.types.credit_repay'),
+}));
+
+const methodLabels = computed(() => ({
+    alipay: t('prepaid_balance_page.methods.alipay'),
+    wechat: t('prepaid_balance_page.methods.wechat'),
+    yipay: t('prepaid_balance_page.methods.yipay'),
+    offline: t('prepaid_balance_page.methods.offline'),
+    admin: t('prepaid_balance_page.methods.admin'),
+    balance: t('prepaid_balance_page.methods.balance'),
+}));
+
+const statusLabels = computed(() => ({
+    completed: t('prepaid_balance_page.status.success'),
+    pending: t('prepaid_balance_page.status.pending'),
+    failed: t('prepaid_balance_page.status.failed'),
+}));
+
+const actionDialogTitles = computed(() => ({
+    recharge: t('prepaid_balance_page.dialog.manual_recharge'),
+    deduct: t('prepaid_balance_page.dialog.manual_deduct'),
+    adjust: t('prepaid_balance_page.dialog.balance_adjust'),
+}));
+
+const transactionTypeOptions = computed(() => [
+    { value: 'recharge', label: typeLabels.value.recharge },
+    { value: 'consume', label: typeLabels.value.consume },
+    { value: 'refund', label: typeLabels.value.refund },
+    { value: 'adjust', label: typeLabels.value.adjust },
+    { value: 'credit_use', label: typeLabels.value.credit_use },
+    { value: 'credit_repay', label: typeLabels.value.credit_repay },
+]);
+
+const transactionStatusOptions = computed(() => [
+    { value: 'completed', label: t('prepaid_balance_page.status.completed') },
+    { value: 'pending', label: t('prepaid_balance_page.status.pending') },
+    { value: 'failed', label: t('prepaid_balance_page.status.failed') },
+]);
+
+const actionRules = computed(() => ({
+    amount: [{ required: true, type: 'number', min: 0.01, message: t('prepaid_balance_page.validation.amount_required'), trigger: 'blur' }],
+}));
+
+const creditRules = computed(() => ({
+    credit_limit: [{ required: true, type: 'number', min: 0, message: t('prepaid_balance_page.validation.credit_limit_required'), trigger: 'blur' }],
+}));
 
 // ─── 方法 ───
 
 function formatMoney(val) {
     const num = parseFloat(val || 0);
-    return '¥' + num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return '¥' + num.toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function typeLabel(type) {
-    const map = {
-        recharge: '充值',
-        consume: '消费',
-        refund: '退款',
-        adjust: '调账',
-        credit_use: '信用使用',
-        credit_repay: '信用偿还',
-    };
-    return map[type] || type;
+    return typeLabels.value[type] || type;
 }
 
 function typeTag(type) {
@@ -392,14 +436,11 @@ function typeTag(type) {
 }
 
 function methodLabel(method) {
-    const map = {
-        alipay: '支付宝',
-        wechat: '微信支付',
-        offline: '线下打款',
-        admin: '管理员操作',
-        balance: '余额',
-    };
-    return map[method] || method || '-';
+    return methodLabels.value[method] || method || '-';
+}
+
+function statusLabel(status) {
+    return statusLabels.value[status] || status;
 }
 
 function resetSearch() {
@@ -442,7 +483,7 @@ async function loadTransactions() {
         }
     } catch (e) {
         console.error('Failed to load transactions:', e);
-        ElMessage.error('加载交易记录失败');
+        ElMessage.error(t('prepaid_balance_page.messages.load_transactions_failed'));
     } finally {
         loading.value = false;
     }
@@ -455,9 +496,8 @@ function showTransactionDetail(row) {
 
 // 操作：充值/扣款/调账
 function showActionDialog(type) {
-    const titles = { recharge: '手动充值', deduct: '手动扣款', adjust: '余额调账' };
     actionDialog.type = type;
-    actionDialog.title = titles[type];
+    actionDialog.title = actionDialogTitles.value[type];
     actionForm.customer_id = '';
     actionForm.amount = type === 'deduct' ? 0 : 0;
     actionForm.description = '';
@@ -505,12 +545,17 @@ async function executeAction() {
             res = await prepaidBalanceApi.adminAdjust(customerId, data);
         }
 
-        ElMessage.success(type === 'recharge' ? '充值成功' : type === 'deduct' ? '扣款成功' : '调账成功');
+        const successMessages = {
+            recharge: t('prepaid_balance_page.messages.recharge_success'),
+            deduct: t('prepaid_balance_page.messages.deduct_success'),
+            adjust: t('prepaid_balance_page.messages.adjust_success'),
+        };
+        ElMessage.success(successMessages[type]);
         actionDialog.visible = false;
         loadStats();
         loadTransactions();
     } catch (e) {
-        ElMessage.error(e.response?.data?.error || '操作失败');
+        ElMessage.error(e.response?.data?.error || t('messages.failed'));
     } finally {
         actionSubmitting.value = false;
     }
@@ -526,11 +571,11 @@ async function executeSetCreditLimit() {
             credit_limit: creditForm.credit_limit,
             grace_days: creditForm.grace_days,
         });
-        ElMessage.success('信用额度设置成功');
+        ElMessage.success(t('prepaid_balance_page.messages.credit_set_success'));
         creditDialog.visible = false;
         loadStats();
     } catch (e) {
-        ElMessage.error(e.response?.data?.error || '设置失败');
+        ElMessage.error(e.response?.data?.error || t('prepaid_balance_page.messages.set_failed'));
     } finally {
         creditSubmitting.value = false;
     }
@@ -574,7 +619,7 @@ onMounted(() => {
 .stat-card .stat-value {
     font-size: 22px;
     font-weight: 700;
-    color: #409eff;
+    color: #0f172a;
 }
 
 .stat-card .stat-label {
@@ -632,7 +677,7 @@ onMounted(() => {
 }
 
 .link {
-    color: #409eff;
+    color: #0f172a;
     text-decoration: none;
 }
 

@@ -1,15 +1,15 @@
 <template>
-  <el-dialog v-model="visible" :title="isEdit ? '编辑 Webhook' : '新建 Webhook'" width="600px" destroy-on-close>
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" v-loading="saving">
-      <el-form-item label="名称" prop="name">
-        <el-input v-model="form.name" placeholder="Webhook 名称" maxlength="200" />
+  <el-dialog v-model="visible" :title="isEdit ? t('webhook_dialog.edit_title') : t('webhook_dialog.create_title')" width="600px" destroy-on-close>
+    <el-form ref="formRef" :model="form" :rules="formRules" label-width="100px" v-loading="saving">
+      <el-form-item :label="t('webhook_dialog.name')" prop="name">
+        <el-input v-model="form.name" :placeholder="t('webhook_dialog.name_placeholder')" maxlength="200" />
       </el-form-item>
       <el-form-item label="URL" prop="url">
         <el-input v-model="form.url" placeholder="https://example.com/webhook" />
       </el-form-item>
       <el-row :gutter="12">
         <el-col :span="8">
-          <el-form-item label="方法">
+          <el-form-item :label="t('webhook_dialog.method')">
             <el-select v-model="form.method" style="width:100%">
               <el-option label="POST" value="POST" />
               <el-option label="GET" value="GET" />
@@ -20,23 +20,23 @@
           </el-form-item>
         </el-col>
         <el-col :span="8">
-          <el-form-item label="认证类型">
+          <el-form-item :label="t('webhook_dialog.auth_type')">
             <el-select v-model="form.auth_type" style="width:100%">
-              <el-option label="无" value="none" />
+              <el-option :label="t('webhook_dialog.auth.none')" value="none" />
               <el-option label="Basic" value="basic" />
               <el-option label="Bearer" value="bearer" />
-              <el-option label="自定义" value="custom" />
+              <el-option :label="t('webhook_dialog.auth.custom')" value="custom" />
             </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="8">
-          <el-form-item label="启用">
+          <el-form-item :label="t('webhook_dialog.enabled')">
             <el-switch v-model="form.is_active" />
           </el-form-item>
         </el-col>
       </el-row>
 
-      <el-form-item label="自定义 Headers">
+      <el-form-item :label="t('webhook_dialog.headers')">
         <div v-for="(header, idx) in form.headers" :key="idx" class="header-row mb-1">
           <el-row :gutter="8">
             <el-col :span="10">
@@ -52,42 +52,44 @@
             </el-col>
           </el-row>
         </div>
-        <el-button type="primary" link @click="form.headers.push({ key: '', value: '' })">+ 添加 Header</el-button>
+        <el-button type="primary" link @click="form.headers.push({ key: '', value: '' })">{{ t('webhook_dialog.add_header') }}</el-button>
       </el-form-item>
 
-      <el-form-item label="Body 模板">
+      <el-form-item :label="t('webhook_dialog.body_template')">
         <el-input v-model="bodyJson" type="textarea" :rows="4" placeholder='{"key": "value"}' />
       </el-form-item>
 
-      <el-form-item label="描述">
+      <el-form-item :label="t('webhook_dialog.description')">
         <el-input v-model="form.description" type="textarea" :rows="2" />
       </el-form-item>
 
-      <el-form-item label="重试配置">
+      <el-form-item :label="t('webhook_dialog.retry_config')">
         <el-row :gutter="12">
           <el-col :span="12">
-            <el-input-number v-model="retryConfig.max_retries" :min="0" :max="10" style="width:100%" placeholder="重试次数" />
+            <el-input-number v-model="retryConfig.max_retries" :min="0" :max="10" style="width:100%" :placeholder="t('webhook_dialog.max_retries')" />
           </el-col>
           <el-col :span="12">
-            <el-input-number v-model="retryConfig.delay_seconds" :min="0" :max="300" style="width:100%" placeholder="延迟秒数" />
+            <el-input-number v-model="retryConfig.delay_seconds" :min="0" :max="300" style="width:100%" :placeholder="t('webhook_dialog.delay_seconds')" />
           </el-col>
         </el-row>
       </el-form-item>
     </el-form>
 
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" @click="save" :loading="saving">保存</el-button>
+      <el-button @click="visible = false">{{ t('actions.cancel') }}</el-button>
+      <el-button type="primary" @click="save" :loading="saving">{{ t('actions.save') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
 import api from '../../../api/automation'
 
+const { t } = useI18n()
 const emit = defineEmits(['saved'])
 
 const visible = ref(false)
@@ -114,10 +116,13 @@ const defaultForm = () => ({
 const form = reactive(defaultForm())
 const retryConfig = reactive({ max_retries: 3, delay_seconds: 10 })
 
-const rules = {
-  name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
-  url: [{ required: true, message: '请输入 URL', trigger: 'blur' }, { type: 'url', message: '请输入有效 URL', trigger: 'blur' }],
-}
+const formRules = computed(() => ({
+  name: [{ required: true, message: t('webhook_dialog.rules.name'), trigger: 'blur' }],
+  url: [
+    { required: true, message: t('webhook_dialog.rules.url'), trigger: 'blur' },
+    { type: 'url', message: t('webhook_dialog.rules.url_valid'), trigger: 'blur' },
+  ],
+}))
 
 function open(mode, row = null) {
   isEdit.value = mode === 'edit'
@@ -147,17 +152,15 @@ async function save() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
 
-  // Parse body JSON
   try {
     if (bodyJson.value.trim()) {
       form.body_template = JSON.parse(bodyJson.value)
     }
   } catch (e) {
-    ElMessage.warning('Body 模板 JSON 格式错误，将保存为空')
+    ElMessage.warning(t('webhook_dialog.messages.body_invalid'))
     form.body_template = {}
   }
 
-  // Build headers object
   const headerObj = {}
   for (const h of form.headers) {
     if (h.key) headerObj[h.key] = h.value
@@ -171,15 +174,15 @@ async function save() {
     const payload = { ...form, headers: headerObj }
     if (isEdit.value) {
       await api.updateWebhook(editId.value, payload)
-      ElMessage.success('Webhook 已更新')
+      ElMessage.success(t('webhook_dialog.messages.updated'))
     } else {
       await api.createWebhook(payload)
-      ElMessage.success('Webhook 已创建')
+      ElMessage.success(t('webhook_dialog.messages.created'))
     }
     visible.value = false
     emit('saved')
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '保存失败')
+    ElMessage.error(e.response?.data?.message || t('webhook_dialog.messages.save_failed'))
   } finally {
     saving.value = false
   }

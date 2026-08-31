@@ -1,49 +1,46 @@
 <template>
     <div class="recon-page">
-        <h2>电商对账系统</h2>
+        <h2>{{ t('reconciliation_page.title') }}</h2>
 
         <!-- 统计卡片 -->
         <el-row :gutter="16" class="mb-4">
-            <el-col :span="4" v-for="s in statCards" :key="s.label">
+            <el-col :span="4" v-for="s in statCards" :key="s.key">
                 <el-card shadow="hover"><div class="stat-box"><div class="stat-num" :style="{color:s.color}">{{ s.value }}</div><div class="stat-lbl">{{ s.label }}</div></div></el-card>
             </el-col>
         </el-row>
 
         <el-tabs v-model="activeTab" type="border-card">
             <!-- Tab 1: 对账记录 -->
-            <el-tab-pane label="对账记录" name="reconciliations">
+            <el-tab-pane :label="t('reconciliation_page.tab_reconciliations')" name="reconciliations">
                 <div class="toolbar">
-                    <el-select v-model="filters.status" placeholder="状态" clearable style="width:130px" @change="loadRecons">
-                        <el-option label="待对账" value="pending" />
-                        <el-option label="已匹配" value="matched" />
-                        <el-option label="不匹配" value="unmatched" />
-                        <el-option label="已解决" value="resolved" />
+                    <el-select v-model="filters.status" :placeholder="t('reconciliation_page.status')" clearable style="width:130px" @change="loadRecons">
+                        <el-option v-for="opt in reconStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
-                    <el-input v-model="filters.search" placeholder="搜索支付参考号" clearable style="width:240px" @clear="loadRecons" @keyup.enter="loadRecons" />
-                    <el-button @click="loadRecons">刷新</el-button>
+                    <el-input v-model="filters.search" :placeholder="t('reconciliation_page.search_payment_ref')" clearable style="width:240px" @clear="loadRecons" @keyup.enter="loadRecons" />
+                    <el-button @click="loadRecons">{{ t('reconciliation_page.refresh') }}</el-button>
                 </div>
                 <el-table :data="recons" v-loading="loading.recons" stripe>
                     <el-table-column prop="id" label="ID" width="60" />
-                    <el-table-column prop="payment_ref" label="支付参考" width="150" />
-                    <el-table-column label="发票金额" width="100"><template #default="{row}">¥{{ row.invoice_amount }}</template></el-table-column>
-                    <el-table-column label="实际金额" width="100"><template #default="{row}">¥{{ row.actual_amount }}</template></el-table-column>
-                    <el-table-column label="差异" width="100">
+                    <el-table-column prop="payment_ref" :label="t('reconciliation_page.col_payment_ref')" width="150" />
+                    <el-table-column :label="t('reconciliation_page.col_invoice_amount')" width="100"><template #default="{row}">¥{{ row.invoice_amount }}</template></el-table-column>
+                    <el-table-column :label="t('reconciliation_page.col_actual_amount')" width="100"><template #default="{row}">¥{{ row.actual_amount }}</template></el-table-column>
+                    <el-table-column :label="t('reconciliation_page.col_difference')" width="100">
                         <template #default="{row}">
                             <span :class="row.difference > 0 ? 'diff-pos' : row.difference < 0 ? 'diff-neg' : ''">
                                 ¥{{ row.difference }}
                             </span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="状态" width="90">
+                    <el-table-column :label="t('reconciliation_page.col_status')" width="90">
                         <template #default="{row}">
-                            <el-tag :type="reconStatusType(row.status)" size="small">{{ row.status }}</el-tag>
+                            <el-tag :type="reconStatusType(row.status)" size="small">{{ reconStatusLabel(row.status) }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="notes" label="备注" min-width="180" show-overflow-tooltip />
-                    <el-table-column label="创建时间" width="150"><template #default="{row}">{{ formatTime(row.created_at) }}</template></el-table-column>
-                    <el-table-column label="操作" width="100" fixed="right">
+                    <el-table-column prop="notes" :label="t('reconciliation_page.col_notes')" min-width="180" show-overflow-tooltip />
+                    <el-table-column :label="t('reconciliation_page.col_created_at')" width="150"><template #default="{row}">{{ formatTime(row.created_at) }}</template></el-table-column>
+                    <el-table-column :label="t('reconciliation_page.col_actions')" width="100" fixed="right">
                         <template #default="{row}">
-                            <el-button v-if="row.status === 'unmatched' || row.status === 'pending'" link type="primary" size="small" @click="showResolveDialog(row)">解决</el-button>
+                            <el-button v-if="row.status === 'unmatched' || row.status === 'pending'" link type="primary" size="small" @click="showResolveDialog(row)">{{ t('reconciliation_page.resolve') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -51,38 +48,35 @@
             </el-tab-pane>
 
             <!-- Tab 2: 渠道行 -->
-            <el-tab-pane label="渠道明细" name="channelRows">
+            <el-tab-pane :label="t('reconciliation_page.tab_channel_rows')" name="channelRows">
                 <div class="toolbar">
-                    <el-select v-model="cfilters.channel" placeholder="渠道" clearable style="width:130px" @change="loadChannelRows">
-                        <el-option label="微信支付" value="wechat" />
-                        <el-option label="支付宝" value="alipay" />
-                        <el-option label="Stripe" value="stripe" />
-                        <el-option label="PayPal" value="paypal" />
+                    <el-select v-model="cfilters.channel" :placeholder="t('reconciliation_page.channel')" clearable style="width:130px" @change="loadChannelRows">
+                        <el-option v-for="opt in channelOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
-                    <el-select v-model="cfilters.match_status" placeholder="匹配状态" clearable style="width:130px" @change="loadChannelRows">
-                        <el-option label="待匹配" value="pending" />
-                        <el-option label="已匹配" value="matched" />
-                        <el-option label="不匹配" value="unmatched" />
+                    <el-select v-model="cfilters.match_status" :placeholder="t('reconciliation_page.match_status')" clearable style="width:130px" @change="loadChannelRows">
+                        <el-option v-for="opt in matchStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
-                    <el-input v-model="cfilters.search" placeholder="搜索交易号/订单号" clearable style="width:240px" @clear="loadChannelRows" @keyup.enter="loadChannelRows" />
-                    <el-button @click="loadChannelRows">刷新</el-button>
+                    <el-input v-model="cfilters.search" :placeholder="t('reconciliation_page.search_tx_order')" clearable style="width:240px" @clear="loadChannelRows" @keyup.enter="loadChannelRows" />
+                    <el-button @click="loadChannelRows">{{ t('reconciliation_page.refresh') }}</el-button>
                 </div>
                 <el-table :data="channelRows" v-loading="loading.channelRows" stripe>
-                    <el-table-column prop="channel" label="渠道" width="80"><template #default="{row}"><el-tag size="small">{{ row.channel }}</el-tag></template></el-table-column>
-                    <el-table-column prop="transaction_id" label="交易号" width="160" />
-                    <el-table-column prop="order_id" label="订单号" width="130" />
-                    <el-table-column label="金额" width="100"><template #default="{row}">{{ row.currency }} {{ row.amount }}</template></el-table-column>
-                    <el-table-column label="匹配状态" width="90">
+                    <el-table-column prop="channel" :label="t('reconciliation_page.channel')" width="80">
+                        <template #default="{row}"><el-tag size="small">{{ channelLabel(row.channel) }}</el-tag></template>
+                    </el-table-column>
+                    <el-table-column prop="transaction_id" :label="t('reconciliation_page.col_transaction_id')" width="160" />
+                    <el-table-column prop="order_id" :label="t('reconciliation_page.col_order_id')" width="130" />
+                    <el-table-column :label="t('reconciliation_page.col_amount')" width="100"><template #default="{row}">{{ row.currency }} {{ row.amount }}</template></el-table-column>
+                    <el-table-column :label="t('reconciliation_page.match_status')" width="90">
                         <template #default="{row}">
-                            <el-tag :type="row.match_status === 'matched' ? 'success' : row.match_status === 'unmatched' ? 'danger' : 'info'" size="small">{{ row.match_status }}</el-tag>
+                            <el-tag :type="row.match_status === 'matched' ? 'success' : row.match_status === 'unmatched' ? 'danger' : 'info'" size="small">{{ matchStatusLabel(row.match_status) }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="matched_order_no" label="匹配订单" width="130" />
-                    <el-table-column label="差异" width="90"><template #default="{row}">¥{{ row.difference }}</template></el-table-column>
-                    <el-table-column prop="transaction_time" label="交易时间" width="150"><template #default="{row}">{{ formatTime(row.transaction_time) }}</template></el-table-column>
-                    <el-table-column label="操作" width="100" fixed="right">
+                    <el-table-column prop="matched_order_no" :label="t('reconciliation_page.col_matched_order')" width="130" />
+                    <el-table-column :label="t('reconciliation_page.col_difference')" width="90"><template #default="{row}">¥{{ row.difference }}</template></el-table-column>
+                    <el-table-column prop="transaction_time" :label="t('reconciliation_page.col_transaction_time')" width="150"><template #default="{row}">{{ formatTime(row.transaction_time) }}</template></el-table-column>
+                    <el-table-column :label="t('reconciliation_page.col_actions')" width="100" fixed="right">
                         <template #default="{row}">
-                            <el-button v-if="row.match_status === 'unmatched'" link type="primary" size="small" @click="showManualMatch(row)">手动匹配</el-button>
+                            <el-button v-if="row.match_status === 'unmatched'" link type="primary" size="small" @click="showManualMatch(row)">{{ t('reconciliation_page.manual_match') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -90,180 +84,238 @@
             </el-tab-pane>
 
             <!-- Tab 3: CSV 导入 -->
-            <el-tab-pane label="CSV 导入" name="imports">
+            <el-tab-pane :label="t('reconciliation_page.tab_imports')" name="imports">
                 <el-card shadow="never" class="mb-4">
-                    <template #header>上传支付渠道账单</template>
+                    <template #header>{{ t('reconciliation_page.upload_header') }}</template>
                     <el-form :model="importForm" layout="inline">
-                        <el-form-item label="渠道">
+                        <el-form-item :label="t('reconciliation_page.channel')">
                             <el-select v-model="importForm.channel" style="width:160px">
-                                <el-option label="微信支付" value="wechat" />
-                                <el-option label="支付宝" value="alipay" />
-                                <el-option label="Stripe" value="stripe" />
-                                <el-option label="PayPal" value="paypal" />
+                                <el-option v-for="opt in channelOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                             </el-select>
                         </el-form-item>
-                        <el-form-item label="CSV 文件">
+                        <el-form-item :label="t('reconciliation_page.csv_file')">
                             <el-upload ref="uploadRef" :auto-upload="false" :show-file-list="true" accept=".csv,.txt" :limit="1" :on-change="handleFileChange">
-                                <el-button type="primary">选择文件</el-button>
-                                <template #tip><span style="font-size:12px;color:#909399">支持微信/支付宝/Stripe/PayPal 导出的 CSV</span></template>
+                                <el-button type="primary">{{ t('reconciliation_page.select_file') }}</el-button>
+                                <template #tip><span style="font-size:12px;color:#909399">{{ t('reconciliation_page.csv_tip') }}</span></template>
                             </el-upload>
                         </el-form-item>
                         <el-form-item>
-                            <el-button type="success" @click="handleImport" :loading="importing">开始导入</el-button>
+                            <el-button type="success" @click="handleImport" :loading="importing">{{ t('reconciliation_page.start_import') }}</el-button>
                         </el-form-item>
                     </el-form>
                 </el-card>
 
-                <h4 class="mb-4">导入历史</h4>
+                <h4 class="mb-4">{{ t('reconciliation_page.import_history') }}</h4>
                 <el-table :data="imports" v-loading="loading.imports" stripe>
                     <el-table-column prop="id" label="ID" width="60" />
-                    <el-table-column label="渠道" width="80"><template #default="{row}"><el-tag size="small">{{ row.channel }}</el-tag></template></el-table-column>
-                    <el-table-column prop="filename" label="文件名" min-width="200" />
-                    <el-table-column label="总计" width="60" prop="total_rows" />
-                    <el-table-column label="已匹配" width="65" prop="matched_rows">
+                    <el-table-column :label="t('reconciliation_page.channel')" width="80">
+                        <template #default="{row}"><el-tag size="small">{{ channelLabel(row.channel) }}</el-tag></template>
+                    </el-table-column>
+                    <el-table-column prop="filename" :label="t('reconciliation_page.col_filename')" min-width="200" />
+                    <el-table-column :label="t('reconciliation_page.col_total')" width="60" prop="total_rows" />
+                    <el-table-column :label="t('reconciliation_page.recon_st_matched')" width="65" prop="matched_rows">
                         <template #default="{row}"><span class="success">{{ row.matched_rows }}</span></template>
                     </el-table-column>
-                    <el-table-column label="不匹配" width="65" prop="unmatched_rows">
+                    <el-table-column :label="t('reconciliation_page.recon_st_unmatched')" width="65" prop="unmatched_rows">
                         <template #default="{row}"><span class="danger">{{ row.unmatched_rows }}</span></template>
                     </el-table-column>
-                    <el-table-column label="错误" width="55" prop="error_rows" />
-                    <el-table-column label="状态" width="90">
+                    <el-table-column :label="t('reconciliation_page.col_errors')" width="55" prop="error_rows" />
+                    <el-table-column :label="t('reconciliation_page.col_status')" width="90">
                         <template #default="{row}">
-                            <el-tag :type="row.status === 'completed' ? 'success' : row.status === 'failed' ? 'danger' : 'warning'" size="small">{{ row.status }}</el-tag>
+                            <el-tag :type="row.status === 'completed' ? 'success' : row.status === 'failed' ? 'danger' : 'warning'" size="small">{{ importStatusLabel(row.status) }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="导入时间" width="150"><template #default="{row}">{{ formatTime(row.created_at) }}</template></el-table-column>
+                    <el-table-column :label="t('reconciliation_page.col_import_time')" width="150"><template #default="{row}">{{ formatTime(row.created_at) }}</template></el-table-column>
                 </el-table>
                 <div class="pagination-wrap"><el-pagination v-model:current-page="ipage" :page-size="iperPage" :total="itotal" layout="total,prev,pager,next" @current-change="loadImports" /></div>
             </el-tab-pane>
 
             <!-- Tab 4: 对账日历 -->
-            <el-tab-pane label="对账日历" name="calendars">
+            <el-tab-pane :label="t('reconciliation_page.tab_calendars')" name="calendars">
                 <div class="toolbar">
-                    <el-select v-model="calFilter.type" placeholder="周期" style="width:120px" @change="loadCalendars">
-                        <el-option label="每日" value="daily" />
-                        <el-option label="每周" value="weekly" />
-                        <el-option label="每月" value="monthly" />
+                    <el-select v-model="calFilter.type" :placeholder="t('reconciliation_page.period')" style="width:120px" @change="loadCalendars">
+                        <el-option v-for="opt in periodOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
-                    <el-select v-model="calFilter.status" placeholder="状态" clearable style="width:120px" @change="loadCalendars">
-                        <el-option label="待对账" value="pending" />
-                        <el-option label="进行中" value="in_progress" />
-                        <el-option label="已完成" value="completed" />
+                    <el-select v-model="calFilter.status" :placeholder="t('reconciliation_page.status')" clearable style="width:120px" @change="loadCalendars">
+                        <el-option v-for="opt in calStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
-                    <el-button @click="handleGenerateCalendars">生成未来周期</el-button>
-                    <el-button @click="loadCalendars">刷新</el-button>
+                    <el-button @click="handleGenerateCalendars">{{ t('reconciliation_page.generate_periods') }}</el-button>
+                    <el-button @click="loadCalendars">{{ t('reconciliation_page.refresh') }}</el-button>
                 </div>
                 <el-table :data="calendars" v-loading="loading.calendars" stripe>
                     <el-table-column prop="id" label="ID" width="60" />
-                    <el-table-column label="类型" width="70"><template #default="{row}"><el-tag size="small">{{ row.period_type }}</el-tag></template></el-table-column>
-                    <el-table-column prop="period_start" label="开始日期" width="120" />
-                    <el-table-column prop="period_end" label="结束日期" width="120" />
-                    <el-table-column label="总交易" width="80" prop="total_transactions" />
-                    <el-table-column label="已匹配" width="70" prop="matched_count" />
-                    <el-table-column label="不匹配" width="70" prop="unmatched_count" />
-                    <el-table-column label="差异金额" width="100"><template #default="{row}">¥{{ row.difference_amount }}</template></el-table-column>
-                    <el-table-column label="状态" width="90">
+                    <el-table-column :label="t('reconciliation_page.col_period_type')" width="70">
+                        <template #default="{row}"><el-tag size="small">{{ periodTypeLabel(row.period_type) }}</el-tag></template>
+                    </el-table-column>
+                    <el-table-column prop="period_start" :label="t('reconciliation_page.col_period_start')" width="120" />
+                    <el-table-column prop="period_end" :label="t('reconciliation_page.col_period_end')" width="120" />
+                    <el-table-column :label="t('reconciliation_page.col_total_transactions')" width="80" prop="total_transactions" />
+                    <el-table-column :label="t('reconciliation_page.recon_st_matched')" width="70" prop="matched_count" />
+                    <el-table-column :label="t('reconciliation_page.recon_st_unmatched')" width="70" prop="unmatched_count" />
+                    <el-table-column :label="t('reconciliation_page.col_difference_amount')" width="100"><template #default="{row}">¥{{ row.difference_amount }}</template></el-table-column>
+                    <el-table-column :label="t('reconciliation_page.col_status')" width="90">
                         <template #default="{row}">
-                            <el-tag :type="row.status === 'completed' ? 'success' : row.status === 'in_progress' ? 'warning' : 'info'" size="small">{{ row.status }}</el-tag>
+                            <el-tag :type="row.status === 'completed' ? 'success' : row.status === 'in_progress' ? 'warning' : 'info'" size="small">{{ calStatusLabel(row.status) }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="对账时间" width="150"><template #default="{row}">{{ formatTime(row.reconciled_at) }}</template></el-table-column>
+                    <el-table-column :label="t('reconciliation_page.col_reconciled_at')" width="150"><template #default="{row}">{{ formatTime(row.reconciled_at) }}</template></el-table-column>
                 </el-table>
                 <div class="pagination-wrap"><el-pagination v-model:current-page="calPage" :page-size="calPerPage" :total="calTotal" layout="total,prev,pager,next" @current-change="loadCalendars" /></div>
             </el-tab-pane>
 
             <!-- Tab 5: 报告 -->
-            <el-tab-pane label="对账报告" name="report">
+            <el-tab-pane :label="t('reconciliation_page.tab_report')" name="report">
                 <el-card shadow="never" class="mb-4">
-                    <template #header>生成报告</template>
+                    <template #header>{{ t('reconciliation_page.generate_report') }}</template>
                     <el-form :model="reportForm" inline>
-                        <el-form-item label="开始日期"><el-date-picker v-model="reportForm.start_date" type="date" placeholder="选择日期" /></el-form-item>
-                        <el-form-item label="结束日期"><el-date-picker v-model="reportForm.end_date" type="date" placeholder="选择日期" /></el-form-item>
-                        <el-form-item><el-button type="primary" @click="generateReport">生成报告</el-button></el-form-item>
+                        <el-form-item :label="t('reconciliation_page.start_date')"><el-date-picker v-model="reportForm.start_date" type="date" :placeholder="t('reconciliation_page.select_date')" /></el-form-item>
+                        <el-form-item :label="t('reconciliation_page.end_date')"><el-date-picker v-model="reportForm.end_date" type="date" :placeholder="t('reconciliation_page.select_date')" /></el-form-item>
+                        <el-form-item><el-button type="primary" @click="generateReport">{{ t('reconciliation_page.generate_report') }}</el-button></el-form-item>
                     </el-form>
                 </el-card>
 
                 <div v-if="reportData">
                     <el-row :gutter="16" class="mb-4">
-                        <el-col :span="6"><el-statistic title="总对账数" :value="reportData.summary?.total_reconciliation || 0" /></el-col>
-                        <el-col :span="6"><el-statistic title="已匹配" :value="reportData.summary?.total_matched || 0" /></el-col>
-                        <el-col :span="6"><el-statistic title="不匹配" :value="reportData.summary?.total_unmatched || 0" /></el-col>
-                        <el-col :span="6"><el-statistic title="总差异" :value="reportData.summary?.total_difference || 0" prefix="¥" /></el-col>
+                        <el-col :span="6"><el-statistic :title="t('reconciliation_page.report_total_recon')" :value="reportData.summary?.total_reconciliation || 0" /></el-col>
+                        <el-col :span="6"><el-statistic :title="t('reconciliation_page.recon_st_matched')" :value="reportData.summary?.total_matched || 0" /></el-col>
+                        <el-col :span="6"><el-statistic :title="t('reconciliation_page.recon_st_unmatched')" :value="reportData.summary?.total_unmatched || 0" /></el-col>
+                        <el-col :span="6"><el-statistic :title="t('reconciliation_page.stat_total_diff')" :value="reportData.summary?.total_difference || 0" prefix="¥" /></el-col>
                     </el-row>
 
-                    <h4 class="mb-4">按渠道统计</h4>
+                    <h4 class="mb-4">{{ t('reconciliation_page.by_channel') }}</h4>
                     <el-table :data="channelReportData" stripe size="small">
-                        <el-table-column prop="channel" label="渠道" />
-                        <el-table-column prop="total" label="总数" />
-                        <el-table-column prop="matched" label="已匹配" />
-                        <el-table-column prop="unmatched" label="不匹配" />
-                        <el-table-column label="总金额"><template #default="{row}">¥{{ row.total_amount }}</template></el-table-column>
-                        <el-table-column label="手续费"><template #default="{row}">¥{{ row.total_fee }}</template></el-table-column>
+                        <el-table-column prop="channel" :label="t('reconciliation_page.channel')">
+                            <template #default="{ row }">{{ channelLabel(row.channel) }}</template>
+                        </el-table-column>
+                        <el-table-column prop="total" :label="t('reconciliation_page.col_count')" />
+                        <el-table-column prop="matched" :label="t('reconciliation_page.recon_st_matched')" />
+                        <el-table-column prop="unmatched" :label="t('reconciliation_page.recon_st_unmatched')" />
+                        <el-table-column :label="t('reconciliation_page.col_total_amount')"><template #default="{row}">¥{{ row.total_amount }}</template></el-table-column>
+                        <el-table-column :label="t('reconciliation_page.col_fee')"><template #default="{row}">¥{{ row.total_fee }}</template></el-table-column>
                     </el-table>
 
-                    <h4 class="mb-4" v-if="reportData.unmatched_list?.length">未匹配明细 ({{ reportData.unmatched_list.length }})</h4>
+                    <h4 class="mb-4" v-if="reportData.unmatched_list?.length">{{ t('reconciliation_page.unmatched_detail', { n: reportData.unmatched_list.length }) }}</h4>
                     <el-table v-if="reportData.unmatched_list?.length" :data="reportData.unmatched_list" stripe size="small">
-                        <el-table-column prop="channel" label="渠道" width="80" />
-                        <el-table-column prop="transaction_id" label="交易号" width="200" />
-                        <el-table-column prop="order_id" label="订单号" width="150" />
-                        <el-table-column label="金额" width="100"><template #default="{row}">¥{{ row.amount }}</template></el-table-column>
-                        <el-table-column prop="transaction_time" label="交易时间" width="160" />
+                        <el-table-column prop="channel" :label="t('reconciliation_page.channel')" width="80">
+                            <template #default="{ row }">{{ channelLabel(row.channel) }}</template>
+                        </el-table-column>
+                        <el-table-column prop="transaction_id" :label="t('reconciliation_page.col_transaction_id')" width="200" />
+                        <el-table-column prop="order_id" :label="t('reconciliation_page.col_order_id')" width="150" />
+                        <el-table-column :label="t('reconciliation_page.col_amount')" width="100"><template #default="{row}">¥{{ row.amount }}</template></el-table-column>
+                        <el-table-column prop="transaction_time" :label="t('reconciliation_page.col_transaction_time')" width="160" />
                     </el-table>
                 </div>
             </el-tab-pane>
         </el-tabs>
 
         <!-- 解决差异对话框 -->
-        <el-dialog v-model="resolveVisible" title="标记为已解决" width="450px">
+        <el-dialog v-model="resolveVisible" :title="t('reconciliation_page.resolve_title')" width="450px">
             <el-form :model="resolveForm" label-width="80px">
-                <el-form-item label="差异金额"><el-tag type="danger">¥{{ resolveTarget?.difference }}</el-tag></el-form-item>
-                <el-form-item label="处理方式">
+                <el-form-item :label="t('reconciliation_page.resolve_diff_amount')"><el-tag type="danger">¥{{ resolveTarget?.difference }}</el-tag></el-form-item>
+                <el-form-item :label="t('reconciliation_page.resolve_method')">
                     <el-select v-model="resolveForm.resolution" style="width:100%">
-                        <el-option label="金额调整" value="金额调整" />
-                        <el-option label="手工对平" value="手工对平" />
-                        <el-option label="确认为合理差异" value="确认为合理差异" />
-                        <el-option label="退款处理" value="退款处理" />
-                        <el-option label="其他" value="其他" />
+                        <el-option v-for="opt in resolutionOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="备注"><el-input v-model="resolveForm.notes" type="textarea" :rows="3" /></el-form-item>
+                <el-form-item :label="t('reconciliation_page.label_notes')"><el-input v-model="resolveForm.notes" type="textarea" :rows="3" /></el-form-item>
             </el-form>
-            <template #footer><el-button @click="resolveVisible = false">取消</el-button><el-button type="primary" @click="handleResolve">确认解决</el-button></template>
+            <template #footer>
+                <el-button @click="resolveVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleResolve">{{ t('reconciliation_page.confirm_resolve') }}</el-button>
+            </template>
         </el-dialog>
 
         <!-- 手动匹配对话框 -->
-        <el-dialog v-model="matchVisible" title="手动匹配订单" width="500px">
+        <el-dialog v-model="matchVisible" :title="t('reconciliation_page.match_title')" width="500px">
             <el-form :model="matchForm" label-width="100px">
-                <el-form-item label="渠道交易"><el-tag>{{ matchTarget?.channel }}: {{ matchTarget?.transaction_id }}</el-tag></el-form-item>
-                <el-form-item label="金额">¥{{ matchTarget?.amount }}</el-form-item>
-                <el-form-item label="订单ID"><el-input v-model="matchForm.order_id" placeholder="输入订单ID" /></el-form-item>
+                <el-form-item :label="t('reconciliation_page.match_channel_tx')"><el-tag>{{ channelLabel(matchTarget?.channel) }}: {{ matchTarget?.transaction_id }}</el-tag></el-form-item>
+                <el-form-item :label="t('reconciliation_page.col_amount')">¥{{ matchTarget?.amount }}</el-form-item>
+                <el-form-item :label="t('reconciliation_page.match_order_id')"><el-input v-model="matchForm.order_id" :placeholder="t('reconciliation_page.match_order_id_ph')" /></el-form-item>
             </el-form>
-            <template #footer><el-button @click="matchVisible = false">取消</el-button><el-button type="primary" @click="handleManualMatch">确认匹配</el-button></template>
+            <template #footer>
+                <el-button @click="matchVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleManualMatch">{{ t('reconciliation_page.confirm_match') }}</el-button>
+            </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
+import i18n from '@/i18n';
+import { ElMessage } from 'element-plus';
 import {
     getReconDashboard, getReconciliations, resolveReconciliation,
     getImports, importCsv, getChannelRows, manualMatch,
     getCalendars, generateCalendars, getReport,
 } from '@/api/reconciliation';
 
+const { t, locale } = useI18n();
+const apiZh = (key) => i18n.global.t(key, {}, { locale: 'zh_CN' });
+const defaultResolution = () => apiZh('reconciliation_page.resolution_manual');
+
 const activeTab = ref('reconciliations');
 const loading = reactive({ recons: false, channelRows: false, imports: false, calendars: false });
 
 // ── 统计卡片 ──
 const stats = ref({});
-const statCards = reactive([
-    { label: '总对账', key: 'totalRecon', color: '#409eff', value: '0' },
-    { label: '待对账', key: 'pending', color: '#e6a23c', value: '0' },
-    { label: '已匹配', key: 'matched', color: '#67c23a', value: '0' },
-    { label: '不匹配', key: 'unmatched', color: '#f56c6c', value: '0' },
-    { label: '总差异', key: 'totalDiff', color: '#f56c6c', value: '¥0' },
-    { label: '渠道明细', key: 'channelRows', color: '#909399', value: '0' },
+const statValues = reactive({
+    totalRecon: '0',
+    pending: '0',
+    matched: '0',
+    unmatched: '0',
+    totalDiff: '¥0',
+    channelRows: '0',
+});
+
+const statCards = computed(() => [
+    { label: t('reconciliation_page.stat_total'), key: 'totalRecon', color: '#0f172a', value: statValues.totalRecon },
+    { label: t('reconciliation_page.stat_pending'), key: 'pending', color: '#e6a23c', value: statValues.pending },
+    { label: t('reconciliation_page.stat_matched'), key: 'matched', color: '#67c23a', value: statValues.matched },
+    { label: t('reconciliation_page.stat_unmatched'), key: 'unmatched', color: '#f56c6c', value: statValues.unmatched },
+    { label: t('reconciliation_page.stat_total_diff'), key: 'totalDiff', color: '#f56c6c', value: statValues.totalDiff },
+    { label: t('reconciliation_page.stat_channel_rows'), key: 'channelRows', color: '#909399', value: statValues.channelRows },
+]);
+
+const reconStatusOptions = computed(() => [
+    { label: t('reconciliation_page.recon_st_pending'), value: 'pending' },
+    { label: t('reconciliation_page.recon_st_matched'), value: 'matched' },
+    { label: t('reconciliation_page.recon_st_unmatched'), value: 'unmatched' },
+    { label: t('reconciliation_page.recon_st_resolved'), value: 'resolved' },
+]);
+
+const matchStatusOptions = computed(() => [
+    { label: t('reconciliation_page.match_st_pending'), value: 'pending' },
+    { label: t('reconciliation_page.match_st_matched'), value: 'matched' },
+    { label: t('reconciliation_page.match_st_unmatched'), value: 'unmatched' },
+]);
+
+const channelOptions = computed(() => [
+    { label: t('reconciliation_page.channel_wechat'), value: 'wechat' },
+    { label: t('reconciliation_page.channel_alipay'), value: 'alipay' },
+    { label: t('reconciliation_page.channel_stripe'), value: 'stripe' },
+    { label: t('reconciliation_page.channel_paypal'), value: 'paypal' },
+]);
+
+const periodOptions = computed(() => [
+    { label: t('reconciliation_page.period_daily'), value: 'daily' },
+    { label: t('reconciliation_page.period_weekly'), value: 'weekly' },
+    { label: t('reconciliation_page.period_monthly'), value: 'monthly' },
+]);
+
+const calStatusOptions = computed(() => [
+    { label: t('reconciliation_page.cal_st_pending'), value: 'pending' },
+    { label: t('reconciliation_page.cal_st_in_progress'), value: 'in_progress' },
+    { label: t('reconciliation_page.cal_st_completed'), value: 'completed' },
+]);
+
+const resolutionOptions = computed(() => [
+    { label: t('reconciliation_page.resolution_amount_adjust'), value: apiZh('reconciliation_page.resolution_amount_adjust') },
+    { label: t('reconciliation_page.resolution_manual'), value: apiZh('reconciliation_page.resolution_manual') },
+    { label: t('reconciliation_page.resolution_acceptable'), value: apiZh('reconciliation_page.resolution_acceptable') },
+    { label: t('reconciliation_page.resolution_refund'), value: apiZh('reconciliation_page.resolution_refund') },
+    { label: t('reconciliation_page.resolution_other'), value: apiZh('reconciliation_page.resolution_other') },
 ]);
 
 // ── 对账记录 ──
@@ -307,27 +359,88 @@ const channelReportData = computed(() => {
 // ── 解决 ──
 const resolveVisible = ref(false);
 const resolveTarget = ref(null);
-const resolveForm = reactive({ resolution: '手工对平', notes: '' });
+const resolveForm = reactive({ resolution: defaultResolution(), notes: '' });
 
 // ── 匹配 ──
 const matchVisible = ref(false);
 const matchTarget = ref(null);
 const matchForm = reactive({ order_id: '' });
 
-function formatTime(t) { return t ? new Date(t).toLocaleString('zh-CN') : ''; }
+function formatTime(ts) {
+    if (!ts) return '';
+    const loc = locale.value === 'zh_CN' ? 'zh-CN' : 'en-US';
+    return new Date(ts).toLocaleString(loc);
+}
+
 function reconStatusType(s) { return { pending: 'info', matched: 'success', unmatched: 'danger', resolved: 'primary' }[s] || 'info'; }
+
+function reconStatusLabel(s) {
+    const map = {
+        pending: t('reconciliation_page.recon_st_pending'),
+        matched: t('reconciliation_page.recon_st_matched'),
+        unmatched: t('reconciliation_page.recon_st_unmatched'),
+        resolved: t('reconciliation_page.recon_st_resolved'),
+    };
+    return map[s] || s;
+}
+
+function matchStatusLabel(s) {
+    const map = {
+        pending: t('reconciliation_page.match_st_pending'),
+        matched: t('reconciliation_page.match_st_matched'),
+        unmatched: t('reconciliation_page.match_st_unmatched'),
+    };
+    return map[s] || s;
+}
+
+function channelLabel(c) {
+    const map = {
+        wechat: t('reconciliation_page.channel_wechat'),
+        alipay: t('reconciliation_page.channel_alipay'),
+        stripe: t('reconciliation_page.channel_stripe'),
+        paypal: t('reconciliation_page.channel_paypal'),
+    };
+    return map[c] || c;
+}
+
+function importStatusLabel(s) {
+    const map = {
+        completed: t('reconciliation_page.import_st_completed'),
+        failed: t('reconciliation_page.import_st_failed'),
+        processing: t('reconciliation_page.import_st_processing'),
+    };
+    return map[s] || s;
+}
+
+function calStatusLabel(s) {
+    const map = {
+        pending: t('reconciliation_page.cal_st_pending'),
+        in_progress: t('reconciliation_page.cal_st_in_progress'),
+        completed: t('reconciliation_page.cal_st_completed'),
+    };
+    return map[s] || s;
+}
+
+function periodTypeLabel(p) {
+    const map = {
+        daily: t('reconciliation_page.period_daily'),
+        weekly: t('reconciliation_page.period_weekly'),
+        monthly: t('reconciliation_page.period_monthly'),
+    };
+    return map[p] || p;
+}
 
 async function loadDashboard() {
     try {
         const res = await getReconDashboard();
         const d = res.data?.data || {};
         stats.value = d;
-        statCards[0].value = String(d.totalRecon || 0);
-        statCards[1].value = String(d.pending || 0);
-        statCards[2].value = String(d.matched || 0);
-        statCards[3].value = String(d.unmatched || 0);
-        statCards[4].value = '¥' + (d.totalDiff || 0);
-        statCards[5].value = String(d.channelRows || 0);
+        statValues.totalRecon = String(d.totalRecon || 0);
+        statValues.pending = String(d.pending || 0);
+        statValues.matched = String(d.matched || 0);
+        statValues.unmatched = String(d.unmatched || 0);
+        statValues.totalDiff = '¥' + (d.totalDiff || 0);
+        statValues.channelRows = String(d.channelRows || 0);
     } catch { /* ignore */ }
 }
 
@@ -384,18 +497,18 @@ async function loadCalendars() {
 function handleFileChange(file) { importFile.value = file.raw; }
 
 async function handleImport() {
-    if (!importFile.value) { ElMessage.warning('请选择CSV文件'); return; }
+    if (!importFile.value) { ElMessage.warning(t('reconciliation_page.msg_select_csv')); return; }
     importing.value = true;
     try {
         const formData = new FormData();
         formData.append('file', importFile.value);
         formData.append('channel', importForm.channel);
-        const res = await importCsv(formData);
-        ElMessage.success('导入完成');
+        await importCsv(formData);
+        ElMessage.success(t('reconciliation_page.msg_import_done'));
         importFile.value = null;
         loadImports();
         loadDashboard();
-    } catch (e) { ElMessage.error('导入失败'); }
+    } catch { ElMessage.error(t('reconciliation_page.msg_import_failed')); }
     finally { importing.value = false; }
 }
 
@@ -403,14 +516,14 @@ async function handleGenerateCalendars() {
     try {
         const res = await generateCalendars({ type: calFilter.type, months: 3 });
         const count = res.data?.data?.length || 0;
-        ElMessage.success(`已生成 ${count} 个对账周期`);
+        ElMessage.success(t('reconciliation_page.msg_periods_generated', { n: count }));
         loadCalendars();
-    } catch { ElMessage.error('生成失败'); }
+    } catch { ElMessage.error(t('reconciliation_page.msg_generate_failed')); }
 }
 
 function showResolveDialog(row) {
     resolveTarget.value = row;
-    resolveForm.resolution = '手工对平';
+    resolveForm.resolution = defaultResolution();
     resolveForm.notes = '';
     resolveVisible.value = true;
 }
@@ -418,11 +531,11 @@ function showResolveDialog(row) {
 async function handleResolve() {
     try {
         await resolveReconciliation(resolveTarget.value.id, resolveForm);
-        ElMessage.success('已解决');
+        ElMessage.success(t('reconciliation_page.msg_resolved'));
         resolveVisible.value = false;
         loadRecons();
         loadDashboard();
-    } catch { ElMessage.error('操作失败'); }
+    } catch { ElMessage.error(t('messages.failed')); }
 }
 
 function showManualMatch(row) {
@@ -432,13 +545,13 @@ function showManualMatch(row) {
 }
 
 async function handleManualMatch() {
-    if (!matchForm.order_id) { ElMessage.warning('请输入订单ID'); return; }
+    if (!matchForm.order_id) { ElMessage.warning(t('reconciliation_page.msg_order_id_required')); return; }
     try {
         await manualMatch({ channel_row_id: matchTarget.value.id, order_id: matchForm.order_id });
-        ElMessage.success('已匹配');
+        ElMessage.success(t('reconciliation_page.msg_matched'));
         matchVisible.value = false;
         loadChannelRows();
-    } catch { ElMessage.error('匹配失败'); }
+    } catch { ElMessage.error(t('reconciliation_page.msg_match_failed')); }
 }
 
 async function generateReport() {
@@ -448,8 +561,8 @@ async function generateReport() {
         if (reportForm.end_date) params.end_date = reportForm.end_date;
         const res = await getReport(params);
         reportData.value = res.data?.data || null;
-        ElMessage.success('报告已生成');
-    } catch { ElMessage.error('生成失败'); }
+        ElMessage.success(t('reconciliation_page.msg_report_generated'));
+    } catch { ElMessage.error(t('reconciliation_page.msg_generate_failed')); }
 }
 
 onMounted(() => {

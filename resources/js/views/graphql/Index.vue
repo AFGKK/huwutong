@@ -7,7 +7,7 @@
           <template #header>
             <div class="flex items-center gap-2">
               <el-icon><Monitor /></el-icon>
-              <span class="font-semibold">Schema 浏览器</span>
+              <span class="font-semibold">{{ t('graphql_page.schema_browser') }}</span>
             </div>
           </template>
 
@@ -46,14 +46,14 @@
             <div class="flex justify-between items-center">
               <div class="flex items-center gap-2">
                 <el-icon><Edit /></el-icon>
-                <span class="font-semibold">GraphQL 查询编辑器</span>
+                <span class="font-semibold">{{ t('graphql_page.query_editor') }}</span>
               </div>
               <div class="flex gap-2">
-                <el-button size="small" @click="clearQuery">清空</el-button>
-                <el-button size="small" @click="addQueryTab">+ 查询</el-button>
-                <el-button size="small" @click="loadSample">示例</el-button>
+                <el-button size="small" @click="clearQuery">{{ t('graphql_page.clear') }}</el-button>
+                <el-button size="small" @click="addQueryTab">{{ t('graphql_page.add_query') }}</el-button>
+                <el-button size="small" @click="loadSample">{{ t('graphql_page.sample') }}</el-button>
                 <el-button type="primary" size="small" @click="executeQuery" :loading="executing">
-                  执行
+                  {{ t('graphql_page.execute') }}
                 </el-button>
               </div>
             </div>
@@ -63,7 +63,7 @@
             <el-tab-pane
               v-for="(tab, idx) in queryTabs"
               :key="idx"
-              :label="`查询 ${idx + 1}`"
+              :label="queryTabLabel(idx)"
               :name="String(idx)"
               :closable="queryTabs.length > 1"
             >
@@ -72,7 +72,7 @@
                 type="textarea"
                 :rows="12"
                 class="font-mono"
-                placeholder="输入 GraphQL 查询..."
+                :placeholder="t('graphql_page.query_placeholder')"
               />
             </el-tab-pane>
           </el-tabs>
@@ -83,9 +83,9 @@
           <template #header>
             <div class="flex items-center gap-2">
               <el-icon><DataAnalysis /></el-icon>
-              <span class="font-semibold">结果</span>
+              <span class="font-semibold">{{ t('graphql_page.results') }}</span>
               <el-tag v-if="executionTime" size="small" effect="plain">{{ executionTime }}ms</el-tag>
-              <el-tag v-if="resultSize" size="small" type="success">{{ resultSize }} 条记录</el-tag>
+              <el-tag v-if="resultSize" size="small" type="success">{{ t('graphql_page.record_count', { n: resultSize }) }}</el-tag>
             </div>
           </template>
 
@@ -97,7 +97,7 @@
             <pre class="json-output font-mono text-sm">{{ formattedResult }}</pre>
           </div>
 
-          <el-empty v-if="!formattedResult && !error" description="执行查询以查看结果" />
+          <el-empty v-if="!formattedResult && !error" :description="t('graphql_page.empty_hint')" />
         </el-card>
       </el-col>
     </el-row>
@@ -105,10 +105,23 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, reactive } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Monitor, Edit, DataAnalysis } from '@element-plus/icons-vue';
 import graphqlApi from '@/api/graphql';
+
+const { t, locale } = useI18n();
+
+const SCHEMA_GROUPS = computed(() => ({
+  fields: t('graphql_page.schema_fields'),
+  relations: t('graphql_page.schema_relations'),
+  filters: t('graphql_page.schema_filters'),
+}));
+
+function queryTabLabel(idx) {
+  return t('graphql_page.query_tab', { n: idx + 1 });
+}
 
 // ─── 查询标签 ───
 const queryTabs = ref([{ query: '' }]);
@@ -151,7 +164,7 @@ async function loadSchema() {
     schemaData.value = data?.data || {};
     buildSchemaTree();
   } catch (e) {
-    ElMessage.error('加载 Schema 失败');
+    ElMessage.error(t('messages.load_failed'));
   }
 }
 
@@ -171,8 +184,8 @@ function buildSchemaTree() {
     if (def.fields?.length) {
       typeNode.children.push({
         id: `${typeName}-fields`,
-        label: '字段',
-        name: '字段',
+        label: SCHEMA_GROUPS.value.fields,
+        name: SCHEMA_GROUPS.value.fields,
         type: 'group',
         children: def.fields.map(f => ({
           id: `${typeName}-field-${f}`,
@@ -188,8 +201,8 @@ function buildSchemaTree() {
     if (def.relations && Object.keys(def.relations).length) {
       typeNode.children.push({
         id: `${typeName}-relations`,
-        label: '关联',
-        name: '关联',
+        label: SCHEMA_GROUPS.value.relations,
+        name: SCHEMA_GROUPS.value.relations,
         type: 'group',
         children: Object.entries(def.relations).map(([name, type]) => ({
           id: `${typeName}-rel-${name}`,
@@ -205,8 +218,8 @@ function buildSchemaTree() {
     if (def.filters?.length) {
       typeNode.children.push({
         id: `${typeName}-filters`,
-        label: '过滤',
-        name: '过滤',
+        label: SCHEMA_GROUPS.value.filters,
+        name: SCHEMA_GROUPS.value.filters,
         type: 'group',
         children: def.filters.map(f => ({
           id: `${typeName}-filter-${f}`,
@@ -239,7 +252,7 @@ function selectSchemaNode(node) {
     }, null, 2);
 
     tab.query = query;
-    ElMessage.info(`已加载 ${node.name} 示例查询`);
+    ElMessage.info(t('graphql_page.messages.sample_loaded', { type: node.name }));
   }
 }
 
@@ -247,7 +260,7 @@ function selectSchemaNode(node) {
 async function executeQuery() {
   const tab = queryTabs.value[parseInt(activeEditor.value)];
   if (!tab?.query?.trim()) {
-    ElMessage.warning('请输入查询');
+    ElMessage.warning(t('graphql_page.messages.enter_query'));
     return;
   }
 
@@ -255,7 +268,7 @@ async function executeQuery() {
   try {
     payload = JSON.parse(tab.query);
   } catch (e) {
-    ElMessage.error('JSON 解析失败，请检查语法');
+    ElMessage.error(t('graphql_page.messages.json_parse_failed'));
     return;
   }
 
@@ -287,7 +300,7 @@ async function executeQuery() {
       error.value = result.errors.map(e => e.message).join('; ');
     }
   } catch (e) {
-    error.value = e.response?.data?.message || e.message || '执行失败';
+    error.value = e.response?.data?.message || e.message || t('messages.failed');
     formattedResult.value = null;
   } finally {
     executing.value = false;
@@ -319,8 +332,14 @@ function loadSample() {
       per_page: 10,
     },
   }, null, 2);
-  ElMessage.success('已加载示例查询');
+  ElMessage.success(t('graphql_page.messages.sample_loaded_generic'));
 }
+
+watch(locale, () => {
+  if (Object.keys(schemaData.value).length) {
+    buildSchemaTree();
+  }
+});
 
 onMounted(loadSchema);
 </script>

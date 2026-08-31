@@ -16,6 +16,9 @@ export default {
   signal(id, data) {
     return apiClient.post(`/calls/${id}/signal`, data)
   },
+  iceServers() {
+    return apiClient.get('/calls/ice-servers')
+  },
   incoming() {
     return apiClient.get('/calls/incoming')
   },

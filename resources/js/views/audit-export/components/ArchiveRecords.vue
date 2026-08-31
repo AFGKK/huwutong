@@ -2,49 +2,49 @@
   <div>
     <el-row :gutter="12" class="mb-4">
       <el-col :span="6">
-        <el-select v-model="filterPolicy" placeholder="策略" clearable style="width:100%" @change="fetchRecords">
-          <el-option label="全部" value="" />
+        <el-select v-model="filterPolicy" :placeholder="t('archive_records.policy')" clearable style="width:100%" @change="fetchRecords">
+          <el-option :label="t('archive_records.all')" value="" />
           <el-option v-for="p in policies" :key="p.id" :label="p.name" :value="p.id" />
         </el-select>
       </el-col>
       <el-col :span="4">
-        <el-select v-model="filterStatus" placeholder="状态" clearable style="width:100%" @change="fetchRecords">
-          <el-option label="全部" value="" />
-          <el-option label="完成" value="completed" />
-          <el-option label="处理中" value="processing" />
-          <el-option label="失败" value="failed" />
+        <el-select v-model="filterStatus" :placeholder="t('archive_records.status')" clearable style="width:100%" @change="fetchRecords">
+          <el-option :label="t('archive_records.all')" value="" />
+          <el-option :label="t('archive_records.statuses.completed')" value="completed" />
+          <el-option :label="t('archive_records.statuses.processing')" value="processing" />
+          <el-option :label="t('archive_records.statuses.failed')" value="failed" />
         </el-select>
       </el-col>
       <el-col :span="14" class="text-right">
-        <el-button size="small" @click="fetchRecords" :icon="Refresh">刷新</el-button>
+        <el-button size="small" @click="fetchRecords" :icon="Refresh">{{ t('actions.refresh') }}</el-button>
       </el-col>
     </el-row>
 
     <el-table :data="records" v-loading="loading" stripe style="width:100%">
-      <el-table-column label="策略" min-width="140">
+      <el-table-column :label="t('archive_records.cols.policy')" min-width="140">
         <template #default="{ row }">{{ row.policy?.name || row.type }}</template>
       </el-table-column>
-      <el-table-column label="类型" width="80">
+      <el-table-column :label="t('archive_records.cols.type')" width="80">
         <template #default="{ row }"><el-tag size="small">{{ row.type }}</el-tag></template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="100">
+      <el-table-column prop="status" :label="t('archive_records.cols.status')" width="100">
         <template #default="{ row }">
           <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="归档数" width="80" align="center" prop="archived_logs" />
-      <el-table-column label="清理数" width="80" align="center" prop="deleted_logs" />
-      <el-table-column label="总日志" width="80" align="center" prop="total_logs" />
-      <el-table-column label="归档文件" min-width="200">
+      <el-table-column :label="t('archive_records.cols.archived')" width="80" align="center" prop="archived_logs" />
+      <el-table-column :label="t('archive_records.cols.deleted')" width="80" align="center" prop="deleted_logs" />
+      <el-table-column :label="t('archive_records.cols.total')" width="80" align="center" prop="total_logs" />
+      <el-table-column :label="t('archive_records.cols.file')" min-width="200">
         <template #default="{ row }">
           <span class="text-xs">{{ row.archive_file || '—' }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="文件大小" width="90" align="center">
+      <el-table-column :label="t('archive_records.cols.size')" width="90" align="center">
         <template #default="{ row }">{{ formatSize(row.file_size_bytes) }}</template>
       </el-table-column>
-      <el-table-column label="执行时间" width="150" prop="executed_at" />
-      <el-table-column label="创建时间" width="150" prop="created_at" />
+      <el-table-column :label="t('archive_records.cols.executed')" width="150" prop="executed_at" />
+      <el-table-column :label="t('archive_records.cols.created')" width="150" prop="created_at" />
     </el-table>
 
     <div class="mt-4 flex justify-end" v-if="total > perPage">
@@ -53,16 +53,18 @@
         @current-change="page => fetchRecords(page)" @size-change="s => { perPage = s; fetchRecords() }" />
     </div>
 
-    <el-empty v-if="!loading && !records.length" description="暂无归档记录" />
+    <el-empty v-if="!loading && !records.length" :description="t('archive_records.empty')" />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { getArchiveRecords, getArchivePolicies } from '../../../api/auditExport'
 
+const { t } = useI18n()
 const records = ref([])
 const policies = ref([])
 const loading = ref(false)
@@ -72,7 +74,10 @@ const filterPolicy = ref('')
 const filterStatus = ref('')
 
 function statusTag(s) { return { completed: 'success', processing: 'warning', failed: 'danger', pending: '' }[s] || '' }
-function statusLabel(s) { return { completed: '完成', processing: '处理中', failed: '失败', pending: '待处理' }[s] || s }
+function statusLabel(s) {
+  const key = { completed: 'completed', processing: 'processing', failed: 'failed', pending: 'pending' }[s]
+  return key ? t(`archive_records.statuses.${key}`) : s
+}
 function formatSize(bytes) {
   if (!bytes) return '—'
   if (bytes < 1024) return bytes + 'B'
@@ -90,7 +95,7 @@ async function fetchRecords(page = 1) {
     records.value = data?.data || []
     total.value = data?.total || 0
   } catch (e) {
-    ElMessage.error('获取归档记录失败')
+    ElMessage.error(t('archive_records.messages.load_failed'))
   } finally {
     loading.value = false
   }

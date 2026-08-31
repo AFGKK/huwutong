@@ -1,41 +1,41 @@
 <template>
   <div>
     <el-row :gutter="12" class="mb-4" justify="space-between" align="middle">
-      <el-col :span="12"><span class="text-sm text-gray-400">配置定时导出计划，系统按 Cron 表达式自动执行</span></el-col>
+      <el-col :span="12"><span class="text-sm text-gray-400">{{ t('schedule_list.hint') }}</span></el-col>
       <el-col :span="12" class="text-right">
         <el-button type="primary" size="small" @click="openCreate">
-          <el-icon><Plus /></el-icon> 新建计划
+          <el-icon><Plus /></el-icon> {{ t('schedule_list.create') }}
         </el-button>
       </el-col>
     </el-row>
 
     <el-table :data="schedules" v-loading="loading" stripe style="width:100%">
-      <el-table-column prop="name" label="计划名称" min-width="150" />
+      <el-table-column prop="name" :label="t('schedule_list.cols.name')" min-width="150" />
       <el-table-column prop="cron_expression" label="Cron" width="130">
         <template #default="{ row }"><code>{{ row.cron_expression }}</code></template>
       </el-table-column>
-      <el-table-column label="格式" width="60" align="center">
+      <el-table-column :label="t('schedule_list.cols.format')" width="60" align="center">
         <template #default="{ row }"><el-tag size="small" effect="plain">{{ row.format }}</el-tag></template>
       </el-table-column>
-      <el-table-column label="运行次数" width="80" align="center" prop="run_count" />
-      <el-table-column label="上次运行" width="150">
+      <el-table-column :label="t('schedule_list.cols.run_count')" width="80" align="center" prop="run_count" />
+      <el-table-column :label="t('schedule_list.cols.last_run')" width="150">
         <template #default="{ row }">{{ row.last_run_at || '—' }}</template>
       </el-table-column>
-      <el-table-column label="下次运行" width="150">
+      <el-table-column :label="t('schedule_list.cols.next_run')" width="150">
         <template #default="{ row }">{{ row.next_run_at || '—' }}</template>
       </el-table-column>
-      <el-table-column label="状态" width="80" align="center">
+      <el-table-column :label="t('schedule_list.cols.status')" width="80" align="center">
         <template #default="{ row }">
           <el-switch :model-value="row.is_active" @click="toggleSchedule(row)" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="160" fixed="right">
+      <el-table-column :label="t('schedule_list.cols.actions')" width="160" fixed="right">
         <template #default="{ row }">
           <el-space>
-            <el-button size="small" link @click="editSchedule(row)">编辑</el-button>
-            <el-popconfirm title="删除此计划？" @confirm="deleteSchedule(row)">
+            <el-button size="small" link @click="editSchedule(row)">{{ t('actions.edit') }}</el-button>
+            <el-popconfirm :title="t('schedule_list.confirm_delete')" @confirm="deleteSchedule(row)">
               <template #reference>
-                <el-button size="small" type="danger" link>删除</el-button>
+                <el-button size="small" type="danger" link>{{ t('actions.delete') }}</el-button>
               </template>
             </el-popconfirm>
           </el-space>
@@ -55,11 +55,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { getSchedules, toggleSchedule as apiToggleSchedule, deleteSchedule as apiDeleteSchedule } from '../../../api/auditExport'
 import ScheduleDialog from './ScheduleDialog.vue'
 
+const { t } = useI18n()
 const schedules = ref([])
 const loading = ref(false)
 const total = ref(0)
@@ -73,7 +75,7 @@ async function fetchSchedules(page = 1) {
     schedules.value = data?.data || []
     total.value = data?.total || 0
   } catch (e) {
-    ElMessage.error('获取计划列表失败')
+    ElMessage.error(t('schedule_list.messages.load_failed'))
   } finally {
     loading.value = false
   }
@@ -83,22 +85,22 @@ function openCreate() { dialogRef.value?.open('create') }
 function editSchedule(row) { dialogRef.value?.open('edit', row) }
 
 async function toggleSchedule(row) {
-    try {
-      const { data } = await apiToggleSchedule(row.id)
+  try {
+    const { data } = await apiToggleSchedule(row.id)
     row.is_active = data?.is_active ?? !row.is_active
-    ElMessage.success(row.is_active ? '计划已启用' : '计划已暂停')
+    ElMessage.success(row.is_active ? t('schedule_list.messages.enabled') : t('schedule_list.messages.paused'))
   } catch (e) {
-    ElMessage.error('操作失败')
+    ElMessage.error(t('schedule_list.messages.failed'))
   }
 }
 
 async function deleteSchedule(row) {
   try {
     await apiDeleteSchedule(row.id)
-    ElMessage.success('计划已删除')
+    ElMessage.success(t('schedule_list.messages.deleted'))
     fetchSchedules()
   } catch (e) {
-    ElMessage.error('删除失败')
+    ElMessage.error(t('schedule_list.messages.delete_failed'))
   }
 }
 

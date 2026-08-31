@@ -1,39 +1,38 @@
 <template>
     <div class="footer-nav-container">
-        <el-page-header :content="'页脚导航配置'" @back="$router.push('/admin/dashboard')" />
+        <el-page-header :content="t('footer_nav_page.title')" @back="$router.push('/admin/dashboard')" />
 
         <el-alert
-            title="管理网站页脚链接，支持拖拽排序、分组管理(页脚主区/社交媒体/底部信息)、开关控制。"
+            :title="t('footer_nav_page.alert')"
             type="info"
             show-icon
             :closable="false"
             class="alert-info"
         />
 
-        <!-- 统计 -->
         <el-row :gutter="20" class="stat-cards">
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-value">{{ items.length }}</div>
-                    <div class="stat-label">链接总数</div>
+                    <div class="stat-label">{{ t('footer_nav_page.stats.total') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-value text-success">{{ activeCount }}</div>
-                    <div class="stat-label">已启用</div>
+                    <div class="stat-label">{{ t('footer_nav_page.stats.active') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-value">{{ grouped.footer?.length || 0 }}</div>
-                    <div class="stat-label">页脚主区</div>
+                    <div class="stat-label">{{ t('footer_nav_page.groups.footer') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-value">{{ grouped.social?.length || 0 }}</div>
-                    <div class="stat-label">社交媒体</div>
+                    <div class="stat-label">{{ t('footer_nav_page.groups.social') }}</div>
                 </el-card>
             </el-col>
         </el-row>
@@ -41,16 +40,15 @@
         <el-card>
             <template #header>
                 <div class="card-header">
-                    <span>页脚链接管理</span>
+                    <span>{{ t('footer_nav_page.manage_title') }}</span>
                     <div>
-                        <el-button size="small" @click="handleInitDefaults">初始化默认</el-button>
-                        <el-button size="small" type="primary" @click="openCreateDialog">新建链接</el-button>
+                        <el-button size="small" @click="handleInitDefaults">{{ t('footer_nav_page.init_defaults') }}</el-button>
+                        <el-button size="small" type="primary" @click="openCreateDialog">{{ t('footer_nav_page.new_link') }}</el-button>
                     </div>
                 </div>
             </template>
 
-            <!-- 页脚主区 -->
-            <h3 class="group-title">📋 页脚主区</h3>
+            <h3 class="group-title">{{ t('footer_nav_page.groups.footer') }}</h3>
             <draggable
                 :list="grouped.footer || []"
                 group="footer"
@@ -72,14 +70,13 @@
                             @change="handleToggle(element)"
                             class="item-toggle"
                         />
-                        <el-button size="small" @click="editItem(element)" class="item-btn">编辑</el-button>
-                        <el-button size="small" type="danger" plain @click="handleDelete(element)" class="item-btn">删除</el-button>
+                        <el-button size="small" @click="editItem(element)" class="item-btn">{{ t('actions.edit') }}</el-button>
+                        <el-button size="small" type="danger" plain @click="handleDelete(element)" class="item-btn">{{ t('actions.delete') }}</el-button>
                     </div>
                 </template>
             </draggable>
 
-            <!-- 社交媒体 -->
-            <h3 class="group-title">🌐 社交媒体</h3>
+            <h3 class="group-title">{{ t('footer_nav_page.groups.social') }}</h3>
             <draggable
                 :list="grouped.social || []"
                 group="social"
@@ -101,14 +98,13 @@
                             @change="handleToggle(element)"
                             class="item-toggle"
                         />
-                        <el-button size="small" @click="editItem(element)" class="item-btn">编辑</el-button>
-                        <el-button size="small" type="danger" plain @click="handleDelete(element)" class="item-btn">删除</el-button>
+                        <el-button size="small" @click="editItem(element)" class="item-btn">{{ t('actions.edit') }}</el-button>
+                        <el-button size="small" type="danger" plain @click="handleDelete(element)" class="item-btn">{{ t('actions.delete') }}</el-button>
                     </div>
                 </template>
             </draggable>
 
-            <!-- 底部信息 -->
-            <h3 class="group-title">🔻 底部信息</h3>
+            <h3 class="group-title">{{ t('footer_nav_page.groups.bottom') }}</h3>
             <draggable
                 :list="grouped.bottom || []"
                 group="bottom"
@@ -130,53 +126,52 @@
                             @change="handleToggle(element)"
                             class="item-toggle"
                         />
-                        <el-button size="small" @click="editItem(element)" class="item-btn">编辑</el-button>
-                        <el-button size="small" type="danger" plain @click="handleDelete(element)" class="item-btn">删除</el-button>
+                        <el-button size="small" @click="editItem(element)" class="item-btn">{{ t('actions.edit') }}</el-button>
+                        <el-button size="small" type="danger" plain @click="handleDelete(element)" class="item-btn">{{ t('actions.delete') }}</el-button>
                     </div>
                 </template>
             </draggable>
         </el-card>
 
-        <!-- 新建/编辑 Dialog -->
-        <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑链接' : '新建链接'" width="550px">
+        <el-dialog v-model="dialogVisible" :title="isEdit ? t('footer_nav_page.edit_link') : t('footer_nav_page.new_link')" width="550px">
             <el-form :model="form" label-width="110px" :rules="formRules" ref="formRef">
-                <el-form-item label="显示名称" prop="label">
+                <el-form-item :label="t('footer_nav_page.form.label')" prop="label">
                     <el-input v-model="form.label" maxlength="100" />
                 </el-form-item>
-                <el-form-item label="链接类型">
+                <el-form-item :label="t('footer_nav_page.form.type')">
                     <el-select v-model="form.type" style="width:100%">
                         <el-option v-for="(label, val) in options?.link_types || {}" :key="val" :label="label" :value="val" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="URL">
-                    <el-input v-model="form.url" placeholder="https:// 或 /page-slug" maxlength="500" />
+                <el-form-item :label="t('footer_nav_page.form.url')">
+                    <el-input v-model="form.url" :placeholder="t('footer_nav_page.form.url_ph')" maxlength="500" />
                 </el-form-item>
-                <el-form-item label="图标">
-                    <el-input v-model="form.icon" placeholder="图标名称" maxlength="100" />
-                    <div class="form-tip">Element Plus 图标名或 FontAwesome 类名</div>
+                <el-form-item :label="t('footer_nav_page.form.icon')">
+                    <el-input v-model="form.icon" :placeholder="t('footer_nav_page.form.icon_ph')" maxlength="100" />
+                    <div class="form-tip">{{ t('footer_nav_page.form.icon_tip') }}</div>
                 </el-form-item>
-                <el-form-item label="打开方式">
+                <el-form-item :label="t('footer_nav_page.form.target')">
                     <el-radio-group v-model="form.target">
-                        <el-radio value="_self">当前窗口</el-radio>
-                        <el-radio value="_blank">新窗口</el-radio>
+                        <el-radio value="_self">{{ t('footer_nav_page.form.target_self') }}</el-radio>
+                        <el-radio value="_blank">{{ t('footer_nav_page.form.target_blank') }}</el-radio>
                     </el-radio-group>
                 </el-form-item>
-                <el-form-item label="分组">
+                <el-form-item :label="t('footer_nav_page.form.group')">
                     <el-select v-model="form.group" style="width:100%">
                         <el-option v-for="g in options?.groups || []" :key="g.value" :label="g.label" :value="g.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="排序值">
+                <el-form-item :label="t('footer_nav_page.form.sort_order')">
                     <el-input-number v-model="form.sort_order" :min="0" :max="9999" />
-                    <div class="form-tip">数值越小越靠前</div>
+                    <div class="form-tip">{{ t('footer_nav_page.form.sort_tip') }}</div>
                 </el-form-item>
-                <el-form-item label="启用">
+                <el-form-item :label="t('actions.enable')">
                     <el-switch v-model="form.is_active" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
+                <el-button @click="dialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleSave" :loading="saving">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -184,12 +179,15 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import draggable from 'vuedraggable'
 import {
     getFooterNav, createFooterNavItem, updateFooterNavItem, deleteFooterNavItem,
     reorderFooterNav, toggleFooterNavItem, initDefaultFooterNav, getFooterNavOptions,
 } from '@/api/footerNav'
+
+const { t } = useI18n()
 
 const items = ref([])
 const grouped = ref({ footer: [], social: [], bottom: [] })
@@ -202,9 +200,9 @@ const form = ref({
     label: '', type: 'custom', url: '', icon: '', target: '_self',
     group: 'footer', sort_order: 0, is_active: true,
 })
-const formRules = {
-    label: [{ required: true, message: '请输入显示名称' }],
-}
+const formRules = computed(() => ({
+    label: [{ required: true, message: t('footer_nav_page.validation.label_required') }],
+}))
 const formRef = ref(null)
 const saving = ref(false)
 
@@ -263,24 +261,24 @@ async function handleSave() {
     try {
         if (isEdit.value && editingId.value) {
             await updateFooterNavItem(editingId.value, form.value)
-            ElMessage.success('链接已更新')
+            ElMessage.success(t('footer_nav_page.messages.updated'))
         } else {
             await createFooterNavItem(form.value)
-            ElMessage.success('链接已创建')
+            ElMessage.success(t('footer_nav_page.messages.created'))
         }
         dialogVisible.value = false
         await fetchData()
     } catch (e) {
-        ElMessage.error(e.message || '操作失败')
+        ElMessage.error(e.message || t('messages.failed'))
     }
     saving.value = false
 }
 
 async function handleDelete(row) {
     try {
-        await ElMessageBox.confirm(`确定删除「${row.label}」？`, '确认')
+        await ElMessageBox.confirm(t('footer_nav_page.messages.delete_confirm', { label: row.label }), t('actions.confirm'))
         await deleteFooterNavItem(row.id)
-        ElMessage.success('已删除')
+        ElMessage.success(t('footer_nav_page.messages.deleted'))
         await fetchData()
     } catch { /* ignore */ }
 }
@@ -289,9 +287,9 @@ async function handleToggle(row) {
     try {
         const res = await toggleFooterNavItem(row.id)
         row.is_active = res.data?.is_active ?? !row.is_active
-        ElMessage.success(row.is_active ? '已启用' : '已禁用')
+        ElMessage.success(row.is_active ? t('footer_nav_page.messages.enabled') : t('footer_nav_page.messages.disabled'))
     } catch (e) {
-        ElMessage.error(e.message || '操作失败')
+        ElMessage.error(e.message || t('messages.failed'))
     }
 }
 
@@ -313,10 +311,10 @@ async function handleReorder() {
 async function handleInitDefaults() {
     try {
         const res = await initDefaultFooterNav()
-        ElMessage.success(`已初始化 ${res.data?.created || 0} 个默认链接`)
+        ElMessage.success(t('footer_nav_page.messages.init_done', { n: res.data?.created || 0 }))
         await fetchData()
     } catch (e) {
-        ElMessage.error(e.message || '初始化失败')
+        ElMessage.error(e.message || t('footer_nav_page.messages.init_failed'))
     }
 }
 </script>
@@ -381,7 +379,7 @@ async function handleInitDefaults() {
 }
 
 .drag-item:hover {
-    background: #ecf5ff;
+    background: #f1f5f9;
 }
 
 .drag-handle {

@@ -1,61 +1,64 @@
 <template>
-  <el-dialog v-model="visible" :title="contract?.id ? '编辑 SLA 合约' : '新建 SLA 合约'" width="640px" :close-on-click-modal="false"
+  <el-dialog v-model="visible" :title="contract?.id ? t('sla_contract_dialog.edit_title') : t('sla_contract_dialog.create_title')" width="640px" :close-on-click-modal="false"
     @close="reset">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="120px" v-loading="saving">
-      <el-form-item label="名称" prop="name">
+    <el-form ref="formRef" :model="form" :rules="formRules" label-width="120px" v-loading="saving">
+      <el-form-item :label="t('sla_contract_dialog.name')" prop="name">
         <el-input v-model="form.name" maxlength="200" />
       </el-form-item>
-      <el-form-item label="级别" prop="level">
+      <el-form-item :label="t('sla_contract_dialog.level')" prop="level">
         <el-select v-model="form.level">
-          <el-option label="标准" value="standard" />
-          <el-option label="高级" value="premium" />
-          <el-option label="企业" value="enterprise" />
-          <el-option label="自定义" value="custom" />
+          <el-option :label="t('sla_contract_dialog.levels.standard')" value="standard" />
+          <el-option :label="t('sla_contract_dialog.levels.premium')" value="premium" />
+          <el-option :label="t('sla_contract_dialog.levels.enterprise')" value="enterprise" />
+          <el-option :label="t('sla_contract_dialog.levels.custom')" value="custom" />
         </el-select>
       </el-form-item>
-      <el-form-item label="关联客户">
-        <el-select v-model="form.customer_id" filterable clearable placeholder="可选">
+      <el-form-item :label="t('sla_contract_dialog.customer')">
+        <el-select v-model="form.customer_id" filterable clearable :placeholder="t('sla_contract_dialog.optional')">
           <el-option v-for="c in customers" :key="c.id" :label="c.name || c.email" :value="c.id" />
         </el-select>
       </el-form-item>
-      <el-form-item label="描述">
+      <el-form-item :label="t('sla_contract_dialog.description')">
         <el-input v-model="form.description" type="textarea" :rows="2" />
       </el-form-item>
-      <el-form-item label="生效日期" prop="effective_date">
+      <el-form-item :label="t('sla_contract_dialog.effective_date')" prop="effective_date">
         <el-date-picker v-model="form.effective_date" type="date" value-format="YYYY-MM-DD" />
       </el-form-item>
-      <el-form-item label="到期日期">
+      <el-form-item :label="t('sla_contract_dialog.expiry_date')">
         <el-date-picker v-model="form.expiry_date" type="date" value-format="YYYY-MM-DD" clearable />
       </el-form-item>
-      <el-form-item label="条款 (JSON)">
+      <el-form-item :label="t('sla_contract_dialog.terms')">
         <el-input v-model="form.terms" type="textarea" :rows="3" placeholder='{"response_time": 30, "availability": 99.9}' />
       </el-form-item>
-      <el-form-item label="违约处罚 (JSON)">
+      <el-form-item :label="t('sla_contract_dialog.penalties')">
         <el-input v-model="form.penalties" type="textarea" :rows="2" placeholder='{"credits": 5, "escalation": true}' />
       </el-form-item>
-      <el-form-item label="营业时间 (JSON)">
+      <el-form-item :label="t('sla_contract_dialog.business_hours')">
         <el-input v-model="form.business_hours" type="textarea" :rows="2"
           placeholder='{"timezone": "Asia/Shanghai", "workdays": [1,2,3,4,5]}' />
       </el-form-item>
-      <el-form-item label="作用域 (JSON)">
+      <el-form-item :label="t('sla_contract_dialog.scope')">
         <el-input v-model="form.scope" type="textarea" :rows="2" placeholder='{"modules": ["tickets", "support"]}' />
       </el-form-item>
-      <el-form-item v-if="!contract?.id" label="另存为模板">
+      <el-form-item v-if="!contract?.id" :label="t('sla_contract_dialog.save_as_template')">
         <el-switch v-model="form.is_template" />
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">{{ contract?.id ? '保存' : '创建' }}</el-button>
+      <el-button @click="visible = false">{{ t('actions.cancel') }}</el-button>
+      <el-button type="primary" :loading="saving" @click="save">{{ contract?.id ? t('actions.save') : t('actions.create') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
 import { ref, reactive, watch, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { createContract, updateContract } from '../../../api/sla'
 import customerApi from '../../../api/customer'
+
+const { t } = useI18n()
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -78,10 +81,10 @@ const form = reactive({
   terms: '', penalties: '', business_hours: '', scope: '',
 })
 
-const rules = {
-  name: [{ required: true, message: '请输入合约名称', trigger: 'blur' }],
-  effective_date: [{ required: true, message: '请选择生效日期', trigger: 'blur' }],
-}
+const formRules = computed(() => ({
+  name: [{ required: true, message: t('sla_contract_dialog.rules.name'), trigger: 'blur' }],
+  effective_date: [{ required: true, message: t('sla_contract_dialog.rules.effective_date'), trigger: 'blur' }],
+}))
 
 function reset() {
   form.name = ''
@@ -117,14 +120,14 @@ async function save() {
     }
     if (props.contract?.id) {
       await updateContract(props.contract.id, payload)
-      ElMessage.success('已更新')
+      ElMessage.success(t('sla_contract_dialog.messages.updated'))
     } else {
       await createContract(payload)
-      ElMessage.success('已创建')
+      ElMessage.success(t('sla_contract_dialog.messages.created'))
     }
     emit('saved')
   } catch (e) {
-    ElMessage.error('操作失败')
+    ElMessage.error(t('sla_contract_dialog.messages.failed'))
   } finally {
     saving.value = false
   }

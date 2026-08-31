@@ -2,15 +2,15 @@
     <div class="settlement-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>财务结算系统</h2>
-                <span class="header-subtitle">佣金结算、批次管理、平台费用统一管理</span>
+                <h2>{{ t('settlement_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('settlement_page.subtitle') }}</span>
             </div>
             <div class="header-right">
                 <el-button @click="scanReleasable" :loading="scanLoading">
-                    <el-icon><Search /></el-icon> 扫描可结算佣金
+                    <el-icon><Search /></el-icon> {{ t('settlement_page.scan_releasable') }}
                 </el-button>
                 <el-button type="primary" @click="openCreateBatchDialog">
-                    <el-icon><Plus /></el-icon> 新建结算批次
+                    <el-icon><Plus /></el-icon> {{ t('settlement_page.new_batch') }}
                 </el-button>
             </div>
         </div>
@@ -20,37 +20,37 @@
             <el-col :span="4">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value">{{ dashData.pending_settlements ?? '-' }}</div>
-                    <div class="stat-label">待结算笔数</div>
+                    <div class="stat-label">{{ t('settlement_page.stat_pending_settlements') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="4">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value">{{ dashData.releasable_count ?? '-' }}</div>
-                    <div class="stat-label">可释放笔数</div>
+                    <div class="stat-label">{{ t('settlement_page.stat_releasable_count') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="4">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value">{{ formatMoney(dashData.pending_payouts) }}</div>
-                    <div class="stat-label">待打款总额</div>
+                    <div class="stat-label">{{ t('settlement_page.stat_pending_payouts') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="4">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value">{{ dashData.active_agents ?? '-' }}</div>
-                    <div class="stat-label">活跃代理/推客</div>
+                    <div class="stat-label">{{ t('settlement_page.stat_active_agents') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="4">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value">{{ formatMoney(dashData.monthly_settled) }}</div>
-                    <div class="stat-label">本月已结算</div>
+                    <div class="stat-label">{{ t('settlement_page.stat_monthly_settled') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="4">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value">{{ formatMoney(dashData.monthly_fees) }}</div>
-                    <div class="stat-label">本月平台费用</div>
+                    <div class="stat-label">{{ t('settlement_page.stat_monthly_fees') }}</div>
                 </el-card>
             </el-col>
         </el-row>
@@ -58,53 +58,49 @@
         <el-card shadow="never">
             <el-tabs v-model="activeTab" @tab-change="handleTabChange">
                 <!-- ═══ 结算周期 ═══ -->
-                <el-tab-pane label="结算周期" name="cycles">
+                <el-tab-pane :label="t('settlement_page.tab_cycles')" name="cycles">
                     <template #label>
-                        <span><el-icon><Calendar /></el-icon> 结算周期</span>
+                        <span><el-icon><Calendar /></el-icon> {{ t('settlement_page.tab_cycles') }}</span>
                     </template>
                     <div class="toolbar">
                         <el-button type="primary" @click="handleGenerateCycle" :loading="cycleGenLoading">
-                            <el-icon><Plus /></el-icon> 生成月度周期
+                            <el-icon><Plus /></el-icon> {{ t('settlement_page.generate_monthly_cycle') }}
                         </el-button>
-                        <el-select v-model="cycleFilter.status" clearable placeholder="状态" style="width: 130px">
-                            <el-option label="全部" value="" />
-                            <el-option label="待处理" value="pending" />
-                            <el-option label="处理中" value="processing" />
-                            <el-option label="已结算" value="settled" />
-                            <el-option label="已打款" value="paid" />
+                        <el-select v-model="cycleFilter.status" clearable :placeholder="t('settlement_page.status')" style="width: 130px">
+                            <el-option v-for="opt in cycleStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                         </el-select>
                     </div>
                     <el-table :data="cycles" v-loading="cyclesLoading" stripe>
-                        <el-table-column label="周期名称" prop="name" min-width="180" />
-                        <el-table-column label="类型" width="100">
+                        <el-table-column :label="t('settlement_page.col_cycle_name')" prop="name" min-width="180" />
+                        <el-table-column :label="t('settlement_page.col_type')" width="100">
                             <template #default="{ row }">
                                 <el-tag size="small">{{ periodTypeLabel(row.period_type) }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="结算区间" min-width="200">
+                        <el-table-column :label="t('settlement_page.col_period_range')" min-width="200">
                             <template #default="{ row }">
                                 {{ row.period_start }} ~ {{ row.period_end }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="佣金总额" width="120">
+                        <el-table-column :label="t('settlement_page.col_total_commission')" width="120">
                             <template #default="{ row }">
                                 {{ formatMoney(row.total_commission) }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="打款日期" width="110" prop="payout_date">
+                        <el-table-column :label="t('settlement_page.col_payout_date')" width="110" prop="payout_date">
                             <template #default="{ row }">{{ row.payout_date || '-' }}</template>
                         </el-table-column>
-                        <el-table-column label="状态" width="100">
+                        <el-table-column :label="t('settlement_page.col_status')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="cycleStatusTag(row.status)" size="small">
                                     {{ cycleStatusLabel(row.status) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="120" fixed="right">
+                        <el-table-column :label="t('settlement_page.col_actions')" width="120" fixed="right">
                             <template #default="{ row }">
                                 <el-button text size="small" type="primary" @click="viewCycleDetail(row)">
-                                    详情
+                                    {{ t('settlement_page.detail') }}
                                 </el-button>
                             </template>
                         </el-table-column>
@@ -122,57 +118,51 @@
                 </el-tab-pane>
 
                 <!-- ═══ 结算批次 ═══ -->
-                <el-tab-pane label="结算批次" name="batches">
+                <el-tab-pane :label="t('settlement_page.tab_batches')" name="batches">
                     <template #label>
-                        <span><el-icon><List /></el-icon> 结算批次</span>
+                        <span><el-icon><List /></el-icon> {{ t('settlement_page.tab_batches') }}</span>
                     </template>
                     <div class="toolbar">
-                        <el-select v-model="batchFilter.status" clearable placeholder="状态" style="width: 130px">
-                            <el-option label="全部" value="" />
-                            <el-option label="草稿" value="draft" />
-                            <el-option label="待审核" value="pending_approval" />
-                            <el-option label="已通过" value="approved" />
-                            <el-option label="处理中" value="processing" />
-                            <el-option label="已完成" value="completed" />
-                            <el-option label="已取消" value="cancelled" />
+                        <el-select v-model="batchFilter.status" clearable :placeholder="t('settlement_page.status')" style="width: 130px">
+                            <el-option v-for="opt in batchStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                         </el-select>
-                        <el-input v-model="batchFilter.search" placeholder="搜索批次号" clearable style="width: 200px" @keyup.enter="loadBatches" />
-                        <el-button type="primary" @click="loadBatches"><el-icon><Search /></el-icon> 查询</el-button>
+                        <el-input v-model="batchFilter.search" :placeholder="t('settlement_page.search_batch_no')" clearable style="width: 200px" @keyup.enter="loadBatches" />
+                        <el-button type="primary" @click="loadBatches"><el-icon><Search /></el-icon> {{ t('actions.search') }}</el-button>
                     </div>
                     <el-table :data="batches" v-loading="batchesLoading" stripe>
-                        <el-table-column label="批次号" prop="batch_no" width="180" />
-                        <el-table-column label="周期" min-width="150">
+                        <el-table-column :label="t('settlement_page.col_batch_no')" prop="batch_no" width="180" />
+                        <el-table-column :label="t('settlement_page.col_cycle')" min-width="150">
                             <template #default="{ row }">{{ row.settlement_cycle?.name || '-' }}</template>
                         </el-table-column>
-                        <el-table-column label="渠道" width="100">
+                        <el-table-column :label="t('settlement_page.col_channel')" width="100">
                             <template #default="{ row }">
                                 <el-tag size="small" effect="plain">{{ channelLabel(row.channel) }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="总金额" width="120">
+                        <el-table-column :label="t('settlement_page.col_total_amount')" width="120">
                             <template #default="{ row }">{{ formatMoney(row.total_amount) }}</template>
                         </el-table-column>
-                        <el-table-column label="手续费" width="100">
+                        <el-table-column :label="t('settlement_page.col_fee')" width="100">
                             <template #default="{ row }">{{ formatMoney(row.total_fee) }}</template>
                         </el-table-column>
-                        <el-table-column label="净额" width="120">
+                        <el-table-column :label="t('settlement_page.col_net_amount')" width="120">
                             <template #default="{ row }">{{ formatMoney(row.net_amount) }}</template>
                         </el-table-column>
-                        <el-table-column label="笔数" width="60" prop="item_count" />
-                        <el-table-column label="状态" width="100">
+                        <el-table-column :label="t('settlement_page.col_item_count')" width="60" prop="item_count" />
+                        <el-table-column :label="t('settlement_page.col_status')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="batchStatusTag(row.status)" size="small">
                                     {{ batchStatusLabel(row.status) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="240" fixed="right">
+                        <el-table-column :label="t('settlement_page.col_actions')" width="240" fixed="right">
                             <template #default="{ row }">
-                                <el-button text size="small" type="primary" @click="viewBatchDetail(row)">详情</el-button>
-                                <el-button v-if="row.status === 'draft'" text size="small" type="warning" @click="handleSubmitBatch(row)">提交</el-button>
-                                <el-button v-if="row.status === 'pending_approval'" text size="small" type="success" @click="handleApproveBatch(row)">通过</el-button>
-                                <el-button v-if="row.status === 'approved'" text size="small" type="primary" @click="handleCompleteBatch(row)">完成</el-button>
-                                <el-button v-if="['draft', 'pending_approval'].includes(row.status)" text size="small" type="danger" @click="handleCancelBatch(row)">取消</el-button>
+                                <el-button text size="small" type="primary" @click="viewBatchDetail(row)">{{ t('settlement_page.detail') }}</el-button>
+                                <el-button v-if="row.status === 'draft'" text size="small" type="warning" @click="handleSubmitBatch(row)">{{ t('actions.submit') }}</el-button>
+                                <el-button v-if="row.status === 'pending_approval'" text size="small" type="success" @click="handleApproveBatch(row)">{{ t('actions.approve') }}</el-button>
+                                <el-button v-if="row.status === 'approved'" text size="small" type="primary" @click="handleCompleteBatch(row)">{{ t('settlement_page.complete') }}</el-button>
+                                <el-button v-if="['draft', 'pending_approval'].includes(row.status)" text size="small" type="danger" @click="handleCancelBatch(row)">{{ t('actions.cancel') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -189,15 +179,15 @@
                 </el-tab-pane>
 
                 <!-- ═══ 平台费用 ═══ -->
-                <el-tab-pane label="平台费用" name="fees">
+                <el-tab-pane :label="t('settlement_page.tab_fees')" name="fees">
                     <template #label>
-                        <span><el-icon><Money /></el-icon> 平台费用</span>
+                        <span><el-icon><Money /></el-icon> {{ t('settlement_page.tab_fees') }}</span>
                     </template>
                     <div class="toolbar">
                         <el-date-picker
                             v-model="feeYearMonth"
                             type="month"
-                            placeholder="选择月份"
+                            :placeholder="t('settlement_page.select_month')"
                             value-format="YYYY-MM"
                             style="width: 160px"
                             @change="loadFeeStats"
@@ -207,7 +197,7 @@
                         <el-col :span="6">
                             <el-card shadow="never" class="stat-card">
                                 <div class="stat-value">{{ formatMoney(feeStats.total_fees) }}</div>
-                                <div class="stat-label">费用总额</div>
+                                <div class="stat-label">{{ t('settlement_page.fee_total') }}</div>
                             </el-card>
                         </el-col>
                         <el-col v-for="(total, type) in feeStats.by_type" :key="type" :span="6">
@@ -217,35 +207,35 @@
                             </el-card>
                         </el-col>
                     </el-row>
-                    <div v-else class="text-muted" style="padding: 40px; text-align: center;">暂无费用数据</div>
+                    <div v-else class="text-muted" style="padding: 40px; text-align: center;">{{ t('settlement_page.no_fee_data') }}</div>
                 </el-tab-pane>
 
                 <!-- ═══ 可结算扫描 ═══ -->
-                <el-tab-pane label="可结算佣金" name="releasable">
+                <el-tab-pane :label="t('settlement_page.tab_releasable')" name="releasable">
                     <template #label>
-                        <span><el-icon><Search /></el-icon> 可结算佣金</span>
+                        <span><el-icon><Search /></el-icon> {{ t('settlement_page.tab_releasable') }}</span>
                     </template>
                     <div class="toolbar">
                         <el-button type="primary" @click="scanReleasable" :loading="scanLoading">
-                            <el-icon><Refresh /></el-icon> 重新扫描
+                            <el-icon><Refresh /></el-icon> {{ t('settlement_page.rescan') }}
                         </el-button>
                         <span class="text-muted" v-if="releasableData">
-                            共 {{ releasableData.total_count }} 笔，可结算金额 {{ formatMoney(releasableData.total_amount) }}
+                            {{ t('settlement_page.releasable_summary', { count: releasableData.total_count, amount: formatMoney(releasableData.total_amount) }) }}
                         </span>
                     </div>
                     <el-table :data="releasableData?.items || []" v-loading="scanLoading" stripe>
-                        <el-table-column label="代理" min-width="180">
+                        <el-table-column :label="t('settlement_page.col_agent')" min-width="180">
                             <template #default="{ row }">{{ row.agent?.user?.name || 'ID:' + row.agent_id }}</template>
                         </el-table-column>
-                        <el-table-column label="佣金金额" width="120">
+                        <el-table-column :label="t('settlement_page.col_commission_amount')" width="120">
                             <template #default="{ row }">{{ formatMoney(row.commission_amount) }}</template>
                         </el-table-column>
-                        <el-table-column label="释放日期" width="110" prop="released_at">
-                            <template #default="{ row }">{{ row.released_at ? new Date(row.released_at).toLocaleDateString('zh-CN') : '-' }}</template>
+                        <el-table-column :label="t('settlement_page.col_release_date')" width="110" prop="released_at">
+                            <template #default="{ row }">{{ row.released_at ? formatDateOnly(row.released_at) : '-' }}</template>
                         </el-table-column>
-                        <el-table-column label="状态" width="100">
+                        <el-table-column :label="t('settlement_page.col_status')" width="100">
                             <template #default="{ row }">
-                                <el-tag size="small" type="success">可结算</el-tag>
+                                <el-tag size="small" type="success">{{ t('settlement_page.releasable_status') }}</el-tag>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -254,112 +244,108 @@
         </el-card>
 
         <!-- 创建批次 Dialog -->
-        <el-dialog v-model="createBatchVisible" title="新建结算批次" width="600px">
+        <el-dialog v-model="createBatchVisible" :title="t('settlement_page.dialog_create_batch')" width="600px">
             <el-form ref="batchFormRef" :model="batchForm" :rules="batchFormRules" label-width="120px">
-                <el-form-item label="关联周期">
-                    <el-select v-model="batchForm.settlement_cycle_id" clearable placeholder="选择结算周期（可选）" style="width: 100%">
+                <el-form-item :label="t('settlement_page.label_linked_cycle')">
+                    <el-select v-model="batchForm.settlement_cycle_id" clearable :placeholder="t('settlement_page.ph_select_cycle')" style="width: 100%">
                         <el-option v-for="c in cycles" :key="c.id" :label="c.name" :value="c.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="打款渠道" prop="channel">
+                <el-form-item :label="t('settlement_page.label_payout_channel')" prop="channel">
                     <el-select v-model="batchForm.channel" style="width: 100%">
-                        <el-option label="余额" value="balance" />
-                        <el-option label="银行转账" value="bank" />
-                        <el-option label="支付宝" value="alipay" />
-                        <el-option label="微信支付" value="wechat" />
-                        <el-option label="PayPal" value="paypal" />
+                        <el-option v-for="opt in channelOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="选择结算记录" prop="settlement_ids">
+                <el-form-item :label="t('settlement_page.label_select_settlements')" prop="settlement_ids">
                     <el-table :data="releasableData?.items || []" max-height="300" @selection-change="onSelectionChange">
                         <el-table-column type="selection" width="40" />
-                        <el-table-column label="代理" min-width="140">
+                        <el-table-column :label="t('settlement_page.col_agent')" min-width="140">
                             <template #default="{ row }">{{ row.agent?.user?.name || 'ID:' + row.agent_id }}</template>
                         </el-table-column>
-                        <el-table-column label="金额" width="100">
+                        <el-table-column :label="t('settlement_page.col_amount')" width="100">
                             <template #default="{ row }">{{ formatMoney(row.commission_amount) }}</template>
                         </el-table-column>
-                        <el-table-column label="释放日" width="90" prop="released_at" />
+                        <el-table-column :label="t('settlement_page.col_release_day')" width="90" prop="released_at" />
                     </el-table>
-                    <div class="text-muted" v-if="!releasableData?.items?.length">请先点击"扫描可结算佣金"获取数据</div>
+                    <div class="text-muted" v-if="!releasableData?.items?.length">{{ t('settlement_page.hint_scan_first') }}</div>
                 </el-form-item>
-                <el-form-item label="备注">
-                    <el-input v-model="batchForm.notes" type="textarea" :rows="2" placeholder="可选备注" />
+                <el-form-item :label="t('settlement_page.label_notes')">
+                    <el-input v-model="batchForm.notes" type="textarea" :rows="2" :placeholder="t('settlement_page.ph_notes_optional')" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="createBatchVisible = false">取消</el-button>
-                <el-button type="primary" :loading="batchCreating" @click="submitBatch">创建批次</el-button>
+                <el-button @click="createBatchVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="batchCreating" @click="submitBatch">{{ t('settlement_page.create_batch') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 批次详情 Dialog -->
-        <el-dialog v-model="batchDetailVisible" title="批次详情" width="700px">
+        <el-dialog v-model="batchDetailVisible" :title="t('settlement_page.batch_detail_title')" width="700px">
             <div v-if="batchDetail">
                 <el-descriptions :column="2" size="small" border>
-                    <el-descriptions-item label="批次号">{{ batchDetail.batch_no }}</el-descriptions-item>
-                    <el-descriptions-item label="状态">
+                    <el-descriptions-item :label="t('settlement_page.col_batch_no')">{{ batchDetail.batch_no }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('settlement_page.col_status')">
                         <el-tag :type="batchStatusTag(batchDetail.status)" size="small">{{ batchStatusLabel(batchDetail.status) }}</el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="渠道">{{ channelLabel(batchDetail.channel) }}</el-descriptions-item>
-                    <el-descriptions-item label="总金额">{{ formatMoney(batchDetail.total_amount) }}</el-descriptions-item>
-                    <el-descriptions-item label="手续费">{{ formatMoney(batchDetail.total_fee) }}</el-descriptions-item>
-                    <el-descriptions-item label="净额">{{ formatMoney(batchDetail.net_amount) }}</el-descriptions-item>
-                    <el-descriptions-item label="笔数">{{ batchDetail.item_count }}</el-descriptions-item>
-                    <el-descriptions-item label="创建时间">{{ formatDate(batchDetail.created_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('settlement_page.col_channel')">{{ channelLabel(batchDetail.channel) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('settlement_page.col_total_amount')">{{ formatMoney(batchDetail.total_amount) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('settlement_page.col_fee')">{{ formatMoney(batchDetail.total_fee) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('settlement_page.col_net_amount')">{{ formatMoney(batchDetail.net_amount) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('settlement_page.col_item_count')">{{ batchDetail.item_count }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('settlement_page.col_created_at')">{{ formatDate(batchDetail.created_at) }}</el-descriptions-item>
                 </el-descriptions>
                 <el-divider />
-                <h4 style="margin: 0 0 12px;">明细列表</h4>
+                <h4 style="margin: 0 0 12px;">{{ t('settlement_page.item_list') }}</h4>
                 <el-table :data="batchDetail.items || []" size="small" stripe>
-                    <el-table-column label="类型" width="120">
-                        <template #default="{ row }">{{ row.settleable_type?.includes('CommissionSettlement') ? '佣金结算' : '提现' }}</template>
+                    <el-table-column :label="t('settlement_page.col_type')" width="120">
+                        <template #default="{ row }">{{ row.settleable_type?.includes('CommissionSettlement') ? t('settlement_page.type_commission_settlement') : t('settlement_page.type_withdrawal') }}</template>
                     </el-table-column>
-                    <el-table-column label="金额" width="100" prop="amount">
+                    <el-table-column :label="t('settlement_page.col_amount')" width="100" prop="amount">
                         <template #default="{ row }">{{ formatMoney(row.amount) }}</template>
                     </el-table-column>
-                    <el-table-column label="手续费" width="80" prop="fee">
+                    <el-table-column :label="t('settlement_page.col_fee')" width="80" prop="fee">
                         <template #default="{ row }">{{ formatMoney(row.fee) }}</template>
                     </el-table-column>
-                    <el-table-column label="净额" width="100" prop="net_amount">
+                    <el-table-column :label="t('settlement_page.col_net_amount')" width="100" prop="net_amount">
                         <template #default="{ row }">{{ formatMoney(row.net_amount) }}</template>
                     </el-table-column>
-                    <el-table-column label="状态" width="80">
+                    <el-table-column :label="t('settlement_page.col_status')" width="80">
                         <template #default="{ row }">
-                            <el-tag size="small" type="success">{{ row.status === 'paid' ? '已支付' : '待处理' }}</el-tag>
+                            <el-tag size="small" type="success">{{ row.status === 'paid' ? t('settlement_page.item_st_paid') : t('settlement_page.item_st_pending') }}</el-tag>
                         </template>
                     </el-table-column>
                 </el-table>
             </div>
             <template #footer>
-                <el-button @click="batchDetailVisible = false">关闭</el-button>
+                <el-button @click="batchDetailVisible = false">{{ t('actions.close') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 周期详情 Dialog -->
-        <el-dialog v-model="cycleDetailVisible" title="结算周期详情" width="700px">
+        <el-dialog v-model="cycleDetailVisible" :title="t('settlement_page.cycle_detail_title')" width="700px">
             <div v-if="cycleDetail">
                 <el-descriptions :column="2" size="small" border>
-                    <el-descriptions-item label="周期名称">{{ cycleDetail.name }}</el-descriptions-item>
-                    <el-descriptions-item label="类型">{{ periodTypeLabel(cycleDetail.period_type) }}</el-descriptions-item>
-                    <el-descriptions-item label="结算区间">
+                    <el-descriptions-item :label="t('settlement_page.col_cycle_name')">{{ cycleDetail.name }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('settlement_page.col_type')">{{ periodTypeLabel(cycleDetail.period_type) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('settlement_page.col_period_range')">
                         {{ cycleDetail.period_start }} ~ {{ cycleDetail.period_end }}
                     </el-descriptions-item>
-                    <el-descriptions-item label="结算日">{{ cycleDetail.settlement_date }}</el-descriptions-item>
-                    <el-descriptions-item label="打款日">{{ cycleDetail.payout_date || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="状态">
+                    <el-descriptions-item :label="t('settlement_page.col_settlement_date')">{{ cycleDetail.settlement_date }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('settlement_page.col_payout_day')">{{ cycleDetail.payout_date || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('settlement_page.col_status')">
                         <el-tag :type="cycleStatusTag(cycleDetail.status)" size="small">{{ cycleStatusLabel(cycleDetail.status) }}</el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="佣金总额">{{ formatMoney(cycleDetail.total_commission) }}</el-descriptions-item>
-                    <el-descriptions-item label="代理数">{{ cycleDetail.agent_count }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('settlement_page.col_total_commission')">{{ formatMoney(cycleDetail.total_commission) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('settlement_page.col_agent_count')">{{ cycleDetail.agent_count }}</el-descriptions-item>
                 </el-descriptions>
                 <el-divider />
-                <h4 style="margin: 0 0 12px;">关联批次</h4>
+                <h4 style="margin: 0 0 12px;">{{ t('settlement_page.linked_batches') }}</h4>
                 <el-table :data="cycleDetail.batches || []" size="small" stripe>
-                    <el-table-column label="批次号" prop="batch_no" />
-                    <el-table-column label="金额" width="120">
+                    <el-table-column :label="t('settlement_page.col_batch_no')" prop="batch_no" />
+                    <el-table-column :label="t('settlement_page.col_amount')" width="120">
                         <template #default="{ row }">{{ formatMoney(row.total_amount) }}</template>
                     </el-table-column>
-                    <el-table-column label="状态" width="100">
+                    <el-table-column :label="t('settlement_page.col_status')" width="100">
                         <template #default="{ row }">
                             <el-tag :type="batchStatusTag(row.status)" size="small">{{ batchStatusLabel(row.status) }}</el-tag>
                         </template>
@@ -367,17 +353,20 @@
                 </el-table>
             </div>
             <template #footer>
-                <el-button @click="cycleDetailVisible = false">关闭</el-button>
+                <el-button @click="cycleDetailVisible = false">{{ t('actions.close') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus, Calendar, List, Money, Refresh } from '@element-plus/icons-vue';
 import settlementApi from '@/api/settlement';
+
+const { t, locale } = useI18n();
 
 const activeTab = ref('cycles');
 
@@ -423,10 +412,36 @@ const batchForm = reactive({
     settlement_ids: [],
     notes: '',
 });
-const batchFormRules = {
-    channel: [{ required: true, message: '请选择打款渠道', trigger: 'change' }],
-};
-const selectedItems = ref([]);
+
+const cycleStatusOptions = computed(() => [
+    { label: t('settlement_page.all'), value: '' },
+    { label: t('settlement_page.cycle_st_pending'), value: 'pending' },
+    { label: t('settlement_page.cycle_st_processing'), value: 'processing' },
+    { label: t('settlement_page.cycle_st_settled'), value: 'settled' },
+    { label: t('settlement_page.cycle_st_paid'), value: 'paid' },
+]);
+
+const batchStatusOptions = computed(() => [
+    { label: t('settlement_page.all'), value: '' },
+    { label: t('settlement_page.batch_st_draft'), value: 'draft' },
+    { label: t('settlement_page.batch_st_pending_approval'), value: 'pending_approval' },
+    { label: t('settlement_page.batch_st_approved'), value: 'approved' },
+    { label: t('settlement_page.batch_st_processing'), value: 'processing' },
+    { label: t('settlement_page.batch_st_completed'), value: 'completed' },
+    { label: t('settlement_page.batch_st_cancelled'), value: 'cancelled' },
+]);
+
+const channelOptions = computed(() => [
+    { label: t('settlement_page.channel_balance'), value: 'balance' },
+    { label: t('settlement_page.channel_bank'), value: 'bank' },
+    { label: t('settlement_page.channel_alipay'), value: 'alipay' },
+    { label: t('settlement_page.channel_wechat'), value: 'wechat' },
+    { label: t('settlement_page.channel_paypal'), value: 'paypal' },
+]);
+
+const batchFormRules = computed(() => ({
+    channel: [{ required: true, message: t('settlement_page.rule_channel_required'), trigger: 'change' }],
+}));
 
 function onSelectionChange(rows) {
     batchForm.settlement_ids = rows.map(r => r.id);
@@ -484,9 +499,12 @@ async function scanReleasable() {
         if (res.success) {
             releasableData.value = res.data;
             if (res.data.total_count > 0) {
-                ElMessage.success(`发现 ${res.data.total_count} 笔可结算佣金，共 ${formatMoney(res.data.total_amount)}`);
+                ElMessage.success(t('settlement_page.scan_found', {
+                    count: res.data.total_count,
+                    amount: formatMoney(res.data.total_amount),
+                }));
             } else {
-                ElMessage.info('暂无可结算佣金');
+                ElMessage.info(t('settlement_page.scan_none'));
             }
         }
     } catch {} finally { scanLoading.value = false; }
@@ -507,7 +525,7 @@ async function handleGenerateCycle() {
     try {
         const { data: res } = await settlementApi.cycleGenerate();
         if (res.success) {
-            ElMessage.success('结算周期已生成');
+            ElMessage.success(t('settlement_page.cycle_generated'));
             loadCycles();
         }
     } catch {} finally { cycleGenLoading.value = false; }
@@ -542,7 +560,7 @@ async function submitBatch() {
     const valid = await batchFormRef.value.validate().catch(() => false);
     if (!valid) return;
     if (!batchForm.settlement_ids.length) {
-        ElMessage.warning('请至少选择一条结算记录');
+        ElMessage.warning(t('settlement_page.select_at_least_one'));
         return;
     }
     batchCreating.value = true;
@@ -554,7 +572,7 @@ async function submitBatch() {
             notes: batchForm.notes,
         });
         if (res.success) {
-            ElMessage.success('结算批次创建成功');
+            ElMessage.success(t('settlement_page.batch_created'));
             createBatchVisible.value = false;
             loadBatches();
             loadDashboard();
@@ -574,18 +592,24 @@ async function viewBatchDetail(row) {
 
 async function handleSubmitBatch(row) {
     try {
-        await ElMessageBox.confirm(`确认提交批次 "${row.batch_no}" 进行审核？`, '确认提交');
+        await ElMessageBox.confirm(
+            t('settlement_page.confirm_submit_msg', { batch_no: row.batch_no }),
+            t('settlement_page.confirm_submit_title'),
+        );
         await settlementApi.batchSubmit(row.id);
-        ElMessage.success('已提交审核');
+        ElMessage.success(t('settlement_page.submitted'));
         loadBatches();
     } catch {}
 }
 
 async function handleApproveBatch(row) {
     try {
-        await ElMessageBox.confirm(`确认通过批次 "${row.batch_no}"？`, '确认通过');
+        await ElMessageBox.confirm(
+            t('settlement_page.confirm_approve_msg', { batch_no: row.batch_no }),
+            t('settlement_page.confirm_approve_title'),
+        );
         await settlementApi.batchApprove(row.id);
-        ElMessage.success('批次已通过');
+        ElMessage.success(t('settlement_page.batch_approved'));
         loadBatches();
     } catch {}
 }
@@ -593,12 +617,12 @@ async function handleApproveBatch(row) {
 async function handleCompleteBatch(row) {
     try {
         await ElMessageBox.confirm(
-            `确认完成批次 "${row.batch_no}"？\n这将释放佣金到代理收益账户余额。`,
-            '确认完成',
-            { confirmButtonText: '确认完成', cancelButtonText: '取消', type: 'warning' }
+            t('settlement_page.confirm_complete_msg', { batch_no: row.batch_no }),
+            t('settlement_page.confirm_complete_title'),
+            { confirmButtonText: t('settlement_page.confirm_complete_btn'), cancelButtonText: t('actions.cancel'), type: 'warning' },
         );
         await settlementApi.batchComplete(row.id);
-        ElMessage.success('批次已完成，佣金已释放到收益账户');
+        ElMessage.success(t('settlement_page.batch_completed'));
         loadBatches();
         loadDashboard();
     } catch {}
@@ -606,9 +630,13 @@ async function handleCompleteBatch(row) {
 
 async function handleCancelBatch(row) {
     try {
-        await ElMessageBox.confirm(`确认取消批次 "${row.batch_no}"？`, '确认取消', { type: 'warning' });
+        await ElMessageBox.confirm(
+            t('settlement_page.confirm_cancel_msg', { batch_no: row.batch_no }),
+            t('settlement_page.confirm_cancel_title'),
+            { type: 'warning' },
+        );
         await settlementApi.batchCancel(row.id);
-        ElMessage.success('批次已取消');
+        ElMessage.success(t('settlement_page.batch_cancelled'));
         loadBatches();
     } catch {}
 }
@@ -617,20 +645,31 @@ async function handleCancelBatch(row) {
 //  工具函数
 // ══════════════════════════════════════════
 
+const dateLocale = computed(() => (locale.value === 'zh_CN' ? 'zh-CN' : 'en-US'));
+
 function formatMoney(val) {
     if (val === null || val === undefined) return '¥0.00';
-    return '¥' + Number(val).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return '¥' + Number(val).toLocaleString(dateLocale.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    return new Date(dateStr).toLocaleString(dateLocale.value, {
         year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
     });
 }
 
+function formatDateOnly(dateStr) {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString(dateLocale.value);
+}
+
 function periodTypeLabel(type) {
-    const map = { weekly: '周结', 'bi-weekly': '双周结', monthly: '月结' };
+    const map = {
+        weekly: t('settlement_page.period_weekly'),
+        'bi-weekly': t('settlement_page.period_biweekly'),
+        monthly: t('settlement_page.period_monthly'),
+    };
     return map[type] || type;
 }
 
@@ -640,7 +679,13 @@ function cycleStatusTag(status) {
 }
 
 function cycleStatusLabel(status) {
-    const map = { pending: '待处理', processing: '处理中', settled: '已结算', paid: '已打款', cancelled: '已取消' };
+    const map = {
+        pending: t('settlement_page.cycle_st_pending'),
+        processing: t('settlement_page.cycle_st_processing'),
+        settled: t('settlement_page.cycle_st_settled'),
+        paid: t('settlement_page.cycle_st_paid'),
+        cancelled: t('settlement_page.cycle_st_cancelled'),
+    };
     return map[status] || status;
 }
 
@@ -654,19 +699,36 @@ function batchStatusTag(status) {
 
 function batchStatusLabel(status) {
     const map = {
-        draft: '草稿', pending_approval: '待审核', approved: '已通过',
-        processing: '处理中', completed: '已完成', failed: '失败', cancelled: '已取消',
+        draft: t('settlement_page.batch_st_draft'),
+        pending_approval: t('settlement_page.batch_st_pending_approval'),
+        approved: t('settlement_page.batch_st_approved'),
+        processing: t('settlement_page.batch_st_processing'),
+        completed: t('settlement_page.batch_st_completed'),
+        failed: t('settlement_page.batch_st_failed'),
+        cancelled: t('settlement_page.batch_st_cancelled'),
     };
     return map[status] || status;
 }
 
 function channelLabel(ch) {
-    const map = { bank: '银行转账', alipay: '支付宝', wechat: '微信支付', paypal: 'PayPal', balance: '余额' };
+    const map = {
+        bank: t('settlement_page.channel_bank'),
+        alipay: t('settlement_page.channel_alipay'),
+        wechat: t('settlement_page.channel_wechat'),
+        paypal: t('settlement_page.channel_paypal'),
+        balance: t('settlement_page.channel_balance'),
+    };
     return map[ch] || ch;
 }
 
 function feeTypeLabel(type) {
-    const map = { gateway: '网关费', platform: '平台费', commission: '佣金费', withdrawal: '提现费', refund: '退费' };
+    const map = {
+        gateway: t('settlement_page.fee_gateway'),
+        platform: t('settlement_page.fee_platform'),
+        commission: t('settlement_page.fee_commission'),
+        withdrawal: t('settlement_page.fee_withdrawal'),
+        refund: t('settlement_page.fee_refund'),
+    };
     return map[type] || type;
 }
 

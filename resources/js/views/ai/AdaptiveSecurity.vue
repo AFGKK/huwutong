@@ -1,37 +1,37 @@
 <template>
   <div class="ai-feature-page">
-    <el-page-header :content="'AI 自适应安全阈值'" @back="$router.push('/ai')" />
-    <p class="text-muted" style="margin:8px 0 20px">根据实时威胁情报动态调整限流 QPS、信任分阈值、熔断参数</p>
+    <el-page-header :content="t('adaptive_security_page.title')" @back="$router.push('/ai')" />
+    <p class="text-muted" style="margin:8px 0 20px">{{ t('adaptive_security_page.subtitle') }}</p>
 
     <div style="margin-bottom:16px">
       <el-button type="primary" :loading="loading" @click="loadData">
-        <el-icon><Refresh /></el-icon> 获取推荐配置
+        <el-icon><Refresh /></el-icon> {{ t('adaptive_security_page.fetch') }}
       </el-button>
-      <el-button :disabled="!config" @click="clearCache">清除缓存</el-button>
+      <el-button :disabled="!config" @click="clearCache">{{ t('adaptive_security_page.clear_cache') }}</el-button>
     </div>
 
-    <el-alert v-if="config?.risk_level === 'critical'" type="error" :description="'当前安全风险等级: 严重'" show-icon style="margin-bottom:16px" />
-    <el-alert v-if="config?.risk_level === 'high'" type="warning" :description="'当前安全风险等级: 高'" show-icon style="margin-bottom:16px" />
+    <el-alert v-if="config?.risk_level === 'critical'" type="error" :description="t('adaptive_security_page.risk_critical')" show-icon style="margin-bottom:16px" />
+    <el-alert v-if="config?.risk_level === 'high'" type="warning" :description="t('adaptive_security_page.risk_high')" show-icon style="margin-bottom:16px" />
 
     <el-card v-if="config" shadow="hover">
-      <template #header>推荐安全配置</template>
+      <template #header>{{ t('adaptive_security_page.config_title') }}</template>
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="限流 (QPS/分钟)">
+        <el-descriptions-item :label="t('adaptive_security_page.rate_limit')">
           <el-tag>{{ config.recommended_config?.rate_limit_per_minute }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="信任分阈值">
+        <el-descriptions-item :label="t('adaptive_security_page.trust_threshold')">
           <el-tag>{{ config.recommended_config?.trust_score_threshold }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="熔断失败阈值">
+        <el-descriptions-item :label="t('adaptive_security_page.cb_failure')">
           <el-tag>{{ config.recommended_config?.circuit_breaker_failure_threshold }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="熔断恢复时间(秒)">
+        <el-descriptions-item :label="t('adaptive_security_page.cb_recovery')">
           <el-tag>{{ config.recommended_config?.circuit_breaker_recovery_time }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="自动黑名单阈值">
+        <el-descriptions-item :label="t('adaptive_security_page.auto_blacklist')">
           <el-tag>{{ config.recommended_config?.auto_blacklist_score }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="风险等级">
+        <el-descriptions-item :label="t('adaptive_security_page.risk_level')">
           <el-tag :type="config.risk_level === 'critical' ? 'danger' : config.risk_level === 'high' ? 'warning' : 'info'">{{ config.risk_level }}</el-tag>
         </el-descriptions-item>
       </el-descriptions>
@@ -39,19 +39,22 @@
     </el-card>
 
     <el-card v-if="config?.alerts?.length" shadow="hover" style="margin-top:20px">
-      <template #header>告警 <el-tag type="danger" size="small">{{ config.alerts.length }}</el-tag></template>
+      <template #header>{{ t('adaptive_security_page.alerts') }} <el-tag type="danger" size="small">{{ config.alerts.length }}</el-tag></template>
       <ul><li v-for="(alert, i) in config.alerts" :key="i">{{ alert }}</li></ul>
     </el-card>
 
-    <el-empty v-if="!loading && !config" description="点击「获取推荐配置」开始分析" />
+    <el-empty v-if="!loading && !config" :description="t('adaptive_security_page.empty')" />
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getAdaptiveSecurity, clearAdaptiveSecurityCache } from '@/api/aiIntelligence'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const config = ref(null)
@@ -68,7 +71,7 @@ async function loadData() {
 async function clearCache() {
   try {
     await clearAdaptiveSecurityCache()
-    ElMessage.success('缓存已清除')
+    ElMessage.success(t('adaptive_security_page.messages.cleared'))
     config.value = null
   } catch (_) { /* ignore */ }
 }

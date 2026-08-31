@@ -5,36 +5,36 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-box">
-            <div class="stat-label">数据库备份</div>
-            <div class="stat-value">{{ stats.database?.completed || 0 }} 次</div>
-            <div class="stat-sub">共 {{ formatBytes(stats.database?.total_size) }} | 最近{{ stats.database?.last_backup ? ' ' + timeAgo(stats.database.last_backup.completed_at) : '无' }}</div>
+            <div class="stat-label">{{ t('backups_page.stat_database') }}</div>
+            <div class="stat-value">{{ t('backups_page.count_times', { n: stats.database?.completed || 0 }) }}</div>
+            <div class="stat-sub">{{ statSub(stats.database) }}</div>
           </div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-box">
-            <div class="stat-label">文件备份</div>
-            <div class="stat-value">{{ stats.files?.completed || 0 }} 次</div>
-            <div class="stat-sub">共 {{ formatBytes(stats.files?.total_size) }} | 最近{{ stats.files?.last_backup ? ' ' + timeAgo(stats.files.last_backup.completed_at) : '无' }}</div>
+            <div class="stat-label">{{ t('backups_page.stat_files') }}</div>
+            <div class="stat-value">{{ t('backups_page.count_times', { n: stats.files?.completed || 0 }) }}</div>
+            <div class="stat-sub">{{ statSub(stats.files) }}</div>
           </div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-box">
-            <div class="stat-label">存储磁盘</div>
+            <div class="stat-label">{{ t('backups_page.stat_disk') }}</div>
             <div class="stat-value">{{ stats.disk || 'local' }}</div>
-            <div class="stat-sub">已用 {{ stats.disk_usage || '0 B' }}</div>
+            <div class="stat-sub">{{ t('backups_page.disk_used', { usage: stats.disk_usage || '0 B' }) }}</div>
           </div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-box">
-            <div class="stat-label">保留期限</div>
-            <div class="stat-value">{{ cfg?.database?.retention_days || 30 }}天</div>
-            <div class="stat-sub">文件 {{ cfg?.files?.retention_days || 14 }}天</div>
+            <div class="stat-label">{{ t('backups_page.stat_retention') }}</div>
+            <div class="stat-value">{{ t('backups_page.retention_days', { n: cfg?.database?.retention_days || 30 }) }}</div>
+            <div class="stat-sub">{{ t('backups_page.files_retention', { n: cfg?.files?.retention_days || 14 }) }}</div>
           </div>
         </el-card>
       </el-col>
@@ -44,58 +44,58 @@
     <el-row :gutter="16" class="mb-3">
       <el-col :span="4">
         <el-button type="primary" @click="runDbBackup" :loading="runningDb">
-          <el-icon><Plus /></el-icon> 立即数据库备份
+          <el-icon><Plus /></el-icon> {{ t('backups_page.run_db_backup') }}
         </el-button>
       </el-col>
       <el-col :span="4">
         <el-button type="warning" plain @click="runFileBackup" :loading="runningFile">
-          <el-icon><Plus /></el-icon> 立即文件备份
+          <el-icon><Plus /></el-icon> {{ t('backups_page.run_file_backup') }}
         </el-button>
       </el-col>
       <el-col :span="16" class="text-right">
-        <el-button @click="fetchBackups">刷新</el-button>
+        <el-button @click="fetchBackups">{{ t('backups_page.refresh') }}</el-button>
       </el-col>
     </el-row>
 
     <!-- 备份记录表格 -->
     <el-table :data="backups" v-loading="loading" stripe>
-      <el-table-column prop="name" label="名称" min-width="200" />
-      <el-table-column label="类型" width="80">
+      <el-table-column prop="name" :label="t('backups_page.col_name')" min-width="200" />
+      <el-table-column :label="t('backups_page.col_type')" width="80">
         <template #default="{ row }">
           <el-tag :type="row.type === 'database' ? 'primary' : 'warning'" size="small">
-            {{ row.type === 'database' ? 'DB' : '文件' }}
+            {{ row.type === 'database' ? t('backups_page.type_db') : t('backups_page.type_file') }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="状态" width="80">
+      <el-table-column :label="t('backups_page.col_status')" width="80">
         <template #default="{ row }">
           <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="大小" width="90">
+      <el-table-column :label="t('backups_page.col_size')" width="90">
         <template #default="{ row }">{{ row.formatted_size || '-' }}</template>
       </el-table-column>
-      <el-table-column label="耗时" width="70">
+      <el-table-column :label="t('backups_page.col_duration')" width="70">
         <template #default="{ row }">{{ row.duration_seconds ? row.duration_seconds + 's' : '-' }}</template>
       </el-table-column>
-      <el-table-column label="存储" width="80" prop="disk" />
-      <el-table-column label="完成时间" width="150">
-        <template #default="{ row }">{{ row.completed_at ? new Date(row.completed_at).toLocaleString() : '-' }}</template>
+      <el-table-column :label="t('backups_page.col_storage')" width="80" prop="disk" />
+      <el-table-column :label="t('backups_page.col_completed_at')" width="150">
+        <template #default="{ row }">{{ row.completed_at ? formatDateTime(row.completed_at) : '-' }}</template>
       </el-table-column>
-      <el-table-column label="到期" width="120">
-        <template #default="{ row }">{{ row.expires_at ? new Date(row.expires_at).toLocaleDateString() : '-' }}</template>
+      <el-table-column :label="t('backups_page.col_expires')" width="120">
+        <template #default="{ row }">{{ row.expires_at ? formatDate(row.expires_at) : '-' }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="180" fixed="right">
+      <el-table-column :label="t('backups_page.col_actions')" width="180" fixed="right">
         <template #default="{ row }">
-          <el-button v-if="row.status === 'completed'" size="small" @click="handleDownload(row)">下载</el-button>
-          <el-popconfirm v-if="row.status === 'completed' && row.type === 'database'" title="恢复将覆盖当前数据库，确定?" @confirm="handleRestore(row)">
+          <el-button v-if="row.status === 'completed'" size="small" @click="handleDownload(row)">{{ t('actions.download') }}</el-button>
+          <el-popconfirm v-if="row.status === 'completed' && row.type === 'database'" :title="t('backups_page.restore_confirm')" @confirm="handleRestore(row)">
             <template #reference>
-              <el-button size="small" type="warning" plain>恢复</el-button>
+              <el-button size="small" type="warning" plain>{{ t('backups_page.restore') }}</el-button>
             </template>
           </el-popconfirm>
-          <el-popconfirm title="确定删除此备份?" @confirm="handleDelete(row)">
+          <el-popconfirm :title="t('backups_page.delete_confirm')" @confirm="handleDelete(row)">
             <template #reference>
-              <el-button size="small" type="danger" plain>删除</el-button>
+              <el-button size="small" type="danger" plain>{{ t('actions.delete') }}</el-button>
             </template>
           </el-popconfirm>
         </template>
@@ -108,9 +108,12 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import api from '@/api/backup';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const backups = ref([]);
@@ -119,6 +122,28 @@ const stats = reactive({});
 const cfg = ref(null);
 const runningDb = ref(false);
 const runningFile = ref(false);
+
+function dateLocale() {
+  return locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US';
+}
+
+function formatDateTime(dateStr) {
+  return new Date(dateStr).toLocaleString(dateLocale());
+}
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString(dateLocale());
+}
+
+function statSub(section) {
+  const last = section?.last_backup
+    ? ' ' + timeAgo(section.last_backup.completed_at)
+    : t('backups_page.none');
+  return t('backups_page.stat_sub', {
+    size: formatBytes(section?.total_size),
+    last,
+  });
+}
 
 function fetchBackups(page = 1) {
   loading.value = true;
@@ -143,22 +168,22 @@ function fetchConfig() {
 function runDbBackup() {
   runningDb.value = true;
   api.backupDatabase().then(res => {
-    ElMessage.success('数据库备份完成');
+    ElMessage.success(t('backups_page.msg_db_backup_done'));
     fetchBackups();
     fetchStats();
   }).catch(err => {
-    ElMessage.error(err.response?.data?.message || '备份失败');
+    ElMessage.error(err.response?.data?.message || t('backups_page.msg_backup_failed'));
   }).finally(() => runningDb.value = false);
 }
 
 function runFileBackup() {
   runningFile.value = true;
   api.backupFiles().then(res => {
-    ElMessage.success('文件备份完成');
+    ElMessage.success(t('backups_page.msg_file_backup_done'));
     fetchBackups();
     fetchStats();
   }).catch(err => {
-    ElMessage.error(err.response?.data?.message || '备份失败');
+    ElMessage.error(err.response?.data?.message || t('backups_page.msg_backup_failed'));
   }).finally(() => runningFile.value = false);
 }
 
@@ -171,30 +196,38 @@ function handleDownload(row) {
     document.body.appendChild(link);
     link.click();
     link.remove();
-  }).catch(() => ElMessage.error('下载失败'));
+  }).catch(() => ElMessage.error(t('backups_page.msg_download_failed')));
 }
 
 function handleDelete(row) {
   api.destroy(row.id).then(() => {
-    ElMessage.success('备份已删除');
+    ElMessage.success(t('backups_page.msg_deleted'));
     fetchBackups();
     fetchStats();
-  }).catch(() => ElMessage.error('删除失败'));
+  }).catch(() => ElMessage.error(t('backups_page.msg_delete_failed')));
 }
 
 function handleRestore(row) {
   api.restore(row.id).then(() => {
-    ElMessage.success('数据库已从备份恢复');
+    ElMessage.success(t('backups_page.msg_restored'));
   }).catch(err => {
-    ElMessage.error(err.response?.data?.message || '恢复失败');
+    ElMessage.error(err.response?.data?.message || t('backups_page.msg_restore_failed'));
   });
 }
 
 function statusTag(s) {
   return ({ completed: 'success', failed: 'danger', running: 'warning', pending: 'info', expired: 'info' })[s] || 'info';
 }
+
 function statusLabel(s) {
-  return ({ completed: '完成', failed: '失败', running: '运行中', pending: '等待', expired: '已过期' })[s] || s;
+  const map = {
+    completed: 'backups_page.status_completed',
+    failed: 'backups_page.status_failed',
+    running: 'backups_page.status_running',
+    pending: 'backups_page.status_pending',
+    expired: 'backups_page.status_expired',
+  };
+  return map[s] ? t(map[s]) : s;
 }
 
 function formatBytes(bytes) {
@@ -209,11 +242,11 @@ function formatBytes(bytes) {
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return mins + '分钟前';
+  if (mins < 60) return t('backups_page.time_ago_mins', { n: mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return hrs + '小时前';
+  if (hrs < 24) return t('backups_page.time_ago_hrs', { n: hrs });
   const days = Math.floor(hrs / 24);
-  return days + '天前';
+  return t('backups_page.time_ago_days', { n: days });
 }
 
 onMounted(() => {

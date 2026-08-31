@@ -21,69 +21,59 @@
             <el-progress
                 :percentage="progressPct"
                 :stroke-width="6"
-                :color="progressPct === 100 ? '#67C23A' : '#409EFF'"
+                :color="progressPct === 100 ? '#67C23A' : '#0f172a'"
                 class="progress-bar"
             />
 
             <!-- 欢迎步骤 -->
             <div v-if="currentStep === 'welcome'" class="step-content welcome-step">
                 <div class="welcome-icon">
-                    <el-icon :size="64" color="#409EFF"><MagicStick /></el-icon>
+                    <el-icon :size="64" color="#0f172a"><MagicStick /></el-icon>
                 </div>
-                <h1>欢迎使用 HWT License 管理系统</h1>
-                <p class="welcome-desc">我们将通过几个简单的步骤帮助您完成系统设置，快速开始管理您的软件许可证。</p>
+                <h1>{{ t('onboarding_page.welcome.title') }}</h1>
+                <p class="welcome-desc">{{ t('onboarding_page.welcome.desc') }}</p>
 
                 <div class="feature-cards">
-                    <div class="feature-card">
-                        <el-icon :size="32" color="#409EFF"><Key /></el-icon>
-                        <h3>License 管理</h3>
-                        <p>生成、分发和管理软件许可证</p>
-                    </div>
-                    <div class="feature-card">
-                        <el-icon :size="32" color="#67C23A"><Monitor /></el-icon>
-                        <h3>实时监控</h3>
-                        <p>跟踪激活和使用情况</p>
-                    </div>
-                    <div class="feature-card">
-                        <el-icon :size="32" color="#E6A23C"><Lock /></el-icon>
-                        <h3>安全防护</h3>
-                        <p>防篡改、防盗版保护</p>
+                    <div v-for="feature in welcomeFeatures" :key="feature.key" class="feature-card">
+                        <el-icon :size="32" :color="feature.color"><component :is="feature.icon" /></el-icon>
+                        <h3>{{ feature.title }}</h3>
+                        <p>{{ feature.desc }}</p>
                     </div>
                 </div>
 
                 <div class="step-actions">
-                    <el-button @click="skipOnboarding">跳过设置</el-button>
-                    <el-button type="primary" size="large" @click="nextStep('welcome')">开始设置</el-button>
+                    <el-button @click="skipOnboarding">{{ t('onboarding_page.welcome.skip') }}</el-button>
+                    <el-button type="primary" size="large" @click="nextStep('welcome')">{{ t('onboarding_page.welcome.start') }}</el-button>
                 </div>
             </div>
 
             <!-- 个人资料步骤 -->
             <div v-if="currentStep === 'profile'" class="step-content">
-                <h2>完善个人资料</h2>
-                <p class="step-desc">请完善您的个人信息</p>
+                <h2>{{ t('onboarding_page.profile.title') }}</h2>
+                <p class="step-desc">{{ t('onboarding_page.profile.desc') }}</p>
                 <el-form ref="profileFormRef" :model="profileForm" :rules="profileRules" label-width="100px" class="step-form">
-                    <el-form-item label="姓名" prop="name">
-                        <el-input v-model="profileForm.name" placeholder="您的姓名" />
+                    <el-form-item :label="t('onboarding_page.profile.name')" prop="name">
+                        <el-input v-model="profileForm.name" :placeholder="t('onboarding_page.profile.name_ph')" />
                     </el-form-item>
-                    <el-form-item label="手机号" prop="phone">
-                        <el-input v-model="profileForm.phone" placeholder="手机号码（可选）" />
+                    <el-form-item :label="t('onboarding_page.profile.phone')" prop="phone">
+                        <el-input v-model="profileForm.phone" :placeholder="t('onboarding_page.profile.phone_ph')" />
                     </el-form-item>
                 </el-form>
                 <div class="step-actions">
-                    <el-button @click="prevStep('profile')">上一步</el-button>
-                    <el-button type="primary" @click="handleCompleteStep('profile')">下一步</el-button>
+                    <el-button @click="prevStep('profile')">{{ t('actions.prev') }}</el-button>
+                    <el-button type="primary" @click="handleCompleteStep('profile')">{{ t('actions.next') }}</el-button>
                 </div>
             </div>
 
             <!-- 创建团队步骤 -->
             <div v-if="currentStep === 'tenant'" class="step-content">
-                <h2>创建团队</h2>
-                <p class="step-desc">创建一个团队或公司账户来管理您的 License</p>
+                <h2>{{ t('onboarding_page.tenant.title') }}</h2>
+                <p class="step-desc">{{ t('onboarding_page.tenant.desc') }}</p>
                 <el-form ref="tenantFormRef" :model="tenantForm" :rules="tenantRules" label-width="120px" class="step-form">
-                    <el-form-item label="团队名称" prop="tenant_name">
-                        <el-input v-model="tenantForm.tenant_name" placeholder="例如：我的公司" />
+                    <el-form-item :label="t('onboarding_page.tenant.name')" prop="tenant_name">
+                        <el-input v-model="tenantForm.tenant_name" :placeholder="t('onboarding_page.tenant.name_ph')" />
                     </el-form-item>
-                    <el-form-item label="团队 Logo">
+                    <el-form-item :label="t('onboarding_page.tenant.logo')">
                         <el-upload
                             class="logo-uploader"
                             action="#"
@@ -98,44 +88,44 @@
                     </el-form-item>
                 </el-form>
                 <div class="step-actions">
-                    <el-button @click="prevStep('tenant')">上一步</el-button>
-                    <el-button type="primary" @click="handleCompleteStep('tenant')">下一步</el-button>
+                    <el-button @click="prevStep('tenant')">{{ t('actions.prev') }}</el-button>
+                    <el-button type="primary" @click="handleCompleteStep('tenant')">{{ t('actions.next') }}</el-button>
                 </div>
             </div>
 
             <!-- 添加产品步骤 -->
             <div v-if="currentStep === 'product'" class="step-content">
-                <h2>添加产品</h2>
-                <p class="step-desc">添加您要授权管理的第一款产品</p>
+                <h2>{{ t('onboarding_page.product.title') }}</h2>
+                <p class="step-desc">{{ t('onboarding_page.product.desc') }}</p>
                 <el-form ref="productFormRef" :model="productForm" :rules="productRules" label-width="120px" class="step-form">
-                    <el-form-item label="产品名称" prop="product_name">
-                        <el-input v-model="productForm.product_name" placeholder="例如：企业管理系统" />
+                    <el-form-item :label="t('onboarding_page.product.name')" prop="product_name">
+                        <el-input v-model="productForm.product_name" :placeholder="t('onboarding_page.product.name_ph')" />
                     </el-form-item>
-                    <el-form-item label="产品描述">
-                        <el-input v-model="productForm.product_description" type="textarea" :rows="3" placeholder="描述您的产品功能（可选）" />
+                    <el-form-item :label="t('onboarding_page.product.description')">
+                        <el-input v-model="productForm.product_description" type="textarea" :rows="3" :placeholder="t('onboarding_page.product.description_ph')" />
                     </el-form-item>
                 </el-form>
                 <div class="step-actions">
-                    <el-button @click="prevStep('product')">上一步</el-button>
-                    <el-button type="primary" @click="handleCompleteStep('product')">下一步</el-button>
+                    <el-button @click="prevStep('product')">{{ t('actions.prev') }}</el-button>
+                    <el-button type="primary" @click="handleCompleteStep('product')">{{ t('actions.next') }}</el-button>
                 </div>
             </div>
 
             <!-- 生成 API 密钥步骤 -->
             <div v-if="currentStep === 'api_key'" class="step-content">
-                <h2>生成 API 密钥</h2>
-                <p class="step-desc">创建 API 密钥用于系统集成</p>
+                <h2>{{ t('onboarding_page.api_key.title') }}</h2>
+                <p class="step-desc">{{ t('onboarding_page.api_key.desc') }}</p>
                 <el-form ref="apiKeyFormRef" :model="apiKeyForm" :rules="apiKeyRules" label-width="120px" class="step-form">
-                    <el-form-item label="密钥名称" prop="key_name">
-                        <el-input v-model="apiKeyForm.key_name" placeholder="例如：生产环境密钥" />
+                    <el-form-item :label="t('onboarding_page.api_key.name')" prop="key_name">
+                        <el-input v-model="apiKeyForm.key_name" :placeholder="t('onboarding_page.api_key.name_ph')" />
                     </el-form-item>
                     <el-alert type="info" :closable="false" show-icon class="mt-3">
-                        <template #title>API 密钥用于 SDK 和 API 调用中的身份验证，请妥善保管</template>
+                        <template #title>{{ t('onboarding_page.api_key.alert') }}</template>
                     </el-alert>
                 </el-form>
                 <div class="step-actions">
-                    <el-button @click="prevStep('api_key')">上一步</el-button>
-                    <el-button type="primary" @click="handleCompleteStep('api_key')">完成</el-button>
+                    <el-button @click="prevStep('api_key')">{{ t('actions.prev') }}</el-button>
+                    <el-button type="primary" @click="handleCompleteStep('api_key')">{{ t('onboarding_page.api_key.finish') }}</el-button>
                 </div>
             </div>
 
@@ -144,30 +134,24 @@
                 <div class="complete-icon">
                     <el-icon :size="72" color="#67C23A"><CircleCheck /></el-icon>
                 </div>
-                <h1>设置完成！</h1>
-                <p class="complete-desc">您已成功完成系统初始化，现在可以开始使用了。</p>
+                <h1>{{ t('onboarding_page.complete.title') }}</h1>
+                <p class="complete-desc">{{ t('onboarding_page.complete.desc') }}</p>
 
                 <div class="quick-actions">
-                    <el-card shadow="hover" class="quick-action-card" @click="$router.push('/licenses')">
-                        <el-icon :size="28" color="#409EFF"><Key /></el-icon>
-                        <span>创建 License</span>
-                    </el-card>
-                    <el-card shadow="hover" class="quick-action-card" @click="$router.push('/products')">
-                        <el-icon :size="28" color="#67C23A"><Goods /></el-icon>
-                        <span>管理产品</span>
-                    </el-card>
-                    <el-card shadow="hover" class="quick-action-card" @click="$router.push('/api-keys')">
-                        <el-icon :size="28" color="#E6A23C"><Key /></el-icon>
-                        <span>API 密钥</span>
-                    </el-card>
-                    <el-card shadow="hover" class="quick-action-card" @click="$router.push('/dashboard')">
-                        <el-icon :size="28" color="#909399"><Odometer /></el-icon>
-                        <span>前往仪表盘</span>
+                    <el-card
+                        v-for="action in quickActions"
+                        :key="action.route"
+                        shadow="hover"
+                        class="quick-action-card"
+                        @click="$router.push(action.route)"
+                    >
+                        <el-icon :size="28" :color="action.color"><component :is="action.icon" /></el-icon>
+                        <span>{{ action.label }}</span>
                     </el-card>
                 </div>
 
                 <div class="step-actions">
-                    <el-button type="primary" size="large" @click="goToDashboard">进入系统</el-button>
+                    <el-button type="primary" size="large" @click="goToDashboard">{{ t('onboarding_page.complete.enter') }}</el-button>
                 </div>
             </div>
         </div>
@@ -177,6 +161,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import {
     MagicStick, Key, Monitor, Lock, Check, CircleCheck,
@@ -185,15 +170,67 @@ import {
 import onboardingApi from '@/api/onboarding';
 
 const router = useRouter();
+const { t } = useI18n();
 
-const steps = [
-    { key: 'welcome', label: '欢迎' },
-    { key: 'profile', label: '资料' },
-    { key: 'tenant', label: '团队' },
-    { key: 'product', label: '产品' },
-    { key: 'api_key', label: 'API 密钥' },
-    { key: 'complete', label: '完成' },
-];
+const stepKeys = ['welcome', 'profile', 'tenant', 'product', 'api_key', 'complete'];
+
+const steps = computed(() =>
+    stepKeys.map((key) => ({
+        key,
+        label: t(`onboarding_page.steps.${key}`),
+    })),
+);
+
+const welcomeFeatures = computed(() => [
+    {
+        key: 'license',
+        icon: Key,
+        color: '#0f172a',
+        title: t('onboarding_page.welcome.features.license.title'),
+        desc: t('onboarding_page.welcome.features.license.desc'),
+    },
+    {
+        key: 'monitor',
+        icon: Monitor,
+        color: '#67C23A',
+        title: t('onboarding_page.welcome.features.monitor.title'),
+        desc: t('onboarding_page.welcome.features.monitor.desc'),
+    },
+    {
+        key: 'security',
+        icon: Lock,
+        color: '#E6A23C',
+        title: t('onboarding_page.welcome.features.security.title'),
+        desc: t('onboarding_page.welcome.features.security.desc'),
+    },
+]);
+
+const quickActions = computed(() => [
+    {
+        route: '/licenses',
+        icon: Key,
+        color: '#0f172a',
+        label: t('onboarding_page.complete.actions.create_license'),
+    },
+    {
+        route: '/products',
+        icon: Goods,
+        color: '#67C23A',
+        label: t('onboarding_page.complete.actions.manage_products'),
+    },
+    {
+        route: '/api-keys',
+        icon: Key,
+        color: '#E6A23C',
+        label: t('onboarding_page.complete.actions.api_keys'),
+    },
+    {
+        route: '/dashboard',
+        icon: Odometer,
+        color: '#909399',
+        label: t('onboarding_page.complete.actions.dashboard'),
+    },
+]);
 
 const currentStep = ref('welcome');
 const completedSteps = ref([]);
@@ -204,17 +241,23 @@ const tenantFormRef = ref(null);
 const productFormRef = ref(null);
 const apiKeyFormRef = ref(null);
 
-// 表单数据
 const profileForm = reactive({ name: '', phone: '' });
 const tenantForm = reactive({ tenant_name: '', logoUrl: '' });
 const productForm = reactive({ product_name: '', product_description: '' });
 const apiKeyForm = reactive({ key_name: '' });
 
-// 表单校验
-const profileRules = { name: [{ required: true, message: '请输入姓名', trigger: 'blur' }] };
-const tenantRules = { tenant_name: [{ required: true, message: '请输入团队名称', trigger: 'blur' }] };
-const productRules = { product_name: [{ required: true, message: '请输入产品名称', trigger: 'blur' }] };
-const apiKeyRules = { key_name: [{ required: true, message: '请输入密钥名称', trigger: 'blur' }] };
+const profileRules = computed(() => ({
+    name: [{ required: true, message: t('onboarding_page.validation.name_required'), trigger: 'blur' }],
+}));
+const tenantRules = computed(() => ({
+    tenant_name: [{ required: true, message: t('onboarding_page.validation.tenant_name_required'), trigger: 'blur' }],
+}));
+const productRules = computed(() => ({
+    product_name: [{ required: true, message: t('onboarding_page.validation.product_name_required'), trigger: 'blur' }],
+}));
+const apiKeyRules = computed(() => ({
+    key_name: [{ required: true, message: t('onboarding_page.validation.key_name_required'), trigger: 'blur' }],
+}));
 
 async function fetchOnboardingState() {
     loading.value = true;
@@ -227,22 +270,21 @@ async function fetchOnboardingState() {
                 completedSteps.value = onboarding.completed_steps || [];
                 progressPct.value = onboarding.progress_pct || 0;
 
-                // 如果已完成，直接跳转
                 if (onboarding.is_completed) {
                     currentStep.value = 'complete';
                     progressPct.value = 100;
                 }
 
-                // 预填用户信息
                 if (res.data?.user) {
-                    if (res.data.user.has_tenant) tenantForm.tenant_name = '已完成';
-                    if (res.data.user.has_products) productForm.product_name = '已完成';
-                    if (res.data.user.has_api_keys) apiKeyForm.key_name = '已完成';
+                    const doneLabel = t('onboarding_page.messages.already_done');
+                    if (res.data.user.has_tenant) tenantForm.tenant_name = doneLabel;
+                    if (res.data.user.has_products) productForm.product_name = doneLabel;
+                    if (res.data.user.has_api_keys) apiKeyForm.key_name = doneLabel;
                 }
             }
         }
     } catch {
-        ElMessage.error('加载 Onboarding 状态失败');
+        ElMessage.error(t('onboarding_page.messages.load_failed'));
     } finally {
         loading.value = false;
     }
@@ -290,15 +332,15 @@ async function handleCompleteStep(step) {
             progressPct.value = onboarding.progress_pct || 0;
 
             if (onboarding.is_completed) {
-                ElMessage.success('🎉 所有步骤已完成！');
+                ElMessage.success(t('onboarding_page.messages.all_completed'));
                 currentStep.value = 'complete';
                 progressPct.value = 100;
             } else {
-                ElMessage.success('步骤已完成');
+                ElMessage.success(t('onboarding_page.messages.step_completed'));
             }
         }
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '操作失败');
+        ElMessage.error(err.response?.data?.message || t('messages.failed'));
     } finally {
         loading.value = false;
     }
@@ -309,21 +351,21 @@ function nextStep(step) {
 }
 
 function prevStep(step) {
-    const idx = steps.findIndex(s => s.key === step);
+    const idx = steps.value.findIndex(s => s.key === step);
     if (idx > 0) {
-        currentStep.value = steps[idx - 1].key;
+        currentStep.value = steps.value[idx - 1].key;
     }
 }
 
 async function skipOnboarding() {
     loading.value = true;
     try {
-        await onboardingApi.skip('用户选择跳过');
-        ElMessage.info('已跳过后勤设置');
+        await onboardingApi.skip(t('onboarding_page.skip_reason'));
+        ElMessage.info(t('onboarding_page.messages.skipped'));
         currentStep.value = 'complete';
         progressPct.value = 100;
     } catch {
-        ElMessage.error('操作失败');
+        ElMessage.error(t('messages.failed'));
     } finally {
         loading.value = false;
     }
@@ -331,7 +373,7 @@ async function skipOnboarding() {
 
 function handleLogoChange(file) {
     tenantForm.logoUrl = URL.createObjectURL(file.raw);
-    ElMessage.success('Logo 已选择（可在设置中上传）');
+    ElMessage.success(t('onboarding_page.messages.logo_selected'));
 }
 
 function goToDashboard() {
@@ -416,7 +458,7 @@ onMounted(() => {
 .step-dot.active .step-indicator {
     background: var(--el-color-primary);
     color: #fff;
-    box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.2);
+    box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.2);
 }
 
 .step-dot.completed .step-indicator {
@@ -573,7 +615,7 @@ onMounted(() => {
 
 .quick-action-card:hover {
     border-color: var(--el-color-primary);
-    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
 }
 
 .quick-action-card span {

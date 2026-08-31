@@ -2,43 +2,43 @@
     <div class="rbac-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>权限管理</h2>
-                <span class="header-subtitle">角色定义与用户权限分配</span>
+                <h2>{{ t('rbac_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('rbac_page.subtitle') }}</span>
             </div>
             <div class="header-right">
                 <el-button type="primary" @click="activeTab = 'roles'; openRoleDialog()">
                     <el-icon><Plus /></el-icon>
-                    新建角色
+                    {{ t('rbac_page.buttons.new_role') }}
                 </el-button>
             </div>
         </div>
 
         <el-card shadow="never">
             <el-tabs v-model="activeTab" @tab-change="handleTabChange">
-                <el-tab-pane label="角色管理" name="roles">
+                <el-tab-pane :label="t('rbac_page.tabs.roles')" name="roles">
                     <template #label>
-                        <span><el-icon><UserFilled /></el-icon> 角色管理</span>
+                        <span><el-icon><UserFilled /></el-icon> {{ t('rbac_page.tabs.roles') }}</span>
                     </template>
 
                     <!-- 搜索框 -->
                     <div class="toolbar">
                         <el-input
                             v-model="roleSearch"
-                            placeholder="搜索角色名称"
+                            :placeholder="t('rbac_page.toolbar.search_role_ph')"
                             clearable
                             style="width: 240px"
                             @keyup.enter="loadRoles"
                         />
                         <el-button type="primary" @click="loadRoles">
-                            <el-icon><Search /></el-icon> 搜索
+                            <el-icon><Search /></el-icon> {{ t('actions.search') }}
                         </el-button>
                         <el-button type="success" @click="openDuplicateDialog">
-                            <el-icon><CopyDocument /></el-icon> 复制角色
+                            <el-icon><CopyDocument /></el-icon> {{ t('rbac_page.toolbar.duplicate_role') }}
                         </el-button>
                     </div>
 
                     <el-table :data="roles" v-loading="rolesLoading" stripe>
-                        <el-table-column label="角色名称" min-width="180" prop="name">
+                        <el-table-column :label="t('rbac_page.cols.role_name')" min-width="180" prop="name">
                             <template #default="{ row }">
                                 <div class="role-name-cell">
                                     <el-tag :type="roleTagType(row.name)" size="small" effect="dark">
@@ -51,19 +51,19 @@
                                         effect="plain"
                                         style="margin-left: 6px;"
                                     >
-                                        系统
+                                        {{ t('rbac_page.badges.system') }}
                                     </el-tag>
                                 </div>
                             </template>
                         </el-table-column>
-                        <el-table-column label="权限数" width="80">
+                        <el-table-column :label="t('rbac_page.cols.perm_count')" width="80">
                             <template #default="{ row }">
                                 <el-tag type="primary" effect="plain" size="small">
                                     {{ row.permissions?.length || 0 }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="父角色" width="140">
+                        <el-table-column :label="t('rbac_page.cols.parent_role')" width="140">
                             <template #default="{ row }">
                                 <span v-if="roleParentMap[row.id]" class="text-muted">
                                     ← {{ roleParentMap[row.id] }}
@@ -71,18 +71,18 @@
                                 <span v-else class="text-muted">-</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="创建时间" width="160" prop="created_at">
+                        <el-table-column :label="t('rbac_page.cols.created_at')" width="160" prop="created_at">
                             <template #default="{ row }">
                                 {{ formatDate(row.created_at) }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="280" fixed="right">
+                        <el-table-column :label="t('rbac_page.cols.actions')" width="280" fixed="right">
                             <template #default="{ row }">
                                 <el-button text size="small" type="primary" @click="openRoleDialog(row)">
-                                    编辑权限
+                                    {{ t('rbac_page.buttons.edit_permissions') }}
                                 </el-button>
                                 <el-button text size="small" type="primary" @click="openDuplicateDialog(row)">
-                                    复制
+                                    {{ t('actions.copy') }}
                                 </el-button>
                                 <el-button
                                     v-if="!['super-admin', 'tenant-admin', 'finance', 'developer', 'readonly'].includes(row.name)"
@@ -91,7 +91,7 @@
                                     type="danger"
                                     @click="handleDeleteRole(row)"
                                 >
-                                    删除
+                                    {{ t('actions.delete') }}
                                 </el-button>
                             </template>
                         </el-table-column>
@@ -108,13 +108,13 @@
                     </div>
                 </el-tab-pane>
 
-                <el-tab-pane label="用户角色" name="users">
+                <el-tab-pane :label="t('rbac_page.tabs.users')" name="users">
                     <template #label>
-                        <span><el-icon><User /></el-icon> 用户角色</span>
+                        <span><el-icon><User /></el-icon> {{ t('rbac_page.tabs.users') }}</span>
                     </template>
 
                     <el-table :data="tenantUsers" v-loading="usersLoading" stripe>
-                        <el-table-column label="用户" min-width="200">
+                        <el-table-column :label="t('rbac_page.cols.user')" min-width="200">
                             <template #default="{ row }">
                                 <div>
                                     <span class="user-name">{{ row.name }}</span>
@@ -122,7 +122,7 @@
                                 </div>
                             </template>
                         </el-table-column>
-                        <el-table-column label="当前角色" min-width="250">
+                        <el-table-column :label="t('rbac_page.cols.current_roles')" min-width="250">
                             <template #default="{ row }">
                                 <el-tag
                                     v-for="role in (row.roles || [])"
@@ -133,20 +133,20 @@
                                 >
                                     {{ role.name }}
                                 </el-tag>
-                                <span v-if="!row.roles?.length" class="text-muted">无角色</span>
+                                <span v-if="!row.roles?.length" class="text-muted">{{ t('rbac_page.empty.no_roles') }}</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="状态" width="80">
+                        <el-table-column :label="t('rbac_page.cols.status')" width="80">
                             <template #default="{ row }">
                                 <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
-                                    {{ row.status === 'active' ? '启用' : '停用' }}
+                                    {{ row.status === 'active' ? t('rbac_page.status.active') : t('rbac_page.status.inactive') }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="140" fixed="right">
+                        <el-table-column :label="t('rbac_page.cols.actions')" width="140" fixed="right">
                             <template #default="{ row }">
                                 <el-button text size="small" type="primary" @click="openUserRoleDialog(row)">
-                                    分配角色
+                                    {{ t('rbac_page.buttons.assign_roles') }}
                                 </el-button>
                             </template>
                         </el-table-column>
@@ -154,47 +154,47 @@
                 </el-tab-pane>
 
                 <!-- ═══ 角色层级 ═══ -->
-                <el-tab-pane label="角色层级" name="hierarchy">
+                <el-tab-pane :label="t('rbac_page.tabs.hierarchy')" name="hierarchy">
                     <template #label>
-                        <span><el-icon><Share /></el-icon> 角色层级</span>
+                        <span><el-icon><Share /></el-icon> {{ t('rbac_page.tabs.hierarchy') }}</span>
                     </template>
                     <div class="toolbar">
                         <el-button type="primary" @click="loadRoleHierarchy" :loading="hierarchyLoading">
-                            <el-icon><Refresh /></el-icon> 刷新层级
+                            <el-icon><Refresh /></el-icon> {{ t('rbac_page.toolbar.refresh_hierarchy') }}
                         </el-button>
                         <span class="text-muted" style="margin-left: 8px; font-size: 13px;">
-                            角色继承关系：子角色自动继承父角色的所有权限
+                            {{ t('rbac_page.toolbar.hierarchy_hint') }}
                         </span>
                     </div>
                     <el-table :data="hierarchyData" v-loading="hierarchyLoading" stripe>
-                        <el-table-column label="角色" min-width="180">
+                        <el-table-column :label="t('rbac_page.cols.role')" min-width="180">
                             <template #default="{ row }">
                                 <el-tag :type="roleTagType(row.name)" size="small" effect="dark">
                                     {{ row.name }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="权限数" width="80">
+                        <el-table-column :label="t('rbac_page.cols.perm_count')" width="80">
                             <template #default="{ row }">
                                 <el-tag type="primary" effect="plain" size="small">
                                     {{ row.permissions_count }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="父角色" min-width="180">
+                        <el-table-column :label="t('rbac_page.cols.parent_role')" min-width="180">
                             <template #default="{ row }">
                                 <span v-if="row.parent">
                                     <el-tag type="warning" size="small" effect="plain">
                                         ← {{ row.parent.name }}
                                     </el-tag>
                                 </span>
-                                <span v-else class="text-muted">无（顶级角色）</span>
+                                <span v-else class="text-muted">{{ t('rbac_page.empty.no_parent_top') }}</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="200">
+                        <el-table-column :label="t('rbac_page.cols.actions')" width="200">
                             <template #default="{ row }">
                                 <el-button text size="small" type="primary" @click="openRoleDialog(roles.find(r => r.id === row.id))">
-                                    设置父角色
+                                    {{ t('rbac_page.buttons.set_parent_role') }}
                                 </el-button>
                             </template>
                         </el-table-column>
@@ -202,43 +202,43 @@
                 </el-tab-pane>
 
                 <!-- ═══ 角色模板 ═══ -->
-                <el-tab-pane label="角色模板" name="templates">
+                <el-tab-pane :label="t('rbac_page.tabs.templates')" name="templates">
                     <template #label>
-                        <span><el-icon><Collection /></el-icon> 角色模板</span>
+                        <span><el-icon><Collection /></el-icon> {{ t('rbac_page.tabs.templates') }}</span>
                     </template>
                     <div class="toolbar">
                         <el-button type="primary" @click="openCreateTemplateDialog">
-                            <el-icon><Plus /></el-icon> 新建模板
+                            <el-icon><Plus /></el-icon> {{ t('rbac_page.toolbar.new_template') }}
                         </el-button>
                         <el-button @click="handleSeedTemplates">
-                            <el-icon><MagicStick /></el-icon> 初始化系统模板
+                            <el-icon><MagicStick /></el-icon> {{ t('rbac_page.toolbar.seed_templates') }}
                         </el-button>
                     </div>
                     <el-table :data="templates" v-loading="templatesLoading" stripe>
-                        <el-table-column label="模板名称" min-width="180" prop="name" />
-                        <el-table-column label="描述" min-width="250" prop="description">
+                        <el-table-column :label="t('rbac_page.cols.template_name')" min-width="180" prop="name" />
+                        <el-table-column :label="t('rbac_page.cols.description')" min-width="250" prop="description">
                             <template #default="{ row }">
                                 <span class="text-muted">{{ row.description || '-' }}</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="分类" width="120">
+                        <el-table-column :label="t('rbac_page.cols.category')" width="120">
                             <template #default="{ row }">
                                 <el-tag size="small" :type="row.category === 'system' ? 'danger' : row.category === 'industry' ? 'warning' : ''">
-                                    {{ row.category === 'system' ? '系统' : row.category === 'industry' ? '行业' : '自定义' }}
+                                    {{ categoryLabel(row.category) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="权限数" width="80">
+                        <el-table-column :label="t('rbac_page.cols.perm_count')" width="80">
                             <template #default="{ row }">
                                 <el-tag type="primary" effect="plain" size="small">
                                     {{ row.permissions?.length || 0 }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="220" fixed="right">
+                        <el-table-column :label="t('rbac_page.cols.actions')" width="220" fixed="right">
                             <template #default="{ row }">
                                 <el-button text size="small" type="primary" @click="openCreateFromTemplateDialog(row)">
-                                    创建角色
+                                    {{ t('rbac_page.buttons.create_role') }}
                                 </el-button>
                                 <el-button
                                     v-if="!row.is_system"
@@ -247,7 +247,7 @@
                                     type="danger"
                                     @click="handleDeleteTemplate(row)"
                                 >
-                                    删除
+                                    {{ t('actions.delete') }}
                                 </el-button>
                             </template>
                         </el-table-column>
@@ -255,75 +255,75 @@
                 </el-tab-pane>
 
                 <!-- ═══ 权限审计 ═══ -->
-                <el-tab-pane label="权限审计" name="audit">
+                <el-tab-pane :label="t('rbac_page.tabs.audit')" name="audit">
                     <template #label>
-                        <span><el-icon><List /></el-icon> 权限审计</span>
+                        <span><el-icon><List /></el-icon> {{ t('rbac_page.tabs.audit') }}</span>
                     </template>
                     <div class="toolbar">
-                        <el-select v-model="auditFilter.action" clearable placeholder="操作类型" style="width: 160px">
-                            <el-option label="全部" value="" />
-                            <el-option label="创建角色" value="role_created" />
-                            <el-option label="更新角色" value="role_updated" />
-                            <el-option label="删除角色" value="role_deleted" />
-                            <el-option label="分配角色" value="user_role_assigned" />
-                            <el-option label="分配权限" value="permission_assigned" />
+                        <el-select v-model="auditFilter.action" clearable :placeholder="t('rbac_page.toolbar.audit_action_ph')" style="width: 160px">
+                            <el-option
+                                v-for="opt in auditActionOptions"
+                                :key="opt.value"
+                                :label="opt.label"
+                                :value="opt.value"
+                            />
                         </el-select>
                         <el-date-picker
                             v-model="auditFilter.dateRange"
                             type="daterange"
-                            range-separator="至"
-                            start-placeholder="开始日期"
-                            end-placeholder="结束日期"
+                            :range-separator="t('rbac_page.audit.date_sep')"
+                            :start-placeholder="t('rbac_page.audit.date_start')"
+                            :end-placeholder="t('rbac_page.audit.date_end')"
                             value-format="YYYY-MM-DD"
                             style="width: 280px"
                         />
                         <el-button type="primary" @click="loadAuditLogs">
-                            <el-icon><Search /></el-icon> 查询
+                            <el-icon><Search /></el-icon> {{ t('rbac_page.toolbar.query') }}
                         </el-button>
                         <el-button @click="loadAuditStats">
-                            <el-icon><Refresh /></el-icon> 刷新统计
+                            <el-icon><Refresh /></el-icon> {{ t('rbac_page.toolbar.refresh_stats') }}
                         </el-button>
                     </div>
 
                     <!-- 审计统计卡片 -->
                     <el-row :gutter="16" class="stats-row" v-if="auditStatsData">
                         <el-col :span="6">
-                            <el-statistic title="总变更次数" :value="auditStatsData.total_changes" />
+                            <el-statistic :title="t('rbac_page.audit.stat_total')" :value="auditStatsData.total_changes" />
                         </el-col>
                         <el-col :span="6">
-                            <el-statistic title="近7天变更" :value="auditStatsData.recent_days" />
+                            <el-statistic :title="t('rbac_page.audit.stat_recent')" :value="auditStatsData.recent_days" />
                         </el-col>
                     </el-row>
 
                     <el-table :data="auditLogs" v-loading="auditLoading" stripe class="audit-table">
-                        <el-table-column label="时间" width="160">
+                        <el-table-column :label="t('rbac_page.cols.time')" width="160">
                             <template #default="{ row }">
                                 {{ formatDate(row.created_at) }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作人" width="160">
+                        <el-table-column :label="t('rbac_page.cols.operator')" width="160">
                             <template #default="{ row }">
-                                {{ row.user?.name || '系统' }}
+                                {{ row.user?.name || t('rbac_page.badges.system') }}
                                 <div class="user-email">{{ row.user?.email || '-' }}</div>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="130">
+                        <el-table-column :label="t('rbac_page.cols.actions')" width="130">
                             <template #default="{ row }">
                                 <el-tag :type="auditActionTag(row.action)" size="small">
                                     {{ auditActionLabel(row.action) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="目标" min-width="180" prop="target_name">
+                        <el-table-column :label="t('rbac_page.cols.target')" min-width="180" prop="target_name">
                             <template #default="{ row }">
                                 <span>{{ row.target_name || '-' }}</span>
                                 <span class="text-muted" style="margin-left: 4px;">({{ row.target_type }})</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="详情" width="120">
+                        <el-table-column :label="t('rbac_page.cols.detail')" width="120">
                             <template #default="{ row }">
                                 <el-button v-if="row.old_values || row.new_values" text size="small" type="primary" @click="viewAuditDetail(row)">
-                                    查看变更
+                                    {{ t('rbac_page.buttons.view_changes') }}
                                 </el-button>
                             </template>
                         </el-table-column>
@@ -345,7 +345,7 @@
         <!-- 角色编辑 Dialog（选择权限） -->
         <el-dialog
             v-model="roleDialogVisible"
-            :title="editingRole ? '编辑角色权限' : '新建角色'"
+            :title="editingRole ? t('rbac_page.dialogs.edit_role') : t('rbac_page.dialogs.new_role')"
             width="650px"
             :close-on-click-modal="false"
         >
@@ -356,11 +356,11 @@
                 label-width="100px"
                 label-position="right"
             >
-                <el-form-item label="角色名称" prop="name">
-                    <el-input v-model="roleForm.name" :disabled="!!editingRole && isSystemRole" placeholder="如：support-agent" />
+                <el-form-item :label="t('rbac_page.form.role_name')" prop="name">
+                    <el-input v-model="roleForm.name" :disabled="!!editingRole && isSystemRole" :placeholder="t('rbac_page.placeholders.role_name')" />
                 </el-form-item>
-                <el-form-item label="继承父角色">
-                    <el-select v-model="roleForm.parent_role_id" clearable placeholder="选择父角色（可选）" style="width: 100%">
+                <el-form-item :label="t('rbac_page.form.inherit_parent')">
+                    <el-select v-model="roleForm.parent_role_id" clearable :placeholder="t('rbac_page.placeholders.parent_role')" style="width: 100%">
                         <el-option
                             v-for="r in roles"
                             :key="r.id"
@@ -369,14 +369,14 @@
                             :disabled="r.id === editingRole?.id"
                         >
                             <el-tag :type="roleTagType(r.name)" size="small">{{ r.name }}</el-tag>
-                            <span class="text-muted" style="margin-left: 4px;">({{ r.permissions?.length || 0 }} 权限)</span>
+                            <span class="text-muted" style="margin-left: 4px;">{{ t('rbac_page.perm_count', { n: r.permissions?.length || 0 }) }}</span>
                         </el-option>
                     </el-select>
                     <div class="form-help" v-if="roleForm.parent_role_id">
-                        子角色将自动继承父角色的所有权限
+                        {{ t('rbac_page.hints.inherit_parent') }}
                     </div>
                 </el-form-item>
-                <el-form-item label="权限">
+                <el-form-item :label="t('rbac_page.form.permissions')">
                     <div class="permission-tree" v-if="Object.keys(permissionGroups).length">
                         <div
                             v-for="(perms, group) in permissionGroups"
@@ -406,13 +406,13 @@
                             </div>
                         </div>
                     </div>
-                    <div v-else class="text-muted">加载权限中...</div>
+                    <div v-else class="text-muted">{{ t('rbac_page.loading_permissions') }}</div>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="roleDialogVisible = false">取消</el-button>
+                <el-button @click="roleDialogVisible = false">{{ t('actions.cancel') }}</el-button>
                 <el-button type="primary" :loading="roleSubmitting" @click="submitRole">
-                    {{ editingRole ? '保存' : '创建' }}
+                    {{ editingRole ? t('actions.save') : t('actions.create') }}
                 </el-button>
             </template>
         </el-dialog>
@@ -420,7 +420,7 @@
         <!-- 用户角色分配 Dialog -->
         <el-dialog
             v-model="userRoleDialogVisible"
-            title="分配角色"
+            :title="t('rbac_page.dialogs.assign_role')"
             width="450px"
             :close-on-click-modal="false"
         >
@@ -448,51 +448,51 @@
                         <el-tag :type="roleTagType(role.name)" size="small">
                             {{ role.name }}
                         </el-tag>
-                        <span class="role-perm-count">{{ role.permissions?.length || 0 }} 个权限</span>
+                        <span class="role-perm-count">{{ t('rbac_page.perm_count_unit', { n: role.permissions?.length || 0 }) }}</span>
                     </el-checkbox>
                 </el-checkbox-group>
             </div>
             <template #footer>
-                <el-button @click="userRoleDialogVisible = false">取消</el-button>
-                <el-button type="primary" :loading="userRoleSubmitting" @click="submitUserRoles">保存</el-button>
+                <el-button @click="userRoleDialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="userRoleSubmitting" @click="submitUserRoles">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 审计详情 Dialog -->
-        <el-dialog v-model="auditDetailVisible" title="变更详情" width="600px">
+        <el-dialog v-model="auditDetailVisible" :title="t('rbac_page.dialogs.audit_detail')" width="600px">
             <div v-if="auditDetailRow">
                 <div class="audit-meta">
                     <el-descriptions :column="2" size="small" border>
-                        <el-descriptions-item label="操作时间">{{ formatDate(auditDetailRow.created_at) }}</el-descriptions-item>
-                        <el-descriptions-item label="操作人">{{ auditDetailRow.user?.name || '系统' }}</el-descriptions-item>
-                        <el-descriptions-item label="操作类型">
+                        <el-descriptions-item :label="t('rbac_page.form.operated_at')">{{ formatDate(auditDetailRow.created_at) }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('rbac_page.form.operator')">{{ auditDetailRow.user?.name || t('rbac_page.badges.system') }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('rbac_page.form.action_type')">
                             <el-tag :type="auditActionTag(auditDetailRow.action)" size="small">
                                 {{ auditActionLabel(auditDetailRow.action) }}
                             </el-tag>
                         </el-descriptions-item>
-                        <el-descriptions-item label="目标">{{ auditDetailRow.target_name }} ({{ auditDetailRow.target_type }})</el-descriptions-item>
+                        <el-descriptions-item :label="t('rbac_page.form.target')">{{ auditDetailRow.target_name }} ({{ auditDetailRow.target_type }})</el-descriptions-item>
                     </el-descriptions>
                 </div>
                 <el-divider />
                 <div v-if="auditDetailRow.old_values" class="diff-section">
-                    <h4 class="diff-title">旧值</h4>
+                    <h4 class="diff-title">{{ t('rbac_page.diff.old_values') }}</h4>
                     <pre class="diff-pre">{{ JSON.stringify(auditDetailRow.old_values, null, 2) }}</pre>
                 </div>
                 <div v-if="auditDetailRow.new_values" class="diff-section">
-                    <h4 class="diff-title">新值</h4>
+                    <h4 class="diff-title">{{ t('rbac_page.diff.new_values') }}</h4>
                     <pre class="diff-pre">{{ JSON.stringify(auditDetailRow.new_values, null, 2) }}</pre>
                 </div>
             </div>
             <template #footer>
-                <el-button @click="auditDetailVisible = false">关闭</el-button>
+                <el-button @click="auditDetailVisible = false">{{ t('actions.close') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 复制角色 Dialog -->
-        <el-dialog v-model="duplicateDialogVisible" title="复制角色" width="400px">
+        <el-dialog v-model="duplicateDialogVisible" :title="t('rbac_page.dialogs.duplicate_role')" width="400px">
             <el-form ref="duplicateFormRef" :model="duplicateForm" :rules="duplicateFormRules" label-width="100px">
-                <el-form-item label="源角色">
-                    <el-select v-model="duplicateForm.source_role_id" placeholder="选择要复制的角色" style="width: 100%">
+                <el-form-item :label="t('rbac_page.form.source_role')">
+                    <el-select v-model="duplicateForm.source_role_id" :placeholder="t('rbac_page.placeholders.source_role')" style="width: 100%">
                         <el-option
                             v-for="r in roles"
                             :key="r.id"
@@ -500,55 +500,54 @@
                             :value="r.id"
                         >
                             <el-tag :type="roleTagType(r.name)" size="small">{{ r.name }}</el-tag>
-                            <span class="text-muted" style="margin-left: 4px;">({{ r.permissions?.length || 0 }} 权限)</span>
+                            <span class="text-muted" style="margin-left: 4px;">{{ t('rbac_page.perm_count', { n: r.permissions?.length || 0 }) }}</span>
                         </el-option>
                     </el-select>
                 </el-form-item>
-                <el-form-item label="新名称" prop="name">
-                    <el-input v-model="duplicateForm.name" placeholder="输入新角色名称" />
+                <el-form-item :label="t('rbac_page.form.new_name')" prop="name">
+                    <el-input v-model="duplicateForm.name" :placeholder="t('rbac_page.placeholders.new_role_name')" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="duplicateDialogVisible = false">取消</el-button>
-                <el-button type="primary" :loading="duplicateLoading" @click="submitDuplicate">复制</el-button>
+                <el-button @click="duplicateDialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="duplicateLoading" @click="submitDuplicate">{{ t('actions.copy') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 从模板创建角色 Dialog -->
-        <el-dialog v-model="createFromTemplateVisible" title="从模板创建角色" width="400px">
+        <el-dialog v-model="createFromTemplateVisible" :title="t('rbac_page.dialogs.create_from_template')" width="400px">
             <el-form ref="templateRoleFormRef" :model="templateRoleForm" :rules="templateRoleFormRules" label-width="100px">
-                <el-form-item label="模板">
+                <el-form-item :label="t('rbac_page.form.template')">
                     <div class="dialog-user-info" v-if="selectedTemplate">
                         <el-tag size="small">{{ selectedTemplate.name }}</el-tag>
                         <span class="text-muted">{{ selectedTemplate.description }}</span>
                     </div>
                 </el-form-item>
-                <el-form-item label="角色名称" prop="name">
-                    <el-input v-model="templateRoleForm.name" :placeholder="'如：' + (selectedTemplate?.name || '')" />
+                <el-form-item :label="t('rbac_page.form.role_name')" prop="name">
+                    <el-input v-model="templateRoleForm.name" :placeholder="t('rbac_page.placeholders.role_from_template', { name: selectedTemplate?.name || '' })" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="createFromTemplateVisible = false">取消</el-button>
-                <el-button type="primary" :loading="templateRoleLoading" @click="submitCreateFromTemplate">创建</el-button>
+                <el-button @click="createFromTemplateVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="templateRoleLoading" @click="submitCreateFromTemplate">{{ t('actions.create') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 创建模板 Dialog -->
-        <el-dialog v-model="createTemplateVisible" title="新建角色模板" width="550px">
+        <el-dialog v-model="createTemplateVisible" :title="t('rbac_page.dialogs.create_template')" width="550px">
             <el-form ref="templateFormRef" :model="templateForm" :rules="templateFormRules" label-width="100px">
-                <el-form-item label="模板名称" prop="name">
-                    <el-input v-model="templateForm.name" placeholder="如：客服模板" />
+                <el-form-item :label="t('rbac_page.cols.template_name')" prop="name">
+                    <el-input v-model="templateForm.name" :placeholder="t('rbac_page.placeholders.template_name')" />
                 </el-form-item>
-                <el-form-item label="描述" prop="description">
-                    <el-input v-model="templateForm.description" type="textarea" :rows="2" placeholder="模板用途说明" />
+                <el-form-item :label="t('rbac_page.form.description')" prop="description">
+                    <el-input v-model="templateForm.description" type="textarea" :rows="2" :placeholder="t('rbac_page.placeholders.template_desc')" />
                 </el-form-item>
-                <el-form-item label="分类">
+                <el-form-item :label="t('rbac_page.form.category')">
                     <el-select v-model="templateForm.category" style="width: 100%">
-                        <el-option label="自定义" value="custom" />
-                        <el-option label="行业" value="industry" />
+                        <el-option v-for="opt in templateCategoryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="权限">
+                <el-form-item :label="t('rbac_page.form.permissions')">
                     <div class="permission-tree" v-if="Object.keys(permissionGroups).length">
                         <div v-for="(perms, group) in permissionGroups" :key="group" class="perm-group">
                             <div class="perm-group-header">
@@ -577,18 +576,21 @@
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="createTemplateVisible = false">取消</el-button>
-                <el-button type="primary" :loading="templateSubmitting" @click="submitTemplate">保存模板</el-button>
+                <el-button @click="createTemplateVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="templateSubmitting" @click="submitTemplate">{{ t('rbac_page.buttons.save_template') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus, UserFilled, User, CopyDocument, Share, Collection, Refresh, List, MagicStick } from '@element-plus/icons-vue';
 import permissionApi from '@/api/permission';
+
+const { t, locale } = useI18n();
 
 const activeTab = ref('roles');
 
@@ -626,9 +628,9 @@ const roleForm = reactive({
     permissions: [],
     parent_role_id: null,
 });
-const roleFormRules = {
-    name: [{ required: true, message: '请输入角色名称', trigger: 'blur' }],
-};
+const roleFormRules = computed(() => ({
+    name: [{ required: true, message: t('rbac_page.rules.role_name_required'), trigger: 'blur' }],
+}));
 
 // ─── User Role Dialog ───
 const userRoleDialogVisible = ref(false);
@@ -677,10 +679,10 @@ const duplicateForm = reactive({
     source_role_id: null,
     name: '',
 });
-const duplicateFormRules = {
-    source_role_id: [{ required: true, message: '请选择源角色', trigger: 'change' }],
-    name: [{ required: true, message: '请输入新角色名称', trigger: 'blur' }],
-};
+const duplicateFormRules = computed(() => ({
+    source_role_id: [{ required: true, message: t('rbac_page.rules.source_role_required'), trigger: 'change' }],
+    name: [{ required: true, message: t('rbac_page.rules.new_role_name_required'), trigger: 'blur' }],
+}));
 
 // ─── Create from Template Dialog ───
 const createFromTemplateVisible = ref(false);
@@ -688,9 +690,9 @@ const templateRoleLoading = ref(false);
 const selectedTemplate = ref(null);
 const templateRoleFormRef = ref(null);
 const templateRoleForm = reactive({ name: '' });
-const templateRoleFormRules = {
-    name: [{ required: true, message: '请输入角色名称', trigger: 'blur' }],
-};
+const templateRoleFormRules = computed(() => ({
+    name: [{ required: true, message: t('rbac_page.rules.role_name_required'), trigger: 'blur' }],
+}));
 
 // ─── Create Template Dialog ───
 const createTemplateVisible = ref(false);
@@ -702,9 +704,23 @@ const templateForm = reactive({
     category: 'custom',
     permissions: [],
 });
-const templateFormRules = {
-    name: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
-};
+const templateFormRules = computed(() => ({
+    name: [{ required: true, message: t('rbac_page.rules.template_name_required'), trigger: 'blur' }],
+}));
+
+const auditActionOptions = computed(() => [
+    { label: t('rbac_page.audit.all'), value: '' },
+    { label: t('rbac_page.audit_actions.role_created'), value: 'role_created' },
+    { label: t('rbac_page.audit_actions.role_updated'), value: 'role_updated' },
+    { label: t('rbac_page.audit_actions.role_deleted'), value: 'role_deleted' },
+    { label: t('rbac_page.audit_actions.user_role_assigned'), value: 'user_role_assigned' },
+    { label: t('rbac_page.audit_actions.permission_assigned'), value: 'permission_assigned' },
+]);
+
+const templateCategoryOptions = computed(() => [
+    { label: t('rbac_page.categories.custom'), value: 'custom' },
+    { label: t('rbac_page.categories.industry'), value: 'industry' },
+]);
 
 // Helper
 const systemRoles = ['super-admin', 'tenant-admin', 'finance', 'developer', 'readonly'];
@@ -720,48 +736,39 @@ function roleTagType(name) {
     return map[name] || '';
 }
 
+function categoryLabel(category) {
+    const key = `rbac_page.categories.${category}`;
+    const translated = t(key);
+    return translated !== key ? translated : category;
+}
+
 function groupLabel(group) {
-    const map = {
-        tenants: '租户管理',
-        users: '用户管理',
-        customers: '客户管理',
-        products: '产品管理',
-        licenses: 'License 管理',
-        devices: '设备管理',
-        subscriptions: '订阅管理',
-        invoices: '发票管理',
-        earnings: '收益管理',
-        logs: '日志管理',
-        rbac: '权限管理',
-        settings: '系统设置',
-    };
-    return map[group] || group;
+    const key = `rbac_page.perm_groups.${group}`;
+    const translated = t(key);
+    return translated !== key ? translated : group;
 }
 
 function permLabel(name) {
-    const map = {
-        view: '查看',
-        create: '创建',
-        edit: '编辑',
-        delete: '删除',
-        activate: '激活',
-        deactivate: '停用',
-        revoke: '撤销',
-        blacklist: '黑名单',
-        cancel: '取消',
-        refund: '退款',
-        withdraw: '提现',
-        approve_withdrawal: '审批提现',
-        export: '导出',
+    const actionMap = {
+        view: 'actions.view',
+        create: 'actions.create',
+        edit: 'actions.edit',
+        delete: 'actions.delete',
+        cancel: 'actions.cancel',
+        export: 'actions.export',
     };
     const parts = name.split('.');
     const action = parts[parts.length - 1];
-    return map[action] || action;
+    if (actionMap[action]) return t(actionMap[action]);
+    const key = `rbac_page.perm_actions.${action}`;
+    const translated = t(key);
+    return translated !== key ? translated : action;
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(dateStr).toLocaleString(loc, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit',
     });
@@ -829,8 +836,9 @@ function auditActionTag(action) {
 }
 
 function auditActionLabel(action) {
-    const map = { role_created: '创建角色', role_updated: '更新角色', role_deleted: '删除角色', user_role_assigned: '分配角色', permission_assigned: '分配权限' };
-    return map[action] || action;
+    const key = `rbac_page.audit_actions.${action}`;
+    const translated = t(key);
+    return translated !== key ? translated : action;
 }
 
 // 加载角色
@@ -986,10 +994,10 @@ async function submitRole() {
         };
         if (editingRole.value) {
             await permissionApi.roleUpdate(editingRole.value.id, payload);
-            ElMessage.success('角色更新成功');
+            ElMessage.success(t('rbac_page.messages.role_updated'));
         } else {
             await permissionApi.roleCreate(payload);
-            ElMessage.success('角色创建成功');
+            ElMessage.success(t('rbac_page.messages.role_created'));
         }
         roleDialogVisible.value = false;
         loadRoles();
@@ -1003,12 +1011,12 @@ async function submitRole() {
 async function handleDeleteRole(row) {
     try {
         await ElMessageBox.confirm(
-            `确定要删除角色 "${row.name}" 吗？`,
-            '确认删除',
-            { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+            t('rbac_page.confirm.delete_role', { name: row.name }),
+            t('rbac_page.confirm.delete_title'),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning' }
         );
         await permissionApi.roleDelete(row.id);
-        ElMessage.success('角色已删除');
+        ElMessage.success(t('rbac_page.messages.role_deleted'));
         loadRoles();
     } catch {
         // cancelled
@@ -1028,7 +1036,7 @@ async function submitUserRoles() {
     userRoleSubmitting.value = true;
     try {
         await permissionApi.assignRoles(editingUser.value.id, selectedRoles.value);
-        ElMessage.success('角色分配成功');
+        ElMessage.success(t('rbac_page.messages.roles_assigned'));
         userRoleDialogVisible.value = false;
         loadUsers();
     } catch {
@@ -1044,7 +1052,7 @@ async function submitUserRoles() {
 
 function openDuplicateDialog(role = null) {
     duplicateForm.source_role_id = role?.id || null;
-    duplicateForm.name = role ? role.name + ' (副本)' : '';
+    duplicateForm.name = role ? role.name + t('rbac_page.copy_suffix') : '';
     duplicateDialogVisible.value = true;
 }
 
@@ -1054,7 +1062,7 @@ async function submitDuplicate() {
     duplicateLoading.value = true;
     try {
         await permissionApi.roleDuplicate(duplicateForm.source_role_id, { name: duplicateForm.name });
-        ElMessage.success('角色复制成功');
+        ElMessage.success(t('rbac_page.messages.role_duplicated'));
         duplicateDialogVisible.value = false;
         loadRoles();
     } catch {} finally {
@@ -1078,7 +1086,7 @@ async function submitCreateFromTemplate() {
     templateRoleLoading.value = true;
     try {
         await permissionApi.createRoleFromTemplate(selectedTemplate.value.id, { name: templateRoleForm.name });
-        ElMessage.success('角色创建成功');
+        ElMessage.success(t('rbac_page.messages.role_created'));
         createFromTemplateVisible.value = false;
         loadRoles();
     } catch {} finally {
@@ -1105,7 +1113,7 @@ async function submitTemplate() {
             category: templateForm.category,
             permissions: templateForm.permissions,
         });
-        ElMessage.success('模板创建成功');
+        ElMessage.success(t('rbac_page.messages.template_created'));
         createTemplateVisible.value = false;
         loadTemplates();
     } catch {} finally {
@@ -1116,13 +1124,13 @@ async function submitTemplate() {
 async function handleSeedTemplates() {
     try {
         await ElMessageBox.confirm(
-            '将初始化系统预置角色模板（技术支持、运营人员、审计员、销售代表等）。继续吗？',
-            '初始化系统模板',
-            { confirmButtonText: '确定', cancelButtonText: '取消', type: 'info' }
+            t('rbac_page.confirm.seed_templates'),
+            t('rbac_page.confirm.seed_templates_title'),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'info' }
         );
         const { data: res } = await permissionApi.seedTemplates();
         if (res.success) {
-            ElMessage.success('系统模板已初始化');
+            ElMessage.success(t('rbac_page.messages.templates_seeded'));
             loadTemplates();
         }
     } catch {}
@@ -1131,12 +1139,12 @@ async function handleSeedTemplates() {
 async function handleDeleteTemplate(row) {
     try {
         await ElMessageBox.confirm(
-            `确定要删除模板 "${row.name}" 吗？`,
-            '确认删除',
-            { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+            t('rbac_page.confirm.delete_template', { name: row.name }),
+            t('rbac_page.confirm.delete_title'),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning' }
         );
         await permissionApi.templateDelete(row.id);
-        ElMessage.success('模板已删除');
+        ElMessage.success(t('rbac_page.messages.template_deleted'));
         loadTemplates();
     } catch {}
 }

@@ -1,6 +1,6 @@
 <template>
   <div class="invoice-enhance">
-    <h2 class="mb-4">发票与账单管理增强</h2>
+    <h2 class="mb-4">{{ t('invoice_enhance_page.title') }}</h2>
 
     <!-- 概览统计 -->
     <el-row :gutter="20" class="mb-4">
@@ -8,7 +8,7 @@
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value">{{ stats.pending_reconciliations }}</div>
-            <div class="stat-label">待处理对账</div>
+            <div class="stat-label">{{ t('invoice_enhance_page.stat_pending_reconciliations') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -16,7 +16,7 @@
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value text-success">{{ stats.monthly_invoice_count }}</div>
-            <div class="stat-label">本月发票数</div>
+            <div class="stat-label">{{ t('invoice_enhance_page.stat_monthly_invoice_count') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -24,7 +24,7 @@
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value">¥{{ stats.monthly_invoice_total }}</div>
-            <div class="stat-label">本月发票金额</div>
+            <div class="stat-label">{{ t('invoice_enhance_page.stat_monthly_invoice_total') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -32,7 +32,7 @@
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value text-success">¥{{ stats.monthly_paid_total }}</div>
-            <div class="stat-label">本月已收金额</div>
+            <div class="stat-label">{{ t('invoice_enhance_page.stat_monthly_paid_total') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -41,34 +41,34 @@
     <!-- Tabs -->
     <el-tabs v-model="activeTab" type="border-card">
       <!-- 发票模板 -->
-      <el-tab-pane label="发票模板" name="templates">
+      <el-tab-pane :label="t('invoice_enhance_page.tab_templates')" name="templates">
         <div class="flex justify-between items-center mb-3">
           <el-button type="primary" @click="showTemplateDialog(null)">
-            <el-icon><Plus /></el-icon> 新建模板
+            <el-icon><Plus /></el-icon> {{ t('invoice_enhance_page.btn_new_template') }}
           </el-button>
         </div>
         <el-table :data="templates" stripe v-loading="loading.templates" size="small">
-          <el-table-column label="模板名称" prop="name" min-width="160" />
-          <el-table-column label="编码" prop="code" width="120" />
-          <el-table-column label="默认" width="70">
+          <el-table-column :label="t('invoice_enhance_page.col_template_name')" prop="name" min-width="160" />
+          <el-table-column :label="t('invoice_enhance_page.col_code')" prop="code" width="120" />
+          <el-table-column :label="t('invoice_enhance_page.col_default')" width="70">
             <template #default="{ row }">
-              <el-tag :type="row.is_default ? 'success' : 'info'" size="small">{{ row.is_default ? '是' : '否' }}</el-tag>
+              <el-tag :type="row.is_default ? 'success' : 'info'" size="small">{{ row.is_default ? t('invoice_enhance_page.yes') : t('invoice_enhance_page.no') }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="配色" prop="color_scheme" width="80" />
-          <el-table-column label="语言" prop="locale" width="70" />
-          <el-table-column label="状态" width="70">
+          <el-table-column :label="t('invoice_enhance_page.col_color_scheme')" prop="color_scheme" width="80" />
+          <el-table-column :label="t('invoice_enhance_page.col_locale')" prop="locale" width="70" />
+          <el-table-column :label="t('billing_page.col_status')" width="70">
             <template #default="{ row }">
-              <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">{{ row.is_active ? '启用' : '停用' }}</el-tag>
+              <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">{{ row.is_active ? t('invoice_enhance_page.status_active') : t('invoice_enhance_page.status_inactive') }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="创建时间" prop="created_at" width="160" />
-          <el-table-column label="操作" width="160" fixed="right">
+          <el-table-column :label="t('billing_page.col_created')" prop="created_at" width="160" />
+          <el-table-column :label="t('billing_page.col_actions')" width="160" fixed="right">
             <template #default="{ row }">
-              <el-button link size="small" type="primary" @click="showTemplateDialog(row)">编辑</el-button>
-              <el-popconfirm title="确认删除？" @confirm="deleteTemplate(row.id)">
+              <el-button link size="small" type="primary" @click="showTemplateDialog(row)">{{ t('actions.edit') }}</el-button>
+              <el-popconfirm :title="t('invoice_enhance_page.confirm_delete')" @confirm="deleteTemplate(row.id)">
                 <template #reference>
-                  <el-button link size="small" type="danger">删除</el-button>
+                  <el-button link size="small" type="danger">{{ t('actions.delete') }}</el-button>
                 </template>
               </el-popconfirm>
             </template>
@@ -77,62 +77,62 @@
       </el-tab-pane>
 
       <!-- 账单对账 -->
-      <el-tab-pane label="账单对账" name="reconciliations">
+      <el-tab-pane :label="t('invoice_enhance_page.tab_reconciliations')" name="reconciliations">
         <!-- 对账统计 -->
         <el-row :gutter="20" class="mb-3">
           <el-col :span="6">
-            <el-statistic title="待对账" :value="reconStats.total_count || 0" />
+            <el-statistic :title="t('invoice_enhance_page.stat_pending_recon')" :value="reconStats.total_count || 0" />
           </el-col>
           <el-col :span="6">
-            <el-statistic title="不匹配" :value="reconStats.unmatched_count || 0">
+            <el-statistic :title="t('invoice_enhance_page.stat_unmatched')" :value="reconStats.unmatched_count || 0">
               <template #suffix>
-                <el-tag v-if="reconStats.unmatched_count > 0" type="danger" size="small">需处理</el-tag>
+                <el-tag v-if="reconStats.unmatched_count > 0" type="danger" size="small">{{ t('invoice_enhance_page.needs_action') }}</el-tag>
               </template>
             </el-statistic>
           </el-col>
           <el-col :span="6">
-            <el-statistic title="金额差异" :value="reconStats.total_difference || 0" decimal-separator=".">
-              <template #suffix>元</template>
+            <el-statistic :title="t('invoice_enhance_page.stat_amount_diff')" :value="reconStats.total_difference || 0" decimal-separator=".">
+              <template #suffix>{{ t('invoice_enhance_page.currency_yuan') }}</template>
             </el-statistic>
           </el-col>
           <el-col :span="6">
             <el-button type="success" :loading="autoReconciling" @click="doAutoReconcile">
-              自动对账
+              {{ t('invoice_enhance_page.btn_auto_reconcile') }}
             </el-button>
           </el-col>
         </el-row>
 
         <el-table :data="reconciliations" stripe v-loading="loading.reconciliations" size="small">
-          <el-table-column label="发票号" width="160">
+          <el-table-column :label="t('billing_page.col_invoice_no')" width="160">
             <template #default="{ row }">{{ row.invoice?.invoice_no || '-' }}</template>
           </el-table-column>
-          <el-table-column label="客户" prop="customer?.name" width="120" />
-          <el-table-column label="发票金额" prop="invoice_amount" width="100">
+          <el-table-column :label="t('billing_page.col_customer')" prop="customer?.name" width="120" />
+          <el-table-column :label="t('reconciliation_page.col_invoice_amount')" prop="invoice_amount" width="100">
             <template #default="{ row }">¥{{ row.invoice_amount }}</template>
           </el-table-column>
-          <el-table-column label="实际金额" prop="actual_amount" width="100">
+          <el-table-column :label="t('reconciliation_page.col_actual_amount')" prop="actual_amount" width="100">
             <template #default="{ row }">¥{{ row.actual_amount }}</template>
           </el-table-column>
-          <el-table-column label="差异" prop="difference" width="100">
+          <el-table-column :label="t('reconciliation_page.col_difference')" prop="difference" width="100">
             <template #default="{ row }">
               <span :class="row.difference === 0 ? 'text-success' : 'text-danger'">
                 {{ row.difference > 0 ? '+' : '' }}{{ row.difference }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="支付参考" prop="payment_ref" width="140" show-overflow-tooltip />
-          <el-table-column label="状态" width="90">
+          <el-table-column :label="t('reconciliation_page.col_payment_ref')" prop="payment_ref" width="140" show-overflow-tooltip />
+          <el-table-column :label="t('billing_page.col_status')" width="90">
             <template #default="{ row }">
               <el-tag :type="reconStatusTag(row.status)" size="small">{{ reconStatusLabel(row.status) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="创建时间" prop="created_at" width="160" />
-          <el-table-column label="操作" width="160" fixed="right">
+          <el-table-column :label="t('billing_page.col_created')" prop="created_at" width="160" />
+          <el-table-column :label="t('billing_page.col_actions')" width="160" fixed="right">
             <template #default="{ row }">
               <el-button v-if="row.status === 'unmatched' || row.status === 'pending'" link size="small" type="primary" @click="resolveRecon(row)">
-                解决
+                {{ t('reconciliation_page.resolve') }}
               </el-button>
-              <el-tag v-else type="success" size="small">{{ row.status === 'matched' ? '已匹配' : '已解决' }}</el-tag>
+              <el-tag v-else type="success" size="small">{{ row.status === 'matched' ? t('reconciliation_page.recon_st_matched') : t('invoice_enhance_page.status_resolved') }}</el-tag>
             </template>
           </el-table-column>
         </el-table>
@@ -144,36 +144,36 @@
       </el-tab-pane>
 
       <!-- 账单拆分 -->
-      <el-tab-pane label="账单拆分" name="splits">
+      <el-tab-pane :label="t('invoice_enhance_page.tab_splits')" name="splits">
         <div class="flex justify-between items-center mb-3">
           <el-button type="primary" @click="showSplitDialog">
-            <el-icon><Plus /></el-icon> 拆分账单
+            <el-icon><Plus /></el-icon> {{ t('invoice_enhance_page.btn_split_invoice') }}
           </el-button>
         </div>
         <el-table :data="splits" stripe v-loading="loading.splits" size="small">
-          <el-table-column label="原发票号" width="160">
+          <el-table-column :label="t('invoice_enhance_page.col_original_invoice_no')" width="160">
             <template #default="{ row }">{{ row.original_invoice?.invoice_no }}</template>
           </el-table-column>
-          <el-table-column label="原金额" width="100">
+          <el-table-column :label="t('invoice_enhance_page.col_original_amount')" width="100">
             <template #default="{ row }">¥{{ row.original_invoice?.amount }}</template>
           </el-table-column>
-          <el-table-column label="拆分发票号" width="160">
+          <el-table-column :label="t('invoice_enhance_page.col_split_invoice_no')" width="160">
             <template #default="{ row }">{{ row.split_invoice?.invoice_no }}</template>
           </el-table-column>
-          <el-table-column label="拆分金额" width="100">
+          <el-table-column :label="t('invoice_enhance_page.col_split_amount')" width="100">
             <template #default="{ row }">
               <span class="text-warning">¥{{ row.amount }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="原因" prop="reason" min-width="180" show-overflow-tooltip />
-          <el-table-column label="状态" width="90">
+          <el-table-column :label="t('billing_page.col_reason')" prop="reason" min-width="180" show-overflow-tooltip />
+          <el-table-column :label="t('billing_page.col_status')" width="90">
             <template #default="{ row }">
               <el-tag :type="row.status === 'completed' ? 'success' : 'info'" size="small">
-                {{ row.status === 'completed' ? '已完成' : row.status }}
+                {{ splitStatusLabel(row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="时间" prop="created_at" width="160" />
+          <el-table-column :label="t('invoice_enhance_page.col_time')" prop="created_at" width="160" />
         </el-table>
         <div class="flex justify-center mt-4" v-if="splitPagination.total > splitPagination.per_page">
           <el-pagination background layout="prev, pager, next"
@@ -184,82 +184,79 @@
     </el-tabs>
 
     <!-- 模板编辑对话框 -->
-    <el-dialog v-model="templateDialog.visible" :title="templateDialog.isEdit ? '编辑模板' : '新建模板'" width="680">
+    <el-dialog v-model="templateDialog.visible" :title="templateDialog.isEdit ? t('invoice_enhance_page.dialog_edit_template') : t('invoice_enhance_page.dialog_new_template')" width="680">
       <el-form :model="templateDialog.form" label-width="120" size="small">
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="编码" prop="code">
-              <el-input v-model="templateDialog.form.code" placeholder="唯一编码" />
+            <el-form-item :label="t('invoice_enhance_page.col_code')" prop="code">
+              <el-input v-model="templateDialog.form.code" :placeholder="t('invoice_enhance_page.ph_unique_code')" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="名称" prop="name">
-              <el-input v-model="templateDialog.form.name" placeholder="模板名称" />
+            <el-form-item :label="t('billing_page.col_name')" prop="name">
+              <el-input v-model="templateDialog.form.name" :placeholder="t('invoice_enhance_page.ph_template_name')" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item label="默认">
+            <el-form-item :label="t('invoice_enhance_page.col_default')">
               <el-switch v-model="templateDialog.form.is_default" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="启用">
+            <el-form-item :label="t('actions.enable')">
               <el-switch v-model="templateDialog.form.is_active" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="配色" prop="color_scheme">
+            <el-form-item :label="t('invoice_enhance_page.col_color_scheme')" prop="color_scheme">
               <el-select v-model="templateDialog.form.color_scheme" style="width:100%">
-                <el-option label="蓝色" value="blue" />
-                <el-option label="红色" value="red" />
-                <el-option label="绿色" value="green" />
-                <el-option label="灰色" value="gray" />
+                <el-option v-for="opt in colorSchemeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="页眉">
-          <el-input v-model="headerText" type="textarea" :rows="3" placeholder="JSON 格式的页眉配置" />
+        <el-form-item :label="t('invoice_enhance_page.form_header')">
+          <el-input v-model="headerText" type="textarea" :rows="3" :placeholder="t('invoice_enhance_page.ph_header_json')" />
         </el-form-item>
-        <el-form-item label="页脚">
-          <el-input v-model="footerText" type="textarea" :rows="3" placeholder="JSON 格式的页脚配置" />
+        <el-form-item :label="t('invoice_enhance_page.form_footer')">
+          <el-input v-model="footerText" type="textarea" :rows="3" :placeholder="t('invoice_enhance_page.ph_footer_json')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="templateDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="templateDialog.saving" @click="saveTemplate">保存</el-button>
+        <el-button @click="templateDialog.visible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="templateDialog.saving" @click="saveTemplate">{{ t('actions.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 拆分对话框 -->
-    <el-dialog v-model="splitDialog.visible" title="拆分账单" width="500">
+    <el-dialog v-model="splitDialog.visible" :title="t('invoice_enhance_page.dialog_split')" width="500">
       <el-form :model="splitDialog" label-width="120">
-        <el-form-item label="原始发票ID" prop="original_invoice_id">
+        <el-form-item :label="t('invoice_enhance_page.form_original_invoice_id')" prop="original_invoice_id">
           <el-input-number v-model="splitDialog.original_invoice_id" :min="1" style="width:100%" />
         </el-form-item>
-        <el-form-item label="拆分金额" prop="amount">
+        <el-form-item :label="t('invoice_enhance_page.form_split_amount')" prop="amount">
           <el-input-number v-model="splitDialog.amount" :min="1" :precision="2" style="width:100%" />
         </el-form-item>
-        <el-form-item label="原因">
-          <el-input v-model="splitDialog.reason" placeholder="拆分原因" />
+        <el-form-item :label="t('billing_page.col_reason')">
+          <el-input v-model="splitDialog.reason" :placeholder="t('invoice_enhance_page.ph_split_reason')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="splitDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="splitDialog.saving" @click="doSplit">确认拆分</el-button>
+        <el-button @click="splitDialog.visible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="splitDialog.saving" @click="doSplit">{{ t('invoice_enhance_page.btn_confirm_split') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 解决对账对话框 -->
-    <el-dialog v-model="resolveDialog.visible" title="解决对账" width="420">
-      <p class="mb-3">发票金额: ¥{{ resolveDialog.invoiceAmount }} | 实际金额: ¥{{ resolveDialog.actualAmount }}</p>
-      <p class="mb-3 text-danger" v-if="resolveDialog.difference !== 0">差异: ¥{{ resolveDialog.difference }}</p>
-      <el-input v-model="resolveDialog.notes" type="textarea" :rows="3" placeholder="处理说明" />
+    <el-dialog v-model="resolveDialog.visible" :title="t('invoice_enhance_page.dialog_resolve')" width="420">
+      <p class="mb-3">{{ t('invoice_enhance_page.resolve_invoice_amount') }}: ¥{{ resolveDialog.invoiceAmount }} | {{ t('invoice_enhance_page.resolve_actual_amount') }}: ¥{{ resolveDialog.actualAmount }}</p>
+      <p class="mb-3 text-danger" v-if="resolveDialog.difference !== 0">{{ t('invoice_enhance_page.resolve_difference') }}: ¥{{ resolveDialog.difference }}</p>
+      <el-input v-model="resolveDialog.notes" type="textarea" :rows="3" :placeholder="t('invoice_enhance_page.ph_resolution_notes')" />
       <template #footer>
-        <el-button @click="resolveDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="resolveDialog.saving" @click="doResolve">确认解决</el-button>
+        <el-button @click="resolveDialog.visible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="resolveDialog.saving" @click="doResolve">{{ t('invoice_enhance_page.btn_confirm_resolve') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -267,6 +264,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import {
@@ -274,6 +272,8 @@ import {
   getReconciliations, createReconciliation, resolveReconciliation, getReconciliationStats, autoReconcile,
   getInvoiceSplits, splitInvoice, getInvoiceEnhanceStats,
 } from '../../api/invoiceEnhance'
+
+const { t } = useI18n()
 
 const activeTab = ref('templates')
 const loading = reactive({ templates: false, reconciliations: false, splits: false })
@@ -299,6 +299,13 @@ const resolveDialog = reactive({
   visible: false, id: null, invoiceAmount: 0, actualAmount: 0, difference: 0, notes: '', saving: false,
 })
 
+const colorSchemeOptions = computed(() => [
+  { label: t('invoice_enhance_page.color_blue'), value: 'blue' },
+  { label: t('invoice_enhance_page.color_red'), value: 'red' },
+  { label: t('invoice_enhance_page.color_green'), value: 'green' },
+  { label: t('invoice_enhance_page.color_gray'), value: 'gray' },
+])
+
 const headerText = computed({
   get: () => templateDialog.form.header ? JSON.stringify(templateDialog.form.header, null, 2) : '',
   set: (val) => { try { templateDialog.form.header = val ? JSON.parse(val) : null } catch { /* ignore */ } },
@@ -312,15 +319,25 @@ function reconStatusTag(s) {
   const map = { pending: 'warning', matched: 'success', unmatched: 'danger', resolved: 'info' }
   return map[s] || ''
 }
+
 function reconStatusLabel(s) {
-  const map = { pending: '待对账', matched: '已匹配', unmatched: '不匹配', resolved: '已解决' }
+  const map = {
+    pending: t('reconciliation_page.recon_st_pending'),
+    matched: t('reconciliation_page.recon_st_matched'),
+    unmatched: t('reconciliation_page.recon_st_unmatched'),
+    resolved: t('reconciliation_page.recon_st_resolved'),
+  }
   return map[s] || s
+}
+
+function splitStatusLabel(s) {
+  return s === 'completed' ? t('invoice_enhance_page.status_completed') : s
 }
 
 async function loadTemplates() {
   loading.templates = true
   try { const { data } = await getInvoiceTemplates(); templates.value = data || [] }
-  catch (e) { ElMessage.error('加载模板失败') }
+  catch (e) { ElMessage.error(t('invoice_enhance_page.messages.load_templates_failed')) }
   finally { loading.templates = false }
 }
 
@@ -330,7 +347,7 @@ async function loadReconciliations(page = 1) {
     const { data } = await getReconciliations({ page })
     reconciliations.value = data.data || []
     Object.assign(reconPagination, data)
-  } catch (e) { ElMessage.error('加载对账记录失败') }
+  } catch (e) { ElMessage.error(t('invoice_enhance_page.messages.load_reconciliations_failed')) }
   finally { loading.reconciliations = false }
 }
 
@@ -340,7 +357,7 @@ async function loadSplits(page = 1) {
     const { data } = await getInvoiceSplits({ page })
     splits.value = data.data || []
     Object.assign(splitPagination, data)
-  } catch (e) { ElMessage.error('加载拆分记录失败') }
+  } catch (e) { ElMessage.error(t('invoice_enhance_page.messages.load_splits_failed')) }
   finally { loading.splits = false }
 }
 
@@ -357,30 +374,30 @@ async function saveTemplate() {
   try {
     if (templateDialog.isEdit) {
       await updateInvoiceTemplate(templateDialog.form.id, templateDialog.form)
-      ElMessage.success('已更新')
+      ElMessage.success(t('invoice_enhance_page.messages.updated'))
     } else {
       await createInvoiceTemplate(templateDialog.form)
-      ElMessage.success('已创建')
+      ElMessage.success(t('invoice_enhance_page.messages.created'))
     }
     templateDialog.visible = false
     loadTemplates()
-  } catch (e) { ElMessage.error('保存失败') }
+  } catch (e) { ElMessage.error(t('invoice_enhance_page.messages.save_failed')) }
   finally { templateDialog.saving = false }
 }
 
 async function deleteTemplate(id) {
-  try { await deleteInvoiceTemplate(id); ElMessage.success('已删除'); loadTemplates() }
-  catch (e) { ElMessage.error('删除失败') }
+  try { await deleteInvoiceTemplate(id); ElMessage.success(t('invoice_enhance_page.messages.deleted')); loadTemplates() }
+  catch (e) { ElMessage.error(t('invoice_enhance_page.messages.delete_failed')) }
 }
 
 async function doAutoReconcile() {
   autoReconciling.value = true
   try {
     const { data } = await autoReconcile()
-    ElMessage.success(`对账完成：${data.processed} 条成功，${data.errors} 条失败`)
+    ElMessage.success(t('invoice_enhance_page.messages.auto_reconcile_done', { processed: data.processed, errors: data.errors }))
     loadReconciliations()
     loadReconStats()
-  } catch (e) { ElMessage.error('自动对账失败') }
+  } catch (e) { ElMessage.error(t('invoice_enhance_page.messages.auto_reconcile_failed')) }
   finally { autoReconciling.value = false }
 }
 
@@ -404,10 +421,10 @@ async function doSplit() {
       amount: splitDialog.amount,
       reason: splitDialog.reason,
     })
-    ElMessage.success(`拆分成功：新发票 #${data.split_invoice?.invoice_no}`)
+    ElMessage.success(t('invoice_enhance_page.messages.split_success', { invoiceNo: data.split_invoice?.invoice_no }))
     splitDialog.visible = false
     loadSplits()
-  } catch (e) { ElMessage.error(e.response?.data?.error || '拆分失败') }
+  } catch (e) { ElMessage.error(e.response?.data?.error || t('invoice_enhance_page.messages.split_failed')) }
   finally { splitDialog.saving = false }
 }
 
@@ -424,11 +441,11 @@ async function doResolve() {
   resolveDialog.saving = true
   try {
     await resolveReconciliation(resolveDialog.id, { resolution: 'manual', notes: resolveDialog.notes })
-    ElMessage.success('对账已解决')
+    ElMessage.success(t('invoice_enhance_page.messages.resolve_success'))
     resolveDialog.visible = false
     loadReconciliations()
     loadReconStats()
-  } catch (e) { ElMessage.error('解决失败') }
+  } catch (e) { ElMessage.error(t('invoice_enhance_page.messages.resolve_failed')) }
   finally { resolveDialog.saving = false }
 }
 

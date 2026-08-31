@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import router from '@/router';
+import i18n from '@/i18n';
 
 const apiClient = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
@@ -27,7 +28,8 @@ function processQueue(error, token = null) {
 
 // 强制登出（跳过公开页面的重定向）
 const PUBLIC_ROUTES = ['Login', 'Register', 'ForgotPassword', 'Appeal', 'StatusPage', 'Community', 'Channels', 'UserProfile', 'PlazaDetail', 'InteractiveDemo', 'OaArticleDetail', 'OaEditor'];
-function forceLogout(message = '登录已过期，请重新登录') {
+function forceLogout(message) {
+    const msg = message || i18n.global.t('messages.session_expired');
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user');
     // 避免在公开页面强制跳转登录
@@ -44,7 +46,7 @@ function forceLogout(message = '登录已过期，请重新登录') {
     if (router.currentRoute?.value?.name !== 'Login') {
         router.push('/login');
     }
-    ElMessage.error(message);
+    ElMessage.error(msg);
 }
 
 // 尝试静默刷新 Token
@@ -100,7 +102,7 @@ apiClient.interceptors.response.use(
         if (status === 401 && !originalRequest._retry) {
             // 防止刷新 Token 本身也触发刷新
             if (originalRequest.url?.includes('/token/refresh')) {
-                forceLogout('登录已过期，请重新登录');
+                forceLogout();
                 return Promise.reject(error);
             }
 
@@ -128,11 +130,11 @@ apiClient.interceptors.response.use(
 
                 // 刷新失败
                 processQueue(error);
-                forceLogout('登录已过期，请重新登录');
+                forceLogout();
                 return Promise.reject(error);
             } catch {
                 processQueue(error);
-                forceLogout('登录已过期，请重新登录');
+                forceLogout();
                 return Promise.reject(error);
             } finally {
                 isRefreshing = false;
@@ -141,12 +143,12 @@ apiClient.interceptors.response.use(
 
         // 其他状态
         if (status === 403) {
-            const msg = data?.message || '没有权限执行此操作';
+            const msg = data?.message || i18n.global.t('messages.forbidden');
             ElMessage.error(msg);
         } else if (status === 429) {
-            ElMessage.warning('请求过于频繁，请稍后再试');
+            ElMessage.warning(i18n.global.t('messages.rate_limited'));
         } else if (status >= 500) {
-            ElMessage.error('服务器内部错误，请稍后再试');
+            ElMessage.error(i18n.global.t('messages.internal_error'));
         }
 
         return Promise.reject(error);

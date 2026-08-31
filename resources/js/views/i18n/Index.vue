@@ -3,17 +3,17 @@
     <!-- Page Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">国际化管理</h1>
-        <p class="text-sm text-gray-500 mt-1">管理多语言翻译、语言包和翻译编辑器</p>
+        <h1 class="text-2xl font-bold text-gray-900">{{ t('i18n_page.title') }}</h1>
+        <p class="text-sm text-gray-500 mt-1">{{ t('i18n_page.subtitle') }}</p>
       </div>
       <div class="flex gap-2">
         <el-button @click="handleScanPhpFiles" :loading="scanLoading" :disabled="scanLoading">
           <el-icon class="mr-1"><Monitor /></el-icon>
-          扫描语言文件
+          {{ t('i18n_page.scan_files') }}
         </el-button>
         <el-button type="primary" @click="activeTab = 'translations'" v-if="languages.length > 0">
           <el-icon class="mr-1"><Edit /></el-icon>
-          翻译编辑器
+          {{ t('i18n_page.translation_editor') }}
         </el-button>
       </div>
     </div>
@@ -27,7 +27,7 @@
           </div>
           <div>
             <div class="text-2xl font-bold">{{ dashboard.stats.active_languages }}/{{ dashboard.stats.total_languages }}</div>
-            <div class="text-xs text-gray-500">活跃语言</div>
+            <div class="text-xs text-gray-500">{{ t('i18n_page.stats.active_languages') }}</div>
           </div>
         </div>
       </el-card>
@@ -38,7 +38,7 @@
           </div>
           <div>
             <div class="text-2xl font-bold">{{ dashboard.stats.total_namespaces }}</div>
-            <div class="text-xs text-gray-500">命名空间</div>
+            <div class="text-xs text-gray-500">{{ t('i18n_page.stats.namespaces') }}</div>
           </div>
         </div>
       </el-card>
@@ -49,7 +49,7 @@
           </div>
           <div>
             <div class="text-2xl font-bold">{{ dashboard.stats.total_translations }}</div>
-            <div class="text-xs text-gray-500">翻译条目</div>
+            <div class="text-xs text-gray-500">{{ t('i18n_page.stats.translations') }}</div>
           </div>
         </div>
       </el-card>
@@ -60,7 +60,7 @@
           </div>
           <div>
             <div class="text-2xl font-bold">{{ dashboard.stats.total_missing }}</div>
-            <div class="text-xs text-gray-500">缺失翻译</div>
+            <div class="text-xs text-gray-500">{{ t('i18n_page.stats.missing') }}</div>
           </div>
         </div>
       </el-card>
@@ -70,7 +70,7 @@
     <el-card class="main-card">
       <el-tabs v-model="activeTab" class="main-tabs">
         <!-- Tab 1: Languages -->
-        <el-tab-pane label="语言管理" name="languages">
+        <el-tab-pane :label="tabLabels.languages" name="languages">
           <LanguageManager
             :languages="languages"
             :loading="languagesLoading"
@@ -81,7 +81,7 @@
         </el-tab-pane>
 
         <!-- Tab 2: Translation Editor -->
-        <el-tab-pane label="翻译编辑器" name="translations">
+        <el-tab-pane :label="tabLabels.translations" name="translations">
           <TranslationEditor
             :languages="activeLanguages"
             :namespaces="namespaces"
@@ -91,7 +91,7 @@
         </el-tab-pane>
 
         <!-- Tab 3: Import/Export -->
-        <el-tab-pane label="导入/导出" name="importExport">
+        <el-tab-pane :label="tabLabels.importExport" name="importExport">
           <ImportExportPanel
             :languages="activeLanguages"
             :namespaces="namespaces"
@@ -103,12 +103,12 @@
         </el-tab-pane>
 
         <!-- Tab 4: Overview Dashboard -->
-        <el-tab-pane label="翻译概况" name="overview">
+        <el-tab-pane :label="tabLabels.overview" name="overview">
           <OverviewDashboard :dashboard="dashboard" :loading="dashboardLoading" />
         </el-tab-pane>
 
         <!-- Tab 5: M3-85 翻译引擎 -->
-        <el-tab-pane label="翻译引擎" name="engine">
+        <el-tab-pane :label="tabLabels.engine" name="engine">
           <TranslationEngine @refresh="fetchDashboard" />
         </el-tab-pane>
       </el-tabs>
@@ -117,78 +117,82 @@
     <!-- Language Dialog -->
     <el-dialog
       v-model="languageDialog.visible"
-      :title="languageDialog.isEdit ? '编辑语言' : '添加语言'"
+      :title="languageDialog.isEdit ? t('i18n_page.dialog.edit_title') : t('i18n_page.dialog.add_title')"
       width="500px"
       :close-on-click-modal="false"
     >
       <el-form
         ref="languageFormRef"
         :model="languageDialog.form"
-        :rules="languageDialog.rules"
+        :rules="formRules"
         label-width="120px"
         label-position="top"
       >
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="语言代码" prop="locale">
-              <el-input v-model="languageDialog.form.locale" placeholder="如 zh_CN, en, ja" :disabled="languageDialog.isEdit" />
+            <el-form-item :label="t('i18n_page.form.locale')" prop="locale">
+              <el-input v-model="languageDialog.form.locale" :placeholder="t('i18n_page.form.locale_ph')" :disabled="languageDialog.isEdit" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="语言名称" prop="name">
-              <el-input v-model="languageDialog.form.name" placeholder="如 简体中文, English" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="本地名称" prop="native_name">
-              <el-input v-model="languageDialog.form.native_name" placeholder="如 简体中文" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="旗帜图标" prop="flag">
-              <el-input v-model="languageDialog.form.flag" placeholder="如 🇨🇳 或 flag-cn" />
+            <el-form-item :label="t('i18n_page.form.name')" prop="name">
+              <el-input v-model="languageDialog.form.name" :placeholder="t('i18n_page.form.name_ph')" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="排序权重" prop="sort_order">
+            <el-form-item :label="t('i18n_page.form.native_name')" prop="native_name">
+              <el-input v-model="languageDialog.form.native_name" :placeholder="t('i18n_page.form.native_name_ph')" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item :label="t('i18n_page.form.flag')" prop="flag">
+              <el-input v-model="languageDialog.form.flag" :placeholder="t('i18n_page.form.flag_ph')" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item :label="t('i18n_page.form.sort_order')" prop="sort_order">
               <el-input-number v-model="languageDialog.form.sort_order" :min="0" :max="999" controls-position="right" class="!w-full" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="文字方向" prop="direction">
+            <el-form-item :label="t('i18n_page.form.direction')" prop="direction">
               <el-select v-model="languageDialog.form.direction" class="!w-full">
-                <el-option label="从左到右 (LTR)" value="ltr" />
-                <el-option label="从右到左 (RTL)" value="rtl" />
+                <el-option
+                  v-for="opt in directionOptions"
+                  :key="opt.value"
+                  :label="opt.label"
+                  :value="opt.value"
+                />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="16">
           <el-col :span="8">
-            <el-form-item label="启用" prop="is_active">
+            <el-form-item :label="t('i18n_page.form.enabled')" prop="is_active">
               <el-switch v-model="languageDialog.form.is_active" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="设为默认" prop="is_default">
+            <el-form-item :label="t('i18n_page.form.default')" prop="is_default">
               <el-switch v-model="languageDialog.form.is_default" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="RTL 方向" prop="is_rtl">
+            <el-form-item :label="t('i18n_page.form.rtl')" prop="is_rtl">
               <el-switch v-model="languageDialog.form.is_rtl" />
             </el-form-item>
           </el-col>
         </el-row>
       </el-form>
       <template #footer>
-        <el-button @click="languageDialog.visible = false">取消</el-button>
+        <el-button @click="languageDialog.visible = false">{{ t('actions.cancel') }}</el-button>
         <el-button type="primary" @click="handleSaveLanguage" :loading="languageDialog.saving">
-          {{ languageDialog.isEdit ? '保存' : '创建' }}
+          {{ languageDialog.isEdit ? t('actions.save') : t('actions.create') }}
         </el-button>
       </template>
     </el-dialog>
@@ -196,7 +200,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   Monitor, Edit, ChatDotRound, Document, List, Warning,
@@ -208,7 +213,27 @@ import ImportExportPanel from './components/ImportExportPanel.vue';
 import OverviewDashboard from './components/OverviewDashboard.vue';
 import TranslationEngine from './components/TranslationEngine.vue';
 
+const { t } = useI18n();
+
 const activeTab = ref('languages');
+
+const tabLabels = computed(() => ({
+  languages: t('i18n_page.tabs.languages'),
+  translations: t('i18n_page.tabs.translations'),
+  importExport: t('i18n_page.tabs.import_export'),
+  overview: t('i18n_page.tabs.overview'),
+  engine: t('i18n_page.tabs.engine'),
+}));
+
+const directionOptions = computed(() => [
+  { value: 'ltr', label: t('i18n_page.direction.ltr') },
+  { value: 'rtl', label: t('i18n_page.direction.rtl') },
+]);
+
+const formRules = computed(() => ({
+  locale: [{ required: true, message: t('i18n_page.form.locale_required'), trigger: 'blur' }],
+  name: [{ required: true, message: t('i18n_page.form.name_required'), trigger: 'blur' }],
+}));
 
 // ─── Dashboard ──────────────────────────────────────────────
 const dashboard = ref(null);
@@ -274,12 +299,12 @@ async function handleScanPhpFiles() {
   scanLoading.value = true;
   try {
     const res = await i18nApi.scanPhpFiles();
-    ElMessage.success(res.data.message || 'Scan complete.');
+    ElMessage.success(res.data.message || t('i18n_page.msg_scan_ok'));
     await fetchDashboard();
     await fetchLanguages();
     await fetchNamespaces();
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || 'Scan failed.');
+    ElMessage.error(e.response?.data?.message || t('i18n_page.msg_scan_failed'));
   } finally {
     scanLoading.value = false;
   }
@@ -289,11 +314,11 @@ async function handleScanPhpFiles() {
 async function handleImport(formData) {
   try {
     const res = await i18nApi.importTranslations(formData);
-    ElMessage.success(res.data.message || 'Import completed.');
+    ElMessage.success(res.data.message || t('i18n_page.msg_import_ok'));
     await fetchDashboard();
     await fetchImportHistory();
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || 'Import failed.');
+    ElMessage.error(e.response?.data?.message || t('i18n_page.msg_import_failed'));
     throw e;
   }
 }
@@ -301,7 +326,6 @@ async function handleImport(formData) {
 async function handleExport(data) {
   try {
     const res = await i18nApi.exportTranslations(data);
-    // Download file
     const blob = new Blob([res.data]);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -309,9 +333,9 @@ async function handleExport(data) {
     a.download = `translations_${data.locale}.${data.format}`;
     a.click();
     URL.revokeObjectURL(url);
-    ElMessage.success('Export completed.');
+    ElMessage.success(t('i18n_page.msg_export_ok'));
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || 'Export failed.');
+    ElMessage.error(e.response?.data?.message || t('i18n_page.msg_export_failed'));
   }
 }
 
@@ -331,10 +355,6 @@ const languageDialog = reactive({
     is_active: true,
     is_default: false,
     sort_order: 0,
-  },
-  rules: {
-    locale: [{ required: true, message: '请输入语言代码', trigger: 'blur' }],
-    name: [{ required: true, message: '请输入语言名称', trigger: 'blur' }],
   },
 });
 
@@ -367,16 +387,16 @@ async function handleSaveLanguage() {
   try {
     if (languageDialog.isEdit) {
       await i18nApi.updateLanguage(languageDialog.form.id, languageDialog.form);
-      ElMessage.success('Language updated.');
+      ElMessage.success(t('i18n_page.msg_language_updated'));
     } else {
       await i18nApi.createLanguage(languageDialog.form);
-      ElMessage.success('Language created.');
+      ElMessage.success(t('i18n_page.msg_language_created'));
     }
     languageDialog.visible = false;
     await fetchLanguages();
     await fetchDashboard();
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || 'Operation failed.');
+    ElMessage.error(e.response?.data?.message || t('messages.failed'));
   } finally {
     languageDialog.saving = false;
   }
@@ -384,18 +404,22 @@ async function handleSaveLanguage() {
 
 async function handleDeleteLanguage(id) {
   try {
-    await ElMessageBox.confirm('确定要删除此语言及其所有翻译吗？', '确认删除', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-    });
+    await ElMessageBox.confirm(
+      t('i18n_page.delete_confirm'),
+      t('i18n_page.delete_title'),
+      {
+        type: 'warning',
+        confirmButtonText: t('actions.delete'),
+        cancelButtonText: t('actions.cancel'),
+      },
+    );
     await i18nApi.deleteLanguage(id);
-    ElMessage.success('Language deleted.');
+    ElMessage.success(t('i18n_page.msg_language_deleted'));
     await fetchLanguages();
     await fetchDashboard();
   } catch (e) {
     if (e !== 'cancel') {
-      ElMessage.error(e.response?.data?.message || 'Delete failed.');
+      ElMessage.error(e.response?.data?.message || t('i18n_page.msg_delete_failed'));
     }
   }
 }

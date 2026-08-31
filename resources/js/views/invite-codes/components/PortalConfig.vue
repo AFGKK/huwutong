@@ -3,18 +3,18 @@
     <el-row :gutter="16" class="mb-4">
       <el-col :span="12">
         <el-card shadow="never">
-          <template #header><span class="font-medium">门户设置</span></template>
+          <template #header><span class="font-medium">{{ t('portal_config_panel.settings') }}</span></template>
           <el-form label-width="140px" size="small">
-            <el-form-item label="启用自助注册">
+            <el-form-item :label="t('portal_config_panel.self_register')">
               <el-switch v-model="config.enabled" @change="saveConfig" />
             </el-form-item>
-            <el-form-item label="需要邀请码">
+            <el-form-item :label="t('portal_config_panel.require_invite')">
               <el-switch v-model="config.require_invite" @change="saveConfig" />
             </el-form-item>
-            <el-form-item label="需要邮箱验证">
+            <el-form-item :label="t('portal_config_panel.require_email')">
               <el-switch v-model="config.require_email_verify" @change="saveConfig" />
             </el-form-item>
-            <el-form-item label="接受条款">
+            <el-form-item :label="t('portal_config_panel.accept_terms')">
               <el-switch v-model="config.accept_terms" @change="saveConfig" />
             </el-form-item>
           </el-form>
@@ -22,15 +22,15 @@
       </el-col>
       <el-col :span="12">
         <el-card shadow="never">
-          <template #header><span class="font-medium">品牌信息</span></template>
+          <template #header><span class="font-medium">{{ t('portal_config_panel.branding') }}</span></template>
           <el-form label-width="120px" size="small">
-            <el-form-item label="品牌名称">
+            <el-form-item :label="t('portal_config_panel.brand_name')">
               <el-input v-model="config.brand_name" @blur="saveConfig" />
             </el-form-item>
-            <el-form-item label="标题">
+            <el-form-item :label="t('portal_config_panel.title_label')">
               <el-input v-model="config.title" @blur="saveConfig" />
             </el-form-item>
-            <el-form-item label="副标题">
+            <el-form-item :label="t('portal_config_panel.subtitle_label')">
               <el-input v-model="config.subtitle" @blur="saveConfig" />
             </el-form-item>
             <el-form-item label="Logo URL">
@@ -44,12 +44,12 @@
     <el-row :gutter="16">
       <el-col :span="12">
         <el-card shadow="never">
-          <template #header><span class="font-medium">链接</span></template>
+          <template #header><span class="font-medium">{{ t('portal_config_panel.links') }}</span></template>
           <el-form label-width="120px" size="small">
-            <el-form-item label="条款URL">
+            <el-form-item :label="t('portal_config_panel.terms_url')">
               <el-input v-model="config.terms_url" @blur="saveConfig" />
             </el-form-item>
-            <el-form-item label="隐私URL">
+            <el-form-item :label="t('portal_config_panel.privacy_url')">
               <el-input v-model="config.privacy_url" @blur="saveConfig" />
             </el-form-item>
           </el-form>
@@ -57,17 +57,17 @@
       </el-col>
       <el-col :span="12">
         <el-card shadow="never">
-          <template #header><span class="font-medium">功能特色</span></template>
+          <template #header><span class="font-medium">{{ t('portal_config_panel.features') }}</span></template>
           <div v-for="(feat, idx) in config.features" :key="idx" class="feature-row">
             <el-row :gutter="8">
               <el-col :span="7">
-                <el-input v-model="feat.icon" placeholder="图标名" size="small" @blur="saveConfig" />
+                <el-input v-model="feat.icon" :placeholder="t('portal_config_panel.icon_ph')" size="small" @blur="saveConfig" />
               </el-col>
               <el-col :span="7">
-                <el-input v-model="feat.title" placeholder="标题" size="small" @blur="saveConfig" />
+                <el-input v-model="feat.title" :placeholder="t('portal_config_panel.title_label')" size="small" @blur="saveConfig" />
               </el-col>
               <el-col :span="8">
-                <el-input v-model="feat.desc" placeholder="描述" size="small" @blur="saveConfig" />
+                <el-input v-model="feat.desc" :placeholder="t('portal_config_panel.desc_ph')" size="small" @blur="saveConfig" />
               </el-col>
               <el-col :span="2">
                 <el-button size="small" type="danger" link @click="config.features.splice(idx, 1); saveConfig()">
@@ -78,35 +78,34 @@
           </div>
           <el-button type="primary" link size="small" class="mt-2"
             @click="config.features.push({ icon: 'Star', title: '', desc: '' })">
-            + 添加特色
+            {{ t('portal_config_panel.add_feature') }}
           </el-button>
         </el-card>
       </el-col>
     </el-row>
 
     <el-card shadow="never" class="mt-4">
-      <template #header><span class="font-medium">自定义 CSS/HTML</span></template>
+      <template #header><span class="font-medium">{{ t('portal_config_panel.custom') }}</span></template>
       <el-row :gutter="12">
         <el-col :span="12">
           <el-input v-model="config.custom_css" type="textarea" :rows="4"
-            placeholder="自定义 CSS 样式..." @blur="saveConfig" />
+            :placeholder="t('portal_config_panel.css_ph')" @blur="saveConfig" />
         </el-col>
         <el-col :span="12">
           <el-input v-model="config.custom_html" type="textarea" :rows="4"
-            placeholder="自定义 HTML 内容..." @blur="saveConfig" />
+            :placeholder="t('portal_config_panel.html_ph')" @blur="saveConfig" />
         </el-col>
       </el-row>
     </el-card>
 
-    <!-- 预览 -->
     <el-card shadow="never" class="mt-4">
-      <template #header><span class="font-medium">注册门户预览</span></template>
+      <template #header><span class="font-medium">{{ t('portal_config_panel.preview') }}</span></template>
       <div class="portal-preview">
         <div class="preview-card">
           <div class="preview-brand" v-if="config.logo_url">
             <img :src="config.logo_url" class="preview-logo" />
           </div>
-          <h3 class="preview-title">{{ config.title || '创建您的账户' }}</h3>
+          <h3 class="preview-title">{{ config.title || t('portal_config_panel.default_title') }}</h3>
           <p class="preview-subtitle">{{ config.subtitle }}</p>
 
           <div class="preview-features">
@@ -120,13 +119,13 @@
           </div>
 
           <div class="preview-form">
-            <input placeholder="邮箱" disabled />
-            <input placeholder="密码" disabled />
-            <button disabled>{{ config.require_invite ? '使用邀请码注册' : '注册' }}</button>
+            <input :placeholder="t('portal_config_panel.email')" disabled />
+            <input :placeholder="t('portal_config_panel.password')" disabled />
+            <button disabled>{{ config.require_invite ? t('portal_config_panel.register_invite') : t('portal_config_panel.register') }}</button>
           </div>
 
           <div class="preview-terms" v-if="config.accept_terms">
-            <small>注册即表示同意<a>条款</a>和<a>隐私政策</a></small>
+            <small>{{ t('portal_config_panel.terms_agree_before') }}<a>{{ t('portal_config_panel.terms') }}</a>{{ t('portal_config_panel.terms_and') }}<a>{{ t('portal_config_panel.privacy') }}</a></small>
           </div>
         </div>
       </div>
@@ -135,18 +134,21 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
 import { getPortalConfig, updatePortalConfig } from '../../../api/invite-codes'
+
+const { t } = useI18n()
 
 const config = reactive({
   enabled: false,
   require_invite: true,
   require_email_verify: false,
   accept_terms: true,
-  title: '创建您的账户',
-  subtitle: '请使用邀请码注册',
+  title: '',
+  subtitle: '',
   brand_name: '',
   logo_url: '',
   terms_url: '/terms',
@@ -167,7 +169,7 @@ async function loadConfig() {
         require_invite: data.require_invite?.value ?? true,
         require_email_verify: data.require_email_verify?.value ?? false,
         accept_terms: data.accept_terms?.value ?? true,
-        title: data.title?.value || '创建您的账户',
+        title: data.title?.value || t('portal_config_panel.default_title'),
         subtitle: data.subtitle?.value || '',
         brand_name: data.brand_name?.value || '',
         logo_url: data.logo_url?.value || '',
@@ -187,7 +189,7 @@ async function saveConfig() {
     try {
       await updatePortalConfig({ ...config })
     } catch (e) {
-      ElMessage.warning('保存失败')
+      ElMessage.warning(t('portal_config_panel.messages.save_failed'))
     }
   }, 800)
 }
@@ -214,9 +216,9 @@ onMounted(() => loadConfig())
 .preview-subtitle { text-align: center; color: #909399; font-size: 13px; margin-bottom: 20px; }
 .preview-features { margin-bottom: 20px; }
 .preview-feat { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
-.preview-icon { font-size: 18px; color: #409eff; }
+.preview-icon { font-size: 18px; color: #0f172a; }
 .preview-form input { width: 100%; padding: 8px 12px; border: 1px solid #dcdfe6; border-radius: 4px; margin-bottom: 10px; background: #f5f7fa; }
-.preview-form button { width: 100%; padding: 10px; background: #409eff; color: #fff; border: none; border-radius: 4px; }
+.preview-form button { width: 100%; padding: 10px; background: #0f172a; color: #fff; border: none; border-radius: 4px; }
 .preview-terms { text-align: center; margin-top: 16px; color: #909399; }
-.preview-terms a { color: #409eff; cursor: pointer; }
+.preview-terms a { color: #0f172a; cursor: pointer; }
 </style>

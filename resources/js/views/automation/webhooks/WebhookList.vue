@@ -2,10 +2,10 @@
   <div>
     <el-card shadow="never" class="mb-4">
       <el-row justify="space-between" align="middle">
-        <el-col :span="12"><span class="text-lg font-medium">Webhook 端点</span></el-col>
+        <el-col :span="12"><span class="text-lg font-medium">{{ t('webhook_list.title') }}</span></el-col>
         <el-col :span="12" class="text-right">
           <el-button type="primary" @click="openCreateDialog">
-            <el-icon><Plus /></el-icon> 新建 Webhook
+            <el-icon><Plus /></el-icon> {{ t('webhook_list.create') }}
           </el-button>
         </el-col>
       </el-row>
@@ -13,36 +13,36 @@
 
     <el-card shadow="never">
       <el-table :data="webhooks" v-loading="loading" stripe style="width:100%">
-        <el-table-column prop="name" label="名称" min-width="140" />
+        <el-table-column prop="name" :label="t('webhook_list.cols.name')" min-width="140" />
         <el-table-column prop="url" label="URL" min-width="280">
           <template #default="{ row }">
             <span class="text-xs break-all">{{ row.url }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="method" label="方法" width="80" align="center">
+        <el-table-column prop="method" :label="t('webhook_list.cols.method')" width="80" align="center">
           <template #default="{ row }">
             <el-tag size="small" effect="plain">{{ row.method || 'POST' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="调用统计" width="160">
+        <el-table-column :label="t('webhook_list.cols.stats')" width="160">
           <template #default="{ row }">
             <span class="text-green-500">✓{{ row.success_count }}</span>
             <span class="text-red-500 ml-2">✗{{ row.failure_count }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="is_active" label="状态" width="80" align="center">
+        <el-table-column prop="is_active" :label="t('webhook_list.cols.status')" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.is_active ? 'success' : 'info'" size="small">{{ row.is_active ? '启用' : '禁用' }}</el-tag>
+            <el-tag :type="row.is_active ? 'success' : 'info'" size="small">{{ row.is_active ? t('webhook_list.active') : t('webhook_list.inactive') }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="240" fixed="right">
+        <el-table-column :label="t('webhook_list.cols.actions')" width="240" fixed="right">
           <template #default="{ row }">
             <el-space>
-              <el-button size="small" link @click="testWebhook(row)" :loading="testing === row.id">测试</el-button>
-              <el-button size="small" link type="primary" @click="editWebhook(row)">编辑</el-button>
-              <el-popconfirm title="确定删除此 Webhook？" @confirm="deleteWebhook(row)">
+              <el-button size="small" link @click="testWebhook(row)" :loading="testing === row.id">{{ t('webhook_list.test') }}</el-button>
+              <el-button size="small" link type="primary" @click="editWebhook(row)">{{ t('actions.edit') }}</el-button>
+              <el-popconfirm :title="t('webhook_list.confirm_delete')" @confirm="deleteWebhook(row)">
                 <template #reference>
-                  <el-button size="small" type="danger" link>删除</el-button>
+                  <el-button size="small" type="danger" link>{{ t('actions.delete') }}</el-button>
                 </template>
               </el-popconfirm>
             </el-space>
@@ -57,11 +57,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import api from '../../../api/automation'
 import WebhookDialog from './WebhookDialog.vue'
 
+const { t } = useI18n()
 const loading = ref(false)
 const testing = ref(null)
 const webhooks = ref([])
@@ -73,7 +75,7 @@ async function fetchWebhooks() {
     const { data } = await api.getWebhooks()
     webhooks.value = data ?? []
   } catch (e) {
-    ElMessage.error('获取 Webhook 列表失败')
+    ElMessage.error(t('webhook_list.messages.load_failed'))
   } finally {
     loading.value = false
   }
@@ -84,12 +86,12 @@ async function testWebhook(row) {
   try {
     const { data } = await api.testWebhook(row.id)
     if (data.success) {
-      ElMessage.success(`测试成功 (HTTP ${data.status})`)
+      ElMessage.success(t('webhook_list.messages.test_ok', { status: data.status }))
     } else {
-      ElMessage.warning(`响应异常 (HTTP ${data.status})`)
+      ElMessage.warning(t('webhook_list.messages.test_warn', { status: data.status }))
     }
   } catch (e) {
-    ElMessage.error(e.response?.data?.error || '测试失败')
+    ElMessage.error(e.response?.data?.error || t('webhook_list.messages.test_failed'))
   } finally {
     testing.value = null
   }
@@ -101,10 +103,10 @@ function editWebhook(row) { dialogRef.value?.open('edit', row) }
 async function deleteWebhook(row) {
   try {
     await api.deleteWebhook(row.id)
-    ElMessage.success('Webhook 已删除')
+    ElMessage.success(t('webhook_list.messages.deleted'))
     fetchWebhooks()
   } catch (e) {
-    ElMessage.error('删除失败')
+    ElMessage.error(t('webhook_list.messages.delete_failed'))
   }
 }
 

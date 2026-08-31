@@ -2,45 +2,45 @@
     <div class="smtp-fallback-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>SMTP 降级配置</h2>
-                <span class="header-subtitle">配置 SMTP 多渠道降级策略和故障转移</span>
+                <h2>{{ t('smtp_fallback_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('smtp_fallback_page.subtitle') }}</span>
             </div>
             <div class="header-right">
-                <el-button @click="handleTest" :loading="testing">测试降级链</el-button>
-                <el-button type="primary" @click="handleSave" :loading="saving">保存配置</el-button>
+                <el-button @click="handleTest" :loading="testing">{{ t('smtp_fallback_page.test_chain') }}</el-button>
+                <el-button type="primary" @click="handleSave" :loading="saving">{{ t('actions.save') }}</el-button>
             </div>
         </div>
 
         <el-row :gutter="16">
             <el-col :span="8">
                 <el-card shadow="never">
-                    <template #header><span>当前状态</span></template>
+                    <template #header><span>{{ t('smtp_fallback_page.current_status') }}</span></template>
                     <div class="status-list">
                         <div class="status-item">
-                            <span class="label">主 SMTP</span>
+                            <span class="label">{{ t('smtp_fallback_page.primary_smtp') }}</span>
                             <el-tag :type="status.primary_healthy ? 'success' : 'danger'" size="small">
-                                {{ status.primary_healthy ? '正常' : '异常' }}
+                                {{ healthLabel(status.primary_healthy) }}
                             </el-tag>
                         </div>
                         <div class="status-item">
-                            <span class="label">备用 SMTP</span>
+                            <span class="label">{{ t('smtp_fallback_page.backup_smtp') }}</span>
                             <el-tag :type="status.backup_healthy ? 'success' : 'warning'" size="small">
-                                {{ status.backup_healthy ? '正常' : '异常' }}
+                                {{ healthLabel(status.backup_healthy) }}
                             </el-tag>
                         </div>
                         <div class="status-item">
-                            <span class="label">当前使用</span>
+                            <span class="label">{{ t('smtp_fallback_page.currently_using') }}</span>
                             <el-tag :type="status.currently_using === 'primary' ? 'success' : 'warning'" size="small">
-                                {{ status.currently_using === 'primary' ? '主 SMTP' : status.currently_using === 'backup' ? '备用 SMTP' : '无可用' }}
+                                {{ currentlyUsingLabel(status.currently_using) }}
                             </el-tag>
                         </div>
                         <div class="status-item">
-                            <span class="label">上次降级</span>
-                            <span class="value">{{ status.last_fallback_at || '—' }}</span>
+                            <span class="label">{{ t('smtp_fallback_page.last_fallback') }}</span>
+                            <span class="value">{{ status.last_fallback_at || t('smtp_fallback_page.empty_value') }}</span>
                         </div>
                         <div class="status-item">
-                            <span class="label">上次恢复</span>
-                            <span class="value">{{ status.last_recovery_at || '—' }}</span>
+                            <span class="label">{{ t('smtp_fallback_page.last_recovery') }}</span>
+                            <span class="value">{{ status.last_recovery_at || t('smtp_fallback_page.empty_value') }}</span>
                         </div>
                     </div>
                 </el-card>
@@ -48,32 +48,32 @@
 
             <el-col :span="16">
                 <el-card shadow="never">
-                    <template #header><span>降级策略配置</span></template>
+                    <template #header><span>{{ t('smtp_fallback_page.strategy_config') }}</span></template>
                     <el-form :model="form" label-width="200px" label-position="left">
-                        <el-form-item label="失败阈值（次数）">
+                        <el-form-item :label="t('smtp_fallback_page.failure_threshold')">
                             <el-input-number v-model="form.failure_threshold" :min="1" :max="20" />
-                            <span class="ml-2 text-muted">连续失败 N 次后切换到备用 SMTP</span>
+                            <span class="ml-2 text-muted">{{ t('smtp_fallback_page.failure_threshold_hint') }}</span>
                         </el-form-item>
-                        <el-form-item label="恢复检查间隔（分钟）">
+                        <el-form-item :label="t('smtp_fallback_page.recovery_interval')">
                             <el-input-number v-model="form.recovery_interval" :min="5" :max="1440" :step="5" />
-                            <span class="ml-2 text-muted">每 N 分钟检查主 SMTP 是否恢复</span>
+                            <span class="ml-2 text-muted">{{ t('smtp_fallback_page.recovery_interval_hint') }}</span>
                         </el-form-item>
-                        <el-form-item label="自动恢复">
+                        <el-form-item :label="t('smtp_fallback_page.auto_recover')">
                             <el-switch v-model="form.auto_recover" />
-                            <span class="ml-2 text-muted">主 SMTP 恢复后自动切回</span>
+                            <span class="ml-2 text-muted">{{ t('smtp_fallback_page.auto_recover_hint') }}</span>
                         </el-form-item>
-                        <el-divider content-position="left">通知配置</el-divider>
-                        <el-form-item label="降级时通知">
+                        <el-divider content-position="left">{{ t('smtp_fallback_page.notification_section') }}</el-divider>
+                        <el-form-item :label="t('smtp_fallback_page.notify_on_fallback')">
                             <el-switch v-model="form.notify_on_fallback" />
                         </el-form-item>
-                        <el-form-item label="恢复时通知">
+                        <el-form-item :label="t('smtp_fallback_page.notify_on_recovery')">
                             <el-switch v-model="form.notify_on_recovery" />
                         </el-form-item>
-                        <el-form-item label="通知邮箱">
+                        <el-form-item :label="t('smtp_fallback_page.notify_emails')">
                             <el-select v-model="form.notify_emails" multiple filterable allow-create default-first-option style="width:100%">
                                 <el-option v-for="email in form.notify_emails" :key="email" :value="email" />
                             </el-select>
-                            <span class="ml-2 text-muted">输入邮箱后按回车添加</span>
+                            <span class="ml-2 text-muted">{{ t('smtp_fallback_page.notify_emails_hint') }}</span>
                         </el-form-item>
                     </el-form>
                 </el-card>
@@ -81,27 +81,27 @@
                 <!-- 测试结果 -->
                 <el-card v-if="testResults" shadow="never" style="margin-top:16px;">
                     <template #header>
-                        <span>测试结果</span>
+                        <span>{{ t('smtp_fallback_page.test_results') }}</span>
                         <el-tag :type="testResults.success ? 'success' : 'danger'" size="small">
-                            {{ testResults.success ? '通过' : '失败' }}
+                            {{ testResults.success ? t('smtp_fallback_page.test_passed') : t('smtp_fallback_page.test_failed') }}
                         </el-tag>
                     </template>
                     <p>{{ testResults.message }}</p>
                     <el-table :data="testResults.results" stripe size="small">
-                        <el-table-column prop="host" label="主机" />
-                        <el-table-column prop="provider" label="提供商" />
-                        <el-table-column label="主/备" width="70">
-                            <template #default="{ row }">{{ row.is_primary ? '主' : '备' }}</template>
+                        <el-table-column prop="host" :label="t('smtp_fallback_page.columns.host')" />
+                        <el-table-column prop="provider" :label="t('smtp_fallback_page.columns.provider')" />
+                        <el-table-column :label="t('smtp_fallback_page.columns.role')" width="70">
+                            <template #default="{ row }">{{ roleLabel(row.is_primary) }}</template>
                         </el-table-column>
-                        <el-table-column label="状态" width="90">
+                        <el-table-column :label="t('smtp_fallback_page.columns.status')" width="90">
                             <template #default="{ row }">
                                 <el-tag :type="row.status === 'success' ? 'success' : 'danger'" size="small">
-                                    {{ row.status === 'success' ? '正常' : '失败' }}
+                                    {{ rowStatusLabel(row.status) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="latency_ms" label="延迟(ms)" width="90" />
-                        <el-table-column prop="error" label="错误信息" show-overflow-tooltip />
+                        <el-table-column prop="latency_ms" :label="t('smtp_fallback_page.columns.latency')" width="90" />
+                        <el-table-column prop="error" :label="t('smtp_fallback_page.columns.error')" show-overflow-tooltip />
                     </el-table>
                 </el-card>
             </el-col>
@@ -110,9 +110,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import api from '@/api/smtpFallback';
+
+const { t } = useI18n();
 
 const form = ref({
     failure_threshold: 3,
@@ -126,6 +129,43 @@ const status = ref({});
 const testResults = ref(null);
 const saving = ref(false);
 const testing = ref(false);
+
+const healthLabels = computed(() => ({
+    true: t('smtp_fallback_page.health.healthy'),
+    false: t('smtp_fallback_page.health.unhealthy'),
+}));
+
+const currentlyUsingLabels = computed(() => ({
+    primary: t('smtp_fallback_page.primary_smtp'),
+    backup: t('smtp_fallback_page.backup_smtp'),
+    none: t('smtp_fallback_page.none_available'),
+}));
+
+const roleLabels = computed(() => ({
+    primary: t('smtp_fallback_page.role.primary'),
+    backup: t('smtp_fallback_page.role.backup'),
+}));
+
+const rowStatusLabels = computed(() => ({
+    success: t('smtp_fallback_page.health.healthy'),
+    failed: t('smtp_fallback_page.test_failed'),
+}));
+
+function healthLabel(healthy) {
+    return healthLabels.value[healthy ? 'true' : 'false'];
+}
+
+function currentlyUsingLabel(value) {
+    return currentlyUsingLabels.value[value] || currentlyUsingLabels.value.none;
+}
+
+function roleLabel(isPrimary) {
+    return roleLabels.value[isPrimary ? 'primary' : 'backup'];
+}
+
+function rowStatusLabel(status) {
+    return rowStatusLabels.value[status === 'success' ? 'success' : 'failed'];
+}
 
 function unwrap(res) {
     const body = res?.data ?? res;
@@ -144,7 +184,7 @@ async function loadConfig() {
         form.value.auto_recover = data.auto_recover ?? true;
         status.value = data.current_status || {};
     } catch (e) {
-        ElMessage.error('加载配置失败');
+        ElMessage.error(t('messages.load_failed'));
     }
 }
 
@@ -153,9 +193,9 @@ async function handleSave() {
     try {
         await api.updateConfig(form.value);
         await loadConfig();
-        ElMessage.success('配置已保存');
+        ElMessage.success(t('smtp_fallback_page.messages.saved'));
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '保存失败');
+        ElMessage.error(e.response?.data?.message || t('smtp_fallback_page.messages.save_failed'));
     } finally {
         saving.value = false;
     }
@@ -168,7 +208,7 @@ async function handleTest() {
         const res = await api.test();
         testResults.value = unwrap(res);
     } catch (e) {
-        ElMessage.error('测试失败');
+        ElMessage.error(t('smtp_fallback_page.messages.test_failed'));
     } finally {
         testing.value = false;
     }

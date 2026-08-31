@@ -1,30 +1,28 @@
 <template>
-  <el-dialog v-model="visible" title="🪙 积分交易记录" width="550px" :close-on-click-modal="false" top="10vh">
+  <el-dialog v-model="visible" :title="t('points.history_title')" width="550px" :close-on-click-modal="false" top="10vh">
     <div v-if="loading" style="text-align:center;padding:30px">
       <el-icon class="is-loading" :size="24"><Loading /></el-icon>
     </div>
     <div v-else>
-      <!-- 余额概览 -->
       <div class="pts-balance-card">
         <div class="pts-balance-item">
-          <span class="pts-balance-label">当前余额</span>
+          <span class="pts-balance-label">{{ t('points.balance') }}</span>
           <span class="pts-balance-value">{{ balance }}</span>
         </div>
         <div class="pts-balance-item">
-          <span class="pts-balance-label">累计获得</span>
+          <span class="pts-balance-label">{{ t('points.earned') }}</span>
           <span class="pts-balance-value pts-earned">{{ totalEarned }}</span>
         </div>
         <div class="pts-balance-item">
-          <span class="pts-balance-label">累计消费</span>
+          <span class="pts-balance-label">{{ t('points.spent') }}</span>
           <span class="pts-balance-value pts-spent">{{ totalSpent }}</span>
         </div>
       </div>
 
-      <!-- 交易列表 -->
       <div v-if="transactions.length" class="pts-tx-list">
         <div v-for="tx in transactions" :key="tx.id" class="pts-tx-item">
           <div class="pts-tx-left">
-            <span class="pts-tx-icon">{{ tx.type === 'earn' ? '➕' : tx.type === 'spend' ? '➖' : '🔄' }}</span>
+            <span class="pts-tx-icon">{{ tx.type === 'earn' ? '+' : tx.type === 'spend' ? '−' : '↻' }}</span>
             <div class="pts-tx-info">
               <div class="pts-tx-desc">{{ tx.description || tx.type }}</div>
               <div class="pts-tx-time">{{ formatTime(tx.created_at) }}</div>
@@ -37,11 +35,10 @@
           </div>
         </div>
       </div>
-      <el-empty v-else description="暂无交易记录" :image-size="50" />
+      <el-empty v-else :description="t('points.empty')" :image-size="50" />
 
-      <!-- 分页 -->
       <div v-if="hasMore" style="text-align:center;margin-top:12px">
-        <el-button size="small" text @click="loadMore">加载更多</el-button>
+        <el-button size="small" text @click="loadMore">{{ t('points.load_more') }}</el-button>
       </div>
     </div>
   </el-dialog>
@@ -49,8 +46,11 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Loading } from '@element-plus/icons-vue'
 import apiClient from '@/api/client'
+
+const { t, locale } = useI18n()
 
 const props = defineProps({
   modelValue: Boolean,
@@ -87,7 +87,6 @@ async function loadTransactions() {
     const txData = txRes.data?.data || {}
     const list = txData.data || []
     transactions.value = page.value === 1 ? list : [...transactions.value, ...list]
-    const meta = txData
     hasMore.value = list.length >= 20
   } catch { /* ignore */ }
   finally { loading.value = false }
@@ -100,7 +99,8 @@ function loadMore() {
 
 function formatTime(date) {
   if (!date) return ''
-  return new Date(date).toLocaleString('zh-CN', {
+  const loc = locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US'
+  return new Date(date).toLocaleString(loc, {
     month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
   })
 }

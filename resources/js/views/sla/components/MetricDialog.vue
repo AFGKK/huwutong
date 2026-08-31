@@ -1,50 +1,53 @@
 <template>
-  <el-dialog v-model="visible" :title="metric?.id ? '编辑指标' : '添加指标'" width="500px" :close-on-click-modal="false"
+  <el-dialog v-model="visible" :title="metric?.id ? t('sla_metric_dialog.edit_title') : t('sla_metric_dialog.add_title')" width="500px" :close-on-click-modal="false"
     @close="reset">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px" v-loading="saving">
-      <el-form-item label="指标类型" prop="metric_key">
+      <el-form-item :label="t('sla_metric_dialog.metric_type')" prop="metric_key">
         <el-select v-model="form.metric_key" @change="onKeyChange">
           <el-option v-for="(label, key) in metricLabels" :key="key" :label="label" :value="key" />
         </el-select>
       </el-form-item>
-      <el-form-item label="名称" prop="name">
+      <el-form-item :label="t('sla_metric_dialog.name')" prop="name">
         <el-input v-model="form.name" maxlength="200" />
       </el-form-item>
-      <el-form-item label="目标值" prop="target_value">
+      <el-form-item :label="t('sla_metric_dialog.target_value')" prop="target_value">
         <el-input-number v-model="form.target_value" :min="0" :precision="2" />
         <span class="ml-2 text-gray-400">{{ unitLabel(form.unit) }}</span>
       </el-form-item>
-      <el-form-item label="告警阈值 %">
+      <el-form-item :label="t('sla_metric_dialog.warning_threshold')">
         <el-input-number v-model="form.warning_threshold" :min="0" :max="100" :precision="1" :step="5" />
       </el-form-item>
-      <el-form-item label="统计周期" prop="measurement_window">
+      <el-form-item :label="t('sla_metric_dialog.measurement_window')" prop="measurement_window">
         <el-select v-model="form.measurement_window">
-          <el-option label="每日" value="daily" />
-          <el-option label="每周" value="weekly" />
-          <el-option label="每月" value="monthly" />
-          <el-option label="每季度" value="quarterly" />
+          <el-option :label="t('sla_metric_dialog.windows.daily')" value="daily" />
+          <el-option :label="t('sla_metric_dialog.windows.weekly')" value="weekly" />
+          <el-option :label="t('sla_metric_dialog.windows.monthly')" value="monthly" />
+          <el-option :label="t('sla_metric_dialog.windows.quarterly')" value="quarterly" />
         </el-select>
       </el-form-item>
-      <el-form-item label="数据源" prop="data_source">
+      <el-form-item :label="t('sla_metric_dialog.data_source')" prop="data_source">
         <el-select v-model="form.data_source">
-          <el-option label="工单系统" value="tickets" />
-          <el-option label="技术支持" value="support" />
-          <el-option label="运行时间" value="uptime" />
-          <el-option label="自定义" value="custom" />
+          <el-option :label="t('sla_metric_dialog.sources.tickets')" value="tickets" />
+          <el-option :label="t('sla_metric_dialog.sources.support')" value="support" />
+          <el-option :label="t('sla_metric_dialog.sources.uptime')" value="uptime" />
+          <el-option :label="t('sla_metric_dialog.sources.custom')" value="custom" />
         </el-select>
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">{{ metric?.id ? '保存' : '添加' }}</el-button>
+      <el-button @click="visible = false">{{ t('actions.cancel') }}</el-button>
+      <el-button type="primary" :loading="saving" @click="save">{{ metric?.id ? t('actions.save') : t('sla_metric_dialog.add_btn') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
 import { ref, reactive, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { createMetric, updateMetric } from '../../../api/sla'
+
+const { t } = useI18n()
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -61,12 +64,18 @@ const visible = computed({
 const formRef = ref(null)
 const saving = ref(false)
 
-const metricLabels = { response_time: '响应时间', resolution_time: '解决时间', uptime: '正常运行', availability: '可用性', ticket_backlog: '工单积压' }
+const metricLabels = computed(() => ({
+  response_time: t('sla_metric_dialog.metrics.response_time'),
+  resolution_time: t('sla_metric_dialog.metrics.resolution_time'),
+  uptime: t('sla_metric_dialog.metrics.uptime'),
+  availability: t('sla_metric_dialog.metrics.availability'),
+  ticket_backlog: t('sla_metric_dialog.metrics.ticket_backlog'),
+}))
 const unitMap = { response_time: 'minutes', resolution_time: 'minutes', uptime: 'percentage', availability: 'percentage', ticket_backlog: 'count' }
 
 function unitLabel(u) {
-  const map = { minutes: '分钟', hours: '小时', percentage: '%', count: '个' }
-  return map[u] || u
+  const key = { minutes: 'minutes', hours: 'hours', percentage: 'percentage', count: 'count' }[u]
+  return key ? t(`sla_metric_dialog.units.${key}`) : u
 }
 
 const form = reactive({
@@ -75,16 +84,16 @@ const form = reactive({
   unit: 'minutes',
 })
 
-const rules = {
-  metric_key: [{ required: true, message: '请选择指标类型', trigger: 'change' }],
-  name: [{ required: true, message: '请输入指标名称', trigger: 'blur' }],
-  target_value: [{ required: true, message: '请输入目标值', trigger: 'blur' }],
-}
+const rules = computed(() => ({
+  metric_key: [{ required: true, message: t('sla_metric_dialog.rules.metric_key'), trigger: 'change' }],
+  name: [{ required: true, message: t('sla_metric_dialog.rules.name'), trigger: 'blur' }],
+  target_value: [{ required: true, message: t('sla_metric_dialog.rules.target_value'), trigger: 'blur' }],
+}))
 
 function onKeyChange(key) {
   form.unit = unitMap[key] || 'minutes'
   if (!form.name) {
-    form.name = metricLabels[key] || key
+    form.name = metricLabels.value[key] || key
   }
 }
 
@@ -105,14 +114,14 @@ async function save() {
   try {
     if (props.metric?.id) {
       await updateMetric(props.metric.id, form)
-      ElMessage.success('已更新')
+      ElMessage.success(t('sla_metric_dialog.messages.updated'))
     } else {
       await createMetric(props.contractId, form)
-      ElMessage.success('已添加')
+      ElMessage.success(t('sla_metric_dialog.messages.added'))
     }
     emit('saved')
   } catch (e) {
-    ElMessage.error('操作失败')
+    ElMessage.error(t('sla_metric_dialog.messages.failed'))
   } finally {
     saving.value = false
   }

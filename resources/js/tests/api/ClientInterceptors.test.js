@@ -70,10 +70,10 @@ describe('apiClient - axios 拦截器', () => {
         const errInterceptor = apiClient.interceptors.response.handlers[0]?.rejected;
 
         if (errInterceptor) {
-            const error = { response: { status: 403, data: { message: '没有权限' } }, config: { headers: {} } };
+            const error = { response: { status: 403, data: { message: 'Forbidden by policy' } }, config: { headers: {} } };
 
             await expect(errInterceptor(error)).rejects.toThrow();
-            expect(mockElMessage.error).toHaveBeenCalledWith('没有权限');
+            expect(mockElMessage.error).toHaveBeenCalledWith('Forbidden by policy');
         }
     });
 
@@ -85,7 +85,8 @@ describe('apiClient - axios 拦截器', () => {
             const error = { response: { status: 429, data: {} }, config: { headers: {} } };
 
             await expect(errInterceptor(error)).rejects.toThrow();
-            expect(mockElMessage.warning).toHaveBeenCalled();
+            const i18n = (await import('@/i18n')).default;
+            expect(mockElMessage.warning).toHaveBeenCalledWith(i18n.global.t('messages.rate_limited'));
         }
     });
 
@@ -97,7 +98,8 @@ describe('apiClient - axios 拦截器', () => {
             const error = { response: { status: 500, data: {} }, config: { headers: {} } };
 
             await expect(errInterceptor(error)).rejects.toThrow();
-            expect(mockElMessage.error).toHaveBeenCalledWith('服务器内部错误，请稍后再试');
+            const i18n = (await import('@/i18n')).default;
+            expect(mockElMessage.error).toHaveBeenCalledWith(i18n.global.t('messages.internal_error'));
         }
     });
 });

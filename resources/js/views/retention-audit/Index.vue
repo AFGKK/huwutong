@@ -2,12 +2,12 @@
     <div class="retention-audit-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>数据保留审计</h2>
-                <span class="header-subtitle">多数据源保留策略管理、自动清理调度、合规报告导出</span>
+                <h2>{{ t('retention_audit_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('retention_audit_page.subtitle') }}</span>
             </div>
             <div class="header-right">
                 <el-button @click="refreshAll">
-                    <el-icon><Refresh /></el-icon> 刷新
+                    <el-icon><Refresh /></el-icon> {{ t('retention_audit_page.refresh') }}
                 </el-button>
             </div>
         </div>
@@ -17,7 +17,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">数据源总数</div>
+                        <div class="stat-label">{{ t('retention_audit_page.stats.sources') }}</div>
                         <div class="stat-value primary">{{ dashboard.by_source?.length || 0 }}</div>
                     </div>
                 </el-card>
@@ -25,7 +25,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">总记录数</div>
+                        <div class="stat-label">{{ t('retention_audit_page.stats.total_records') }}</div>
                         <div class="stat-value success">{{ formatNumber(dashboard.total_records) }}</div>
                     </div>
                 </el-card>
@@ -33,7 +33,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">存储占用</div>
+                        <div class="stat-label">{{ t('retention_audit_page.stats.storage') }}</div>
                         <div class="stat-value warning">{{ dashboard.total_storage_mb }} MB</div>
                     </div>
                 </el-card>
@@ -41,7 +41,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">清理记录</div>
+                        <div class="stat-label">{{ t('retention_audit_page.stats.cleanups') }}</div>
                         <div class="stat-value info">{{ dashboard.recent_cleanups?.length || 0 }}</div>
                     </div>
                 </el-card>
@@ -50,35 +50,35 @@
 
         <el-tabs v-model="activeTab" type="border-card">
             <!-- 保留策略管理 -->
-            <el-tab-pane label="保留策略管理" name="policies">
+            <el-tab-pane :label="tabLabels.policies" name="policies">
                 <div class="tab-toolbar">
                     <div class="toolbar-left">
-                        <span class="toolbar-title">所有数据源保留策略</span>
+                        <span class="toolbar-title">{{ t('retention_audit_page.policies.toolbar_title') }}</span>
                     </div>
                 </div>
 
                 <el-table :data="dashboard.by_source" v-loading="loading" stripe size="small">
-                    <el-table-column label="数据源" width="140">
+                    <el-table-column :label="t('retention_audit_page.policies.cols.data_source')" width="140">
                         <template #default="{ row }">
                             <el-tag :type="sourceTag(row.data_source)" size="small">{{ row.display_name }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="记录数" width="100" align="center" prop="count" />
-                    <el-table-column label="保留天数" width="110" align="center" prop="retention_days" />
-                    <el-table-column label="待清理" width="100" align="center">
+                    <el-table-column :label="t('retention_audit_page.policies.cols.count')" width="100" align="center" prop="count" />
+                    <el-table-column :label="t('retention_audit_page.policies.cols.retention_days')" width="110" align="center" prop="retention_days" />
+                    <el-table-column :label="t('retention_audit_page.policies.cols.to_prune')" width="100" align="center">
                         <template #default="{ row }">
                             <el-tag :type="row.to_prune > 0 ? 'danger' : 'success'" size="small" effect="plain">
                                 {{ row.to_prune }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="存储 (MB)" width="110" align="center" prop="storage_mb" />
-                    <el-table-column label="最早数据" width="150">
+                    <el-table-column :label="t('retention_audit_page.policies.cols.storage_mb')" width="110" align="center" prop="storage_mb" />
+                    <el-table-column :label="t('retention_audit_page.policies.cols.oldest')" width="150">
                         <template #default="{ row }">{{ formatTime(row.oldest) }}</template>
                     </el-table-column>
-                    <el-table-column label="操作" width="200" fixed="right">
+                    <el-table-column :label="t('retention_audit_page.policies.cols.actions')" width="200" fixed="right">
                         <template #default="{ row }">
-                            <el-button text size="small" type="primary" @click="openPolicyEdit(row)">修改策略</el-button>
+                            <el-button text size="small" type="primary" @click="openPolicyEdit(row)">{{ t('retention_audit_page.policies.edit_policy') }}</el-button>
                             <el-button
                                 text
                                 size="small"
@@ -87,7 +87,7 @@
                                 :loading="cleaningSource === row.data_source"
                                 @click="handleExtendedCleanup(row)"
                             >
-                                立即清理
+                                {{ t('retention_audit_page.policies.cleanup_now') }}
                             </el-button>
                         </template>
                     </el-table-column>
@@ -95,29 +95,29 @@
             </el-tab-pane>
 
             <!-- 清理调度配置 -->
-            <el-tab-pane label="清理调度" name="schedules">
+            <el-tab-pane :label="tabLabels.schedules" name="schedules">
                 <div class="tab-toolbar">
                     <div class="toolbar-left">
-                        <span class="toolbar-title">自动清理调度配置</span>
+                        <span class="toolbar-title">{{ t('retention_audit_page.schedules.toolbar_title') }}</span>
                     </div>
                 </div>
 
                 <el-table :data="schedules" v-loading="loadingSchedules" stripe size="small">
-                    <el-table-column label="数据源" width="140">
+                    <el-table-column :label="t('retention_audit_page.schedules.cols.data_source')" width="140">
                         <template #default="{ row }">
                             <el-tag :type="sourceTag(row.data_source)" size="small">{{ row.display_name }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="频率" width="120" align="center">
+                    <el-table-column :label="t('retention_audit_page.schedules.cols.frequency')" width="120" align="center">
                         <template #default="{ row }">
                             <el-tag :type="row.frequency === 'manual' ? 'info' : 'primary'" size="small">
                                 {{ freqLabel(row.frequency) }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="执行时间" width="100" align="center" prop="time_of_day" />
-                    <el-table-column label="每批条数" width="100" align="center" prop="batch_size" />
-                    <el-table-column label="状态" width="90" align="center">
+                    <el-table-column :label="t('retention_audit_page.schedules.cols.time_of_day')" width="100" align="center" prop="time_of_day" />
+                    <el-table-column :label="t('retention_audit_page.schedules.cols.batch_size')" width="100" align="center" prop="batch_size" />
+                    <el-table-column :label="t('retention_audit_page.schedules.cols.status')" width="90" align="center">
                         <template #default="{ row }">
                             <el-switch
                                 :model-value="row.is_active"
@@ -126,61 +126,61 @@
                             />
                         </template>
                     </el-table-column>
-                    <el-table-column label="上次执行" width="150" prop="last_run_at">
+                    <el-table-column :label="t('retention_audit_page.schedules.cols.last_run_at')" width="150" prop="last_run_at">
                         <template #default="{ row }">{{ formatTime(row.last_run_at) }}</template>
                     </el-table-column>
-                    <el-table-column label="操作" width="180" fixed="right">
+                    <el-table-column :label="t('retention_audit_page.schedules.cols.actions')" width="180" fixed="right">
                         <template #default="{ row }">
-                            <el-button text size="small" type="primary" @click="openScheduleEdit(row)">编辑</el-button>
+                            <el-button text size="small" type="primary" @click="openScheduleEdit(row)">{{ t('actions.edit') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
             </el-tab-pane>
 
             <!-- 合规报告导出 -->
-            <el-tab-pane label="合规报告导出" name="exports">
+            <el-tab-pane :label="tabLabels.exports" name="exports">
                 <div class="tab-toolbar">
                     <div class="toolbar-left">
-                        <el-select v-model="exportFilter.report_id" placeholder="选择报告" clearable style="width: 300px" @change="fetchExports">
+                        <el-select v-model="exportFilter.report_id" :placeholder="t('retention_audit_page.exports.select_report')" clearable style="width: 300px" @change="fetchExports">
                             <el-option v-for="r in allReports" :key="r.id" :label="r.title" :value="r.id" />
                         </el-select>
                     </div>
                     <div class="toolbar-right">
                         <el-button type="primary" @click="openExportDialog">
-                            <el-icon><Download /></el-icon> 导出报告
+                            <el-icon><Download /></el-icon> {{ t('retention_audit_page.exports.export_report') }}
                         </el-button>
                     </div>
                 </div>
 
                 <el-table :data="exports" v-loading="loadingExports" stripe size="small">
-                    <el-table-column label="报告标题" min-width="200">
+                    <el-table-column :label="t('retention_audit_page.exports.cols.title')" min-width="200">
                         <template #default="{ row }">{{ row.report?.title || '-' }}</template>
                     </el-table-column>
-                    <el-table-column label="格式" width="80" align="center">
+                    <el-table-column :label="t('retention_audit_page.exports.cols.format')" width="80" align="center">
                         <template #default="{ row }">
                             <el-tag :type="row.format === 'json' ? 'warning' : 'success'" size="small" effect="plain">
                                 {{ row.format?.toUpperCase() }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="状态" width="100" align="center">
+                    <el-table-column :label="t('retention_audit_page.exports.cols.status')" width="100" align="center">
                         <template #default="{ row }">
                             <el-tag :type="exportStatusTag(row.status)" size="small">
                                 {{ exportStatusLabel(row.status) }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="文件大小" width="100" align="center">
+                    <el-table-column :label="t('retention_audit_page.exports.cols.file_size')" width="100" align="center">
                         <template #default="{ row }">{{ row.file_size ? formatBytes(row.file_size) : '-' }}</template>
                     </el-table-column>
-                    <el-table-column label="生成人" width="120" prop="generator?.name" />
-                    <el-table-column label="生成时间" width="170">
+                    <el-table-column :label="t('retention_audit_page.exports.cols.generator')" width="120" prop="generator?.name" />
+                    <el-table-column :label="t('retention_audit_page.exports.cols.generated_at')" width="170">
                         <template #default="{ row }">{{ formatTime(row.generated_at) }}</template>
                     </el-table-column>
-                    <el-table-column label="操作" width="100" fixed="right">
+                    <el-table-column :label="t('retention_audit_page.exports.cols.actions')" width="100" fixed="right">
                         <template #default="{ row }">
                             <el-button v-if="row.status === 'completed'" text size="small" type="primary" @click="downloadExport(row)">
-                                下载
+                                {{ t('actions.download') }}
                             </el-button>
                         </template>
                     </el-table-column>
@@ -188,30 +188,30 @@
             </el-tab-pane>
 
             <!-- 清理历史 -->
-            <el-tab-pane label="清理历史" name="history">
+            <el-tab-pane :label="tabLabels.history" name="history">
                 <el-table :data="cleanupHistory" v-loading="loadingHistory" stripe size="small">
-                    <el-table-column label="数据源" width="140">
+                    <el-table-column :label="t('retention_audit_page.history.cols.data_source')" width="140">
                         <template #default="{ row }">
                             <el-tag :type="sourceTag(row.type || row.data_source)" size="small">
                                 {{ sourceLabel(row.type || row.data_source) }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="状态" width="90" align="center">
+                    <el-table-column :label="t('retention_audit_page.history.cols.status')" width="90" align="center">
                         <template #default="{ row }">
                             <el-tag :type="row.status === 'completed' ? 'success' : row.status === 'partial' ? 'warning' : 'danger'" size="small">
-                                {{ row.status === 'completed' ? '完成' : row.status === 'partial' ? '部分' : '失败' }}
+                                {{ cleanupStatusLabel(row.status) }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="清理前" width="90" align="center" prop="total_logs_before" />
-                    <el-table-column label="清理数量" width="90" align="center" prop="pruned_count" />
-                    <el-table-column label="保留天数" width="100" align="center" prop="retention_days" />
-                    <el-table-column label="说明" min-width="200">
+                    <el-table-column :label="t('retention_audit_page.history.cols.before')" width="90" align="center" prop="total_logs_before" />
+                    <el-table-column :label="t('retention_audit_page.history.cols.pruned_count')" width="90" align="center" prop="pruned_count" />
+                    <el-table-column :label="t('retention_audit_page.history.cols.retention_days')" width="100" align="center" prop="retention_days" />
+                    <el-table-column :label="t('retention_audit_page.history.cols.notes')" min-width="200">
                         <template #default="{ row }">{{ row.notes || '-' }}</template>
                     </el-table-column>
-                    <el-table-column label="执行人" width="120" prop="initiator?.name" />
-                    <el-table-column label="执行时间" width="170">
+                    <el-table-column :label="t('retention_audit_page.history.cols.initiator')" width="120" prop="initiator?.name" />
+                    <el-table-column :label="t('retention_audit_page.history.cols.executed_at')" width="170">
                         <template #default="{ row }">{{ formatTime(row.executed_at) }}</template>
                     </el-table-column>
                 </el-table>
@@ -219,77 +219,68 @@
         </el-tabs>
 
         <!-- 保留策略编辑对话框 -->
-        <el-dialog v-model="showPolicyDialog" title="编辑保留策略" width="480px">
+        <el-dialog v-model="showPolicyDialog" :title="t('retention_audit_page.dialogs.edit_policy')" width="480px">
             <el-form ref="policyFormRef" :model="policyForm" :rules="policyRules" label-width="100px">
-                <el-form-item label="数据源">
+                <el-form-item :label="t('retention_audit_page.form.data_source')">
                     <el-tag :type="sourceTag(policyForm.data_source)" size="small">{{ policyForm.display_name }}</el-tag>
                 </el-form-item>
-                <el-form-item label="保留天数" prop="retention_days">
+                <el-form-item :label="t('retention_audit_page.form.retention_days')" prop="retention_days">
                     <el-input-number v-model="policyForm.retention_days" :min="1" :max="3650" style="width: 100%" />
                 </el-form-item>
-                <el-form-item label="状态">
-                    <el-switch v-model="policyForm.is_active" active-text="启用" inactive-text="停用" />
+                <el-form-item :label="t('retention_audit_page.form.status')">
+                    <el-switch v-model="policyForm.is_active" :active-text="t('actions.enable')" :inactive-text="t('actions.disable')" />
                 </el-form-item>
-                <el-form-item label="说明" prop="description">
+                <el-form-item :label="t('retention_audit_page.form.description')" prop="description">
                     <el-input v-model="policyForm.description" type="textarea" :rows="3" maxlength="500" show-word-limit />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showPolicyDialog = false">取消</el-button>
-                <el-button type="primary" :loading="savingPolicy" @click="handleSavePolicy">保存</el-button>
+                <el-button @click="showPolicyDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="savingPolicy" @click="handleSavePolicy">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 调度编辑对话框 -->
-        <el-dialog v-model="showScheduleDialog" title="编辑清理调度" width="500px">
+        <el-dialog v-model="showScheduleDialog" :title="t('retention_audit_page.dialogs.edit_schedule')" width="500px">
             <el-form ref="scheduleFormRef" :model="scheduleForm" :rules="scheduleRules" label-width="110px">
-                <el-form-item label="数据源">
+                <el-form-item :label="t('retention_audit_page.form.data_source')">
                     <el-tag :type="sourceTag(scheduleForm.data_source)" size="small">{{ scheduleForm.display_name }}</el-tag>
                 </el-form-item>
-                <el-form-item label="频率" prop="frequency">
+                <el-form-item :label="t('retention_audit_page.form.frequency')" prop="frequency">
                     <el-select v-model="scheduleForm.frequency" style="width: 100%">
-                        <el-option label="每天" value="daily" />
-                        <el-option label="每周" value="weekly" />
-                        <el-option label="每月" value="monthly" />
-                        <el-option label="手动" value="manual" />
+                        <el-option v-for="opt in frequencyOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="执行时间" prop="time_of_day">
+                <el-form-item :label="t('retention_audit_page.form.time_of_day')" prop="time_of_day">
                     <el-time-picker v-model="scheduleTime" format="HH:mm" value-format="HH:mm" style="width: 100%" />
                 </el-form-item>
-                <el-form-item v-if="scheduleForm.frequency === 'weekly'" label="星期几">
+                <el-form-item v-if="scheduleForm.frequency === 'weekly'" :label="t('retention_audit_page.form.day_of_week')">
                     <el-select v-model="scheduleForm.day_of_week" style="width: 100%">
-                        <el-option label="周日" value="0" />
-                        <el-option label="周一" value="1" />
-                        <el-option label="周二" value="2" />
-                        <el-option label="周三" value="3" />
-                        <el-option label="周四" value="4" />
-                        <el-option label="周五" value="5" />
-                        <el-option label="周六" value="6" />
+                        <el-option v-for="opt in weekdayOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="每批条数" prop="batch_size">
+                <el-form-item :label="t('retention_audit_page.form.batch_size')" prop="batch_size">
                     <el-input-number v-model="scheduleForm.batch_size" :min="100" :max="10000" :step="100" style="width: 100%" />
                 </el-form-item>
-                <el-form-item label="状态">
-                    <el-switch v-model="scheduleForm.is_active" active-text="启用" inactive-text="停用" />
+                <el-form-item :label="t('retention_audit_page.form.status')">
+                    <el-switch v-model="scheduleForm.is_active" :active-text="t('actions.enable')" :inactive-text="t('actions.disable')" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showScheduleDialog = false">取消</el-button>
-                <el-button type="primary" :loading="savingSchedule" @click="handleSaveSchedule">保存</el-button>
+                <el-button @click="showScheduleDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="savingSchedule" @click="handleSaveSchedule">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 导出对话框 -->
-        <el-dialog v-model="showExportDialog" title="导出合规报告" width="450px">
+        <el-dialog v-model="showExportDialog" :title="t('retention_audit_page.dialogs.export_report')" width="450px">
             <el-form ref="exportFormRef" :model="exportForm" :rules="exportRules" label-width="100px">
-                <el-form-item label="合规报告" prop="report_id">
-                    <el-select v-model="exportForm.report_id" placeholder="选择要导出的报告" style="width: 100%">
+                <el-form-item :label="t('retention_audit_page.form.report')" prop="report_id">
+                    <el-select v-model="exportForm.report_id" :placeholder="t('retention_audit_page.form.select_report')" style="width: 100%">
                         <el-option v-for="r in allReports" :key="r.id" :label="r.title" :value="r.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="导出格式" prop="format">
+                <el-form-item :label="t('retention_audit_page.form.format')" prop="format">
                     <el-radio-group v-model="exportForm.format">
                         <el-radio value="json">JSON</el-radio>
                         <el-radio value="csv">CSV</el-radio>
@@ -297,21 +288,91 @@
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showExportDialog = false">取消</el-button>
-                <el-button type="primary" :loading="exporting" @click="handleExport">导出</el-button>
+                <el-button @click="showExportDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="exporting" @click="handleExport">{{ t('actions.export') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh, Download } from '@element-plus/icons-vue';
 import auditGovernanceApi from '@/api/auditGovernance';
 
+const { t, locale } = useI18n();
+
 // ─── 标签 ───
 const activeTab = ref('policies');
+
+const tabLabels = computed(() => ({
+    policies: t('retention_audit_page.tabs.policies'),
+    schedules: t('retention_audit_page.tabs.schedules'),
+    exports: t('retention_audit_page.tabs.exports'),
+    history: t('retention_audit_page.tabs.history'),
+}));
+
+const frequencyLabels = computed(() => ({
+    daily: t('retention_audit_page.frequency.daily'),
+    weekly: t('retention_audit_page.frequency.weekly'),
+    monthly: t('retention_audit_page.frequency.monthly'),
+    manual: t('retention_audit_page.frequency.manual'),
+}));
+
+const frequencyOptions = computed(() => [
+    { label: t('retention_audit_page.frequency.daily'), value: 'daily' },
+    { label: t('retention_audit_page.frequency.weekly'), value: 'weekly' },
+    { label: t('retention_audit_page.frequency.monthly'), value: 'monthly' },
+    { label: t('retention_audit_page.frequency.manual'), value: 'manual' },
+]);
+
+const weekdayOptions = computed(() =>
+    ['0', '1', '2', '3', '4', '5', '6'].map((value) => ({
+        value,
+        label: t(`retention_audit_page.weekdays.${value}`),
+    })),
+);
+
+const sourceLabels = computed(() => ({
+    audit_log: t('retention_audit_page.sources.audit_log'),
+    security_log: t('retention_audit_page.sources.security_log'),
+    error_log: t('retention_audit_page.sources.error_log'),
+    system_log: t('retention_audit_page.sources.system_log'),
+    apm_request: t('retention_audit_page.sources.apm_request'),
+    webhook_event: t('retention_audit_page.sources.webhook_event'),
+    webhook_delivery: t('retention_audit_page.sources.webhook_delivery'),
+    license: t('retention_audit_page.sources.license'),
+    api_endpoint: t('retention_audit_page.sources.api_endpoint'),
+}));
+
+const exportStatusLabels = computed(() => ({
+    pending: t('retention_audit_page.export_status.pending'),
+    processing: t('retention_audit_page.export_status.processing'),
+    completed: t('retention_audit_page.export_status.completed'),
+    failed: t('retention_audit_page.export_status.failed'),
+}));
+
+const cleanupStatusLabels = computed(() => ({
+    completed: t('retention_audit_page.cleanup_status.completed'),
+    partial: t('retention_audit_page.cleanup_status.partial'),
+    failed: t('retention_audit_page.cleanup_status.failed'),
+}));
+
+const policyRules = computed(() => ({
+    retention_days: [{ required: true, message: t('retention_audit_page.rules.retention_days_required'), trigger: 'blur' }],
+}));
+
+const scheduleRules = computed(() => ({
+    frequency: [{ required: true, message: t('retention_audit_page.rules.frequency_required'), trigger: 'change' }],
+    batch_size: [{ required: true, message: t('retention_audit_page.rules.batch_size_required'), trigger: 'blur' }],
+}));
+
+const exportRules = computed(() => ({
+    report_id: [{ required: true, message: t('retention_audit_page.rules.report_required'), trigger: 'change' }],
+    format: [{ required: true, message: t('retention_audit_page.rules.format_required'), trigger: 'change' }],
+}));
 
 // ─── 仪表盘数据 ───
 const dashboard = reactive({
@@ -330,7 +391,7 @@ async function fetchDashboard() {
         const res = await auditGovernanceApi.extendedRetentionDashboard();
         if (res.success) Object.assign(dashboard, res.data || {});
     } catch {
-        ElMessage.error('加载仪表盘失败');
+        ElMessage.error(t('retention_audit_page.messages.load_dashboard_failed'));
     } finally {
         loading.value = false;
     }
@@ -347,9 +408,6 @@ const policyForm = reactive({
     is_active: true,
     description: '',
 });
-const policyRules = {
-    retention_days: [{ required: true, message: '请设置保留天数', trigger: 'blur' }],
-};
 
 function openPolicyEdit(row) {
     policyForm.data_source = row.data_source;
@@ -374,12 +432,12 @@ async function handleSavePolicy() {
             description: policyForm.description,
         });
         if (res.success) {
-            ElMessage.success('策略已保存');
+            ElMessage.success(t('retention_audit_page.messages.policy_saved'));
             showPolicyDialog.value = false;
             await fetchDashboard();
         }
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '保存失败');
+        ElMessage.error(err.response?.data?.message || t('retention_audit_page.messages.save_failed'));
     } finally {
         savingPolicy.value = false;
     }
@@ -388,9 +446,17 @@ async function handleSavePolicy() {
 async function handleExtendedCleanup(row) {
     try {
         await ElMessageBox.confirm(
-            `确定要清理「${row.display_name}」中超过 ${row.retention_days} 天的 ${row.to_prune} 条数据吗？此操作不可撤销。`,
-            '确认清理',
-            { type: 'warning', confirmButtonText: '确认清理', cancelButtonText: '取消' }
+            t('retention_audit_page.confirm.cleanup', {
+                name: row.display_name,
+                days: row.retention_days,
+                count: row.to_prune,
+            }),
+            t('retention_audit_page.confirm.cleanup_title'),
+            {
+                type: 'warning',
+                confirmButtonText: t('retention_audit_page.confirm.cleanup_confirm'),
+                cancelButtonText: t('actions.cancel'),
+            },
         );
     } catch { return; }
 
@@ -398,12 +464,12 @@ async function handleExtendedCleanup(row) {
     try {
         const res = await auditGovernanceApi.executeExtendedCleanup({ data_source: row.data_source });
         if (res.success) {
-            ElMessage.success(`已清理 ${res.data?.pruned_count || 0} 条数据`);
+            ElMessage.success(t('retention_audit_page.messages.cleanup_done', { count: res.data?.pruned_count || 0 }));
             await fetchDashboard();
             await fetchCleanupHistory();
         }
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '清理失败');
+        ElMessage.error(err.response?.data?.message || t('retention_audit_page.messages.cleanup_failed'));
     } finally {
         cleaningSource.value = '';
     }
@@ -426,10 +492,6 @@ const scheduleForm = reactive({
     batch_size: 1000,
     is_active: true,
 });
-const scheduleRules = {
-    frequency: [{ required: true, message: '请选择频率', trigger: 'change' }],
-    batch_size: [{ required: true, message: '请设置批处理大小', trigger: 'blur' }],
-};
 
 async function fetchSchedules() {
     loadingSchedules.value = true;
@@ -437,7 +499,7 @@ async function fetchSchedules() {
         const res = await auditGovernanceApi.cleanupSchedules();
         if (res.success) schedules.value = res.data || [];
     } catch {
-        ElMessage.error('加载调度配置失败');
+        ElMessage.error(t('retention_audit_page.messages.load_schedules_failed'));
     } finally {
         loadingSchedules.value = false;
     }
@@ -470,12 +532,12 @@ async function handleSaveSchedule() {
 
         const res = await auditGovernanceApi.saveCleanupSchedule(data);
         if (res.success) {
-            ElMessage.success('调度配置已保存');
+            ElMessage.success(t('retention_audit_page.messages.schedule_saved'));
             showScheduleDialog.value = false;
             await fetchSchedules();
         }
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '保存失败');
+        ElMessage.error(err.response?.data?.message || t('retention_audit_page.messages.save_failed'));
     } finally {
         savingSchedule.value = false;
     }
@@ -487,9 +549,9 @@ async function handleToggleSchedule(row, val) {
             data_source: row.data_source,
             is_active: val,
         });
-        ElMessage.success(val ? '调度已启用' : '调度已停用');
+        ElMessage.success(val ? t('retention_audit_page.messages.schedule_enabled') : t('retention_audit_page.messages.schedule_disabled'));
     } catch {
-        ElMessage.error('操作失败');
+        ElMessage.error(t('messages.failed'));
         await fetchSchedules();
     }
 }
@@ -506,10 +568,6 @@ const exportForm = reactive({
     report_id: '',
     format: 'json',
 });
-const exportRules = {
-    report_id: [{ required: true, message: '请选择报告', trigger: 'change' }],
-    format: [{ required: true, message: '请选择格式', trigger: 'change' }],
-};
 
 async function fetchAllReports() {
     try {
@@ -528,7 +586,7 @@ async function fetchExports() {
         const res = await auditGovernanceApi.reportExports(exportFilter.report_id);
         if (res.success) exports.value = res.data || [];
     } catch {
-        ElMessage.error('加载导出记录失败');
+        ElMessage.error(t('retention_audit_page.messages.load_exports_failed'));
     } finally {
         loadingExports.value = false;
     }
@@ -549,14 +607,14 @@ async function handleExport() {
     try {
         const res = await auditGovernanceApi.exportReport(exportForm.report_id, exportForm.format);
         if (res.success) {
-            ElMessage.success('报告已导出');
+            ElMessage.success(t('retention_audit_page.messages.export_done'));
             showExportDialog.value = false;
             if (exportFilter.report_id === exportForm.report_id) {
                 await fetchExports();
             }
         }
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '导出失败');
+        ElMessage.error(err.response?.data?.message || t('retention_audit_page.messages.export_failed'));
     } finally {
         exporting.value = false;
     }
@@ -576,7 +634,7 @@ async function fetchCleanupHistory() {
         const res = await auditGovernanceApi.cleanupHistory();
         if (res.success) cleanupHistory.value = res.data || [];
     } catch {
-        ElMessage.error('加载清理历史失败');
+        ElMessage.error(t('retention_audit_page.messages.load_history_failed'));
     } finally {
         loadingHistory.value = false;
     }
@@ -593,17 +651,11 @@ function sourceTag(source) {
 }
 
 function sourceLabel(source) {
-    const map = {
-        audit_log: '审计日志', security_log: '安全日志', error_log: '错误日志', system_log: '系统日志',
-        apm_request: 'APM 请求', webhook_event: 'Webhook 事件', webhook_delivery: 'Webhook 投递',
-        license: 'License', api_endpoint: 'API 端点',
-    };
-    return map[source] || source;
+    return sourceLabels.value[source] || source;
 }
 
 function freqLabel(freq) {
-    const map = { daily: '每天', weekly: '每周', monthly: '每月', manual: '手动' };
-    return map[freq] || freq;
+    return frequencyLabels.value[freq] || freq;
 }
 
 function exportStatusTag(status) {
@@ -612,18 +664,23 @@ function exportStatusTag(status) {
 }
 
 function exportStatusLabel(status) {
-    const map = { pending: '等待中', processing: '处理中', completed: '已完成', failed: '失败' };
-    return map[status] || status;
+    return exportStatusLabels.value[status] || status;
+}
+
+function cleanupStatusLabel(status) {
+    return cleanupStatusLabels.value[status] || status;
 }
 
 function formatTime(time) {
     if (!time) return '—';
-    return new Date(time).toLocaleString('zh-CN');
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(time).toLocaleString(loc);
 }
 
 function formatNumber(n) {
     if (!n && n !== 0) return '0';
-    return n.toLocaleString();
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return n.toLocaleString(loc);
 }
 
 function formatBytes(bytes) {

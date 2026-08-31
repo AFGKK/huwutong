@@ -37,6 +37,7 @@ export function useUserChatEcho({
     let lastTypingSentAt = 0
 
     let incomingPollInterval = null
+    let messagePollInterval = null
 
     const handledCallIds = new Set()
 
@@ -170,6 +171,30 @@ export function useUserChatEcho({
 
         if (!notifications?.value || !payload?.id) return
 
+        const groupKey = payload.group_key || payload.payload?.group_key
+        if (groupKey) {
+            const existingIdx = notifications.value.findIndex(n =>
+                n.id === payload.id
+                || n.group_key === groupKey
+                || n.payload?.group_key === groupKey
+            )
+            if (existingIdx >= 0) {
+                notifications.value.splice(existingIdx, 1, {
+                    ...notifications.value[existingIdx],
+                    id: payload.id,
+                    type: payload.type,
+                    title: payload.title,
+                    content: payload.content,
+                    payload: payload.payload,
+                    group_key: groupKey,
+                    is_read: false,
+                    updated_at: payload.updated_at || payload.created_at,
+                    created_at: payload.created_at,
+                })
+                return
+            }
+        }
+
         if (notifications.value.some(n => n.id === payload.id)) return
 
         notifications.value.unshift({
@@ -184,9 +209,13 @@ export function useUserChatEcho({
 
             payload: payload.payload,
 
+            group_key: groupKey,
+
             is_read: false,
 
             created_at: payload.created_at,
+
+            updated_at: payload.updated_at || payload.created_at,
 
         })
 
@@ -242,6 +271,52 @@ export function useUserChatEcho({
 
     }
 
+    async function pollMessagesFallback() {
+        try {
+            const convRes = await apiClient.get('/user-chat/conversations')
+            const list = convRes.data?.data
+            if (Array.isArray(list)) conversations.value = list
+        } catch { /* ignore */ }
+
+        const convId = activeConv.value?.id
+        if (!convId) return
+
+        try {
+            const res = await apiClient.get('/user-chat/conversations/' + convId + '/messages')
+            const body = res.data || {}
+            const items = Array.isArray(body.data) ? body.data : (body.data?.items || body.data?.data || [])
+            if (!Array.isArray(items) || !items.length) return
+            const existing = new Set(messages.value.map(m => m.id))
+            const incoming = items.filter(m => m.id && !existing.has(m.id))
+            if (!incoming.length) return
+            incoming.sort((a, b) => {
+                const ta = new Date(a.created_at || a.sent_at || 0).getTime()
+                const tb = new Date(b.created_at || b.sent_at || 0).getTime()
+                return ta - tb
+            })
+            incoming.forEach((payload) => {
+                messages.value.push({ ...payload, _expanded: false })
+                if (payload.sender_id !== myId.value && payload.id) {
+                    markDeliveredBatch([payload.id])
+                }
+            })
+            scrollToBottom?.()
+        } catch { /* ignore */ }
+    }
+
+    function startMessagePoll() {
+        if (messagePollInterval) return
+        pollMessagesFallback()
+        messagePollInterval = setInterval(pollMessagesFallback, 5000)
+    }
+
+    function stopMessagePoll() {
+        if (messagePollInterval) {
+            clearInterval(messagePollInterval)
+            messagePollInterval = null
+        }
+    }
+
 
 
     async function pulseTyping() {
@@ -278,15 +353,14 @@ export function useUserChatEcho({
 
 
 
-        if (onIncomingCall) {
-
-            startIncomingPoll()
-
+        // 只有 Echo 不可用时才启动轮询
+        const echoAvailable = typeof window.Echo === 'object' && window.Echo
+        if (!echoAvailable) {
+            if (onIncomingCall) startIncomingPoll()
+            startMessagePoll()
+            return
         }
-
-
-
-        if (typeof window.Echo === 'undefined' || !window.Echo) return
+        stopMessagePoll()
 
 
 
@@ -343,6 +417,7 @@ export function useUserChatEcho({
         clearTypingTimers()
 
         stopIncomingPoll()
+        stopMessagePoll()
 
         handledCallIds.clear()
 

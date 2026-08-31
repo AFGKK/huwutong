@@ -2,7 +2,7 @@
     <div>
         <el-dialog
             v-model="visible"
-            :title="notification?.title || '系统通知'"
+            :title="notification?.title || t('critical_notif.title')"
             width="480px"
             :close-on-click-modal="false"
             :close-on-press-escape="false"
@@ -11,7 +11,7 @@
             <div class="critical-notif-body">
                 <el-alert
                     v-if="notification?.type === 'app_suspended'"
-                    title="应用已下架"
+                    :title="t('critical_notif.app_suspended')"
                     type="error"
                     :description="notification?.content"
                     show-icon
@@ -19,7 +19,7 @@
                 />
                 <el-alert
                     v-else-if="notification?.type === 'app_force_update'"
-                    title="强制更新提醒"
+                    :title="t('critical_notif.force_update')"
                     type="warning"
                     :description="notification?.content"
                     show-icon
@@ -29,13 +29,13 @@
 
                 <div v-if="notification?.payload" class="notif-payload mt-3">
                     <el-descriptions :column="1" border size="small" v-if="notification.payload.app_name">
-                        <el-descriptions-item label="应用">{{ notification.payload.app_name }}</el-descriptions-item>
-                        <el-descriptions-item v-if="notification.payload.target_version" label="目标版本">v{{ notification.payload.target_version }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('critical_notif.app')">{{ notification.payload.app_name }}</el-descriptions-item>
+                        <el-descriptions-item v-if="notification.payload.target_version" :label="t('critical_notif.target_version')">v{{ notification.payload.target_version }}</el-descriptions-item>
                     </el-descriptions>
                 </div>
             </div>
             <template #footer>
-                <el-button type="primary" @click="acknowledge">我知道了</el-button>
+                <el-button type="primary" @click="acknowledge">{{ t('critical_notif.got_it') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -43,9 +43,10 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-import { ElMessage } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import request from '@/utils/request';
 
+const { t } = useI18n();
 const visible = ref(false);
 const notification = ref(null);
 let pollTimer = null;
@@ -54,7 +55,6 @@ async function checkCriticalNotifications() {
     try {
         const { data: res } = await request.get('/notifications/unread-count', { silentAuth: true });
         if (res?.data?.critical_count > 0 || res?.critical_count > 0) {
-            // 有未读关键通知，获取第一条
             const { data: listRes } = await request.get('/notifications', {
                 params: { per_page: 1, type: 'app_suspended,app_force_update', unread: true },
                 silentAuth: true,
@@ -80,7 +80,6 @@ async function acknowledge() {
 
 onMounted(() => {
     checkCriticalNotifications();
-    // 每 30 秒轮询一次关键通知
     pollTimer = setInterval(checkCriticalNotifications, 30000);
 });
 

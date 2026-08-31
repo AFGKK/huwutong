@@ -1,15 +1,15 @@
 <template>
     <div class="domain-whitelist-container">
-        <el-page-header :content="'域名白名单验证'" @back="$router.push('/admin/dashboard')" />
+        <el-page-header :content="t('domain_whitelist_page.title')" @back="$router.push('/admin/dashboard')" />
 
         <!-- 搜索 License -->
         <el-card class="search-card">
             <el-form :model="searchForm" inline>
-                <el-form-item label="License ID">
+                <el-form-item :label="t('domain_whitelist_page.license_id')">
                     <el-input-number v-model="searchForm.license_id" :min="1" />
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="loadData" :loading="loading">查询</el-button>
+                    <el-button type="primary" @click="loadData" :loading="loading">{{ t('actions.search') }}</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -17,74 +17,50 @@
         <template v-if="loaded">
             <!-- 统计卡片 -->
             <el-row :gutter="20" class="stat-cards">
-                <el-col :span="4">
+                <el-col :span="4" v-for="card in statCards" :key="card.key">
                     <el-card shadow="hover">
-                        <div class="stat-label">域名总数</div>
-                        <div class="stat-value">{{ stats.active }}/{{ stats.max_domains }}</div>
-                    </el-card>
-                </el-col>
-                <el-col :span="4">
-                    <el-card shadow="hover">
-                        <div class="stat-label">通配符</div>
-                        <div class="stat-value">{{ stats.wildcard }}</div>
-                    </el-card>
-                </el-col>
-                <el-col :span="4">
-                    <el-card shadow="hover">
-                        <div class="stat-label">待审批</div>
-                        <div class="stat-value text-warning">{{ stats.pending }}</div>
-                    </el-card>
-                </el-col>
-                <el-col :span="6">
-                    <el-card shadow="hover">
-                        <div class="stat-label">近7天通过</div>
-                        <div class="stat-value text-success">{{ stats.recent_passed }}</div>
-                    </el-card>
-                </el-col>
-                <el-col :span="6">
-                    <el-card shadow="hover">
-                        <div class="stat-label">近7天拦截</div>
-                        <div class="stat-value text-danger">{{ stats.recent_blocked }}</div>
+                        <div class="stat-label">{{ card.label }}</div>
+                        <div class="stat-value" :class="card.class">{{ card.value }}</div>
                     </el-card>
                 </el-col>
             </el-row>
 
             <el-tabs v-model="activeTab" class="main-tabs">
                 <!-- 白名单管理 -->
-                <el-tab-pane label="白名单管理" name="list">
+                <el-tab-pane :label="t('domain_whitelist_page.tabs.list')" name="list">
                     <div class="section-header">
-                        <h3>域名白名单 (License #{{ searchForm.license_id }})</h3>
+                        <h3>{{ t('domain_whitelist_page.list_title', { id: searchForm.license_id }) }}</h3>
                         <div>
-                            <el-button size="small" @click="showBatchDialog = true">批量添加</el-button>
-                            <el-button size="small" type="primary" @click="showAddDialog = true">添加域名</el-button>
+                            <el-button size="small" @click="showBatchDialog = true">{{ t('domain_whitelist_page.btn_batch_add') }}</el-button>
+                            <el-button size="small" type="primary" @click="showAddDialog = true">{{ t('domain_whitelist_page.btn_add_domain') }}</el-button>
                         </div>
                     </div>
 
                     <el-table :data="domains" v-loading="loading" stripe>
-                        <el-table-column prop="domain" label="域名" min-width="250">
+                        <el-table-column prop="domain" :label="t('domain_whitelist_page.columns.domain')" min-width="250">
                             <template #default="{ row }">
                                 <code>{{ row.domain }}</code>
-                                <el-tag v-if="row.is_wildcard" size="small" type="warning" class="tag-spacer">通配符</el-tag>
+                                <el-tag v-if="row.is_wildcard" size="small" type="warning" class="tag-spacer">{{ t('domain_whitelist_page.wildcard_tag') }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="scope" label="校验范围" width="130">
+                        <el-table-column prop="scope" :label="t('domain_whitelist_page.columns.scope')" width="130">
                             <template #default="{ row }">
                                 <el-tag :type="scopeTagType(row.scope)" size="small">{{ scopeLabel(row.scope) }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="status" label="状态" width="100">
+                        <el-table-column prop="status" :label="t('domain_whitelist_page.columns.status')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="statusTagType(row.status)" size="small">
                                     {{ statusLabel(row.status) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="notes" label="备注" min-width="150" show-overflow-tooltip />
-                        <el-table-column prop="created_at" label="添加时间" width="170" />
-                        <el-table-column label="操作" width="120" fixed="right">
+                        <el-table-column prop="notes" :label="t('domain_whitelist_page.columns.notes')" min-width="150" show-overflow-tooltip />
+                        <el-table-column prop="created_at" :label="t('domain_whitelist_page.columns.created_at')" width="170" />
+                        <el-table-column :label="t('domain_whitelist_page.columns.actions')" width="120" fixed="right">
                             <template #default="{ row }">
                                 <el-button size="small" type="danger" plain @click="handleRemove(row)">
-                                    删除
+                                    {{ t('actions.delete') }}
                                 </el-button>
                             </template>
                         </el-table-column>
@@ -92,41 +68,45 @@
                 </el-tab-pane>
 
                 <!-- 验证日志 -->
-                <el-tab-pane label="验证日志" name="logs">
+                <el-tab-pane :label="t('domain_whitelist_page.tabs.logs')" name="logs">
                     <el-table :data="logs" v-loading="loadingLogs" stripe>
-                        <el-table-column prop="domain" label="请求域名" min-width="220" />
-                        <el-table-column prop="result" label="结果" width="100">
+                        <el-table-column prop="domain" :label="t('domain_whitelist_page.columns.request_domain')" min-width="220" />
+                        <el-table-column prop="result" :label="t('domain_whitelist_page.columns.result')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="row.result === 'passed' ? 'success' : 'danger'" size="small">
-                                    {{ row.result === 'passed' ? '通过' : '拦截' }}
+                                    {{ row.result === 'passed' ? t('domain_whitelist_page.result.passed') : t('domain_whitelist_page.result.blocked') }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="ip_address" label="IP" width="140" />
-                        <el-table-column prop="reason" label="原因" min-width="250" show-overflow-tooltip />
-                        <el-table-column prop="created_at" label="时间" width="170" />
+                        <el-table-column prop="ip_address" :label="t('domain_whitelist_page.columns.ip')" width="140" />
+                        <el-table-column prop="reason" :label="t('domain_whitelist_page.columns.reason')" min-width="250" show-overflow-tooltip />
+                        <el-table-column prop="created_at" :label="t('domain_whitelist_page.columns.time')" width="170" />
                     </el-table>
                 </el-tab-pane>
 
                 <!-- 域名验证检查 -->
-                <el-tab-pane label="域名验证" name="verify">
+                <el-tab-pane :label="t('domain_whitelist_page.tabs.verify')" name="verify">
                     <el-card>
-                        <template #header>模拟域名验证</template>
+                        <template #header>{{ t('domain_whitelist_page.verify_card_title') }}</template>
                         <el-form :model="verifyForm" label-width="120px">
-                            <el-form-item label="License ID">
+                            <el-form-item :label="t('domain_whitelist_page.license_id')">
                                 <el-input-number v-model="verifyForm.license_id" :min="1" />
                             </el-form-item>
-                            <el-form-item label="域名">
-                                <el-input v-model="verifyForm.domain" placeholder="example.com" />
+                            <el-form-item :label="t('domain_whitelist_page.columns.domain')">
+                                <el-input v-model="verifyForm.domain" :placeholder="t('domain_whitelist_page.domain_ph')" />
                             </el-form-item>
-                            <el-form-item label="校验范围">
+                            <el-form-item :label="t('domain_whitelist_page.columns.scope')">
                                 <el-select v-model="verifyForm.scope">
-                                    <el-option label="验证" value="validation" />
-                                    <el-option label="激活" value="activation" />
+                                    <el-option
+                                        v-for="opt in verifyScopeOptions"
+                                        :key="opt.value"
+                                        :label="opt.label"
+                                        :value="opt.value"
+                                    />
                                 </el-select>
                             </el-form-item>
                             <el-form-item>
-                                <el-button type="primary" @click="handleVerify" :loading="verifying">验证</el-button>
+                                <el-button type="primary" @click="handleVerify" :loading="verifying">{{ t('domain_whitelist_page.btn_verify') }}</el-button>
                             </el-form-item>
                         </el-form>
                         <el-alert
@@ -135,11 +115,11 @@
                             show-icon
                         >
                             <template #title>
-                                {{ verifyResult.passed ? '✅ 验证通过' : '❌ 验证失败' }}
+                                {{ verifyResult.passed ? t('domain_whitelist_page.verify_passed') : t('domain_whitelist_page.verify_failed') }}
                             </template>
                             {{ verifyResult.reason }}
                             <template v-if="verifyResult.matched">
-                                <br>匹配域名: <code>{{ verifyResult.matched }}</code>
+                                <br>{{ t('domain_whitelist_page.matched_domain') }} <code>{{ verifyResult.matched }}</code>
                             </template>
                         </el-alert>
                     </el-card>
@@ -148,81 +128,93 @@
         </template>
 
         <!-- 添加域名 Dialog -->
-        <el-dialog v-model="showAddDialog" title="添加白名单域名" width="500px">
+        <el-dialog v-model="showAddDialog" :title="t('domain_whitelist_page.add_dialog_title')" width="500px">
             <el-form :model="addForm" label-width="120px" :rules="addRules" ref="addFormRef">
-                <el-form-item label="域名" prop="domain">
-                    <el-input v-model="addForm.domain" placeholder="example.com 或 *.example.com" />
-                    <div class="form-tip">支持通配符格式: *.example.com 匹配所有子域名</div>
+                <el-form-item :label="t('domain_whitelist_page.columns.domain')" prop="domain">
+                    <el-input v-model="addForm.domain" :placeholder="t('domain_whitelist_page.domain_add_ph')" />
+                    <div class="form-tip">{{ t('domain_whitelist_page.domain_wildcard_tip') }}</div>
                 </el-form-item>
-                <el-form-item label="校验范围" prop="scope">
+                <el-form-item :label="t('domain_whitelist_page.columns.scope')" prop="scope">
                     <el-select v-model="addForm.scope">
-                        <el-option label="激活+验证 (both)" value="both" />
-                        <el-option label="仅激活" value="activation" />
-                        <el-option label="仅验证" value="validation" />
+                        <el-option
+                            v-for="opt in scopeOptions"
+                            :key="opt.value"
+                            :label="opt.label"
+                            :value="opt.value"
+                        />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="备注">
+                <el-form-item :label="t('domain_whitelist_page.columns.notes')">
                     <el-input v-model="addForm.notes" type="textarea" :rows="2" maxlength="500" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showAddDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleAdd" :loading="adding">添加</el-button>
+                <el-button @click="showAddDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleAdd" :loading="adding">{{ t('domain_whitelist_page.btn_add') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 批量添加 Dialog -->
-        <el-dialog v-model="showBatchDialog" title="批量添加域名" width="550px">
+        <el-dialog v-model="showBatchDialog" :title="t('domain_whitelist_page.batch_dialog_title')" width="550px">
             <el-form label-width="120px">
-                <el-form-item label="域名列表">
+                <el-form-item :label="t('domain_whitelist_page.domain_list')">
                     <el-input
                         v-model="batchInput"
                         type="textarea"
                         :rows="6"
-                        placeholder="每行一个域名，如:&#10;example.com&#10;api.example.com&#10;*.example.com"
+                        :placeholder="t('domain_whitelist_page.batch_placeholder')"
                     />
-                    <div class="form-tip">每行一个域名，支持通配符 (*.)</div>
+                    <div class="form-tip">{{ t('domain_whitelist_page.batch_tip') }}</div>
                 </el-form-item>
-                <el-form-item label="校验范围">
+                <el-form-item :label="t('domain_whitelist_page.columns.scope')">
                     <el-select v-model="batchScope">
-                        <el-option label="激活+验证 (both)" value="both" />
-                        <el-option label="仅激活" value="activation" />
-                        <el-option label="仅验证" value="validation" />
+                        <el-option
+                            v-for="opt in scopeOptions"
+                            :key="opt.value"
+                            :label="opt.label"
+                            :value="opt.value"
+                        />
                     </el-select>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showBatchDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleBatchAdd" :loading="batchAdding">批量添加</el-button>
+                <el-button @click="showBatchDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleBatchAdd" :loading="batchAdding">{{ t('domain_whitelist_page.btn_batch_submit') }}</el-button>
             </template>
             <!-- 批量结果 -->
             <el-table v-if="batchResults.length > 0" :data="batchResults" stripe size="small" max-height="300">
-                <el-table-column prop="domain" label="域名" />
-                <el-table-column prop="success" label="结果" width="80">
+                <el-table-column prop="domain" :label="t('domain_whitelist_page.columns.domain')" />
+                <el-table-column prop="success" :label="t('domain_whitelist_page.columns.result')" width="80">
                     <template #default="{ row }">
                         <el-tag :type="row.success ? 'success' : 'danger'" size="small">
-                            {{ row.success ? '成功' : '失败' }}
+                            {{ row.success ? t('domain_whitelist_page.result.success') : t('domain_whitelist_page.result.failed') }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="status" label="状态" width="100">
+                <el-table-column prop="status" :label="t('domain_whitelist_page.columns.status')" width="100">
                     <template #default="{ row }">
-                        <span v-if="row.status">{{ row.status === 'active' ? '已生效' : '待审批' }}</span>
+                        <span v-if="row.status">{{ row.status === 'active' ? statusLabel('active') : statusLabel('pending') }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="error" label="错误" min-width="200" show-overflow-tooltip />
+                <el-table-column prop="error" :label="t('domain_whitelist_page.columns.error')" min-width="200" show-overflow-tooltip />
             </el-table>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
     getDomainWhitelist, addDomain, batchAddDomains, removeDomain,
     verifyDomain, getDomainLogs, getDomainStats,
 } from '@/api/domainWhitelist'
+
+const { t } = useI18n()
+
+const scopeKeys = ['both', 'activation', 'validation']
+const statusKeys = ['active', 'pending', 'pending_remove', 'rejected', 'inactive', 'removed']
 
 const searchForm = ref({ license_id: 1 })
 const loading = ref(false)
@@ -233,13 +225,58 @@ const loadingLogs = ref(false)
 const stats = ref({ total: 0, active: 0, pending: 0, wildcard: 0, recent_passed: 0, recent_blocked: 0, max_domains: 20 })
 const activeTab = ref('list')
 
+const statCards = computed(() => [
+    {
+        key: 'total',
+        label: t('domain_whitelist_page.stats.total_domains'),
+        value: `${stats.value.active}/${stats.value.max_domains}`,
+        class: '',
+    },
+    {
+        key: 'wildcard',
+        label: t('domain_whitelist_page.stats.wildcard'),
+        value: stats.value.wildcard,
+        class: '',
+    },
+    {
+        key: 'pending',
+        label: t('domain_whitelist_page.stats.pending'),
+        value: stats.value.pending,
+        class: 'text-warning',
+    },
+    {
+        key: 'recent_passed',
+        label: t('domain_whitelist_page.stats.recent_passed'),
+        value: stats.value.recent_passed,
+        class: 'text-success',
+    },
+    {
+        key: 'recent_blocked',
+        label: t('domain_whitelist_page.stats.recent_blocked'),
+        value: stats.value.recent_blocked,
+        class: 'text-danger',
+    },
+])
+
+const scopeOptions = computed(() =>
+    scopeKeys.map((value) => ({
+        value,
+        label: t(`domain_whitelist_page.scope.${value}`),
+    })),
+)
+
+const verifyScopeOptions = computed(() => [
+    { value: 'validation', label: t('domain_whitelist_page.scope.validation_short') },
+    { value: 'activation', label: t('domain_whitelist_page.scope.activation_short') },
+])
+
 // 添加
 const showAddDialog = ref(false)
 const addForm = ref({ domain: '', scope: 'both', notes: '' })
-const addRules = {
-    domain: [{ required: true, message: '请输入域名' }],
-    scope: [{ required: true, message: '请选择校验范围' }],
-}
+const addRules = computed(() => ({
+    domain: [{ required: true, message: t('domain_whitelist_page.rules.domain_required') }],
+    scope: [{ required: true, message: t('domain_whitelist_page.rules.scope_required') }],
+}))
 const addFormRef = ref(null)
 const adding = ref(false)
 
@@ -296,7 +333,7 @@ async function fetchLogs() {
 }
 
 function scopeLabel(s) {
-    return { activation: '仅激活', validation: '仅验证', both: '激活+验证' }[s] || s
+    return scopeKeys.includes(s) ? t(`domain_whitelist_page.scope.${s}`) : s
 }
 
 function scopeTagType(s) {
@@ -304,7 +341,7 @@ function scopeTagType(s) {
 }
 
 function statusLabel(s) {
-    return { active: '已生效', pending: '待审批', pending_remove: '待删除', rejected: '已拒绝', inactive: '已停用', removed: '已移除' }[s] || s
+    return statusKeys.includes(s) ? t(`domain_whitelist_page.status.${s}`) : s
 }
 
 function statusTagType(s) {
@@ -317,13 +354,13 @@ async function handleAdd() {
     adding.value = true
     try {
         const res = await addDomain(searchForm.value.license_id, addForm.value)
-        ElMessage.success(res.message || '域名已添加')
+        ElMessage.success(res.message || t('domain_whitelist_page.messages.domain_added'))
         showAddDialog.value = false
         addForm.value = { domain: '', scope: 'both', notes: '' }
         fetchDomains()
         fetchStats()
     } catch (e) {
-        ElMessage.error(e.message || '添加失败')
+        ElMessage.error(e.message || t('domain_whitelist_page.messages.add_failed'))
     }
     adding.value = false
 }
@@ -331,7 +368,7 @@ async function handleAdd() {
 async function handleBatchAdd() {
     const lines = batchInput.value.split('\n').map(l => l.trim()).filter(Boolean)
     if (lines.length === 0) {
-        ElMessage.warning('请至少输入一个域名')
+        ElMessage.warning(t('domain_whitelist_page.messages.batch_empty'))
         return
     }
     batchAdding.value = true
@@ -341,20 +378,24 @@ async function handleBatchAdd() {
             scope: batchScope.value,
         })
         batchResults.value = res.data?.results || []
-        ElMessage.success(`批量添加完成，${batchResults.value.filter(r => r.success).length} 成功`)
+        const successCount = batchResults.value.filter(r => r.success).length
+        ElMessage.success(t('domain_whitelist_page.messages.batch_done', { n: successCount }))
         fetchDomains()
         fetchStats()
     } catch (e) {
-        ElMessage.error(e.message || '批量添加失败')
+        ElMessage.error(e.message || t('domain_whitelist_page.messages.batch_failed'))
     }
     batchAdding.value = false
 }
 
 async function handleRemove(row) {
     try {
-        await ElMessageBox.confirm(`确定删除域名 ${row.domain}？`, '确认')
+        await ElMessageBox.confirm(
+            t('domain_whitelist_page.confirm.remove', { domain: row.domain }),
+            t('actions.confirm'),
+        )
         await removeDomain(searchForm.value.license_id, row.id)
-        ElMessage.success('已删除')
+        ElMessage.success(t('domain_whitelist_page.messages.removed'))
         fetchDomains()
         fetchStats()
     } catch { /* ignore */ }
@@ -367,7 +408,7 @@ async function handleVerify() {
         const res = await verifyDomain(verifyForm.value)
         verifyResult.value = res.data || { passed: true }
     } catch (e) {
-        verifyResult.value = { passed: false, reason: e.message || '验证失败' }
+        verifyResult.value = { passed: false, reason: e.message || t('domain_whitelist_page.messages.verify_failed') }
     }
     verifying.value = false
 }

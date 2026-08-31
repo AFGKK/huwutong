@@ -1,5 +1,6 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { ARIA_LABELS, SEMANTIC_ROLES } from '@/utils/a11y';
+import i18n from '@/i18n';
 
 /**
  * 屏幕阅读器实时通告管理
@@ -200,7 +201,7 @@ export function usePageAnnouncer() {
     function updatePageTitle(title) {
         previousTitle.value = document.title;
         document.title = title;
-        announce(`已导航到 ${title}`);
+        announce(i18n.global.t('a11y.navigated_to', { title }));
     }
 
     /**

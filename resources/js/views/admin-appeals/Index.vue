@@ -3,11 +3,11 @@
         <!-- 页头 -->
         <div class="page-header">
             <div>
-                <h2>📋 账号申诉审核</h2>
-                <p class="text-gray-500 text-sm">管理用户提交的账号申诉，审核通过后自动恢复账号</p>
+                <h2>{{ t('admin_appeals_page.title') }}</h2>
+                <p class="text-gray-500 text-sm">{{ t('admin_appeals_page.desc') }}</p>
             </div>
             <el-button @click="refresh" :loading="loading">
-                <el-icon><Refresh /></el-icon> 刷新
+                <el-icon><Refresh /></el-icon> {{ t('admin_appeals_page.refresh') }}
             </el-button>
         </div>
 
@@ -15,53 +15,50 @@
         <el-row :gutter="16" class="mb-4">
             <el-col :span="4">
                 <el-card shadow="never" @click="filterStatus = ''; loadList()" style="cursor:pointer" :class="{ 'card-active': !filterStatus }">
-                    <div class="stat-item"><div class="stat-value">{{ stats.total }}</div><div class="stat-label">全部</div></div>
+                    <div class="stat-item"><div class="stat-value">{{ stats.total }}</div><div class="stat-label">{{ t('admin_appeals_page.stats.all') }}</div></div>
                 </el-card>
             </el-col>
             <el-col :span="5">
                 <el-card shadow="never" @click="filterStatus = 'pending'; loadList()" style="cursor:pointer" :class="{ 'card-active': filterStatus === 'pending' }">
-                    <div class="stat-item"><div class="stat-value text-warning">{{ stats.pending }}</div><div class="stat-label">待处理</div></div>
+                    <div class="stat-item"><div class="stat-value text-warning">{{ stats.pending }}</div><div class="stat-label">{{ t('admin_appeals_page.stats.pending') }}</div></div>
                 </el-card>
             </el-col>
             <el-col :span="5">
                 <el-card shadow="never" @click="filterStatus = 'approved'; loadList()" style="cursor:pointer" :class="{ 'card-active': filterStatus === 'approved' }">
-                    <div class="stat-item"><div class="stat-value text-success">{{ stats.approved }}</div><div class="stat-label">已通过</div></div>
+                    <div class="stat-item"><div class="stat-value text-success">{{ stats.approved }}</div><div class="stat-label">{{ t('admin_appeals_page.stats.approved') }}</div></div>
                 </el-card>
             </el-col>
             <el-col :span="5">
                 <el-card shadow="never" @click="filterStatus = 'rejected'; loadList()" style="cursor:pointer" :class="{ 'card-active': filterStatus === 'rejected' }">
-                    <div class="stat-item"><div class="stat-value text-danger">{{ stats.rejected }}</div><div class="stat-label">已驳回</div></div>
+                    <div class="stat-item"><div class="stat-value text-danger">{{ stats.rejected }}</div><div class="stat-label">{{ t('admin_appeals_page.stats.rejected') }}</div></div>
                 </el-card>
             </el-col>
             <el-col :span="5">
                 <el-card shadow="never">
-                    <div class="stat-item"><div class="stat-value">{{ stats.today }}</div><div class="stat-label">今日提交</div></div>
+                    <div class="stat-item"><div class="stat-value">{{ stats.today }}</div><div class="stat-label">{{ t('admin_appeals_page.stats.today') }}</div></div>
                 </el-card>
             </el-col>
         </el-row>
 
         <!-- 趋势图 -->
         <el-card shadow="never" class="mb-4">
-            <template #header><span>📈 近 7 天趋势</span></template>
+            <template #header><span>{{ t('admin_appeals_page.trend_title') }}</span></template>
             <div ref="trendChartRef" style="height:200px"></div>
         </el-card>
 
         <!-- 筛选 -->
         <el-card shadow="never" class="mb-4">
             <el-form :inline="true" :model="filters" size="small">
-                <el-form-item label="状态">
-                    <el-select v-model="filterStatus" placeholder="全部" clearable @change="loadList" style="width:130px">
-                        <el-option label="待处理" value="pending" />
-                        <el-option label="审核中" value="reviewing" />
-                        <el-option label="已通过" value="approved" />
-                        <el-option label="已驳回" value="rejected" />
+                <el-form-item :label="t('admin_appeals_page.filter.status')">
+                    <el-select v-model="filterStatus" :placeholder="t('admin_appeals_page.filter.all')" clearable @change="loadList" style="width:130px">
+                        <el-option v-for="opt in statusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="搜索">
-                    <el-input v-model="filters.q" placeholder="用户名/邮箱/手机" clearable @clear="loadList" @keyup.enter="loadList" style="width:240px" />
+                <el-form-item :label="t('admin_appeals_page.filter.search')">
+                    <el-input v-model="filters.q" :placeholder="t('admin_appeals_page.filter.search_ph')" clearable @clear="loadList" @keyup.enter="loadList" style="width:240px" />
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="loadList">搜索</el-button>
+                    <el-button type="primary" @click="loadList">{{ t('actions.search') }}</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -69,38 +66,38 @@
         <!-- 数据表格 -->
         <el-card shadow="never">
             <el-table :data="list" v-loading="loading" stripe style="width:100%">
-                <el-table-column label="用户" min-width="160">
+                <el-table-column :label="t('admin_appeals_page.cols.user')" min-width="160">
                     <template #default="{ row }">
                         <div class="user-info">
                             <span class="user-avatar">{{ row.user?.name?.charAt(0) || '?' }}</span>
                             <div>
-                                <div class="user-name">{{ row.user?.name || '用户 #'+row.user_id }}</div>
+                                <div class="user-name">{{ row.user?.name || t('admin_appeals_page.user_fallback', { id: row.user_id }) }}</div>
                                 <div class="user-email">{{ row.user?.email || '-' }}</div>
                             </div>
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column prop="reason" label="申诉原因" width="130">
+                <el-table-column prop="reason" :label="t('admin_appeals_page.cols.reason')" width="130">
                     <template #default="{ row }">{{ reasonLabel(row.reason) }}</template>
                 </el-table-column>
-                <el-table-column label="状态" width="100">
+                <el-table-column :label="t('admin_appeals_page.cols.status')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="提交时间" width="170">
+                <el-table-column :label="t('admin_appeals_page.cols.submitted_at')" width="170">
                     <template #default="{ row }">{{ row.appealed_at || row.created_at }}</template>
                 </el-table-column>
-                <el-table-column label="审核人" width="120">
+                <el-table-column :label="t('admin_appeals_page.cols.reviewer')" width="120">
                     <template #default="{ row }">{{ row.reviewer?.name || '-' }}</template>
                 </el-table-column>
-                <el-table-column label="审核时间" width="170">
+                <el-table-column :label="t('admin_appeals_page.cols.reviewed_at')" width="170">
                     <template #default="{ row }">{{ row.reviewed_at || '-' }}</template>
                 </el-table-column>
-                <el-table-column label="操作" width="200" fixed="right">
+                <el-table-column :label="t('admin_appeals_page.cols.ops')" width="200" fixed="right">
                     <template #default="{ row }">
-                        <el-button v-if="row.status === 'pending' || row.status === 'reviewing'" text size="small" type="primary" @click="openReview(row)">审核</el-button>
-                        <el-button text size="small" @click="openDetail(row)">详情</el-button>
+                        <el-button v-if="row.status === 'pending' || row.status === 'reviewing'" text size="small" type="primary" @click="openReview(row)">{{ t('admin_appeals_page.review') }}</el-button>
+                        <el-button text size="small" @click="openDetail(row)">{{ t('admin_appeals_page.detail') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -110,59 +107,59 @@
         </el-card>
 
         <!-- 详情对话框 -->
-        <el-dialog v-model="showDetail" title="申诉详情" width="600px">
+        <el-dialog v-model="showDetail" :title="t('admin_appeals_page.detail_dialog.title')" width="600px">
             <template v-if="detailData">
                 <el-descriptions :column="1" border size="small">
-                    <el-descriptions-item label="用户">{{ detailData.user?.name }} ({{ detailData.user?.email }})</el-descriptions-item>
-                    <el-descriptions-item label="状态"><el-tag :type="statusTagType(detailData.status)" size="small">{{ statusLabel(detailData.status) }}</el-tag></el-descriptions-item>
-                    <el-descriptions-item label="申诉原因">{{ reasonLabel(detailData.reason) }}</el-descriptions-item>
-                    <el-descriptions-item label="详细说明">{{ detailData.explanation || '无' }}</el-descriptions-item>
-                    <el-descriptions-item label="联系电话">{{ detailData.contact_phone || '无' }}</el-descriptions-item>
-                    <el-descriptions-item label="联系邮箱">{{ detailData.contact_email || '无' }}</el-descriptions-item>
-                    <el-descriptions-item label="提交时间">{{ detailData.appealed_at || detailData.created_at }}</el-descriptions-item>
-                    <el-descriptions-item label="审核人">{{ detailData.reviewer?.name || '未审核' }}</el-descriptions-item>
-                    <el-descriptions-item label="审核意见">{{ detailData.review_comment || '无' }}</el-descriptions-item>
-                    <el-descriptions-item label="审核时间">{{ detailData.reviewed_at || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_appeals_page.detail_dialog.user')">{{ detailData.user?.name }} ({{ detailData.user?.email }})</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_appeals_page.detail_dialog.status')"><el-tag :type="statusTagType(detailData.status)" size="small">{{ statusLabel(detailData.status) }}</el-tag></el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_appeals_page.detail_dialog.reason')">{{ reasonLabel(detailData.reason) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_appeals_page.detail_dialog.explanation')">{{ detailData.explanation || t('admin_appeals_page.none') }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_appeals_page.detail_dialog.contact_phone')">{{ detailData.contact_phone || t('admin_appeals_page.none') }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_appeals_page.detail_dialog.contact_email')">{{ detailData.contact_email || t('admin_appeals_page.none') }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_appeals_page.detail_dialog.submitted_at')">{{ detailData.appealed_at || detailData.created_at }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_appeals_page.detail_dialog.reviewer')">{{ detailData.reviewer?.name || t('admin_appeals_page.not_reviewed') }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_appeals_page.detail_dialog.review_comment')">{{ detailData.review_comment || t('admin_appeals_page.none') }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_appeals_page.detail_dialog.reviewed_at')">{{ detailData.reviewed_at || '-' }}</el-descriptions-item>
                 </el-descriptions>
                 <!-- 证明材料 -->
                 <div v-if="detailData.attachments?.length" class="mt-4">
-                    <h4>证明材料</h4>
+                    <h4>{{ t('admin_appeals_page.detail_dialog.attachments') }}</h4>
                     <div class="attach-grid">
                         <div v-for="(att, i) in detailData.attachments" :key="i" class="attach-item">
                             <img v-if="isImage(att)" :src="att" class="attach-img" @click="previewUrl = att; showPreview = true" />
-                            <a v-else :href="att" target="_blank" class="attach-link">📎 附件 {{ i + 1 }}</a>
+                            <a v-else :href="att" target="_blank" class="attach-link">{{ t('admin_appeals_page.detail_dialog.attachment_n', { n: i + 1 }) }}</a>
                         </div>
                     </div>
                 </div>
             </template>
             <template #footer>
-                <el-button @click="showDetail = false">关闭</el-button>
-                <el-button v-if="detailData?.status === 'pending' || detailData?.status === 'reviewing'" type="primary" @click="showDetail = false; openReview(detailData)">去审核</el-button>
+                <el-button @click="showDetail = false">{{ t('actions.close') }}</el-button>
+                <el-button v-if="detailData?.status === 'pending' || detailData?.status === 'reviewing'" type="primary" @click="showDetail = false; openReview(detailData)">{{ t('admin_appeals_page.go_review') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 审核对话框 -->
-        <el-dialog v-model="showReview" title="审核申诉" width="500px">
+        <el-dialog v-model="showReview" :title="t('admin_appeals_page.review_dialog.title')" width="500px">
             <div class="review-info">
-                <p><strong>用户：</strong>{{ reviewData?.user?.name }} ({{ reviewData?.user?.email }})</p>
-                <p><strong>申诉原因：</strong>{{ reasonLabel(reviewData?.reason) }}</p>
-                <p><strong>详细说明：</strong>{{ reviewData?.explanation || '无' }}</p>
+                <p><strong>{{ t('admin_appeals_page.review_dialog.user_label') }}：</strong>{{ reviewData?.user?.name }} ({{ reviewData?.user?.email }})</p>
+                <p><strong>{{ t('admin_appeals_page.review_dialog.reason_label') }}：</strong>{{ reasonLabel(reviewData?.reason) }}</p>
+                <p><strong>{{ t('admin_appeals_page.review_dialog.explanation_label') }}：</strong>{{ reviewData?.explanation || t('admin_appeals_page.none') }}</p>
             </div>
             <el-divider />
             <el-form :model="reviewForm" label-position="top" size="small">
-                <el-form-item label="审核结果">
+                <el-form-item :label="t('admin_appeals_page.review_dialog.result')">
                     <el-radio-group v-model="reviewForm.action">
-                        <el-radio value="approve" class="review-approve">✅ 通过 - 恢复账号</el-radio>
-                        <el-radio value="reject" class="review-reject">❌ 驳回 - 维持封禁</el-radio>
+                        <el-radio value="approve" class="review-approve">{{ t('admin_appeals_page.review_dialog.approve') }}</el-radio>
+                        <el-radio value="reject" class="review-reject">{{ t('admin_appeals_page.review_dialog.reject') }}</el-radio>
                     </el-radio-group>
                 </el-form-item>
-                <el-form-item label="审核意见">
-                    <el-input v-model="reviewForm.comment" type="textarea" :rows="4" maxlength="2000" placeholder="请输入审核意见，将通知用户" show-word-limit />
+                <el-form-item :label="t('admin_appeals_page.review_dialog.comment')">
+                    <el-input v-model="reviewForm.comment" type="textarea" :rows="4" maxlength="2000" :placeholder="t('admin_appeals_page.review_dialog.comment_ph')" show-word-limit />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showReview = false">取消</el-button>
-                <el-button type="primary" :loading="reviewing" @click="doReview">提交审核</el-button>
+                <el-button @click="showReview = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="reviewing" @click="doReview">{{ t('admin_appeals_page.review_dialog.submit') }}</el-button>
             </template>
         </el-dialog>
 
@@ -172,9 +169,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import apiClient from '@/utils/request'
+import { getAppeals, getAppealStats, reviewAppeal, startAppealReview } from '@/api/adminAppeals'
+
+const { t } = useI18n()
 
 const list = ref([])
 const loading = ref(false)
@@ -197,13 +197,32 @@ const trendChartRef = ref(null)
 const showPreview = ref(false)
 const previewUrl = ref('')
 
+const reasonLabels = computed(() => ({
+    misunderstanding: t('appeal_page.reason_misunderstanding'),
+    behavior_changed: t('appeal_page.reason_behavior'),
+    urgent_need: t('appeal_page.reason_urgent'),
+    other: t('appeal_page.reason_other'),
+}))
+
+const statusLabels = computed(() => ({
+    pending: t('admin_appeals_page.status.pending'),
+    reviewing: t('admin_appeals_page.status.reviewing'),
+    approved: t('admin_appeals_page.status.approved'),
+    rejected: t('admin_appeals_page.status.rejected'),
+}))
+
+const statusOptions = computed(() => [
+    { label: t('admin_appeals_page.status.pending'), value: 'pending' },
+    { label: t('admin_appeals_page.status.reviewing'), value: 'reviewing' },
+    { label: t('admin_appeals_page.status.approved'), value: 'approved' },
+    { label: t('admin_appeals_page.status.rejected'), value: 'rejected' },
+])
+
 function reasonLabel(val) {
-    const map = { misunderstanding: '账号被误封', behavior_changed: '已改正违规行为', urgent_need: '账号内有重要数据', other: '其他原因' }
-    return map[val] || val
+    return reasonLabels.value[val] || val
 }
 function statusLabel(val) {
-    const map = { pending: '待处理', reviewing: '审核中', approved: '已通过', rejected: '已驳回' }
-    return map[val] || val
+    return statusLabels.value[val] || val
 }
 function statusTagType(val) {
     const map = { pending: 'warning', reviewing: 'info', approved: 'success', rejected: 'danger' }
@@ -215,7 +234,7 @@ function isImage(url) {
 
 async function loadStats() {
     try {
-        const res = await apiClient.get('/admin/appeals/stats')
+        const res = await getAppealStats()
         const d = res.data?.data || {}
         Object.assign(stats, d.stats || {})
         renderTrend(d.trend || [])
@@ -226,14 +245,13 @@ function renderTrend(trend) {
     nextTick(() => {
         const el = trendChartRef.value
         if (!el || !trend.length) return
-        // Simple bar chart using divs
-        el.innerHTML = '<div class="trend-bars">' + trend.map(t => `
-            <div class="trend-col" title="${t.date}">
+        el.innerHTML = '<div class="trend-bars">' + trend.map(item => `
+            <div class="trend-col" title="${item.date}">
                 <div class="trend-bar-wrap">
-                    <div class="trend-bar trend-bar-approved" style="height:${Math.max(t.approved * 30, 2)}px" title="通过 ${t.approved}"></div>
-                    <div class="trend-bar trend-bar-rejected" style="height:${Math.max(t.rejected * 30, 2)}px" title="驳回 ${t.rejected}"></div>
+                    <div class="trend-bar trend-bar-approved" style="height:${Math.max(item.approved * 30, 2)}px" title="${t('admin_appeals_page.trend.approved', { n: item.approved })}"></div>
+                    <div class="trend-bar trend-bar-rejected" style="height:${Math.max(item.rejected * 30, 2)}px" title="${t('admin_appeals_page.trend.rejected', { n: item.rejected })}"></div>
                 </div>
-                <div class="trend-label">${t.date.slice(5)}</div>
+                <div class="trend-label">${item.date.slice(5)}</div>
             </div>
         `).join('') + '</div>'
     })
@@ -245,12 +263,11 @@ async function loadList() {
         const params = { page: page.value }
         if (filterStatus.value) params.status = filterStatus.value
         if (filters.q) params.q = filters.q
-        const res = await apiClient.get('/admin/appeals', { params })
-        const d = res.data?.data || {}
-        list.value = d.data || []
-        total.value = d.total || 0
+        const res = await getAppeals(params)
+        list.value = res.data?.data || []
+        total.value = res.data?.meta?.total || 0
     } catch (e) {
-        ElMessage.error('加载失败')
+        ElMessage.error(t('messages.load_failed'))
     } finally {
         loading.value = false
     }
@@ -268,22 +285,27 @@ function openReview(row) {
     reviewForm.action = 'approve'
     reviewForm.comment = ''
     showReview.value = true
+    if (row.status === 'pending') {
+        startAppealReview(row.id).then(() => {
+            row.status = 'reviewing'
+        }).catch(() => {})
+    }
 }
 
 async function doReview() {
-    if (!reviewForm.action) { ElMessage.warning('请选择审核结果'); return }
+    if (!reviewForm.action) { ElMessage.warning(t('admin_appeals_page.messages.select_result')); return }
     reviewing.value = true
     try {
-        await apiClient.post(`/admin/appeals/${reviewData.value.id}/review`, {
+        await reviewAppeal(reviewData.value.id, {
             action: reviewForm.action,
             comment: reviewForm.comment || undefined,
         })
-        ElMessage.success(reviewForm.action === 'approve' ? '申诉已通过，账号已恢复' : '申诉已驳回')
+        ElMessage.success(reviewForm.action === 'approve' ? t('admin_appeals_page.messages.approve_ok') : t('admin_appeals_page.messages.reject_ok'))
         showReview.value = false
         loadList()
         loadStats()
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '审核失败')
+        ElMessage.error(e.response?.data?.message || t('admin_appeals_page.messages.review_fail'))
     } finally {
         reviewing.value = false
     }
@@ -309,10 +331,10 @@ onMounted(() => { loadList(); loadStats() })
 .text-warning { color: #e6a23c; }
 .text-success { color: #67c23a; }
 .text-danger { color: #f56c6c; }
-.card-active { border-color: #409eff; background: #ecf5ff; }
+.card-active { border-color: #0f172a; background: #f1f5f9; }
 
 .user-info { display: flex; align-items: center; gap: 8px; }
-.user-avatar { width: 32px; height: 32px; border-radius: 50%; background: #409eff; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.user-avatar { width: 32px; height: 32px; border-radius: 50%; background: #0f172a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
 .user-name { font-size: 13px; font-weight: 500; }
 .user-email { font-size: 12px; color: #909399; }
 

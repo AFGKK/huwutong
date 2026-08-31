@@ -3,11 +3,11 @@
     <div class="page-header">
       <h2>
         <el-icon style="vertical-align:middle;margin-right:8px"><Shop /></el-icon>
-        License 二级市场
+        {{ t('admin.menu.license_marketplace') }}
       </h2>
       <div class="header-actions">
         <el-button type="primary" @click="refreshAll" :loading="loading">
-          <el-icon><Refresh /></el-icon> 刷新
+          <el-icon><Refresh /></el-icon> {{ t('license_marketplace_page.refresh') }}
         </el-button>
       </div>
     </div>
@@ -17,31 +17,31 @@
       <el-col :span="4">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value stat-success">{{ stats.activeListings }}</div>
-          <div class="stat-label">在售挂牌</div>
+          <div class="stat-label">{{ t('license_marketplace_page.stats.active_listings') }}</div>
         </el-card>
       </el-col>
       <el-col :span="5">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value stat-warning">{{ stats.pendingApproval }}</div>
-          <div class="stat-label">待审核</div>
+          <div class="stat-label">{{ t('license_marketplace_page.stats.pending_approval') }}</div>
         </el-card>
       </el-col>
       <el-col :span="5">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.totalTransactions }}</div>
-          <div class="stat-label">成交总数</div>
+          <div class="stat-label">{{ t('license_marketplace_page.stats.total_transactions') }}</div>
         </el-card>
       </el-col>
       <el-col :span="5">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value stat-primary">¥{{ stats.totalRevenue?.toFixed(0) }}</div>
-          <div class="stat-label">平台收入</div>
+          <div class="stat-label">{{ t('license_marketplace_page.stats.total_revenue') }}</div>
         </el-card>
       </el-col>
       <el-col :span="5">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value" :class="stats.openDisputes > 0 ? 'stat-danger' : ''">{{ stats.openDisputes }}</div>
-          <div class="stat-label">待处理纠纷</div>
+          <div class="stat-label">{{ t('license_marketplace_page.stats.open_disputes') }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -49,51 +49,46 @@
     <el-card shadow="hover">
       <el-tabs v-model="activeTab">
         <!-- 挂牌管理 -->
-        <el-tab-pane label="挂牌管理" name="listings">
+        <el-tab-pane :label="t('license_marketplace_page.tabs.listings')" name="listings">
           <div class="tab-toolbar">
-            <el-select v-model="listingFilter.status" placeholder="状态" clearable style="width:130px;margin-right:8px" @change="loadListings">
-              <el-option label="全部" value="" />
-              <el-option label="待审核" value="pending" />
-              <el-option label="已通过" value="approved" />
-              <el-option label="已拒绝" value="rejected" />
-              <el-option label="已售出" value="sold" />
-              <el-option label="已取消" value="cancelled" />
+            <el-select v-model="listingFilter.status" :placeholder="t('licenses_page.status')" clearable style="width:130px;margin-right:8px" @change="loadListings">
+              <el-option v-for="opt in listingStatusFilterOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
-            <el-input v-model="listingFilter.search" placeholder="搜索 License..." clearable style="width:200px" @clear="loadListings" @keyup.enter="loadListings" />
+            <el-input v-model="listingFilter.search" :placeholder="t('license_marketplace_page.filters.search_ph')" clearable style="width:200px" @clear="loadListings" @keyup.enter="loadListings" />
             <el-button type="primary" style="margin-left:auto" @click="showCreateListing">
-              <el-icon><Plus /></el-icon> 新建挂牌
+              <el-icon><Plus /></el-icon> {{ t('license_marketplace_page.btn_create') }}
             </el-button>
           </div>
           <el-table :data="listings" stripe v-loading="listingsLoading">
-            <el-table-column label="License" width="160">
+            <el-table-column :label="t('licenses_page.license_key')" width="160">
               <template #default="{ row }">{{ row.license?.license_key || '—' }}</template>
             </el-table-column>
-            <el-table-column label="卖家" width="120">
+            <el-table-column :label="t('license_marketplace_page.columns.seller')" width="120">
               <template #default="{ row }">{{ row.seller?.name || '—' }}</template>
             </el-table-column>
-            <el-table-column label="价格" width="100">
+            <el-table-column :label="t('product.price')" width="100">
               <template #default="{ row }">¥{{ row.price }}</template>
             </el-table-column>
-            <el-table-column label="抽成" width="80">
+            <el-table-column :label="t('license_marketplace_page.columns.commission')" width="80">
               <template #default="{ row }">¥{{ row.commission }}</template>
             </el-table-column>
-            <el-table-column label="状态" width="80">
+            <el-table-column :label="t('licenses_page.status')" width="80">
               <template #default="{ row }">
                 <el-tag :type="listingStatusType(row.status)" size="small">{{ listingStatusLabel(row.status) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="备注" min-width="140">
+            <el-table-column :label="t('license_marketplace_page.columns.notes')" min-width="140">
               <template #default="{ row }">{{ row.notes || '—' }}</template>
             </el-table-column>
-            <el-table-column label="创建时间" width="160">
+            <el-table-column :label="t('licenses_page.col_created_at')" width="160">
               <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="200" fixed="right">
+            <el-table-column :label="t('licenses_page.col_actions')" width="200" fixed="right">
               <template #default="{ row }">
-                <el-button v-if="row.status === 'pending'" size="small" type="success" @click="handleApprove(row)">通过</el-button>
-                <el-button v-if="row.status === 'pending'" size="small" type="danger" @click="handleReject(row)">拒绝</el-button>
-                <el-button v-if="row.status === 'approved'" size="small" type="warning" @click="showPurchase(row)">成交</el-button>
-                <el-button v-if="['pending','approved'].includes(row.status)" size="small" @click="handleCancel(row)">取消</el-button>
+                <el-button v-if="row.status === 'pending'" size="small" type="success" @click="handleApprove(row)">{{ t('actions.approve') }}</el-button>
+                <el-button v-if="row.status === 'pending'" size="small" type="danger" @click="handleReject(row)">{{ t('actions.reject') }}</el-button>
+                <el-button v-if="row.status === 'approved'" size="small" type="warning" @click="showPurchase(row)">{{ t('license_marketplace_page.btn_purchase') }}</el-button>
+                <el-button v-if="['pending','approved'].includes(row.status)" size="small" @click="handleCancel(row)">{{ t('actions.cancel') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -109,24 +104,34 @@
         </el-tab-pane>
 
         <!-- 交易记录 -->
-        <el-tab-pane label="交易记录" name="transactions">
+        <el-tab-pane :label="t('license_marketplace_page.tabs.transactions')" name="transactions">
           <el-table :data="transactions" stripe v-loading="txLoading">
-            <el-table-column label="交易ID" width="180">
+            <el-table-column :label="t('license_marketplace_page.columns.transaction_id')" width="180">
               <template #default="{ row }">{{ row.transaction_id }}</template>
             </el-table-column>
-            <el-table-column label="License" width="160">
+            <el-table-column :label="t('licenses_page.license_key')" width="160">
               <template #default="{ row }">{{ row.listing?.license?.license_key || '—' }}</template>
             </el-table-column>
-            <el-table-column label="买家" width="120">
+            <el-table-column :label="t('license_marketplace_page.columns.buyer')" width="120">
               <template #default="{ row }">{{ row.buyer?.name || '—' }}</template>
             </el-table-column>
-            <el-table-column label="价格" width="100">¥{{ row.price }}</el-table-column>
-            <el-table-column label="抽成" width="80">¥{{ row.commission }}</el-table-column>
-            <el-table-column label="卖家实收" width="100">¥{{ row.seller_payout }}</el-table-column>
-            <el-table-column label="状态" width="80">
-              <el-tag :type="row.status === 'completed' ? 'success' : 'danger'" size="small">{{ row.status }}</el-tag>
+            <el-table-column :label="t('product.price')" width="100">
+              <template #default="{ row }">¥{{ row.price }}</template>
             </el-table-column>
-            <el-table-column label="成交时间" width="160">{{ formatTime(row.completed_at) }}</el-table-column>
+            <el-table-column :label="t('license_marketplace_page.columns.commission')" width="80">
+              <template #default="{ row }">¥{{ row.commission }}</template>
+            </el-table-column>
+            <el-table-column :label="t('license_marketplace_page.columns.seller_payout')" width="100">
+              <template #default="{ row }">¥{{ row.seller_payout }}</template>
+            </el-table-column>
+            <el-table-column :label="t('licenses_page.status')" width="80">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 'completed' ? 'success' : 'danger'" size="small">{{ txStatusLabel(row.status) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('license_marketplace_page.columns.completed_at')" width="160">
+              <template #default="{ row }">{{ formatTime(row.completed_at) }}</template>
+            </el-table-column>
           </el-table>
           <div class="pagination-wrap" v-if="txPagination.total > txPagination.per_page">
             <el-pagination
@@ -140,38 +145,39 @@
         </el-tab-pane>
 
         <!-- 纠纷管理 -->
-        <el-tab-pane label="纠纷管理" name="disputes">
+        <el-tab-pane :label="t('license_marketplace_page.tabs.disputes')" name="disputes">
           <div class="tab-toolbar">
-            <el-select v-model="disputeFilter.status" placeholder="状态" clearable style="width:130px" @change="loadDisputes">
-              <el-option label="全部" value="" />
-              <el-option label="待处理" value="open" />
-              <el-option label="调查中" value="investigation" />
-              <el-option label="已解决" value="resolved" />
+            <el-select v-model="disputeFilter.status" :placeholder="t('licenses_page.status')" clearable style="width:130px" @change="loadDisputes">
+              <el-option v-for="opt in disputeStatusFilterOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
           </div>
           <el-table :data="disputes" stripe v-loading="disputeLoading">
-            <el-table-column label="交易" width="180">
+            <el-table-column :label="t('license_marketplace_page.columns.transaction')" width="180">
               <template #default="{ row }">{{ row.transaction?.transaction_id || '—' }}</template>
             </el-table-column>
-            <el-table-column label="发起方" width="120">
+            <el-table-column :label="t('license_marketplace_page.columns.raiser')" width="120">
               <template #default="{ row }">{{ row.raiser?.name || '—' }}</template>
             </el-table-column>
-            <el-table-column label="类型" width="140">{{ disputeTypeLabel(row.type) }}</el-table-column>
-            <el-table-column label="描述" min-width="180">
+            <el-table-column :label="t('license_marketplace_page.columns.type')" width="140">
+              <template #default="{ row }">{{ disputeTypeLabel(row.type) }}</template>
+            </el-table-column>
+            <el-table-column :label="t('license_marketplace_page.columns.description')" min-width="180">
               <template #default="{ row }">
                 <el-tooltip :content="row.description"><span>{{ row.description?.substring(0, 40) }}...</span></el-tooltip>
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="80">
-              <el-tag :type="row.status === 'resolved' ? 'success' : 'warning'" size="small">{{ row.status }}</el-tag>
+            <el-table-column :label="t('licenses_page.status')" width="80">
+              <el-tag :type="row.status === 'resolved' ? 'success' : 'warning'" size="small">{{ disputeStatusLabel(row.status) }}</el-tag>
             </el-table-column>
-            <el-table-column label="解决方案" width="120">
+            <el-table-column :label="t('license_marketplace_page.columns.resolution')" width="120">
               <template #default="{ row }">{{ row.resolution || '—' }}</template>
             </el-table-column>
-            <el-table-column label="创建时间" width="160">{{ formatTime(row.created_at) }}</el-table-column>
-            <el-table-column label="操作" width="120" fixed="right">
+            <el-table-column :label="t('licenses_page.col_created_at')" width="160">
+              <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
+            </el-table-column>
+            <el-table-column :label="t('licenses_page.col_actions')" width="120" fixed="right">
               <template #default="{ row }">
-                <el-button v-if="row.status === 'open'" size="small" type="warning" @click="showResolveDispute(row)">处理</el-button>
+                <el-button v-if="row.status === 'open'" size="small" type="warning" @click="showResolveDispute(row)">{{ t('license_marketplace_page.btn_resolve') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -189,78 +195,78 @@
     </el-card>
 
     <!-- 新建挂牌对话框 -->
-    <el-dialog v-model="createVisible" title="新建挂牌" width="500px">
+    <el-dialog v-model="createVisible" :title="t('license_marketplace_page.create_dialog.title')" width="500px">
       <el-form :model="createForm" :rules="createRules" ref="createFormRef" label-width="120px">
-        <el-form-item label="License" prop="license_id">
-          <el-select v-model="createForm.license_id" filterable style="width:100%" placeholder="选择要转让的 License">
+        <el-form-item :label="t('licenses_page.license_key')" prop="license_id">
+          <el-select v-model="createForm.license_id" filterable style="width:100%" :placeholder="t('license_marketplace_page.create_dialog.select_license_ph')">
             <el-option v-for="l in licenseOptions" :key="l.id" :label="l.license_key" :value="l.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="卖家客户" prop="seller_customer_id">
-          <el-select v-model="createForm.seller_customer_id" filterable style="width:100%" placeholder="选择卖家">
+        <el-form-item :label="t('license_marketplace_page.create_dialog.seller_customer')" prop="seller_customer_id">
+          <el-select v-model="createForm.seller_customer_id" filterable style="width:100%" :placeholder="t('license_marketplace_page.create_dialog.select_seller_ph')">
             <el-option v-for="c in customerOptions" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="价格" prop="price">
+        <el-form-item :label="t('product.price')" prop="price">
           <el-input-number v-model="createForm.price" :min="1" :max="999999" :precision="2" style="width:100%" />
         </el-form-item>
-        <el-form-item label="备注">
+        <el-form-item :label="t('license_marketplace_page.columns.notes')">
           <el-input v-model="createForm.notes" type="textarea" :rows="3" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleCreate" :loading="submitting">提交挂牌</el-button>
+        <el-button @click="createVisible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="handleCreate" :loading="submitting">{{ t('license_marketplace_page.create_dialog.submit') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 成交对话框 -->
-    <el-dialog v-model="purchaseVisible" title="执行交易" width="450px">
+    <el-dialog v-model="purchaseVisible" :title="t('license_marketplace_page.purchase_dialog.title')" width="450px">
       <el-form :model="purchaseForm" label-width="100px">
-        <el-form-item label="买家客户">
-          <el-select v-model="purchaseForm.buyer_customer_id" filterable style="width:100%" placeholder="选择买家">
+        <el-form-item :label="t('license_marketplace_page.purchase_dialog.buyer_customer')">
+          <el-select v-model="purchaseForm.buyer_customer_id" filterable style="width:100%" :placeholder="t('license_marketplace_page.purchase_dialog.select_buyer_ph')">
             <el-option v-for="c in customerOptions" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="价格">
+        <el-form-item :label="t('product.price')">
           <strong>¥{{ purchaseListing?.price }}</strong>
-          <span class="text-muted" style="margin-left:8px">(抽成: ¥{{ purchaseListing?.commission }})</span>
+          <span class="text-muted" style="margin-left:8px">({{ t('license_marketplace_page.purchase_dialog.commission_note', { amount: purchaseListing?.commission }) }})</span>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="purchaseVisible = false">取消</el-button>
-        <el-button type="success" @click="handlePurchase" :loading="submitting">确认成交</el-button>
+        <el-button @click="purchaseVisible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="success" @click="handlePurchase" :loading="submitting">{{ t('license_marketplace_page.purchase_dialog.confirm') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 纠纷处理对话框 -->
-    <el-dialog v-model="resolveVisible" title="处理纠纷" width="500px">
+    <el-dialog v-model="resolveVisible" :title="t('license_marketplace_page.resolve_dialog.title')" width="500px">
       <el-form :model="resolveForm" label-width="100px">
-        <el-form-item label="解决方案">
+        <el-form-item :label="t('license_marketplace_page.resolve_dialog.resolution')">
           <el-select v-model="resolveForm.resolution" style="width:100%">
-            <el-option label="全额退款给买家" value="refund_buyer" />
-            <el-option label="部分退款" value="partial_refund" />
-            <el-option label="支持卖家" value="uphold_seller" />
-            <el-option label="双方妥协" value="compromise" />
+            <el-option v-for="opt in resolutionOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="处理备注">
+        <el-form-item :label="t('license_marketplace_page.resolve_dialog.notes')">
           <el-input v-model="resolveForm.notes" type="textarea" :rows="4" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="resolveVisible = false">取消</el-button>
-        <el-button type="warning" @click="handleResolve" :loading="submitting">提交处理</el-button>
+        <el-button @click="resolveVisible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="warning" @click="handleResolve" :loading="submitting">{{ t('license_marketplace_page.resolve_dialog.submit') }}</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Shop, Refresh, Plus } from '@element-plus/icons-vue';
 import marketplaceApi from '@/api/licenseMarketplace';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const submitting = ref(false);
@@ -293,11 +299,11 @@ const disputePagination = reactive({ current_page: 1, per_page: 20, total: 0 });
 const createVisible = ref(false);
 const createFormRef = ref(null);
 const createForm = reactive({ license_id: '', seller_customer_id: '', price: 100, notes: '' });
-const createRules = {
-  license_id: [{ required: true, message: '请选择 License' }],
-  seller_customer_id: [{ required: true, message: '请选择卖家' }],
-  price: [{ required: true, message: '请输入价格' }],
-};
+const createRules = computed(() => ({
+  license_id: [{ required: true, message: t('license_marketplace_page.validation.license_required') }],
+  seller_customer_id: [{ required: true, message: t('license_marketplace_page.validation.seller_required') }],
+  price: [{ required: true, message: t('license_marketplace_page.validation.price_required') }],
+}));
 
 // 成交
 const purchaseVisible = ref(false);
@@ -313,13 +319,63 @@ const resolveForm = reactive({ resolution: 'refund_buyer', notes: '' });
 const licenseOptions = ref([]);
 const customerOptions = ref([]);
 
+const listingStatusFilterOptions = computed(() => [
+  { label: t('licenses_page.all'), value: '' },
+  { label: t('license_marketplace_page.listing_status.pending'), value: 'pending' },
+  { label: t('license_marketplace_page.listing_status.approved'), value: 'approved' },
+  { label: t('license_marketplace_page.listing_status.rejected'), value: 'rejected' },
+  { label: t('license_marketplace_page.listing_status.sold'), value: 'sold' },
+  { label: t('license_marketplace_page.listing_status.cancelled'), value: 'cancelled' },
+]);
+
+const disputeStatusFilterOptions = computed(() => [
+  { label: t('licenses_page.all'), value: '' },
+  { label: t('license_marketplace_page.dispute_status.open'), value: 'open' },
+  { label: t('license_marketplace_page.dispute_status.investigation'), value: 'investigation' },
+  { label: t('license_marketplace_page.dispute_status.resolved'), value: 'resolved' },
+]);
+
+const listingStatusTagLabels = computed(() => ({
+  pending: t('license_marketplace_page.listing_status_tag.pending'),
+  approved: t('license_marketplace_page.listing_status_tag.approved'),
+  rejected: t('license_marketplace_page.listing_status_tag.rejected'),
+  sold: t('license_marketplace_page.listing_status_tag.sold'),
+  cancelled: t('license_marketplace_page.listing_status_tag.cancelled'),
+}));
+
+const disputeTypeLabels = computed(() => ({
+  license_not_valid: t('license_marketplace_page.dispute_type.license_not_valid'),
+  misrepresentation: t('license_marketplace_page.dispute_type.misrepresentation'),
+  non_delivery: t('license_marketplace_page.dispute_type.non_delivery'),
+  other: t('license_marketplace_page.dispute_type.other'),
+}));
+
+const disputeStatusLabels = computed(() => ({
+  open: t('license_marketplace_page.dispute_status.open'),
+  investigation: t('license_marketplace_page.dispute_status.investigation'),
+  resolved: t('license_marketplace_page.dispute_status.resolved'),
+}));
+
+const txStatusLabels = computed(() => ({
+  completed: t('license_marketplace_page.tx_status.completed'),
+  failed: t('license_marketplace_page.tx_status.failed'),
+  pending: t('license_marketplace_page.tx_status.pending'),
+}));
+
+const resolutionOptions = computed(() => [
+  { label: t('license_marketplace_page.resolution.refund_buyer'), value: 'refund_buyer' },
+  { label: t('license_marketplace_page.resolution.partial_refund'), value: 'partial_refund' },
+  { label: t('license_marketplace_page.resolution.uphold_seller'), value: 'uphold_seller' },
+  { label: t('license_marketplace_page.resolution.compromise'), value: 'compromise' },
+]);
+
 onMounted(() => { refreshAll(); });
 
 async function refreshAll() {
   loading.value = true;
   try {
     const res = await marketplaceApi.dashboard();
-    stats.value = res.data;
+    stats.value = res.data?.data || res.data;
   } finally {
     loading.value = false;
   }
@@ -334,8 +390,9 @@ async function loadListings() {
   listingsLoading.value = true;
   try {
     const res = await marketplaceApi.listListings({ ...listingFilter, page: listingPagination.current_page });
-    listings.value = res.data.data || [];
-    Object.assign(listingPagination, res.data);
+    const d = res.data?.data || {};
+    listings.value = d.data || [];
+    Object.assign(listingPagination, d);
   } finally {
     listingsLoading.value = false;
   }
@@ -365,7 +422,7 @@ async function handleCreate() {
   submitting.value = true;
   try {
     await marketplaceApi.createListing(createForm);
-    ElMessage.success('挂牌已提交');
+    ElMessage.success(t('license_marketplace_page.messages.listing_submitted'));
     createVisible.value = false;
     loadListings();
     refreshAll();
@@ -374,29 +431,38 @@ async function handleCreate() {
 
 async function handleApprove(row) {
   try {
-    await ElMessageBox.confirm(`通过挂牌 ${row.license?.license_key}？`, '确认');
+    await ElMessageBox.confirm(
+      t('license_marketplace_page.confirm.approve', { key: row.license?.license_key }),
+      t('actions.confirm'),
+    );
     await marketplaceApi.approveListing(row.id);
-    ElMessage.success('已通过');
+    ElMessage.success(t('license_marketplace_page.messages.approved'));
     loadListings();
-  } catch (e) { if (e !== 'cancel') ElMessage.error('操作失败'); }
+  } catch (e) { if (e !== 'cancel') ElMessage.error(t('messages.failed')); }
 }
 
 async function handleReject(row) {
   try {
-    const { value } = await ElMessageBox.prompt('输入拒绝原因', '拒绝挂牌');
+    const { value } = await ElMessageBox.prompt(
+      t('license_marketplace_page.messages.reject_reason_ph'),
+      t('license_marketplace_page.confirm.reject_title'),
+    );
     await marketplaceApi.rejectListing(row.id, value);
-    ElMessage.success('已拒绝');
+    ElMessage.success(t('license_marketplace_page.messages.rejected'));
     loadListings();
-  } catch (e) { if (e !== 'cancel') ElMessage.error('操作失败'); }
+  } catch (e) { if (e !== 'cancel') ElMessage.error(t('messages.failed')); }
 }
 
 async function handleCancel(row) {
   try {
-    await ElMessageBox.confirm('确定取消此挂牌？', '确认');
+    await ElMessageBox.confirm(
+      t('license_marketplace_page.confirm.cancel_listing'),
+      t('actions.confirm'),
+    );
     await marketplaceApi.cancelListing(row.id);
-    ElMessage.success('已取消');
+    ElMessage.success(t('license_marketplace_page.messages.cancelled'));
     loadListings();
-  } catch (e) { if (e !== 'cancel') ElMessage.error('操作失败'); }
+  } catch (e) { if (e !== 'cancel') ElMessage.error(t('messages.failed')); }
 }
 
 // ═══════ 成交 ═══════
@@ -408,17 +474,20 @@ function showPurchase(row) {
 }
 
 async function handlePurchase() {
-  if (!purchaseForm.buyer_customer_id) { ElMessage.warning('请选择买家'); return; }
+  if (!purchaseForm.buyer_customer_id) {
+    ElMessage.warning(t('license_marketplace_page.messages.select_buyer'));
+    return;
+  }
   submitting.value = true;
   try {
     await marketplaceApi.purchaseListing(purchaseListing.value.id, purchaseForm.buyer_customer_id);
-    ElMessage.success('交易完成');
+    ElMessage.success(t('license_marketplace_page.messages.transaction_done'));
     purchaseVisible.value = false;
     loadListings();
     loadTransactions();
     refreshAll();
   } catch (e) {
-    ElMessage.error(e?.response?.data?.message || '交易失败');
+    ElMessage.error(e?.response?.data?.message || t('license_marketplace_page.messages.transaction_failed'));
   } finally { submitting.value = false; }
 }
 
@@ -429,7 +498,7 @@ async function loadTransactions() {
   try {
     const res = await marketplaceApi.listTransactions({ page: txPagination.current_page });
     transactions.value = res.data.data || [];
-    Object.assign(txPagination, res.data);
+    Object.assign(txPagination, res.data?.meta || {});
   } finally { txLoading.value = false; }
 }
 
@@ -440,7 +509,7 @@ async function loadDisputes() {
   try {
     const res = await marketplaceApi.listDisputes({ ...disputeFilter, page: disputePagination.current_page });
     disputes.value = res.data.data || [];
-    Object.assign(disputePagination, res.data);
+    Object.assign(disputePagination, res.data?.meta || {});
   } finally { disputeLoading.value = false; }
 }
 
@@ -455,12 +524,12 @@ async function handleResolve() {
   submitting.value = true;
   try {
     await marketplaceApi.resolveDispute(resolveDisputeRecord.value.id, resolveForm);
-    ElMessage.success('纠纷已处理');
+    ElMessage.success(t('license_marketplace_page.messages.dispute_resolved'));
     resolveVisible.value = false;
     loadDisputes();
     refreshAll();
   } catch (e) {
-    ElMessage.error('处理失败');
+    ElMessage.error(t('license_marketplace_page.messages.resolve_failed'));
   } finally { submitting.value = false; }
 }
 
@@ -470,14 +539,21 @@ function listingStatusType(s) {
   return { pending: 'warning', approved: 'success', rejected: 'danger', sold: 'primary', cancelled: 'info' }[s] || 'info';
 }
 function listingStatusLabel(s) {
-  return { pending: '待审核', approved: '在售', rejected: '已拒绝', sold: '已售', cancelled: '已取消' }[s] || s;
+  return listingStatusTagLabels.value[s] || s;
 }
-function disputeTypeLabel(t) {
-  return { license_not_valid: 'License无效', misrepresentation: '描述不符', non_delivery: '未交付', other: '其他' }[t] || t;
+function disputeTypeLabel(type) {
+  return disputeTypeLabels.value[type] || type;
 }
-function formatTime(t) {
-  if (!t) return '—';
-  return new Date(t).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+function disputeStatusLabel(s) {
+  return disputeStatusLabels.value[s] || s;
+}
+function txStatusLabel(s) {
+  return txStatusLabels.value[s] || s;
+}
+function formatTime(time) {
+  if (!time) return '—';
+  const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+  return new Date(time).toLocaleString(loc);
 }
 </script>
 
@@ -492,7 +568,7 @@ function formatTime(t) {
 .stat-success { color: #67C23A; }
 .stat-danger { color: #F56C6C; }
 .stat-warning { color: #E6A23C; }
-.stat-primary { color: #409EFF; }
+.stat-primary { color: #0f172a; }
 .tab-toolbar { display: flex; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
 .pagination-wrap { display: flex; justify-content: flex-end; margin-top: 16px; }
 .text-muted { color: #909399; }

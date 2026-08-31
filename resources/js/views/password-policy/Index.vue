@@ -1,117 +1,115 @@
 <template>
     <div class="password-policy-page">
         <el-tabs v-model="activeTab">
-            <!-- 密码策略配置 -->
-            <el-tab-pane label="密码策略" name="config">
+            <el-tab-pane :label="t(`${P}.tabs.config`)" name="config">
                 <el-card shadow="never">
                     <template #header>
                         <div class="card-header">
-                            <span>密码强度策略配置</span>
+                            <span>{{ t(`${P}.config_title`) }}</span>
                         </div>
                     </template>
 
                     <el-form :model="form" label-width="180px" v-loading="loading">
-                        <el-divider content-position="left">密码长度</el-divider>
-                        <el-form-item label="最小长度">
+                        <el-divider content-position="left">{{ t(`${P}.sections.length`) }}</el-divider>
+                        <el-form-item :label="t(`${P}.fields.min_length`)">
                             <el-input-number v-model="form.min_length" :min="4" :max="256" />
-                            <span class="form-help">字符</span>
+                            <span class="form-help">{{ t(`${P}.help.chars`) }}</span>
                         </el-form-item>
-                        <el-form-item label="最大长度">
+                        <el-form-item :label="t(`${P}.fields.max_length`)">
                             <el-input-number v-model="form.max_length" :min="8" :max="256" />
-                            <span class="form-help">字符</span>
+                            <span class="form-help">{{ t(`${P}.help.chars`) }}</span>
                         </el-form-item>
 
-                        <el-divider content-position="left">密码复杂度</el-divider>
-                        <el-form-item label="需要大写字母">
+                        <el-divider content-position="left">{{ t(`${P}.sections.complexity`) }}</el-divider>
+                        <el-form-item :label="t(`${P}.fields.require_uppercase`)">
                             <el-switch v-model="form.require_uppercase" />
                         </el-form-item>
-                        <el-form-item label="需要小写字母">
+                        <el-form-item :label="t(`${P}.fields.require_lowercase`)">
                             <el-switch v-model="form.require_lowercase" />
                         </el-form-item>
-                        <el-form-item label="需要数字">
+                        <el-form-item :label="t(`${P}.fields.require_number`)">
                             <el-switch v-model="form.require_number" />
                         </el-form-item>
-                        <el-form-item label="需要特殊字符">
+                        <el-form-item :label="t(`${P}.fields.require_special`)">
                             <el-switch v-model="form.require_special" />
                         </el-form-item>
 
-                        <el-divider content-position="left">密码历史与过期</el-divider>
-                        <el-form-item label="禁止使用最近密码次数">
+                        <el-divider content-position="left">{{ t(`${P}.sections.history`) }}</el-divider>
+                        <el-form-item :label="t(`${P}.fields.history_count`)">
                             <el-input-number v-model="form.history_count" :min="0" :max="50" />
-                            <span class="form-help">次，设为 0 则不检查</span>
+                            <span class="form-help">{{ t(`${P}.help.history`) }}</span>
                         </el-form-item>
-                        <el-form-item label="密码过期天数">
+                        <el-form-item :label="t(`${P}.fields.expiry_days`)">
                             <el-input-number v-model="form.expiry_days" :min="0" :max="365" />
-                            <span class="form-help">天，设为 0 则永不过期</span>
+                            <span class="form-help">{{ t(`${P}.help.expiry`) }}</span>
                         </el-form-item>
 
-                        <el-divider content-position="left">账号锁定</el-divider>
-                        <el-form-item label="最大失败尝试次数">
+                        <el-divider content-position="left">{{ t(`${P}.sections.lockout`) }}</el-divider>
+                        <el-form-item :label="t(`${P}.fields.lockout_max`)">
                             <el-input-number v-model="form.lockout_max_attempts" :min="1" :max="100" />
-                            <span class="form-help">次</span>
+                            <span class="form-help">{{ t(`${P}.help.times`) }}</span>
                         </el-form-item>
-                        <el-form-item label="锁定持续时间">
+                        <el-form-item :label="t(`${P}.fields.lockout_duration`)">
                             <el-input-number v-model="form.lockout_duration_minutes" :min="1" :max="1440" />
-                            <span class="form-help">分钟</span>
+                            <span class="form-help">{{ t(`${P}.help.minutes`) }}</span>
                         </el-form-item>
 
-                        <el-divider content-position="left">生效状态</el-divider>
-                        <el-form-item label="策略已启用">
+                        <el-divider content-position="left">{{ t(`${P}.sections.active`) }}</el-divider>
+                        <el-form-item :label="t(`${P}.fields.is_active`)">
                             <el-switch v-model="form.is_active" />
                         </el-form-item>
 
                         <el-form-item>
                             <el-button type="primary" @click="handleSave" :loading="saving">
-                                保存策略
+                                {{ t(`${P}.save`) }}
                             </el-button>
-                            <el-button @click="fetchConfig">重置</el-button>
+                            <el-button @click="fetchConfig">{{ t('actions.reset') }}</el-button>
                         </el-form-item>
                     </el-form>
                 </el-card>
             </el-tab-pane>
 
-            <!-- 锁定账号管理 -->
-            <el-tab-pane label="锁定账号" name="locked">
+            <el-tab-pane :label="t(`${P}.tabs.locked`)" name="locked">
                 <el-card shadow="never">
                     <template #header>
                         <div class="card-header">
-                            <span>被锁定的账号</span>
-                            <el-tag type="danger">共 {{ total }} 个账号被锁定</el-tag>
+                            <span>{{ t(`${P}.locked_title`) }}</span>
+                            <el-tag type="danger">{{ t(`${P}.locked_count`, { n: total }) }}</el-tag>
                         </div>
                     </template>
 
                     <el-table :data="lockedAccounts" v-loading="loadingLocked" stripe style="width: 100%">
-                        <el-table-column prop="id" label="ID" width="80" />
-                        <el-table-column prop="name" label="用户名" min-width="150" />
-                        <el-table-column prop="email" label="邮箱" min-width="200" />
-                        <el-table-column label="锁定原因" width="200">
+                        <el-table-column prop="id" :label="t(`${P}.cols.id`)" width="80" />
+                        <el-table-column prop="name" :label="t(`${P}.cols.name`)" min-width="150" />
+                        <el-table-column prop="email" :label="t(`${P}.cols.email`)" min-width="200" />
+                        <el-table-column :label="t(`${P}.cols.reason`)" width="200">
                             <template #default="{ row }">
                                 <el-tag type="danger" size="small">
-                                    连续登录失败 {{ row.login_attempts || '多次' }} 次
+                                    {{ t(`${P}.fail_attempts`, { n: row.login_attempts || t(`${P}.multiple`) }) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="锁定直到" width="180">
+                        <el-table-column :label="t(`${P}.cols.until`)" width="180">
                             <template #default="{ row }">
                                 {{ formatDate(row.locked_until) }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="状态" width="120">
+                        <el-table-column :label="t(`${P}.cols.status`)" width="120">
                             <template #default="{ row }">
                                 <el-tag type="danger" size="small">
                                     {{ getRemaining(row) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="120" fixed="right">
+                        <el-table-column :label="t(`${P}.cols.actions`)" width="120" fixed="right">
                             <template #default="{ row }">
                                 <el-popconfirm
-                                    title="确定解锁此账号？"
+                                    :title="t(`${P}.confirm_unlock`)"
                                     @confirm="handleUnlock(row.id)"
                                 >
                                     <template #reference>
                                         <el-button type="primary" size="small" :icon="Unlock">
-                                            解锁
+                                            {{ t(`${P}.unlock`) }}
                                         </el-button>
                                     </template>
                                 </el-popconfirm>
@@ -119,7 +117,7 @@
                         </el-table-column>
                     </el-table>
 
-                    <el-empty v-if="!loadingLocked && !lockedAccounts.length" description="暂无被锁定的账号" />
+                    <el-empty v-if="!loadingLocked && !lockedAccounts.length" :description="t(`${P}.empty`)" />
 
                     <el-pagination
                         v-if="total > 0"
@@ -137,7 +135,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Unlock } from '@element-plus/icons-vue'
 import {
@@ -147,9 +146,12 @@ import {
     unlockAccount,
 } from '@/api/password-policy'
 
+const { t, locale } = useI18n()
+const P = 'password_policy_page'
+const dateLocale = computed(() => (locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US'))
+
 const activeTab = ref('config')
 
-// 策略配置
 const form = ref({
     min_length: 8,
     max_length: 128,
@@ -166,7 +168,6 @@ const form = ref({
 const loading = ref(false)
 const saving = ref(false)
 
-// 锁定账号
 const lockedAccounts = ref([])
 const loadingLocked = ref(false)
 const total = ref(0)
@@ -194,7 +195,7 @@ async function fetchConfig() {
             }
         }
     } catch (e) {
-        ElMessage.error('获取密码策略失败')
+        ElMessage.error(t(`${P}.messages.fetch_failed`))
     } finally {
         loading.value = false
     }
@@ -204,9 +205,9 @@ async function handleSave() {
     saving.value = true
     try {
         await updatePasswordPolicy(form.value)
-        ElMessage.success('密码策略已更新')
+        ElMessage.success(t(`${P}.messages.saved`))
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '保存失败')
+        ElMessage.error(e.response?.data?.message || t(`${P}.messages.save_failed`))
     } finally {
         saving.value = false
     }
@@ -222,7 +223,7 @@ async function fetchLockedAccounts() {
         lockedAccounts.value = res.data?.data?.data || []
         total.value = res.data?.data?.total || 0
     } catch (e) {
-        ElMessage.error('获取锁定账号列表失败')
+        ElMessage.error(t(`${P}.messages.locked_failed`))
     } finally {
         loadingLocked.value = false
     }
@@ -231,24 +232,24 @@ async function fetchLockedAccounts() {
 async function handleUnlock(userId) {
     try {
         await unlockAccount(userId)
-        ElMessage.success('账号已解锁')
+        ElMessage.success(t(`${P}.messages.unlocked`))
         fetchLockedAccounts()
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '解锁失败')
+        ElMessage.error(e.response?.data?.message || t(`${P}.messages.unlock_failed`))
     }
 }
 
 function getRemaining(row) {
-    if (!row.locked_until) return '正常'
+    if (!row.locked_until) return t(`${P}.normal`)
     const remaining = new Date(row.locked_until) - new Date()
-    if (remaining <= 0) return '即将解锁'
+    if (remaining <= 0) return t(`${P}.unlocking_soon`)
     const mins = Math.ceil(remaining / 60000)
-    return `${mins} 分钟后解锁`
+    return t(`${P}.unlock_in`, { n: mins })
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    return new Date(dateStr).toLocaleString(dateLocale.value, {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',

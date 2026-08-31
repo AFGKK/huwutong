@@ -4,13 +4,13 @@
     <el-card shadow="never" class="mb-4">
       <el-row :gutter="16" justify="space-between" align="middle">
         <el-col :span="12">
-          <span class="text-lg font-medium">智能合约式授权</span>
+          <span class="text-lg font-medium">{{ t('contracts_page.title') }}</span>
           <el-tag type="success" size="small" class="ml-2" v-if="dashboardData.active_contracts > 0">
-            {{ dashboardData.active_contracts }} 个活跃合约
+            {{ t('contracts_page.active_contracts_tag', { n: dashboardData.active_contracts }) }}
           </el-tag>
         </el-col>
         <el-col :span="12" class="text-right">
-          <el-button size="small" @click="refreshAll">刷新</el-button>
+          <el-button size="small" @click="refreshAll">{{ t('contracts_page.refresh') }}</el-button>
         </el-col>
       </el-row>
     </el-card>
@@ -28,7 +28,7 @@
     <!-- 评估趋势图 -->
     <el-card shadow="never" class="mb-4">
       <template #header>
-        <span>评估趋势（近7天）</span>
+        <span>{{ t('contracts_page.trend_title') }}</span>
       </template>
       <div style="height: 180px; position: relative" v-if="trendsData.length > 0">
         <div class="trend-chart">
@@ -37,85 +37,85 @@
               <div
                 class="trend-bar trend-granted"
                 :style="{ height: (item.granted / maxTrend) * 130 + 'px' }"
-                :title="'已授权: ' + item.granted"
+                :title="t('contracts_page.trend_granted', { n: item.granted })"
               ></div>
               <div
                 class="trend-bar trend-denied"
                 :style="{ height: (item.denied / maxTrend) * 130 + 'px' }"
-                :title="'已拒绝: ' + item.denied"
+                :title="t('contracts_page.trend_denied', { n: item.denied })"
               ></div>
             </div>
             <div class="trend-date">{{ item.date.slice(5) }}</div>
           </div>
         </div>
       </div>
-      <div v-else class="text-gray-400 text-center py-4">暂无评估数据</div>
+      <div v-else class="text-gray-400 text-center py-4">{{ t('contracts_page.no_trend_data') }}</div>
     </el-card>
 
     <!-- 主要内容 Tabs -->
     <el-card shadow="never">
       <el-tabs v-model="activeTab">
         <!-- Tab1: 合约管理 -->
-        <el-tab-pane label="授权合约" name="contracts">
+        <el-tab-pane :label="t('contracts_page.tabs.contracts')" name="contracts">
           <el-row :gutter="12" class="mb-3">
             <el-col :span="6">
-              <el-select v-model="contractFilters.contract_type" placeholder="合约类型" clearable size="small" @change="fetchContracts">
-                <el-option label="全部" value="" />
+              <el-select v-model="contractFilters.contract_type" :placeholder="t('contracts_page.filters.contract_type')" clearable size="small" @change="fetchContracts">
+                <el-option :label="t('contracts_page.filters.all')" value="" />
                 <el-option v-for="(label, val) in contractTypeOptions" :key="val" :label="label" :value="val" />
               </el-select>
             </el-col>
             <el-col :span="6">
-              <el-input v-model="contractFilters.search" placeholder="搜索合约..." size="small" clearable @change="fetchContracts" />
+              <el-input v-model="contractFilters.search" :placeholder="t('contracts_page.filters.search_contracts')" size="small" clearable @change="fetchContracts" />
             </el-col>
             <el-col :span="12" class="text-right">
-              <el-button size="small" @click="dialogContractVisible = true; isEditingContract = false; resetContractForm()">新建合约</el-button>
-              <el-button size="small" plain @click="handleSeedContracts">播种系统合约</el-button>
+              <el-button size="small" @click="dialogContractVisible = true; isEditingContract = false; resetContractForm()">{{ t('contracts_page.buttons.new_contract') }}</el-button>
+              <el-button size="small" plain @click="handleSeedContracts">{{ t('contracts_page.buttons.seed_contracts') }}</el-button>
             </el-col>
           </el-row>
 
           <el-table :data="contractsData" v-loading="loading.contracts" stripe style="width: 100%">
-            <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column label="合约名称" min-width="160">
+            <el-table-column prop="id" :label="t('contracts_page.columns.id')" width="60" />
+            <el-table-column :label="t('contracts_page.columns.name')" min-width="160">
               <template #default="{ row }">
                 <span>{{ row.name }}</span>
-                <el-tag v-if="row.is_system" size="small" type="info" class="ml-1">系统</el-tag>
+                <el-tag v-if="row.is_system" size="small" type="info" class="ml-1">{{ t('contracts_page.tags.system') }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="类型" width="100">
+            <el-table-column :label="t('contracts_page.columns.type')" width="100">
               <template #default="{ row }">
                 {{ contractTypeOptions[row.contract_type] || row.contract_type }}
               </template>
             </el-table-column>
-            <el-table-column label="评估模式" width="100">
+            <el-table-column :label="t('contracts_page.columns.eval_mode')" width="100">
               <template #default="{ row }">
-                <el-tag size="small">{{ row.evaluation_mode === 'all' ? '全部满足' : row.evaluation_mode === 'any' ? '任一满足' : '自定义' }}</el-tag>
+                <el-tag size="small">{{ evalModeLabel(row.evaluation_mode) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="条件数" width="80">
+            <el-table-column :label="t('contracts_page.columns.conditions_count')" width="80">
               <template #default="{ row }">
                 {{ row.conditions?.length || 0 }}
               </template>
             </el-table-column>
-            <el-table-column label="分配数" width="80">
+            <el-table-column :label="t('contracts_page.columns.assignments_count')" width="80">
               <template #default="{ row }">
                 {{ row.assignments_count || 0 }}
               </template>
             </el-table-column>
-            <el-table-column label="版本" width="60">
+            <el-table-column :label="t('contracts_page.columns.version')" width="60">
               <template #default="{ row }">
                 v{{ row.version }}
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="80">
+            <el-table-column :label="t('contracts_page.columns.status')" width="80">
               <template #default="{ row }">
                 <el-switch :model-value="row.is_active" @change="(v) => toggleContractActive(row, v)" size="small" />
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="200" fixed="right">
+            <el-table-column :label="t('contracts_page.columns.actions')" width="200" fixed="right">
               <template #default="{ row }">
-                <el-button size="small" link type="primary" @click="editContract(row)">编辑</el-button>
-                <el-button size="small" link type="success" @click="testContract(row)">测试</el-button>
-                <el-button v-if="!row.is_system" size="small" link type="danger" @click="handleDeleteContract(row)">删除</el-button>
+                <el-button size="small" link type="primary" @click="editContract(row)">{{ t('actions.edit') }}</el-button>
+                <el-button size="small" link type="success" @click="testContract(row)">{{ t('contracts_page.buttons.test') }}</el-button>
+                <el-button v-if="!row.is_system" size="small" link type="danger" @click="handleDeleteContract(row)">{{ t('actions.delete') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -126,56 +126,54 @@
         </el-tab-pane>
 
         <!-- Tab2: 合约分配 -->
-        <el-tab-pane label="合约分配" name="assignments">
+        <el-tab-pane :label="t('contracts_page.tabs.assignments')" name="assignments">
           <el-row :gutter="12" class="mb-3">
             <el-col :span="6">
-              <el-select v-model="assignmentContractId" placeholder="选择合约" size="small" clearable @change="fetchAssignments">
+              <el-select v-model="assignmentContractId" :placeholder="t('contracts_page.filters.select_contract')" size="small" clearable @change="fetchAssignments">
                 <el-option v-for="c in contractsData" :key="c.id" :label="c.name" :value="c.id" />
               </el-select>
             </el-col>
             <el-col :span="18" class="text-right">
-              <el-button size="small" :disabled="!assignmentContractId" @click="dialogAssignmentVisible = true; resetAssignmentForm()">新增分配</el-button>
+              <el-button size="small" :disabled="!assignmentContractId" @click="dialogAssignmentVisible = true; resetAssignmentForm()">{{ t('contracts_page.buttons.new_assignment') }}</el-button>
             </el-col>
           </el-row>
 
           <el-table :data="assignmentsData" v-loading="loading.assignments" stripe style="width: 100%">
-            <el-table-column label="合约" width="160">
+            <el-table-column :label="t('contracts_page.columns.contract')" width="160">
               <template #default="{ row }">
                 {{ row.contract?.name || '—' }}
               </template>
             </el-table-column>
-            <el-table-column label="分配对象" min-width="180">
+            <el-table-column :label="t('contracts_page.columns.assignable')" min-width="180">
               <template #default="{ row }">
                 <el-tag size="small">{{ row.assignable_type }} #{{ row.assignable_id }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="生效时间" width="160">
+            <el-table-column :label="t('contracts_page.columns.effective_time')" width="160">
               <template #default="{ row }">
-                {{ row.effective_from ? formatTime(row.effective_from) : '即时' }}
-                ~ {{ row.effective_until ? formatTime(row.effective_until) : '永久' }}
+                {{ row.effective_from ? formatTime(row.effective_from) : t('contracts_page.effective.immediate') }}
+                ~ {{ row.effective_until ? formatTime(row.effective_until) : t('contracts_page.effective.permanent') }}
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="80">
+            <el-table-column :label="t('contracts_page.columns.status')" width="80">
               <template #default="{ row }">
                 <el-switch :model-value="row.is_enabled" @change="(v) => toggleAssignment(row, v)" size="small" />
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="120">
+            <el-table-column :label="t('contracts_page.columns.actions')" width="120">
               <template #default="{ row }">
-                <el-button size="small" link type="danger" @click="handleDeleteAssignment(row)">移除</el-button>
+                <el-button size="small" link type="danger" @click="handleDeleteAssignment(row)">{{ t('contracts_page.buttons.remove') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
 
         <!-- Tab3: 评估日志 -->
-        <el-tab-pane label="评估日志" name="logs">
+        <el-tab-pane :label="t('contracts_page.tabs.logs')" name="logs">
           <el-row :gutter="12" class="mb-3">
             <el-col :span="4">
-              <el-select v-model="logFilters.result" placeholder="结果" clearable size="small" @change="fetchLogs">
-                <el-option label="全部" value="" />
-                <el-option label="已授权" value="granted" />
-                <el-option label="已拒绝" value="denied" />
+              <el-select v-model="logFilters.result" :placeholder="t('contracts_page.filters.result')" clearable size="small" @change="fetchLogs">
+                <el-option v-for="opt in logResultOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </el-col>
             <el-col :span="20" class="text-right">
@@ -183,35 +181,35 @@
           </el-row>
 
           <el-table :data="logsData" v-loading="loading.logs" stripe style="width: 100%">
-            <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column label="合约" min-width="160">
+            <el-table-column prop="id" :label="t('contracts_page.columns.id')" width="60" />
+            <el-table-column :label="t('contracts_page.columns.contract')" min-width="160">
               <template #default="{ row }">
                 {{ row.contract?.name || row.contract_name || '—' }}
               </template>
             </el-table-column>
-            <el-table-column label="评估对象" width="150">
+            <el-table-column :label="t('contracts_page.columns.evaluatable')" width="150">
               <template #default="{ row }">
                 {{ row.evaluatable_type }} #{{ row.evaluatable_id }}
               </template>
             </el-table-column>
-            <el-table-column label="结果" width="80">
+            <el-table-column :label="t('contracts_page.columns.result')" width="80">
               <template #default="{ row }">
                 <el-tag :type="row.result === 'granted' ? 'success' : 'danger'" size="small">
-                  {{ row.result === 'granted' ? '授权' : '拒绝' }}
+                  {{ resultLabel(row.result) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="耗时" width="80">
+            <el-table-column :label="t('contracts_page.columns.duration')" width="80">
               <template #default="{ row }">
                 {{ row.evaluation_time_ms }}ms
               </template>
             </el-table-column>
-            <el-table-column label="时间" width="160">
+            <el-table-column :label="t('contracts_page.columns.time')" width="160">
               <template #default="{ row }">
                 {{ formatTime(row.created_at) }}
               </template>
             </el-table-column>
-            <el-table-column label="原因" min-width="200">
+            <el-table-column :label="t('contracts_page.columns.reason')" min-width="200">
               <template #default="{ row }">
                 {{ row.reason || '—' }}
               </template>
@@ -226,89 +224,90 @@
     </el-card>
 
     <!-- 合约编辑对话框 -->
-    <el-dialog v-model="dialogContractVisible" :title="isEditingContract ? '编辑合约' : '新建合约'" width="700px" :close-on-click-modal="false">
+    <el-dialog v-model="dialogContractVisible" :title="isEditingContract ? t('contracts_page.contract_dialog.edit_title') : t('contracts_page.contract_dialog.create_title')" width="700px" :close-on-click-modal="false">
       <el-form :model="contractForm" label-width="120px" size="small">
-        <el-form-item label="合约名称" required>
-          <el-input v-model="contractForm.name" placeholder="合约名称" />
+        <el-form-item :label="t('contracts_page.contract_dialog.name')" required>
+          <el-input v-model="contractForm.name" :placeholder="t('contracts_page.contract_dialog.name_ph')" />
         </el-form-item>
-        <el-form-item label="合约类型" required>
+        <el-form-item :label="t('contracts_page.contract_dialog.type')" required>
           <el-select v-model="contractForm.contract_type" style="width: 100%">
             <el-option v-for="(label, val) in contractTypeOptions" :key="val" :label="label" :value="val" />
           </el-select>
         </el-form-item>
-        <el-form-item label="描述">
+        <el-form-item :label="t('contracts_page.contract_dialog.description')">
           <el-input v-model="contractForm.description" type="textarea" :rows="2" />
         </el-form-item>
-        <el-form-item label="评估模式">
+        <el-form-item :label="t('contracts_page.contract_dialog.eval_mode')">
           <el-select v-model="contractForm.evaluation_mode" style="width: 100%">
-            <el-option label="全部满足 (AND)" value="all" />
-            <el-option label="任一满足 (OR)" value="any" />
-            <el-option label="自定义表达式" value="custom" />
+            <el-option v-for="opt in evalModeFormOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item v-if="contractForm.evaluation_mode === 'custom'" label="自定义表达式">
-          <el-input v-model="contractForm.custom_expression" placeholder="如: cond_0 && (cond_1 || cond_2)" />
+        <el-form-item v-if="contractForm.evaluation_mode === 'custom'" :label="t('contracts_page.contract_dialog.custom_expression')">
+          <el-input v-model="contractForm.custom_expression" :placeholder="t('contracts_page.contract_dialog.custom_expression_ph')" />
         </el-form-item>
-        <el-form-item label="条件配置 (JSON)">
-          <el-input v-model="conditionsText" type="textarea" :rows="5" placeholder='[{"type": "time_window", "operator": "between", "field": "current_time", "days": [1,2,3,4,5], "start_time": "09:00", "end_time": "18:00", "label": "工作时间"}]' />
+        <el-form-item :label="t('contracts_page.contract_dialog.conditions_json')">
+          <el-input v-model="conditionsText" type="textarea" :rows="5" :placeholder="t('contracts_page.contract_dialog.conditions_ph')" />
         </el-form-item>
-        <el-form-item label="授权模板 (JSON)">
-          <el-input v-model="grantTemplateText" type="textarea" :rows="3" placeholder='{"features": ["api_access"]}' />
+        <el-form-item :label="t('contracts_page.contract_dialog.grant_template_json')">
+          <el-input v-model="grantTemplateText" type="textarea" :rows="3" :placeholder="t('contracts_page.contract_dialog.grant_template_ph')" />
         </el-form-item>
-        <el-form-item label="优先级">
+        <el-form-item :label="t('contracts_page.contract_dialog.priority')">
           <el-input-number v-model="contractForm.priority" :min="0" :max="999" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogContractVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveContract">保存</el-button>
+        <el-button @click="dialogContractVisible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="saveContract">{{ t('actions.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 新增分配对话框 -->
-    <el-dialog v-model="dialogAssignmentVisible" title="新增合约分配" width="500px" :close-on-click-modal="false">
+    <el-dialog v-model="dialogAssignmentVisible" :title="t('contracts_page.assignment_dialog.title')" width="500px" :close-on-click-modal="false">
       <el-form :model="assignmentForm" label-width="120px" size="small">
-        <el-form-item label="合约">
+        <el-form-item :label="t('contracts_page.assignment_dialog.contract')">
           <el-select v-model="assignmentForm.contract_id" style="width: 100%" disabled>
             <el-option v-for="c in contractsData" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="实体类型" required>
+        <el-form-item :label="t('contracts_page.assignment_dialog.entity_type')" required>
           <el-select v-model="assignmentForm.assignable_type" style="width: 100%">
-            <el-option label="License" value="App\Models\License" />
-            <el-option label="用户" value="App\Models\User" />
-            <el-option label="产品" value="App\Models\Product" />
-            <el-option label="租户" value="App\Models\Tenant" />
+            <el-option v-for="opt in entityTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="实体ID" required>
+        <el-form-item :label="t('contracts_page.assignment_dialog.entity_id')" required>
           <el-input-number v-model="assignmentForm.assignable_id" :min="1" />
         </el-form-item>
-        <el-form-item label="生效时间">
-          <el-date-picker v-model="assignmentForm.effective_from" type="datetime" placeholder="立即生效" style="width: 100%" />
+        <el-form-item :label="t('contracts_page.assignment_dialog.effective_from')">
+          <el-date-picker v-model="assignmentForm.effective_from" type="datetime" :placeholder="t('contracts_page.effective.from_placeholder')" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="失效时间">
-          <el-date-picker v-model="assignmentForm.effective_until" type="datetime" placeholder="永不过期" style="width: 100%" />
+        <el-form-item :label="t('contracts_page.assignment_dialog.effective_until')">
+          <el-date-picker v-model="assignmentForm.effective_until" type="datetime" :placeholder="t('contracts_page.effective.until_placeholder')" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="参数 (JSON)">
-          <el-input v-model="assignmentParamsText" type="textarea" :rows="3" placeholder='{"key": "value"}' />
+        <el-form-item :label="t('contracts_page.assignment_dialog.params_json')">
+          <el-input v-model="assignmentParamsText" type="textarea" :rows="3" :placeholder="t('contracts_page.assignment_dialog.params_ph')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogAssignmentVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveAssignment">保存</el-button>
+        <el-button @click="dialogAssignmentVisible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="saveAssignment">{{ t('actions.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 合约测试结果对话框 -->
-    <el-dialog v-model="dialogTestVisible" title="合约评估测试结果" width="600px" :close-on-click-modal="false">
+    <el-dialog v-model="dialogTestVisible" :title="t('contracts_page.test_dialog.title')" width="600px" :close-on-click-modal="false">
       <div v-if="testResult">
-        <el-alert :title="testResult.granted ? '授权通过 ✓' : '授权拒绝 ✗'" :type="testResult.granted ? 'success' : 'error'" :description="`合约: ${testResult.contract_name} (${testResult.contract_slug})`" show-icon class="mb-3" />
+        <el-alert
+          :title="testResult.granted ? t('contracts_page.test_dialog.granted') : t('contracts_page.test_dialog.denied')"
+          :type="testResult.granted ? 'success' : 'error'"
+          :description="t('contracts_page.test_dialog.contract_info', { name: testResult.contract_name, slug: testResult.contract_slug })"
+          show-icon
+          class="mb-3"
+        />
 
-        <h4 class="mb-2">条件评估详情</h4>
+        <h4 class="mb-2">{{ t('contracts_page.test_dialog.conditions_detail') }}</h4>
         <div v-for="(cond, idx) in testResult.conditions_results" :key="idx" class="condition-row mb-1">
           <el-tag :type="cond.matched ? 'success' : 'danger'" size="small" class="mr-1">
-            {{ cond.matched ? '✓' : '✗' }}
+            {{ cond.matched ? t('contracts_page.test_dialog.matched') : t('contracts_page.test_dialog.unmatched') }}
           </el-tag>
           <span class="condition-text">{{ cond.label || cond.type }}</span>
           <span class="text-gray-400 text-sm ml-2">
@@ -316,10 +315,10 @@
           </span>
         </div>
 
-        <p class="mt-2 text-sm text-gray-400">耗时: {{ testResult.evaluation_time_ms }}ms</p>
+        <p class="mt-2 text-sm text-gray-400">{{ t('contracts_page.test_dialog.duration', { ms: testResult.evaluation_time_ms }) }}</p>
       </div>
       <template #footer>
-        <el-button @click="dialogTestVisible = false">关闭</el-button>
+        <el-button @click="dialogTestVisible = false">{{ t('actions.close') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -327,8 +326,11 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import contractsApi from '../../api/contracts'
+
+const { t, locale } = useI18n()
 
 const activeTab = ref('contracts')
 const dashboardData = ref({})
@@ -338,6 +340,57 @@ const maxTrend = computed(() => {
   if (trendsData.value.length === 0) return 1
   return Math.max(...trendsData.value.map(d => d.total), 1)
 })
+
+const evalModeFormKeys = [
+  { value: 'all', key: 'all_and' },
+  { value: 'any', key: 'any_or' },
+  { value: 'custom', key: 'custom_expr' },
+]
+const logResultKeys = [
+  { value: '', key: 'all', ns: 'filters' },
+  { value: 'granted', key: 'granted', ns: 'results' },
+  { value: 'denied', key: 'denied', ns: 'results' },
+]
+const entityTypeKeys = [
+  { value: 'App\\Models\\License', key: 'license' },
+  { value: 'App\\Models\\User', key: 'user' },
+  { value: 'App\\Models\\Product', key: 'product' },
+  { value: 'App\\Models\\Tenant', key: 'tenant' },
+]
+
+const evalModeFormOptions = computed(() =>
+  evalModeFormKeys.map(({ value, key }) => ({
+    value,
+    label: t(`contracts_page.eval_modes.${key}`),
+  }))
+)
+const logResultOptions = computed(() =>
+  logResultKeys.map(({ value, key, ns }) => ({
+    value,
+    label: t(`contracts_page.${ns}.${key}`),
+  }))
+)
+const entityTypeOptions = computed(() =>
+  entityTypeKeys.map(({ value, key }) => ({
+    value,
+    label: t(`contracts_page.entity_types.${key}`),
+  }))
+)
+
+function evalModeLabel(mode) {
+  const key = `contracts_page.eval_modes.${mode}`
+  const label = t(key)
+  return label !== key ? label : mode
+}
+
+function resultLabel(result) {
+  const key = result === 'granted' ? 'contracts_page.results.grant' : 'contracts_page.results.deny'
+  return t(key)
+}
+
+function dateLocale() {
+  return locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US'
+}
 
 const loading = ref({ contracts: false, assignments: false, logs: false, dashboard: false })
 
@@ -365,7 +418,7 @@ const contractForm = ref({
   description: '',
   evaluation_mode: 'all',
   custom_expression: '',
-  conditions: [{ type: 'time_window', operator: 'between', field: 'current_time', days: [1, 2, 3, 4, 5], start_time: '09:00', end_time: '18:00', label: '工作时间' }],
+  conditions: [{ type: 'time_window', operator: 'between', field: 'current_time', days: [1, 2, 3, 4, 5], start_time: '09:00', end_time: '18:00', label: t('contracts_page.work_hours') }],
   grant_template: null,
   priority: 100,
 })
@@ -381,19 +434,19 @@ const testResult = ref(null)
 
 // ─── 统计卡片 ───
 const statCards = computed(() => [
-  { label: '合约总数', value: dashboardData.value?.total_contracts ?? 0, color: '#409eff' },
-  { label: '活跃合约', value: dashboardData.value?.active_contracts ?? 0, color: '#67c23a' },
-  { label: '系统合约', value: dashboardData.value?.system_contracts ?? 0, color: '#909399' },
-  { label: '评估总数', value: dashboardData.value?.total_evaluations ?? 0, color: '#e6a23c' },
-  { label: '今日评估', value: dashboardData.value?.today_evaluations ?? 0, color: '#409eff' },
-  { label: '授权率', value: dashboardData.value?.total_evaluations ? Math.round(dashboardData.value.granted_count / dashboardData.value.total_evaluations * 100) + '%' : '—', color: '#67c23a' },
+  { label: t('contracts_page.stats.total_contracts'), value: dashboardData.value?.total_contracts ?? 0, color: '#0f172a' },
+  { label: t('contracts_page.stats.active_contracts'), value: dashboardData.value?.active_contracts ?? 0, color: '#67c23a' },
+  { label: t('contracts_page.stats.system_contracts'), value: dashboardData.value?.system_contracts ?? 0, color: '#909399' },
+  { label: t('contracts_page.stats.total_evaluations'), value: dashboardData.value?.total_evaluations ?? 0, color: '#e6a23c' },
+  { label: t('contracts_page.stats.today_evaluations'), value: dashboardData.value?.today_evaluations ?? 0, color: '#0f172a' },
+  { label: t('contracts_page.stats.grant_rate'), value: dashboardData.value?.total_evaluations ? Math.round(dashboardData.value.granted_count / dashboardData.value.total_evaluations * 100) + '%' : '—', color: '#67c23a' },
 ])
 
 // ─── 方法 ───
-function formatTime(t) {
-  if (!t) return '—'
-  const d = new Date(t)
-  return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+function formatTime(time) {
+  if (!time) return '—'
+  const d = new Date(time)
+  return d.toLocaleString(dateLocale(), { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 function resetContractForm() {
   contractForm.value = { name: '', contract_type: 'license', description: '', evaluation_mode: 'all', custom_expression: '', conditions: [], grant_template: null, priority: 100 }
@@ -464,23 +517,23 @@ async function saveContract() {
     contractForm.value.conditions = JSON.parse(conditionsText.value)
     contractForm.value.grant_template = grantTemplateText.value ? JSON.parse(grantTemplateText.value) : null
   } catch (e) {
-    ElMessage.error('条件或模板 JSON 格式错误')
+    ElMessage.error(t('contracts_page.messages.json_conditions_error'))
     return
   }
 
   try {
     if (isEditingContract.value && editingContractId.value) {
       const res = await contractsApi.updateContract(editingContractId.value, contractForm.value)
-      ElMessage.success(res.message || '合约已更新')
+      ElMessage.success(res.message || t('contracts_page.messages.contract_updated'))
     } else {
       const res = await contractsApi.storeContract(contractForm.value)
-      ElMessage.success(res.message || '合约已创建')
+      ElMessage.success(res.message || t('contracts_page.messages.contract_created'))
     }
     dialogContractVisible.value = false
     fetchContracts()
     fetchDashboard()
   } catch (e) {
-    ElMessage.error('保存失败')
+    ElMessage.error(t('contracts_page.messages.save_failed'))
   }
 }
 
@@ -496,67 +549,67 @@ function editContract(row) {
 async function toggleContractActive(row, isActive) {
   try {
     await contractsApi.updateContract(row.id, { is_active: isActive })
-    ElMessage.success(isActive ? '合约已启用' : '合约已禁用')
+    ElMessage.success(isActive ? t('contracts_page.messages.contract_enabled') : t('contracts_page.messages.contract_disabled'))
     fetchContracts()
-  } catch (e) { ElMessage.error('操作失败') }
+  } catch (e) { ElMessage.error(t('contracts_page.messages.operation_failed')) }
 }
 
 async function handleDeleteContract(row) {
   try {
-    await ElMessageBox.confirm(`确认删除合约 "${row.name}"？`, '确认', { type: 'warning' })
+    await ElMessageBox.confirm(t('contracts_page.confirm.delete_contract', { name: row.name }), t('actions.confirm'), { type: 'warning' })
     await contractsApi.deleteContract(row.id)
-    ElMessage.success('已删除')
+    ElMessage.success(t('contracts_page.messages.deleted'))
     fetchContracts()
-  } catch (e) { if (e !== 'cancel') ElMessage.error('删除失败') }
+  } catch (e) { if (e !== 'cancel') ElMessage.error(t('contracts_page.messages.delete_failed')) }
 }
 
 async function handleSeedContracts() {
   try {
     const res = await contractsApi.seedContracts()
-    ElMessage.success(res.message || '系统合约已播种')
+    ElMessage.success(res.message || t('contracts_page.messages.seed_done'))
     fetchContracts()
     fetchDashboard()
-  } catch (e) { ElMessage.error('播种失败') }
+  } catch (e) { ElMessage.error(t('contracts_page.messages.seed_failed')) }
 }
 
 async function testContract(row) {
   try {
-    const res = await contractsApi.evaluateContract(row.id, { current_time: new Date().toLocaleTimeString('zh-CN', { hour12: false }), current_day: new Date().getDay() || 7 })
+    const res = await contractsApi.evaluateContract(row.id, { current_time: new Date().toLocaleTimeString(dateLocale(), { hour12: false }), current_day: new Date().getDay() || 7 })
     testResult.value = res.data
     dialogTestVisible.value = true
-  } catch (e) { ElMessage.error('测试失败') }
+  } catch (e) { ElMessage.error(t('contracts_page.messages.test_failed')) }
 }
 
 async function saveAssignment() {
   try {
     assignmentForm.value.parameters = assignmentParamsText.value ? JSON.parse(assignmentParamsText.value) : null
   } catch (e) {
-    ElMessage.error('参数 JSON 格式错误')
+    ElMessage.error(t('contracts_page.messages.json_params_error'))
     return
   }
   try {
     const res = await contractsApi.storeAssignment(assignmentForm.value)
-    ElMessage.success(res.message || '分配成功')
+    ElMessage.success(res.message || t('contracts_page.messages.assignment_success'))
     dialogAssignmentVisible.value = false
     fetchAssignments()
-  } catch (e) { ElMessage.error('分配失败') }
+  } catch (e) { ElMessage.error(t('contracts_page.messages.assignment_failed')) }
 }
 
 async function toggleAssignment(row, isEnabled) {
   try {
     await contractsApi.updateAssignment(row.id, { is_enabled: isEnabled })
-    ElMessage.success('状态已更新')
+    ElMessage.success(t('contracts_page.messages.status_updated'))
     fetchAssignments()
-  } catch (e) { ElMessage.error('操作失败') }
+  } catch (e) { ElMessage.error(t('contracts_page.messages.operation_failed')) }
 }
 
 async function handleDeleteAssignment(row) {
   try {
-    await ElMessageBox.confirm('确认移除该分配？', '确认', { type: 'warning' })
+    await ElMessageBox.confirm(t('contracts_page.confirm.remove_assignment'), t('actions.confirm'), { type: 'warning' })
     await contractsApi.deleteAssignment(row.id)
-    ElMessage.success('已移除')
+    ElMessage.success(t('contracts_page.messages.removed'))
     fetchAssignments()
-  } catch (e) { if (e !== 'cancel') ElMessage.error('移除失败') }
+  } catch (e) { if (e !== 'cancel') ElMessage.error(t('contracts_page.messages.remove_failed')) }
 }
 
 function refreshAll() {

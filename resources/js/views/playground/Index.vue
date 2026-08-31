@@ -1,8 +1,8 @@
 <template>
     <div class="playground-page">
         <div class="page-header">
-            <h2>API 交互式 Playground</h2>
-            <p class="header-subtitle">选择一个 API 端点，填写参数，实时调用并查看响应。自动生成多种语言的代码片段。</p>
+            <h2>{{ t('playground_page.title') }}</h2>
+            <p class="header-subtitle">{{ t('playground_page.subtitle') }}</p>
         </div>
 
         <el-row :gutter="20">
@@ -11,10 +11,10 @@
                 <el-card shadow="never" class="sidebar-card">
                     <template #header>
                         <div class="sidebar-header">
-                            <span>API 端点</span>
+                            <span>{{ t('playground_page.endpoints') }}</span>
                             <el-input
                                 v-model="endpointSearch"
-                                placeholder="搜索..."
+                                :placeholder="t('playground_page.search_ph')"
                                 size="small"
                                 clearable
                                 class="search-input"
@@ -36,7 +36,7 @@
                                 <span class="ep-title">{{ ep.title }}</span>
                             </div>
                         </div>
-                        <el-empty v-if="!endpointsLoading && Object.keys(groupedEndpoints).length === 0" description="无匹配端点" />
+                        <el-empty v-if="!endpointsLoading && Object.keys(groupedEndpoints).length === 0" :description="t('playground_page.no_matching_endpoints')" />
                     </div>
                 </el-card>
             </el-col>
@@ -44,7 +44,7 @@
             <!-- 右侧：主区域 -->
             <el-col :span="18">
                 <div v-if="!selectedEndpoint" class="no-endpoint">
-                    <el-empty description="从左侧选择一个 API 端点开始" />
+                    <el-empty :description="t('playground_page.select_endpoint_hint')" />
                 </div>
 
                 <template v-else>
@@ -63,7 +63,7 @@
                     <!-- 认证信息 -->
                     <el-alert
                         v-if="selectedEndpoint.auth"
-                        title="此端点需要认证，请确保已登录"
+                        :title="t('playground_page.auth_required')"
                         type="warning"
                         show-icon
                         :closable="false"
@@ -73,12 +73,12 @@
                     <!-- 参数输入 -->
                     <el-card shadow="never" class="params-card">
                         <template #header>
-                            <span>请求参数</span>
+                            <span>{{ t('playground_page.request_params') }}</span>
                         </template>
 
                         <!-- Query 参数 -->
                         <div v-if="selectedEndpoint.query_params?.length" class="param-section">
-                            <h4 class="param-section-title">Query 参数</h4>
+                            <h4 class="param-section-title">{{ t('playground_page.query_params') }}</h4>
                             <el-form label-width="140px" size="small">
                                 <el-form-item
                                     v-for="param in selectedEndpoint.query_params"
@@ -98,13 +98,16 @@
 
                         <!-- Body 参数 -->
                         <div v-if="selectedEndpoint.request_body?.length" class="param-section">
-                            <h4 class="param-section-title">请求体 <span class="section-subtitle">JSON</span></h4>
+                            <h4 class="param-section-title">
+                                {{ t('playground_page.request_body') }}
+                                <span class="section-subtitle">{{ t('playground_page.json_label') }}</span>
+                            </h4>
                             <div class="body-editor">
                                 <el-input
                                     v-model="requestBodyRaw"
                                     type="textarea"
                                     :rows="8"
-                                    placeholder="{ &quot;key&quot;: &quot;value&quot; }"
+                                    :placeholder="t('playground_page.json_body_ph')"
                                     class="json-input"
                                     style="font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px;"
                                 />
@@ -115,13 +118,13 @@
                                     @click="formatJson"
                                     class="format-btn"
                                 >
-                                    格式化 JSON
+                                    {{ t('playground_page.format_json') }}
                                 </el-button>
                             </div>
                         </div>
 
                         <div v-if="!selectedEndpoint.query_params?.length && !selectedEndpoint.request_body?.length" class="no-params">
-                            <el-empty description="此端点无需参数" :image-size="60" />
+                            <el-empty :description="t('playground_page.no_params')" :image-size="60" />
                         </div>
                     </el-card>
 
@@ -135,7 +138,7 @@
                             @click="executeRequest"
                         >
                             <el-icon><CaretRight /></el-icon>
-                            {{ executing ? '请求中...' : '发送请求' }}
+                            {{ executing ? t('playground_page.sending') : t('playground_page.send_request') }}
                         </el-button>
                         <el-button
                             size="large"
@@ -143,9 +146,9 @@
                             :type="showCodePanel ? 'warning' : 'default'"
                         >
                             <el-icon><Document /></el-icon>
-                            查看代码
+                            {{ t('playground_page.view_code') }}
                         </el-button>
-                        <el-button size="large" @click="resetParams">重置</el-button>
+                        <el-button size="large" @click="resetParams">{{ t('actions.reset') }}</el-button>
                     </div>
 
                     <!-- 代码面板 -->
@@ -154,7 +157,7 @@
                             <el-card shadow="never">
                                 <template #header>
                                     <div class="code-header">
-                                        <span>代码生成</span>
+                                        <span>{{ t('playground_page.code_generation') }}</span>
                                         <el-radio-group v-model="codeLanguage" size="small">
                                             <el-radio-button value="curl">cURL</el-radio-button>
                                             <el-radio-button value="php">PHP</el-radio-button>
@@ -169,7 +172,7 @@
                                 <div v-loading="codeGenerating" class="code-output">
                                     <div class="code-toolbar">
                                         <el-button text size="small" @click="copyCode">
-                                            <el-icon><CopyDocument /></el-icon> 复制
+                                            <el-icon><CopyDocument /></el-icon> {{ t('actions.copy') }}
                                         </el-button>
                                     </div>
                                     <pre><code>{{ generatedCode }}</code></pre>
@@ -182,7 +185,7 @@
                     <el-card v-if="responseData" shadow="never" class="response-card">
                         <template #header>
                             <div class="response-header">
-                                <span>响应</span>
+                                <span>{{ t('playground_page.response') }}</span>
                                 <div class="response-meta">
                                     <el-tag :type="responseSuccess ? 'success' : 'danger'" size="small">
                                         HTTP {{ responseData.status }}
@@ -191,7 +194,7 @@
                                         {{ (responseData.duration_ms / 1000).toFixed(2) }}ms
                                     </el-tag>
                                     <el-button text size="small" @click="copyResponse">
-                                        <el-icon><CopyDocument /></el-icon> 复制
+                                        <el-icon><CopyDocument /></el-icon> {{ t('actions.copy') }}
                                     </el-button>
                                 </div>
                             </div>
@@ -209,9 +212,12 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { CaretRight, CopyDocument } from '@element-plus/icons-vue';
 import playgroundApi from '@/api/playground';
+
+const { t } = useI18n();
 
 const endpointsLoading = ref(false);
 const endpoints = ref([]);
@@ -307,7 +313,7 @@ function formatJson() {
         const obj = JSON.parse(requestBodyRaw.value);
         requestBodyRaw.value = JSON.stringify(obj, null, 2);
     } catch {
-        ElMessage.warning('JSON 格式无效');
+        ElMessage.warning(t('playground_page.messages.invalid_json'));
     }
 }
 
@@ -316,7 +322,7 @@ function parseBody() {
     try {
         return JSON.parse(requestBodyRaw.value);
     } catch {
-        ElMessage.warning('请求体 JSON 格式无效，已作为字符串发送');
+        ElMessage.warning(t('playground_page.messages.invalid_body_json'));
         return requestBodyRaw.value;
     }
 }
@@ -361,7 +367,7 @@ async function executeRequest() {
     } catch {
         responseData.value = {
             status: 0,
-            body: { error: '请求失败，请检查网络连接' },
+            body: { error: t('messages.network_error') },
             duration_ms: 0,
         };
     } finally {
@@ -386,7 +392,7 @@ async function generateCodeSnippet() {
             generatedCode.value = res.data.code;
         }
     } catch {
-        generatedCode.value = '// 代码生成失败';
+        generatedCode.value = t('playground_page.messages.code_gen_failed');
     } finally {
         codeGenerating.value = false;
     }
@@ -395,7 +401,7 @@ async function generateCodeSnippet() {
 function copyCode() {
     if (!generatedCode.value) return;
     navigator.clipboard.writeText(generatedCode.value).then(() => {
-        ElMessage.success('代码已复制');
+        ElMessage.success(t('playground_page.messages.code_copied'));
     }).catch(() => {
         const ta = document.createElement('textarea');
         ta.value = generatedCode.value;
@@ -403,14 +409,14 @@ function copyCode() {
         ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
-        ElMessage.success('代码已复制');
+        ElMessage.success(t('playground_page.messages.code_copied'));
     });
 }
 
 function copyResponse() {
     if (!responseBodyFormatted.value) return;
     navigator.clipboard.writeText(responseBodyFormatted.value).then(() => {
-        ElMessage.success('响应已复制');
+        ElMessage.success(t('playground_page.messages.response_copied'));
     });
 }
 
@@ -500,7 +506,7 @@ onMounted(() => {
     flex-shrink: 0;
 }
 .ep-method.get { background: #67C23A; }
-.ep-method.post { background: #409EFF; }
+.ep-method.post { background: #0f172a; }
 .ep-method.put { background: #E6A23C; }
 .ep-method.delete { background: #F56C6C; }
 .ep-title {

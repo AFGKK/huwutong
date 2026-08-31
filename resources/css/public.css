@@ -10,6 +10,57 @@
 html {
     -webkit-text-size-adjust: 100%;
     touch-action: manipulation;
+    overflow-x: clip;
+}
+
+body {
+    overflow-x: clip;
+    max-width: 100%;
+}
+
+img,
+video,
+svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* 表格/宽内容容器内滚动，避免撑开页面 */
+.table-scroll-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+/* 移动端导航分组 */
+.nav-mobile-group-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.625rem 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    background: #f9fafb;
+    transition: background 0.2s;
+}
+
+.nav-mobile-group-btn:hover {
+    background: #f3f4f6;
+}
+
+.nav-mobile-group-btn svg {
+    transition: transform 0.2s;
+}
+
+.nav-mobile-group-btn[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+}
+
+.nav-mobile-group-panel a {
+    padding-left: 1.5rem;
 }
 
 /* 滚动条优化 */

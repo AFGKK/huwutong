@@ -1,68 +1,66 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-3">
-      <span class="text-sm text-gray-500">共 {{ total }} 条记录</span>
+      <span class="text-sm text-gray-500">{{ t('sla_breach_panel.total', { n: total }) }}</span>
       <div>
-        <el-select v-model="filters.severity" placeholder="严重程度" clearable size="small" style="width:120px"
+        <el-select v-model="filters.severity" :placeholder="t('sla_breach_panel.severity')" clearable size="small" style="width:120px"
           @change="load" class="mr-2">
-          <el-option label="轻微" value="minor" />
-          <el-option label="严重" value="major" />
-          <el-option label="紧急" value="critical" />
+          <el-option :label="t('sla_breach_panel.severities.minor')" value="minor" />
+          <el-option :label="t('sla_breach_panel.severities.major')" value="major" />
+          <el-option :label="t('sla_breach_panel.severities.critical')" value="critical" />
         </el-select>
-        <el-select v-model="filters.status" placeholder="状态" clearable size="small" style="width:120px" @change="load"
+        <el-select v-model="filters.status" :placeholder="t('sla_breach_panel.cols.status')" clearable size="small" style="width:120px" @change="load"
           class="mr-2">
-          <el-option label="待处理" value="open" />
-          <el-option label="已确认" value="acknowledged" />
-          <el-option label="已解决" value="resolved" />
-          <el-option label="已升级" value="escalated" />
+          <el-option :label="t('sla_breach_panel.statuses.open')" value="open" />
+          <el-option :label="t('sla_breach_panel.statuses.acknowledged')" value="acknowledged" />
+          <el-option :label="t('sla_breach_panel.statuses.resolved')" value="resolved" />
+          <el-option :label="t('sla_breach_panel.statuses.escalated')" value="escalated" />
         </el-select>
-        <el-button size="small" @click="load" type="primary">刷新</el-button>
+        <el-button size="small" @click="load" type="primary">{{ t('actions.refresh') }}</el-button>
       </div>
     </div>
 
     <el-table :data="breaches" stripe v-loading="loading">
-      <el-table-column label="合约" prop="contract?.name" min-width="140" />
-      <el-table-column label="类型" prop="breach_type" width="110">
-        <template #default="{ row }">{{ typeLabels[row.breach_type] || row.breach_type }}</template>
+      <el-table-column :label="t('sla_breach_panel.cols.contract')" prop="contract?.name" min-width="140" />
+      <el-table-column :label="t('sla_breach_panel.cols.type')" prop="breach_type" width="110">
+        <template #default="{ row }">{{ typeLabel(row.breach_type) }}</template>
       </el-table-column>
-      <el-table-column label="严重程度" prop="severity" width="90">
+      <el-table-column :label="t('sla_breach_panel.severity')" prop="severity" width="90">
         <template #default="{ row }">
-          <el-tag :type="severityTag(row.severity)" size="small">{{ severityLabels[row.severity] }}</el-tag>
+          <el-tag :type="severityTag(row.severity)" size="small">{{ severityLabel(row.severity) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="描述" prop="description" min-width="200" show-overflow-tooltip />
-      <el-table-column label="预期/实际" width="130">
+      <el-table-column :label="t('sla_breach_panel.cols.description')" prop="description" min-width="200" show-overflow-tooltip />
+      <el-table-column :label="t('sla_breach_panel.cols.expected')" width="130">
         <template #default="{ row }">
           {{ row.expected_value }} vs {{ row.actual_value }}
         </template>
       </el-table-column>
-      <el-table-column label="状态" prop="status" width="90">
+      <el-table-column :label="t('sla_breach_panel.cols.status')" prop="status" width="90">
         <template #default="{ row }">
-          <el-tag :type="statusTag(row.status)" size="small">{{ statusLabels[row.status] }}</el-tag>
+          <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="时间" prop="created_at" width="160" />
-      <el-table-column label="操作" width="140" fixed="right">
+      <el-table-column :label="t('sla_breach_panel.cols.time')" prop="created_at" width="160" />
+      <el-table-column :label="t('sla_breach_panel.cols.actions')" width="140" fixed="right">
         <template #default="{ row }">
-          <el-button v-if="row.status === 'open'" size="small" @click="acknowledge(row)">确认</el-button>
+          <el-button v-if="row.status === 'open'" size="small" @click="acknowledge(row)">{{ t('sla_breach_panel.ack') }}</el-button>
           <el-button v-if="['open', 'acknowledged'].includes(row.status)" size="small" type="success"
-            @click="showResolve(row)">解决</el-button>
+            @click="showResolve(row)">{{ t('sla_breach_panel.resolve') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <!-- 分页 -->
     <div class="flex justify-center mt-3" v-if="pagination.total > pagination.per_page">
       <el-pagination background layout="prev, pager, next" v-model:current-page="pagination.page"
         :page-size="pagination.per_page" :total="pagination.total" @current-change="load" />
     </div>
 
-    <!-- 解决对话框 -->
-    <el-dialog v-model="resolveDialog.visible" title="解决违约" width="400px">
-      <el-input v-model="resolveDialog.notes" type="textarea" :rows="3" placeholder="解决备注（可选）" />
+    <el-dialog v-model="resolveDialog.visible" :title="t('sla_breach_panel.resolve_title')" width="400px">
+      <el-input v-model="resolveDialog.notes" type="textarea" :rows="3" :placeholder="t('sla_breach_panel.notes_ph')" />
       <template #footer>
-        <el-button @click="resolveDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="resolving" @click="confirmResolve">确认解决</el-button>
+        <el-button @click="resolveDialog.visible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="resolving" @click="confirmResolve">{{ t('sla_breach_panel.confirm_resolve') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -70,8 +68,11 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { getBreaches, acknowledgeBreach, resolveBreach } from '../../../api/sla'
+
+const { t } = useI18n()
 
 const breaches = ref([])
 const total = ref(0)
@@ -82,10 +83,18 @@ const filters = reactive({ severity: '', status: '' })
 const pagination = reactive({ page: 1, per_page: 50, total: 0 })
 const resolveDialog = reactive({ visible: false, breach: null, notes: '' })
 
-const typeLabels = { response_time: '响应时间', resolution_time: '解决时间', uptime: '正常运行', availability: '可用性' }
-const severityLabels = { minor: '轻微', major: '严重', critical: '紧急' }
-const statusLabels = { open: '待处理', acknowledged: '已确认', resolved: '已解决', escalated: '已升级' }
-
+function typeLabel(type) {
+  const key = { response_time: 'response_time', resolution_time: 'resolution_time', uptime: 'uptime', availability: 'availability' }[type]
+  return key ? t(`sla_breach_panel.types.${key}`) : type
+}
+function severityLabel(s) {
+  const key = { minor: 'minor', major: 'major', critical: 'critical' }[s]
+  return key ? t(`sla_breach_panel.severities.${key}`) : s
+}
+function statusLabel(s) {
+  const key = { open: 'open', acknowledged: 'acknowledged', resolved: 'resolved', escalated: 'escalated' }[s]
+  return key ? t(`sla_breach_panel.statuses.${key}`) : s
+}
 function severityTag(s) {
   return { minor: 'info', major: 'warning', critical: 'danger' }[s] || 'info'
 }
@@ -96,10 +105,10 @@ function statusTag(s) {
 async function acknowledge(breach) {
   try {
     await acknowledgeBreach(breach.id)
-    ElMessage.success('已确认')
+    ElMessage.success(t('sla_breach_panel.messages.acked'))
     await load()
   } catch (e) {
-    ElMessage.error('操作失败')
+    ElMessage.error(t('messages.failed'))
   }
 }
 
@@ -113,11 +122,11 @@ async function confirmResolve() {
   resolving.value = true
   try {
     await resolveBreach(resolveDialog.breach.id, resolveDialog.notes)
-    ElMessage.success('已解决')
+    ElMessage.success(t('sla_breach_panel.messages.resolved'))
     resolveDialog.visible = false
     await load()
   } catch (e) {
-    ElMessage.error('操作失败')
+    ElMessage.error(t('messages.failed'))
   } finally {
     resolving.value = false
   }
@@ -133,7 +142,7 @@ async function load() {
     pagination.total = data?.total || list.length
     total.value = pagination.total
   } catch (e) {
-    ElMessage.error('加载违约记录失败')
+    ElMessage.error(t('sla_breach_panel.messages.load_failed'))
   } finally {
     loading.value = false
   }

@@ -2,17 +2,17 @@
     <div class="ssl-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>SSL 证书管理</h2>
-                <span class="header-subtitle">Let's Encrypt 证书签发、续期、吊销管理</span>
+                <h2>{{ t('ssl_certificates_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('ssl_certificates_page.subtitle') }}</span>
             </div>
             <div class="header-right">
                 <el-button type="primary" @click="showCreateDialog = true">
                     <el-icon><Plus /></el-icon>
-                    申请新证书
+                    {{ t('ssl_certificates_page.btn_apply_new') }}
                 </el-button>
                 <el-button @click="loadAll">
                     <el-icon><Refresh /></el-icon>
-                    刷新
+                    {{ t('ssl_certificates_page.refresh_btn') }}
                 </el-button>
             </div>
         </div>
@@ -23,7 +23,7 @@
                 <el-card shadow="never">
                     <div class="stat-item">
                         <div class="stat-value">{{ stats.total_certificates || '-' }}</div>
-                        <div class="stat-label">全部证书</div>
+                        <div class="stat-label">{{ t('ssl_certificates_page.stat_total') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -31,7 +31,7 @@
                 <el-card shadow="never">
                     <div class="stat-item">
                         <div class="stat-value text-success">{{ stats.valid || '-' }}</div>
-                        <div class="stat-label">有效</div>
+                        <div class="stat-label">{{ t('ssl_certificates_page.stat_valid') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -39,7 +39,7 @@
                 <el-card shadow="never">
                     <div class="stat-item">
                         <div class="stat-value text-warning">{{ stats.expiring_soon || '-' }}</div>
-                        <div class="stat-label">即将到期</div>
+                        <div class="stat-label">{{ t('ssl_certificates_page.stat_expiring_soon') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -47,7 +47,7 @@
                 <el-card shadow="never">
                     <div class="stat-item">
                         <div class="stat-value text-warning">{{ stats.needs_renewal || '-' }}</div>
-                        <div class="stat-label">需要续期</div>
+                        <div class="stat-label">{{ t('ssl_certificates_page.stat_needs_renewal') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -55,7 +55,7 @@
                 <el-card shadow="never">
                     <div class="stat-item">
                         <div class="stat-value text-danger">{{ stats.failed || '-' }}</div>
-                        <div class="stat-label">签发失败</div>
+                        <div class="stat-label">{{ t('ssl_certificates_page.stat_failed') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -63,7 +63,7 @@
                 <el-card shadow="never">
                     <div class="stat-item">
                         <div class="stat-value text-primary">{{ stats.pending || '-' }}</div>
-                        <div class="stat-label">待处理</div>
+                        <div class="stat-label">{{ t('ssl_certificates_page.stat_pending') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -73,52 +73,48 @@
         <el-card shadow="never">
             <template #header>
                 <div class="card-header">
-                    <span>证书列表</span>
+                    <span>{{ t('ssl_certificates_page.list_title') }}</span>
                     <div class="filter-row">
-                        <el-select v-model="filterStatus" placeholder="状态" size="small" clearable style="width: 120px;" @change="loadCertificates">
-                            <el-option label="已签发" value="issued" />
-                            <el-option label="待处理" value="pending" />
-                            <el-option label="续期中" value="renewing" />
-                            <el-option label="失败" value="failed" />
-                            <el-option label="已吊销" value="revoked" />
+                        <el-select v-model="filterStatus" :placeholder="t('ssl_certificates_page.filter_status_ph')" size="small" clearable style="width: 120px;" @change="loadCertificates">
+                            <el-option v-for="opt in statusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                         </el-select>
-                        <el-input v-model="searchText" size="small" placeholder="搜索域名" clearable style="width: 200px; margin-left: 8px;" @clear="loadCertificates" @keyup.enter="loadCertificates" />
+                        <el-input v-model="searchText" size="small" :placeholder="t('ssl_certificates_page.search_domain_ph')" clearable style="width: 200px; margin-left: 8px;" @clear="loadCertificates" @keyup.enter="loadCertificates" />
                     </div>
                 </div>
             </template>
 
             <el-table :data="certificates" v-loading="loading" stripe>
-                <el-table-column prop="id" label="ID" width="60" />
-                <el-table-column label="域名" min-width="180">
+                <el-table-column prop="id" :label="t('ssl_certificates_page.col_id')" width="60" />
+                <el-table-column :label="t('ssl_certificates_page.col_domain')" min-width="180">
                     <template #default="{ row }">
                         <span class="mono">{{ row.domain }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="租户" width="150">
+                <el-table-column :label="t('ssl_certificates_page.col_tenant')" width="150">
                     <template #default="{ row }">
                         {{ row.tenant_name || '-' }}
                     </template>
                 </el-table-column>
-                <el-table-column label="状态" width="100">
+                <el-table-column :label="t('ssl_certificates_page.col_status')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="statusType(row)" size="small">
                             {{ statusLabel(row.status) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="有效期" width="110">
+                <el-table-column :label="t('ssl_certificates_page.col_expires')" width="110">
                     <template #default="{ row }">
                         <span :class="{ 'text-danger': row.expiring_soon }">
                             {{ row.expires_at ? formatDate(row.expires_at) : '-' }}
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column label="签发时间" width="110">
+                <el-table-column :label="t('ssl_certificates_page.col_issued_at')" width="110">
                     <template #default="{ row }">
                         {{ row.issued_at ? formatDate(row.issued_at) : '-' }}
                     </template>
                 </el-table-column>
-                <el-table-column label="自动续期" width="90">
+                <el-table-column :label="t('ssl_certificates_page.col_auto_renew')" width="90">
                     <template #default="{ row }">
                         <el-switch
                             v-model="row.auto_renew"
@@ -128,13 +124,13 @@
                         />
                     </template>
                 </el-table-column>
-                <el-table-column label="错误信息" min-width="180">
+                <el-table-column :label="t('ssl_certificates_page.col_error')" min-width="180">
                     <template #default="{ row }">
                         <span class="error-text" v-if="row.error_message">{{ row.error_message }}</span>
                         <span v-else>-</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="220" fixed="right">
+                <el-table-column :label="t('ssl_certificates_page.col_actions')" width="220" fixed="right">
                     <template #default="{ row }">
                         <el-button
                             v-if="row.status === 'issued'"
@@ -144,7 +140,7 @@
                             @click="handleRenew(row)"
                             :loading="row._renewing"
                         >
-                            续期
+                            {{ t('ssl_certificates_page.btn_renew') }}
                         </el-button>
                         <el-button
                             v-if="row.status === 'failed' || row.status === 'pending'"
@@ -154,15 +150,15 @@
                             @click="handleRetry(row)"
                             :loading="row._renewing"
                         >
-                            重试
+                            {{ t('actions.retry') }}
                         </el-button>
                         <el-popconfirm
                             v-if="row.status !== 'revoked'"
-                            title="确认吊销此证书？"
+                            :title="t('ssl_certificates_page.revoke_confirm_title')"
                             @confirm="handleRevoke(row)"
                         >
                             <template #reference>
-                                <el-button size="small" type="danger" plain>吊销</el-button>
+                                <el-button size="small" type="danger" plain>{{ t('ssl_certificates_page.btn_revoke') }}</el-button>
                             </template>
                         </el-popconfirm>
                     </template>
@@ -183,23 +179,23 @@
         <!-- 即将到期证书 -->
         <el-card v-if="stats.expiring_certificates?.length" shadow="never" class="mt-4">
             <template #header>
-                <span class="text-warning">即将到期证书（{{ stats.expiring_certificates.length }} 个）</span>
+                <span class="text-warning">{{ t('ssl_certificates_page.expiring_title', { count: stats.expiring_certificates.length }) }}</span>
             </template>
             <div v-for="c in stats.expiring_certificates" :key="c.id" class="expiring-item">
                 <span class="mono">{{ c.domain }}</span>
-                <el-tag size="small" type="danger">剩余 {{ c.days_left }} 天</el-tag>
-                <el-button size="small" text type="primary" @click="quickRenew(c.id)">立即续期</el-button>
+                <el-tag size="small" type="danger">{{ t('ssl_certificates_page.days_left', { days: c.days_left }) }}</el-tag>
+                <el-button size="small" text type="primary" @click="quickRenew(c.id)">{{ t('ssl_certificates_page.btn_renew_now') }}</el-button>
             </div>
         </el-card>
 
         <!-- 申请证书 Dialog -->
-        <el-dialog v-model="showCreateDialog" title="申请新 SSL 证书" width="500px">
+        <el-dialog v-model="showCreateDialog" :title="t('ssl_certificates_page.create_dialog_title')" width="500px">
             <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-position="top">
                 <el-alert type="info" :closable="false" class="mb-3">
-                    <template #title>证书通过 Let's Encrypt 自动签发，需确保域名 CNAME 解析已指向本系统</template>
+                    <template #title>{{ t('ssl_certificates_page.create_alert') }}</template>
                 </el-alert>
-                <el-form-item label="选择域名" prop="custom_domain_id">
-                    <el-select v-model="createForm.custom_domain_id" filterable placeholder="搜索或选择域名" style="width:100%">
+                <el-form-item :label="t('ssl_certificates_page.form_domain_label')" prop="custom_domain_id">
+                    <el-select v-model="createForm.custom_domain_id" filterable :placeholder="t('ssl_certificates_page.form_domain_ph')" style="width:100%">
                         <el-option
                             v-for="d in domainOptions"
                             :key="d.id"
@@ -209,30 +205,33 @@
                             <span>{{ d.domain }}</span>
                             <span class="domain-status ml-2">
                                 <el-tag :type="d.verified ? 'success' : 'warning'" size="small">
-                                    {{ d.verified ? '已验证' : '未验证' }}
+                                    {{ d.verified ? t('ssl_certificates_page.domain_verified') : t('ssl_certificates_page.domain_unverified') }}
                                 </el-tag>
                             </span>
                         </el-option>
                     </el-select>
                 </el-form-item>
                 <el-form-item>
-                    <el-switch v-model="createForm.auto_renew" active-text="启用自动续期" />
+                    <el-switch v-model="createForm.auto_renew" :active-text="t('ssl_certificates_page.auto_renew_label')" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showCreateDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleCreate" :loading="creating">提交申请</el-button>
+                <el-button @click="showCreateDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleCreate" :loading="creating">{{ t('ssl_certificates_page.btn_submit_apply') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Refresh } from '@element-plus/icons-vue';
 import sslApi from '@/api/sslCertificate';
 import domainApi from '@/api/domain';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const creating = ref(false);
@@ -253,9 +252,25 @@ const createForm = reactive({
     custom_domain_id: null,
     auto_renew: true,
 });
-const createRules = {
-    custom_domain_id: [{ required: true, message: '请选择域名', trigger: 'change' }],
-};
+
+const statusKeys = ['issued', 'pending', 'renewing', 'failed', 'revoked'];
+
+const statusLabels = computed(() => ({
+    issued: t('ssl_certificates_page.status.issued'),
+    pending: t('ssl_certificates_page.status.pending'),
+    renewing: t('ssl_certificates_page.status.renewing'),
+    failed: t('ssl_certificates_page.status.failed'),
+    revoked: t('ssl_certificates_page.status.revoked'),
+    expired: t('ssl_certificates_page.status.expired'),
+}));
+
+const statusOptions = computed(() =>
+    statusKeys.map((value) => ({ value, label: statusLabels.value[value] }))
+);
+
+const createRules = computed(() => ({
+    custom_domain_id: [{ required: true, message: t('ssl_certificates_page.validation.domain_required'), trigger: 'change' }],
+}));
 
 function statusType(row) {
     if (row.status === 'issued' && row.is_valid) return 'success';
@@ -268,16 +283,13 @@ function statusType(row) {
 }
 
 function statusLabel(status) {
-    const map = {
-        issued: '已签发', pending: '待处理', renewing: '续期中',
-        failed: '失败', revoked: '已吊销', expired: '已过期',
-    };
-    return map[status] || status;
+    return statusLabels.value[status] || status;
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(dateStr).toLocaleString(loc, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit',
     });
@@ -331,11 +343,11 @@ async function handleCreate() {
             custom_domain_id: createForm.custom_domain_id,
             auto_renew: createForm.auto_renew,
         });
-        ElMessage.success('证书申请已提交');
+        ElMessage.success(t('ssl_certificates_page.messages.create_success'));
         showCreateDialog.value = false;
         loadAll();
     } catch (err) {
-        ElMessage.error(err?.response?.data?.message || '申请失败');
+        ElMessage.error(err?.response?.data?.message || t('ssl_certificates_page.messages.create_failed'));
     } finally {
         creating.value = false;
     }
@@ -343,12 +355,18 @@ async function handleCreate() {
 
 async function handleRenew(row) {
     try {
-        await ElMessageBox.confirm(`确认对 ${row.domain} 发起证书续期？`, '续期确认', {
-            confirmButtonText: '确认续期', cancelButtonText: '取消', type: 'info',
-        });
+        await ElMessageBox.confirm(
+            t('ssl_certificates_page.renew_confirm_msg', { domain: row.domain }),
+            t('ssl_certificates_page.renew_confirm_title'),
+            {
+                confirmButtonText: t('ssl_certificates_page.renew_confirm_btn'),
+                cancelButtonText: t('actions.cancel'),
+                type: 'info',
+            },
+        );
         row._renewing = true;
         await sslApi.renew(row.id);
-        ElMessage.success('证书续期成功');
+        ElMessage.success(t('ssl_certificates_page.messages.renew_success'));
         loadAll();
     } catch (err) {
         if (err?.response?.data?.message) {
@@ -363,10 +381,10 @@ async function handleRetry(row) {
     row._renewing = true;
     try {
         await sslApi.renew(row.id);
-        ElMessage.success('重试成功');
+        ElMessage.success(t('ssl_certificates_page.messages.retry_success'));
         loadAll();
     } catch (err) {
-        ElMessage.error(err?.response?.data?.message || '重试失败');
+        ElMessage.error(err?.response?.data?.message || t('ssl_certificates_page.messages.retry_failed'));
     } finally {
         row._renewing = false;
     }
@@ -375,24 +393,34 @@ async function handleRetry(row) {
 async function handleRevoke(row) {
     try {
         const { value: reason } = await ElMessageBox.prompt(
-            '吊销后该域名的 HTTPS 将立即失效，请确认。',
-            '吊销证书',
-            { confirmButtonText: '确认吊销', cancelButtonText: '取消', inputPlaceholder: '吊销原因', inputType: 'textarea', type: 'warning' }
+            t('ssl_certificates_page.revoke_prompt_msg'),
+            t('ssl_certificates_page.revoke_dialog_title'),
+            {
+                confirmButtonText: t('ssl_certificates_page.revoke_confirm_btn'),
+                cancelButtonText: t('actions.cancel'),
+                inputPlaceholder: t('ssl_certificates_page.revoke_reason_ph'),
+                inputType: 'textarea',
+                type: 'warning',
+            },
         );
-        await sslApi.revoke(row.id, { reason: reason || '管理员吊销' });
-        ElMessage.success('证书已吊销');
+        await sslApi.revoke(row.id, { reason: reason || t('ssl_certificates_page.revoke_default_reason') });
+        ElMessage.success(t('ssl_certificates_page.messages.revoke_success'));
         loadAll();
-    } catch { /* cancelled */ }
+    } catch (e) {
+        if (e !== 'cancel' && e !== 'close' && e?.message) {
+            ElMessage.error(e.message || t('ssl_certificates_page.messages.revoke_failed'));
+        }
+    }
 }
 
 async function handleToggleAutoRenew(row, val) {
     row._toggling = true;
     try {
         await sslApi.update(row.id, { auto_renew: val });
-        ElMessage.success(val ? '自动续期已开启' : '自动续期已关闭');
+        ElMessage.success(val ? t('ssl_certificates_page.messages.auto_renew_on') : t('ssl_certificates_page.messages.auto_renew_off'));
     } catch {
         row.auto_renew = !val;
-        ElMessage.error('操作失败');
+        ElMessage.error(t('messages.failed'));
     } finally {
         row._toggling = false;
     }

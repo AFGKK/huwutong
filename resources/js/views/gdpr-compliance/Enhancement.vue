@@ -1,12 +1,12 @@
 <template>
     <div class="gdpr-page">
         <div class="page-header">
-            <h2>GDPR 合规管理</h2>
+            <h2>{{ t('gdpr_enhancement_page.title') }}</h2>
             <el-button-group>
-                <el-button type="primary" @click="activeTab = 'overview'">概览</el-button>
-                <el-button @click="activeTab = 'requests'">数据主体请求</el-button>
-                <el-button @click="activeTab = 'dpa'">DPA 协议</el-button>
-                <el-button @click="activeTab = 'retention'">留存策略</el-button>
+                <el-button type="primary" @click="activeTab = 'overview'">{{ t('gdpr_enhancement_page.tabs.overview') }}</el-button>
+                <el-button @click="activeTab = 'requests'">{{ t('gdpr_enhancement_page.tabs.requests') }}</el-button>
+                <el-button @click="activeTab = 'dpa'">{{ t('gdpr_enhancement_page.tabs.dpa') }}</el-button>
+                <el-button @click="activeTab = 'retention'">{{ t('gdpr_enhancement_page.tabs.retention') }}</el-button>
             </el-button-group>
         </div>
 
@@ -22,17 +22,17 @@
             </el-row>
 
             <el-card class="mb-4">
-                <template #header><span>📋 合规检查清单</span></template>
+                <template #header><span>{{ t('gdpr_enhancement_page.checklist.title') }}</span></template>
                 <el-table :data="checklist" stripe>
-                    <el-table-column prop="item" label="合规项" min-width="220" />
-                    <el-table-column prop="status" label="状态" width="100">
+                    <el-table-column prop="item" :label="t('gdpr_enhancement_page.checklist.col_item')" min-width="220" />
+                    <el-table-column prop="status" :label="t('gdpr_enhancement_page.checklist.col_status')" width="100">
                         <template #default="{ row }">
                             <el-tag :type="row.status === 'done' ? 'success' : row.status === 'partial' ? 'warning' : 'danger'" size="small">
-                                {{ row.status === 'done' ? '✅ 完成' : row.status === 'partial' ? '⚠️ 部分' : '❌ 缺失' }}
+                                {{ checklistStatusLabel(row.status) }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="note" label="说明" min-width="280" />
+                    <el-table-column prop="note" :label="t('gdpr_enhancement_page.checklist.col_note')" min-width="280" />
                 </el-table>
             </el-card>
         </div>
@@ -42,26 +42,26 @@
             <el-card>
                 <template #header>
                     <div class="card-header">
-                        <span>数据主体请求（DSR）</span>
-                        <el-button size="small" @click="showNewRequest = true">新建请求</el-button>
+                        <span>{{ t('gdpr_enhancement_page.requests.title') }}</span>
+                        <el-button size="small" @click="openNewRequest">{{ t('gdpr_enhancement_page.requests.new_btn') }}</el-button>
                     </div>
                 </template>
                 <el-table :data="requests" stripe v-loading="requestsLoading">
                     <el-table-column prop="id" label="ID" width="60" />
-                    <el-table-column prop="user.email" label="用户" min-width="150" />
-                    <el-table-column label="类型" width="120">
+                    <el-table-column prop="user.email" :label="t('gdpr_enhancement_page.requests.col_user')" min-width="150" />
+                    <el-table-column :label="t('gdpr_enhancement_page.requests.col_type')" width="120">
                         <template #default="{ row }">{{ requestTypeLabel(row.type) }}</template>
                     </el-table-column>
-                    <el-table-column label="状态" width="100">
+                    <el-table-column :label="t('gdpr_enhancement_page.requests.col_status')" width="100">
                         <template #default="{ row }">
-                            <el-tag :type="statusType(row.status)" size="small">{{ row.status }}</el-tag>
+                            <el-tag :type="statusType(row.status)" size="small">{{ requestStatusLabel(row.status) }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="created_at" label="提交时间" width="170" />
-                    <el-table-column label="操作" width="120">
+                    <el-table-column prop="created_at" :label="t('gdpr_enhancement_page.requests.col_submitted_at')" width="170" />
+                    <el-table-column :label="t('gdpr_enhancement_page.requests.col_actions')" width="120">
                         <template #default="{ row }">
-                            <el-button size="small" v-if="row.status === 'pending'" @click="processRequest(row)">处理</el-button>
-                            <el-button size="small" v-if="row.output_file" @click="downloadExport(row)">下载</el-button>
+                            <el-button size="small" v-if="row.status === 'pending'" @click="processRequest(row)">{{ t('gdpr_enhancement_page.requests.process') }}</el-button>
+                            <el-button size="small" v-if="row.output_file" @click="downloadExport(row)">{{ t('actions.download') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -73,28 +73,28 @@
             <el-card>
                 <template #header>
                     <div class="card-header">
-                        <span>数据处理协议（DPA）</span>
-                        <el-button size="small" type="primary" @click="showNewDpa = true">新建 DPA</el-button>
+                        <span>{{ t('gdpr_enhancement_page.dpa.title') }}</span>
+                        <el-button size="small" type="primary" @click="openNewDpa">{{ t('gdpr_enhancement_page.dpa.new_btn') }}</el-button>
                     </div>
                 </template>
 
                 <el-table :data="dpas" stripe v-loading="dpasLoading">
                     <el-table-column prop="id" label="ID" width="60" />
-                    <el-table-column prop="title" label="标题" min-width="200" />
-                    <el-table-column prop="version" label="版本" width="80" />
-                    <el-table-column label="状态" width="100">
+                    <el-table-column prop="title" :label="t('gdpr_enhancement_page.dpa.col_title')" min-width="200" />
+                    <el-table-column prop="version" :label="t('gdpr_enhancement_page.dpa.col_version')" width="80" />
+                    <el-table-column :label="t('gdpr_enhancement_page.dpa.col_status')" width="100">
                         <template #default="{ row }">
                             <el-tag :type="row.status === 'published' ? 'success' : row.status === 'draft' ? 'info' : 'danger'" size="small">
-                                {{ row.status === 'published' ? '已发布' : row.status === 'draft' ? '草稿' : '已归档' }}
+                                {{ dpaStatusLabel(row.status) }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="signatures_count" label="签署数" width="80" align="center" />
-                    <el-table-column label="操作" width="200">
+                    <el-table-column prop="signatures_count" :label="t('gdpr_enhancement_page.dpa.col_signatures')" width="80" align="center" />
+                    <el-table-column :label="t('gdpr_enhancement_page.dpa.col_actions')" width="200">
                         <template #default="{ row }">
-                            <el-button size="small" @click="previewDpa(row)">预览</el-button>
-                            <el-button size="small" v-if="row.status === 'draft'" @click="publishDpa(row)">发布</el-button>
-                            <el-button size="small" @click="editDpa(row)">编辑</el-button>
+                            <el-button size="small" @click="previewDpa(row)">{{ t('gdpr_enhancement_page.dpa.preview') }}</el-button>
+                            <el-button size="small" v-if="row.status === 'draft'" @click="publishDpaRow(row)">{{ t('gdpr_enhancement_page.dpa.publish') }}</el-button>
+                            <el-button size="small" @click="editDpa(row)">{{ t('actions.edit') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -104,61 +104,57 @@
         <!-- ─── 留存策略 ─── -->
         <div v-if="activeTab === 'retention'">
             <el-card>
-                <template #header><span>🗑️ 数据留存策略</span></template>
+                <template #header><span>{{ t('gdpr_enhancement_page.retention.title') }}</span></template>
                 <el-table :data="retentionPolicies" stripe>
-                    <el-table-column prop="category" label="数据类别" min-width="200" />
-                    <el-table-column prop="retention_days" label="留存天数" width="120" align="center" />
-                    <el-table-column prop="action" label="到期操作" width="120" />
-                    <el-table-column prop="legal_basis" label="法律依据" min-width="200" />
+                    <el-table-column prop="category" :label="t('gdpr_enhancement_page.retention.col_category')" min-width="200" />
+                    <el-table-column prop="retention_days" :label="t('gdpr_enhancement_page.retention.col_days')" width="120" align="center" />
+                    <el-table-column prop="action" :label="t('gdpr_enhancement_page.retention.col_action')" width="120" />
+                    <el-table-column prop="legal_basis" :label="t('gdpr_enhancement_page.retention.col_legal_basis')" min-width="200" />
                 </el-table>
             </el-card>
         </div>
 
         <!-- 新建请求弹窗 -->
-        <el-dialog v-model="showNewRequest" title="新建 DSR 请求" width="450px">
+        <el-dialog v-model="showNewRequest" :title="t('gdpr_enhancement_page.requests.dialog_title')" width="450px">
             <el-form label-width="100px">
-                <el-form-item label="用户 ID">
+                <el-form-item :label="t('gdpr_enhancement_page.requests.user_id_label')">
                     <el-input-number v-model="newRequest.userId" :min="1" />
                 </el-form-item>
-                <el-form-item label="请求类型">
+                <el-form-item :label="t('gdpr_enhancement_page.requests.type_label')">
                     <el-select v-model="newRequest.type" style="width:100%">
-                        <el-option label="数据访问 (Art.15)" value="access" />
-                        <el-option label="数据可移植性 (Art.20)" value="portability" />
-                        <el-option label="数据删除/被遗忘权 (Art.17)" value="erasure" />
-                        <el-option label="限制处理 (Art.18)" value="restrict" />
-                        <el-option label="更正数据 (Art.16)" value="rectify" />
+                        <el-option v-for="opt in requestTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="原因说明">
+                <el-form-item :label="t('gdpr_enhancement_page.requests.reason_label')">
                     <el-input v-model="newRequest.reason" type="textarea" :rows="3" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showNewRequest = false">取消</el-button>
-                <el-button type="primary" @click="submitRequest" :loading="submitLoading">提交</el-button>
+                <el-button @click="showNewRequest = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="submitRequest" :loading="submitLoading">{{ t('actions.submit') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 新建 DPA 弹窗 -->
-        <el-dialog v-model="showNewDpa" title="新建 DPA" width="650px">
+        <el-dialog v-model="showNewDpa" :title="t('gdpr_enhancement_page.dpa.dialog_title')" width="650px">
             <el-form label-width="100px">
-                <el-form-item label="标题">
-                    <el-input v-model="dpaForm.title" placeholder="数据处理协议" />
+                <el-form-item :label="t('gdpr_enhancement_page.dpa.title_label')">
+                    <el-input v-model="dpaForm.title" :placeholder="t('gdpr_enhancement_page.dpa.title_ph')" />
                 </el-form-item>
-                <el-form-item label="版本">
+                <el-form-item :label="t('gdpr_enhancement_page.dpa.version_label')">
                     <el-input v-model="dpaForm.version" placeholder="1.0.0" style="width:120px" />
                 </el-form-item>
-                <el-form-item label="内容（Markdown）">
+                <el-form-item :label="t('gdpr_enhancement_page.dpa.content_label')">
                     <el-input v-model="dpaForm.content" type="textarea" :rows="15" />
                 </el-form-item>
             </el-form>
             <div class="dpa-preview" v-if="dpaForm.content">
-                <div class="preview-label">预览：</div>
+                <div class="preview-label">{{ t('gdpr_enhancement_page.dpa.preview_label') }}</div>
                 <div class="preview-content">{{ dpaForm.content.substring(0, 300) }}...</div>
             </div>
             <template #footer>
-                <el-button @click="showNewDpa = false">取消</el-button>
-                <el-button type="primary" @click="saveDpa" :loading="dpaLoading">保存草稿</el-button>
+                <el-button @click="showNewDpa = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="saveDpa" :loading="dpaLoading">{{ t('gdpr_enhancement_page.dpa.save_draft') }}</el-button>
             </template>
         </el-dialog>
 
@@ -167,9 +163,9 @@
             <div class="dpa-meta">
                 <el-tag size="small">v{{ previewDpaData?.version }}</el-tag>
                 <el-tag size="small" :type="previewDpaData?.status === 'published' ? 'success' : 'info'" class="ml-2">
-                    {{ previewDpaData?.status === 'published' ? '已发布' : '草稿' }}
+                    {{ dpaStatusLabel(previewDpaData?.status) }}
                 </el-tag>
-                <span class="ml-2 text-secondary">{{ previewDpaData?.signatures_count || 0 }} 次签署</span>
+                <span class="ml-2 text-secondary">{{ t('gdpr_enhancement_page.dpa.signatures_count', { n: previewDpaData?.signatures_count || 0 }) }}</span>
             </div>
             <div class="dpa-body">
                 <pre>{{ previewDpaData?.content }}</pre>
@@ -179,9 +175,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import apiClient from '@/api/client';
+
+const { t } = useI18n();
 
 const activeTab = ref('overview');
 const requests = ref([]);
@@ -196,50 +195,112 @@ const showDpaPreview = ref(false);
 const previewDpaData = ref({});
 
 const newRequest = ref({ userId: 1, type: 'access', reason: '' });
-const dpaForm = ref({ title: '数据处理协议', version: '1.0.0', content: '' });
+const dpaForm = ref({ title: '', version: '1.0.0', content: '' });
 
-const overviewStats = [
-    { label: '待处理请求', value: '0', color: '#e6a23c' },
-    { label: '已签署 DPA', value: '0', color: '#67c23a' },
-    { label: '合规完成度', value: '92%', color: '#409eff' },
-    { label: '数据导出次数', value: '0', color: '#909399' },
+const statValues = ref({
+    pending: '0',
+    signedDpa: '0',
+    exports: '0',
+});
+
+const checklistMeta = [
+    { id: 'cookie_banner', status: 'done' },
+    { id: 'privacy_terms', status: 'done' },
+    { id: 'access_request', status: 'done' },
+    { id: 'erasure', status: 'done' },
+    { id: 'portability', status: 'done' },
+    { id: 'dpa', status: 'partial' },
+    { id: 'retention', status: 'partial' },
+    { id: 'breach_notify', status: 'partial' },
+    { id: 'dpia', status: 'partial' },
+    { id: 'dpo', status: 'done' },
 ];
 
-const checklist = [
-    { item: 'Cookie 同意横幅', status: 'done', note: '已实现 Cookie Consent Banner + 偏好面板' },
-    { item: '隐私政策/服务条款', status: 'done', note: '注册强制勾选 + 版本历史 + 更新后重新确认' },
-    { item: '数据访问请求 (Art.15)', status: 'done', note: '支持用户请求查看所有个人数据' },
-    { item: '被遗忘权/删除 (Art.17)', status: 'done', note: '账号注销 + 数据匿名化处理' },
-    { item: '数据可移植性 (Art.20)', status: 'done', note: 'JSON 格式导出个人数据' },
-    { item: '数据处理协议 (Art.28)', status: 'partial', note: 'DPA 模板已创建，需客户签署流程' },
-    { item: '数据留存策略', status: 'partial', note: '审计日志 365天 / 用户数据 3年 / 已删除 90天' },
-    { item: '数据泄露通知 (Art.33/34)', status: 'partial', note: '72小时内通知义务流程待完善' },
-    { item: 'DPIA 数据保护影响评估', status: 'partial', note: '模板已就绪，需定期执行' },
-    { item: '数据保护官 (DPO)', status: 'done', note: 'privacy@huwutong.com' },
-];
+const checklist = computed(() => checklistMeta.map(({ id, status }) => ({
+    item: t(`gdpr_enhancement_page.checklist.${id}_item`),
+    status,
+    note: t(`gdpr_enhancement_page.checklist.${id}_note`),
+})));
 
-const retentionPolicies = [
-    { category: '审计日志', retention_days: 365, action: '归档', legal_basis: 'GDPR Art.5(1)(e) 法律义务' },
-    { category: '用户账户数据', retention_days: 1095, action: '匿名化', legal_basis: 'GDPR Art.6(1)(b) 合同履行' },
-    { category: 'License 激活记录', retention_days: 730, action: '匿名化', legal_basis: 'GDPR Art.6(1)(c) 法律义务' },
-    { category: '已删除账户', retention_days: 90, action: '清除', legal_basis: 'GDPR Art.17 被遗忘权 — 保留缓冲期' },
-    { category: '支付记录', retention_days: 2555, action: '归档', legal_basis: '税法保留义务' },
-    { category: 'Cookie 偏好', retention_days: 365, action: '清除', legal_basis: 'GDPR Art.7(1) 同意管理' },
-    { category: '会话数据', retention_days: 30, action: '清除', legal_basis: 'GDPR Art.5(1)(e) 存储限制' },
-];
+const checklistDoneCount = computed(() => checklistMeta.filter((item) => item.status === 'done').length);
+
+const overviewStats = computed(() => [
+    { label: t('gdpr_enhancement_page.stats.pending_requests'), value: statValues.value.pending, color: '#e6a23c' },
+    { label: t('gdpr_enhancement_page.stats.signed_dpa'), value: statValues.value.signedDpa, color: '#67c23a' },
+    { label: t('gdpr_enhancement_page.stats.checklist_progress'), value: `${checklistDoneCount.value}/${checklistMeta.length}`, color: '#0f172a' },
+    { label: t('gdpr_enhancement_page.stats.export_count'), value: statValues.value.exports, color: '#909399' },
+]);
+
+const requestTypeOptions = computed(() => [
+    { label: t('gdpr_enhancement_page.requests.type_access'), value: 'access' },
+    { label: t('gdpr_enhancement_page.requests.type_portability'), value: 'portability' },
+    { label: t('gdpr_enhancement_page.requests.type_erasure'), value: 'erasure' },
+    { label: t('gdpr_enhancement_page.requests.type_restrict'), value: 'restrict' },
+    { label: t('gdpr_enhancement_page.requests.type_rectify'), value: 'rectify' },
+]);
+
+const retentionPolicies = computed(() => [
+    { category: t('gdpr_enhancement_page.retention.cat_audit_log'), retention_days: 365, action: t('gdpr_enhancement_page.retention.action_archive'), legal_basis: t('gdpr_enhancement_page.retention.basis_storage_limit') },
+    { category: t('gdpr_enhancement_page.retention.cat_user_account'), retention_days: 1095, action: t('gdpr_enhancement_page.retention.action_anonymize'), legal_basis: t('gdpr_enhancement_page.retention.basis_contract') },
+    { category: t('gdpr_enhancement_page.retention.cat_license_activation'), retention_days: 730, action: t('gdpr_enhancement_page.retention.action_anonymize'), legal_basis: t('gdpr_enhancement_page.retention.basis_legal_obligation') },
+    { category: t('gdpr_enhancement_page.retention.cat_deleted_account'), retention_days: 90, action: t('gdpr_enhancement_page.retention.action_purge'), legal_basis: t('gdpr_enhancement_page.retention.basis_erasure_buffer') },
+    { category: t('gdpr_enhancement_page.retention.cat_payment'), retention_days: 2555, action: t('gdpr_enhancement_page.retention.action_archive'), legal_basis: t('gdpr_enhancement_page.retention.basis_tax') },
+    { category: t('gdpr_enhancement_page.retention.cat_cookie_prefs'), retention_days: 365, action: t('gdpr_enhancement_page.retention.action_purge'), legal_basis: t('gdpr_enhancement_page.retention.basis_consent') },
+    { category: t('gdpr_enhancement_page.retention.cat_session'), retention_days: 30, action: t('gdpr_enhancement_page.retention.action_purge'), legal_basis: t('gdpr_enhancement_page.retention.basis_storage_limit') },
+]);
+
+function checklistStatusLabel(status) {
+    if (status === 'done') return t('gdpr_enhancement_page.checklist.status_done');
+    if (status === 'partial') return t('gdpr_enhancement_page.checklist.status_partial');
+    return t('gdpr_enhancement_page.checklist.status_missing');
+}
 
 function requestTypeLabel(type) {
-    const map = { access: '数据访问', portability: '数据可移植', erasure: '被遗忘权', restrict: '限制处理', rectify: '更正数据' };
+    const map = {
+        access: t('gdpr_enhancement_page.requests.type_access'),
+        portability: t('gdpr_enhancement_page.requests.type_portability'),
+        erasure: t('gdpr_enhancement_page.requests.type_erasure'),
+        restrict: t('gdpr_enhancement_page.requests.type_restrict'),
+        rectify: t('gdpr_enhancement_page.requests.type_rectify'),
+    };
     return map[type] || type;
 }
+
+function requestStatusLabel(status) {
+    const map = {
+        pending: t('gdpr_enhancement_page.requests.status_pending'),
+        processing: t('gdpr_enhancement_page.requests.status_processing'),
+        completed: t('gdpr_enhancement_page.requests.status_completed'),
+        failed: t('gdpr_enhancement_page.requests.status_failed'),
+    };
+    return map[status] || status;
+}
+
+function dpaStatusLabel(status) {
+    if (status === 'published') return t('gdpr_enhancement_page.dpa.status_published');
+    if (status === 'draft') return t('gdpr_enhancement_page.dpa.status_draft');
+    if (status === 'archived') return t('gdpr_enhancement_page.dpa.status_archived');
+    return status || '';
+}
+
 function statusType(s) { return s === 'completed' ? 'success' : s === 'pending' ? 'warning' : s === 'failed' ? 'danger' : 'info'; }
+
+function openNewRequest() {
+    newRequest.value = { userId: 1, type: 'access', reason: '' };
+    showNewRequest.value = true;
+}
+
+function openNewDpa() {
+    dpaForm.value = { title: t('gdpr_enhancement_page.dpa.default_title'), version: '1.0.0', content: '' };
+    showNewDpa.value = true;
+}
 
 async function loadRequests() {
     requestsLoading.value = true;
     try {
         const { data } = await apiClient.get('/gdpr/requests');
         requests.value = data?.data || [];
-        overviewStats[0].value = String((data?.data || []).filter(r => r.status === 'pending').length);
+        statValues.value.pending = String((data?.data || []).filter((r) => r.status === 'pending').length);
     } catch { requests.value = []; }
     finally { requestsLoading.value = false; }
 }
@@ -249,7 +310,7 @@ async function loadDpas() {
     try {
         const { data } = await apiClient.get('/gdpr/dpas');
         dpas.value = data?.data || [];
-        overviewStats[1].value = String(dpas.value.reduce((s, d) => s + (d.signatures_count || 0), 0));
+        statValues.value.signedDpa = String(dpas.value.reduce((s, d) => s + (d.signatures_count || 0), 0));
     } catch { dpas.value = []; }
     finally { dpasLoading.value = false; }
 }
@@ -258,19 +319,19 @@ async function submitRequest() {
     submitLoading.value = true;
     try {
         await apiClient.post('/gdpr/requests', newRequest.value);
-        ElMessage.success('DSR 请求已提交');
+        ElMessage.success(t('gdpr_enhancement_page.requests.submit_ok'));
         showNewRequest.value = false;
         loadRequests();
-    } catch (e) { ElMessage.error('提交失败'); }
+    } catch { ElMessage.error(t('gdpr_enhancement_page.requests.submit_fail')); }
     finally { submitLoading.value = false; }
 }
 
 async function processRequest(row) {
     try {
         await apiClient.post(`/gdpr/requests/${row.id}/process`);
-        ElMessage.success('请求处理完成');
+        ElMessage.success(t('gdpr_enhancement_page.requests.process_ok'));
         loadRequests();
-    } catch (e) { ElMessage.error('处理失败'); }
+    } catch { ElMessage.error(t('gdpr_enhancement_page.requests.process_fail')); }
 }
 
 function downloadExport(row) {
@@ -281,18 +342,22 @@ async function saveDpa() {
     dpaLoading.value = true;
     try {
         await apiClient.post('/gdpr/dpas', dpaForm.value);
-        ElMessage.success('DPA 草稿已保存');
+        ElMessage.success(t('gdpr_enhancement_page.dpa.save_ok'));
         showNewDpa.value = false;
         loadDpas();
-    } catch (e) { ElMessage.error('保存失败'); }
+    } catch { ElMessage.error(t('gdpr_enhancement_page.dpa.save_fail')); }
     finally { dpaLoading.value = false; }
 }
 
-async function publishDpa(row) {
+async function publishDpaRow(row) {
     try {
-        await ElMessageBox.confirm('发布后客户将看到此版本 DPA，确认发布？');
+        await ElMessageBox.confirm(
+            t('gdpr_enhancement_page.dpa.publish_confirm'),
+            t('gdpr_enhancement_page.dpa.publish_title'),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning' },
+        );
         await apiClient.post(`/gdpr/dpas/${row.id}/publish`);
-        ElMessage.success('DPA 已发布');
+        ElMessage.success(t('gdpr_enhancement_page.dpa.publish_ok'));
         loadDpas();
     } catch { /* cancelled */ }
 }
@@ -303,8 +368,8 @@ function previewDpa(row) {
 }
 
 function editDpa(row) {
-    showNewDpa.value = true;
     dpaForm.value = { title: row.title, version: row.version, content: row.content };
+    showNewDpa.value = true;
 }
 
 onMounted(() => {

@@ -15,16 +15,16 @@
       <div class="flex justify-between items-center">
         <div class="flex gap-3">
           <el-button type="primary" @click="showCreateDialog = true">
-            <el-icon><Plus /></el-icon> 创建挂牌
+            <el-icon><Plus /></el-icon> {{ t('resale_page.btn_create') }}
           </el-button>
           <el-button @click="activeTab = 'marketplace'" :type="activeTab === 'marketplace' ? 'primary' : ''">
-            浏览市场
+            {{ t('resale_page.tab_marketplace') }}
           </el-button>
           <el-button @click="activeTab = 'mine'" :type="activeTab === 'mine' ? 'primary' : ''">
-            我的挂牌
+            {{ t('resale_page.tab_mine') }}
           </el-button>
           <el-button @click="activeTab = 'transactions'" :type="activeTab === 'transactions' ? 'primary' : ''">
-            交易记录
+            {{ t('license_marketplace_page.tabs.transactions') }}
           </el-button>
         </div>
       </div>
@@ -32,48 +32,48 @@
 
     <!-- 市场浏览 -->
     <el-card v-show="activeTab === 'marketplace'" shadow="never" v-loading="loadingMarket">
-      <template #header><span class="font-semibold">二级市场</span></template>
+      <template #header><span class="font-semibold">{{ t('resale_page.marketplace_title') }}</span></template>
 
       <!-- 搜索栏 -->
       <el-form :inline="true" size="small" class="mb-3">
-        <el-form-item label="搜索">
-          <el-input v-model="searchQuery" placeholder="搜索标题/描述" clearable @clear="loadMarketplace" @keyup.enter="loadMarketplace" />
+        <el-form-item :label="t('actions.search')">
+          <el-input v-model="searchQuery" :placeholder="t('resale_page.search_ph')" clearable @clear="loadMarketplace" @keyup.enter="loadMarketplace" />
         </el-form-item>
-        <el-form-item label="价格范围">
-          <el-input-number v-model="minPrice" :min="0" placeholder="最低" size="small" style="width:120px" />
+        <el-form-item :label="t('resale_page.price_range')">
+          <el-input-number v-model="minPrice" :min="0" :placeholder="t('resale_page.price_min')" size="small" style="width:120px" />
           <span class="mx-2">—</span>
-          <el-input-number v-model="maxPrice" :min="0" placeholder="最高" size="small" style="width:120px" />
+          <el-input-number v-model="maxPrice" :min="0" :placeholder="t('resale_page.price_max')" size="small" style="width:120px" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="loadMarketplace">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button type="primary" @click="loadMarketplace">{{ t('actions.search') }}</el-button>
+          <el-button @click="resetSearch">{{ t('actions.reset') }}</el-button>
         </el-form-item>
       </el-form>
 
       <el-table :data="marketplaceItems" stripe size="small" @row-click="viewListingDetail">
-        <el-table-column label="参考号" prop="reference" width="140" />
-        <el-table-column label="标题" prop="title" min-width="200" />
-        <el-table-column label="产品" width="140">
+        <el-table-column :label="t('resale_page.col_reference')" prop="reference" width="140" />
+        <el-table-column :label="t('resale_page.col_title')" prop="title" min-width="200" />
+        <el-table-column :label="t('licenses_page.product')" width="140">
           <template #default="{ row }">
             {{ row.license?.product?.name || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="售价" width="120" align="right">
+        <el-table-column :label="t('resale_page.col_price')" width="120" align="right">
           <template #default="{ row }">
             <span class="text-red-500 font-semibold">¥{{ row.asking_price }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="卖家" width="140">
+        <el-table-column :label="t('license_marketplace_page.columns.seller')" width="140">
           <template #default="{ row }">
             {{ row.seller_customer?.user?.name || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="挂牌时间" width="160">
+        <el-table-column :label="t('resale_page.col_listed_at')" width="160">
           <template #default="{ row }">{{ row.listed_at ? new Date(row.listed_at).toLocaleDateString() : '-' }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column :label="t('licenses_page.col_actions')" width="100" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" @click.stop="handleBuy(row)">购买</el-button>
+            <el-button size="small" type="primary" @click.stop="handleBuy(row)">{{ t('resale_page.btn_buy') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -91,36 +91,36 @@
 
     <!-- 我的挂牌 -->
     <el-card v-show="activeTab === 'mine'" shadow="never" v-loading="loadingMine">
-      <template #header><span class="font-semibold">我的挂牌</span></template>
+      <template #header><span class="font-semibold">{{ t('resale_page.tab_mine') }}</span></template>
 
       <el-table :data="myListings" stripe size="small">
-        <el-table-column label="参考号" prop="reference" width="140" />
-        <el-table-column label="标题" prop="title" min-width="180" />
-        <el-table-column label="售价" width="100" align="right">
+        <el-table-column :label="t('resale_page.col_reference')" prop="reference" width="140" />
+        <el-table-column :label="t('resale_page.col_title')" prop="title" min-width="180" />
+        <el-table-column :label="t('resale_page.col_price')" width="100" align="right">
           <template #default="{ row }">¥{{ row.asking_price }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column :label="t('licenses_page.status')" width="100">
           <template #default="{ row }">
             <el-tag size="small" :type="statusType(row.status)">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="交易数" width="80" align="center">
+        <el-table-column :label="t('resale_page.col_tx_count')" width="80" align="center">
           <template #default="{ row }">{{ row.transactions?.length || 0 }}</template>
         </el-table-column>
-        <el-table-column label="创建时间" width="160">
+        <el-table-column :label="t('licenses_page.col_created_at')" width="160">
           <template #default="{ row }">{{ new Date(row.created_at).toLocaleString() }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column :label="t('licenses_page.col_actions')" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click.stop="editListing(row)" :disabled="row.status !== 'draft'">编辑</el-button>
-            <el-button size="small" type="primary" @click.stop="publishMyListing(row)" :disabled="row.status !== 'draft'">发布</el-button>
+            <el-button size="small" @click.stop="editListing(row)" :disabled="row.status !== 'draft'">{{ t('actions.edit') }}</el-button>
+            <el-button size="small" type="primary" @click.stop="publishMyListing(row)" :disabled="row.status !== 'draft'">{{ t('resale_page.btn_publish') }}</el-button>
             <el-button
               size="small"
               type="danger"
               plain
               @click.stop="cancelMyListing(row)"
               :disabled="row.status === 'sold' || row.status === 'cancelled'"
-            >取消</el-button>
+            >{{ t('actions.cancel') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -138,15 +138,15 @@
 
     <!-- 交易记录 -->
     <el-card v-show="activeTab === 'transactions'" shadow="never">
-      <template #header><span class="font-semibold">交易记录</span></template>
-      <el-empty description="暂无交易记录" />
+      <template #header><span class="font-semibold">{{ t('license_marketplace_page.tabs.transactions') }}</span></template>
+      <el-empty :description="t('resale_page.empty_transactions')" />
     </el-card>
 
     <!-- 创建挂牌对话框 -->
-    <el-dialog v-model="showCreateDialog" title="创建挂牌" width="600px" :close-on-click-modal="false">
+    <el-dialog v-model="showCreateDialog" :title="t('resale_page.create_dialog.title')" width="600px" :close-on-click-modal="false">
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="120px" v-loading="loadingSellable">
         <el-form-item label="License" prop="license_id">
-          <el-select v-model="createForm.license_id" placeholder="选择要转售的 License" filterable style="width:100%">
+          <el-select v-model="createForm.license_id" :placeholder="t('resale_page.create_dialog.select_license_ph')" filterable style="width:100%">
             <el-option
               v-for="lic in sellableLicenses"
               :key="lic.id"
@@ -156,60 +156,60 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="标题" prop="title">
-          <el-input v-model="createForm.title" placeholder="例：专业版 License 一年转售" />
+        <el-form-item :label="t('resale_page.col_title')" prop="title">
+          <el-input v-model="createForm.title" :placeholder="t('resale_page.create_dialog.title_ph')" />
         </el-form-item>
 
-        <el-form-item label="描述" prop="description">
-          <el-input v-model="createForm.description" type="textarea" :rows="3" placeholder="描述 License 情况、转让条款等" />
+        <el-form-item :label="t('license_marketplace_page.columns.description')" prop="description">
+          <el-input v-model="createForm.description" type="textarea" :rows="3" :placeholder="t('resale_page.create_dialog.description_ph')" />
         </el-form-item>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="售价" prop="asking_price">
+            <el-form-item :label="t('resale_page.col_price')" prop="asking_price">
               <el-input-number v-model="createForm.asking_price" :min="0.01" :precision="2" style="width:100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="币种" prop="currency">
+            <el-form-item :label="t('resale_page.col_currency')" prop="currency">
               <el-select v-model="createForm.currency">
-                <el-option label="CNY (人民币)" value="CNY" />
-                <el-option label="USD (美元)" value="USD" />
+                <el-option :label="t('resale_page.currency_cny')" value="CNY" />
+                <el-option :label="t('resale_page.currency_usd')" value="USD" />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="手续费率(%)" prop="commission_rate">
+        <el-form-item :label="t('resale_page.commission_rate')" prop="commission_rate">
           <el-input-number v-model="createForm.commission_rate" :min="0" :max="100" :precision="2" />
-          <span class="ml-2 text-gray-400 text-sm">平台佣金百分比</span>
+          <span class="ml-2 text-gray-400 text-sm">{{ t('resale_page.commission_hint') }}</span>
         </el-form-item>
       </el-form>
 
       <template #footer>
-        <el-button @click="showCreateDialog = false">取消</el-button>
-        <el-button type="primary" :loading="creating" @click="handleCreate">创建挂牌</el-button>
+        <el-button @click="showCreateDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="creating" @click="handleCreate">{{ t('resale_page.btn_create') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 购买确认对话框 -->
-    <el-dialog v-model="showBuyDialog" title="确认购买" width="500px">
+    <el-dialog v-model="showBuyDialog" :title="t('resale_page.buy_dialog.title')" width="500px">
       <div v-if="buyTarget">
         <el-descriptions :column="1" border size="small">
-          <el-descriptions-item label="挂牌">{{ buyTarget.reference }} - {{ buyTarget.title }}</el-descriptions-item>
-          <el-descriptions-item label="售价">¥{{ buyTarget.asking_price }}</el-descriptions-item>
-          <el-descriptions-item label="卖家">
+          <el-descriptions-item :label="t('resale_page.buy_dialog.listing')">{{ buyTarget.reference }} - {{ buyTarget.title }}</el-descriptions-item>
+          <el-descriptions-item :label="t('resale_page.col_price')">¥{{ buyTarget.asking_price }}</el-descriptions-item>
+          <el-descriptions-item :label="t('license_marketplace_page.columns.seller')">
             {{ buyTarget.seller_customer?.user?.name || buyTarget.seller_customer_id }}
           </el-descriptions-item>
-          <el-descriptions-item label="产品">{{ buyTarget.license?.product?.name || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('licenses_page.product')">{{ buyTarget.license?.product?.name || '-' }}</el-descriptions-item>
         </el-descriptions>
         <el-alert type="warning" :closable="false" class="mt-3">
-          <template #title>确认购买后，您需要完成付款。交易完成后 License 的所有权将转移给您。</template>
+          <template #title>{{ t('resale_page.buy_dialog.warning') }}</template>
         </el-alert>
       </div>
       <template #footer>
-        <el-button @click="showBuyDialog = false">取消</el-button>
-        <el-button type="primary" :loading="buying" @click="handleBuyConfirm">确认购买</el-button>
+        <el-button @click="showBuyDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="buying" @click="handleBuyConfirm">{{ t('resale_page.buy_dialog.confirm') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -217,9 +217,12 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Plus } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import resaleApi from '@/api/resale';
+
+const { t } = useI18n();
 
 // ─── 状态 ───
 const activeTab = ref('marketplace');
@@ -233,10 +236,10 @@ const stats = reactive({
 });
 
 const statItems = computed(() => [
-  { label: '市场上架', value: stats.active_listings, color: 'text-blue-500' },
-  { label: '已成交', value: stats.total_sold, color: 'text-green-500' },
-  { label: '佣金收入', value: `¥${stats.total_commission_revenue}`, color: 'text-orange-500' },
-  { label: '均价', value: `¥${stats.average_sale_price}`, color: 'text-purple-500' },
+  { label: t('resale_page.stats.active_listings'), value: stats.active_listings, color: 'text-blue-500' },
+  { label: t('resale_page.stats.total_sold'), value: stats.total_sold, color: 'text-green-500' },
+  { label: t('resale_page.stats.commission_revenue'), value: `¥${stats.total_commission_revenue}`, color: 'text-orange-500' },
+  { label: t('resale_page.stats.avg_price'), value: `¥${stats.average_sale_price}`, color: 'text-purple-500' },
 ]);
 
 // 市场浏览
@@ -272,16 +275,26 @@ const createForm = reactive({
   commission_rate: 5.00,
 });
 
-const createRules = {
-  license_id: [{ required: true, message: '请选择 License' }],
-  title: [{ required: true, message: '请输入标题' }],
-  asking_price: [{ required: true, message: '请输入售价' }],
-};
+const createRules = computed(() => ({
+  license_id: [{ required: true, message: t('license_marketplace_page.validation.license_required') }],
+  title: [{ required: true, message: t('resale_page.validation.title_required') }],
+  asking_price: [{ required: true, message: t('license_marketplace_page.validation.price_required') }],
+}));
 
 // 购买
 const showBuyDialog = ref(false);
 const buyTarget = ref(null);
 const buying = ref(false);
+
+const listingStatusLabels = computed(() => ({
+  draft: t('resale_page.listing_status.draft'),
+  published: t('resale_page.listing_status.published'),
+  pending_review: t('resale_page.listing_status.pending_review'),
+  active: t('resale_page.listing_status.active'),
+  sold: t('resale_page.listing_status.sold'),
+  cancelled: t('resale_page.listing_status.cancelled'),
+  expired: t('resale_page.listing_status.expired'),
+}));
 
 // ─── 方法 ───
 
@@ -291,8 +304,7 @@ function statusType(status) {
 }
 
 function statusLabel(status) {
-  const map = { draft: '草稿', published: '已发布', pending_review: '待审核', active: '上架中', sold: '已售出', cancelled: '已取消', expired: '已过期' };
-  return map[status] || status;
+  return listingStatusLabels.value[status] || status;
 }
 
 async function loadMarketplace() {
@@ -311,7 +323,7 @@ async function loadMarketplace() {
     marketplaceItems.value = result?.items || [];
     marketplaceTotal.value = result?.total || 0;
   } catch (e) {
-    ElMessage.error('加载市场数据失败');
+    ElMessage.error(t('resale_page.messages.load_market_failed'));
   } finally {
     loadingMarket.value = false;
   }
@@ -325,7 +337,7 @@ async function loadMyListings() {
     myListings.value = result?.items || [];
     mineTotal.value = result?.total || 0;
   } catch (e) {
-    ElMessage.error('加载我的挂牌失败');
+    ElMessage.error(t('resale_page.messages.load_mine_failed'));
   } finally {
     loadingMine.value = false;
   }
@@ -344,7 +356,7 @@ async function loadSellableLicenses() {
     const { data } = await resaleApi.getSellableLicenses();
     sellableLicenses.value = data?.data || [];
   } catch (e) {
-    ElMessage.error('加载可挂牌 License 失败');
+    ElMessage.error(t('resale_page.messages.load_sellable_failed'));
   } finally {
     loadingSellable.value = false;
   }
@@ -365,12 +377,12 @@ async function handleCreate() {
   creating.value = true;
   try {
     await resaleApi.createListing(createForm);
-    ElMessage.success('挂牌已创建');
+    ElMessage.success(t('resale_page.messages.listing_created'));
     showCreateDialog.value = false;
     loadMyListings();
     loadStats();
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '创建失败');
+    ElMessage.error(e.response?.data?.message || t('messages.failed'));
   } finally {
     creating.value = false;
   }
@@ -390,12 +402,12 @@ async function handleBuyConfirm() {
   buying.value = true;
   try {
     await resaleApi.purchaseListing(buyTarget.value.id);
-    ElMessage.success('购买请求已提交');
+    ElMessage.success(t('resale_page.messages.purchase_submitted'));
     showBuyDialog.value = false;
     loadMarketplace();
     loadStats();
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '购买失败');
+    ElMessage.error(e.response?.data?.message || t('resale_page.messages.purchase_failed'));
   } finally {
     buying.value = false;
   }
@@ -416,23 +428,23 @@ function editListing(row) {
 async function publishMyListing(row) {
   try {
     await resaleApi.publishListing(row.id);
-    ElMessage.success('挂牌已提交审核');
+    ElMessage.success(t('resale_page.messages.listing_submitted_review'));
     loadMyListings();
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '发布失败');
+    ElMessage.error(e.response?.data?.message || t('resale_page.messages.publish_failed'));
   }
 }
 
 async function cancelMyListing(row) {
   try {
-    await ElMessageBox.confirm('确定要取消此挂牌吗？');
+    await ElMessageBox.confirm(t('license_marketplace_page.confirm.cancel_listing'));
     await resaleApi.cancelListing(row.id);
-    ElMessage.success('挂牌已取消');
+    ElMessage.success(t('license_marketplace_page.messages.cancelled'));
     loadMyListings();
     loadStats();
   } catch (e) {
     if (e !== 'cancel') {
-      ElMessage.error(e.response?.data?.message || '取消失败');
+      ElMessage.error(e.response?.data?.message || t('resale_page.messages.cancel_failed'));
     }
   }
 }

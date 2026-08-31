@@ -1,8 +1,8 @@
 <template>
     <div class="revenue-recognition-page">
         <div class="page-header">
-            <h2>收入确认报告 <small>ASC 606 / IFRS 15</small></h2>
-            <p class="text-muted">订阅收入分期确认、递延收入计算与月度财务快照</p>
+            <h2>{{ t('revenue_recognition_page.title') }} <small>{{ t('revenue_recognition_page.std_label') }}</small></h2>
+            <p class="text-muted">{{ t('revenue_recognition_page.subtitle') }}</p>
         </div>
 
         <!-- 汇总概览 -->
@@ -10,38 +10,38 @@
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ formatMoney(summary.total_amount) }}</div>
-                    <div class="stat-label">排程总额</div>
+                    <div class="stat-label">{{ t('revenue_recognition_page.stats.total_scheduled') }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ formatMoney(summary.recognized_amount) }}</div>
-                    <div class="stat-label">已确认收入</div>
+                    <div class="stat-label">{{ t('revenue_recognition_page.stats.recognized') }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card warning">
                     <div class="stat-value">{{ formatMoney(summary.deferred_amount) }}</div>
-                    <div class="stat-label">递延收入余额</div>
+                    <div class="stat-label">{{ t('revenue_recognition_page.stats.deferred_balance') }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ summary.completion_rate }}%</div>
-                    <div class="stat-label">确认完成率</div>
+                    <div class="stat-label">{{ t('revenue_recognition_page.stats.completion_rate') }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card credit">
-                    <div class="stat-value">{{ summary.this_month_to_recognize ? formatMoney(summary.this_month_to_recognize) : '¥0' }}</div>
-                    <div class="stat-label">本月待确认</div>
+                    <div class="stat-value">{{ summary.this_month_to_recognize ? formatMoney(summary.this_month_to_recognize) : formatMoney(0) }}</div>
+                    <div class="stat-label">{{ t('revenue_recognition_page.stats.this_month_pending') }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6" :lg="4">
                 <el-card shadow="hover" class="stat-card info">
                     <div class="stat-value">{{ summary.active_schedules }}</div>
-                    <div class="stat-label">活跃排程</div>
-                    <div class="stat-sub">{{ summary.completed_schedules }} 已完成</div>
+                    <div class="stat-label">{{ t('revenue_recognition_page.stats.active_schedules') }}</div>
+                    <div class="stat-sub">{{ t('revenue_recognition_page.stats.completed_sub', { count: summary.completed_schedules }) }}</div>
                 </el-card>
             </el-col>
         </el-row>
@@ -49,23 +49,23 @@
         <!-- 操作按钮 -->
         <el-card class="toolbar-card">
             <el-button type="primary" @click="handleProcessRecognition" :icon="Pointer" :loading="processing">
-                执行当期收入确认
+                {{ t('revenue_recognition_page.actions.process_recognition') }}
             </el-button>
             <el-button @click="handleCreateSchedules" :icon="Plus">
-                创建未排程发票排程
+                {{ t('revenue_recognition_page.actions.create_schedules') }}
             </el-button>
             <el-button @click="handleGenerateSnapshot" :icon="DataBoard" :loading="snapshotLoading">
-                生成月度快照
+                {{ t('revenue_recognition_page.actions.generate_snapshot') }}
             </el-button>
             <el-button @click="showAsc606Dialog" :icon="Document" style="float: right">
-                ASC 606 报告
+                {{ t('revenue_recognition_page.actions.asc606_report') }}
             </el-button>
         </el-card>
 
         <!-- 递延收入趋势（从 summary.deferred_trend 来） -->
         <el-card class="chart-card" v-if="summary.deferred_trend && summary.deferred_trend.length">
             <template #header>
-                <span><el-icon><DataLine /></el-icon> 递延收入趋势（近12个月）</span>
+                <span><el-icon><DataLine /></el-icon> {{ t('revenue_recognition_page.chart.deferred_trend') }}</span>
             </template>
             <div class="trend-chart">
                 <div class="trend-bar" v-for="item in summary.deferred_trend" :key="item.month">
@@ -85,60 +85,56 @@
         <el-card class="table-card">
             <template #header>
                 <div class="card-header">
-                    <span><el-icon><List /></el-icon> 收入确认排程</span>
+                    <span><el-icon><List /></el-icon> {{ t('revenue_recognition_page.table.schedules_title') }}</span>
                     <div>
-                        <el-select v-model="filterStatus" clearable placeholder="排程状态" size="small" style="width: 140px; margin-right: 8px;" @change="loadSchedules">
-                            <el-option label="全部" value="" />
-                            <el-option label="进行中" value="active" />
-                            <el-option label="已完成" value="completed" />
-                            <el-option label="待处理" value="pending" />
-                            <el-option label="已取消" value="cancelled" />
+                        <el-select v-model="filterStatus" clearable :placeholder="t('revenue_recognition_page.filters.status_ph')" size="small" style="width: 140px; margin-right: 8px;" @change="loadSchedules">
+                            <el-option v-for="opt in statusFilterOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                         </el-select>
-                        <el-button size="small" @click="loadSchedules" :icon="Refresh">刷新</el-button>
+                        <el-button size="small" @click="loadSchedules" :icon="Refresh">{{ t('revenue_recognition_page.actions.refresh') }}</el-button>
                     </div>
                 </div>
             </template>
 
-            <el-table :data="schedules" v-loading="loading" stripe empty-text="暂无排程" style="width: 100%">
-                <el-table-column prop="id" label="ID" width="60" />
-                <el-table-column prop="revenue_type" label="类型" width="100">
+            <el-table :data="schedules" v-loading="loading" stripe :empty-text="t('revenue_recognition_page.table.empty')" style="width: 100%">
+                <el-table-column prop="id" :label="t('revenue_recognition_page.cols.id')" width="60" />
+                <el-table-column prop="revenue_type" :label="t('billing_page.col_type')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="row.revenue_type === 'subscription' ? 'primary' : 'warning'" size="small">
-                            {{ row.revenue_type === 'subscription' ? '订阅' : '升级' }}
+                            {{ revenueTypeLabel(row.revenue_type) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="billing_period" label="周期" width="100">
+                <el-table-column prop="billing_period" :label="t('revenue_recognition_page.cols.period')" width="100">
                     <template #default="{ row }">{{ periodLabel(row.billing_period) }}</template>
                 </el-table-column>
-                <el-table-column prop="total_amount" label="总额" width="120">
+                <el-table-column prop="total_amount" :label="t('revenue_recognition_page.cols.total')" width="120">
                     <template #default="{ row }">{{ formatMoney(row.total_amount) }}</template>
                 </el-table-column>
-                <el-table-column prop="recognized_amount" label="已确认" width="120">
+                <el-table-column prop="recognized_amount" :label="t('revenue_recognition_page.cols.recognized')" width="120">
                     <template #default="{ row }">{{ formatMoney(row.recognized_amount) }}</template>
                 </el-table-column>
-                <el-table-column prop="deferred_amount" label="递延" width="120">
+                <el-table-column prop="deferred_amount" :label="t('revenue_recognition_page.cols.deferred')" width="120">
                     <template #default="{ row }">
                         <span class="text-warning">{{ formatMoney(row.deferred_amount) }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="进度" width="140">
+                <el-table-column :label="t('revenue_recognition_page.cols.progress')" width="140">
                     <template #default="{ row }">
                         <el-progress :percentage="row.progress || 0" :status="row.progress >= 100 ? 'success' : undefined" />
                     </template>
                 </el-table-column>
-                <el-table-column prop="status" label="状态" width="100">
+                <el-table-column prop="status" :label="t('billing_page.col_status')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="start_date" label="期间" min-width="160">
+                <el-table-column prop="start_date" :label="t('revenue_recognition_page.cols.period_range')" min-width="160">
                     <template #default="{ row }">{{ row.start_date }} ~ {{ row.end_date }}</template>
                 </el-table-column>
-                <el-table-column prop="invoice.invoice_no" label="发票" width="130" />
-                <el-table-column label="操作" width="100" fixed="right">
+                <el-table-column prop="invoice.invoice_no" :label="t('revenue_recognition_page.cols.invoice')" width="130" />
+                <el-table-column :label="t('billing_page.col_actions')" width="100" fixed="right">
                     <template #default="{ row }">
-                        <el-button text size="small" type="primary" @click="showDetail(row)">详情</el-button>
+                        <el-button text size="small" type="primary" @click="showDetail(row)">{{ t('billing_page.detail') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -155,112 +151,112 @@
         </el-card>
 
         <!-- 排程详情弹窗 -->
-        <el-dialog v-model="detailVisible" title="排程详情" width="750px">
+        <el-dialog v-model="detailVisible" :title="t('revenue_recognition_page.detail.title')" width="750px">
             <template v-if="selectedSchedule">
                 <div class="flex justify-between mb-3">
-                    <span class="font-bold">排程 #{{ selectedSchedule.id }}</span>
+                    <span class="font-bold">{{ t('revenue_recognition_page.detail.schedule_label', { id: selectedSchedule.id }) }}</span>
                     <div>
-                        <el-button v-if="selectedSchedule.status === 'active'" size="small" type="warning" @click="handleCancelSchedule(selectedSchedule)">取消排程</el-button>
-                        <el-button v-if="selectedSchedule.status === 'active'" size="small" type="primary" @click="handleRecomputeSchedule(selectedSchedule)">重算排程</el-button>
+                        <el-button v-if="selectedSchedule.status === 'active'" size="small" type="warning" @click="handleCancelSchedule(selectedSchedule)">{{ t('revenue_recognition_page.actions.cancel_schedule') }}</el-button>
+                        <el-button v-if="selectedSchedule.status === 'active'" size="small" type="primary" @click="handleRecomputeSchedule(selectedSchedule)">{{ t('revenue_recognition_page.actions.recompute_schedule') }}</el-button>
                     </div>
                 </div>
                 <el-descriptions :column="2" border>
-                    <el-descriptions-item label="类型">{{ selectedSchedule.revenue_type }}</el-descriptions-item>
-                    <el-descriptions-item label="计费周期">{{ periodLabel(selectedSchedule.billing_period) }}</el-descriptions-item>
-                    <el-descriptions-item label="总额">{{ formatMoney(selectedSchedule.total_amount) }}</el-descriptions-item>
-                    <el-descriptions-item label="已确认">{{ formatMoney(selectedSchedule.recognized_amount) }}</el-descriptions-item>
-                    <el-descriptions-item label="递延">{{ formatMoney(selectedSchedule.deferred_amount) }}</el-descriptions-item>
-                    <el-descriptions-item label="进度">
+                    <el-descriptions-item :label="t('billing_page.col_type')">{{ revenueTypeLabel(selectedSchedule.revenue_type) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.cols.billing_period')">{{ periodLabel(selectedSchedule.billing_period) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.cols.total')">{{ formatMoney(selectedSchedule.total_amount) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.cols.recognized')">{{ formatMoney(selectedSchedule.recognized_amount) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.cols.deferred')">{{ formatMoney(selectedSchedule.deferred_amount) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.cols.progress')">
                         <el-progress :percentage="selectedSchedule.progress" :status="selectedSchedule.progress >= 100 ? 'success' : undefined" style="width: 150px" />
                     </el-descriptions-item>
-                    <el-descriptions-item label="期间" :span="2">{{ selectedSchedule.start_date }} ~ {{ selectedSchedule.end_date }}</el-descriptions-item>
-                    <el-descriptions-item label="期数">{{ selectedSchedule.recognized_periods }} / {{ selectedSchedule.total_periods }}</el-descriptions-item>
-                    <el-descriptions-item label="状态">
+                    <el-descriptions-item :label="t('revenue_recognition_page.cols.period_range')" :span="2">{{ selectedSchedule.start_date }} ~ {{ selectedSchedule.end_date }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.cols.periods')">{{ selectedSchedule.recognized_periods }} / {{ selectedSchedule.total_periods }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_page.col_status')">
                         <el-tag :type="statusTag(selectedSchedule.status)">{{ statusLabel(selectedSchedule.status) }}</el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="发票">{{ selectedSchedule.invoice?.invoice_no || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="订阅">{{ selectedSchedule.subscription?.plan || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="确认方式">{{ selectedSchedule.recognition_method === 'straight_line' ? '直线法' : selectedSchedule.recognition_method }}</el-descriptions-item>
-                    <el-descriptions-item label="最近确认">{{ selectedSchedule.last_recognized_at || '-' }}</el-descriptions-item>
-                    <el-descriptions-item v-if="selectedSchedule.cancel_reason" label="取消原因">{{ selectedSchedule.cancel_reason }}</el-descriptions-item>
-                    <el-descriptions-item v-if="selectedSchedule.cancelled_at" label="取消时间">{{ selectedSchedule.cancelled_at }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.cols.invoice')">{{ selectedSchedule.invoice?.invoice_no || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.cols.subscription')">{{ selectedSchedule.subscription?.plan || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.cols.recognition_method')">{{ recognitionMethodLabel(selectedSchedule.recognition_method) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.cols.last_recognized')">{{ selectedSchedule.last_recognized_at || '-' }}</el-descriptions-item>
+                    <el-descriptions-item v-if="selectedSchedule.cancel_reason" :label="t('revenue_recognition_page.cols.cancel_reason')">{{ selectedSchedule.cancel_reason }}</el-descriptions-item>
+                    <el-descriptions-item v-if="selectedSchedule.cancelled_at" :label="t('revenue_recognition_page.cols.cancelled_at')">{{ selectedSchedule.cancelled_at }}</el-descriptions-item>
                 </el-descriptions>
 
-                <h4 style="margin: 20px 0 10px">确认明细</h4>
+                <h4 style="margin: 20px 0 10px">{{ t('revenue_recognition_page.detail.lines_title') }}</h4>
                 <el-table :data="selectedSchedule.lines || []" size="small" stripe>
-                    <el-table-column prop="period_number" label="期数" width="60" />
-                    <el-table-column prop="recognition_date" label="确认日期" width="130" />
-                    <el-table-column prop="amount" label="金额" width="120">
+                    <el-table-column prop="period_number" :label="t('revenue_recognition_page.cols.period_number')" width="60" />
+                    <el-table-column prop="recognition_date" :label="t('revenue_recognition_page.cols.recognition_date')" width="130" />
+                    <el-table-column prop="amount" :label="t('billing_page.col_amount')" width="120">
                         <template #default="{ row }">{{ formatMoney(row.amount) }}</template>
                     </el-table-column>
-                    <el-table-column prop="status" label="状态" width="100">
+                    <el-table-column prop="status" :label="t('billing_page.col_status')" width="100">
                         <template #default="{ row }">
-                            <el-tag :type="row.status === 'recognized' ? 'success' : (row.status === 'skipped' ? 'danger' : 'info')" size="small">
-                                {{ row.status === 'recognized' ? '已确认' : (row.status === 'skipped' ? '已跳过' : '待确认') }}
+                            <el-tag :type="lineStatusTag(row.status)" size="small">
+                                {{ lineStatusLabel(row.status) }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="recognized_at" label="确认时间" width="160" />
-                    <el-table-column prop="reason" label="原因" width="100" />
-                    <el-table-column prop="description" label="说明" min-width="140" />
+                    <el-table-column prop="recognized_at" :label="t('revenue_recognition_page.cols.recognized_at')" width="160" />
+                    <el-table-column prop="reason" :label="t('billing_page.col_reason')" width="100" />
+                    <el-table-column prop="description" :label="t('revenue_recognition_page.cols.description')" min-width="140" />
                 </el-table>
             </template>
         </el-dialog>
 
         <!-- ASC 606 报告弹窗 -->
-        <el-dialog v-model="asc606Visible" title="ASC 606 收入确认报告" width="800px">
+        <el-dialog v-model="asc606Visible" :title="t('revenue_recognition_page.asc606.title')" width="800px">
             <el-form :inline="true">
-                <el-form-item label="年份">
+                <el-form-item :label="t('revenue_recognition_page.asc606.year')">
                     <el-select v-model="asc606Year" style="width: 120px">
                         <el-option v-for="y in years" :key="y" :label="y" :value="y" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="月份">
+                <el-form-item :label="t('revenue_recognition_page.asc606.month')">
                     <el-select v-model="asc606Month" style="width: 100px">
                         <el-option v-for="m in 12" :key="m" :label="String(m).padStart(2, '0')" :value="String(m).padStart(2, '0')" />
                     </el-select>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="loadAsc606Report" :loading="reportLoading">生成报告</el-button>
-                    <el-button v-if="asc606Report" @click="exportAsc606Report" :icon="Download">导出CSV</el-button>
+                    <el-button type="primary" @click="loadAsc606Report" :loading="reportLoading">{{ t('revenue_recognition_page.actions.generate_report') }}</el-button>
+                    <el-button v-if="asc606Report" @click="exportAsc606Report" :icon="Download">{{ t('revenue_recognition_page.actions.export_csv') }}</el-button>
                 </el-form-item>
             </el-form>
 
             <template v-if="asc606Report">
                 <el-descriptions :column="3" border size="small">
-                    <el-descriptions-item label="报告期间">{{ asc606Report.report_period }}</el-descriptions-item>
-                    <el-descriptions-item label="确认方法">{{ asc606Report.recognition_method === 'straight_line' ? '直线法' : asc606Report.recognition_method }}</el-descriptions-item>
-                    <el-descriptions-item label="期初递延">{{ formatMoney(asc606Report.opening_deferred_revenue) }}</el-descriptions-item>
-                    <el-descriptions-item label="期末递延">{{ formatMoney(asc606Report.closing_deferred_revenue) }}</el-descriptions-item>
-                    <el-descriptions-item label="已开发票">{{ formatMoney(asc606Report.total_invoiced) }}</el-descriptions-item>
-                    <el-descriptions-item label="已确认收入">{{ formatMoney(asc606Report.recognized_revenue) }}</el-descriptions-item>
-                    <el-descriptions-item label="递延变动">{{ formatMoney(asc606Report.change_in_deferred) }}</el-descriptions-item>
-                    <el-descriptions-item label="新增排程数">{{ asc606Report.new_schedules_count }}</el-descriptions-item>
-                    <el-descriptions-item label="新增排程金额">{{ formatMoney(asc606Report.new_schedules_value) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.asc606.report_period')">{{ asc606Report.report_period }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.cols.recognition_method')">{{ recognitionMethodLabel(asc606Report.recognition_method) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.asc606.opening_deferred')">{{ formatMoney(asc606Report.opening_deferred_revenue) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.asc606.closing_deferred')">{{ formatMoney(asc606Report.closing_deferred_revenue) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.asc606.total_invoiced')">{{ formatMoney(asc606Report.total_invoiced) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.asc606.recognized_revenue')">{{ formatMoney(asc606Report.recognized_revenue) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.asc606.change_in_deferred')">{{ formatMoney(asc606Report.change_in_deferred) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.asc606.new_schedules_count')">{{ asc606Report.new_schedules_count }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('revenue_recognition_page.asc606.new_schedules_value')">{{ formatMoney(asc606Report.new_schedules_value) }}</el-descriptions-item>
                 </el-descriptions>
 
                 <!-- 按产品拆分 -->
                 <template v-if="asc606Report.product_breakdown && asc606Report.product_breakdown.length">
-                    <h4 style="margin: 16px 0 8px">按产品拆分</h4>
+                    <h4 style="margin: 16px 0 8px">{{ t('revenue_recognition_page.asc606.product_breakdown') }}</h4>
                     <el-table :data="asc606Report.product_breakdown" size="small" stripe>
-                        <el-table-column prop="product" label="产品" min-width="120" />
-                        <el-table-column prop="recognized_amount" label="已确认金额" width="140">
+                        <el-table-column prop="product" :label="t('billing_page.col_product')" min-width="120" />
+                        <el-table-column prop="recognized_amount" :label="t('revenue_recognition_page.cols.recognized_amount')" width="140">
                             <template #default="{ row }">{{ formatMoney(row.recognized_amount) }}</template>
                         </el-table-column>
-                        <el-table-column prop="transaction_count" label="交易笔数" width="100" />
+                        <el-table-column prop="transaction_count" :label="t('revenue_recognition_page.cols.transaction_count')" width="100" />
                     </el-table>
                 </template>
 
-                <h4 style="margin: 16px 0 8px">已确认交易（{{ (asc606Report.recognized_transactions || []).length }} 笔）</h4>
+                <h4 style="margin: 16px 0 8px">{{ t('revenue_recognition_page.asc606.recognized_transactions', { count: (asc606Report.recognized_transactions || []).length }) }}</h4>
                 <el-table :data="asc606Report.recognized_transactions || []" size="small" max-height="300" stripe>
-                    <el-table-column prop="schedule_id" label="排程ID" width="80" />
-                    <el-table-column prop="period" label="期数" width="60" />
-                    <el-table-column prop="amount" label="金额" width="120">
+                    <el-table-column prop="schedule_id" :label="t('revenue_recognition_page.cols.schedule_id')" width="80" />
+                    <el-table-column prop="period" :label="t('revenue_recognition_page.cols.period_number')" width="60" />
+                    <el-table-column prop="amount" :label="t('billing_page.col_amount')" width="120">
                         <template #default="{ row }">{{ formatMoney(row.amount) }}</template>
                     </el-table-column>
-                    <el-table-column prop="recognition_date" label="确认日期" width="130" />
-                    <el-table-column prop="invoice_no" label="发票号" width="140" />
-                    <el-table-column prop="product" label="产品" min-width="100" />
+                    <el-table-column prop="recognition_date" :label="t('revenue_recognition_page.cols.recognition_date')" width="130" />
+                    <el-table-column prop="invoice_no" :label="t('revenue_recognition_page.cols.invoice_no')" width="140" />
+                    <el-table-column prop="product" :label="t('billing_page.col_product')" min-width="100" />
                 </el-table>
             </template>
         </el-dialog>
@@ -269,9 +265,12 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Pointer, Plus, DataBoard, DataLine, Document, List, Refresh, Download } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import revenueApi from '../../api/revenueRecognition';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const processing = ref(false);
@@ -306,6 +305,43 @@ const asc606Month = ref(nowMonth());
 const asc606Report = ref(null);
 const reportLoading = ref(false);
 
+const periodLabels = computed(() => ({
+    monthly: t('billing_page.period_monthly'),
+    quarterly: t('billing_page.period_quarterly'),
+    semi_annually: t('billing_page.period_semi_annually'),
+    yearly: t('billing_page.period_yearly'),
+}));
+
+const revenueTypeLabels = computed(() => ({
+    subscription: t('revenue_recognition_page.revenue_types.subscription'),
+    upgrade: t('revenue_recognition_page.revenue_types.upgrade'),
+}));
+
+const scheduleStatusLabels = computed(() => ({
+    active: t('revenue_recognition_page.status.active'),
+    completed: t('revenue_recognition_page.status.completed'),
+    pending: t('revenue_recognition_page.status.pending'),
+    cancelled: t('revenue_recognition_page.status.cancelled'),
+}));
+
+const lineStatusLabels = computed(() => ({
+    recognized: t('revenue_recognition_page.line_status.recognized'),
+    skipped: t('revenue_recognition_page.line_status.skipped'),
+    pending: t('revenue_recognition_page.line_status.pending'),
+}));
+
+const recognitionMethodLabels = computed(() => ({
+    straight_line: t('revenue_recognition_page.recognition_methods.straight_line'),
+}));
+
+const statusFilterOptions = computed(() => [
+    { label: t('revenue_recognition_page.filters.all'), value: '' },
+    { label: t('revenue_recognition_page.status.active'), value: 'active' },
+    { label: t('revenue_recognition_page.status.completed'), value: 'completed' },
+    { label: t('revenue_recognition_page.status.pending'), value: 'pending' },
+    { label: t('revenue_recognition_page.status.cancelled'), value: 'cancelled' },
+]);
+
 function nowYear() { return String(new Date().getFullYear()); }
 function nowMonth() { return String(new Date().getMonth() + 1).padStart(2, '0'); }
 
@@ -317,18 +353,27 @@ const years = computed(() => {
 
 function formatMoney(val) {
     const num = parseFloat(val || 0);
-    return '¥' + num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return '¥' + num.toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function formatShort(val) {
     const num = parseFloat(val || 0);
+    if (locale.value === 'en') {
+        if (num >= 1000000) return '¥' + (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return '¥' + (num / 1000).toFixed(1) + 'K';
+        return '¥' + num.toFixed(0);
+    }
     if (num >= 10000) return '¥' + (num / 10000).toFixed(1) + 'w';
     return '¥' + num.toFixed(0);
 }
 
 function periodLabel(p) {
-    const map = { monthly: '月付', quarterly: '季付', semi_annually: '半年付', yearly: '年付' };
-    return map[p] || p || '-';
+    return periodLabels.value[p] || p || '-';
+}
+
+function revenueTypeLabel(type) {
+    return revenueTypeLabels.value[type] || type || '-';
 }
 
 function statusTag(s) {
@@ -337,8 +382,20 @@ function statusTag(s) {
 }
 
 function statusLabel(s) {
-    const map = { active: '进行中', completed: '已完成', pending: '待处理', cancelled: '已取消' };
-    return map[s] || s;
+    return scheduleStatusLabels.value[s] || s;
+}
+
+function lineStatusTag(s) {
+    const map = { recognized: 'success', skipped: 'danger', pending: 'info' };
+    return map[s] || 'info';
+}
+
+function lineStatusLabel(s) {
+    return lineStatusLabels.value[s] || s;
+}
+
+function recognitionMethodLabel(method) {
+    return recognitionMethodLabels.value[method] || method || '-';
 }
 
 function barHeight(val) {
@@ -376,7 +433,7 @@ async function loadSchedules() {
         }
     } catch (e) {
         console.error('Failed to load schedules:', e);
-        ElMessage.error('加载排程失败');
+        ElMessage.error(t('revenue_recognition_page.messages.load_schedules_failed'));
     } finally {
         loading.value = false;
     }
@@ -386,11 +443,14 @@ async function handleProcessRecognition() {
     processing.value = true;
     try {
         const res = await revenueApi.processRecognition();
-        ElMessage.success(`已确认 ${res.data.result?.recognized_count || 0} 条，金额: ${formatMoney(res.data.result?.total_amount)}`);
+        ElMessage.success(t('revenue_recognition_page.messages.recognition_success', {
+            count: res.data.result?.recognized_count || 0,
+            amount: formatMoney(res.data.result?.total_amount),
+        }));
         loadSchedules();
         loadSummary();
     } catch (e) {
-        ElMessage.error('确认失败');
+        ElMessage.error(t('revenue_recognition_page.messages.recognition_failed'));
     } finally {
         processing.value = false;
     }
@@ -399,10 +459,12 @@ async function handleProcessRecognition() {
 async function handleCreateSchedules() {
     try {
         const res = await revenueApi.createSchedules();
-        ElMessage.success(`已创建 ${res.data.created || 0} 个排程`);
+        ElMessage.success(t('revenue_recognition_page.messages.create_schedules_success', {
+            count: res.data.created || 0,
+        }));
         loadSchedules();
     } catch (e) {
-        ElMessage.error('创建排程失败');
+        ElMessage.error(t('revenue_recognition_page.messages.create_schedules_failed'));
     }
 }
 
@@ -410,9 +472,9 @@ async function handleGenerateSnapshot() {
     snapshotLoading.value = true;
     try {
         await revenueApi.generateSnapshot();
-        ElMessage.success('月度快照已生成');
+        ElMessage.success(t('revenue_recognition_page.messages.snapshot_success'));
     } catch (e) {
-        ElMessage.error('生成失败');
+        ElMessage.error(t('revenue_recognition_page.messages.snapshot_failed'));
     } finally {
         snapshotLoading.value = false;
     }
@@ -441,7 +503,7 @@ async function loadAsc606Report() {
         });
         asc606Report.value = res.data;
     } catch (e) {
-        ElMessage.error('生成报告失败');
+        ElMessage.error(t('revenue_recognition_page.messages.report_failed'));
     } finally {
         reportLoading.value = false;
     }
@@ -449,7 +511,7 @@ async function loadAsc606Report() {
 
 async function exportAsc606Report() {
     if (!asc606Report.value) {
-        ElMessage.warning('请先生成报告');
+        ElMessage.warning(t('revenue_recognition_page.messages.generate_report_first'));
         return;
     }
     try {
@@ -464,35 +526,35 @@ async function exportAsc606Report() {
         link.download = `asc606-report-${asc606Year.value}-${asc606Month.value}.csv`;
         link.click();
         URL.revokeObjectURL(link.href);
-        ElMessage.success('报告已导出');
+        ElMessage.success(t('revenue_recognition_page.messages.export_success'));
     } catch (e) {
-        ElMessage.error('导出失败');
+        ElMessage.error(t('revenue_recognition_page.messages.export_failed'));
     }
 }
 
 async function handleCancelSchedule(schedule) {
     try {
         await revenueApi.cancelSchedule(schedule.id, { reason: 'manual_cancel' });
-        ElMessage.success('排程已取消');
+        ElMessage.success(t('revenue_recognition_page.messages.cancel_success'));
         detailVisible.value = false;
         loadSchedules();
         loadSummary();
     } catch (e) {
-        ElMessage.error('取消失败');
+        ElMessage.error(t('revenue_recognition_page.messages.cancel_failed'));
     }
 }
 
 async function handleRecomputeSchedule(schedule) {
     try {
         await revenueApi.recomputeSchedule(schedule.id);
-        ElMessage.success('排程已重算');
+        ElMessage.success(t('revenue_recognition_page.messages.recompute_success'));
         // 刷新详情
         const res = await revenueApi.getSchedule(schedule.id);
         selectedSchedule.value = res.data;
         loadSchedules();
         loadSummary();
     } catch (e) {
-        ElMessage.error('重算失败');
+        ElMessage.error(t('revenue_recognition_page.messages.recompute_failed'));
     }
 }
 
@@ -538,7 +600,7 @@ onMounted(() => {
 .stat-card .stat-value {
     font-size: 20px;
     font-weight: 700;
-    color: #409eff;
+    color: #0f172a;
 }
 
 .stat-card .stat-label {
@@ -562,7 +624,7 @@ onMounted(() => {
 }
 
 .stat-card.info .stat-value {
-    color: #409eff;
+    color: #0f172a;
 }
 
 .toolbar-card {
@@ -601,7 +663,7 @@ onMounted(() => {
 
 .bar {
     width: 100%;
-    background: linear-gradient(to top, #409eff, #79bbff);
+    background: linear-gradient(to top, #0f172a, #94a3b8);
     border-radius: 4px;
     transition: height 0.3s;
     min-height: 4px;

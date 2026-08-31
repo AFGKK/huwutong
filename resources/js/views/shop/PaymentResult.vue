@@ -1,44 +1,41 @@
 <template>
   <div class="payment-result-page">
-    <el-card shadow="hover" style="max-width:520px;margin:60px auto;text-align:center">
-      <div v-if="loading">加载中...</div>
+    <el-card shadow="hover" class="payment-result-card">
+      <div v-if="loading">{{ t('payment_result.loading') }}</div>
       <template v-else-if="order">
-        <!-- 已支付 -->
         <template v-if="order.status === 'paid' || order.status === 'completed'">
-          <el-result icon="success" title="支付成功" :sub-title="`订单号: ${order.id}`">
+          <el-result icon="success" :title="t('payment_result.success_title')" :sub-title="t('payment_result.order_no', { id: order.id })">
             <template #extra>
               <div class="order-info">
-                <p>金额: <strong>¥{{ order.total_amount || order.total }}</strong></p>
-                <p>状态: <el-tag type="success">{{ order.status === 'paid' ? '已支付' : '已完成' }}</el-tag></p>
+                <p>{{ t('payment_result.amount') }} <strong>¥{{ order.total_amount || order.total }}</strong></p>
+                <p>{{ t('payment_result.status') }} <el-tag type="success">{{ order.status === 'paid' ? t('payment_result.paid') : t('payment_result.completed') }}</el-tag></p>
               </div>
-              <p style="color:#67C23A;margin:16px 0">✅ License 已自动激活，请查收邮件</p>
-              <el-button type="primary" @click="$router.push('/portal/licenses')">查看我的 License</el-button>
-              <el-button @click="$router.push('/portal/dashboard')" style="margin-left:8px">返回门户</el-button>
+              <p style="color:#67C23A;margin:16px 0">{{ t('payment_result.license_activated') }}</p>
+              <el-button type="primary" @click="$router.push('/portal/licenses')">{{ t('payment_result.view_licenses') }}</el-button>
+              <el-button class="secondary-action-btn" @click="$router.push('/portal/dashboard')">{{ t('payment_result.back_portal') }}</el-button>
             </template>
           </el-result>
         </template>
 
-        <!-- 待支付 -->
         <template v-else>
           <div class="pay-header">
-            <div class="pay-icon">⏳</div>
-            <h2>待支付</h2>
-            <p class="order-no">订单号: {{ order.id }}</p>
+            <h2>{{ t('payment_result.pending_title') }}</h2>
+            <p class="order-no">{{ t('payment_result.order_no', { id: order.id }) }}</p>
           </div>
 
           <el-divider />
 
           <div class="order-summary">
             <div class="summary-row">
-              <span>商品总额</span>
+              <span>{{ t('payment_result.items_total') }}</span>
               <span>¥{{ order.total_amount || '0.00' }}</span>
             </div>
             <div v-if="order.discount_amount > 0" class="summary-row discount">
-              <span>优惠</span>
+              <span>{{ t('payment_result.discount') }}</span>
               <span>-¥{{ order.discount_amount }}</span>
             </div>
             <div class="summary-row total">
-              <span>应付</span>
+              <span>{{ t('payment_result.payable') }}</span>
               <span class="price">¥{{ order.final_amount || order.total_amount || '0.00' }}</span>
             </div>
           </div>
@@ -46,10 +43,10 @@
           <el-divider />
 
           <div class="gateway-section">
-            <p class="gateway-title">选择支付方式</p>
+            <p class="gateway-title">{{ t('payment_result.choose_gateway') }}</p>
             <div class="gateway-list">
               <div
-                v-for="g in PAYMENT_GATEWAYS"
+                v-for="g in paymentGateways"
                 :key="g.key"
                 class="gateway-item"
                 :class="{ active: selectedGateway === g.key }"
@@ -58,7 +55,6 @@
                 <span class="gateway-radio">
                   <span v-if="selectedGateway === g.key" class="radio-dot" />
                 </span>
-                <span class="gateway-icon">{{ g.icon }}</span>
                 <span class="gateway-label">{{ g.label }}</span>
               </div>
             </div>
@@ -70,37 +66,40 @@
               :disabled="!selectedGateway || paying"
               @click="handlePay"
             >
-              去支付
+              {{ t('payment_result.pay_now') }}
             </el-button>
             <el-button style="width:100%;margin-top:8px" @click="$router.push('/portal/orders')">
-              查看订单
+              {{ t('payment_result.view_orders') }}
             </el-button>
           </div>
         </template>
       </template>
-      <el-empty v-else description="订单不存在" :image-size="60" />
+      <el-empty v-else :description="t('payment_result.not_found')" :image-size="60" />
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { useRoute } from 'vue-router';
 import shopApi from '@/api/shop';
 
+const { t } = useI18n();
 const route = useRoute();
 const order = ref(null);
 const loading = ref(true);
 const paying = ref(false);
 const selectedGateway = ref('alipay');
 
-const PAYMENT_GATEWAYS = [
-  { key: 'alipay', label: '支付宝', icon: '💳' },
-  { key: 'wechat', label: '微信支付', icon: '💚' },
-  { key: 'stripe', label: 'Stripe', icon: '🔵' },
-  { key: 'paypal', label: 'PayPal', icon: '🅿️' },
-];
+const paymentGateways = computed(() => [
+  { key: 'alipay', label: t('payment_result.gw_alipay') },
+  { key: 'wechat', label: t('payment_result.gw_wechat') },
+  { key: 'stripe', label: 'Stripe' },
+  { key: 'paypal', label: 'PayPal' },
+  { key: 'yipay', label: t('payment_result.gw_yipay') },
+]);
 
 onMounted(async () => {
   const orderId = route.params.id;
@@ -109,7 +108,7 @@ onMounted(async () => {
     const res = await shopApi.getOrder(orderId);
     order.value = res.data?.data || res.data;
   } catch {
-    ElMessage.error('加载订单失败');
+    ElMessage.error(t('payment_result.load_fail'));
   } finally { loading.value = false; }
 });
 
@@ -120,31 +119,27 @@ async function handlePay() {
     const res = await shopApi.initiatePayment(order.value.id, selectedGateway.value);
     const data = res.data?.data || res.data;
 
-    // 1. 支付宝：渲染自动提交表单
     if (data?.payment_form) {
       const container = document.createElement('div');
       container.style.display = 'none';
       container.innerHTML = data.payment_form;
       document.body.appendChild(container);
-      // 表单已包含自动提交的 script
       return;
     }
 
-    // 2. 微信 Native 支付：显示二维码
     if (selectedGateway.value === 'wechat' && data?.qr_code) {
-      // 降级：跳转二维码图片（或显示二维码弹窗）
+      // optional QR fallback
     }
 
-    // 3. 标准跳转
     if (data?.payment_url) {
       window.location.href = data.payment_url;
     } else if (data?.redirect_url) {
       window.location.href = data.redirect_url;
     } else {
-      ElMessage.success('支付请求已提交，请查看订单状态');
+      ElMessage.success(t('payment_result.pay_submitted'));
     }
   } catch (e) {
-    ElMessage.error(e?.response?.data?.message || '支付发起失败');
+    ElMessage.error(e?.response?.data?.message || t('payment_result.pay_fail'));
   } finally {
     paying.value = false;
   }
@@ -152,9 +147,19 @@ async function handlePay() {
 </script>
 
 <style scoped>
+.payment-result-page {
+  padding: 16px 12px;
+  min-width: 0;
+  overflow-x: clip;
+}
+.payment-result-card {
+  max-width: 520px;
+  margin: 24px auto;
+  text-align: center;
+}
+.secondary-action-btn { margin-left: 8px; }
 .order-info p { margin: 4px 0; }
 .pay-header { padding: 20px 0 0; }
-.pay-icon { font-size: 48px; margin-bottom: 8px; }
 .pay-header h2 { margin: 0 0 8px; font-size: 20px; }
 .order-no { color: #909399; font-size: 13px; margin: 0; }
 .order-summary { padding: 0 16px; }
@@ -169,17 +174,26 @@ async function handlePay() {
   padding: 12px 14px; border: 1px solid #e4e7ed; border-radius: 8px;
   cursor: pointer; transition: all 0.2s;
 }
-.gateway-item:hover { border-color: #409eff; background: #f0f7ff; }
-.gateway-item.active { border-color: #409eff; background: #ecf5ff; }
+.gateway-item:hover { border-color: #0f172a; background: #f0f7ff; }
+.gateway-item.active { border-color: #0f172a; background: #f1f5f9; }
 .gateway-radio {
   width: 16px; height: 16px; border-radius: 50%;
   border: 2px solid #c0c4cc; display: flex;
   align-items: center; justify-content: center; flex-shrink: 0;
 }
-.gateway-item.active .gateway-radio { border-color: #409eff; }
+.gateway-item.active .gateway-radio { border-color: #0f172a; }
 .radio-dot {
-  width: 8px; height: 8px; border-radius: 50%; background: #409eff;
+  width: 8px; height: 8px; border-radius: 50%; background: #0f172a;
 }
-.gateway-icon { font-size: 22px; }
 .gateway-label { font-size: 14px; }
+
+@media (max-width: 768px) {
+  .payment-result-page { padding: 12px 8px; }
+  .payment-result-card { margin: 12px auto; }
+  .secondary-action-btn { margin-left: 0 !important; margin-top: 8px; width: 100%; }
+  .payment-result-card :deep(.el-result__extra .el-button) {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+}
 </style>

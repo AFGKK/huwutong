@@ -1,16 +1,15 @@
 <template>
     <div class="merkle-page">
         <div class="page-header">
-            <h2>审计日志 Merkle 链</h2>
-            <el-tag type="danger" effect="dark" size="small">防篡改验证</el-tag>
+            <h2>{{ t(`${P}.title`) }}</h2>
+            <el-tag type="danger" effect="dark" size="small">{{ t(`${P}.badge`) }}</el-tag>
         </div>
 
-        <!-- 统计卡片 -->
         <el-row :gutter="16" class="mb-4">
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">审计日志总数</div>
+                        <div class="stat-label">{{ t(`${P}.stats.total`) }}</div>
                         <div class="stat-value">{{ stats.total_logs }}</div>
                     </div>
                 </el-card>
@@ -18,7 +17,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">已哈希保护</div>
+                        <div class="stat-label">{{ t(`${P}.stats.hashed`) }}</div>
                         <div class="stat-value text-success">{{ stats.hashed_logs }}</div>
                     </div>
                 </el-card>
@@ -26,7 +25,7 @@
             <el-col :span="6">
                 <el-card shadow="never" :body-style="{ backgroundColor: stats.unhashed_logs > 0 ? '#fef0f0' : '' }">
                     <div class="stat-item">
-                        <div class="stat-label">未哈希（待回填）</div>
+                        <div class="stat-label">{{ t(`${P}.stats.unhashed`) }}</div>
                         <div class="stat-value" :class="stats.unhashed_logs > 0 ? 'text-danger' : 'text-success'">
                             {{ stats.unhashed_logs }}
                         </div>
@@ -36,7 +35,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">哈希链覆盖率</div>
+                        <div class="stat-label">{{ t(`${P}.stats.coverage`) }}</div>
                         <div class="stat-value" :class="coverageClass">{{ stats.chain_coverage }}%</div>
                     </div>
                 </el-card>
@@ -47,7 +46,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">锚定次数</div>
+                        <div class="stat-label">{{ t(`${P}.stats.anchors`) }}</div>
                         <div class="stat-value">{{ stats.anchor_count }}</div>
                     </div>
                 </el-card>
@@ -55,7 +54,7 @@
             <el-col :span="18">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">最新根哈希</div>
+                        <div class="stat-label">{{ t(`${P}.stats.latest_root`) }}</div>
                         <div class="stat-hash">
                             <code>{{ latestRootHash }}</code>
                         </div>
@@ -64,54 +63,52 @@
             </el-col>
         </el-row>
 
-        <!-- 操作按钮组 -->
         <el-card shadow="never" class="mb-4">
             <template #header>
-                <span>操作</span>
+                <span>{{ t(`${P}.actions_title`) }}</span>
             </template>
             <el-space>
                 <el-button type="primary" :loading="verifying" @click="handleVerify">
-                    <el-icon><DataBoard /></el-icon> 验证完整性
+                    <el-icon><DataBoard /></el-icon> {{ t(`${P}.verify`) }}
                 </el-button>
                 <el-button type="warning" :loading="anchoring" @click="handleAnchor">
-                    <el-icon><Link /></el-icon> 锚定根哈希
+                    <el-icon><Link /></el-icon> {{ t(`${P}.anchor`) }}
                 </el-button>
                 <el-button type="warning" plain :loading="anchoringForce" @click="handleAnchorForce">
-                    <el-icon><WarnTriangleFilled /></el-icon> 强制锚定
+                    <el-icon><WarnTriangleFilled /></el-icon> {{ t(`${P}.anchor_force`) }}
                 </el-button>
                 <el-button :disabled="stats.unhashed_logs === 0" :loading="backfilling" @click="handleBackfill">
-                    <el-icon><Refresh /></el-icon> 回填旧日志 ({{ stats.unhashed_logs }})
+                    <el-icon><Refresh /></el-icon> {{ t(`${P}.backfill`, { n: stats.unhashed_logs }) }}
                 </el-button>
             </el-space>
         </el-card>
 
-        <!-- 验证结果 -->
         <el-card v-if="verifyResult" shadow="never" class="mb-4"
             :class="{ 'verify-pass': verifyResult.valid, 'verify-fail': !verifyResult.valid }"
         >
             <template #header>
                 <div class="card-header">
-                    <span>验证结果</span>
+                    <span>{{ t(`${P}.verify_result`) }}</span>
                     <el-tag :type="verifyResult.valid ? 'success' : 'danger'" size="small">
-                        {{ verifyResult.valid ? '完整性验证通过 ✓' : '发现篡改痕迹 ✗' }}
+                        {{ verifyResult.valid ? t(`${P}.valid`) : t(`${P}.invalid`) }}
                     </el-tag>
                 </div>
             </template>
             <div v-if="verifyResult.checked === 0" class="verify-empty">
-                <el-empty description="暂无数据可验证" />
+                <el-empty :description="t(`${P}.nothing_to_verify`)" />
             </div>
             <template v-else>
                 <el-descriptions :column="2" border size="small">
-                    <el-descriptions-item label="检查日志数">{{ verifyResult.checked }}</el-descriptions-item>
-                    <el-descriptions-item label="锚定匹配">
-                        <el-tag v-if="verifyResult.anchor_match === true" type="success" size="small">匹配</el-tag>
-                        <el-tag v-else-if="verifyResult.anchor_match === false" type="danger" size="small">不匹配</el-tag>
-                        <span v-else>未检查</span>
+                    <el-descriptions-item :label="t(`${P}.checked`)">{{ verifyResult.checked }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.anchor_match`)">
+                        <el-tag v-if="verifyResult.anchor_match === true" type="success" size="small">{{ t(`${P}.match`) }}</el-tag>
+                        <el-tag v-else-if="verifyResult.anchor_match === false" type="danger" size="small">{{ t(`${P}.mismatch`) }}</el-tag>
+                        <span v-else>{{ t(`${P}.not_checked`) }}</span>
                     </el-descriptions-item>
                 </el-descriptions>
 
                 <div class="verify-details">
-                    <h4>验证详情</h4>
+                    <h4>{{ t(`${P}.verify_details`) }}</h4>
                     <el-timeline>
                         <el-timeline-item
                             v-for="(detail, i) in verifyResult.details"
@@ -124,16 +121,16 @@
                 </div>
 
                 <div v-if="verifyResult.errors.length" class="verify-errors">
-                    <h4>错误详情</h4>
+                    <h4>{{ t(`${P}.error_details`) }}</h4>
                     <el-table :data="verifyResult.errors" stripe size="small" border>
-                        <el-table-column prop="log_id" label="日志 ID" width="80" />
-                        <el-table-column prop="action" label="操作" min-width="120" />
-                        <el-table-column prop="expected_hash" label="期望哈希" min-width="260">
+                        <el-table-column prop="log_id" :label="t(`${P}.cols.log_id`)" width="80" />
+                        <el-table-column prop="action" :label="t(`${P}.cols.action`)" min-width="120" />
+                        <el-table-column prop="expected_hash" :label="t(`${P}.cols.expected`)" min-width="260">
                             <template #default="{ row }">
                                 <code class="hash-text">{{ row.expected_hash }}</code>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="actual_hash" label="实际哈希" min-width="260">
+                        <el-table-column prop="actual_hash" :label="t(`${P}.cols.actual`)" min-width="260">
                             <template #default="{ row }">
                                 <code class="hash-text text-danger">{{ row.actual_hash }}</code>
                             </template>
@@ -143,45 +140,45 @@
             </template>
         </el-card>
 
-        <!-- 锚定历史 -->
         <el-card shadow="never">
             <template #header>
                 <div class="card-header">
-                    <span>锚定历史</span>
-                    <el-tag size="small">{{ anchors.length }} 条记录</el-tag>
+                    <span>{{ t(`${P}.anchor_history`) }}</span>
+                    <el-tag size="small">{{ t(`${P}.records_n`, { n: anchors.length }) }}</el-tag>
                 </div>
             </template>
             <el-table :data="anchors" v-loading="loadingAnchors" stripe>
-                <el-table-column label="锚定时间" width="180">
+                <el-table-column :label="t(`${P}.cols.anchored_at`)" width="180">
                     <template #default="{ row }">
                         {{ formatDate(row.anchored_at) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="类型" width="120">
+                <el-table-column :label="t(`${P}.cols.type`)" width="120">
                     <template #default="{ row }">
                         <el-tag size="small" effect="plain">{{ row.anchor_type }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="覆盖日志范围" width="180">
+                <el-table-column :label="t(`${P}.cols.range`)" width="180">
                     <template #default="{ row }">
-                        日志 #{{ row.from_log_id }} ~ #{{ row.to_log_id }}
+                        {{ t(`${P}.log_range`, { from: row.from_log_id, to: row.to_log_id }) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="日志数量" width="100" prop="log_count" align="center" />
-                <el-table-column label="根哈希" min-width="260">
+                <el-table-column :label="t(`${P}.cols.log_count`)" width="100" prop="log_count" align="center" />
+                <el-table-column :label="t(`${P}.cols.root_hash`)" min-width="260">
                     <template #default="{ row }">
                         <code class="hash-text">{{ row.root_hash }}</code>
                     </template>
                 </el-table-column>
-                <el-table-column label="引用" min-width="150" prop="anchor_ref" />
+                <el-table-column :label="t(`${P}.cols.ref`)" min-width="150" prop="anchor_ref" />
             </el-table>
-            <el-empty v-if="!loadingAnchors && !anchors.length" description="暂无锚定记录" />
+            <el-empty v-if="!loadingAnchors && !anchors.length" :description="t(`${P}.empty_anchors`)" />
         </el-card>
     </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { DataBoard, Link, WarnTriangleFilled, Refresh } from '@element-plus/icons-vue'
 import {
@@ -191,6 +188,10 @@ import {
     getMerkleAnchors,
     backfillMerkleHashes,
 } from '@/api/merkle-chain'
+
+const { t, locale } = useI18n()
+const P = 'merkle_chain_page'
+const dateLocale = computed(() => (locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US'))
 
 const stats = ref({})
 const anchors = ref([])
@@ -239,12 +240,12 @@ async function handleVerify() {
         const res = await verifyMerkleChain()
         verifyResult.value = res.data?.data
         if (verifyResult.value?.valid) {
-            ElMessage.success('审计日志完整性验证通过，哈希链未被篡改')
+            ElMessage.success(t(`${P}.messages.valid`))
         } else if (verifyResult.value?.checked > 0) {
-            ElMessage.error('发现审计日志哈希链断裂，可能有数据被篡改！')
+            ElMessage.error(t(`${P}.messages.tampered`))
         }
     } catch (e) {
-        ElMessage.error('验证失败')
+        ElMessage.error(t(`${P}.messages.verify_failed`))
     } finally {
         verifying.value = false
     }
@@ -254,11 +255,11 @@ async function handleAnchor() {
     anchoring.value = true
     try {
         await triggerMerkleAnchor(false, true)
-        ElMessage.success('根哈希已锚定')
+        ElMessage.success(t(`${P}.messages.anchored`))
         fetchStats()
         fetchAnchors()
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '锚定失败')
+        ElMessage.error(e.response?.data?.message || t(`${P}.messages.anchor_failed`))
     } finally {
         anchoring.value = false
     }
@@ -268,11 +269,11 @@ async function handleAnchorForce() {
     anchoringForce.value = true
     try {
         await triggerMerkleAnchor(true, true)
-        ElMessage.success('根哈希已强制锚定')
+        ElMessage.success(t(`${P}.messages.force_anchored`))
         fetchStats()
         fetchAnchors()
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '强制锚定失败')
+        ElMessage.error(e.response?.data?.message || t(`${P}.messages.force_failed`))
     } finally {
         anchoringForce.value = false
     }
@@ -282,10 +283,10 @@ async function handleBackfill() {
     backfilling.value = true
     try {
         const res = await backfillMerkleHashes()
-        ElMessage.success(res.data?.data?.message || '回填完成')
+        ElMessage.success(res.data?.data?.message || t(`${P}.messages.backfill_done`))
         fetchStats()
     } catch (e) {
-        ElMessage.error('回填失败')
+        ElMessage.error(t(`${P}.messages.backfill_failed`))
     } finally {
         backfilling.value = false
     }
@@ -293,7 +294,7 @@ async function handleBackfill() {
 
 function formatDate(dateStr) {
     if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    return new Date(dateStr).toLocaleString(dateLocale.value, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit', second: '2-digit',
     })

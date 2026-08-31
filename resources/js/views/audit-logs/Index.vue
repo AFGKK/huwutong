@@ -2,21 +2,21 @@
     <div class="audit-logs-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>审计日志</h2>
-                <span class="header-subtitle">查看系统内所有操作记录，用于安全审计和合规追踪</span>
+                <h2>{{ t('audit_logs_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('audit_logs_page.subtitle') }}</span>
             </div>
             <div class="header-right">
                 <el-button @click="loadAll">
                     <el-icon><Refresh /></el-icon>
-                    刷新
+                    {{ t('audit_logs_page.refresh') }}
                 </el-button>
                 <el-dropdown @command="handleExport" split-button type="primary">
                     <el-icon><Download /></el-icon>
-                    导出
+                    {{ t('actions.export') }}
                     <template #dropdown>
                         <el-dropdown-menu>
-                            <el-dropdown-item command="csv">导出 CSV</el-dropdown-item>
-                            <el-dropdown-item command="json">导出 JSON</el-dropdown-item>
+                            <el-dropdown-item command="csv">{{ t('audit_logs_page.export_csv') }}</el-dropdown-item>
+                            <el-dropdown-item command="json">{{ t('audit_logs_page.export_json') }}</el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
                 </el-dropdown>
@@ -28,7 +28,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">总日志数</div>
+                        <div class="stat-label">{{ t('audit_logs_page.stat_total') }}</div>
                         <div class="stat-value">{{ stats.total || 0 }}</div>
                     </div>
                 </el-card>
@@ -36,7 +36,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">今日新增</div>
+                        <div class="stat-label">{{ t('audit_logs_page.stat_today') }}</div>
                         <div class="stat-value text-primary">{{ stats.today || 0 }}</div>
                     </div>
                 </el-card>
@@ -44,13 +44,13 @@
             <el-col :span="12">
                 <el-card shadow="never">
                     <div class="stat-row">
-                        <span class="stat-label-sm">按类型分布：</span>
+                        <span class="stat-label-sm">{{ t('audit_logs_page.by_type_label') }}</span>
                         <span v-for="(count, type) in stats.by_type" :key="type" class="type-badge">
                             <el-tag size="small" :type="typeTag(type)" effect="plain">
                                 {{ typeLabel(type) }}: {{ count }}
                             </el-tag>
                         </span>
-                        <span v-if="!Object.keys(stats.by_type || {}).length" class="text-muted">暂无数据</span>
+                        <span v-if="!Object.keys(stats.by_type || {}).length" class="text-muted">{{ t('messages.no_data') }}</span>
                     </div>
                 </el-card>
             </el-col>
@@ -59,43 +59,36 @@
         <!-- 筛选条件 -->
         <el-card shadow="never" class="mb-4">
             <el-form :model="filters" inline>
-                <el-form-item label="操作类型">
-                    <el-select v-model="filters.action" clearable placeholder="全部" style="width: 200px" @change="search">
+                <el-form-item :label="t('audit_logs_page.filter_action')">
+                    <el-select v-model="filters.action" clearable :placeholder="t('audit_logs_page.placeholder_all')" style="width: 200px" @change="search">
                         <el-option v-for="(count, action) in stats.top_actions" :key="action" :label="actionLabel(action)" :value="action" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="日志类型">
-                    <el-select v-model="filters.type" clearable placeholder="全部" style="width: 140px" @change="search">
-                        <el-option value="audit" label="审计" />
-                        <el-option value="security" label="安全" />
-                        <el-option value="error" label="错误" />
-                        <el-option value="system" label="系统" />
+                <el-form-item :label="t('audit_logs_page.filter_type')">
+                    <el-select v-model="filters.type" clearable :placeholder="t('audit_logs_page.placeholder_all')" style="width: 140px" @change="search">
+                        <el-option v-for="opt in typeOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="动作前缀">
-                    <el-select v-model="filters.action_prefix" clearable placeholder="全部" style="width: 160px" @change="search">
-                        <el-option label="License 相关" value="license." />
-                        <el-option label="设备相关" value="device." />
-                        <el-option label="用户相关" value="user." />
-                        <el-option label="客户相关" value="customer." />
-                        <el-option label="安全事件" value="security." />
+                <el-form-item :label="t('audit_logs_page.filter_action_prefix')">
+                    <el-select v-model="filters.action_prefix" clearable :placeholder="t('audit_logs_page.placeholder_all')" style="width: 160px" @change="search">
+                        <el-option v-for="opt in actionPrefixOptions" :key="opt.value" :value="opt.value" :label="opt.label" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="关联 ID">
-                    <el-input v-model="filters.license_id" placeholder="License ID" clearable style="width: 120px" @change="search" />
+                <el-form-item :label="t('audit_logs_page.filter_related_id')">
+                    <el-input v-model="filters.license_id" :placeholder="t('audit_logs_page.placeholder_license_id')" clearable style="width: 120px" @change="search" />
                 </el-form-item>
-                <el-form-item label="开始日期">
-                    <el-date-picker v-model="filters.date_from" type="date" placeholder="开始日期" value-format="YYYY-MM-DD" @change="search" />
+                <el-form-item :label="t('audit_logs_page.filter_date_from')">
+                    <el-date-picker v-model="filters.date_from" type="date" :placeholder="t('audit_logs_page.placeholder_date_from')" value-format="YYYY-MM-DD" @change="search" />
                 </el-form-item>
-                <el-form-item label="结束日期">
-                    <el-date-picker v-model="filters.date_to" type="date" placeholder="结束日期" value-format="YYYY-MM-DD" @change="search" />
+                <el-form-item :label="t('audit_logs_page.filter_date_to')">
+                    <el-date-picker v-model="filters.date_to" type="date" :placeholder="t('audit_logs_page.placeholder_date_to')" value-format="YYYY-MM-DD" @change="search" />
                 </el-form-item>
-                <el-form-item label="关键词">
-                    <el-input v-model="filters.search" placeholder="搜索描述..." clearable style="width: 180px" @keyup.enter="search" @clear="search" />
+                <el-form-item :label="t('audit_logs_page.filter_keyword')">
+                    <el-input v-model="filters.search" :placeholder="t('audit_logs_page.placeholder_search')" clearable style="width: 180px" @keyup.enter="search" @clear="search" />
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="search">查询</el-button>
-                    <el-button @click="resetFilters">重置</el-button>
+                    <el-button type="primary" @click="search">{{ t('audit_logs_page.query') }}</el-button>
+                    <el-button @click="resetFilters">{{ t('actions.reset') }}</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -103,12 +96,12 @@
         <!-- 日志列表 -->
         <el-card shadow="never">
             <el-table :data="logs" v-loading="loading" stripe :max-height="600">
-                <el-table-column label="时间" width="170" sortable prop="created_at">
+                <el-table-column :label="t('audit_logs_page.col_time')" width="170" sortable prop="created_at">
                     <template #default="{ row }">
                         {{ formatTime(row.created_at) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" min-width="160">
+                <el-table-column :label="t('audit_logs_page.col_action')" min-width="160">
                     <template #default="{ row }">
                         <div class="action-cell">
                             <el-tag :type="actionTag(row.action)" size="small" effect="plain">
@@ -117,45 +110,45 @@
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column label="类型" width="100">
+                <el-table-column :label="t('audit_logs_page.col_type')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="typeTag(row.type)" size="small">{{ typeLabel(row.type) }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="描述" min-width="300">
+                <el-table-column :label="t('audit_logs_page.col_description')" min-width="300">
                     <template #default="{ row }">
                         <div class="desc-cell">{{ row.description }}</div>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作者" width="140">
+                <el-table-column :label="t('audit_logs_page.col_operator')" width="140">
                     <template #default="{ row }">
                         <div class="user-cell">
                             <el-icon :size="14"><UserFilled /></el-icon>
-                            <span>{{ row.user?.name || row.user?.email || '系统' }}</span>
+                            <span>{{ row.user?.name || row.user?.email || t('audit_logs_page.system_actor') }}</span>
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column label="关联资源" min-width="160">
+                <el-table-column :label="t('audit_logs_page.col_related')" min-width="160">
                     <template #default="{ row }">
                         <div class="related-cell">
                             <span v-if="row.license" class="related-link" @click="$router.push('/licenses/' + row.license_id)">
-                                License #{{ row.license_id }}
+                                {{ t('audit_logs_page.related_license', { id: row.license_id }) }}
                             </span>
                             <span v-if="row.customer" class="related-link" @click="$router.push('/customers/' + row.customer_id)">
-                                客户 #{{ row.customer_id }}
+                                {{ t('audit_logs_page.related_customer', { id: row.customer_id }) }}
                             </span>
-                            <span v-if="!row.license && !row.customer && !row.device" class="text-muted">—</span>
+                            <span v-if="!row.license && !row.customer && !row.device" class="text-muted">{{ emDash }}</span>
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column label="IP 地址" width="130">
+                <el-table-column :label="t('audit_logs_page.col_ip')" width="130">
                     <template #default="{ row }">
-                        <code>{{ row.ip_address || '—' }}</code>
+                        <code>{{ row.ip_address || emDash }}</code>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="70" fixed="right">
+                <el-table-column :label="t('audit_logs_page.col_ops')" width="70" fixed="right">
                     <template #default="{ row }">
-                        <el-button text size="small" @click="showDetail(row)">详情</el-button>
+                        <el-button text size="small" @click="showDetail(row)">{{ t('actions.view_details') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -174,48 +167,48 @@
         </el-card>
 
         <!-- 详情 Dialog -->
-        <el-dialog v-model="showDetailDialog" title="日志详情" width="700px">
+        <el-dialog v-model="showDetailDialog" :title="t('audit_logs_page.detail_title')" width="700px">
             <div v-if="detailLog">
                 <el-descriptions :column="2" border>
-                    <el-descriptions-item label="时间">{{ formatTime(detailLog.created_at) }}</el-descriptions-item>
-                    <el-descriptions-item label="类型">
+                    <el-descriptions-item :label="t('audit_logs_page.col_time')">{{ formatTime(detailLog.created_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('audit_logs_page.col_type')">
                         <el-tag :type="typeTag(detailLog.type)" size="small">{{ typeLabel(detailLog.type) }}</el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="操作">
+                    <el-descriptions-item :label="t('audit_logs_page.col_action')">
                         <el-tag :type="actionTag(detailLog.action)" size="small" effect="plain">{{ actionLabel(detailLog.action) }}</el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="操作者">{{ detailLog.user?.name || detailLog.user?.email || '系统' }}</el-descriptions-item>
-                    <el-descriptions-item label="IP 地址"><code>{{ detailLog.ip_address || '—' }}</code></el-descriptions-item>
-                    <el-descriptions-item label="User Agent" :content-style="{ 'word-break': 'break-all' }">{{ detailLog.user_agent || '—' }}</el-descriptions-item>
-                    <el-descriptions-item label="License ID" :span="1">{{ detailLog.license_id || '—' }}</el-descriptions-item>
-                    <el-descriptions-item label="客户 ID" :span="1">{{ detailLog.customer_id || '—' }}</el-descriptions-item>
-                    <el-descriptions-item label="设备 ID" :span="1">{{ detailLog.device_id || '—' }}</el-descriptions-item>
-                    <el-descriptions-item label="产品 ID" :span="1">{{ detailLog.product_id || '—' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('audit_logs_page.col_operator')">{{ detailLog.user?.name || detailLog.user?.email || t('audit_logs_page.system_actor') }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('audit_logs_page.col_ip')"><code>{{ detailLog.ip_address || emDash }}</code></el-descriptions-item>
+                    <el-descriptions-item :label="t('audit_logs_page.label_user_agent')" :content-style="{ 'word-break': 'break-all' }">{{ detailLog.user_agent || emDash }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('audit_logs_page.label_license_id')" :span="1">{{ detailLog.license_id || emDash }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('audit_logs_page.label_customer_id')" :span="1">{{ detailLog.customer_id || emDash }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('audit_logs_page.label_device_id')" :span="1">{{ detailLog.device_id || emDash }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('audit_logs_page.label_product_id')" :span="1">{{ detailLog.product_id || emDash }}</el-descriptions-item>
                 </el-descriptions>
 
                 <div class="detail-section">
-                    <h4>描述</h4>
+                    <h4>{{ t('audit_logs_page.section_description') }}</h4>
                     <p>{{ detailLog.description }}</p>
                 </div>
 
                 <div v-if="detailLog.payload && Object.keys(detailLog.payload).length" class="detail-section">
-                    <h4>请求载荷（Payload）
+                    <h4>{{ t('audit_logs_page.section_payload') }}
                         <el-tag size="small" type="info" style="margin-left:8px;">
-                            {{ Object.keys(detailLog.payload).length }} 字段
+                            {{ t('audit_logs_page.payload_fields', { n: Object.keys(detailLog.payload).length }) }}
                         </el-tag>
                     </h4>
                     <!-- 当 payload 中有 diffs 字段时，使用对比展示 -->
                     <template v-if="detailLog.payload.diffs">
                         <el-table :data="diffRows" stripe size="small" border>
-                            <el-table-column prop="field" label="字段" width="160" />
-                            <el-table-column label="原值" min-width="150">
+                            <el-table-column prop="field" :label="t('audit_logs_page.col_field')" width="160" />
+                            <el-table-column :label="t('audit_logs_page.col_old_value')" min-width="150">
                                 <template #default="{ row }">
-                                    <span class="diff-old">{{ row.old !== undefined ? row.old : '—' }}</span>
+                                    <span class="diff-old">{{ row.old !== undefined ? row.old : emDash }}</span>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="新值" min-width="150">
+                            <el-table-column :label="t('audit_logs_page.col_new_value')" min-width="150">
                                 <template #default="{ row }">
-                                    <span class="diff-new">{{ row.new !== undefined ? row.new : '—' }}</span>
+                                    <span class="diff-new">{{ row.new !== undefined ? row.new : emDash }}</span>
                                 </template>
                             </el-table-column>
                         </el-table>
@@ -226,12 +219,12 @@
 
                 <!-- Merkle 哈希信息 -->
                 <div v-if="detailLog.merkle_hash" class="detail-section merkle-section">
-                    <h4>Merkle 链信息</h4>
+                    <h4>{{ t('audit_logs_page.section_merkle') }}</h4>
                     <el-descriptions :column="1" border size="small">
-                        <el-descriptions-item label="当前哈希">
+                        <el-descriptions-item :label="t('audit_logs_page.merkle_current')">
                             <code class="merkle-hash">{{ detailLog.merkle_hash }}</code>
                         </el-descriptions-item>
-                        <el-descriptions-item v-if="detailLog.merkle_parent_id" label="上级哈希">
+                        <el-descriptions-item v-if="detailLog.merkle_parent_id" :label="t('audit_logs_page.merkle_parent')">
                             <code class="merkle-hash">{{ detailLog.merkle_parent_id }}</code>
                         </el-descriptions-item>
                     </el-descriptions>
@@ -243,9 +236,13 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Refresh, Download, UserFilled } from '@element-plus/icons-vue';
 import auditLogApi from '@/api/auditLog';
+
+const { t, locale } = useI18n();
+const emDash = '—';
 
 const loading = ref(false);
 const showDetailDialog = ref(false);
@@ -269,6 +266,58 @@ const filters = reactive({
     search: '',
 });
 
+const typeOptions = computed(() => [
+    { value: 'audit', label: t('audit_logs_page.type_audit') },
+    { value: 'security', label: t('audit_logs_page.type_security') },
+    { value: 'error', label: t('audit_logs_page.type_error') },
+    { value: 'system', label: t('audit_logs_page.type_system') },
+]);
+
+const actionPrefixOptions = computed(() => [
+    { value: 'license.', label: t('audit_logs_page.prefix_license') },
+    { value: 'device.', label: t('audit_logs_page.prefix_device') },
+    { value: 'user.', label: t('audit_logs_page.prefix_user') },
+    { value: 'customer.', label: t('audit_logs_page.prefix_customer') },
+    { value: 'security.', label: t('audit_logs_page.prefix_security') },
+]);
+
+const actionLabels = computed(() => ({
+    'license.created': t('audit_logs_page.action_labels.license.created'),
+    'license.activated': t('audit_logs_page.action_labels.license.activated'),
+    'license.revoked': t('audit_logs_page.action_labels.license.revoked'),
+    'license.suspended': t('audit_logs_page.action_labels.license.suspended'),
+    'license.restored': t('audit_logs_page.action_labels.license.restored'),
+    'license.expired': t('audit_logs_page.action_labels.license.expired'),
+    'license.refunded': t('audit_logs_page.action_labels.license.refunded'),
+    'license.updated': t('audit_logs_page.action_labels.license.updated'),
+    'license.status_changed': t('audit_logs_page.action_labels.license.status_changed'),
+    'license.renewed': t('audit_logs_page.action_labels.license.renewed'),
+    'customer.created': t('audit_logs_page.action_labels.customer.created'),
+    'customer.updated': t('audit_logs_page.action_labels.customer.updated'),
+    'device.activated': t('audit_logs_page.action_labels.device.activated'),
+    'device.deactivated': t('audit_logs_page.action_labels.device.deactivated'),
+    'user.login': t('audit_logs_page.action_labels.user.login'),
+    'user.logout': t('audit_logs_page.action_labels.user.logout'),
+    'user.login_failed': t('audit_logs_page.action_labels.user.login_failed'),
+    'user.created': t('audit_logs_page.action_labels.user.created'),
+    'user.password_changed': t('audit_logs_page.action_labels.user.password_changed'),
+    'subscription.created': t('audit_logs_page.action_labels.subscription.created'),
+    'subscription.canceled': t('audit_logs_page.action_labels.subscription.canceled'),
+    'subscription.renewed': t('audit_logs_page.action_labels.subscription.renewed'),
+    'api_key.created': t('audit_logs_page.action_labels.api_key.created'),
+    'api_key.revoked': t('audit_logs_page.action_labels.api_key.revoked'),
+    'security.mfa_enabled': t('audit_logs_page.action_labels.security.mfa_enabled'),
+    'security.mfa_disabled': t('audit_logs_page.action_labels.security.mfa_disabled'),
+}));
+
+const typeLabels = computed(() => ({
+    audit: t('audit_logs_page.type_audit'),
+    security: t('audit_logs_page.type_security'),
+    error: t('audit_logs_page.type_error'),
+    system: t('audit_logs_page.type_system'),
+    billing: t('audit_logs_page.type_billing'),
+}));
+
 // 将 diffs 对象转为表格行
 const diffRows = computed(() => {
     if (!detailLog.value?.payload?.diffs) return [];
@@ -280,35 +329,7 @@ const diffRows = computed(() => {
 });
 
 function actionLabel(action) {
-    const map = {
-        'license.created': '创建 License',
-        'license.activated': '激活 License',
-        'license.revoked': '吊销 License',
-        'license.suspended': '暂停 License',
-        'license.restored': '恢复 License',
-        'license.expired': '过期 License',
-        'license.refunded': '退款 License',
-        'license.updated': '更新 License',
-        'license.status_changed': '状态变更',
-        'license.renewed': '续费',
-        'customer.created': '创建客户',
-        'customer.updated': '更新客户',
-        'device.activated': '设备激活',
-        'device.deactivated': '设备解绑',
-        'user.login': '用户登录',
-        'user.logout': '用户登出',
-        'user.login_failed': '登录失败',
-        'user.created': '创建用户',
-        'user.password_changed': '修改密码',
-        'subscription.created': '创建订阅',
-        'subscription.canceled': '取消订阅',
-        'subscription.renewed': '续费订阅',
-        'api_key.created': '创建 API 密钥',
-        'api_key.revoked': '吊销 API 密钥',
-        'security.mfa_enabled': '启用 MFA',
-        'security.mfa_disabled': '禁用 MFA',
-    };
-    return map[action] || action;
+    return actionLabels.value[action] || action;
 }
 
 function actionTag(action) {
@@ -322,8 +343,7 @@ function actionTag(action) {
 }
 
 function typeLabel(type) {
-    const map = { audit: '审计', security: '安全', error: '错误', system: '系统', billing: '计费' };
-    return map[type] || type;
+    return typeLabels.value[type] || type;
 }
 
 function typeTag(type) {
@@ -332,8 +352,9 @@ function typeTag(type) {
 }
 
 function formatTime(time) {
-    if (!time) return '—';
-    return new Date(time).toLocaleString('zh-CN');
+    if (!time) return emDash;
+    const loc = locale.value === 'zh_CN' ? 'zh-CN' : 'en-US';
+    return new Date(time).toLocaleString(loc, { hour12: false });
 }
 
 async function loadStats() {
@@ -374,7 +395,7 @@ async function fetchLogs() {
             total.value = res.meta?.total || 0;
         }
     } catch {
-        ElMessage.error('加载审计日志失败');
+        ElMessage.error(t('audit_logs_page.load_fail'));
     } finally {
         loading.value = false;
     }
@@ -428,7 +449,7 @@ function handleExport(format) {
     const url = '/api/audit-logs/export?' + params.toString();
     window.open(url, '_blank');
 
-    ElMessage.success('正在导出，请稍候...');
+    ElMessage.success(t('audit_logs_page.export_started'));
 }
 
 function loadAll() {

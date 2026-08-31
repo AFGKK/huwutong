@@ -2,8 +2,8 @@
     <div class="ticket-detail-page" v-loading="loading">
         <div class="page-breadcrumb">
             <el-breadcrumb>
-                <el-breadcrumb-item :to="{ path: '/tickets' }">工单管理</el-breadcrumb-item>
-                <el-breadcrumb-item>工单 #{{ ticket.id }}</el-breadcrumb-item>
+                <el-breadcrumb-item :to="{ path: '/tickets' }">{{ t('tickets_page.title') }}</el-breadcrumb-item>
+                <el-breadcrumb-item>{{ t('tickets_page.ticket_n', { id: ticket.id }) }}</el-breadcrumb-item>
             </el-breadcrumb>
         </div>
 
@@ -24,7 +24,7 @@
                                     {{ ticket.category.name }}
                                 </el-tag>
                                 <el-tag v-if="ticket.sla_breached" type="danger" size="small" class="ml-2">
-                                    SLA 超时
+                                    {{ t('tickets_page.st_sla_breached') }}
                                 </el-tag>
                             </div>
                         </div>
@@ -33,7 +33,7 @@
 
                         <div class="ticket-customer">
                             <el-icon><User /></el-icon>
-                            <span>{{ ticket.customer?.name || ticket.user?.name || '未知' }}</span>
+                            <span>{{ ticket.customer?.name || ticket.user?.name || t('tickets_page.unknown') }}</span>
                             <span class="customer-email" v-if="ticket.customer?.email">{{ ticket.customer.email }}</span>
                         </div>
 
@@ -42,15 +42,15 @@
                         <div class="ticket-description">{{ ticket.description }}</div>
 
                         <div class="ticket-time">
-                            创建于 {{ ticket.created_at }}
-                            <span v-if="ticket.customer?.user?.email" class="ml-4">邮箱: {{ ticket.customer?.user?.email }}</span>
+                            {{ t('tickets_page.created_at', { time: ticket.created_at }) }}
+                            <span v-if="ticket.customer?.user?.email" class="ml-4">{{ t('tickets_page.email_label') }} {{ ticket.customer?.user?.email }}</span>
                         </div>
                     </el-card>
 
                     <!-- 标签 -->
                     <el-card class="mb-4">
                         <template #header>
-                            <span>标签</span>
+                            <span>{{ t('tickets_page.tags') }}</span>
                         </template>
                         <TagSelector
                             taggable-type="ticket"
@@ -63,7 +63,7 @@
                     <el-card class="mb-4">
                         <template #header>
                             <div class="card-header">
-                                <span>回复 ({{ replies.length }})</span>
+                                <span>{{ t('tickets_page.replies_title', { n: replies.length }) }}</span>
                             </div>
                         </template>
 
@@ -78,9 +78,9 @@
                                             </template>
                                         </el-avatar>
                                         <span class="reply-name">
-                                            {{ reply.user?.name || reply.admin?.name || reply.customer?.name || '客户' }}
-                                            <el-tag v-if="reply.is_admin" size="small" type="primary" class="staff-tag">客服</el-tag>
-                                            <el-tag v-else size="small" type="info" class="staff-tag">客户</el-tag>
+                                            {{ reply.user?.name || reply.admin?.name || reply.customer?.name || t('tickets_page.role_customer') }}
+                                            <el-tag v-if="reply.is_admin" size="small" type="primary" class="staff-tag">{{ t('tickets_page.role_staff') }}</el-tag>
+                                            <el-tag v-else size="small" type="info" class="staff-tag">{{ t('tickets_page.role_customer') }}</el-tag>
                                         </span>
                                     </div>
                                     <span class="reply-time">{{ reply.created_at }}</span>
@@ -88,19 +88,19 @@
                                 <div class="reply-body">{{ reply.content || reply.body || reply.message }}</div>
                             </div>
                         </div>
-                        <el-empty v-else description="暂无回复" :image-size="60" />
+                        <el-empty v-else :description="t('tickets_page.no_replies')" :image-size="60" />
                     </el-card>
 
                     <!-- 回复框 -->
                     <el-card v-if="ticket.status !== 'closed'" shadow="never">
                         <template #header>
-                            <span>回复工单</span>
+                            <span>{{ t('tickets_page.reply_title') }}</span>
                         </template>
                         <el-input
                             v-model="replyBody"
                             type="textarea"
                             :rows="5"
-                            placeholder="输入回复内容..."
+                            :placeholder="t('tickets_page.reply_ph')"
                         />
                         <div class="reply-actions">
                             <el-button
@@ -109,7 +109,7 @@
                                 :loading="replying"
                                 :disabled="!replyBody.trim()"
                             >
-                                发送回复
+                                {{ t('tickets_page.send_reply') }}
                             </el-button>
                         </div>
                     </el-card>
@@ -119,7 +119,7 @@
                 <el-col :span="8">
                     <el-card class="mb-4">
                         <template #header>
-                            <span>工单操作</span>
+                            <span>{{ t('tickets_page.ticket_actions') }}</span>
                         </template>
                         <div class="action-list">
                             <el-button
@@ -129,7 +129,7 @@
                                 @click="handleAssign"
                                 :icon="UserFilled"
                             >
-                                分配处理人
+                                {{ t('tickets_page.assign_handler') }}
                             </el-button>
                             <el-button
                                 v-if="ticket.assigned_to"
@@ -139,7 +139,7 @@
                                 @click="handleAssign"
                                 :icon="UserFilled"
                             >
-                                重新分配 ({{ ticket.assigned_to.name }})
+                                {{ t('tickets_page.reassign', { name: ticket.assigned_to.name }) }}
                             </el-button>
                             <el-button
                                 v-if="ticket.status === 'open'"
@@ -148,7 +148,7 @@
                                 @click="handleQuickAction('assign', {})"
                                 :icon="EditPen"
                             >
-                                开始处理
+                                {{ t('tickets_page.start_processing') }}
                             </el-button>
                             <el-button
                                 v-if="ticket.status === 'in_progress'"
@@ -157,7 +157,7 @@
                                 @click="handleQuickAction('resolve')"
                                 :icon="CircleCheck"
                             >
-                                标记已解决
+                                {{ t('tickets_page.mark_resolved') }}
                             </el-button>
                             <el-button
                                 v-if="ticket.status === 'resolved'"
@@ -165,7 +165,7 @@
                                 @click="handleQuickAction('reopen')"
                                 :icon="Refresh"
                             >
-                                重新打开
+                                {{ t('tickets_page.reopen') }}
                             </el-button>
                             <el-button
                                 v-if="ticket.status !== 'closed'"
@@ -175,37 +175,37 @@
                                 @click="handleQuickAction('close')"
                                 :icon="CircleClose"
                             >
-                                关闭工单
+                                {{ t('tickets_page.close_ticket') }}
                             </el-button>
                         </div>
                     </el-card>
 
                     <el-card>
                         <template #header>
-                            <span>工单信息</span>
+                            <span>{{ t('tickets_page.ticket_info') }}</span>
                         </template>
                         <el-descriptions :column="1" direction="vertical" border size="small">
-                            <el-descriptions-item label="工单 ID">#{{ ticket.id }}</el-descriptions-item>
-                            <el-descriptions-item label="客户">
+                            <el-descriptions-item :label="t('tickets_page.ticket_id')">#{{ ticket.id }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('tickets_page.col_customer')">
                                 {{ ticket.customer?.name || ticket.user?.name || '-' }}
                             </el-descriptions-item>
-                            <el-descriptions-item label="创建时间">{{ ticket.created_at }}</el-descriptions-item>
-                            <el-descriptions-item label="最后更新">{{ ticket.updated_at }}</el-descriptions-item>
-                            <el-descriptions-item label="优先级">
+                            <el-descriptions-item :label="t('tickets_page.col_created')">{{ ticket.created_at }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('tickets_page.last_updated')">{{ ticket.updated_at }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('tickets_page.priority')">
                                 <el-tag :type="priorityType(ticket.priority)" size="small">
                                     {{ priorityLabel(ticket.priority) }}
                                 </el-tag>
                             </el-descriptions-item>
-                            <el-descriptions-item label="处理人">
-                                {{ ticket.assigned_to?.name || '未分配' }}
+                            <el-descriptions-item :label="t('tickets_page.col_assignee')">
+                                {{ ticket.assigned_to?.name || t('tickets_page.unassigned') }}
                             </el-descriptions-item>
-                            <el-descriptions-item label="SLA 截止">
+                            <el-descriptions-item :label="t('tickets_page.sla_deadline')">
                                 <span v-if="ticket.sla_deadline">{{ ticket.sla_deadline }}</span>
                                 <span v-else>-</span>
                             </el-descriptions-item>
-                            <el-descriptions-item label="满意度">
+                            <el-descriptions-item :label="t('tickets_page.satisfaction')">
                                 <el-rate v-if="ticket.satisfaction_rating" :model-value="ticket.satisfaction_rating" :max="5" disabled size="small" />
-                                <span v-else>未评价</span>
+                                <span v-else>{{ t('tickets_page.not_rated') }}</span>
                             </el-descriptions-item>
                         </el-descriptions>
                     </el-card>
@@ -214,10 +214,10 @@
         </div>
 
         <!-- 分配对话框 -->
-        <el-dialog v-model="showAssignDialog" title="分配处理人" width="420px">
+        <el-dialog v-model="showAssignDialog" :title="t('tickets_page.assign_handler_dialog')" width="420px">
             <el-form label-position="top">
-                <el-form-item label="选择客服人员">
-                    <el-select v-model="assignUserId" placeholder="搜索选择" filterable style="width: 100%">
+                <el-form-item :label="t('tickets_page.select_staff')">
+                    <el-select v-model="assignUserId" :placeholder="t('tickets_page.search_select_ph')" filterable style="width: 100%">
                         <el-option v-for="u in staffUsers" :key="u.id" :label="u.name" :value="u.id">
                             <span>{{ u.name }}</span>
                             <span class="text-muted" style="float: right;">{{ u.email }}</span>
@@ -226,15 +226,16 @@
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showAssignDialog = false">取消</el-button>
-                <el-button type="primary" @click="confirmAssign" :loading="assigning">确认分配</el-button>
+                <el-button @click="showAssignDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="confirmAssign" :loading="assigning">{{ t('tickets_page.confirm_assign') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import ticketApi from '@/api/ticket';
 import TagSelector from '@/components/TagSelector.vue';
@@ -243,6 +244,7 @@ import {
     User, UserFilled, EditPen, CircleCheck, CircleClose, Refresh,
 } from '@element-plus/icons-vue';
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const loading = ref(false);
@@ -256,25 +258,25 @@ const assigning = ref(false);
 const assignUserId = ref(null);
 const staffUsers = ref([]);
 
-const STATUS_MAP = {
-    open: { type: 'danger', label: '待处理' },
-    replied: { type: 'warning', label: '已回复' },
-    in_progress: { type: 'primary', label: '处理中' },
-    resolved: { type: 'success', label: '已解决' },
-    closed: { type: 'info', label: '已关闭' },
-};
+const STATUS_MAP = computed(() => ({
+    open: { type: 'danger', label: t('tickets_page.st_open') },
+    replied: { type: 'warning', label: t('tickets_page.st_replied') },
+    in_progress: { type: 'primary', label: t('tickets_page.st_in_progress') },
+    resolved: { type: 'success', label: t('tickets_page.st_resolved') },
+    closed: { type: 'info', label: t('tickets_page.st_closed') },
+}));
 
-const PRIORITY_MAP = {
-    low: { type: 'info', label: '低' },
-    normal: { type: '', label: '普通' },
-    high: { type: 'warning', label: '高' },
-    urgent: { type: 'danger', label: '紧急' },
-};
+const PRIORITY_MAP = computed(() => ({
+    low: { type: 'info', label: t('tickets_page.pri_low') },
+    normal: { type: '', label: t('tickets_page.pri_normal') },
+    high: { type: 'warning', label: t('tickets_page.pri_high') },
+    urgent: { type: 'danger', label: t('tickets_page.pri_urgent') },
+}));
 
-function statusType(s) { return STATUS_MAP[s]?.type || 'info'; }
-function statusLabel(s) { return STATUS_MAP[s]?.label || s; }
-function priorityType(p) { return PRIORITY_MAP[p]?.type || 'info'; }
-function priorityLabel(p) { return PRIORITY_MAP[p]?.label || p; }
+function statusType(s) { return STATUS_MAP.value[s]?.type || 'info'; }
+function statusLabel(s) { return STATUS_MAP.value[s]?.label || s; }
+function priorityType(p) { return PRIORITY_MAP.value[p]?.type || 'info'; }
+function priorityLabel(p) { return PRIORITY_MAP.value[p]?.label || p; }
 
 async function fetchDetail() {
     const id = route.params.id;
@@ -285,7 +287,7 @@ async function fetchDetail() {
         ticket.value = res.data || {};
         replies.value = res.data?.public_replies || res.data?.publicReplies || res.data?.replies || [];
     } catch {
-        ElMessage.error('获取工单详情失败');
+        ElMessage.error(t('tickets_page.detail_fail'));
     } finally {
         loading.value = false;
     }
@@ -296,11 +298,11 @@ async function handleReply() {
     replying.value = true;
     try {
         await ticketApi.reply(ticket.value.id, { content: replyBody.value });
-        ElMessage.success('回复已发送');
+        ElMessage.success(t('tickets_page.reply_sent'));
         replyBody.value = '';
         await fetchDetail();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '发送回复失败');
+        ElMessage.error(e.response?.data?.message || t('tickets_page.reply_fail'));
     } finally {
         replying.value = false;
     }
@@ -308,23 +310,23 @@ async function handleReply() {
 
 async function handleQuickAction(action) {
     const confirmMessages = {
-        resolve: '确认将此工单标记为已解决？',
-        close: '确认关闭此工单？',
-        reopen: '确认重新打开此工单？',
+        resolve: t('tickets_page.confirm_resolve'),
+        close: t('tickets_page.confirm_close'),
+        reopen: t('tickets_page.confirm_reopen'),
     };
 
     try {
         if (confirmMessages[action]) {
-            await ElMessageBox.confirm(confirmMessages[action], '确认操作', {
-                confirmButtonText: '确认', cancelButtonText: '取消', type: 'info',
+            await ElMessageBox.confirm(confirmMessages[action], t('tickets_page.confirm_action_title'), {
+                confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'info',
             });
         }
         await ticketApi[action](ticket.value.id);
-        ElMessage.success('操作成功');
+        ElMessage.success(t('messages.success'));
         await fetchDetail();
     } catch (e) {
         if (e !== 'cancel') {
-            ElMessage.error(e.response?.data?.message || '操作失败');
+            ElMessage.error(e.response?.data?.message || t('messages.failed'));
         }
     }
 }
@@ -336,17 +338,17 @@ function handleAssign() {
 
 async function confirmAssign() {
     if (!assignUserId.value) {
-        ElMessage.warning('请选择处理人');
+        ElMessage.warning(t('tickets_page.select_assignee_required'));
         return;
     }
     assigning.value = true;
     try {
         await ticketApi.assign(ticket.value.id, assignUserId.value);
-        ElMessage.success('分配成功');
+        ElMessage.success(t('tickets_page.assign_ok'));
         showAssignDialog.value = false;
         await fetchDetail();
     } catch {
-        ElMessage.error('分配失败');
+        ElMessage.error(t('tickets_page.assign_fail'));
     } finally {
         assigning.value = false;
     }
@@ -429,8 +431,8 @@ onMounted(fetchDetail);
 }
 
 .reply-item.staff-reply {
-    background: #ecf5ff;
-    border-color: #d9ecff;
+    background: #f1f5f9;
+    border-color: #e2e8f0;
 }
 
 .reply-header {

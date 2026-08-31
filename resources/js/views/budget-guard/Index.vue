@@ -1,13 +1,13 @@
 <template>
     <div class="budget-guard-container">
-        <el-page-header :content="'消费预警 + 预算上限'" @back="$router.push('/admin/dashboard')" />
+        <el-page-header :content="t('budget_guard_page.page_title')" @back="$router.push('/admin/dashboard')" />
 
         <!-- 概览卡片 -->
         <el-row :gutter="20" class="stat-cards">
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-item">
-                        <div class="stat-label">总预算</div>
+                        <div class="stat-label">{{ t('budget_guard_page.stat_total_budget') }}</div>
                         <div class="stat-value">{{ formatCurrency(dashboard.total_budget) }}</div>
                     </div>
                 </el-card>
@@ -15,7 +15,7 @@
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-item">
-                        <div class="stat-label">已消费</div>
+                        <div class="stat-label">{{ t('budget_guard_page.stat_total_spent') }}</div>
                         <div class="stat-value">{{ formatCurrency(dashboard.total_spent) }}</div>
                     </div>
                 </el-card>
@@ -23,7 +23,7 @@
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-item">
-                        <div class="stat-label">预算使用率</div>
+                        <div class="stat-label">{{ t('budget_guard_page.stat_usage_rate') }}</div>
                         <div class="stat-value" :class="usageClass(dashboard.overall_usage)">
                             {{ dashboard.overall_usage }}%
                         </div>
@@ -33,11 +33,11 @@
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-item">
-                        <div class="stat-label">待审批</div>
+                        <div class="stat-label">{{ t('budget_guard_page.stat_pending') }}</div>
                         <div class="stat-value">
                             <el-badge :value="dashboard.pending_overrides" :hidden="!dashboard.pending_overrides">
                                 <el-button size="small" type="warning" @click="activeTab = 'overrides'">
-                                    查看
+                                    {{ t('budget_guard_page.view_btn') }}
                                 </el-button>
                             </el-badge>
                         </div>
@@ -48,7 +48,7 @@
 
         <!-- 预警阈值参考 -->
         <el-alert
-            :title="`预警阈值: 警告 ${dashboard.alert_thresholds?.warning || 80}% | 严重 ${dashboard.alert_thresholds?.critical || 95}% | 拦截 ${dashboard.alert_thresholds?.hard_limit || 100}%`"
+            :title="thresholdAlertTitle"
             type="info"
             show-icon
             :closable="false"
@@ -58,31 +58,31 @@
         <!-- 主体 Tabs -->
         <el-tabs v-model="activeTab" class="main-tabs">
             <!-- Tab: 预算配置 -->
-            <el-tab-pane label="预算配置" name="config">
+            <el-tab-pane :label="t('budget_guard_page.tabs.config')" name="config">
                 <div class="section-header">
-                    <h3>预算列表</h3>
-                    <el-button type="primary" size="small" @click="openCreateDialog">新建预算</el-button>
+                    <h3>{{ t('budget_guard_page.section_budget_list') }}</h3>
+                    <el-button type="primary" size="small" @click="openCreateDialog">{{ t('budget_guard_page.create_budget_btn') }}</el-button>
                 </div>
 
                 <el-table :data="budgets" v-loading="loading" stripe>
-                    <el-table-column prop="budgetable_type" label="类型" width="100" />
-                    <el-table-column prop="budgetable_id" label="对象ID" width="80" />
-                    <el-table-column prop="period" label="周期" width="100">
+                    <el-table-column prop="budgetable_type" :label="t('budget_guard_page.col_type')" width="100" />
+                    <el-table-column prop="budgetable_id" :label="t('budget_guard_page.col_object_id')" width="80" />
+                    <el-table-column prop="period" :label="t('budget_guard_page.col_period')" width="100">
                         <template #default="{ row }">
                             <el-tag :type="periodTagType(row.period)" size="small">{{ periodLabel(row.period) }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="budget_amount" label="预算金额" width="140">
+                    <el-table-column prop="budget_amount" :label="t('budget_guard_page.col_budget_amount')" width="140">
                         <template #default="{ row }">
                             {{ formatCurrency(row.budget_amount) }}
                         </template>
                     </el-table-column>
-                    <el-table-column label="已使用" width="140">
+                    <el-table-column :label="t('budget_guard_page.col_used')" width="140">
                         <template #default="{ row }">
                             {{ formatCurrency(row.spent_amount + row.pending_amount) }}
                         </template>
                     </el-table-column>
-                    <el-table-column label="使用率" width="160">
+                    <el-table-column :label="t('budget_guard_page.col_usage_rate')" width="160">
                         <template #default="{ row }">
                             <el-progress
                                 :percentage="Math.min(row.spent_amount > 0 || row.budget_amount > 0 ? Math.round((row.spent_amount + row.pending_amount) / row.budget_amount * 100) : 0, 100)"
@@ -91,17 +91,17 @@
                             />
                         </template>
                     </el-table-column>
-                    <el-table-column prop="status" label="状态" width="100">
+                    <el-table-column prop="status" :label="t('budget_guard_page.col_status')" width="100">
                         <template #default="{ row }">
                             <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
-                                {{ row.status === 'active' ? '启用' : '暂停' }}
+                                {{ row.status === 'active' ? t('budget_guard_page.status_active') : t('budget_guard_page.status_paused') }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="操作" width="200" fixed="right">
+                    <el-table-column :label="t('budget_guard_page.col_actions')" width="200" fixed="right">
                         <template #default="{ row }">
-                            <el-button size="small" @click="viewDetail(row)">详情</el-button>
-                            <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
+                            <el-button size="small" @click="viewDetail(row)">{{ t('budget_guard_page.detail_btn') }}</el-button>
+                            <el-button size="small" type="danger" plain @click="handleDelete(row)">{{ t('actions.delete') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -118,60 +118,60 @@
             </el-tab-pane>
 
             <!-- Tab: 预警记录 -->
-            <el-tab-pane label="预警记录" name="alerts">
+            <el-tab-pane :label="t('budget_guard_page.tabs.alerts')" name="alerts">
                 <el-table :data="alerts" v-loading="loadingAlerts" stripe>
-                    <el-table-column prop="level" label="级别" width="120">
+                    <el-table-column prop="level" :label="t('budget_guard_page.col_level')" width="120">
                         <template #default="{ row }">
                             <el-tag :type="alertLevelTag(row.level)" size="small">
                                 {{ alertLevelLabel(row.level) }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="usage_percentage" label="使用率" width="120">
+                    <el-table-column prop="usage_percentage" :label="t('budget_guard_page.col_usage_rate')" width="120">
                         <template #default="{ row }">{{ row.usage_percentage }}%</template>
                     </el-table-column>
-                    <el-table-column prop="spent_at_alert" label="触发时消费" width="140">
+                    <el-table-column prop="spent_at_alert" :label="t('budget_guard_page.col_spent_at_alert')" width="140">
                         <template #default="{ row }">{{ formatCurrency(row.spent_at_alert) }}</template>
                     </el-table-column>
-                    <el-table-column prop="notified" label="已通知" width="100">
+                    <el-table-column prop="notified" :label="t('budget_guard_page.col_notified')" width="100">
                         <template #default="{ row }">
                             <el-tag :type="row.notified ? 'success' : 'info'" size="small">
-                                {{ row.notified ? '是' : '否' }}
+                                {{ row.notified ? t('budget_guard_page.yes') : t('budget_guard_page.no') }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="created_at" label="触发时间" width="180" />
+                    <el-table-column prop="created_at" :label="t('budget_guard_page.col_trigger_time')" width="180" />
                 </el-table>
             </el-tab-pane>
 
             <!-- Tab: 超额审批 -->
-            <el-tab-pane label="超额审批" name="overrides">
+            <el-tab-pane :label="t('budget_guard_page.tabs.overrides')" name="overrides">
                 <el-table :data="overrides" v-loading="loadingOverrides" stripe>
-                    <el-table-column label="所属预算ID" width="120">
+                    <el-table-column :label="t('budget_guard_page.col_budget_id')" width="120">
                         <template #default="{ row }">{{ row.budget_limit_id }}</template>
                     </el-table-column>
-                    <el-table-column label="请求金额" width="120">
+                    <el-table-column :label="t('budget_guard_page.col_requested_amount')" width="120">
                         <template #default="{ row }">{{ formatCurrency(row.requested_amount) }}</template>
                     </el-table-column>
-                    <el-table-column label="申请后使用率" width="130">
+                    <el-table-column :label="t('budget_guard_page.col_override_usage')" width="130">
                         <template #default="{ row }">{{ row.override_percentage }}%</template>
                     </el-table-column>
-                    <el-table-column prop="reason" label="原因" min-width="200" show-overflow-tooltip />
-                    <el-table-column prop="status" label="状态" width="100">
+                    <el-table-column prop="reason" :label="t('budget_guard_page.col_reason')" min-width="200" show-overflow-tooltip />
+                    <el-table-column prop="status" :label="t('budget_guard_page.col_status')" width="100">
                         <template #default="{ row }">
                             <el-tag :type="overrideStatusTag(row.status)" size="small">
                                 {{ overrideStatusLabel(row.status) }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="expires_at" label="过期时间" width="180" />
-                    <el-table-column label="操作" width="180" fixed="right" v-if="hasPending">
+                    <el-table-column prop="expires_at" :label="t('budget_guard_page.col_expires_at')" width="180" />
+                    <el-table-column :label="t('budget_guard_page.col_actions')" width="180" fixed="right" v-if="hasPending">
                         <template #default="{ row }">
                             <el-button v-if="row.status === 'pending'" size="small" type="success" @click="handleApprove(row)">
-                                通过
+                                {{ t('actions.approve') }}
                             </el-button>
                             <el-button v-if="row.status === 'pending'" size="small" type="danger" @click="handleReject(row)">
-                                拒绝
+                                {{ t('actions.reject') }}
                             </el-button>
                         </template>
                     </el-table-column>
@@ -179,87 +179,98 @@
             </el-tab-pane>
 
             <!-- Tab: 消费检查 -->
-            <el-tab-pane label="消费检查" name="check">
+            <el-tab-pane :label="t('budget_guard_page.tabs.check')" name="check">
                 <el-card>
-                    <template #header>模拟消费检查</template>
+                    <template #header>{{ t('budget_guard_page.check_card_title') }}</template>
                     <el-form :model="checkForm" label-width="120px">
-                        <el-form-item label="对象类型">
+                        <el-form-item :label="t('budget_guard_page.label_object_type')">
                             <el-select v-model="checkForm.budgetable_type">
-                                <el-option label="客户" value="customer" />
-                                <el-option label="租户" value="tenant" />
+                                <el-option
+                                    v-for="opt in budgetableTypeOptions"
+                                    :key="opt.value"
+                                    :label="opt.label"
+                                    :value="opt.value"
+                                />
                             </el-select>
                         </el-form-item>
-                        <el-form-item label="对象ID">
+                        <el-form-item :label="t('budget_guard_page.label_object_id')">
                             <el-input-number v-model="checkForm.budgetable_id" :min="1" />
                         </el-form-item>
-                        <el-form-item label="消费金额">
+                        <el-form-item :label="t('budget_guard_page.label_spend_amount')">
                             <el-input-number v-model="checkForm.amount" :min="0" :precision="2" />
                         </el-form-item>
                         <el-form-item>
                             <el-button type="primary" @click="handleCheckSpend" :loading="checking">
-                                检查
+                                {{ t('budget_guard_page.check_btn') }}
                             </el-button>
                         </el-form-item>
                     </el-form>
                     <el-alert v-if="checkResult !== null" :type="checkResult.allowed ? 'success' : 'error'" show-icon>
                         <template #title>
-                            {{ checkResult.allowed ? '✅ 消费允许' : '❌ 消费被拦截' }}
+                            {{ checkResult.allowed ? t('budget_guard_page.check_allowed') : t('budget_guard_page.check_blocked') }}
                         </template>
-                        {{ checkResult.reason || '无限制' }}
+                        {{ checkResult.reason || t('budget_guard_page.check_no_limit') }}
                     </el-alert>
                 </el-card>
             </el-tab-pane>
         </el-tabs>
 
         <!-- 新建/编辑预算 Dialog -->
-        <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑预算' : '新建预算'" width="600px">
+        <el-dialog v-model="dialogVisible" :title="isEdit ? t('budget_guard_page.dialog_edit_title') : t('budget_guard_page.dialog_create_title')" width="600px">
             <el-form :model="form" label-width="120px" :rules="formRules" ref="formRef">
-                <el-form-item label="对象类型" prop="budgetable_type" v-if="!isEdit">
+                <el-form-item :label="t('budget_guard_page.label_object_type')" prop="budgetable_type" v-if="!isEdit">
                     <el-select v-model="form.budgetable_type">
-                        <el-option label="客户" value="customer" />
-                        <el-option label="租户" value="tenant" />
+                        <el-option
+                            v-for="opt in budgetableTypeOptions"
+                            :key="opt.value"
+                            :label="opt.label"
+                            :value="opt.value"
+                        />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="对象ID" prop="budgetable_id" v-if="!isEdit">
+                <el-form-item :label="t('budget_guard_page.label_object_id')" prop="budgetable_id" v-if="!isEdit">
                     <el-input-number v-model="form.budgetable_id" :min="1" />
                 </el-form-item>
-                <el-form-item label="预算周期" prop="period">
+                <el-form-item :label="t('budget_guard_page.label_period')" prop="period">
                     <el-select v-model="form.period">
-                        <el-option label="月度" value="monthly" />
-                        <el-option label="季度" value="quarterly" />
-                        <el-option label="年度" value="yearly" />
+                        <el-option
+                            v-for="opt in periodOptions"
+                            :key="opt.value"
+                            :label="opt.label"
+                            :value="opt.value"
+                        />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="预算金额" prop="budget_amount">
+                <el-form-item :label="t('budget_guard_page.col_budget_amount')" prop="budget_amount">
                     <el-input-number v-model="form.budget_amount" :min="0" :precision="2" style="width:200px" />
                 </el-form-item>
-                <el-form-item label="货币">
+                <el-form-item :label="t('budget_guard_page.label_currency')">
                     <el-input v-model="form.currency" maxlength="3" style="width:100px" placeholder="CNY" />
                 </el-form-item>
-                <el-form-item label="启用通知">
+                <el-form-item :label="t('budget_guard_page.label_notifications')">
                     <el-switch v-model="form.notifications_enabled" />
                 </el-form-item>
-                <el-form-item label="备注">
+                <el-form-item :label="t('budget_guard_page.label_notes')">
                     <el-input v-model="form.notes" type="textarea" :rows="3" maxlength="500" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
+                <el-button @click="dialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleSave" :loading="saving">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 详情 Dialog -->
-        <el-dialog v-model="detailVisible" title="预算详情" width="700px">
+        <el-dialog v-model="detailVisible" :title="t('budget_guard_page.detail_dialog_title')" width="700px">
             <template v-if="detail">
                 <el-descriptions :column="2" border>
-                    <el-descriptions-item label="对象类型">{{ detail.budget?.budgetable_type }}</el-descriptions-item>
-                    <el-descriptions-item label="对象ID">{{ detail.budget?.budgetable_id }}</el-descriptions-item>
-                    <el-descriptions-item label="周期">{{ periodLabel(detail.budget?.period) }}</el-descriptions-item>
-                    <el-descriptions-item label="状态">{{ detail.budget?.status }}</el-descriptions-item>
-                    <el-descriptions-item label="预算金额">{{ formatCurrency(detail.budget?.budget_amount) }}</el-descriptions-item>
-                    <el-descriptions-item label="已使用">{{ formatCurrency(detail.budget?.spent_amount + detail.budget?.pending_amount) }}</el-descriptions-item>
-                    <el-descriptions-item label="使用率">
+                    <el-descriptions-item :label="t('budget_guard_page.label_object_type')">{{ detail.budget?.budgetable_type }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('budget_guard_page.label_object_id')">{{ detail.budget?.budgetable_id }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('budget_guard_page.col_period')">{{ periodLabel(detail.budget?.period) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('budget_guard_page.col_status')">{{ detail.budget?.status }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('budget_guard_page.col_budget_amount')">{{ formatCurrency(detail.budget?.budget_amount) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('budget_guard_page.col_used')">{{ formatCurrency(detail.budget?.spent_amount + detail.budget?.pending_amount) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('budget_guard_page.col_usage_rate')">
                         <el-progress
                             :percentage="Math.min(Math.round(detail.usage_percentage), 100)"
                             :status="detail.is_exceeded ? 'exception' : detail.usage_percentage > 80 ? 'warning' : 'success'"
@@ -267,19 +278,19 @@
                         />
                         <span>{{ detail.usage_percentage }}%</span>
                     </el-descriptions-item>
-                    <el-descriptions-item label="剩余">{{ formatCurrency(detail.remaining) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('budget_guard_page.detail_remaining')">{{ formatCurrency(detail.remaining) }}</el-descriptions-item>
                 </el-descriptions>
 
                 <el-divider />
-                <h4>预警记录</h4>
+                <h4>{{ t('budget_guard_page.detail_alerts_section') }}</h4>
                 <el-table :data="detailAlerts" v-loading="loadingDetailAlerts" stripe size="small">
-                    <el-table-column prop="level" label="级别" width="100">
+                    <el-table-column prop="level" :label="t('budget_guard_page.col_level')" width="100">
                         <template #default="{ row }">
                             <el-tag :type="alertLevelTag(row.level)" size="small">{{ alertLevelLabel(row.level) }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="usage_percentage" label="使用率" width="80">{{ row => row.usage_percentage }}%</el-table-column>
-                    <el-table-column prop="created_at" label="时间" width="170" />
+                    <el-table-column prop="usage_percentage" :label="t('budget_guard_page.col_usage_rate')" width="80">{{ row => row.usage_percentage }}%</el-table-column>
+                    <el-table-column prop="created_at" :label="t('budget_guard_page.col_time')" width="170" />
                 </el-table>
             </template>
         </el-dialog>
@@ -287,7 +298,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
     getBudgetList, getBudgetDetail, saveBudget, updateBudget, deleteBudget,
@@ -295,6 +307,8 @@ import {
     approveBudgetOverride, rejectBudgetOverride, getPendingOverrides,
     getBudgetAlertHistory,
 } from '@/api/budgetGuard'
+
+const { t } = useI18n()
 
 const activeTab = ref('config')
 const loading = ref(false)
@@ -325,12 +339,6 @@ const form = ref({
     notifications_enabled: true,
     notes: '',
 })
-const formRules = {
-    budgetable_type: [{ required: true, message: '请选择对象类型' }],
-    budgetable_id: [{ required: true, type: 'number', min: 1, message: '请输入对象ID' }],
-    period: [{ required: true, message: '请选择周期' }],
-    budget_amount: [{ required: true, type: 'number', min: 0, message: '请输入预算金额' }],
-}
 const formRef = ref(null)
 const saving = ref(false)
 const detailVisible = ref(false)
@@ -345,6 +353,51 @@ const checkForm = ref({
 })
 const checkResult = ref(null)
 const checking = ref(false)
+
+const thresholdAlertTitle = computed(() =>
+    t('budget_guard_page.threshold_alert', {
+        warning: dashboard.value.alert_thresholds?.warning || 80,
+        critical: dashboard.value.alert_thresholds?.critical || 95,
+        hard_limit: dashboard.value.alert_thresholds?.hard_limit || 100,
+    })
+)
+
+const budgetableTypeOptions = computed(() => [
+    { label: t('budget_guard_page.budgetable_types.customer'), value: 'customer' },
+    { label: t('budget_guard_page.budgetable_types.tenant'), value: 'tenant' },
+])
+
+const periodOptions = computed(() => [
+    { label: t('budget_guard_page.periods.monthly'), value: 'monthly' },
+    { label: t('budget_guard_page.periods.quarterly'), value: 'quarterly' },
+    { label: t('budget_guard_page.periods.yearly'), value: 'yearly' },
+])
+
+const periodLabels = computed(() => ({
+    monthly: t('budget_guard_page.periods.monthly'),
+    quarterly: t('budget_guard_page.periods.quarterly'),
+    yearly: t('budget_guard_page.periods.yearly'),
+}))
+
+const alertLevelLabels = computed(() => ({
+    warning: t('budget_guard_page.alert_levels.warning'),
+    critical: t('budget_guard_page.alert_levels.critical'),
+    blocked: t('budget_guard_page.alert_levels.blocked'),
+    info: t('budget_guard_page.alert_levels.info'),
+}))
+
+const overrideStatusLabels = computed(() => ({
+    pending: t('budget_guard_page.override_status.pending'),
+    approved: t('budget_guard_page.override_status.approved'),
+    rejected: t('budget_guard_page.override_status.rejected'),
+}))
+
+const formRules = computed(() => ({
+    budgetable_type: [{ required: true, message: t('budget_guard_page.validation.budgetable_type_required') }],
+    budgetable_id: [{ required: true, type: 'number', min: 1, message: t('budget_guard_page.validation.budgetable_id_required') }],
+    period: [{ required: true, message: t('budget_guard_page.validation.period_required') }],
+    budget_amount: [{ required: true, type: 'number', min: 0, message: t('budget_guard_page.validation.budget_amount_required') }],
+}))
 
 const hasPending = computed(() => overrides.value.some(o => o.status === 'pending'))
 
@@ -371,7 +424,7 @@ async function fetchBudgets() {
 }
 
 function periodLabel(p) {
-    return { monthly: '月度', quarterly: '季度', yearly: '年度' }[p] || p
+    return periodLabels.value[p] || p
 }
 
 function periodTagType(p) {
@@ -400,7 +453,7 @@ function alertLevelTag(level) {
 }
 
 function alertLevelLabel(level) {
-    return { warning: '警告', critical: '严重', blocked: '拦截', info: '提醒' }[level] || level
+    return alertLevelLabels.value[level] || level
 }
 
 function overrideStatusTag(status) {
@@ -408,7 +461,7 @@ function overrideStatusTag(status) {
 }
 
 function overrideStatusLabel(status) {
-    return { pending: '待审批', approved: '已通过', rejected: '已拒绝' }[status] || status
+    return overrideStatusLabels.value[status] || status
 }
 
 function openCreateDialog() {
@@ -433,16 +486,16 @@ async function handleSave() {
     try {
         if (isEdit.value && editingId.value) {
             await updateBudget(editingId.value, form.value)
-            ElMessage.success('预算已更新')
+            ElMessage.success(t('budget_guard_page.messages.updated'))
         } else {
             await saveBudget(form.value)
-            ElMessage.success('预算已创建')
+            ElMessage.success(t('budget_guard_page.messages.created'))
         }
         dialogVisible.value = false
         fetchBudgets()
         fetchDashboard()
     } catch (e) {
-        ElMessage.error(e.message || '操作失败')
+        ElMessage.error(e.message || t('messages.failed'))
     }
     saving.value = false
 }
@@ -464,9 +517,9 @@ async function viewDetail(row) {
 
 async function handleDelete(row) {
     try {
-        await ElMessageBox.confirm(`确定删除此预算配置？`, '确认')
+        await ElMessageBox.confirm(t('budget_guard_page.delete_confirm'), t('actions.confirm'))
         await deleteBudget(row.id)
-        ElMessage.success('已删除')
+        ElMessage.success(t('budget_guard_page.messages.deleted'))
         fetchBudgets()
         fetchDashboard()
     } catch { /* ignore */ }
@@ -478,13 +531,11 @@ async function handleCheckSpend() {
         const res = await checkBudgetSpend(checkForm.value)
         checkResult.value = res.data || { allowed: true }
     } catch (e) {
-        checkResult.value = { allowed: false, reason: e.message || '检查失败' }
+        checkResult.value = { allowed: false, reason: e.message || t('budget_guard_page.messages.check_failed') }
     }
     checking.value = false
 }
 
-// 切换到 overrides tab 时加载待审批
-import { watch } from 'vue'
 watch(activeTab, async (tab) => {
     if (tab === 'alerts') {
         await fetchAlerts()
@@ -517,21 +568,21 @@ async function fetchOverrides() {
 async function handleApprove(row) {
     try {
         await approveBudgetOverride(row.id)
-        ElMessage.success('已通过')
+        ElMessage.success(t('budget_guard_page.messages.approved'))
         fetchOverrides()
         fetchDashboard()
     } catch (e) {
-        ElMessage.error(e.message || '操作失败')
+        ElMessage.error(e.message || t('messages.failed'))
     }
 }
 
 async function handleReject(row) {
     try {
         await rejectBudgetOverride(row.id)
-        ElMessage.success('已拒绝')
+        ElMessage.success(t('budget_guard_page.messages.rejected'))
         fetchOverrides()
     } catch (e) {
-        ElMessage.error(e.message || '操作失败')
+        ElMessage.error(e.message || t('messages.failed'))
     }
 }
 </script>

@@ -4,19 +4,19 @@
         class="a11y-shortcuts-overlay"
         role="dialog"
         aria-modal="true"
-        :aria-label="'键盘快捷键帮助'"
+        :aria-label="t('a11y.shortcuts_help')"
         @click.self="close"
     >
         <FocusTrap :active="visible" @deactivate="close">
             <div class="a11y-shortcuts-panel" role="document" tabindex="-1">
                 <div class="shortcuts-header">
-                    <h2 id="shortcuts-title">键盘快捷键</h2>
+                    <h2 id="shortcuts-title">{{ t('a11y.shortcuts_title') }}</h2>
                     <el-button
                         :icon="Close"
                         circle
                         size="small"
                         @click="close"
-                        :aria-label="'关闭快捷键帮助'"
+                        :aria-label="t('a11y.close_shortcuts')"
                     />
                 </div>
                 <div class="shortcuts-body">
@@ -24,12 +24,12 @@
                         <h3 class="shortcut-group-title">{{ group.label }}</h3>
                         <div v-for="(sc, idx) in group.shortcuts" :key="idx" class="shortcut-row">
                             <kbd class="shortcut-key">{{ formatKey(sc) }}</kbd>
-                            <span class="shortcut-desc">{{ sc.description || sc.label }}</span>
+                            <span class="shortcut-desc">{{ shortcutLabel(sc) }}</span>
                         </div>
                     </div>
                 </div>
                 <div class="shortcuts-footer">
-                    <p class="text-muted">按 <kbd>Shift</kbd> + <kbd>?</kbd> 打开此面板</p>
+                    <p class="text-muted">{{ t('a11y.shortcuts_hint') }}</p>
                 </div>
             </div>
         </FocusTrap>
@@ -38,9 +38,12 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { KEYBOARD_SHORTCUTS } from '@/utils/a11y';
 import { Close } from '@element-plus/icons-vue';
 import FocusTrap from '@/components/FocusTrap.vue';
+
+const { t } = useI18n();
 
 const props = defineProps({
     visible: {
@@ -55,16 +58,22 @@ const props = defineProps({
 
 const emit = defineEmits(['close']);
 
+function shortcutLabel(sc) {
+    if (sc.descKey) return t(sc.descKey);
+    if (sc.labelKey) return t(sc.labelKey);
+    return sc.description || sc.label || '';
+}
+
 const shortcutGroups = computed(() => {
     const groups = [
         {
-            label: '全局快捷键',
+            label: t('a11y.group_global'),
             shortcuts: Object.values(KEYBOARD_SHORTCUTS),
         },
     ];
     if (props.customShortcuts.length) {
         groups.push({
-            label: '页面快捷键',
+            label: t('a11y.group_page'),
             shortcuts: props.customShortcuts,
         });
     }

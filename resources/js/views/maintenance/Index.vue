@@ -1,19 +1,19 @@
 <template>
     <div class="maintenance-page">
         <div class="page-header">
-            <h2>系统维护模式</h2>
+            <h2>{{ t('maintenance_page.title') }}</h2>
             <div class="header-actions">
                 <el-tag v-if="active" type="warning" size="large" effect="dark">
-                    ⚠ 维护模式已启用
+                    {{ t('maintenance_page.status_active') }}
                 </el-tag>
                 <el-tag v-else type="success" size="large" effect="plain">
-                    ✓ 正常运行
+                    {{ t('maintenance_page.status_normal') }}
                 </el-tag>
             </div>
         </div>
 
         <el-alert
-            title="维护模式将返回 503 状态码，非白名单用户访问将看到维护页面。请确保已经配置好白名单后再启用。"
+            :title="t('maintenance_page.info_alert')"
             type="info"
             show-icon
             :closable="false"
@@ -22,82 +22,81 @@
 
         <el-card shadow="never">
             <template #header>
-                <span>维护配置</span>
+                <span>{{ t('maintenance_page.config_title') }}</span>
             </template>
 
             <el-form ref="formRef" :model="form" label-width="160px" v-loading="loading">
-                <el-form-item label="维护标题">
-                    <el-input v-model="form.title" placeholder="例如: 系统升级维护" style="max-width: 500px" />
+                <el-form-item :label="t('maintenance_page.label_title')">
+                    <el-input v-model="form.title" :placeholder="t('maintenance_page.title_ph')" style="max-width: 500px" />
                 </el-form-item>
-                <el-form-item label="维护公告">
+                <el-form-item :label="t('maintenance_page.label_message')">
                     <el-input v-model="form.message" type="textarea" :rows="4"
-                        placeholder="向用户展示的维护说明" style="max-width: 500px" />
+                        :placeholder="t('maintenance_page.message_ph')" style="max-width: 500px" />
                 </el-form-item>
-                <el-form-item label="预计恢复时间">
+                <el-form-item :label="t('maintenance_page.label_scheduled_end')">
                     <el-date-picker v-model="form.scheduled_end_at" type="datetime"
-                        placeholder="选择预计恢复时间" style="width: 300px" />
+                        :placeholder="t('maintenance_page.scheduled_end_ph')" style="width: 300px" />
                 </el-form-item>
-                <el-form-item label="自动关闭时间">
+                <el-form-item :label="t('maintenance_page.label_auto_disable')">
                     <el-date-picker v-model="form.auto_disable_at" type="datetime"
-                        placeholder="到达此时间自动关闭维护模式" style="width: 300px" />
+                        :placeholder="t('maintenance_page.auto_disable_ph')" style="width: 300px" />
                 </el-form-item>
-                <el-form-item label="Retry-After (秒)">
+                <el-form-item :label="t('maintenance_page.label_retry_after')">
                     <el-input-number v-model="form.retry_after" :min="5" :max="86400" />
                 </el-form-item>
-                <el-form-item label="IP 白名单">
+                <el-form-item :label="t('maintenance_page.label_ip_whitelist')">
                     <div class="whitelist-editor">
                         <div v-for="(ip, i) in form.whitelist_ips" :key="i" class="whitelist-item">
-                            <el-input v-model="form.whitelist_ips[i]" placeholder="例如 192.168.1.1 或 *" />
+                            <el-input v-model="form.whitelist_ips[i]" :placeholder="t('maintenance_page.ip_ph')" />
                             <el-button @click="form.whitelist_ips.splice(i, 1)" type="danger" :icon="Delete" circle />
                         </div>
                         <el-button @click="form.whitelist_ips.push('')" type="primary" link>
-                            + 添加 IP
+                            + {{ t('maintenance_page.add_ip') }}
                         </el-button>
                     </div>
                 </el-form-item>
-                <el-form-item label="路径白名单">
+                <el-form-item :label="t('maintenance_page.label_path_whitelist')">
                     <div class="whitelist-editor">
                         <div v-for="(path, i) in form.whitelist_paths" :key="i" class="whitelist-item">
-                            <el-input v-model="form.whitelist_paths[i]" placeholder="例如 api/health/* 或 api/maintenance/*" />
+                            <el-input v-model="form.whitelist_paths[i]" :placeholder="t('maintenance_page.path_ph')" />
                             <el-button @click="form.whitelist_paths.splice(i, 1)" type="danger" :icon="Delete" circle />
                         </div>
                         <el-button @click="form.whitelist_paths.push('')" type="primary" link>
-                            + 添加路径
+                            + {{ t('maintenance_page.add_path') }}
                         </el-button>
                     </div>
                 </el-form-item>
                 <el-form-item>
                     <el-button v-if="active" type="danger" @click="handleDisable" :loading="toggling">
-                        关闭维护模式
+                        {{ t('maintenance_page.btn_disable') }}
                     </el-button>
                     <el-button v-else type="warning" @click="handleEnable" :loading="toggling">
-                        启用维护模式
+                        {{ t('maintenance_page.btn_enable') }}
                     </el-button>
                     <el-button @click="handleUpdate" :loading="saving" v-if="configId">
-                        保存配置
+                        {{ t('maintenance_page.save_config') }}
                     </el-button>
                 </el-form-item>
             </el-form>
         </el-card>
 
-        <!-- 历史记录 -->
         <el-card shadow="never" style="margin-top: 20px;">
             <template #header>
-                <span>维护历史</span>
+                <span>{{ t('maintenance_page.history_title') }}</span>
             </template>
             <el-table :data="history" v-loading="historyLoading" stripe>
-                <el-table-column prop="title" label="标题" min-width="150" />
-                <el-table-column prop="message" label="公告" min-width="200" show-overflow-tooltip />
-                <el-table-column label="状态" width="80">
+                <el-table-column prop="title" :label="t('maintenance_page.col_title')" min-width="150" />
+                <el-table-column prop="message" :label="t('maintenance_page.col_message')" min-width="200" show-overflow-tooltip />
+                <el-table-column :label="t('maintenance_page.col_status')" width="80">
                     <template #default="{ row }">
                         <el-tag :type="row.is_enabled ? 'warning' : 'info'" size="small">
-                            {{ row.is_enabled ? '启用' : '已关闭' }}
+                            {{ row.is_enabled ? t('maintenance_page.status_enabled') : t('maintenance_page.status_disabled') }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="scheduled_end_at" label="预计恢复" width="170" />
-                <el-table-column prop="auto_disable_at" label="自动关闭" width="170" />
-                <el-table-column prop="created_at" label="创建时间" width="170" />
+                <el-table-column prop="scheduled_end_at" :label="t('maintenance_page.col_scheduled_end')" width="170" />
+                <el-table-column prop="auto_disable_at" :label="t('maintenance_page.col_auto_disable')" width="170" />
+                <el-table-column prop="created_at" :label="t('maintenance_page.col_created_at')" width="170" />
             </el-table>
         </el-card>
     </div>
@@ -105,12 +104,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Delete } from '@element-plus/icons-vue';
 import {
     getMaintenanceStatus, enableMaintenance, disableMaintenance,
     updateMaintenanceConfig, getMaintenanceHistory,
 } from '@/api/maintenance';
 import { ElMessage, ElMessageBox } from 'element-plus';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const toggling = ref(false);
@@ -148,7 +150,7 @@ async function fetchStatus() {
             form.value.whitelist_paths = config.whitelist_paths?.length ? [...config.whitelist_paths] : ['api/health/*', 'api/maintenance/*'];
         }
     } catch (e) {
-        ElMessage.error('获取维护状态失败');
+        ElMessage.error(t('maintenance_page.msg_fetch_failed'));
     } finally {
         loading.value = false;
     }
@@ -168,9 +170,9 @@ async function fetchHistory() {
 
 async function handleEnable() {
     try {
-        await ElMessageBox.confirm('确定启用维护模式？所有非白名单用户将无法访问系统。', '确认启用', {
-            confirmButtonText: '启用',
-            cancelButtonText: '取消',
+        await ElMessageBox.confirm(t('maintenance_page.enable_confirm'), t('maintenance_page.enable_confirm_title'), {
+            confirmButtonText: t('maintenance_page.btn_enable'),
+            cancelButtonText: t('actions.cancel'),
             type: 'warning',
         });
     } catch {
@@ -189,11 +191,11 @@ async function handleEnable() {
             whitelist_paths: form.value.whitelist_paths.filter(p => p.trim()),
         };
         await enableMaintenance(payload);
-        ElMessage.success('维护模式已启用');
+        ElMessage.success(t('maintenance_page.msg_enabled'));
         await fetchStatus();
         await fetchHistory();
     } catch (e) {
-        ElMessage.error('启用维护模式失败');
+        ElMessage.error(t('maintenance_page.msg_enable_failed'));
     } finally {
         toggling.value = false;
     }
@@ -201,9 +203,9 @@ async function handleEnable() {
 
 async function handleDisable() {
     try {
-        await ElMessageBox.confirm('确定关闭维护模式？所有用户将恢复正常访问。', '确认关闭', {
-            confirmButtonText: '关闭',
-            cancelButtonText: '取消',
+        await ElMessageBox.confirm(t('maintenance_page.disable_confirm'), t('maintenance_page.disable_confirm_title'), {
+            confirmButtonText: t('maintenance_page.confirm_disable'),
+            cancelButtonText: t('actions.cancel'),
             type: 'info',
         });
     } catch {
@@ -213,11 +215,11 @@ async function handleDisable() {
     toggling.value = true;
     try {
         await disableMaintenance();
-        ElMessage.success('维护模式已关闭');
+        ElMessage.success(t('maintenance_page.msg_disabled'));
         await fetchStatus();
         await fetchHistory();
     } catch (e) {
-        ElMessage.error('关闭维护模式失败');
+        ElMessage.error(t('maintenance_page.msg_disable_failed'));
     } finally {
         toggling.value = false;
     }
@@ -237,10 +239,10 @@ async function handleUpdate() {
             whitelist_ips: form.value.whitelist_ips.filter(i => i.trim()),
             whitelist_paths: form.value.whitelist_paths.filter(p => p.trim()),
         });
-        ElMessage.success('配置已保存');
+        ElMessage.success(t('maintenance_page.msg_saved'));
         await fetchStatus();
     } catch (e) {
-        ElMessage.error('保存失败');
+        ElMessage.error(t('maintenance_page.msg_save_failed'));
     } finally {
         saving.value = false;
     }

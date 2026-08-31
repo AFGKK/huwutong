@@ -1,22 +1,36 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '../../api/transfer.js'
+
+const { t, locale } = useI18n()
 
 const loading = ref(false)
 const stats = ref(null)
 const transfers = ref([])
 const pagination = ref({ total: 0, current_page: 1 })
-const transferDialog = ref(false)
-const transferForm = ref({ type: 'device_transfer', license_id: null, target_customer_id: null, target_user_id: null, target_device_fingerprint: null, target_device_name: null, reason: '' })
 const detailVisible = ref(false)
 const detailData = ref(null)
 
-const typeOptions = [
-    { value: 'device_transfer', label: '设备转移' },
-    { value: 'customer_transfer', label: '客户转移' },
-    { value: 'user_transfer', label: '用户转移' },
-]
+const typeOptions = computed(() => [
+    { value: 'device_transfer', label: t('admin_transfer_page.types.device') },
+    { value: 'customer_transfer', label: t('admin_transfer_page.types.customer') },
+    { value: 'user_transfer', label: t('admin_transfer_page.types.user') },
+])
+
+function typeLabel(type) {
+    return typeOptions.value.find(o => o.value === type)?.label || type
+}
+
+function statusLabel(status) {
+    const key = { pending: 'pending', approved: 'approved', completed: 'completed', rejected: 'rejected', cancelled: 'cancelled', expired: 'expired' }[status]
+    return key ? t(`admin_transfer_page.statuses.${key}`) : status
+}
+
+function statusType(status) {
+    return { completed: 'success', approved: '', rejected: 'danger', pending: 'warning' }[status] || 'info'
+}
 
 async function loadStats() { try { const r = await api.stats(); stats.value = r.data.data } catch (e) {} }
 
@@ -30,24 +44,28 @@ async function loadTransfers(page = 1) {
     } catch (e) {} finally { loading.value = false }
 }
 
-async function showDetail(t) {
-    try { const res = await api.show(t.id); detailData.value = res.data.data; detailVisible.value = true } catch (e) {}
+async function showDetail(row) {
+    try { const res = await api.show(row.id); detailData.value = res.data.data; detailVisible.value = true } catch (e) {}
 }
 
-async function approveTransfer(t) {
-    try { await api.approve(t.id); ElMessage.success('已批准并执行转移'); loadTransfers(pagination.value.current_page); loadStats() } catch (e) { ElMessage.error('操作失败') }
+async function approveTransfer(row) {
+    try { await api.approve(row.id); ElMessage.success(t('admin_transfer_page.messages.approved')); loadTransfers(pagination.value.current_page); loadStats() } catch (e) { ElMessage.error(t('messages.failed')) }
 }
 
-async function rejectTransfer(t) {
+async function rejectTransfer(row) {
     try {
-        const { value } = await ElMessageBox.prompt('请输入拒绝原因', '拒绝转移')
+        const { value } = await ElMessageBox.prompt(t('admin_transfer_page.reject_prompt'), t('admin_transfer_page.reject_title'))
         if (!value) return
-        await api.reject(t.id, { reason: value })
-        ElMessage.success('已拒绝'); loadTransfers(pagination.value.current_page); loadStats()
-    } catch (e) { if (e !== 'cancel') ElMessage.error('操作失败') }
+        await api.reject(row.id, { reason: value })
+        ElMessage.success(t('admin_transfer_page.messages.rejected')); loadTransfers(pagination.value.current_page); loadStats()
+    } catch (e) { if (e !== 'cancel') ElMessage.error(t('messages.failed')) }
 }
 
-function fmtDate(d) { return d ? new Date(d).toLocaleString('zh-CN') : '-' }
+function fmtDate(d) {
+    if (!d) return '-'
+    const loc = locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US'
+    return new Date(d).toLocaleString(loc)
+}
 
 onMounted(() => { loadStats(); loadTransfers() })
 </script>
@@ -55,63 +73,61 @@ onMounted(() => { loadStats(); loadTransfers() })
 <template>
     <div>
         <el-breadcrumb separator="/" class="mb-4">
-            <el-breadcrumb-item :to="{ path: '/admin' }">首页</el-breadcrumb-item>
-            <el-breadcrumb-item>授权管理</el-breadcrumb-item>
-            <el-breadcrumb-item>License 转移</el-breadcrumb-item>
+            <el-breadcrumb-item :to="{ path: '/admin' }">{{ t('admin_transfer_page.breadcrumb_home') }}</el-breadcrumb-item>
+            <el-breadcrumb-item>{{ t('admin_transfer_page.breadcrumb_license') }}</el-breadcrumb-item>
+            <el-breadcrumb-item>{{ t('admin_transfer_page.breadcrumb_current') }}</el-breadcrumb-item>
         </el-breadcrumb>
 
-        <!-- 统计 -->
         <el-row :gutter="12" class="mb-5" v-if="stats">
-            <el-col :span="4"><el-card shadow="never"><div class="stat-label">总请求</div><div class="stat-value">{{ stats.total }}</div></el-card></el-col>
-            <el-col :span="4"><el-card shadow="never"><div class="stat-label">待处理</div><div class="stat-value text-warning">{{ stats.pending }}</div></el-card></el-col>
-            <el-col :span="4"><el-card shadow="never"><div class="stat-label">已完成</div><div class="stat-value text-success">{{ stats.completed }}</div></el-card></el-col>
-            <el-col :span="4"><el-card shadow="never"><div class="stat-label">已拒绝</div><div class="stat-value">{{ stats.rejected }}</div></el-card></el-col>
-            <el-col :span="8"><el-card shadow="never"><div class="stat-label">设备/客户/用户转移</div><div class="stat-value text-sm">{{ stats.by_type?.device_transfer || 0 }} / {{ stats.by_type?.customer_transfer || 0 }} / {{ stats.by_type?.user_transfer || 0 }}</div></el-card></el-col>
+            <el-col :span="4"><el-card shadow="never"><div class="stat-label">{{ t('admin_transfer_page.stats.total') }}</div><div class="stat-value">{{ stats.total }}</div></el-card></el-col>
+            <el-col :span="4"><el-card shadow="never"><div class="stat-label">{{ t('admin_transfer_page.stats.pending') }}</div><div class="stat-value text-warning">{{ stats.pending }}</div></el-card></el-col>
+            <el-col :span="4"><el-card shadow="never"><div class="stat-label">{{ t('admin_transfer_page.stats.completed') }}</div><div class="stat-value text-success">{{ stats.completed }}</div></el-card></el-col>
+            <el-col :span="4"><el-card shadow="never"><div class="stat-label">{{ t('admin_transfer_page.stats.rejected') }}</div><div class="stat-value">{{ stats.rejected }}</div></el-card></el-col>
+            <el-col :span="8"><el-card shadow="never"><div class="stat-label">{{ t('admin_transfer_page.stats.by_type') }}</div><div class="stat-value text-sm">{{ stats.by_type?.device_transfer || 0 }} / {{ stats.by_type?.customer_transfer || 0 }} / {{ stats.by_type?.user_transfer || 0 }}</div></el-card></el-col>
         </el-row>
 
         <el-card shadow="never">
             <el-table :data="transfers" v-loading="loading" stripe>
-                <el-table-column prop="reference" label="编号" width="140" />
-                <el-table-column label="类型" width="100"><template #default="{ row }">{{ {device_transfer:'设备转移',customer_transfer:'客户转移',user_transfer:'用户转移'}[row.type] }}</template></el-table-column>
+                <el-table-column prop="reference" :label="t('admin_transfer_page.cols.ref')" width="140" />
+                <el-table-column :label="t('admin_transfer_page.cols.type')" width="100"><template #default="{ row }">{{ typeLabel(row.type) }}</template></el-table-column>
                 <el-table-column label="License" width="200">
                     <template #default="{ row }">
                         <div>{{ row.license?.license_key || '-' }}</div>
                         <div class="text-xs text-gray-400">{{ row.license?.product_name || '' }}</div>
                     </template>
                 </el-table-column>
-                <el-table-column label="发起人" width="120"><template #default="{ row }">{{ row.requester?.name || '-' }}</template></el-table-column>
-                <el-table-column label="状态" width="90">
-                    <template #default="{ row }"><el-tag :type="row.status === 'completed' ? 'success' : row.status === 'approved' ? '' : row.status === 'rejected' ? 'danger' : row.status === 'pending' ? 'warning' : 'info'" size="small">{{ {pending:'待审批',approved:'已批准',completed:'已完成',rejected:'已拒绝',cancelled:'已取消',expired:'已过期'}[row.status] }}</el-tag></template>
+                <el-table-column :label="t('admin_transfer_page.cols.requester')" width="120"><template #default="{ row }">{{ row.requester?.name || '-' }}</template></el-table-column>
+                <el-table-column :label="t('admin_transfer_page.cols.status')" width="90">
+                    <template #default="{ row }"><el-tag :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag></template>
                 </el-table-column>
-                <el-table-column label="目标" min-width="150"><template #default="{ row }">{{ row.target_customer?.name || row.target_device?.name || '-' }}</template></el-table-column>
-                <el-table-column label="原因" width="150" show-overflow-tooltip><template #default="{ row }">{{ row.reason || '-' }}</template></el-table-column>
-                <el-table-column label="时间" width="150"><template #default="{ row }">{{ fmtDate(row.created_at) }}</template></el-table-column>
-                <el-table-column label="操作" width="200" fixed="right">
+                <el-table-column :label="t('admin_transfer_page.cols.target')" min-width="150"><template #default="{ row }">{{ row.target_customer?.name || row.target_device?.name || '-' }}</template></el-table-column>
+                <el-table-column :label="t('admin_transfer_page.cols.reason')" width="150" show-overflow-tooltip><template #default="{ row }">{{ row.reason || '-' }}</template></el-table-column>
+                <el-table-column :label="t('admin_transfer_page.cols.time')" width="150"><template #default="{ row }">{{ fmtDate(row.created_at) }}</template></el-table-column>
+                <el-table-column :label="t('admin_transfer_page.cols.actions')" width="200" fixed="right">
                     <template #default="{ row }">
-                        <el-button size="small" @click="showDetail(row)">详情</el-button>
-                        <el-button v-if="row.status === 'pending'" size="small" type="success" @click="approveTransfer(row)">批准</el-button>
-                        <el-button v-if="row.status === 'pending'" size="small" type="danger" @click="rejectTransfer(row)">拒绝</el-button>
+                        <el-button size="small" @click="showDetail(row)">{{ t('admin_transfer_page.detail') }}</el-button>
+                        <el-button v-if="row.status === 'pending'" size="small" type="success" @click="approveTransfer(row)">{{ t('admin_transfer_page.approve') }}</el-button>
+                        <el-button v-if="row.status === 'pending'" size="small" type="danger" @click="rejectTransfer(row)">{{ t('admin_transfer_page.reject') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
             <div class="flex justify-center mt-3"><el-pagination small v-model:current-page="pagination.current_page" :page-size="15" :total="pagination.total" layout="prev,pager,next,total" @current-change="loadTransfers" /></div>
         </el-card>
 
-        <!-- 详情对话框 -->
-        <el-dialog v-model="detailVisible" title="转移请求详情" width="650px">
+        <el-dialog v-model="detailVisible" :title="t('admin_transfer_page.detail_title')" width="650px">
             <div v-if="detailData">
                 <el-descriptions :column="2" border size="small">
-                    <el-descriptions-item label="编号">{{ detailData.reference }}</el-descriptions-item>
-                    <el-descriptions-item label="类型">{{ typeOptions.find(t => t.value === detailData.type)?.label }}</el-descriptions-item>
-                    <el-descriptions-item label="状态">{{ detailData.status }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_transfer_page.cols.ref')">{{ detailData.reference }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_transfer_page.cols.type')">{{ typeLabel(detailData.type) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_transfer_page.cols.status')">{{ detailData.status }}</el-descriptions-item>
                     <el-descriptions-item label="License">{{ detailData.license?.license_key }}</el-descriptions-item>
-                    <el-descriptions-item label="发起人">{{ detailData.requester?.name }}</el-descriptions-item>
-                    <el-descriptions-item label="审批人">{{ detailData.approver?.name || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="审批时间">{{ fmtDate(detailData.approved_at) || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="目标客户">{{ detailData.target_customer?.name || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_transfer_page.cols.requester')">{{ detailData.requester?.name }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_transfer_page.approver')">{{ detailData.approver?.name || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_transfer_page.approved_at')">{{ fmtDate(detailData.approved_at) || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('admin_transfer_page.target_customer')">{{ detailData.target_customer?.name || '-' }}</el-descriptions-item>
                 </el-descriptions>
-                <div class="mt-3"><el-divider>转移原因</el-divider><p class="text-sm">{{ detailData.reason || '无' }}</p></div>
-                <div v-if="detailData.admin_notes"><el-divider>管理员备注</el-divider><p class="text-sm">{{ detailData.admin_notes }}</p></div>
+                <div class="mt-3"><el-divider>{{ t('admin_transfer_page.reason_title') }}</el-divider><p class="text-sm">{{ detailData.reason || t('admin_transfer_page.none') }}</p></div>
+                <div v-if="detailData.admin_notes"><el-divider>{{ t('admin_transfer_page.admin_notes') }}</el-divider><p class="text-sm">{{ detailData.admin_notes }}</p></div>
             </div>
         </el-dialog>
     </div>

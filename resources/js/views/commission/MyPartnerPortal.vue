@@ -1,7 +1,16 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '../../api/channelPartner.js'
+
+const { t, locale } = useI18n()
+const ns = 'my_partner_portal_page'
+const ch = 'channel_page'
+const cp = 'channel_partners_page'
+const cm = 'commission_page'
+const ma = 'my_affiliate_page'
+const rd = 'risk_dashboard_page'
 
 const loading = ref(true)
 const dashboard = ref(null)
@@ -22,18 +31,40 @@ const payoutLoading = ref(false)
 const payoutPagination = ref({ total: 0, current_page: 1, per_page: 20 })
 
 const levelColors = { regular: 'info', silver: 'warning', gold: '', platinum: 'primary' }
-const levelLabels = { regular: '普通', silver: '银牌', gold: '金牌', platinum: '铂金' }
-const levelBgs = { regular: '#f0f0f0', silver: '#fdf6ec', gold: '#fdf6ec', platinum: '#ecf5ff' }
-
-const payoutMethodLabels = {
-    bank_transfer: '银行转账',
-    alipay: '支付宝',
-    wechat: '微信支付',
-    balance: '余额',
-}
-
+const levelBgs = { regular: '#f0f0f0', silver: '#fdf6ec', gold: '#fdf6ec', platinum: '#f1f5f9' }
 const statusTypes = { pending: 'warning', processing: '', completed: 'success', failed: 'danger', cancelled: 'info' }
-const statusLabels = { pending: '待处理', processing: '处理中', completed: '已完成', failed: '失败', cancelled: '已取消' }
+
+const dateLocale = computed(() => (locale.value === 'zh_CN' ? 'zh-CN' : 'en-US'))
+
+const levelLabels = computed(() => ({
+    regular: t(`${ch}.levels.regular`),
+    silver: t(`${ch}.levels.silver`),
+    gold: t(`${ch}.levels.gold`),
+    platinum: t(`${ch}.levels.platinum`),
+}))
+const agentStatusLabels = computed(() => ({
+    active: t(`${ch}.status.active`),
+    pending: t(`${cp}.status.pending`),
+}))
+const settlementStatusLabels = computed(() => ({
+    pending: t(`${ch}.settlement_status.pending`),
+    pending_release: t(`${ch}.settlement_status.pending_release`),
+    released: t(`${ch}.settlement_status.released`),
+    refunded: t(`${ch}.settlement_status.refunded`),
+}))
+const payoutStatusLabels = computed(() => ({
+    pending: t(`${cm}.payout_status.pending`),
+    processing: t(`${cm}.payout_status.processing`),
+    completed: t(`${cm}.payout_status.completed`),
+    failed: t(`${cm}.payout_status.failed`),
+    cancelled: t(`${cm}.payout_status.cancelled`),
+}))
+const payoutMethodLabels = computed(() => ({
+    bank_transfer: t(`${rd}.payout_methods.bank_transfer`),
+    alipay: t(`${rd}.payout_methods.alipay`),
+    wechat: t(`${rd}.payout_methods.wechat`),
+    balance: t(`${rd}.payout_methods.balance`),
+}))
 
 async function loadDashboard() {
     loading.value = true
@@ -46,7 +77,7 @@ async function loadDashboard() {
         settlements.value = d.recent_settlements || []
         referralLinks.value = d.referral_links || []
     } catch (e) {
-        ElMessage.error('加载面板失败')
+        ElMessage.error(t(`${ns}.messages.load_dashboard_failed`))
     } finally {
         loading.value = false
     }
@@ -78,7 +109,10 @@ async function loadPayouts(page = 1) {
 
 async function handleRequestPayout() {
     try {
-        await ElMessageBox.confirm(`确认提现 ¥${payoutForm.value.amount}？`, '确认')
+        await ElMessageBox.confirm(
+            t(`${ns}.messages.payout_confirm`, { amount: payoutForm.value.amount }),
+            t('actions.confirm'),
+        )
     } catch {
         return
     }
@@ -86,12 +120,12 @@ async function handleRequestPayout() {
     submitting.value = true
     try {
         await api.requestPayout(payoutForm.value)
-        ElMessage.success('提现请求已提交')
+        ElMessage.success(t(`${ns}.messages.payout_submitted`))
         payoutDialog.value = false
         loadDashboard()
         loadPayouts()
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '提现失败')
+        ElMessage.error(e.response?.data?.message || t(`${ns}.messages.payout_failed`))
     } finally {
         submitting.value = false
     }
@@ -103,7 +137,16 @@ function openPayoutDialog() {
 }
 
 function formatMoney(v) {
-    return v != null ? '¥' + Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '¥0.00'
+    return v != null ? '¥' + Number(v).toLocaleString(dateLocale.value, { minimumFractionDigits: 2 }) : '¥0.00'
+}
+
+function fmtDateTime(d) {
+    return d ? new Date(d).toLocaleString(dateLocale.value) : '-'
+}
+
+function copyReferralUrl(url) {
+    navigator.clipboard?.writeText(url)
+    ElMessage.success(t(`${ma}.messages.copied`))
 }
 
 onMounted(() => {
@@ -116,8 +159,8 @@ onMounted(() => {
 <template>
     <div>
         <div class="mb-4">
-            <h1 class="text-xl font-semibold">合作伙伴中心</h1>
-            <p class="text-gray-500 text-sm mt-1">查看您的推广业绩、佣金收益和个人信息。</p>
+            <h1 class="text-xl font-semibold">{{ t(`${ns}.title`) }}</h1>
+            <p class="text-gray-500 text-sm mt-1">{{ t(`${ns}.subtitle`) }}</p>
         </div>
 
         <div v-loading="loading">
@@ -135,17 +178,17 @@ onMounted(() => {
                                     {{ levelLabels[agent.level] || agent.level }}
                                 </el-tag>
                                 <el-tag :type="agent.status === 'active' ? 'success' : 'warning'" size="small">
-                                    {{ agent.status === 'active' ? '已激活' : '待审核' }}
+                                    {{ agentStatusLabels[agent.status] || agent.status }}
                                 </el-tag>
                             </div>
                             <div class="text-sm text-gray-500 mt-1">
-                                佣金率: {{ agent.commission_rate || 0 }}% &nbsp;|&nbsp;
-                                推广码: {{ agent.agent_code }}
+                                {{ t(`${ns}.commission_rate_fmt`, { rate: agent.commission_rate || 0 }) }} &nbsp;|&nbsp;
+                                {{ t(`${ns}.referral_code_fmt`, { code: agent.agent_code }) }}
                             </div>
                         </div>
                     </div>
                     <el-button type="primary" @click="openPayoutDialog" :disabled="!stats?.available_balance || stats.available_balance < 100">
-                        发起提现
+                        {{ t(`${ns}.payout.title`) }}
                     </el-button>
                 </div>
             </el-card>
@@ -154,25 +197,25 @@ onMounted(() => {
             <el-row :gutter="16" class="mb-5" v-if="stats">
                 <el-col :span="6">
                     <el-card shadow="never" class="stat-card">
-                        <div class="stat-label">累计收益</div>
+                        <div class="stat-label">{{ t(`${ns}.stats.total_earned`) }}</div>
                         <div class="stat-value text-primary">{{ formatMoney(stats.total_earned) }}</div>
                     </el-card>
                 </el-col>
                 <el-col :span="6">
                     <el-card shadow="never" class="stat-card">
-                        <div class="stat-label">可提现余额</div>
+                        <div class="stat-label">{{ t(`${ns}.stats.available_balance`) }}</div>
                         <div class="stat-value text-success">{{ formatMoney(stats.available_balance) }}</div>
                     </el-card>
                 </el-col>
                 <el-col :span="6">
                     <el-card shadow="never" class="stat-card">
-                        <div class="stat-label">冻结中</div>
+                        <div class="stat-label">{{ t(`${ns}.stats.pending_balance`) }}</div>
                         <div class="stat-value text-warning">{{ formatMoney(stats.pending_balance || 0) }}</div>
                     </el-card>
                 </el-col>
                 <el-col :span="6">
                     <el-card shadow="never" class="stat-card">
-                        <div class="stat-label">已提现</div>
+                        <div class="stat-label">{{ t(`${ns}.stats.total_withdrawn`) }}</div>
                         <div class="stat-value">{{ formatMoney(stats.total_withdrawn || 0) }}</div>
                     </el-card>
                 </el-col>
@@ -180,87 +223,87 @@ onMounted(() => {
 
             <!-- 等级权益 -->
             <el-card shadow="never" class="mb-5" v-if="tierBenefitsVal">
-                <template #header><span class="font-semibold">等级权益</span></template>
+                <template #header><span class="font-semibold">{{ t(`${ns}.sections.tier_benefits`) }}</span></template>
                 <div class="flex gap-4">
                     <div v-for="b in tierBenefitsVal.benefits" :key="b.label" class="flex-1 text-center p-3 rounded-lg" :class="{ 'ring-2 ring-blue-500': b.label === tierBenefitsVal.current_label }">
                         <div class="font-semibold">{{ b.label }}</div>
                         <div class="text-sm text-gray-500">{{ b.rate }}</div>
                     </div>
                     <div v-if="tierBenefitsVal.next_level" class="flex items-center text-sm text-gray-400">
-                        下一级: {{ tierBenefitsVal.next_level }}
+                        {{ t(`${ns}.next_level_fmt`, { level: tierBenefitsVal.next_level }) }}
                     </div>
                 </div>
             </el-card>
 
             <!-- 推广链接 -->
             <el-card shadow="never" class="mb-5">
-                <template #header><span class="font-semibold">我的推广链接</span></template>
+                <template #header><span class="font-semibold">{{ t(`${ns}.sections.my_referral_links`) }}</span></template>
                 <el-table :data="referralLinks" stripe v-if="referralLinks.length">
-                    <el-table-column prop="name" label="名称" width="150" />
-                    <el-table-column label="推广链接" min-width="300">
+                    <el-table-column prop="name" :label="t(`${ch}.cols.link_name`)" width="150" />
+                    <el-table-column :label="t(`${ch}.cols.referral_url`)" min-width="300">
                         <template #default="{ row }">
                             <div class="flex items-center gap-2">
                                 <span class="text-blue-500 text-sm truncate">{{ row.url }}</span>
-                                <el-button size="small" text @click="navigator.clipboard?.writeText(row.url); ElMessage.success('已复制')">复制</el-button>
+                                <el-button size="small" text @click="copyReferralUrl(row.url)">{{ t('actions.copy') }}</el-button>
                             </div>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="clicks" label="点击" width="70" align="center" />
-                    <el-table-column prop="conversions" label="转化" width="70" align="center" />
-                    <el-table-column label="创建时间" width="160">
-                        <template #default="{ row }">{{ row.created_at ? new Date(row.created_at).toLocaleString('zh-CN') : '-' }}</template>
+                    <el-table-column prop="clicks" :label="t(`${ma}.stats.clicks`)" width="70" align="center" />
+                    <el-table-column prop="conversions" :label="t(`${ma}.stats.conversions`)" width="70" align="center" />
+                    <el-table-column :label="t(`${ch}.cols.created_at`)" width="160">
+                        <template #default="{ row }">{{ fmtDateTime(row.created_at) }}</template>
                     </el-table-column>
                 </el-table>
-                <el-empty v-else description="暂无推广链接，请联系管理员创建" />
+                <el-empty v-else :description="t(`${ns}.empty.no_referral_links`)" />
             </el-card>
 
             <!-- 最近结算 -->
             <el-card shadow="never" class="mb-5">
-                <template #header><span class="font-semibold">最近结算</span></template>
+                <template #header><span class="font-semibold">{{ t(`${ns}.sections.recent_settlements`) }}</span></template>
                 <el-table :data="settlements" stripe>
-                    <el-table-column prop="period" label="账期" width="80" />
-                    <el-table-column prop="commission_amount" label="佣金" width="110" align="right">
+                    <el-table-column prop="period" :label="t(`${ch}.cols.period`)" width="80" />
+                    <el-table-column prop="commission_amount" :label="t(`${ch}.cols.commission`)" width="110" align="right">
                         <template #default="{ row }">{{ formatMoney(row.commission_amount) }}</template>
                     </el-table-column>
-                    <el-table-column label="License" min-width="140">
+                    <el-table-column :label="t(`${ch}.cols.license`)" min-width="140">
                         <template #default="{ row }">{{ row.subscription?.license_key || '-' }}</template>
                     </el-table-column>
-                    <el-table-column label="状态" width="90">
+                    <el-table-column :label="t(`${ch}.cols.status`)" width="90">
                         <template #default="{ row }">
                             <el-tag :type="row.status === 'released' ? 'success' : 'warning'" size="small">
-                                {{ row.status === 'pending' ? '待结算' : row.status === 'pending_release' ? '待释放' : row.status === 'released' ? '已释放' : '已退款' }}
+                                {{ settlementStatusLabels[row.status] || row.status }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="时间" width="160">
-                        <template #default="{ row }">{{ row.settled_at ? new Date(row.settled_at).toLocaleString('zh-CN') : '-' }}</template>
+                    <el-table-column :label="t(`${ch}.cols.time`)" width="160">
+                        <template #default="{ row }">{{ fmtDateTime(row.settled_at) }}</template>
                     </el-table-column>
                 </el-table>
             </el-card>
 
             <!-- 提现记录 -->
             <el-card shadow="never" class="mb-5">
-                <template #header><span class="font-semibold">提现记录</span></template>
+                <template #header><span class="font-semibold">{{ t(`${ns}.sections.payout_records`) }}</span></template>
                 <el-table :data="payouts" v-loading="payoutLoading" stripe>
-                    <el-table-column prop="amount" label="金额" width="110" align="right">
+                    <el-table-column prop="amount" :label="t(`${cm}.cols.amount`)" width="110" align="right">
                         <template #default="{ row }">{{ formatMoney(row.amount) }}</template>
                     </el-table-column>
-                    <el-table-column prop="fee" label="手续费" width="90" align="right">
+                    <el-table-column prop="fee" :label="t(`${cm}.cols.fee`)" width="90" align="right">
                         <template #default="{ row }">{{ formatMoney(row.fee) }}</template>
                     </el-table-column>
-                    <el-table-column prop="net_amount" label="到账金额" width="110" align="right">
+                    <el-table-column prop="net_amount" :label="t(`${cm}.cols.net_amount`)" width="110" align="right">
                         <template #default="{ row }">{{ formatMoney(row.net_amount) }}</template>
                     </el-table-column>
-                    <el-table-column label="方式" width="120">
+                    <el-table-column :label="t(`${cm}.cols.payout_method`)" width="120">
                         <template #default="{ row }">{{ payoutMethodLabels[row.payout_method] || row.payout_method }}</template>
                     </el-table-column>
-                    <el-table-column label="状态" width="90">
+                    <el-table-column :label="t(`${ch}.cols.status`)" width="90">
                         <template #default="{ row }">
-                            <el-tag :type="statusTypes[row.status] || 'info'" size="small">{{ statusLabels[row.status] || row.status }}</el-tag>
+                            <el-tag :type="statusTypes[row.status] || 'info'" size="small">{{ payoutStatusLabels[row.status] || row.status }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="申请时间" width="160">
-                        <template #default="{ row }">{{ row.requested_at ? new Date(row.requested_at).toLocaleString('zh-CN') : '-' }}</template>
+                    <el-table-column :label="t(`${rd}.cols.requested_at`)" width="160">
+                        <template #default="{ row }">{{ fmtDateTime(row.requested_at) }}</template>
                     </el-table-column>
                 </el-table>
                 <div class="flex justify-center mt-3">
@@ -272,28 +315,28 @@ onMounted(() => {
         </div>
 
         <!-- 提现对话框 -->
-        <el-dialog v-model="payoutDialog" title="发起提现" width="450px">
+        <el-dialog v-model="payoutDialog" :title="t(`${ns}.payout.title`)" width="450px">
             <el-form :model="payoutForm" label-width="100px">
-                <el-form-item label="提现金额">
+                <el-form-item :label="t(`${ns}.payout.amount`)">
                     <el-input-number v-model="payoutForm.amount" :min="100" :step="100" :precision="2" style="width:100%" />
-                    <div class="text-xs text-gray-400 mt-1">最低提现金额 ¥100，可提现余额 {{ formatMoney(stats?.available_balance) }}</div>
+                    <div class="text-xs text-gray-400 mt-1">{{ t(`${ns}.payout.min_amount_hint`, { balance: formatMoney(stats?.available_balance) }) }}</div>
                 </el-form-item>
-                <el-form-item label="提现方式">
+                <el-form-item :label="t(`${ns}.payout.method`)">
                     <el-radio-group v-model="payoutForm.payout_method">
-                        <el-radio value="bank_transfer">银行转账</el-radio>
-                        <el-radio value="alipay">支付宝</el-radio>
-                        <el-radio value="wechat">微信</el-radio>
-                        <el-radio value="balance">余额</el-radio>
+                        <el-radio value="bank_transfer">{{ payoutMethodLabels.bank_transfer }}</el-radio>
+                        <el-radio value="alipay">{{ payoutMethodLabels.alipay }}</el-radio>
+                        <el-radio value="wechat">{{ payoutMethodLabels.wechat }}</el-radio>
+                        <el-radio value="balance">{{ payoutMethodLabels.balance }}</el-radio>
                     </el-radio-group>
                 </el-form-item>
-                <el-form-item label="账号信息">
-                    <el-input v-model="payoutForm.account_info.account" placeholder="账号" class="mb-2" />
-                    <el-input v-model="payoutForm.account_info.name" placeholder="开户名/姓名" />
+                <el-form-item :label="t(`${ns}.payout.account_info`)">
+                    <el-input v-model="payoutForm.account_info.account" :placeholder="t(`${ns}.payout.account_ph`)" class="mb-2" />
+                    <el-input v-model="payoutForm.account_info.name" :placeholder="t(`${ns}.payout.account_name_ph`)" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="payoutDialog = false">取消</el-button>
-                <el-button type="primary" :loading="submitting" @click="handleRequestPayout">提交提现</el-button>
+                <el-button @click="payoutDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="submitting" @click="handleRequestPayout">{{ t(`${ns}.payout.submit`) }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -303,7 +346,7 @@ onMounted(() => {
 .stat-card { border-radius: 8px; }
 .stat-label { font-size: 12px; color: #909399; }
 .stat-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
-.text-primary { color: #409eff; }
+.text-primary { color: #0f172a; }
 .text-success { color: #67c23a; }
 .text-warning { color: #e6a23c; }
 </style>

@@ -1,217 +1,244 @@
 <template>
   <div class="commission-manager">
-    <!-- 统计概览 -->
     <el-row :gutter="16" class="mb-4">
-      <el-col :span="6"><el-card shadow="hover"><div class="stat-box"><div class="stat-label">代理总数</div><div class="stat-value">{{ stats.total_agents || 0 }}</div></div></el-card></el-col>
-      <el-col :span="6"><el-card shadow="hover"><div class="stat-box"><div class="stat-label">活跃代理</div><div class="stat-value">{{ stats.active_agents || 0 }}</div></div></el-card></el-col>
-      <el-col :span="6"><el-card shadow="hover"><div class="stat-box"><div class="stat-label">累计佣金</div><div class="stat-value">¥{{ (stats.total_settled || 0).toLocaleString() }}</div></div></el-card></el-col>
-      <el-col :span="6"><el-card shadow="hover"><div class="stat-box"><div class="stat-label">本月佣金</div><div class="stat-value">¥{{ (stats.monthly_settled || 0).toLocaleString() }}</div></div></el-card></el-col>
+      <el-col :span="6"><el-card shadow="hover"><div class="stat-box"><div class="stat-label">{{ t('commission_page.stats.total_agents') }}</div><div class="stat-value">{{ stats.total_agents || 0 }}</div></div></el-card></el-col>
+      <el-col :span="6"><el-card shadow="hover"><div class="stat-box"><div class="stat-label">{{ t('commission_page.stats.active_agents') }}</div><div class="stat-value">{{ stats.active_agents || 0 }}</div></div></el-card></el-col>
+      <el-col :span="6"><el-card shadow="hover"><div class="stat-box"><div class="stat-label">{{ t('commission_page.stats.settled_commission') }}</div><div class="stat-value">¥{{ (stats.total_settled || 0).toLocaleString() }}</div></div></el-card></el-col>
+      <el-col :span="6"><el-card shadow="hover"><div class="stat-box"><div class="stat-label">{{ t('commission_page.stats.monthly_commission') }}</div><div class="stat-value">¥{{ (stats.monthly_settled || 0).toLocaleString() }}</div></div></el-card></el-col>
     </el-row>
 
     <el-tabs v-model="activeTab">
-      <!-- 代理管理 -->
-      <el-tab-pane label="代理管理" name="agents">
+      <el-tab-pane :label="t('commission_page.tabs.agents')" name="agents">
         <div class="flex justify-between mb-3">
           <el-form :inline="true" size="small">
-            <el-form-item><el-input v-model="searchAgent" placeholder="搜索代理" clearable @clear="fetchAgents" @keyup.enter="fetchAgents" /></el-form-item>
-            <el-form-item><el-select v-model="filterAgentStatus" placeholder="状态" clearable @change="fetchAgents"><el-option label="活跃" value="active" /><el-option label="暂停" value="suspended" /><el-option label="终止" value="terminated" /></el-select></el-form-item>
-            <el-form-item><el-button @click="fetchAgents">刷新</el-button></el-form-item>
+            <el-form-item><el-input v-model="searchAgent" :placeholder="t('commission_page.placeholders.search_agent')" clearable @clear="fetchAgents" @keyup.enter="fetchAgents" /></el-form-item>
+            <el-form-item><el-select v-model="filterAgentStatus" :placeholder="t('commission_page.placeholders.status')" clearable @change="fetchAgents"><el-option v-for="opt in agentStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" /></el-select></el-form-item>
+            <el-form-item><el-button @click="fetchAgents">{{ t('commission_page.buttons.refresh') }}</el-button></el-form-item>
           </el-form>
-          <el-button type="primary" @click="openAgentDialog"><el-icon><Plus /></el-icon>添加代理</el-button>
+          <el-button type="primary" @click="openAgentDialog"><el-icon><Plus /></el-icon>{{ t('commission_page.buttons.add_agent') }}</el-button>
         </div>
         <el-table :data="agents" v-loading="loadingAgents" stripe>
-          <el-table-column label="代理编号" prop="agent_code" width="130" />
-          <el-table-column label="姓名" width="120"><template #default="{ row }">{{ row.user?.name }}</template></el-table-column>
-          <el-table-column label="邮箱" width="180"><template #default="{ row }">{{ row.user?.email }}</template></el-table-column>
-          <el-table-column label="等级" width="80"><template #default="{ row }"><el-tag :type="levelTag(row.level)" size="small">{{ levelLabel(row.level) }}</el-tag></template></el-table-column>
-          <el-table-column label="佣金率" width="80"><template #default="{ row }">{{ row.commission_rate || '默认' }}%</template></el-table-column>
-          <el-table-column label="累计佣金" width="100"><template #default="{ row }">¥{{ row.total_earned.toFixed(2) }}</template></el-table-column>
-          <el-table-column label="已提现" width="100"><template #default="{ row }">¥{{ row.total_withdrawn.toFixed(2) }}</template></el-table-column>
-          <el-table-column label="状态" width="70"><template #default="{ row }"><el-tag v-if="row.status==='active'" type="success" size="small">活跃</el-tag><el-tag v-else type="info" size="small">{{ row.status }}</el-tag></template></el-table-column>
-          <el-table-column label="操作" width="160" fixed="right">
+          <el-table-column :label="t('commission_page.cols.agent_code')" prop="agent_code" width="130" />
+          <el-table-column :label="t('commission_page.cols.name')" width="120"><template #default="{ row }">{{ row.user?.name }}</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.email')" width="180"><template #default="{ row }">{{ row.user?.email }}</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.level')" width="80"><template #default="{ row }"><el-tag :type="levelTag(row.level)" size="small">{{ levelLabel(row.level) }}</el-tag></template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.commission_rate')" width="80"><template #default="{ row }">{{ row.commission_rate || t('commission_page.default_rate') }}%</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.total_earned')" width="100"><template #default="{ row }">¥{{ row.total_earned.toFixed(2) }}</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.total_withdrawn')" width="100"><template #default="{ row }">¥{{ row.total_withdrawn.toFixed(2) }}</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.status')" width="70"><template #default="{ row }"><el-tag v-if="row.status==='active'" type="success" size="small">{{ agentStatusLabel(row.status) }}</el-tag><el-tag v-else type="info" size="small">{{ agentStatusLabel(row.status) }}</el-tag></template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.actions')" width="160" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" @click="viewAgent(row)">查看</el-button>
-              <el-button size="small" @click="editAgent(row)">编辑</el-button>
+              <el-button size="small" @click="viewAgent(row)">{{ t('actions.view') }}</el-button>
+              <el-button size="small" @click="editAgent(row)">{{ t('actions.edit') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
         <el-pagination class="mt-3" layout="prev, pager, next" :total="agentTotal" :page-size="20" @current-change="page => fetchAgents(page)" />
       </el-tab-pane>
 
-      <!-- 佣金计划 -->
-      <el-tab-pane label="佣金计划" name="plans">
+      <el-tab-pane :label="t('commission_page.tabs.plans')" name="plans">
         <div class="flex justify-between mb-3">
-          <span class="text-gray">配置不同产品×代理等级的佣金比例</span>
-          <el-button type="primary" size="small" @click="openPlanDialog"><el-icon><Plus /></el-icon>新建计划</el-button>
+          <span class="text-gray">{{ t('commission_page.plans_hint') }}</span>
+          <el-button type="primary" size="small" @click="openPlanDialog"><el-icon><Plus /></el-icon>{{ t('commission_page.buttons.create_plan') }}</el-button>
         </div>
 
         <el-table :data="plans" v-loading="loadingPlans" stripe>
-          <el-table-column prop="name" label="计划名称" width="160" />
-          <el-table-column prop="slug" label="标识" width="120" />
-          <el-table-column label="状态" width="70"><template #default="{ row }"><el-tag v-if="row.is_active" type="success" size="small">启用</el-tag><el-tag v-else type="info">停用</el-tag></template></el-table-column>
-          <el-table-column label="操作" width="200">
+          <el-table-column prop="name" :label="t('commission_page.cols.plan_name')" width="160" />
+          <el-table-column prop="slug" :label="t('commission_page.cols.slug')" width="120" />
+          <el-table-column :label="t('commission_page.cols.status')" width="70"><template #default="{ row }"><el-tag v-if="row.is_active" type="success" size="small">{{ t('commission_page.enabled') }}</el-tag><el-tag v-else type="info">{{ t('commission_page.disabled') }}</el-tag></template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.actions')" width="200">
             <template #default="{ row }">
-              <el-button size="small" @click="editPlan(row)">编辑</el-button>
-              <el-button size="small" type="primary" plain @click="managePlanItems(row)">管理明细</el-button>
+              <el-button size="small" @click="editPlan(row)">{{ t('actions.edit') }}</el-button>
+              <el-button size="small" type="primary" plain @click="managePlanItems(row)">{{ t('commission_page.buttons.manage_items') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
       </el-tab-pane>
 
-      <!-- 结算记录 -->
-      <el-tab-pane label="结算记录" name="settlements">
+      <el-tab-pane :label="t('commission_page.tabs.settlements')" name="settlements">
         <el-form :inline="true" size="small" class="mb-3">
-          <el-form-item><el-input v-model="filterSettlementAgent" placeholder="代理ID" style="width:120px" /></el-form-item>
-          <el-form-item><el-select v-model="filterSettlementStatus" placeholder="状态" clearable @change="fetchSettlements"><el-option label="待处理" value="pending" /><el-option label="已释放" value="released" /><el-option label="已取消" value="cancelled" /><el-option label="已退款" value="refunded" /></el-select></el-form-item>
-          <el-form-item><el-input v-model="filterPeriod" placeholder="月份 YYYY-MM" style="width:130px" /></el-form-item>
-          <el-form-item><el-button @click="fetchSettlements">查询</el-button></el-form-item>
+          <el-form-item><el-input v-model="filterSettlementAgent" :placeholder="t('commission_page.placeholders.agent_id')" style="width:120px" /></el-form-item>
+          <el-form-item><el-select v-model="filterSettlementStatus" :placeholder="t('commission_page.placeholders.status')" clearable @change="fetchSettlements"><el-option v-for="opt in settlementFilterOptions" :key="opt.value" :label="opt.label" :value="opt.value" /></el-select></el-form-item>
+          <el-form-item><el-input v-model="filterPeriod" :placeholder="t('commission_page.placeholders.period')" style="width:130px" /></el-form-item>
+          <el-form-item><el-button @click="fetchSettlements">{{ t('commission_page.buttons.query') }}</el-button></el-form-item>
         </el-form>
         <el-table :data="settlements" v-loading="loadingSettlements" stripe>
-          <el-table-column label="代理" width="120"><template #default="{ row }">{{ row.agent?.user?.name || row.agent_id }}</template></el-table-column>
-          <el-table-column label="发票金额" width="100"><template #default="{ row }">¥{{ row.invoice_amount.toFixed(2) }}</template></el-table-column>
-          <el-table-column label="佣金率" width="70"><template #default="{ row }">{{ row.commission_rate }}%</template></el-table-column>
-          <el-table-column label="佣金金额" width="100"><template #default="{ row }">¥{{ row.commission_amount.toFixed(2) }}</template></el-table-column>
-          <el-table-column label="状态" width="100"><template #default="{ row }"><el-tag :type="settlementStatusTag(row.status)" size="small">{{ settlementStatusLabel(row.status) }}</el-tag></template></el-table-column>
-          <el-table-column label="结算周期" width="90" prop="period" />
-          <el-table-column label="结算日期" width="100"><template #default="{ row }">{{ row.settled_at ? new Date(row.settled_at).toLocaleDateString() : '-' }}</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.agent')" width="120"><template #default="{ row }">{{ row.agent?.user?.name || row.agent_id }}</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.invoice_amount')" width="100"><template #default="{ row }">¥{{ row.invoice_amount.toFixed(2) }}</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.commission_rate')" width="70"><template #default="{ row }">{{ row.commission_rate }}%</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.commission_amount')" width="100"><template #default="{ row }">¥{{ row.commission_amount.toFixed(2) }}</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.status')" width="100"><template #default="{ row }"><el-tag :type="settlementStatusTag(row.status)" size="small">{{ settlementStatusLabel(row.status) }}</el-tag></template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.period')" width="90" prop="period" />
+          <el-table-column :label="t('commission_page.cols.settled_at')" width="100"><template #default="{ row }">{{ row.settled_at ? new Date(row.settled_at).toLocaleDateString() : '-' }}</template></el-table-column>
         </el-table>
       </el-tab-pane>
 
-      <!-- 提现管理 -->
-      <el-tab-pane label="提现管理" name="payouts">
+      <el-tab-pane :label="t('commission_page.tabs.payouts')" name="payouts">
         <el-table :data="payouts" v-loading="loadingPayouts" stripe>
-          <el-table-column label="代理" width="120"><template #default="{ row }">{{ row.agent?.user?.name || row.agent_id }}</template></el-table-column>
-          <el-table-column label="金额" width="100"><template #default="{ row }">¥{{ row.amount.toFixed(2) }}</template></el-table-column>
-          <el-table-column label="手续费" width="80"><template #default="{ row }">¥{{ row.fee.toFixed(2) }}</template></el-table-column>
-          <el-table-column label="到账" width="100"><template #default="{ row }">¥{{ row.net_amount.toFixed(2) }}</template></el-table-column>
-          <el-table-column label="方式" width="100" prop="payout_method" />
-          <el-table-column label="状态" width="90"><template #default="{ row }"><el-tag :type="payoutStatusTag(row.status)" size="small">{{ payoutStatusLabel(row.status) }}</el-tag></template></el-table-column>
-          <el-table-column label="交易ID" width="140" prop="transaction_id" />
-          <el-table-column label="操作" width="140">
+          <el-table-column :label="t('commission_page.cols.agent')" width="120"><template #default="{ row }">{{ row.agent?.user?.name || row.agent_id }}</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.amount')" width="100"><template #default="{ row }">¥{{ row.amount.toFixed(2) }}</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.fee')" width="80"><template #default="{ row }">¥{{ row.fee.toFixed(2) }}</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.net_amount')" width="100"><template #default="{ row }">¥{{ row.net_amount.toFixed(2) }}</template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.payout_method')" width="100" prop="payout_method" />
+          <el-table-column :label="t('commission_page.cols.status')" width="90"><template #default="{ row }"><el-tag :type="payoutStatusTag(row.status)" size="small">{{ payoutStatusLabel(row.status) }}</el-tag></template></el-table-column>
+          <el-table-column :label="t('commission_page.cols.transaction_id')" width="140" prop="transaction_id" />
+          <el-table-column :label="t('commission_page.cols.actions')" width="140">
             <template #default="{ row }">
-              <el-button v-if="row.status === 'pending'" size="small" @click="editPayout(row)">处理</el-button>
+              <el-button v-if="row.status === 'pending'" size="small" @click="editPayout(row)">{{ t('commission_page.buttons.process_payout') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
       </el-tab-pane>
 
-      <!-- 月度趋势 -->
-      <el-tab-pane label="月度趋势" name="trend">
+      <el-tab-pane :label="t('commission_page.tabs.trend')" name="trend">
         <el-table :data="stats.monthly_trend || []" stripe>
-          <el-table-column prop="period" label="月份" width="120" />
-          <el-table-column prop="count" label="结算笔数" width="100" />
-          <el-table-column label="金额"><template #default="{ row }">¥{{ (row.amount || 0).toFixed(2) }}</template></el-table-column>
+          <el-table-column prop="period" :label="t('commission_page.cols.month')" width="120" />
+          <el-table-column prop="count" :label="t('commission_page.cols.settlement_count')" width="100" />
+          <el-table-column :label="t('commission_page.cols.amount')"><template #default="{ row }">¥{{ (row.amount || 0).toFixed(2) }}</template></el-table-column>
         </el-table>
       </el-tab-pane>
     </el-tabs>
 
-    <!-- 代理 Dialog -->
-    <el-dialog v-model="showAgentDialog" :title="editingAgent ? '编辑代理' : '添加代理'" width="520px">
+    <el-dialog v-model="showAgentDialog" :title="editingAgent ? t('commission_page.dialogs.edit_agent') : t('commission_page.dialogs.add_agent')" width="520px">
       <el-form :model="agentForm" ref="agentFormRef" label-width="120px">
-        <el-form-item label="用户" prop="user_id" v-if="!editingAgent">
+        <el-form-item :label="t('commission_page.cols.user')" prop="user_id" v-if="!editingAgent">
           <el-select v-model="agentForm.user_id" filterable remote :remote-method="searchUsers" :loading="searchingUsers" style="width:100%">
             <el-option v-for="u in userOptions" :key="u.id" :label="`${u.name} (${u.email})`" :value="u.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="等级" prop="level">
+        <el-form-item :label="t('commission_page.cols.level')" prop="level">
           <el-select v-model="agentForm.level" style="width:100%">
-            <el-option label="普通" value="regular" />
-            <el-option label="白银" value="silver" />
-            <el-option label="黄金" value="gold" />
-            <el-option label="铂金" value="platinum" />
+            <el-option v-for="opt in levelOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="自定义佣金率">
+        <el-form-item :label="t('commission_page.form.custom_rate')">
           <el-input-number v-model="agentForm.commission_rate" :min="0" :max="100" :precision="2" style="width:200px" /> %
         </el-form-item>
-        <el-form-item label="联系人"><el-input v-model="agentForm.contact_name" /></el-form-item>
-        <el-form-item label="电话"><el-input v-model="agentForm.contact_phone" /></el-form-item>
-        <el-form-item label="公司"><el-input v-model="agentForm.company" /></el-form-item>
-        <el-form-item label="备注"><el-input v-model="agentForm.notes" type="textarea" :rows="2" /></el-form-item>
-        <el-form-item label="状态" v-if="editingAgent">
-          <el-select v-model="agentForm.status"><el-option label="活跃" value="active" /><el-option label="暂停" value="suspended" /><el-option label="终止" value="terminated" /></el-select>
+        <el-form-item :label="t('commission_page.cols.contact_name')"><el-input v-model="agentForm.contact_name" /></el-form-item>
+        <el-form-item :label="t('commission_page.cols.phone')"><el-input v-model="agentForm.contact_phone" /></el-form-item>
+        <el-form-item :label="t('commission_page.cols.company')"><el-input v-model="agentForm.company" /></el-form-item>
+        <el-form-item :label="t('commission_page.cols.notes')"><el-input v-model="agentForm.notes" type="textarea" :rows="2" /></el-form-item>
+        <el-form-item :label="t('commission_page.cols.status')" v-if="editingAgent">
+          <el-select v-model="agentForm.status"><el-option v-for="opt in agentStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" /></el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showAgentDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitAgent" :loading="submittingAgent">保存</el-button>
+        <el-button @click="showAgentDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="submitAgent" :loading="submittingAgent">{{ t('actions.save') }}</el-button>
       </template>
     </el-dialog>
 
-    <!-- 佣金计划 Dialog -->
-    <el-dialog v-model="showPlanDialog" :title="editingPlan ? '编辑计划' : '新建计划'" width="480px">
+    <el-dialog v-model="showAgentDetail" :title="t('commission_page.dialogs.agent_detail')" width="640px">
+      <div v-loading="loadingAgentDetail">
+        <template v-if="agentDetail">
+          <el-descriptions :column="2" border>
+            <el-descriptions-item :label="t('commission_page.cols.agent_code')">{{ agentDetail.agent_code }}</el-descriptions-item>
+            <el-descriptions-item :label="t('commission_page.cols.status')">
+              <el-tag v-if="agentDetail.status==='active'" type="success" size="small">{{ agentStatusLabel(agentDetail.status) }}</el-tag>
+              <el-tag v-else type="info" size="small">{{ agentStatusLabel(agentDetail.status) }}</el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item :label="t('commission_page.cols.name')">{{ agentDetail.user?.name || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="t('commission_page.cols.email')">{{ agentDetail.user?.email || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="t('commission_page.cols.level')">
+              <el-tag :type="levelTag(agentDetail.level)" size="small">{{ levelLabel(agentDetail.level) }}</el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item :label="t('commission_page.cols.commission_rate')">{{ agentDetail.commission_rate ?? t('commission_page.default_rate') }}%</el-descriptions-item>
+            <el-descriptions-item :label="t('commission_page.cols.contact_name')">{{ agentDetail.contact_name || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="t('commission_page.cols.phone')">{{ agentDetail.contact_phone || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="t('commission_page.cols.company')" :span="2">{{ agentDetail.company || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="t('commission_page.cols.total_earned')">¥{{ Number(agentDetail.total_earned || 0).toFixed(2) }}</el-descriptions-item>
+            <el-descriptions-item :label="t('commission_page.cols.total_withdrawn')">¥{{ Number(agentDetail.total_withdrawn || 0).toFixed(2) }}</el-descriptions-item>
+            <el-descriptions-item :label="t('commission_page.cols.notes')" :span="2">{{ agentDetail.notes || '-' }}</el-descriptions-item>
+          </el-descriptions>
+          <template v-if="agentDetail.stats && typeof agentDetail.stats === 'object'">
+            <el-divider />
+            <el-descriptions :title="t('commission_page.dialogs.performance_stats')" :column="2" border size="small">
+              <el-descriptions-item v-for="(val, key) in agentDetail.stats" :key="key" :label="String(key)">
+                {{ typeof val === 'number' ? val : (val ?? '-') }}
+              </el-descriptions-item>
+            </el-descriptions>
+          </template>
+        </template>
+      </div>
+      <template #footer>
+        <el-button @click="showAgentDetail = false">{{ t('actions.close') }}</el-button>
+        <el-button type="primary" @click="editFromDetail" :disabled="!agentDetail">{{ t('actions.edit') }}</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="showPlanDialog" :title="editingPlan ? t('commission_page.dialogs.edit_plan') : t('commission_page.dialogs.create_plan')" width="480px">
       <el-form :model="planForm" ref="planFormRef" label-width="100px">
-        <el-form-item label="名称" prop="name"><el-input v-model="planForm.name" /></el-form-item>
-        <el-form-item label="Slug" prop="slug" v-if="!editingPlan"><el-input v-model="planForm.slug" /></el-form-item>
-        <el-form-item label="启用"><el-switch v-model="planForm.is_active" /></el-form-item>
-        <el-form-item label="描述"><el-input v-model="planForm.description" type="textarea" :rows="2" /></el-form-item>
+        <el-form-item :label="t('commission_page.cols.name')" prop="name"><el-input v-model="planForm.name" /></el-form-item>
+        <el-form-item :label="t('commission_page.cols.slug')" prop="slug" v-if="!editingPlan"><el-input v-model="planForm.slug" /></el-form-item>
+        <el-form-item :label="t('commission_page.enabled')"><el-switch v-model="planForm.is_active" /></el-form-item>
+        <el-form-item :label="t('commission_page.cols.description')"><el-input v-model="planForm.description" type="textarea" :rows="2" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showPlanDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitPlan" :loading="submittingPlan">保存</el-button>
+        <el-button @click="showPlanDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="submitPlan" :loading="submittingPlan">{{ t('actions.save') }}</el-button>
       </template>
     </el-dialog>
 
-    <!-- 计划明细 Dialog -->
-    <el-dialog v-model="showPlanItemsDialog" :title="'计划明细 - ' + currentPlanName" width="700px">
+    <el-dialog v-model="showPlanItemsDialog" :title="t('commission_page.dialogs.plan_items', { name: currentPlanName })" width="700px">
       <div class="mb-3">
-        <el-button type="primary" size="small" @click="openPlanItemDialog(null)">添加明细</el-button>
+        <el-button type="primary" size="small" @click="openPlanItemDialog(null)">{{ t('commission_page.buttons.add_item') }}</el-button>
       </div>
       <el-table :data="planItems" v-loading="loadingPlanItems" stripe>
-        <el-table-column label="产品" width="150"><template #default="{ row }">{{ row.product?.name || row.product_category || '全部' }}</template></el-table-column>
-        <el-table-column label="代理等级" width="100" prop="agent_level" />
-        <el-table-column label="佣金率" width="100"><template #default="{ row }">{{ row.commission_rate }}%</template></el-table-column>
-        <el-table-column label="优先级" width="70" prop="priority" />
-        <el-table-column label="操作" width="120">
+        <el-table-column :label="t('commission_page.cols.product')" width="150"><template #default="{ row }">{{ row.product?.name || row.product_category || t('commission_page.all_products') }}</template></el-table-column>
+        <el-table-column :label="t('commission_page.cols.agent_level')" width="100" prop="agent_level" />
+        <el-table-column :label="t('commission_page.cols.commission_rate')" width="100"><template #default="{ row }">{{ row.commission_rate }}%</template></el-table-column>
+        <el-table-column :label="t('commission_page.cols.priority')" width="70" prop="priority" />
+        <el-table-column :label="t('commission_page.cols.actions')" width="120">
           <template #default="{ row }">
-            <el-button size="small" @click="openPlanItemDialog(row)">编辑</el-button>
-            <el-popconfirm title="确定删除?" @confirm="deletePlanItem(row.id)">
-              <template #reference><el-button size="small" type="danger" plain>删除</el-button></template>
+            <el-button size="small" @click="openPlanItemDialog(row)">{{ t('actions.edit') }}</el-button>
+            <el-popconfirm :title="t('commission_page.delete_confirm')" @confirm="deletePlanItem(row.id)">
+              <template #reference><el-button size="small" type="danger" plain>{{ t('actions.delete') }}</el-button></template>
             </el-popconfirm>
           </template>
         </el-table-column>
       </el-table>
     </el-dialog>
 
-    <el-dialog v-model="showPlanItemDialog" :title="editingPlanItem ? '编辑明细' : '添加明细'" width="460px">
+    <el-dialog v-model="showPlanItemDialog" :title="editingPlanItem ? t('commission_page.dialogs.edit_item') : t('commission_page.dialogs.add_item')" width="460px">
       <el-form :model="planItemForm" label-width="100px">
-        <el-form-item label="产品"><el-select v-model="planItemForm.product_id" filterable clearable style="width:100%"><el-option v-for="p in productOptions" :key="p.id" :label="p.name" :value="p.id" /></el-select></el-form-item>
-        <el-form-item label="产品分类"><el-input v-model="planItemForm.product_category" placeholder="或填写分类" /></el-form-item>
-        <el-form-item label="代理等级"><el-select v-model="planItemForm.agent_level"><el-option label="全部" value="" /><el-option label="普通" value="regular" /><el-option label="白银" value="silver" /><el-option label="黄金" value="gold" /><el-option label="铂金" value="platinum" /></el-select></el-form-item>
-        <el-form-item label="佣金比例"><el-input-number v-model="planItemForm.commission_rate" :min="0" :max="100" :precision="2" /> %</el-form-item>
-        <el-form-item label="优先级"><el-input-number v-model="planItemForm.priority" :min="0" :max="99" /></el-form-item>
+        <el-form-item :label="t('commission_page.cols.product')"><el-select v-model="planItemForm.product_id" filterable clearable style="width:100%"><el-option v-for="p in productOptions" :key="p.id" :label="p.name" :value="p.id" /></el-select></el-form-item>
+        <el-form-item :label="t('commission_page.cols.product_category')"><el-input v-model="planItemForm.product_category" :placeholder="t('commission_page.placeholders.category_or')" /></el-form-item>
+        <el-form-item :label="t('commission_page.cols.agent_level')"><el-select v-model="planItemForm.agent_level"><el-option v-for="opt in planItemLevelOptions" :key="opt.value" :label="opt.label" :value="opt.value" /></el-select></el-form-item>
+        <el-form-item :label="t('commission_page.form.commission_pct')"><el-input-number v-model="planItemForm.commission_rate" :min="0" :max="100" :precision="2" /> %</el-form-item>
+        <el-form-item :label="t('commission_page.cols.priority')"><el-input-number v-model="planItemForm.priority" :min="0" :max="99" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showPlanItemDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitPlanItem" :loading="submittingPlanItem">保存</el-button>
+        <el-button @click="showPlanItemDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="submitPlanItem" :loading="submittingPlanItem">{{ t('actions.save') }}</el-button>
       </template>
     </el-dialog>
 
-    <!-- 编辑提现状态 -->
-    <el-dialog v-model="showPayoutDialog" title="处理提现" width="460px">
+    <el-dialog v-model="showPayoutDialog" :title="t('commission_page.dialogs.process_payout')" width="460px">
       <el-form :model="payoutForm" label-width="100px">
-        <el-form-item label="金额">¥{{ payoutForm.amount }}</el-form-item>
-        <el-form-item label="状态"><el-select v-model="payoutForm.status"><el-option label="处理中" value="processing" /><el-option label="已完成" value="completed" /><el-option label="已取消" value="cancelled" /><el-option label="已失败" value="failed" /></el-select></el-form-item>
-        <el-form-item label="交易ID"><el-input v-model="payoutForm.transaction_id" /></el-form-item>
-        <el-form-item label="备注"><el-input v-model="payoutForm.notes" type="textarea" /></el-form-item>
+        <el-form-item :label="t('commission_page.cols.amount')">¥{{ payoutForm.amount }}</el-form-item>
+        <el-form-item :label="t('commission_page.cols.status')"><el-select v-model="payoutForm.status"><el-option v-for="opt in payoutDialogStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" /></el-select></el-form-item>
+        <el-form-item :label="t('commission_page.cols.transaction_id')"><el-input v-model="payoutForm.transaction_id" /></el-form-item>
+        <el-form-item :label="t('commission_page.cols.notes')"><el-input v-model="payoutForm.notes" type="textarea" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showPayoutDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitPayout" :loading="submittingPayout">保存</el-button>
+        <el-button @click="showPayoutDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="submitPayout" :loading="submittingPayout">{{ t('actions.save') }}</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import api from '@/api/commission';
 
+const { t } = useI18n();
+
 const activeTab = ref('agents');
 
-// ── 统计 ──
 const stats = reactive({});
 
 function fetchDashboard() {
@@ -220,7 +247,75 @@ function fetchDashboard() {
   });
 }
 
-// ── 代理 ──
+const levelLabels = computed(() => ({
+  regular: t('commission_page.levels.regular'),
+  silver: t('commission_page.levels.silver'),
+  gold: t('commission_page.levels.gold'),
+  platinum: t('commission_page.levels.platinum'),
+}));
+
+const levelOptions = computed(() => [
+  { value: 'regular', label: levelLabels.value.regular },
+  { value: 'silver', label: levelLabels.value.silver },
+  { value: 'gold', label: levelLabels.value.gold },
+  { value: 'platinum', label: levelLabels.value.platinum },
+]);
+
+const planItemLevelOptions = computed(() => [
+  { value: '', label: t('commission_page.levels.all') },
+  ...levelOptions.value,
+]);
+
+const agentStatusLabels = computed(() => ({
+  active: t('commission_page.agent_status.active'),
+  suspended: t('commission_page.agent_status.suspended'),
+  terminated: t('commission_page.agent_status.terminated'),
+}));
+
+const agentStatusOptions = computed(() => [
+  { value: 'active', label: agentStatusLabels.value.active },
+  { value: 'suspended', label: agentStatusLabels.value.suspended },
+  { value: 'terminated', label: agentStatusLabels.value.terminated },
+]);
+
+const settlementStatusLabels = computed(() => ({
+  pending: t('commission_page.settlement_status.pending'),
+  pending_release: t('commission_page.settlement_status.pending_release'),
+  released: t('commission_page.settlement_status.released'),
+  cancelled: t('commission_page.settlement_status.cancelled'),
+  refunded: t('commission_page.settlement_status.refunded'),
+}));
+
+const settlementFilterOptions = computed(() => [
+  { value: 'pending', label: settlementStatusLabels.value.pending },
+  { value: 'released', label: settlementStatusLabels.value.released },
+  { value: 'cancelled', label: settlementStatusLabels.value.cancelled },
+  { value: 'refunded', label: settlementStatusLabels.value.refunded },
+]);
+
+const payoutStatusLabels = computed(() => ({
+  pending: t('commission_page.payout_status.pending'),
+  processing: t('commission_page.payout_status.processing'),
+  completed: t('commission_page.payout_status.completed'),
+  failed: t('commission_page.payout_status.failed'),
+  cancelled: t('commission_page.payout_status.cancelled'),
+}));
+
+const payoutDialogStatusOptions = computed(() => [
+  { value: 'processing', label: payoutStatusLabels.value.processing },
+  { value: 'completed', label: payoutStatusLabels.value.completed },
+  { value: 'cancelled', label: payoutStatusLabels.value.cancelled },
+  { value: 'failed', label: payoutStatusLabels.value.failed },
+]);
+
+function levelTag(level) { return ({ regular: 'info', silver: '', gold: 'warning', platinum: 'danger' })[level] || 'info'; }
+function levelLabel(level) { return levelLabels.value[level] || level; }
+function agentStatusLabel(status) { return agentStatusLabels.value[status] || status; }
+function settlementStatusTag(s) { return ({ pending: 'warning', pending_release: '', released: 'success', cancelled: 'info', refunded: 'danger' })[s] || 'info'; }
+function settlementStatusLabel(s) { return settlementStatusLabels.value[s] || s; }
+function payoutStatusTag(s) { return ({ pending: 'warning', processing: '', completed: 'success', failed: 'danger', cancelled: 'info' })[s] || 'info'; }
+function payoutStatusLabel(s) { return payoutStatusLabels.value[s] || s; }
+
 const agents = ref([]);
 const loadingAgents = ref(false);
 const agentTotal = ref(0);
@@ -281,19 +376,37 @@ function submitAgent() {
     ? api.updateAgent(editingAgent.value.id, agentForm)
     : api.createAgent(agentForm);
   promise.then(() => {
-    ElMessage.success(editingAgent.value ? '代理已更新' : '代理已创建');
+    ElMessage.success(editingAgent.value ? t('commission_page.messages.agent_updated') : t('commission_page.messages.agent_created'));
     showAgentDialog.value = false;
     fetchAgents();
-  }).catch(() => ElMessage.error('操作失败'))
+  }).catch(() => ElMessage.error(t('messages.failed')))
   .finally(() => submittingAgent.value = false);
 }
 
 function viewAgent(agent) {
-  // 查看代理详情 - TODO: 详情弹出
-  ElMessage.info(`代理 ${agent.agent_code}`);
+  showAgentDetail.value = true;
+  loadingAgentDetail.value = true;
+  agentDetail.value = null;
+  api.showAgent(agent.id).then(res => {
+    agentDetail.value = res.data.data || agent;
+  }).catch(() => {
+    agentDetail.value = agent;
+    ElMessage.warning(t('commission_page.messages.detail_fallback'));
+  }).finally(() => {
+    loadingAgentDetail.value = false;
+  });
 }
 
-// ── 佣金计划 ──
+function editFromDetail() {
+  if (!agentDetail.value) return;
+  showAgentDetail.value = false;
+  editAgent(agentDetail.value);
+}
+
+const showAgentDetail = ref(false);
+const loadingAgentDetail = ref(false);
+const agentDetail = ref(null);
+
 const plans = ref([]);
 const loadingPlans = ref(false);
 
@@ -327,14 +440,13 @@ function submitPlan() {
     ? api.updatePlan(editingPlan.value.id, planForm)
     : api.createPlan(planForm);
   promise.then(() => {
-    ElMessage.success('佣金计划已保存');
+    ElMessage.success(t('commission_page.messages.plan_saved'));
     showPlanDialog.value = false;
     fetchPlans();
-  }).catch(() => ElMessage.error('操作失败'))
+  }).catch(() => ElMessage.error(t('messages.failed')))
   .finally(() => submittingPlan.value = false);
 }
 
-// ── 计划明细 ──
 const showPlanItemsDialog = ref(false);
 const currentPlanId = ref(null);
 const currentPlanName = ref('');
@@ -387,21 +499,20 @@ function submitPlanItem() {
     ? api.updatePlanItem(editingPlanItem.value.id, data)
     : api.createPlanItem(currentPlanId.value, data);
   promise.then(() => {
-    ElMessage.success('明细已保存');
+    ElMessage.success(t('commission_page.messages.item_saved'));
     showPlanItemDialog.value = false;
     fetchPlanItems();
-  }).catch(() => ElMessage.error('操作失败'))
+  }).catch(() => ElMessage.error(t('messages.failed')))
   .finally(() => submittingPlanItem.value = false);
 }
 
 function deletePlanItem(id) {
   api.deletePlanItem(id).then(() => {
-    ElMessage.success('明细已删除');
+    ElMessage.success(t('commission_page.messages.item_deleted'));
     fetchPlanItems();
-  }).catch(() => ElMessage.error('删除失败'));
+  }).catch(() => ElMessage.error(t('messages.failed')));
 }
 
-// ── 结算 ──
 const settlements = ref([]);
 const loadingSettlements = ref(false);
 const filterSettlementAgent = ref('');
@@ -419,7 +530,6 @@ function fetchSettlements(page = 1) {
   }).finally(() => loadingSettlements.value = false);
 }
 
-// ── 提现 ──
 const payouts = ref([]);
 const loadingPayouts = ref(false);
 
@@ -444,21 +554,13 @@ function editPayout(payout) {
 function submitPayout() {
   submittingPayout.value = true;
   api.processPayout(editingPayoutId.value, payoutForm).then(() => {
-    ElMessage.success('提现状态已更新');
+    ElMessage.success(t('commission_page.messages.payout_updated'));
     showPayoutDialog.value = false;
     fetchPayouts();
     fetchDashboard();
-  }).catch(() => ElMessage.error('操作失败'))
+  }).catch(() => ElMessage.error(t('messages.failed')))
   .finally(() => submittingPayout.value = false);
 }
-
-// ── Helper ──
-function levelTag(level) { return ({ regular: 'info', silver: '', gold: 'warning', platinum: 'danger' })[level] || 'info'; }
-function levelLabel(level) { return ({ regular: '普通', silver: '白银', gold: '黄金', platinum: '铂金' })[level] || level; }
-function settlementStatusTag(s) { return ({ pending: 'warning', pending_release: '', released: 'success', cancelled: 'info', refunded: 'danger' })[s] || 'info'; }
-function settlementStatusLabel(s) { return ({ pending: '待处理', pending_release: '待释放', released: '已释放', cancelled: '已取消', refunded: '已退款' })[s] || s; }
-function payoutStatusTag(s) { return ({ pending: 'warning', processing: '', completed: 'success', failed: 'danger', cancelled: 'info' })[s] || 'info'; }
-function payoutStatusLabel(s) { return ({ pending: '待处理', processing: '处理中', completed: '已完成', failed: '失败', cancelled: '已取消' })[s] || s; }
 
 onMounted(() => {
   fetchDashboard();

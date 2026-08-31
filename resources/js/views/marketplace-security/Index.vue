@@ -2,33 +2,33 @@
     <div class="security-page">
         <div class="page-header">
             <div>
-                <h2>内容安全审核</h2>
-                <p class="text-muted">自动扫描应用描述和用户评价中的违规内容</p>
+                <h2>{{ t('marketplace_security_page.title') }}</h2>
+                <p class="text-muted">{{ t('marketplace_security_page.subtitle') }}</p>
             </div>
             <div class="header-actions">
-                <el-button @click="scanAllApps" :loading="scanningApps"><el-icon><Search /></el-icon> 扫描应用</el-button>
-                <el-button @click="scanAllReviews" :loading="scanningReviews"><el-icon><Search /></el-icon> 扫描评价</el-button>
+                <el-button @click="scanAllApps" :loading="scanningApps"><el-icon><Search /></el-icon> {{ t('marketplace_security_page.scan_apps') }}</el-button>
+                <el-button @click="scanAllReviews" :loading="scanningReviews"><el-icon><Search /></el-icon> {{ t('marketplace_security_page.scan_reviews') }}</el-button>
             </div>
         </div>
 
         <!-- 统计卡片 -->
         <el-row :gutter="16" class="mb-4">
-            <el-col :span="6"><el-card shadow="never"><div class="stat-value">{{ stats.total_apps || 0 }}</div><div class="stat-label">已检查应用</div></el-card></el-col>
-            <el-col :span="6"><el-card shadow="never"><div class="stat-value danger">{{ stats.flagged_apps || 0 }}</div><div class="stat-label">违规应用</div></el-card></el-col>
-            <el-col :span="6"><el-card shadow="never"><div class="stat-value success">{{ stats.clean_apps || 0 }}</div><div class="stat-label">合规应用</div></el-card></el-col>
-            <el-col :span="6"><el-card shadow="never"><div class="stat-value warning">{{ stats.pending_reviews || 0 }}</div><div class="stat-label">待审评价</div></el-card></el-col>
+            <el-col :span="6"><el-card shadow="never"><div class="stat-value">{{ stats.total_apps || 0 }}</div><div class="stat-label">{{ t('marketplace_security_page.stats.checked_apps') }}</div></el-card></el-col>
+            <el-col :span="6"><el-card shadow="never"><div class="stat-value danger">{{ stats.flagged_apps || 0 }}</div><div class="stat-label">{{ t('marketplace_security_page.stats.flagged_apps') }}</div></el-card></el-col>
+            <el-col :span="6"><el-card shadow="never"><div class="stat-value success">{{ stats.clean_apps || 0 }}</div><div class="stat-label">{{ t('marketplace_security_page.stats.clean_apps') }}</div></el-card></el-col>
+            <el-col :span="6"><el-card shadow="never"><div class="stat-value warning">{{ stats.pending_reviews || 0 }}</div><div class="stat-label">{{ t('marketplace_security_page.stats.pending_reviews') }}</div></el-card></el-col>
         </el-row>
 
         <!-- 扫描结果 Tabs -->
         <el-card shadow="never">
             <el-tabs v-model="activeTab">
-                <el-tab-pane label="应用扫描结果" name="apps">
+                <el-tab-pane :label="t('marketplace_security_page.tabs.apps')" name="apps">
                     <div class="toolbar">
-                        <span class="text-muted" v-if="appResults.length">{{ appResults.length }} 个应用含违规内容</span>
-                        <span class="text-muted" v-else>暂无违规应用，点击「扫描应用」检查</span>
+                        <span class="text-muted" v-if="appResults.length">{{ t('marketplace_security_page.toolbar.flagged_apps_count', { n: appResults.length }) }}</span>
+                        <span class="text-muted" v-else>{{ t('marketplace_security_page.toolbar.no_flagged_apps') }}</span>
                     </div>
                     <el-table :data="appResults" v-loading="scanningApps" stripe>
-                        <el-table-column label="应用" min-width="200">
+                        <el-table-column :label="t('marketplace_security_page.columns.app')" min-width="200">
                             <template #default="{ row }">
                                 <div class="app-cell">
                                     <span class="app-name">{{ row.app_name }}</span>
@@ -36,15 +36,15 @@
                                 </div>
                             </template>
                         </el-table-column>
-                        <el-table-column label="违规数" width="80" prop="total" align="center">
+                        <el-table-column :label="t('marketplace_security_page.columns.violations')" width="80" prop="total" align="center">
                             <template #default="{ row }"><el-tag :type="row.total > 2 ? 'danger' : 'warning'" size="small">{{ row.total }}</el-tag></template>
                         </el-table-column>
-                        <el-table-column label="严重程度" width="100">
+                        <el-table-column :label="t('marketplace_security_page.columns.severity')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="severityTag(row.max_severity)" size="small">{{ severityLabel(row.max_severity) }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="详情" min-width="300">
+                        <el-table-column :label="t('marketplace_security_page.columns.details')" min-width="300">
                             <template #default="{ row }">
                                 <div v-for="v in (row.violations || [])" :key="v.field" class="violation-item">
                                     <el-tag size="small" type="danger" style="margin-right:4px">{{ v.field_label }}</el-tag>
@@ -52,35 +52,35 @@
                                 </div>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="120" fixed="right">
+                        <el-table-column :label="t('marketplace_security_page.columns.actions')" width="120" fixed="right">
                             <template #default="{ row }">
-                                <el-button text size="small" type="primary" @click="$router.push('/app-marketplace/' + row.app_id)">查看应用</el-button>
+                                <el-button text size="small" type="primary" @click="$router.push('/app-marketplace/' + row.app_id)">{{ t('marketplace_security_page.view_app') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
-                    <el-empty v-if="!appResults.length && !scanningApps" description="暂无违规内容" :image-size="50" />
+                    <el-empty v-if="!appResults.length && !scanningApps" :description="t('marketplace_security_page.empty')" :image-size="50" />
                 </el-tab-pane>
 
-                <el-tab-pane label="评价扫描结果" name="reviews">
+                <el-tab-pane :label="t('marketplace_security_page.tabs.reviews')" name="reviews">
                     <div class="toolbar">
-                        <span class="text-muted" v-if="reviewResults.length">{{ reviewResults.length }} 条评价含违规内容</span>
-                        <span class="text-muted" v-else>暂无违规评价，点击「扫描评价」检查</span>
+                        <span class="text-muted" v-if="reviewResults.length">{{ t('marketplace_security_page.toolbar.flagged_reviews_count', { n: reviewResults.length }) }}</span>
+                        <span class="text-muted" v-else>{{ t('marketplace_security_page.toolbar.no_flagged_reviews') }}</span>
                     </div>
                     <el-table :data="reviewResults" v-loading="scanningReviews" stripe>
-                        <el-table-column label="应用" min-width="160" prop="app_name" />
-                        <el-table-column label="用户" width="120" prop="user_name" />
-                        <el-table-column label="评分" width="80">
+                        <el-table-column :label="t('marketplace_security_page.columns.app')" min-width="160" prop="app_name" />
+                        <el-table-column :label="t('marketplace_security_page.columns.user')" width="120" prop="user_name" />
+                        <el-table-column :label="t('marketplace_security_page.columns.rating')" width="80">
                             <template #default="{ row }"><el-rate :model-value="row.rating" disabled size="small" /></template>
                         </el-table-column>
-                        <el-table-column label="违规数" width="80" prop="total" align="center">
+                        <el-table-column :label="t('marketplace_security_page.columns.violations')" width="80" prop="total" align="center">
                             <template #default="{ row }"><el-tag :type="row.total > 2 ? 'danger' : 'warning'" size="small">{{ row.total }}</el-tag></template>
                         </el-table-column>
-                        <el-table-column label="严重程度" width="100">
+                        <el-table-column :label="t('marketplace_security_page.columns.severity')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="severityTag(row.max_severity)" size="small">{{ severityLabel(row.max_severity) }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="详情" min-width="250">
+                        <el-table-column :label="t('marketplace_security_page.columns.details')" min-width="250">
                             <template #default="{ row }">
                                 <div v-for="v in (row.violations || [])" :key="v.field" class="violation-item">
                                     <span class="text-muted small">{{ (v.words || []).slice(0,3).join(', ') }}</span>
@@ -88,7 +88,7 @@
                             </template>
                         </el-table-column>
                     </el-table>
-                    <el-empty v-if="!reviewResults.length && !scanningReviews" description="暂无违规内容" :image-size="50" />
+                    <el-empty v-if="!reviewResults.length && !scanningReviews" :description="t('marketplace_security_page.empty')" :image-size="50" />
                 </el-tab-pane>
             </el-tabs>
         </el-card>
@@ -96,10 +96,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
 import api from '@/api/marketplaceSecurity';
+
+const { t } = useI18n();
 
 const activeTab = ref('apps');
 const stats = ref({});
@@ -107,6 +110,12 @@ const appResults = ref([]);
 const reviewResults = ref([]);
 const scanningApps = ref(false);
 const scanningReviews = ref(false);
+
+const severityLabels = computed(() => ({
+    1: t('marketplace_security_page.severity.low'),
+    2: t('marketplace_security_page.severity.medium'),
+    3: t('marketplace_security_page.severity.high'),
+}));
 
 async function loadStats() {
     try { const { data: r } = await api.stats(); if (r.success) stats.value = r.data; } catch {}
@@ -118,10 +127,10 @@ async function scanAllApps() {
         const { data: r } = await api.scanAllApps();
         if (r.success) {
             appResults.value = r.data?.results || [];
-            ElMessage.success(`扫描完成，发现 ${r.data?.total_flagged || 0} 个违规应用`);
+            ElMessage.success(t('marketplace_security_page.messages.scan_apps_done', { n: r.data?.total_flagged || 0 }));
             loadStats();
         }
-    } catch { ElMessage.error('扫描失败'); }
+    } catch { ElMessage.error(t('marketplace_security_page.messages.scan_failed')); }
     finally { scanningApps.value = false; }
 }
 
@@ -131,14 +140,14 @@ async function scanAllReviews() {
         const { data: r } = await api.scanAllReviews();
         if (r.success) {
             reviewResults.value = r.data?.results || [];
-            ElMessage.success(`扫描完成，发现 ${r.data?.total_flagged || 0} 条违规评价`);
+            ElMessage.success(t('marketplace_security_page.messages.scan_reviews_done', { n: r.data?.total_flagged || 0 }));
         }
-    } catch { ElMessage.error('扫描失败'); }
+    } catch { ElMessage.error(t('marketplace_security_page.messages.scan_failed')); }
     finally { scanningReviews.value = false; }
 }
 
 function severityTag(s) { return { 1: 'info', 2: 'warning', 3: 'danger' }[s] || 'info'; }
-function severityLabel(s) { return { 1: '低', 2: '中', 3: '高' }[s] || '未知'; }
+function severityLabel(s) { return severityLabels.value[s] || t('marketplace_security_page.severity.unknown'); }
 
 onMounted(loadStats);
 </script>

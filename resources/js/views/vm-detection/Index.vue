@@ -1,9 +1,9 @@
 <template>
     <div class="vm-detection-page">
         <div class="page-header">
-            <h2>虚拟环境/模拟器检测</h2>
+            <h2>{{ t(`${P}.title`) }}</h2>
             <el-button type="primary" @click="showConfig = true">
-                <el-icon><Setting /></el-icon> 检测配置
+                <el-icon><Setting /></el-icon> {{ t(`${P}.config_btn`) }}
             </el-button>
         </div>
 
@@ -13,7 +13,7 @@
                 <el-card shadow="never">
                     <div class="stat-card">
                         <div class="stat-value" style="color: #f56c6c">{{ stats.total_detected || 0 }}</div>
-                        <div class="stat-label">已检测到虚拟环境</div>
+                        <div class="stat-label">{{ t(`${P}.stats.detected`) }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -21,7 +21,7 @@
                 <el-card shadow="never">
                     <div class="stat-card">
                         <div class="stat-value" style="color: #e6a23c">{{ stats.total_checked || 0 }}</div>
-                        <div class="stat-label">已检测设备总数</div>
+                        <div class="stat-label">{{ t(`${P}.stats.checked`) }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -29,15 +29,15 @@
                 <el-card shadow="never">
                     <div class="stat-card">
                         <div class="stat-value" style="color: #f56c6c">{{ stats.blocked_count || 0 }}</div>
-                        <div class="stat-label">已阻止数量</div>
+                        <div class="stat-label">{{ t(`${P}.stats.blocked`) }}</div>
                     </div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-card">
-                        <div class="stat-value" style="color: #409eff">{{ stats.recent_detections_7d || 0 }}</div>
-                        <div class="stat-label">近7天新增</div>
+                        <div class="stat-value" style="color: #0f172a">{{ stats.recent_detections_7d || 0 }}</div>
+                        <div class="stat-label">{{ t(`${P}.stats.recent_7d`) }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -46,37 +46,37 @@
         <!-- 策略信息 -->
         <el-card shadow="never" class="mb-4">
             <template #header>
-                <span>当前检测策略</span>
+                <span>{{ t(`${P}.strategy.title`) }}</span>
             </template>
-            <el-tag v-if="stats.strategy === 'block'" type="danger" size="large">阻止模式：检测到虚拟环境禁止激活</el-tag>
-            <el-tag v-else-if="stats.strategy === 'reduce_trust'" type="warning" size="large">降信任模式：检测到虚拟环境降低信任分</el-tag>
-            <el-tag v-else type="info" size="large">仅记录模式：仅记录不干预</el-tag>
-            <el-tag :type="stats.enabled ? 'success' : 'info'" size="large" class="ml-2">{{ stats.enabled ? '已启用' : '已禁用' }}</el-tag>
+            <el-tag v-if="stats.strategy === 'block'" type="danger" size="large">{{ t(`${P}.strategy.block`) }}</el-tag>
+            <el-tag v-else-if="stats.strategy === 'reduce_trust'" type="warning" size="large">{{ t(`${P}.strategy.reduce_trust`) }}</el-tag>
+            <el-tag v-else type="info" size="large">{{ t(`${P}.strategy.log_only`) }}</el-tag>
+            <el-tag :type="stats.enabled ? 'success' : 'info'" size="large" class="ml-2">{{ stats.enabled ? t(`${P}.enabled`) : t(`${P}.disabled`) }}</el-tag>
         </el-card>
 
         <!-- 虚拟环境类型分布 -->
         <el-row :gutter="16" class="mb-4">
             <el-col :span="12">
                 <el-card shadow="never">
-                    <template #header><span>虚拟环境类型分布</span></template>
+                    <template #header><span>{{ t(`${P}.sections.type_distribution`) }}</span></template>
                     <el-table :data="typeStatsList" stripe v-if="typeStatsList.length > 0">
-                        <el-table-column prop="type" label="类型" min-width="120" />
-                        <el-table-column prop="count" label="数量" width="100" />
+                        <el-table-column prop="type" :label="t(`${P}.cols.type`)" min-width="120" />
+                        <el-table-column prop="count" :label="t(`${P}.cols.count`)" width="100" />
                     </el-table>
-                    <el-empty v-else description="暂无数据" />
+                    <el-empty v-else :description="t('messages.no_data')" />
                 </el-card>
             </el-col>
             <el-col :span="12">
                 <el-card shadow="never">
-                    <template #header><span>检测项启用状态</span></template>
+                    <template #header><span>{{ t(`${P}.sections.checks_status`) }}</span></template>
                     <div v-if="vmConfig.checks" class="check-grid">
                         <div v-for="(enabled, key) in vmConfig.checks" :key="key" class="check-item">
                             <el-tag :type="enabled ? 'success' : 'info'" size="small">
-                                {{ checkLabels[key] || key }}: {{ enabled ? '已启用' : '已禁用' }}
+                                {{ checkLabel(key) }}: {{ enabled ? t(`${P}.enabled`) : t(`${P}.disabled`) }}
                             </el-tag>
                         </div>
                     </div>
-                    <el-empty v-else description="暂无配置" />
+                    <el-empty v-else :description="t(`${P}.empty.no_config`)" />
                 </el-card>
             </el-col>
         </el-row>
@@ -85,28 +85,28 @@
         <el-card shadow="never">
             <template #header>
                 <div class="card-header">
-                    <span>已检测到虚拟环境的设备</span>
+                    <span>{{ t(`${P}.sections.devices`) }}</span>
                     <div>
-                        <el-select v-model="filterType" clearable placeholder="筛选类型" style="width:150px" size="small" @change="loadDevices(1)">
-                            <el-option v-for="(count, type) in stats.type_stats || {}" :key="type" :label="typeLabels[type] || type" :value="type" />
+                        <el-select v-model="filterType" clearable :placeholder="t(`${P}.filter_type`)" style="width:150px" size="small" @change="loadDevices(1)">
+                            <el-option v-for="(count, type) in stats.type_stats || {}" :key="type" :label="typeLabel(type)" :value="type" />
                         </el-select>
-                        <el-input v-model="searchText" placeholder="搜索设备" clearable style="width:200px;margin-left:8px" size="small" @clear="loadDevices(1)" @keyup.enter="loadDevices(1)" />
+                        <el-input v-model="searchText" :placeholder="t(`${P}.search_devices`)" clearable style="width:200px;margin-left:8px" size="small" @clear="loadDevices(1)" @keyup.enter="loadDevices(1)" />
                     </div>
                 </div>
             </template>
             <el-table :data="devices" stripe v-loading="loading">
                 <el-table-column type="index" label="#" width="50" />
-                <el-table-column prop="name" label="设备名称" min-width="160" show-overflow-tooltip />
-                <el-table-column prop="fingerprint" label="设备指纹" width="180" show-overflow-tooltip />
-                <el-table-column prop="vm_info" label="虚拟环境类型" width="140">
+                <el-table-column prop="name" :label="t(`${P}.cols.name`)" min-width="160" show-overflow-tooltip />
+                <el-table-column prop="fingerprint" :label="t(`${D}.col_fingerprint`)" width="180" show-overflow-tooltip />
+                <el-table-column prop="vm_info" :label="t(`${P}.cols.vm_type`)" width="140">
                     <template #default="{ row }">
                         <el-tag v-if="row.vm_info?.type" type="warning" size="small">
-                            {{ typeLabels[row.vm_info.type] || row.vm_info.type }}
+                            {{ typeLabel(row.vm_info.type) }}
                         </el-tag>
                         <span v-else>-</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="置信度" width="100">
+                <el-table-column :label="t(`${P}.cols.confidence`)" width="100">
                     <template #default="{ row }">
                         <el-tag v-if="row.vm_info?.confidence" :type="row.vm_info.confidence > 70 ? 'danger' : 'warning'" size="small">
                             {{ row.vm_info.confidence }}%
@@ -114,16 +114,16 @@
                         <span v-else>-</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="trust_score" label="信任分" width="80">
+                <el-table-column prop="trust_score" :label="t(`${D}.col_trust_score`)" width="80">
                     <template #default="{ row }">
                         <el-tag :type="(row.trust_score || 0) > 50 ? 'success' : 'danger'" size="small">{{ row.trust_score || 0 }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="platform" label="平台" width="100" />
-                <el-table-column prop="updated_at" label="检测时间" width="170" />
-                <el-table-column label="操作" width="120" fixed="right">
+                <el-table-column prop="platform" :label="t(`${D}.col_platform`)" width="100" />
+                <el-table-column prop="updated_at" :label="t(`${P}.cols.detected_at`)" width="170" />
+                <el-table-column :label="t(`${D}.col_actions`)" width="120" fixed="right">
                     <template #default="{ row }">
-                        <el-button text type="primary" size="small" @click="handleDetect(row)">重新检测</el-button>
+                        <el-button text type="primary" size="small" @click="handleDetect(row)">{{ t(`${P}.actions.redetect`) }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -139,29 +139,29 @@
         </el-card>
 
         <!-- 配置弹窗 -->
-        <el-dialog v-model="showConfig" title="检测配置" width="500px">
+        <el-dialog v-model="showConfig" :title="t(`${P}.config.title`)" width="500px">
             <el-form :model="configForm" label-width="140px">
-                <el-form-item label="启用检测">
+                <el-form-item :label="t(`${P}.config.enable`)">
                     <el-switch v-model="configForm.enabled" />
                 </el-form-item>
-                <el-form-item label="检测策略">
+                <el-form-item :label="t(`${P}.config.strategy`)">
                     <el-select v-model="configForm.strategy" style="width:100%">
-                        <el-option label="阻止模式：禁止激活" value="block" />
-                        <el-option label="降信任模式：降低信任分" value="reduce_trust" />
-                        <el-option label="仅记录模式：不干预" value="log_only" />
+                        <el-option :label="t(`${P}.strategy_options.block`)" value="block" />
+                        <el-option :label="t(`${P}.strategy_options.reduce_trust`)" value="reduce_trust" />
+                        <el-option :label="t(`${P}.strategy_options.log_only`)" value="log_only" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="虚拟环境信任分">
+                <el-form-item :label="t(`${P}.config.vm_trust_score`)">
                     <el-input-number v-model="configForm.vm_trust_score" :min="0" :max="100" style="width:200px" />
                 </el-form-item>
-                <el-form-item label="检测阈值">
+                <el-form-item :label="t(`${P}.config.detection_threshold`)">
                     <el-input-number v-model="configForm.detection_threshold" :min="1" :max="10" style="width:200px" />
-                    <span class="text-muted ml-2">命中项数达到此值判定为虚拟环境</span>
+                    <span class="text-muted ml-2">{{ t(`${P}.config.threshold_hint`) }}</span>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showConfig = false">取消</el-button>
-                <el-button type="primary" :loading="savingConfig" @click="saveConfig">保存配置</el-button>
+                <el-button @click="showConfig = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="savingConfig" @click="saveConfig">{{ t(`${P}.config.save`) }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -169,9 +169,47 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Setting } from '@element-plus/icons-vue';
 import { getVmDashboard, getVmDevices, detectVmDevice, getVmConfig, updateVmConfig } from '@/api/vmDetection';
+
+const P = 'vm_detection_page';
+const D = 'devices_page';
+const { t } = useI18n();
+
+const CHECK_KEYS = ['docker', 'vmware', 'virtualbox', 'kvm', 'hyper_v', 'xen', 'qemu', 'parallels', 'wsl', 'android_emulator', 'ios_simulator', 'container'];
+const TYPE_KEYS = ['vmware', 'virtualbox', 'qemu', 'kvm', 'hyper-v', 'xen', 'parallels', 'docker', 'wsl', 'android_emulator', 'ios_simulator', 'container', 'unknown'];
+
+const checkLabelsMap = computed(() => {
+    const map = {};
+    for (const key of CHECK_KEYS) {
+        map[key] = t(`${P}.vm_types.${key}`);
+    }
+    return map;
+});
+
+const typeLabelsMap = computed(() => {
+    const map = {};
+    for (const key of TYPE_KEYS) {
+        if (key === 'unknown') {
+            map[key] = t(`${D}.unknown`);
+        } else if (key === 'hyper-v') {
+            map[key] = t(`${P}.vm_types.hyper_v`);
+        } else {
+            map[key] = t(`${P}.vm_types.${key}`);
+        }
+    }
+    return map;
+});
+
+function checkLabel(key) {
+    return checkLabelsMap.value[key] || key;
+}
+
+function typeLabel(type) {
+    return typeLabelsMap.value[type] || type;
+}
 
 const loading = ref(false);
 const devices = ref([]);
@@ -191,41 +229,10 @@ const configForm = reactive({
     detection_threshold: 2,
 });
 
-const checkLabels = {
-    docker: 'Docker',
-    vmware: 'VMware',
-    virtualbox: 'VirtualBox',
-    kvm: 'KVM',
-    hyper_v: 'Hyper-V',
-    xen: 'Xen',
-    qemu: 'QEMU',
-    parallels: 'Parallels',
-    wsl: 'WSL',
-    android_emulator: 'Android模拟器',
-    ios_simulator: 'iOS模拟器',
-    container: '容器',
-};
-
-const typeLabels = {
-    vmware: 'VMware',
-    virtualbox: 'VirtualBox',
-    qemu: 'QEMU/KVM',
-    kvm: 'KVM',
-    'hyper-v': 'Hyper-V',
-    xen: 'Xen',
-    parallels: 'Parallels',
-    docker: 'Docker',
-    wsl: 'WSL',
-    android_emulator: 'Android模拟器',
-    ios_simulator: 'iOS模拟器',
-    container: '容器',
-    unknown: '未知',
-};
-
 const typeStatsList = computed(() => {
     const ts = stats.value.type_stats || {};
     return Object.entries(ts).map(([type, count]) => ({
-        type: typeLabels[type] || type,
+        type: typeLabel(type),
         count,
     }));
 });
@@ -271,12 +278,12 @@ const handleDetect = async (row) => {
     try {
         const res = await detectVmDevice(row.id);
         if (res.data.success) {
-            ElMessage.success('检测完成');
+            ElMessage.success(t(`${P}.messages.detect_success`));
             loadDevices(page.value);
             loadDashboard();
         }
     } catch (e) {
-        ElMessage.error('检测失败');
+        ElMessage.error(t(`${P}.messages.detect_failed`));
     }
 };
 
@@ -285,13 +292,13 @@ const saveConfig = async () => {
     try {
         const res = await updateVmConfig(configForm);
         if (res.data.success) {
-            ElMessage.success('配置已更新');
+            ElMessage.success(t(`${P}.messages.config_updated`));
             showConfig.value = false;
             loadDashboard();
             loadConfig();
         }
     } catch (e) {
-        ElMessage.error('保存失败');
+        ElMessage.error(t(`${P}.messages.save_failed`));
     }
     finally { savingConfig.value = false; }
 };

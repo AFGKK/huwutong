@@ -1,47 +1,47 @@
 <template>
-  <el-dialog v-model="visible" :title="isEdit ? '编辑渠道' : '新建渠道'" width="620px" destroy-on-close>
+  <el-dialog v-model="visible" :title="isEdit ? t('channel_dialog.edit_title') : t('channel_dialog.create_title')" width="620px" destroy-on-close>
     <el-form ref="formRef" :model="form" :rules="rules" label-width="110px" v-loading="saving">
-      <el-form-item label="渠道名称" prop="name">
-        <el-input v-model="form.name" placeholder="如：618活动推广" maxlength="200" />
+      <el-form-item :label="t('channel_dialog.name')" prop="name">
+        <el-input v-model="form.name" :placeholder="t('channel_dialog.name_placeholder')" maxlength="200" />
       </el-form-item>
       <el-row :gutter="12">
         <el-col :span="12">
-          <el-form-item label="标识" prop="slug">
-            <el-input v-model="form.slug" placeholder="留空自动生成" maxlength="100" />
+          <el-form-item :label="t('channel_dialog.slug')" prop="slug">
+            <el-input v-model="form.slug" :placeholder="t('channel_dialog.slug_placeholder')" maxlength="100" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="类型" prop="type">
+          <el-form-item :label="t('channel_dialog.type')" prop="type">
             <el-select v-model="form.type" style="width:100%">
-              <el-option v-for="t in types" :key="t.value" :label="t.label" :value="t.value" />
+              <el-option v-for="item in types" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
         </el-col>
       </el-row>
-      <el-form-item label="描述">
+      <el-form-item :label="t('channel_dialog.description')">
         <el-input v-model="form.description" type="textarea" :rows="2" />
       </el-form-item>
       <el-row :gutter="12">
         <el-col :span="12">
-          <el-form-item label="状态">
+          <el-form-item :label="t('channel_dialog.status')">
             <el-select v-model="form.status" style="width:100%">
-              <el-option label="活跃" value="active" />
-              <el-option label="停用" value="inactive" />
+              <el-option :label="t('channel_dialog.status_active')" value="active" />
+              <el-option :label="t('channel_dialog.status_inactive')" value="inactive" />
             </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="公开注册">
-            <el-switch v-model="form.is_public" active-text="公开" inactive-text="私有" />
+          <el-form-item :label="t('channel_dialog.public_reg')">
+            <el-switch v-model="form.is_public" :active-text="t('channel_dialog.public')" :inactive-text="t('channel_dialog.private')" />
           </el-form-item>
         </el-col>
       </el-row>
-      <el-form-item label="标签">
+      <el-form-item :label="t('channel_dialog.tags')">
         <el-select v-model="form.tags" multiple filterable allow-create default-first-option style="width:100%">
-          <el-option v-for="tag in ['推广','付费','自然','社媒','邮件']" :key="tag" :label="tag" :value="tag" />
+          <el-option v-for="tag in tagOptions" :key="tag" :label="tag" :value="tag" />
         </el-select>
       </el-form-item>
-      <el-divider>UTM 默认参数</el-divider>
+      <el-divider>{{ t('channel_dialog.utm_defaults') }}</el-divider>
       <el-row :gutter="12">
         <el-col :span="8">
           <el-input v-model="utm.source" placeholder="UTM Source" size="small" />
@@ -56,17 +56,19 @@
     </el-form>
 
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" @click="save" :loading="saving">保存</el-button>
+      <el-button @click="visible = false">{{ t('actions.cancel') }}</el-button>
+      <el-button type="primary" @click="save" :loading="saving">{{ t('actions.save') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { createChannel, updateChannel } from '../../../api/invite-codes'
 
+const { t } = useI18n()
 const emit = defineEmits(['saved'])
 
 const visible = ref(false)
@@ -76,14 +78,22 @@ const saving = ref(false)
 const formRef = ref(null)
 const utm = reactive({ source: '', medium: '', campaign: '' })
 
-const types = [
-  { value: 'promotional', label: '推广' },
-  { value: 'marketing', label: '营销' },
-  { value: 'partner', label: '合作伙伴' },
-  { value: 'event', label: '活动' },
-  { value: 'social', label: '社交' },
-  { value: 'internal', label: '内部' },
-]
+const types = computed(() => [
+  { value: 'promotional', label: t('channel_dialog.types.promotional') },
+  { value: 'marketing', label: t('channel_dialog.types.marketing') },
+  { value: 'partner', label: t('channel_dialog.types.partner') },
+  { value: 'event', label: t('channel_dialog.types.event') },
+  { value: 'social', label: t('channel_dialog.types.social') },
+  { value: 'internal', label: t('channel_dialog.types.internal') },
+])
+
+const tagOptions = computed(() => [
+  t('channel_dialog.tag_options.promo'),
+  t('channel_dialog.tag_options.paid'),
+  t('channel_dialog.tag_options.organic'),
+  t('channel_dialog.tag_options.social'),
+  t('channel_dialog.tag_options.email'),
+])
 
 const defForm = () => ({
   name: '', slug: '', description: '', type: 'promotional',
@@ -93,10 +103,10 @@ const defForm = () => ({
 
 const form = reactive(defForm())
 
-const rules = {
-  name: [{ required: true, message: '请输入渠道名称', trigger: 'blur' }],
-  type: [{ required: true, message: '请选择类型', trigger: 'change' }],
-}
+const rules = computed(() => ({
+  name: [{ required: true, message: t('channel_dialog.rules.name'), trigger: 'blur' }],
+  type: [{ required: true, message: t('channel_dialog.rules.type'), trigger: 'change' }],
+}))
 
 function open(mode, row = null) {
   isEdit.value = mode === 'edit'
@@ -129,15 +139,15 @@ async function save() {
     form.utm_defaults = { ...utm }
     if (isEdit.value) {
       await updateChannel(editId.value, { ...form })
-      ElMessage.success('渠道已更新')
+      ElMessage.success(t('channel_dialog.messages.updated'))
     } else {
       await createChannel({ ...form })
-      ElMessage.success('渠道已创建')
+      ElMessage.success(t('channel_dialog.messages.created'))
     }
     visible.value = false
     emit('saved')
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '保存失败')
+    ElMessage.error(e.response?.data?.message || t('channel_dialog.messages.save_failed'))
   } finally {
     saving.value = false
   }

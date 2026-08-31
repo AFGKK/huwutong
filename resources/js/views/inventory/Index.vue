@@ -1,9 +1,9 @@
 <template>
   <div class="inventory-page">
-    <h2>库存管理</h2>
+    <h2>{{ t('inventory_page.title') }}</h2>
     <el-alert
       v-if="alerts.length > 0"
-      :title="`${alerts.length} 个商品库存不足`"
+      :title="t('inventory_page.alert_low_stock', { n: alerts.length })"
       type="warning"
       show-icon
       :closable="false"
@@ -12,12 +12,12 @@
 
     <el-card shadow="never">
       <template #header>
-        <span>库存快照</span>
+        <span>{{ t('inventory_page.snapshot_title') }}</span>
       </template>
 
       <el-table :data="snapshot" v-loading="loading" stripe>
-        <el-table-column prop="sku_code" label="SKU 编码" />
-        <el-table-column label="商品名称" min-width="160">
+        <el-table-column prop="sku_code" :label="t('inventory_page.cols.sku_code')" />
+        <el-table-column :label="t('inventory_page.cols.product_name')" min-width="160">
           <template #default="{ row }">
             <div>
               <div class="text-sm font-medium">{{ row.product?.name || row.name }}</div>
@@ -25,65 +25,68 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="stock" label="库存" width="100" align="center">
+        <el-table-column prop="stock" :label="t('inventory_page.cols.stock')" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.stock <= (threshold || 10) ? 'danger' : 'success'" effect="plain">
               {{ row.stock }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="sold_count" label="已售" width="100" align="center" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column prop="sold_count" :label="t('inventory_page.cols.sold')" width="100" align="center" />
+        <el-table-column :label="t('inventory_page.cols.actions')" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="openAdjust(row)">调整</el-button>
-            <el-button size="small" @click="openLogs(row)">日志</el-button>
+            <el-button size="small" @click="openAdjust(row)">{{ t('inventory_page.btn_adjust') }}</el-button>
+            <el-button size="small" @click="openLogs(row)">{{ t('inventory_page.btn_logs') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
     <!-- 库存调整对话框 -->
-    <el-dialog v-model="adjustVisible" title="调整库存" width="400px">
+    <el-dialog v-model="adjustVisible" :title="t('inventory_page.adjust_title')" width="400px">
       <el-form ref="adjustForm" :model="adjustData" :rules="adjustRules" label-width="100px">
-        <el-form-item label="当前库存">{{ adjustTarget?.stock ?? 0 }}</el-form-item>
-        <el-form-item label="调整数量" prop="delta">
+        <el-form-item :label="t('inventory_page.current_stock')">{{ adjustTarget?.stock ?? 0 }}</el-form-item>
+        <el-form-item :label="t('inventory_page.delta_label')" prop="delta">
           <el-input-number v-model="adjustData.delta" :min="-99999" :max="99999" />
-          <div class="text-gray text-xs mt-1">正数增加，负数减少</div>
+          <div class="text-gray text-xs mt-1">{{ t('inventory_page.delta_hint') }}</div>
         </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="adjustData.remark" placeholder="选填" maxlength="500" />
+        <el-form-item :label="t('inventory_page.remark_label')" prop="remark">
+          <el-input v-model="adjustData.remark" :placeholder="t('inventory_page.remark_ph')" maxlength="500" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="adjustVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="submitAdjust">确定</el-button>
+        <el-button @click="adjustVisible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="submitAdjust">{{ t('actions.confirm') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 库存日志对话框 -->
-    <el-dialog v-model="logVisible" title="库存变更日志" width="700px">
+    <el-dialog v-model="logVisible" :title="t('inventory_page.log_title')" width="700px">
       <el-table :data="logs" v-loading="logLoading" stripe size="small">
-        <el-table-column prop="created_at" label="时间" width="160" />
-        <el-table-column prop="type" label="类型" width="100">
+        <el-table-column prop="created_at" :label="t('inventory_page.cols.time')" width="160" />
+        <el-table-column prop="type" :label="t('inventory_page.cols.type')" width="100">
           <template #default="{ row }">
             <el-tag :type="row.type === 'deduct' ? 'danger' : row.type === 'add' ? 'success' : 'info'" size="small">
-              {{ row.type }}
+              {{ logTypeLabel(row.type) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="quantity" label="变动数量" width="80" align="center" />
-        <el-table-column prop="stock_before" label="前" width="80" align="center" />
-        <el-table-column prop="stock_after" label="后" width="80" align="center" />
-        <el-table-column prop="remark" label="备注" min-width="120" />
+        <el-table-column prop="quantity" :label="t('inventory_page.cols.quantity')" width="80" align="center" />
+        <el-table-column prop="stock_before" :label="t('inventory_page.cols.before')" width="80" align="center" />
+        <el-table-column prop="stock_after" :label="t('inventory_page.cols.after')" width="80" align="center" />
+        <el-table-column prop="remark" :label="t('inventory_page.remark_label')" min-width="120" />
       </el-table>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import api from '@/api/inventory'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const snapshot = ref([])
@@ -94,9 +97,22 @@ const threshold = ref(10)
 const adjustVisible = ref(false)
 const adjustTarget = ref(null)
 const adjustData = ref({ delta: 0, remark: '' })
-const adjustRules = { delta: [{ required: true, type: 'number', message: '请输入调整数量' }] }
 const submitting = ref(false)
 const adjustForm = ref(null)
+
+const adjustRules = computed(() => ({
+  delta: [{ required: true, type: 'number', message: t('inventory_page.validation.delta_required') }],
+}))
+
+const logTypeLabels = computed(() => ({
+  add: t('inventory_page.log_types.add'),
+  deduct: t('inventory_page.log_types.deduct'),
+  manual: t('inventory_page.log_types.manual'),
+}))
+
+function logTypeLabel(type) {
+  return logTypeLabels.value[type] || type
+}
 
 // Log dialog
 const logVisible = ref(false)
@@ -131,11 +147,11 @@ async function submitAdjust() {
   submitting.value = true
   try {
     await api.adjust(adjustTarget.value.id, adjustData.value)
-    ElMessage.success('库存已调整')
+    ElMessage.success(t('inventory_page.messages.adjusted'))
     adjustVisible.value = false
     await fetchData()
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '调整失败')
+    ElMessage.error(e.response?.data?.message || t('inventory_page.messages.adjust_failed'))
   } finally {
     submitting.value = false
   }

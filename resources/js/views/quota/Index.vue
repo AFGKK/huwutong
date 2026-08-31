@@ -2,35 +2,35 @@
     <div class="quota-page">
         <div class="page-header">
             <div>
-                <h2>限流与配额管理</h2>
-                <p class="text-muted">管理 API 密钥的调用频率上限和用量配额，超额自动拦截</p>
+                <h2>{{ t('quota_page.title') }}</h2>
+                <p class="text-muted">{{ t('quota_page.subtitle') }}</p>
             </div>
-            <el-button @click="loadAll" :loading="loading" :icon="Refresh">刷新</el-button>
+            <el-button @click="loadAll" :loading="loading" :icon="Refresh">{{ t('quota_page.refresh') }}</el-button>
         </div>
 
         <!-- 概览统计 -->
         <el-row :gutter="16" class="mb-4">
             <el-col :xs="12" :sm="6">
                 <el-card shadow="hover">
-                    <div class="stat-label">总密钥数</div>
+                    <div class="stat-label">{{ t('quota_page.stats.total_keys') }}</div>
                     <div class="stat-value">{{ overview.total_keys || 0 }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6">
                 <el-card shadow="hover">
-                    <div class="stat-label">活跃密钥</div>
+                    <div class="stat-label">{{ t('quota_page.stats.active_keys') }}</div>
                     <div class="stat-value" style="color:#67c23a">{{ overview.active_keys || 0 }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6">
                 <el-card shadow="hover">
-                    <div class="stat-label" style="color:#e6a23c">接近限额</div>
+                    <div class="stat-label" style="color:#e6a23c">{{ t('quota_page.stats.near_quota') }}</div>
                     <div class="stat-value" style="color:#e6a23c">{{ overview.keys_near_quota || 0 }}</div>
                 </el-card>
             </el-col>
             <el-col :xs="12" :sm="6">
                 <el-card shadow="hover">
-                    <div class="stat-label">即将过期</div>
+                    <div class="stat-label">{{ t('quota_page.stats.expiring_soon') }}</div>
                     <div class="stat-value" style="color:#f56c6c">{{ overview.keys_expiring_soon || 0 }}</div>
                 </el-card>
             </el-col>
@@ -39,11 +39,11 @@
         <!-- 搜索筛选 -->
         <el-card shadow="hover" class="mb-4">
             <el-form :inline="true" @submit.prevent="doSearch">
-                <el-form-item label="搜索">
-                    <el-input v-model="search" placeholder="密钥名称/ID" clearable style="width:200px" />
+                <el-form-item :label="t('actions.search')">
+                    <el-input v-model="search" :placeholder="t('quota_page.search_placeholder')" clearable style="width:200px" />
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" native-type="submit" :icon="Search">查询</el-button>
+                    <el-button type="primary" native-type="submit" :icon="Search">{{ t('actions.search') }}</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -51,14 +51,14 @@
         <!-- 密钥配额列表 -->
         <el-card shadow="hover">
             <el-table :data="keys" v-loading="loading" stripe>
-                <el-table-column label="密钥名称" min-width="140" prop="name" />
-                <el-table-column label="Key ID" width="150">
+                <el-table-column :label="t('quota_page.columns.key_name')" min-width="140" prop="name" />
+                <el-table-column :label="t('quota_page.columns.key_id')" width="150">
                     <template #default="{ row }"><code style="font-size:12px">{{ row.key_id }}</code></template>
                 </el-table-column>
-                <el-table-column label="限流" width="80" align="center">
-                    <template #default="{ row }">{{ row.rate_limit ? row.rate_limit + '/s' : '不限' }}</template>
+                <el-table-column :label="t('quota_page.columns.rate_limit')" width="80" align="center">
+                    <template #default="{ row }">{{ formatRateLimit(row.rate_limit) }}</template>
                 </el-table-column>
-                <el-table-column label="总用量配额" min-width="160">
+                <el-table-column :label="t('quota_page.columns.usage_quota')" min-width="160">
                     <template #default="{ row }">
                         <div v-if="row.usage_quota" class="quota-bar">
                             <el-progress
@@ -70,10 +70,10 @@
                                 {{ row.usage_count }}/{{ row.usage_quota }}
                             </el-progress>
                         </div>
-                        <span v-else class="text-muted">不限</span>
+                        <span v-else class="text-muted">{{ t('quota_page.unlimited') }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="每日配额" min-width="160">
+                <el-table-column :label="t('quota_page.columns.daily_quota')" min-width="160">
                     <template #default="{ row }">
                         <div v-if="row.daily_quota" class="quota-bar">
                             <el-progress
@@ -85,31 +85,31 @@
                                 {{ row.daily_usage }}/{{ row.daily_quota }}
                             </el-progress>
                         </div>
-                        <span v-else class="text-muted">不限</span>
+                        <span v-else class="text-muted">{{ t('quota_page.unlimited') }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="状态" width="80">
+                <el-table-column :label="t('quota_page.columns.status')" width="80">
                     <template #default="{ row }">
                         <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
-                            {{ row.is_active ? '启用' : '禁用' }}
+                            {{ statusLabel(row.is_active) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="过期时间" width="120">
+                <el-table-column :label="t('quota_page.columns.expires_at')" width="120">
                     <template #default="{ row }">
                         <span v-if="row.expires_at" :class="isExpiring(row.expires_at) ? 'expiry-warning' : ''">
                             {{ fmtDate(row.expires_at) }}
                         </span>
-                        <span v-else class="text-muted">永久</span>
+                        <span v-else class="text-muted">{{ t('quota_page.permanent') }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="120" fixed="right">
+                <el-table-column :label="t('quota_page.columns.actions')" width="120" fixed="right">
                     <template #default="{ row }">
-                        <el-button size="small" link type="primary" @click="editQuota(row)">编辑配额</el-button>
+                        <el-button size="small" link type="primary" @click="editQuota(row)">{{ t('quota_page.edit_quota') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
-            <el-empty v-if="!keys.length && !loading" description="暂无 API 密钥" :image-size="60" />
+            <el-empty v-if="!keys.length && !loading" :description="t('quota_page.empty')" :image-size="60" />
 
             <div class="pagination-wrap" v-if="total > 0">
                 <el-pagination
@@ -125,37 +125,40 @@
         </el-card>
 
         <!-- 编辑配额对话框 -->
-        <el-dialog v-model="editVisible" title="编辑配额" width="480px">
+        <el-dialog v-model="editVisible" :title="t('quota_page.edit_dialog.title')" width="480px">
             <el-form :model="editForm" label-position="top">
-                <el-form-item label="密钥">
+                <el-form-item :label="t('quota_page.edit_dialog.key')">
                     <el-tag>{{ editForm.name }}</el-tag>
                 </el-form-item>
-                <el-form-item label="限流（每秒请求数）">
-                    <el-input-number v-model="editForm.rate_limit" :min="1" :max="10000" :step="100" placeholder="不限" style="width:100%" />
-                    <div class="form-hint">0 或空表示不限流</div>
+                <el-form-item :label="t('quota_page.edit_dialog.rate_limit')">
+                    <el-input-number v-model="editForm.rate_limit" :min="1" :max="10000" :step="100" :placeholder="t('quota_page.unlimited')" style="width:100%" />
+                    <div class="form-hint">{{ t('quota_page.edit_dialog.rate_limit_hint') }}</div>
                 </el-form-item>
-                <el-form-item label="总用量配额">
-                    <el-input-number v-model="editForm.usage_quota" :min="1" :step="1000" placeholder="不限" style="width:100%" />
-                    <div class="form-hint">0 或空表示不限制总用量</div>
+                <el-form-item :label="t('quota_page.edit_dialog.usage_quota')">
+                    <el-input-number v-model="editForm.usage_quota" :min="1" :step="1000" :placeholder="t('quota_page.unlimited')" style="width:100%" />
+                    <div class="form-hint">{{ t('quota_page.edit_dialog.usage_quota_hint') }}</div>
                 </el-form-item>
-                <el-form-item label="每日用量配额">
-                    <el-input-number v-model="editForm.daily_quota" :min="1" :step="100" placeholder="不限" style="width:100%" />
-                    <div class="form-hint">0 或空表示不限制每日用量</div>
+                <el-form-item :label="t('quota_page.edit_dialog.daily_quota')">
+                    <el-input-number v-model="editForm.daily_quota" :min="1" :step="100" :placeholder="t('quota_page.unlimited')" style="width:100%" />
+                    <div class="form-hint">{{ t('quota_page.edit_dialog.daily_quota_hint') }}</div>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="editVisible = false">取消</el-button>
-                <el-button type="primary" :loading="saving" @click="saveQuota">保存</el-button>
+                <el-button @click="editVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="saving" @click="saveQuota">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Refresh, Search } from '@element-plus/icons-vue';
 import apiKeyApi from '@/api/apiKey';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const saving = ref(false);
@@ -174,16 +177,31 @@ const editForm = reactive({
     id: null, name: '', rate_limit: null, usage_quota: null, daily_quota: null,
 });
 
-function fmtDate(t) {
-    if (!t) return '-';
-    return new Date(t).toLocaleString('zh-CN', {
+const statusLabels = computed(() => ({
+    true: t('actions.enable'),
+    false: t('actions.disable'),
+}));
+
+function statusLabel(isActive) {
+    return statusLabels.value[isActive] ?? String(isActive);
+}
+
+function formatRateLimit(limit) {
+    if (!limit) return t('quota_page.unlimited');
+    return t('quota_page.rate_per_sec', { n: limit });
+}
+
+function fmtDate(time) {
+    if (!time) return '-';
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(time).toLocaleString(loc, {
         year: 'numeric', month: '2-digit', day: '2-digit',
     });
 }
 
-function isExpiring(t) {
-    if (!t) return false;
-    const days = (new Date(t) - new Date()) / (1000 * 60 * 60 * 24);
+function isExpiring(time) {
+    if (!time) return false;
+    const days = (new Date(time) - new Date()) / (1000 * 60 * 60 * 24);
     return days <= 14 && days > 0;
 }
 
@@ -235,12 +253,12 @@ async function saveQuota() {
             usage_quota: editForm.usage_quota || null,
             daily_quota: editForm.daily_quota || null,
         });
-        ElMessage.success('配额已更新');
+        ElMessage.success(t('quota_page.messages.updated'));
         editVisible.value = false;
         loadKeys();
         loadOverview();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '保存失败');
+        ElMessage.error(e.response?.data?.message || t('quota_page.messages.save_failed'));
     } finally {
         saving.value = false;
     }

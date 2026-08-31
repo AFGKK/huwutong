@@ -1,7 +1,7 @@
 <x-mail::message>
 # {{ $post->title }}
 
-**作者:** {{ $post->author }} | **发布时间:** {{ $post->published_at->format('Y-m-d') }}
+**{{ __('app.mail.blog_published.author') }}:** {{ $post->author }} | **{{ __('app.mail.blog_published.published_at') }}:** {{ $post->published_at->format('Y-m-d') }}
 
 @if($post->excerpt)
 {{ $post->excerpt }}
@@ -13,10 +13,10 @@
 @endif
 
 <x-mail::button :url="url('/blog/' . $post->slug)">
-阅读全文
+{{ __('app.mail.blog_published.read_more') }}
 </x-mail::button>
 
 ---
 
-如果你不想再收到此类邮件，可以 <a href="{{ $unsubscribeUrl }}" style="color: #909399;">取消订阅</a>
+{{ __('app.mail.blog_published.unsubscribe') }} <a href="{{ $unsubscribeUrl }}" style="color: #909399;">{{ __('app.mail.blog_published.unsubscribe_link') }}</a>
 </x-mail::message>

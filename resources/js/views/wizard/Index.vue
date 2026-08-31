@@ -1,22 +1,24 @@
 <template>
     <div class="wizard-page">
         <div class="page-header">
-            <h2>AI 集成向导</h2>
-            <p class="header-subtitle">选择语言 → 选择产品 → 获取配置 → 验证连通性，5 分钟完成接入</p>
+            <h2>{{ t('wizard_page.title') }}</h2>
+            <p class="header-subtitle">{{ t('wizard_page.subtitle') }}</p>
         </div>
 
         <!-- 步骤条 -->
         <el-steps :active="currentStep - 1" align-center class="wizard-steps">
-            <el-step title="选择语言" description="选择您的开发语言" />
-            <el-step title="选择产品" description="选择要集成的产品" />
-            <el-step title="获取配置" description="自动生成 SDK 代码" />
-            <el-step title="验证连通" description="一键测试 API 连接" />
+            <el-step
+                v-for="(step, idx) in wizardSteps"
+                :key="idx"
+                :title="step.title"
+                :description="step.description"
+            />
         </el-steps>
 
         <!-- 步骤 1: 选择语言 -->
         <div v-if="currentStep === 1" class="step-content">
-            <h3 class="step-title">选择您的开发语言</h3>
-            <p class="step-desc">我们为您生成了各语言的 SDK 配置代码</p>
+            <h3 class="step-title">{{ t('wizard_page.step1.title') }}</h3>
+            <p class="step-desc">{{ t('wizard_page.step1.desc') }}</p>
 
             <div class="language-grid">
                 <div
@@ -47,7 +49,7 @@
 
             <div class="step-actions">
                 <el-button type="primary" size="large" :disabled="!selectedLanguage" @click="nextStep">
-                    下一步
+                    {{ t('actions.next') }}
                     <el-icon><ArrowRight /></el-icon>
                 </el-button>
             </div>
@@ -55,8 +57,8 @@
 
         <!-- 步骤 2: 选择产品 -->
         <div v-if="currentStep === 2" class="step-content">
-            <h3 class="step-title">选择要集成的产品</h3>
-            <p class="step-desc">选择您已购买或需要测试的产品</p>
+            <h3 class="step-title">{{ t('wizard_page.step2.title') }}</h3>
+            <p class="step-desc">{{ t('wizard_page.step2.desc') }}</p>
 
             <div v-loading="productsLoading" class="product-list">
                 <div
@@ -72,22 +74,22 @@
                             <code>{{ product.slug }}</code>
                             <el-tag size="small" type="info" effect="plain" class="version-tag">v{{ product.version }}</el-tag>
                         </div>
-                        <div class="product-desc">{{ product.description || '暂无描述' }}</div>
+                        <div class="product-desc">{{ product.description || t('wizard_page.step2.no_description') }}</div>
                     </div>
-                    <el-icon v-if="selectedProduct === product.id" class="check-icon" color="#409EFF">
+                    <el-icon v-if="selectedProduct === product.id" class="check-icon" color="#0f172a">
                         <CircleCheck />
                     </el-icon>
                 </div>
 
-                <el-empty v-if="!productsLoading && productList.length === 0" description="暂无可用产品" />
+                <el-empty v-if="!productsLoading && productList.length === 0" :description="t('wizard_page.step2.no_products')" />
             </div>
 
             <div class="step-actions">
                 <el-button @click="prevStep">
-                    <el-icon><ArrowLeft /></el-icon> 上一步
+                    <el-icon><ArrowLeft /></el-icon> {{ t('actions.prev') }}
                 </el-button>
                 <el-button type="primary" size="large" :disabled="!selectedProduct" @click="nextStep">
-                    下一步
+                    {{ t('actions.next') }}
                     <el-icon><ArrowRight /></el-icon>
                 </el-button>
             </div>
@@ -95,35 +97,35 @@
 
         <!-- 步骤 3: 获取配置 -->
         <div v-if="currentStep === 3" class="step-content">
-            <h3 class="step-title">SDK 配置代码</h3>
-            <p class="step-desc">根据您选择的语言和产品，自动生成集成代码</p>
+            <h3 class="step-title">{{ t('wizard_page.step3.title') }}</h3>
+            <p class="step-desc">{{ t('wizard_page.step3.desc') }}</p>
 
             <div v-if="!generatedConfig" class="config-form">
                 <el-form :model="configForm" label-width="120px" label-position="right">
-                    <el-form-item label="License Key" required>
+                    <el-form-item :label="t('wizard_page.step3.license_key')" required>
                         <el-input
                             v-model="configForm.license_key"
-                            placeholder="输入您的 License Key"
+                            :placeholder="t('wizard_page.step3.license_key_placeholder')"
                             style="max-width: 450px;"
                         />
-                        <div class="form-tip">没有 License？先去「License 管理」创建一个</div>
+                        <div class="form-tip">{{ t('wizard_page.step3.license_key_tip') }}</div>
                     </el-form-item>
-                    <el-form-item label="API 地址">
+                    <el-form-item :label="t('wizard_page.step3.api_host')">
                         <el-input
                             v-model="configForm.api_host"
-                            placeholder="默认: {{ defaultApiUrl }}"
+                            :placeholder="t('wizard_page.step3.api_host_placeholder', { url: defaultApiUrl })"
                             style="max-width: 450px;"
                         />
-                        <div class="form-tip">默认使用当前服务的 API 地址</div>
+                        <div class="form-tip">{{ t('wizard_page.step3.api_host_tip') }}</div>
                     </el-form-item>
                 </el-form>
 
                 <div class="step-actions">
                     <el-button @click="prevStep">
-                        <el-icon><ArrowLeft /></el-icon> 上一步
+                        <el-icon><ArrowLeft /></el-icon> {{ t('actions.prev') }}
                     </el-button>
                     <el-button type="primary" size="large" :loading="generatingConfig" @click="generateConfig">
-                        <el-icon><MagicStick /></el-icon> 生成配置代码
+                        <el-icon><MagicStick /></el-icon> {{ t('wizard_page.step3.generate_config') }}
                     </el-button>
                 </div>
             </div>
@@ -131,7 +133,7 @@
             <!-- 生成的代码 -->
             <div v-else class="config-result">
                 <el-alert
-                    title="配置已生成！您可以复制下方代码到您的项目中。"
+                    :title="t('wizard_page.step3.config_generated')"
                     type="success"
                     show-icon
                     :closable="false"
@@ -139,33 +141,33 @@
                 />
 
                 <el-tabs v-model="activeTab" type="border-card">
-                    <el-tab-pane label="激活代码" name="activate">
+                    <el-tab-pane :label="t('wizard_page.step3.tab_activate')" name="activate">
                         <div class="code-block">
                             <div class="code-header">
-                                <span class="code-lang">{{ selectedLanguageLabel }} - 激活 License</span>
+                                <span class="code-lang">{{ t('wizard_page.step3.code_activate', { lang: selectedLanguageLabel }) }}</span>
                                 <el-button text size="small" @click="copyCode(generatedConfig.snippets?.activate)">
-                                    <el-icon><CopyDocument /></el-icon> 复制
+                                    <el-icon><CopyDocument /></el-icon> {{ t('actions.copy') }}
                                 </el-button>
                             </div>
-                            <pre><code>{{ generatedConfig.snippets?.activate || '// 暂无代码' }}</code></pre>
+                            <pre><code>{{ generatedConfig.snippets?.activate || t('wizard_page.step3.no_code') }}</code></pre>
                         </div>
                     </el-tab-pane>
-                    <el-tab-pane label="验证代码" name="validate">
+                    <el-tab-pane :label="t('wizard_page.step3.tab_validate')" name="validate">
                         <div class="code-block">
                             <div class="code-header">
-                                <span class="code-lang">{{ selectedLanguageLabel }} - 验证 License</span>
+                                <span class="code-lang">{{ t('wizard_page.step3.code_validate', { lang: selectedLanguageLabel }) }}</span>
                                 <el-button text size="small" @click="copyCode(generatedConfig.snippets?.validate)">
-                                    <el-icon><CopyDocument /></el-icon> 复制
+                                    <el-icon><CopyDocument /></el-icon> {{ t('actions.copy') }}
                                 </el-button>
                             </div>
-                            <pre><code>{{ generatedConfig.snippets?.validate || '// 暂无代码' }}</code></pre>
+                            <pre><code>{{ generatedConfig.snippets?.validate || t('wizard_page.step3.no_code') }}</code></pre>
                         </div>
                     </el-tab-pane>
                 </el-tabs>
 
                 <el-card shadow="never" class="instructions-card">
                     <template #header>
-                        <span><el-icon><InfoFilled /></el-icon> 集成步骤</span>
+                        <span><el-icon><InfoFilled /></el-icon> {{ t('wizard_page.step3.integration_steps') }}</span>
                     </template>
                     <el-steps direction="vertical" :active="-1">
                         <el-step
@@ -179,10 +181,10 @@
 
                 <div class="step-actions">
                     <el-button @click="generatedConfig = null">
-                        <el-icon><Edit /></el-icon> 重新配置
+                        <el-icon><Edit /></el-icon> {{ t('wizard_page.step3.reconfigure') }}
                     </el-button>
                     <el-button type="primary" size="large" @click="nextStep">
-                        <el-icon><Connection /></el-icon> 验证连通性
+                        <el-icon><Connection /></el-icon> {{ t('wizard_page.step3.verify_connectivity') }}
                     </el-button>
                 </div>
             </div>
@@ -190,8 +192,8 @@
 
         <!-- 步骤 4: 验证连通性 -->
         <div v-if="currentStep === 4" class="step-content">
-            <h3 class="step-title">验证连通性</h3>
-            <p class="step-desc">测试您的 License Key 与服务端的连接是否正常</p>
+            <h3 class="step-title">{{ t('wizard_page.step4.title') }}</h3>
+            <p class="step-desc">{{ t('wizard_page.step4.desc') }}</p>
 
             <div v-if="!connectivityResult" class="connectivity-start">
                 <el-button
@@ -200,16 +202,16 @@
                     :loading="testingConnectivity"
                     @click="testConnectivity"
                 >
-                    <el-icon><Aim /></el-icon> 开始测试
+                    <el-icon><Aim /></el-icon> {{ t('wizard_page.step4.start_test') }}
                 </el-button>
-                <p class="test-desc">将使用 {{ configForm.license_key ? configForm.license_key.slice(0, 16) + '...' : '已配置的 License' }} 进行连通性测试</p>
+                <p class="test-desc">{{ t('wizard_page.step4.test_with_key', { key: testLicenseLabel }) }}</p>
             </div>
 
             <div v-else class="connectivity-result">
                 <el-result
                     :icon="connectivityResult.overall_success ? 'success' : 'error'"
-                    :title="connectivityResult.overall_success ? '所有检查通过！' : '部分检查未通过'"
-                    :sub-title="connectivityResult.overall_success ? '集成配置可用，可以开始开发了！' : '请根据下方详情修复问题'"
+                    :title="connectivityResult.overall_success ? t('wizard_page.step4.all_passed') : t('wizard_page.step4.partial_failed')"
+                    :sub-title="connectivityResult.overall_success ? t('wizard_page.step4.success_sub') : t('wizard_page.step4.fail_sub')"
                 >
                     <template #extra>
                         <el-button
@@ -217,9 +219,9 @@
                             type="primary"
                             @click="testConnectivity"
                         >
-                            重试
+                            {{ t('actions.retry') }}
                         </el-button>
-                        <el-button @click="currentStep = 3">返回配置</el-button>
+                        <el-button @click="currentStep = 3">{{ t('wizard_page.step4.back_to_config') }}</el-button>
                     </template>
                 </el-result>
 
@@ -241,10 +243,10 @@
 
                 <div class="step-actions">
                     <el-button type="primary" @click="$router.push('/licenses')">
-                        <el-icon><Key /></el-icon> 管理 License
+                        <el-icon><Key /></el-icon> {{ t('wizard_page.step4.manage_licenses') }}
                     </el-button>
                     <el-button @click="$router.push('/dashboard')">
-                        返回仪表盘
+                        {{ t('wizard_page.step4.back_dashboard') }}
                     </el-button>
                 </div>
             </div>
@@ -254,12 +256,15 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import {
     ArrowRight, ArrowLeft, CircleCheck, MagicStick,
     CopyDocument, InfoFilled, Edit, Connection, Aim, Key,
 } from '@element-plus/icons-vue';
 import wizardApi from '@/api/wizard';
+
+const { t } = useI18n();
 
 const currentStep = ref(1);
 const languages = ref([]);
@@ -280,15 +285,30 @@ const configForm = ref({
 
 const defaultApiUrl = window.location.origin || 'https://api.huwutong.com';
 
-const checkLabels = {
-    api_reachable: 'API 服务可达性',
-    license_valid: 'License 有效性',
-    sdk_handshake: 'SDK 握手测试',
-};
+const wizardStepKeys = ['language', 'product', 'config', 'connectivity'];
+
+const wizardSteps = computed(() =>
+    wizardStepKeys.map((key) => ({
+        title: t(`wizard_page.steps.${key}.title`),
+        description: t(`wizard_page.steps.${key}.desc`),
+    }))
+);
+
+const checkLabels = computed(() => ({
+    api_reachable: t('wizard_page.checks.api_reachable'),
+    license_valid: t('wizard_page.checks.license_valid'),
+    sdk_handshake: t('wizard_page.checks.sdk_handshake'),
+}));
 
 const selectedLanguageLabel = computed(() => {
     const lang = languages.value.find(l => l.id === selectedLanguage.value);
     return lang ? lang.name : selectedLanguage.value.toUpperCase();
+});
+
+const testLicenseLabel = computed(() => {
+    const key = configForm.value.license_key;
+    if (key) return `${key.slice(0, 16)}...`;
+    return t('wizard_page.step4.configured_license');
 });
 
 const selectedProductInfo = computed(() => {
@@ -318,7 +338,7 @@ async function loadProducts() {
             }
         }
     } catch {
-        ElMessage.warning('加载产品列表失败');
+        ElMessage.warning(t('wizard_page.messages.load_products_failed'));
     } finally {
         productsLoading.value = false;
     }
@@ -341,7 +361,7 @@ function prevStep() {
 
 async function generateConfig() {
     if (!configForm.value.license_key) {
-        ElMessage.warning('请输入 License Key');
+        ElMessage.warning(t('wizard_page.messages.license_key_required'));
         return;
     }
 
@@ -355,10 +375,10 @@ async function generateConfig() {
         });
         if (res.success) {
             generatedConfig.value = res.data;
-            ElMessage.success('配置代码已生成');
+            ElMessage.success(t('wizard_page.messages.config_generated'));
         }
     } catch {
-        ElMessage.error('配置生成失败');
+        ElMessage.error(t('wizard_page.messages.config_generate_failed'));
     } finally {
         generatingConfig.value = false;
     }
@@ -376,17 +396,17 @@ async function testConnectivity() {
         if (res.success) {
             connectivityResult.value = res.data;
             if (res.data.overall_success) {
-                ElMessage.success('所有检查通过！');
+                ElMessage.success(t('wizard_page.messages.all_checks_passed'));
             } else {
-                ElMessage.warning('部分检查未通过，请查看详情');
+                ElMessage.warning(t('wizard_page.messages.partial_checks_failed'));
             }
         }
     } catch {
-        ElMessage.error('连通性测试失败');
+        ElMessage.error(t('wizard_page.messages.connectivity_test_failed'));
         connectivityResult.value = {
             overall_success: false,
             checks: {
-                api_reachable: { success: false, status: 0, message: '请求异常' },
+                api_reachable: { success: false, status: 0, message: t('wizard_page.messages.request_error') },
             },
         };
     } finally {
@@ -397,16 +417,15 @@ async function testConnectivity() {
 function copyCode(code) {
     if (!code) return;
     navigator.clipboard.writeText(code).then(() => {
-        ElMessage.success('代码已复制到剪贴板');
+        ElMessage.success(t('portal.copied_clipboard'));
     }).catch(() => {
-        // fallback
         const ta = document.createElement('textarea');
         ta.value = code;
         document.body.appendChild(ta);
         ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
-        ElMessage.success('代码已复制到剪贴板');
+        ElMessage.success(t('portal.copied_clipboard'));
     });
 }
 
@@ -479,7 +498,7 @@ onMounted(() => {
 .icon-placeholder.go { background: #00ADD8; }
 .icon-placeholder.dotnet { background: #512BD4; }
 .icon-placeholder.rust { background: #DEA584; color: #333; }
-.icon-placeholder.api { background: #409EFF; }
+.icon-placeholder.api { background: #0f172a; }
 .lang-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
 .lang-desc { font-size: 12px; color: var(--el-text-color-secondary); }
 

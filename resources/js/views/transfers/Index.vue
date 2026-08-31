@@ -1,13 +1,13 @@
 <template>
     <div class="transfers-page">
         <div class="page-header">
-            <h2>License 转移</h2>
+            <h2>{{ t(`${P}.title`) }}</h2>
             <div class="header-actions">
                 <el-button @click="loadAll" :loading="loading">
-                    <el-icon><Refresh /></el-icon> 刷新
+                    <el-icon><Refresh /></el-icon> {{ t('ownership_transfer_page.refresh') }}
                 </el-button>
                 <el-button type="primary" @click="showCreateDialog = true">
-                    <el-icon><Plus /></el-icon> 新建转移
+                    <el-icon><Plus /></el-icon> {{ t(`${P}.create_transfer`) }}
                 </el-button>
             </div>
         </div>
@@ -16,37 +16,37 @@
         <el-row :gutter="16" class="mb-4">
             <el-col :span="4">
                 <el-card shadow="hover">
-                    <div class="stat-label">总请求</div>
+                    <div class="stat-label">{{ t(`${P}.stats.total_requests`) }}</div>
                     <div class="stat-value">{{ stats.total }}</div>
                 </el-card>
             </el-col>
             <el-col :span="4">
                 <el-card shadow="hover" class="stat-warning">
-                    <div class="stat-label">待审批</div>
+                    <div class="stat-label">{{ t(`${P}.stats.pending`) }}</div>
                     <div class="stat-value">{{ stats.pending }}</div>
                 </el-card>
             </el-col>
             <el-col :span="4">
                 <el-card shadow="hover" class="stat-active">
-                    <div class="stat-label">已完成</div>
+                    <div class="stat-label">{{ t('ownership_transfer_page.stats.completed') }}</div>
                     <div class="stat-value">{{ stats.completed }}</div>
                 </el-card>
             </el-col>
             <el-col :span="4">
                 <el-card shadow="hover" class="stat-info">
-                    <div class="stat-label">已批准</div>
+                    <div class="stat-label">{{ t(`${P}.stats.approved`) }}</div>
                     <div class="stat-value">{{ stats.approved }}</div>
                 </el-card>
             </el-col>
             <el-col :span="4">
                 <el-card shadow="hover" class="stat-danger">
-                    <div class="stat-label">已拒绝</div>
+                    <div class="stat-label">{{ t('ownership_transfer_page.stats.rejected') }}</div>
                     <div class="stat-value">{{ stats.rejected }}</div>
                 </el-card>
             </el-col>
             <el-col :span="4">
                 <el-card shadow="hover">
-                    <div class="stat-label">已取消</div>
+                    <div class="stat-label">{{ t(`${P}.stats.cancelled`) }}</div>
                     <div class="stat-value">{{ stats.cancelled }}</div>
                 </el-card>
             </el-col>
@@ -55,28 +55,22 @@
         <!-- 过滤器 -->
         <el-card class="mb-4">
             <el-form :model="filters" inline size="small">
-                <el-form-item label="状态">
-                    <el-select v-model="filters.status" placeholder="全部" clearable style="width:140px">
-                        <el-option label="待审批" value="pending" />
-                        <el-option label="已批准" value="approved" />
-                        <el-option label="已拒绝" value="rejected" />
-                        <el-option label="已取消" value="cancelled" />
-                        <el-option label="已完成" value="completed" />
+                <el-form-item :label="t('ownership_transfer_page.status')">
+                    <el-select v-model="filters.status" :placeholder="t('licenses_page.all')" clearable style="width:140px">
+                        <el-option v-for="opt in statusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="类型">
-                    <el-select v-model="filters.type" placeholder="全部" clearable style="width:140px">
-                        <el-option label="设备转移" value="device_transfer" />
-                        <el-option label="客户转移" value="customer_transfer" />
-                        <el-option label="用户转移" value="user_transfer" />
+                <el-form-item :label="t('ownership_transfer_page.type')">
+                    <el-select v-model="filters.type" :placeholder="t('licenses_page.all')" clearable style="width:140px">
+                        <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="搜索">
-                    <el-input v-model="filters.search" placeholder="引用号/License Key" style="width:200px" clearable />
+                <el-form-item :label="t('actions.search')">
+                    <el-input v-model="filters.search" :placeholder="t(`${P}.search_ph`)" style="width:200px" clearable />
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="loadList">搜索</el-button>
-                    <el-button @click="resetFilters">重置</el-button>
+                    <el-button type="primary" @click="loadList">{{ t('actions.search') }}</el-button>
+                    <el-button @click="resetFilters">{{ t('actions.reset') }}</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -84,8 +78,8 @@
         <!-- 转移请求列表 -->
         <el-card>
             <el-table :data="requests" stripe v-loading="loadingList">
-                <el-table-column prop="reference" label="引用号" width="160" />
-                <el-table-column label="类型" width="100">
+                <el-table-column prop="reference" :label="t(`${P}.col_reference`)" width="160" />
+                <el-table-column :label="t('ownership_transfer_page.type')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="row.type === 'device_transfer' ? 'primary' : row.type === 'customer_transfer' ? 'success' : 'warning'"
                             size="small">
@@ -93,36 +87,36 @@
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="状态" width="90">
+                <el-table-column :label="t('ownership_transfer_page.status')" width="90">
                     <template #default="{ row }">
                         <el-tag :type="statusType(row.status)" size="small">
                             {{ statusLabel(row.status) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="License" min-width="180">
+                <el-table-column :label="t(`${P}.col_license`)" min-width="180">
                     <template #default="{ row }">
-                        <code>{{ row.license?.license_key ?? '-' }}</code>
+                        <code>{{ row.transferable?.license_key ?? '-' }}</code>
                     </template>
                 </el-table-column>
-                <el-table-column label="原因" min-width="160" show-overflow-tooltip prop="reason" />
-                <el-table-column label="申请人" width="120" prop="requester?.name" />
-                <el-table-column label="审批人" width="120" prop="approver?.name" />
-                <el-table-column label="创建时间" width="160">
+                <el-table-column :label="t(`${P}.col_reason`)" min-width="160" show-overflow-tooltip prop="reason" />
+                <el-table-column :label="t('ownership_transfer_page.col_requester')" width="120" prop="requester?.name" />
+                <el-table-column :label="t('ownership_transfer_page.label_approver')" width="120" prop="approver?.name" />
+                <el-table-column :label="t('ownership_transfer_page.col_created_at')" width="160">
                     <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
                 </el-table-column>
-                <el-table-column label="操作" width="240" fixed="right">
+                <el-table-column :label="t('ownership_transfer_page.col_actions')" width="240" fixed="right">
                     <template #default="{ row }">
-                        <el-button size="small" @click="viewDetail(row)">详情</el-button>
+                        <el-button size="small" @click="viewDetail(row)">{{ t('ownership_transfer_page.detail') }}</el-button>
                         <el-button v-if="row.status === 'pending'"
                             size="small" type="success"
-                            @click="showApproveDialog(row)">批准</el-button>
+                            @click="showApproveDialog(row)">{{ t(`${P}.approve`) }}</el-button>
                         <el-button v-if="row.status === 'pending'"
                             size="small" type="danger"
-                            @click="showRejectDialog(row)">拒绝</el-button>
+                            @click="showRejectDialog(row)">{{ t('ownership_transfer_page.reject') }}</el-button>
                         <el-button v-if="row.status === 'pending'"
                             size="small"
-                            @click="confirmCancel(row)">取消</el-button>
+                            @click="confirmCancel(row)">{{ t('actions.cancel') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -140,110 +134,112 @@
         </el-card>
 
         <!-- 新建转移弹窗 -->
-        <el-dialog v-model="showCreateDialog" title="新建转移请求" width="550px">
+        <el-dialog v-model="showCreateDialog" :title="t('ownership_transfer_page.create_dialog_title')" width="550px">
             <el-form :model="createForm" label-position="top">
-                <el-form-item label="转移类型" :rules="[{ required: true }]">
+                <el-form-item :label="t('ownership_transfer_page.form.transfer_type')" :rules="[{ required: true }]">
                     <el-radio-group v-model="createForm.type">
-                        <el-radio value="device_transfer">设备转移</el-radio>
-                        <el-radio value="customer_transfer">客户转移</el-radio>
-                        <el-radio value="user_transfer">用户转移</el-radio>
+                        <el-radio v-for="opt in typeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</el-radio>
                     </el-radio-group>
                 </el-form-item>
-                <el-form-item label="License ID" prop="license_id" :rules="[{ required: true, message: '请输入License ID' }]">
+                <el-form-item :label="t(`${P}.form.license_id`)" prop="license_id" :rules="[{ required: true, message: t(`${P}.validation.license_id`) }]">
                     <el-input-number v-model="createForm.license_id" :min="1" style="width:100%" />
                 </el-form-item>
-                <el-form-item v-if="createForm.type === 'customer_transfer'" label="目标客户ID" prop="target_customer_id"
-                    :rules="[{ required: true, message: '请输入目标客户ID' }]">
+                <el-form-item v-if="createForm.type === 'customer_transfer'" :label="t(`${P}.form.target_customer_id`)" prop="target_customer_id"
+                    :rules="[{ required: true, message: t(`${P}.validation.target_customer_id`) }]">
                     <el-input-number v-model="createForm.target_customer_id" :min="1" style="width:100%" />
                 </el-form-item>
-                <el-form-item v-if="createForm.type === 'user_transfer'" label="目标用户ID" prop="target_user_id"
-                    :rules="[{ required: true, message: '请输入目标用户ID' }]">
+                <el-form-item v-if="createForm.type === 'user_transfer'" :label="t(`${P}.form.target_user_id`)" prop="target_user_id"
+                    :rules="[{ required: true, message: t(`${P}.validation.target_user_id`) }]">
                     <el-input-number v-model="createForm.target_user_id" :min="1" style="width:100%" />
                 </el-form-item>
-                <el-form-item v-if="createForm.type === 'device_transfer'" label="目标设备指纹">
-                    <el-input v-model="createForm.target_device_fingerprint" placeholder="输入设备指纹" />
+                <el-form-item v-if="createForm.type === 'device_transfer'" :label="t(`${P}.form.target_device_fingerprint`)">
+                    <el-input v-model="createForm.target_device_fingerprint" :placeholder="t(`${P}.form.target_device_fingerprint_ph`)" />
                 </el-form-item>
-                <el-form-item v-if="createForm.type === 'device_transfer'" label="目标设备名称">
-                    <el-input v-model="createForm.target_device_name" placeholder="例如: 新办公电脑" />
+                <el-form-item v-if="createForm.type === 'device_transfer'" :label="t(`${P}.form.target_device_name`)">
+                    <el-input v-model="createForm.target_device_name" :placeholder="t(`${P}.form.target_device_name_ph`)" />
                 </el-form-item>
-                <el-form-item label="转移原因">
-                    <el-input v-model="createForm.reason" type="textarea" :rows="3" placeholder="说明转移原因" />
+                <el-form-item :label="t(`${P}.form.reason`)">
+                    <el-input v-model="createForm.reason" type="textarea" :rows="3" :placeholder="t(`${P}.form.reason_ph`)" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showCreateDialog = false">取消</el-button>
-                <el-button type="primary" @click="doCreate" :loading="creating">提交</el-button>
+                <el-button @click="showCreateDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="doCreate" :loading="creating">{{ t('actions.submit') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 详情弹窗 -->
-        <el-dialog v-model="showDetailDialog" title="转移请求详情" width="600px">
+        <el-dialog v-model="showDetailDialog" :title="t('ownership_transfer_page.detail_dialog_title')" width="600px">
             <template v-if="detailData">
                 <el-descriptions :column="2" border>
-                    <el-descriptions-item label="引用号" :span="2">
+                    <el-descriptions-item :label="t(`${P}.col_reference`)" :span="2">
                         <code>{{ detailData.reference }}</code>
                     </el-descriptions-item>
-                    <el-descriptions-item label="类型">{{ typeLabel(detailData.type) }}</el-descriptions-item>
-                    <el-descriptions-item label="状态">
+                    <el-descriptions-item :label="t('ownership_transfer_page.type')">{{ typeLabel(detailData.type) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('ownership_transfer_page.status')">
                         <el-tag :type="statusType(detailData.status)">{{ statusLabel(detailData.status) }}</el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="License Key" :span="2">
-                        <code>{{ detailData.license?.license_key }}</code>
+                    <el-descriptions-item :label="t('licenses_page.license_key')" :span="2">
+                        <code>{{ detailData.transferable?.license_key }}</code>
                     </el-descriptions-item>
-                    <el-descriptions-item label="申请人">{{ detailData.requester?.name }}</el-descriptions-item>
-                    <el-descriptions-item label="审批人">{{ detailData.approver?.name || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="创建时间">{{ formatTime(detailData.created_at) }}</el-descriptions-item>
-                    <el-descriptions-item label="审批时间">{{ detailData.approved_at ? formatTime(detailData.approved_at) : '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('ownership_transfer_page.col_requester')">{{ detailData.requester?.name }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('ownership_transfer_page.label_approver')">{{ detailData.approver?.name || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('ownership_transfer_page.col_created_at')">{{ formatTime(detailData.created_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.col_approved_at`)">{{ detailData.approved_at ? formatTime(detailData.approved_at) : '-' }}</el-descriptions-item>
                 </el-descriptions>
 
                 <el-divider />
-                <h4>源信息</h4>
+                <h4>{{ t(`${P}.section_source_info`) }}</h4>
                 <pre class="json-block">{{ JSON.stringify(detailData.source_info, null, 2) }}</pre>
 
                 <el-divider />
-                <h4>审计日志</h4>
+                <h4>{{ t('ownership_transfer_page.section_audit_log') }}</h4>
                 <el-table :data="detailData.audit_log || []" size="small">
-                    <el-table-column prop="action" label="操作" width="100" />
-                    <el-table-column prop="by" label="操作人ID" width="100" />
-                    <el-table-column prop="at" label="时间" width="180" />
-                    <el-table-column prop="details" label="详情" min-width="160" />
+                    <el-table-column prop="action" :label="t(`${P}.col_audit_action`)" width="100" />
+                    <el-table-column prop="by" :label="t(`${P}.col_operator_id`)" width="100" />
+                    <el-table-column prop="at" :label="t(`${P}.col_time`)" width="180" />
+                    <el-table-column prop="details" :label="t(`${P}.col_details`)" min-width="160" />
                 </el-table>
             </template>
         </el-dialog>
 
         <!-- 批准弹窗 -->
-        <el-dialog v-model="showApproveDialogVisible" title="批准转移" width="450px">
+        <el-dialog v-model="showApproveDialogVisible" :title="t(`${P}.approve_dialog_title`)" width="450px">
             <el-form>
-                <el-form-item label="审批备注">
-                    <el-input v-model="approveNotes" type="textarea" :rows="3" placeholder="可选备注" />
+                <el-form-item :label="t(`${P}.form.approve_notes`)">
+                    <el-input v-model="approveNotes" type="textarea" :rows="3" :placeholder="t(`${P}.form.approve_notes_ph`)" />
                 </el-form-item>
-                <el-alert title="批准后将自动执行转移操作，不可撤回" type="warning" :closable="false" show-icon />
+                <el-alert :title="t(`${P}.approve_warning`)" type="warning" :closable="false" show-icon />
             </el-form>
             <template #footer>
-                <el-button @click="showApproveDialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="doApprove" :loading="approving">确认批准</el-button>
+                <el-button @click="showApproveDialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="doApprove" :loading="approving">{{ t(`${P}.approve_submit`) }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 拒绝弹窗 -->
-        <el-dialog v-model="showRejectDialogVisible" title="拒绝转移" width="450px">
+        <el-dialog v-model="showRejectDialogVisible" :title="t('ownership_transfer_page.reject_dialog_title')" width="450px">
             <el-form>
-                <el-form-item label="拒绝原因" :rules="[{ required: true }]">
-                    <el-input v-model="rejectReason" type="textarea" :rows="3" placeholder="请输入拒绝原因" />
+                <el-form-item :label="t('ownership_transfer_page.reject_reason')" :rules="[{ required: true }]">
+                    <el-input v-model="rejectReason" type="textarea" :rows="3" :placeholder="t(`${P}.validation.reject_reason_ph`)" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showRejectDialogVisible = false">取消</el-button>
-                <el-button type="danger" @click="doReject" :loading="rejecting">确认拒绝</el-button>
+                <el-button @click="showRejectDialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="danger" @click="doReject" :loading="rejecting">{{ t('ownership_transfer_page.reject_submit') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import licenseTransferApi from '@/api/licenseTransfer';
+
+const P = 'transfers_page';
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const loadingList = ref(false);
@@ -286,14 +282,28 @@ const createForm = reactive({
     reason: '',
 });
 
+const statusOptions = computed(() => [
+    { value: 'pending', label: t(`${P}.status_map.pending`) },
+    { value: 'approved', label: t(`${P}.status_map.approved`) },
+    { value: 'rejected', label: t(`${P}.status_map.rejected`) },
+    { value: 'cancelled', label: t(`${P}.status_map.cancelled`) },
+    { value: 'completed', label: t(`${P}.status_map.completed`) },
+]);
+
+const typeOptions = computed(() => [
+    { value: 'device_transfer', label: t(`${P}.type_map.device_transfer`) },
+    { value: 'customer_transfer', label: t(`${P}.type_map.customer_transfer`) },
+    { value: 'user_transfer', label: t(`${P}.type_map.user_transfer`) },
+]);
+
+const dateLocale = computed(() => (locale.value === 'zh_CN' ? 'zh-CN' : 'en-US'));
+
 function typeLabel(type) {
-    const map = { device_transfer: '设备转移', customer_transfer: '客户转移', user_transfer: '用户转移' };
-    return map[type] || type;
+    return t(`${P}.type_map.${type}`, type);
 }
 
 function statusLabel(status) {
-    const map = { pending: '待审批', approved: '已批准', rejected: '已拒绝', cancelled: '已取消', completed: '已完成', expired: '已过期' };
-    return map[status] || status;
+    return t(`${P}.status_map.${status}`, status);
 }
 
 function statusType(status) {
@@ -303,7 +313,7 @@ function statusType(status) {
 
 function formatTime(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN');
+    return new Date(dateStr).toLocaleString(dateLocale.value);
 }
 
 async function loadAll() {
@@ -362,16 +372,19 @@ function onPageChange(page) {
 async function doCreate() {
     creating.value = true;
     try {
-        const payload = { ...createForm };
-        // Clean up null values for non-required fields
-        if (payload.type !== 'customer_transfer') delete payload.target_customer_id;
-        if (payload.type !== 'user_transfer') delete payload.target_user_id;
-        if (payload.type !== 'device_transfer') {
-            delete payload.target_device_fingerprint;
-            delete payload.target_device_name;
+        const payload = {
+            transferable_type: 'license',
+            transferable_id: createForm.license_id,
+            reason: createForm.reason,
+        };
+        if (createForm.type === 'customer_transfer') payload.target_customer_id = createForm.target_customer_id;
+        if (createForm.type === 'user_transfer') payload.target_user_id = createForm.target_user_id;
+        if (createForm.type === 'device_transfer') {
+            payload.target_device_fingerprint = createForm.target_device_fingerprint;
+            payload.target_device_name = createForm.target_device_name;
         }
         await licenseTransferApi.createRequest(payload);
-        ElMessage.success('转移请求已创建');
+        ElMessage.success(t(`${P}.messages.create_success`));
         showCreateDialog.value = false;
         createForm.reason = '';
         await loadAll();
@@ -410,7 +423,7 @@ async function doApprove() {
     approving.value = true;
     try {
         await licenseTransferApi.approve(approveTarget.value.id, { notes: approveNotes.value });
-        ElMessage.success('转移已批准并执行');
+        ElMessage.success(t(`${P}.messages.approve_success`));
         showApproveDialogVisible.value = false;
         await loadAll();
     } catch (err) {
@@ -422,13 +435,13 @@ async function doApprove() {
 
 async function doReject() {
     if (!rejectTarget.value || !rejectReason.value) {
-        ElMessage.warning('请输入拒绝原因');
+        ElMessage.warning(t(`${P}.validation.reject_reason_required`));
         return;
     }
     rejecting.value = true;
     try {
         await licenseTransferApi.reject(rejectTarget.value.id, { reason: rejectReason.value });
-        ElMessage.success('转移请求已拒绝');
+        ElMessage.success(t(`${P}.messages.rejected`));
         showRejectDialogVisible.value = false;
         await loadAll();
     } catch (err) {
@@ -440,9 +453,13 @@ async function doReject() {
 
 async function confirmCancel(row) {
     try {
-        await ElMessageBox.confirm(`确定取消转移请求 ${row.reference} 吗？`, '确认', { type: 'warning' });
+        await ElMessageBox.confirm(
+            t(`${P}.confirm.cancel`, { reference: row.reference }),
+            t('actions.confirm'),
+            { type: 'warning' },
+        );
         await licenseTransferApi.cancel(row.id);
-        ElMessage.success('转移请求已取消');
+        ElMessage.success(t(`${P}.messages.cancelled`));
         await loadAll();
     } catch (err) {
         // cancelled
@@ -464,7 +481,7 @@ onMounted(loadAll);
 .stat-value { font-size: 22px; font-weight: 700; }
 
 .stat-active .stat-value { color: #67c23a; }
-.stat-info .stat-value { color: #409eff; }
+.stat-info .stat-value { color: #0f172a; }
 .stat-warning .stat-value { color: #e6a23c; }
 .stat-danger .stat-value { color: #f56c6c; }
 

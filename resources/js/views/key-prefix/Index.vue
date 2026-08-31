@@ -1,55 +1,61 @@
 <template>
   <div class="key-prefix-management">
     <el-breadcrumb separator="/" class="mb-4">
-      <el-breadcrumb-item :to="{ path: '/admin' }">首页</el-breadcrumb-item>
-      <el-breadcrumb-item>授权核心</el-breadcrumb-item>
-      <el-breadcrumb-item>License Key 前缀 M3-23</el-breadcrumb-item>
+      <el-breadcrumb-item :to="{ path: '/admin' }">{{ t('nav.home') }}</el-breadcrumb-item>
+      <el-breadcrumb-item>{{ t('key_prefix_page.breadcrumb_core') }}</el-breadcrumb-item>
+      <el-breadcrumb-item>{{ t('key_prefix_page.breadcrumb_title') }}</el-breadcrumb-item>
     </el-breadcrumb>
 
     <el-card style="margin-top:0">
       <template #header>
         <div class="card-header">
-          <span>当前前缀格式</span>
+          <span>{{ t('key_prefix_page.current_format_title') }}</span>
         </div>
       </template>
 
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="前缀定义" :span="2">
-          <el-tag color="#909399" class="text-white" size="small">HWT-TRIAL</el-tag> 试用版 —
-          <el-tag color="#67C23A" class="text-white" size="small">HWT-STD</el-tag> 标准版 —
-          <el-tag color="#409EFF" class="text-white" size="small">HWT-PRO</el-tag> 专业版 —
-          <el-tag color="#E6A23C" class="text-white" size="small">HWT-ENT</el-tag> 企业版 —
-          <el-tag color="#B37FEB" class="text-white" size="small">HWT-DEV</el-tag> 开发版
+        <el-descriptions-item :label="t('key_prefix_page.prefix_definition')" :span="2">
+          <template v-for="(item, index) in prefixEditions" :key="item.tag">
+            <template v-if="index > 0"> — </template>
+            <el-tag :color="item.color" class="text-white" size="small">{{ item.tag }}</el-tag>
+            {{ item.label }}
+          </template>
         </el-descriptions-item>
-        <el-descriptions-item label="格式说明" :span="2">
-          <code>{PREFIX}-{16位随机Hex}-{4位校验码}</code>
+        <el-descriptions-item :label="t('key_prefix_page.format_description')" :span="2">
+          <code>{{ t('key_prefix_page.format_pattern') }}</code>
           <br />
-          <small>示例：<code>HWT-ENT-A3F2C8D1E9B07456-1A2B</code></small>
+          <small>{{ t('key_prefix_page.format_example', { example: 'HWT-ENT-A3F2C8D1E9B07456-1A2B' }) }}</small>
         </el-descriptions-item>
-        <el-descriptions-item label="License 总数">
+        <el-descriptions-item :label="t('key_prefix_page.total_licenses')">
           <el-tag>{{ totalLicenses }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="已格式化">
+        <el-descriptions-item :label="t('key_prefix_page.formatted_count')">
           <el-tag type="success">{{ formattedCount }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="待格式化">
+        <el-descriptions-item :label="t('key_prefix_page.pending_format')">
           <el-tag type="warning">{{ totalLicenses - formattedCount }}</el-tag>
         </el-descriptions-item>
       </el-descriptions>
 
       <div style="margin-top:16px">
         <el-button type="primary" @click="handleBatchFormat">
-          <el-icon><Refresh /></el-icon>格式化选中
+          <el-icon><Refresh /></el-icon>{{ t('key_prefix_page.format_selected') }}
         </el-button>
         <el-button type="warning" @click="handleMigrateAll" :loading="migrating">
-          <el-icon><MagicStick /></el-icon>迁移全部
+          <el-icon><MagicStick /></el-icon>{{ t('key_prefix_page.migrate_all') }}
         </el-button>
       </div>
 
       <div v-if="migrateStats" class="mt-3 p-3 bg-blue-50 rounded">
-        <p><strong>迁移结果：</strong></p>
-        <p>总计: {{ migrateStats.total }} | 已更新: <span class="text-success">{{ migrateStats.updated }}</span> | 已跳过: {{ migrateStats.skipped }}</p>
-        <p v-if="migrateStats.errors?.length" class="text-danger">错误: {{ migrateStats.errors.length }} 条</p>
+        <p><strong>{{ t('key_prefix_page.migrate_result_title') }}:</strong></p>
+        <p>{{ t('key_prefix_page.migrate_stats', {
+          total: migrateStats.total,
+          updated: migrateStats.updated,
+          skipped: migrateStats.skipped,
+        }) }}</p>
+        <p v-if="migrateStats.errors?.length" class="text-danger">
+          {{ t('key_prefix_page.migrate_errors', { count: migrateStats.errors.length }) }}
+        </p>
       </div>
     </el-card>
 
@@ -57,10 +63,10 @@
     <el-card style="margin-top:20px">
       <template #header>
         <div class="card-header">
-          <span>License 列表</span>
+          <span>{{ t('key_prefix_page.license_list_title') }}</span>
           <el-input
             v-model="searchKeyword"
-            placeholder="搜索 Key"
+            :placeholder="t('key_prefix_page.search_key_ph')"
             clearable
             style="width:200px"
             @keyup.enter="loadLicenses"
@@ -70,8 +76,8 @@
 
       <el-table :data="licenses" v-loading="loading" stripe @selection-change="selectedLicenses = $event">
         <el-table-column type="selection" width="45" />
-        <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column prop="license_key" label="License Key" min-width="220">
+        <el-table-column prop="id" :label="t('key_prefix_page.col_id')" width="70" />
+        <el-table-column prop="license_key" :label="t('key_prefix_page.col_license_key')" min-width="220">
           <template #default="{ row }">
             <div class="key-cell">
               <code :class="keyClass(row.license_key)">{{ row.license_key }}</code>
@@ -84,22 +90,22 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="type" label="类型" width="120">
+        <el-table-column prop="type" :label="t('key_prefix_page.col_type')" width="120">
           <template #default="{ row }">
             <el-tag effect="plain" size="small">{{ row.type }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="90">
+        <el-table-column prop="status" :label="t('key_prefix_page.col_status')" width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === 'active' ? 'success' : 'danger'" effect="plain" size="small">
               {{ row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="customer?.name" label="客户" min-width="140" />
-        <el-table-column label="操作" width="100">
+        <el-table-column prop="customer?.name" :label="t('key_prefix_page.col_customer')" min-width="140" />
+        <el-table-column :label="t('key_prefix_page.col_actions')" width="100">
           <template #default="{ row }">
-            <el-button size="small" text @click="handleFormatSingle(row)">格式化</el-button>
+            <el-button size="small" text @click="handleFormatSingle(row)">{{ t('key_prefix_page.format_btn') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -118,11 +124,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Refresh, MagicStick } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getLicenseKeyFormat, batchLicenseKeyFormat } from '@/api/keyPrefix'
 import { getLicenses } from '@/api/license'
+
+const { t } = useI18n()
 
 const totalLicenses = ref(0)
 const formattedCount = ref(0)
@@ -133,6 +142,14 @@ const migrating = ref(false)
 const page = ref(1)
 const total = ref(0)
 const searchKeyword = ref('')
+
+const prefixEditions = computed(() => [
+  { tag: 'HWT-TRIAL', color: '#909399', label: t('key_prefix_page.edition_trial') },
+  { tag: 'HWT-STD', color: '#67C23A', label: t('key_prefix_page.edition_standard') },
+  { tag: 'HWT-PRO', color: '#0f172a', label: t('key_prefix_page.edition_professional') },
+  { tag: 'HWT-ENT', color: '#E6A23C', label: t('key_prefix_page.edition_enterprise') },
+  { tag: 'HWT-DEV', color: '#B37FEB', label: t('key_prefix_page.edition_dev') },
+])
 
 function keyClass(key) {
   if (!key) return ''
@@ -155,13 +172,13 @@ function keyTagType(key) {
 }
 
 function keyLabel(key) {
-  if (!key) return '未知'
-  if (key.startsWith('HWT-ENT-')) return '企业版'
-  if (key.startsWith('HWT-PRO-')) return '专业版'
-  if (key.startsWith('HWT-TRIAL-')) return '试用版'
-  if (key.startsWith('HWT-STD-')) return '标准版'
-  if (key.startsWith('HWT-DEV-')) return '开发版'
-  return '未知'
+  if (!key) return t('key_prefix_page.unknown')
+  if (key.startsWith('HWT-ENT-')) return t('key_prefix_page.edition_enterprise')
+  if (key.startsWith('HWT-PRO-')) return t('key_prefix_page.edition_professional')
+  if (key.startsWith('HWT-TRIAL-')) return t('key_prefix_page.edition_trial')
+  if (key.startsWith('HWT-STD-')) return t('key_prefix_page.edition_standard')
+  if (key.startsWith('HWT-DEV-')) return t('key_prefix_page.edition_dev')
+  return t('key_prefix_page.unknown')
 }
 
 function loadLicenses() {
@@ -182,7 +199,7 @@ function loadStats() {
       totalLicenses.value = data.total ?? 0
     })
 
-  // Count formatted ones by searching with ENT/PRO prefix pattern
+  // 通过 ENT/PRO 前缀模式统计已格式化数量
   getLicenses({ search: 'ENT-', per_page: 1 }).then(r => {
     const d = r.data ?? r
     formattedCount.value = (d.total ?? 0)
@@ -193,21 +210,25 @@ function handleFormatSingle(row) {
   getLicenseKeyFormat(row.id).then(res => {
     const info = res.data ?? res
     ElMessageBox.alert(
-      `当前 Key: ${row.license_key}<br/>格式化后: <code>${info.formatted}</code><br/>类型: ${info.label}`,
-      'Key 格式信息',
-      { confirmButtonText: '确定', dangerouslyUseHTMLString: true }
+      t('key_prefix_page.format_info_body', {
+        current: row.license_key,
+        formatted: info.formatted,
+        type: info.label,
+      }),
+      t('key_prefix_page.format_info_title'),
+      { confirmButtonText: t('actions.confirm'), dangerouslyUseHTMLString: true }
     )
   })
 }
 
 function handleBatchFormat() {
   if (!selectedLicenses.value.length) {
-    ElMessage.warning('请先选择 License')
+    ElMessage.warning(t('key_prefix_page.select_license_first'))
     return
   }
   const ids = selectedLicenses.value.map(l => l.id)
   batchLicenseKeyFormat(ids).then(res => {
-    ElMessage.success(`已处理 ${res.data?.total ?? 0} 个 License`)
+    ElMessage.success(t('key_prefix_page.batch_processed', { count: res.data?.total ?? 0 }))
     loadLicenses()
     loadStats()
   })
@@ -215,15 +236,19 @@ function handleBatchFormat() {
 
 function handleMigrateAll() {
   ElMessageBox.confirm(
-    '这将批量迁移所有 License Key 到可读前缀格式（HWT-ENT/HWT-PRO/HWT-TRIAL/HWT-STD/HWT-DEV）。<br/>此操作不可逆！建议先备份数据库。',
-    '确认批量迁移',
-    { confirmButtonText: '执行迁移', cancelButtonText: '取消', type: 'warning', dangerouslyUseHTMLString: true }
+    t('key_prefix_page.migrate_confirm_body'),
+    t('key_prefix_page.migrate_confirm_title'),
+    {
+      confirmButtonText: t('key_prefix_page.migrate_confirm_btn'),
+      cancelButtonText: t('actions.cancel'),
+      type: 'warning',
+      dangerouslyUseHTMLString: true,
+    }
   ).then(() => {
     migrating.value = true
-    // Trigger Artisan command via API
     import('@/api/keyPrefix').then(m => m.migrateLicenseKeyPrefixes())
-      .then(res => {
-        ElMessage.success('所有 License Key 已迁移')
+      .then(() => {
+        ElMessage.success(t('key_prefix_page.migrate_success'))
         loadLicenses()
         loadStats()
       })

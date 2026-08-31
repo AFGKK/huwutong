@@ -2,8 +2,8 @@
     <div class="devices-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>设备管理</h2>
-                <span class="header-subtitle">监控和管理所有激活设备</span>
+                <h2>{{ t(`${P}.title`) }}</h2>
+                <span class="header-subtitle">{{ t(`${P}.subtitle`) }}</span>
             </div>
         </div>
 
@@ -12,19 +12,19 @@
             <el-col :span="6">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value">{{ stats.total }}</div>
-                    <div class="stat-label">设备总数</div>
+                    <div class="stat-label">{{ t(`${P}.stat_total`) }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value" style="color: var(--el-color-success);">{{ stats.active }}</div>
-                    <div class="stat-label">活跃设备</div>
+                    <div class="stat-label">{{ t(`${P}.stat_active`) }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value" style="color: var(--el-color-danger);">{{ stats.blacklisted }}</div>
-                    <div class="stat-label">黑名单</div>
+                    <div class="stat-label">{{ t(`${P}.stat_blacklisted`) }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
@@ -32,7 +32,7 @@
                     <div class="stat-value" style="color: var(--el-color-warning);">
                         {{ stats.by_platform ? Object.keys(stats.by_platform).length : 0 }}
                     </div>
-                    <div class="stat-label">平台种类</div>
+                    <div class="stat-label">{{ t(`${P}.stat_platforms`) }}</div>
                 </el-card>
             </el-col>
         </el-row>
@@ -44,7 +44,7 @@
                     <div class="stat-value" style="font-size: 20px; color: var(--el-color-success);">
                         {{ stats.trust_buckets.high }}
                     </div>
-                    <div class="stat-label">高信任 (≥80)</div>
+                    <div class="stat-label">{{ t(`${P}.stat_trust_high`) }}</div>
                 </el-card>
             </el-col>
             <el-col :span="8">
@@ -52,7 +52,7 @@
                     <div class="stat-value" style="font-size: 20px; color: var(--el-color-warning);">
                         {{ stats.trust_buckets.medium }}
                     </div>
-                    <div class="stat-label">中信任 (50-79)</div>
+                    <div class="stat-label">{{ t(`${P}.stat_trust_medium`) }}</div>
                 </el-card>
             </el-col>
             <el-col :span="8">
@@ -60,7 +60,7 @@
                     <div class="stat-value" style="font-size: 20px; color: var(--el-color-danger);">
                         {{ stats.trust_buckets.low }}
                     </div>
-                    <div class="stat-label">低信任 (&lt;50)</div>
+                    <div class="stat-label">{{ t(`${P}.stat_trust_low`) }}</div>
                 </el-card>
             </el-col>
         </el-row>
@@ -68,33 +68,33 @@
         <!-- 筛选区域 -->
         <el-card shadow="never" class="filter-card">
             <el-form :model="filters" inline>
-                <el-form-item label="搜索">
+                <el-form-item :label="t('actions.search')">
                     <el-input
                         v-model="filters.search"
-                        placeholder="设备指纹 / 主机名 / 平台"
+                        :placeholder="t(`${P}.search_ph`)"
                         clearable
                         style="width: 240px"
                         @keyup.enter="doSearch"
                     />
                 </el-form-item>
-                <el-form-item label="平台">
-                    <el-select v-model="filters.platform" clearable placeholder="全部平台" style="width: 130px" @change="doSearch">
-                        <el-option v-for="p in platformOptions" :key="p" :label="p || '未知'" :value="p" />
+                <el-form-item :label="t(`${P}.filter_platform`)">
+                    <el-select v-model="filters.platform" clearable :placeholder="t(`${P}.all_platforms`)" style="width: 130px" @change="doSearch">
+                        <el-option v-for="p in platformOptions" :key="p" :label="p || t(`${P}.unknown`)" :value="p" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="状态">
-                    <el-select v-model="filters.status" clearable placeholder="全部" style="width: 110px" @change="doSearch">
-                        <el-option label="活跃" value="active" />
-                        <el-option label="未关联" value="inactive" />
+                <el-form-item :label="t(`${P}.filter_status`)">
+                    <el-select v-model="filters.status" clearable :placeholder="t(`${P}.all`)" style="width: 110px" @change="doSearch">
+                        <el-option :label="t(`${P}.status_active`)" value="active" />
+                        <el-option :label="t(`${P}.status_inactive`)" value="inactive" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="黑名单">
-                    <el-select v-model="filters.is_blacklisted" clearable placeholder="全部" style="width: 110px" @change="doSearch">
-                        <el-option label="是" :value="true" />
-                        <el-option label="否" :value="false" />
+                <el-form-item :label="t(`${P}.filter_blacklist`)">
+                    <el-select v-model="filters.is_blacklisted" clearable :placeholder="t(`${P}.all`)" style="width: 110px" @change="doSearch">
+                        <el-option :label="t(`${P}.yes`)" :value="true" />
+                        <el-option :label="t(`${P}.no`)" :value="false" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="最低信任分">
+                <el-form-item :label="t(`${P}.filter_trust_min`)">
                     <el-input-number
                         v-model="filters.trust_score_min"
                         :min="0"
@@ -109,20 +109,20 @@
                 <el-form-item>
                     <el-button type="primary" @click="doSearch">
                         <el-icon><Search /></el-icon>
-                        搜索
+                        {{ t('actions.search') }}
                     </el-button>
-                    <el-button @click="resetFilters">重置</el-button>
+                    <el-button @click="resetFilters">{{ t('actions.reset') }}</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
 
         <!-- 批量操作栏 -->
         <div class="batch-bar" v-if="selectedIds.length > 0">
-            <span class="batch-info">已选择 {{ selectedIds.length }} 项</span>
-            <el-button size="small" @click="clearSelection">取消选择</el-button>
-            <el-button size="small" type="warning" @click="batchAction('deactivate')">批量停用</el-button>
-            <el-button size="small" type="danger" @click="batchAction('blacklist')">批量加入黑名单</el-button>
-            <el-button size="small" type="primary" @click="batchAction('remove_blacklist')">移出黑名单</el-button>
+            <span class="batch-info">{{ t(`${P}.selected_count`, { n: selectedIds.length }) }}</span>
+            <el-button size="small" @click="clearSelection">{{ t(`${P}.deselect`) }}</el-button>
+            <el-button size="small" type="warning" @click="batchAction('deactivate')">{{ t(`${P}.batch_deactivate`) }}</el-button>
+            <el-button size="small" type="danger" @click="batchAction('blacklist')">{{ t(`${P}.batch_blacklist`) }}</el-button>
+            <el-button size="small" type="primary" @click="batchAction('remove_blacklist')">{{ t(`${P}.remove_blacklist`) }}</el-button>
         </div>
 
         <!-- 表格 -->
@@ -136,7 +136,7 @@
                 @selection-change="(rows) => selectedIds = rows.map(r => r.id)"
             >
                 <el-table-column type="selection" width="40" />
-                <el-table-column label="设备指纹" min-width="200" prop="fingerprint" sortable="custom">
+                <el-table-column :label="t(`${P}.col_fingerprint`)" min-width="200" prop="fingerprint" sortable="custom">
                     <template #default="{ row }">
                         <div class="fingerprint-cell">
                             <code class="fingerprint-text">{{ row.fingerprint.substring(0, 24) }}...</code>
@@ -147,42 +147,42 @@
                                 effect="dark"
                                 style="margin-left: 6px;"
                             >
-                                黑名单
+                                {{ t(`${P}.tag_blacklist`) }}
                             </el-tag>
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column label="主机名" width="140" prop="hostname" sortable="custom">
+                <el-table-column :label="t(`${P}.col_hostname`)" width="140" prop="hostname" sortable="custom">
                     <template #default="{ row }">
                         {{ row.hostname || '-' }}
                     </template>
                 </el-table-column>
-                <el-table-column label="平台" width="100" prop="platform" sortable="custom">
+                <el-table-column :label="t(`${P}.col_platform`)" width="100" prop="platform" sortable="custom">
                     <template #default="{ row }">
                         <el-tag v-if="row.platform" size="small" effect="plain">{{ row.platform }}</el-tag>
                         <span v-else class="text-muted">-</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="系统版本" width="120" prop="os_version">
+                <el-table-column :label="t(`${P}.col_os_version`)" width="120" prop="os_version">
                     <template #default="{ row }">
                         {{ row.os_version || '-' }}
                     </template>
                 </el-table-column>
-                <el-table-column label="信任分" width="90" prop="trust_score" sortable="custom">
+                <el-table-column :label="t(`${P}.col_trust_score`)" width="90" prop="trust_score" sortable="custom">
                     <template #default="{ row }">
                         <el-tag :type="scoreType(row.trust_score)" size="small" effect="dark">
                             {{ row.trust_score }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="虚拟环境" width="90" prop="is_virtual" sortable="custom">
+                <el-table-column :label="t(`${P}.col_virtual`)" width="90" prop="is_virtual" sortable="custom">
                     <template #default="{ row }">
                         <el-tag :type="row.is_virtual ? 'warning' : 'info'" size="small">
-                            {{ row.is_virtual ? '是' : '否' }}
+                            {{ yesNo(row.is_virtual) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="关联 License" min-width="200">
+                <el-table-column :label="t(`${P}.col_license`)" min-width="200">
                     <template #default="{ row }">
                         <template v-if="row.license">
                             <el-link type="primary" @click="$router.push(`/licenses/${row.license_id}`)">
@@ -194,26 +194,26 @@
                                 {{ row.license.customer?.user?.name || '' }}
                             </div>
                         </template>
-                        <span v-else class="text-muted">未关联</span>
+                        <span v-else class="text-muted">{{ t(`${P}.unlinked`) }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="最后活跃" width="170" prop="last_seen_at" sortable="custom">
+                <el-table-column :label="t(`${P}.col_last_seen`)" width="170" prop="last_seen_at" sortable="custom">
                     <template #default="{ row }">
                         {{ formatDate(row.last_seen_at) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="创建时间" width="170" prop="created_at" sortable="custom">
+                <el-table-column :label="t(`${P}.col_created_at`)" width="170" prop="created_at" sortable="custom">
                     <template #default="{ row }">
                         {{ formatDate(row.created_at) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="220" fixed="right">
+                <el-table-column :label="t(`${P}.col_actions`)" width="220" fixed="right">
                     <template #default="{ row }">
                         <el-button text size="small" type="primary" @click="openDetail(row)">
-                            详情
+                            {{ t(`${P}.detail`) }}
                         </el-button>
                         <el-button text size="small" type="success" @click="openProfileDialog(row)">
-                            画像
+                            {{ t(`${P}.profile`) }}
                         </el-button>
                         <el-button
                             v-if="!row.is_blacklisted"
@@ -222,11 +222,11 @@
                             type="danger"
                             @click="handleDeactivate(row)"
                         >
-                            停用
+                            {{ t(`${P}.deactivate`) }}
                         </el-button>
                         <el-dropdown ref="moreActionRef" trigger="click" @command="(cmd) => handleMoreAction(cmd, row)">
                             <el-button text size="small" type="primary">
-                                更多 <el-icon><ArrowDown /></el-icon>
+                                {{ t('actions.more') }} <el-icon><ArrowDown /></el-icon>
                             </el-button>
                             <template #dropdown>
                                 <el-dropdown-menu>
@@ -235,13 +235,13 @@
                                         command="blacklist"
                                         divided
                                     >
-                                        加入黑名单
+                                        {{ t(`${P}.blacklist`) }}
                                     </el-dropdown-item>
                                     <el-dropdown-item
                                         v-if="row.is_blacklisted"
                                         command="remove_blacklist"
                                     >
-                                        移出黑名单
+                                        {{ t(`${P}.remove_blacklist`) }}
                                     </el-dropdown-item>
                                 </el-dropdown-menu>
                             </template>
@@ -267,64 +267,64 @@
         <!-- 设备详情 Dialog -->
         <el-dialog
             v-model="detailVisible"
-            title="设备详情"
+            :title="t(`${P}.detail_title`)"
             width="700px"
             :close-on-click-modal="false"
         >
             <div v-if="detailDevice" v-loading="detailLoading">
                 <el-descriptions :column="2" border>
-                    <el-descriptions-item label="设备 ID" width="120">
+                    <el-descriptions-item :label="t(`${P}.label_device_id`)" width="120">
                         <code>{{ detailDevice.id }}</code>
                     </el-descriptions-item>
-                    <el-descriptions-item label="信任分">
+                    <el-descriptions-item :label="t(`${P}.label_trust_score`)">
                         <el-tag :type="scoreType(detailDevice.trust_score)" size="small" effect="dark">
                             {{ detailDevice.trust_score }}
                         </el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="设备指纹" :span="2">
+                    <el-descriptions-item :label="t(`${P}.label_fingerprint`)" :span="2">
                         <code style="word-break: break-all;">{{ detailDevice.fingerprint }}</code>
                     </el-descriptions-item>
-                    <el-descriptions-item label="主机名">
+                    <el-descriptions-item :label="t(`${P}.label_hostname`)">
                         {{ detailDevice.hostname || '-' }}
                     </el-descriptions-item>
-                    <el-descriptions-item label="平台">
+                    <el-descriptions-item :label="t(`${P}.label_platform`)">
                         {{ detailDevice.platform || '-' }}
                     </el-descriptions-item>
-                    <el-descriptions-item label="系统版本">
+                    <el-descriptions-item :label="t(`${P}.label_os_version`)">
                         {{ detailDevice.os_version || '-' }}
                     </el-descriptions-item>
-                    <el-descriptions-item label="虚拟环境">
+                    <el-descriptions-item :label="t(`${P}.label_virtual`)">
                         <el-tag :type="detailDevice.is_virtual ? 'warning' : 'info'" size="small">
-                            {{ detailDevice.is_virtual ? '是' : '否' }}
+                            {{ yesNo(detailDevice.is_virtual) }}
                         </el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="黑名单">
+                    <el-descriptions-item :label="t(`${P}.label_blacklist`)">
                         <el-tag :type="detailDevice.is_blacklisted ? 'danger' : 'info'" size="small">
-                            {{ detailDevice.is_blacklisted ? '是' : '否' }}
+                            {{ yesNo(detailDevice.is_blacklisted) }}
                         </el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="关联 License">
+                    <el-descriptions-item :label="t(`${P}.label_license`)">
                         <template v-if="detailDevice.license">
                             <el-link type="primary" @click="$router.push(`/licenses/${detailDevice.license_id}`)">
                                 {{ detailDevice.license.license_key?.substring(0, 24) }}...
                             </el-link>
                         </template>
-                        <span v-else class="text-muted">未关联</span>
+                        <span v-else class="text-muted">{{ t(`${P}.unlinked`) }}</span>
                     </el-descriptions-item>
-                    <el-descriptions-item label="关联产品">
+                    <el-descriptions-item :label="t(`${P}.label_product`)">
                         {{ detailDevice.license?.product?.name || '-' }}
                     </el-descriptions-item>
-                    <el-descriptions-item label="最后活跃">
+                    <el-descriptions-item :label="t(`${P}.label_last_seen`)">
                         {{ formatDate(detailDevice.last_seen_at) }}
                     </el-descriptions-item>
-                    <el-descriptions-item label="创建时间">
+                    <el-descriptions-item :label="t(`${P}.label_created_at`)">
                         {{ formatDate(detailDevice.created_at) }}
                     </el-descriptions-item>
-                    <el-descriptions-item label="扩展信息" :span="2">
+                    <el-descriptions-item :label="t(`${P}.label_metadata`)" :span="2">
                         <template v-if="detailDevice.metadata && Object.keys(detailDevice.metadata).length">
                             <pre class="metadata-json">{{ JSON.stringify(detailDevice.metadata, null, 2) }}</pre>
                         </template>
-                        <span v-else class="text-muted">无</span>
+                        <span v-else class="text-muted">{{ t(`${P}.none`) }}</span>
                     </el-descriptions-item>
                 </el-descriptions>
                 <div class="detail-actions" style="margin-top: 16px;">
@@ -333,31 +333,31 @@
                         type="danger"
                         @click="handleDeactivate(detailDevice); detailVisible = false"
                     >
-                        停用设备
+                        {{ t(`${P}.deactivate_device`) }}
                     </el-button>
                     <el-button
                         v-if="!detailDevice.is_blacklisted"
                         type="warning"
                         @click="handleMoreAction('blacklist', detailDevice); detailVisible = false"
                     >
-                        加入黑名单
+                        {{ t(`${P}.blacklist`) }}
                     </el-button>
                     <el-button
                         v-if="detailDevice.is_blacklisted"
                         type="primary"
                         @click="handleMoreAction('remove_blacklist', detailDevice); detailVisible = false"
                     >
-                        移出黑名单
+                        {{ t(`${P}.remove_blacklist`) }}
                     </el-button>
                 </div>
             </div>
             <template #footer>
-                <el-button @click="detailVisible = false">关闭</el-button>
+                <el-button @click="detailVisible = false">{{ t('actions.close') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 设备画像 Dialog (M3-24) -->
-        <el-dialog v-model="profileVisible" title="设备生命周期画像" width="700px" top="5vh">
+        <el-dialog v-model="profileVisible" :title="t(`${P}.profile_title`)" width="700px" top="5vh">
             <template v-if="profileLoading">
                 <div class="text-center py-4"><el-icon class="is-loading" :size="32"><Loading /></el-icon></div>
             </template>
@@ -367,25 +367,25 @@
                     <el-col :span="8">
                         <el-card shadow="hover" class="profile-stat-card">
                             <div class="profile-stat" :style="{ color: stageColor(profileData.profile.current_stage) }">{{ profileData.profile.stage_label }}</div>
-                            <div class="profile-label">当前阶段</div>
+                            <div class="profile-label">{{ t(`${P}.current_stage`) }}</div>
                         </el-card>
                     </el-col>
                     <el-col :span="8">
                         <el-card shadow="hover" class="profile-stat-card">
                             <div class="profile-stat" :style="{ color: trustColor(profileData.profile.trust_level) }">{{ profileData.profile.trust_score }}</div>
-                            <div class="profile-label">信任分 / {{ trustLevelLabel(profileData.profile.trust_level) }}</div>
+                            <div class="profile-label">{{ t(`${P}.trust_score_with_level`, { level: trustLevelLabel(profileData.profile.trust_level) }) }}</div>
                         </el-card>
                     </el-col>
                     <el-col :span="8">
                         <el-card shadow="hover" class="profile-stat-card">
-                            <div class="profile-stat" style="color: #409eff">{{ profileData.profile.days_active }}</div>
-                            <div class="profile-label">活跃天数</div>
+                            <div class="profile-stat" style="color: #0f172a">{{ profileData.profile.days_active }}</div>
+                            <div class="profile-label">{{ t(`${P}.days_active`) }}</div>
                         </el-card>
                     </el-col>
                 </el-row>
 
                 <!-- 生命周期时间线 -->
-                <h4 class="section-title">生命周期时间线</h4>
+                <h4 class="section-title">{{ t(`${P}.timeline_title`) }}</h4>
                 <el-timeline v-if="profileData.timeline.length">
                     <el-timeline-item
                         v-for="(item, idx) in profileData.timeline"
@@ -395,67 +395,67 @@
                         :hollow="idx < profileData.timeline.length - 1"
                     >
                         <strong>{{ item.stage_label }}</strong>
-                        <span class="ml-2 text-gray-400">信任分: {{ item.trust_score }}</span>
+                        <span class="ml-2 text-gray-400">{{ t(`${P}.timeline_trust`, { score: item.trust_score }) }}</span>
                     </el-timeline-item>
                 </el-timeline>
-                <div v-else class="text-gray-400 text-sm">暂无事件记录</div>
+                <div v-else class="text-gray-400 text-sm">{{ t(`${P}.no_timeline`) }}</div>
 
                 <!-- 最近事件 -->
-                <h4 class="section-title mt-3">最近生命周期事件</h4>
+                <h4 class="section-title mt-3">{{ t(`${P}.recent_events_title`) }}</h4>
                 <el-table :data="profileData.recent_events" v-if="profileData.recent_events.length" size="small" stripe>
-                    <el-table-column label="事件类型" prop="event_type" min-width="120" />
-                    <el-table-column label="阶段" width="100">
+                    <el-table-column :label="t(`${P}.col_event_type`)" prop="event_type" min-width="120" />
+                    <el-table-column :label="t(`${P}.col_stage`)" width="100">
                         <template #default="{ row }">
                             <el-tag :type="stageTagType(row.stage)" size="small" effect="plain">{{ stageLabel(row.stage) }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="信任分变化" width="100">
+                    <el-table-column :label="t(`${P}.col_trust_change`)" width="100">
                         <template #default="{ row }">
                             <span :style="{ color: (row.trust_score_change || 0) >= 0 ? '#67c23a' : '#f56c6c' }">
                                 {{ row.trust_score_change > 0 ? '+' : '' }}{{ row.trust_score_change || 0 }}
                             </span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="原因" prop="reason" min-width="150" show-overflow-tooltip />
-                    <el-table-column label="触发方式" width="80">
+                    <el-table-column :label="t(`${P}.col_reason`)" prop="reason" min-width="150" show-overflow-tooltip />
+                    <el-table-column :label="t(`${P}.col_trigger`)" width="80">
                         <template #default="{ row }">
                             <el-tag :type="row.triggered_by === 'auto_detect' ? 'warning' : (row.triggered_by === 'admin' ? 'primary' : 'info')" size="small">
-                                {{ { system: '系统', admin: '管理员', auto_detect: '自动检测' }[row.triggered_by] || row.triggered_by }}
+                                {{ triggerLabel(row.triggered_by) }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="时间" width="150">
+                    <el-table-column :label="t(`${P}.col_time`)" width="150">
                         <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
                     </el-table-column>
                 </el-table>
-                <div v-else class="text-gray-400 text-sm">暂无生命周期事件</div>
+                <div v-else class="text-gray-400 text-sm">{{ t(`${P}.no_events`) }}</div>
 
                 <!-- 操作按钮 -->
                 <div class="mt-3">
-                    <el-button size="small" type="warning" @click="handleAdjustTrust(profileDevice)">调整信任分</el-button>
-                    <el-button size="small" type="danger" @click="handleMarkSuspicious(profileDevice)" v-if="profileDevice && profileDevice.lifecycle_stage !== 'suspicious'">标记可疑</el-button>
-                    <el-button size="small" type="danger" @click="handleRetire(profileDevice)" v-if="profileDevice && profileDevice.lifecycle_stage !== 'retired'">废弃设备</el-button>
+                    <el-button size="small" type="warning" @click="handleAdjustTrust(profileDevice)">{{ t(`${P}.adjust_trust`) }}</el-button>
+                    <el-button size="small" type="danger" @click="handleMarkSuspicious(profileDevice)" v-if="profileDevice && profileDevice.lifecycle_stage !== 'suspicious'">{{ t(`${P}.mark_suspicious`) }}</el-button>
+                    <el-button size="small" type="danger" @click="handleRetire(profileDevice)" v-if="profileDevice && profileDevice.lifecycle_stage !== 'retired'">{{ t(`${P}.retire_device`) }}</el-button>
                 </div>
             </template>
             <template #footer>
-                <el-button @click="profileVisible = false">关闭</el-button>
+                <el-button @click="profileVisible = false">{{ t('actions.close') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 调整信任分 Dialog -->
-        <el-dialog v-model="trustDialogVisible" title="调整信任分" width="400px">
+        <el-dialog v-model="trustDialogVisible" :title="t(`${P}.adjust_trust_title`)" width="400px">
             <el-form label-width="100px" size="small">
-                <el-form-item label="调整值">
+                <el-form-item :label="t(`${P}.adjust_value`)">
                     <el-input-number v-model="trustDelta" :min="-100" :max="100" style="width:200px" />
-                    <div class="text-gray-400 text-xs mt-1">正值提高信任分，负值降低信任分</div>
+                    <div class="text-gray-400 text-xs mt-1">{{ t(`${P}.adjust_hint`) }}</div>
                 </el-form-item>
-                <el-form-item label="原因" required>
-                    <el-input v-model="trustReason" type="textarea" :rows="2" maxlength="500" placeholder="说明调整原因" />
+                <el-form-item :label="t(`${P}.reason`)" required>
+                    <el-input v-model="trustReason" type="textarea" :rows="2" maxlength="500" :placeholder="t(`${P}.reason_ph`)" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="trustDialogVisible = false">取消</el-button>
-                <el-button type="primary" :loading="trustSubmitting" @click="confirmAdjustTrust">确认</el-button>
+                <el-button @click="trustDialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="trustSubmitting" @click="confirmAdjustTrust">{{ t('actions.confirm') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -463,9 +463,13 @@
 
 <script setup>
 import { ref, onMounted, reactive } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, ArrowDown, Loading } from '@element-plus/icons-vue';
 import deviceApi from '@/api/device';
+
+const P = 'devices_page';
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const devices = ref([]);
@@ -493,6 +497,19 @@ const sortField = ref('-last_seen_at');
 const commonPlatforms = ['windows', 'linux', 'macos', 'android', 'ios', 'docker', 'k8s', 'unknown'];
 const platformOptions = ref([...commonPlatforms]);
 
+const TRUST_LEVEL_KEYS = { high: 'high', medium: 'medium', low: 'low', none: 'none' };
+const STAGE_KEYS = { new: 'new', onboarding: 'onboarding', stable: 'stable', suspicious: 'suspicious', retired: 'retired' };
+const TRIGGER_KEYS = { system: 'system', admin: 'admin', auto_detect: 'auto_detect' };
+const BATCH_ACTION_KEYS = {
+    deactivate: { labelKey: 'action_deactivate', verbKey: 'action_deactivate' },
+    blacklist: { labelKey: 'action_blacklist', verbKey: 'action_blacklist' },
+    remove_blacklist: { labelKey: 'action_remove_blacklist', verbKey: 'action_remove_blacklist' },
+};
+
+function yesNo(val) {
+    return val ? t(`${P}.yes`) : t(`${P}.no`);
+}
+
 function scoreType(score) {
     if (score >= 80) return 'success';
     if (score >= 50) return 'warning';
@@ -501,10 +518,26 @@ function scoreType(score) {
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    const loc = locale.value === 'zh_CN' ? 'zh-CN' : 'en-US';
+    return new Date(dateStr).toLocaleString(loc, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit',
     });
+}
+
+function trustLevelLabel(level) {
+    const key = TRUST_LEVEL_KEYS[level];
+    return key ? t(`${P}.trust_levels.${key}`) : level;
+}
+
+function stageLabel(stage) {
+    const key = STAGE_KEYS[stage];
+    return key ? t(`${P}.stages.${key}`) : stage;
+}
+
+function triggerLabel(triggeredBy) {
+    const key = TRIGGER_KEYS[triggeredBy];
+    return key ? t(`${P}.triggers.${key}`) : triggeredBy;
 }
 
 async function loadStats() {
@@ -597,12 +630,12 @@ async function openDetail(row) {
 async function handleDeactivate(row) {
     try {
         await ElMessageBox.confirm(
-            `确定要停用设备 ${row.fingerprint.substring(0, 16)}... 吗？`,
-            '确认操作',
-            { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+            t(`${P}.confirm_deactivate`, { fp: `${row.fingerprint.substring(0, 16)}...` }),
+            t('actions.confirm'),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning' }
         );
         await deviceApi.deactivate(row.id);
-        ElMessage.success('设备已停用');
+        ElMessage.success(t(`${P}.deactivated`));
         loadDevices();
         loadStats();
     } catch {
@@ -613,15 +646,15 @@ async function handleDeactivate(row) {
 // 更多操作
 async function handleMoreAction(cmd, row) {
     const actions = {
-        blacklist: { confirm: '确定要加入黑名单吗？', msg: '已加入黑名单' },
-        remove_blacklist: { confirm: '确定要移出黑名单吗？', msg: '已移出黑名单' },
+        blacklist: { confirm: t(`${P}.confirm_blacklist`), msg: t(`${P}.blacklisted`) },
+        remove_blacklist: { confirm: t(`${P}.confirm_remove_blacklist`), msg: t(`${P}.removed_blacklist`) },
     };
     const action = actions[cmd];
     if (!action) return;
 
     try {
-        await ElMessageBox.confirm(action.confirm, '确认操作', {
-            confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning',
+        await ElMessageBox.confirm(action.confirm, t('actions.confirm'), {
+            confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning',
         });
         if (cmd === 'blacklist') {
             await deviceApi.deactivate(row.id, true);
@@ -639,25 +672,22 @@ async function handleMoreAction(cmd, row) {
 // 批量操作
 async function batchAction(action) {
     if (selectedIds.value.length === 0) {
-        ElMessage.warning('请先选择设备');
+        ElMessage.warning(t(`${P}.select_first`));
         return;
     }
-    const actionLabels = {
-        deactivate: { label: '停用', verb: '停用' },
-        blacklist: { label: '加入黑名单', verb: '加入黑名单' },
-        remove_blacklist: { label: '移出黑名单', verb: '移出黑名单' },
-    };
-    const info = actionLabels[action];
-    if (!info) return;
+    const keys = BATCH_ACTION_KEYS[action];
+    if (!keys) return;
+    const verb = t(`${P}.${keys.verbKey}`);
+    const label = t(`${P}.${keys.labelKey}`);
 
     try {
         await ElMessageBox.confirm(
-            `确定要${info.verb}选中的 ${selectedIds.value.length} 台设备吗？`,
-            '批量操作',
-            { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+            t(`${P}.batch_confirm`, { action: verb, n: selectedIds.value.length }),
+            t(`${P}.batch_title`),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning' }
         );
         await deviceApi.batch(selectedIds.value, action);
-        ElMessage.success(`批量${info.label}成功`);
+        ElMessage.success(t(`${P}.batch_success`, { action: label }));
         clearSelection();
         loadDevices();
         loadStats();
@@ -683,12 +713,6 @@ function stageColor(stage) {
 function trustColor(level) {
     return { high: '#67c23a', medium: '#e6a23c', low: '#f56c6c', none: '#c0c4cc' }[level] || '#909399';
 }
-function trustLevelLabel(level) {
-    return { high: '高信任', medium: '中信任', low: '低信任', none: '无信任' }[level] || level;
-}
-function stageLabel(stage) {
-    return { new: '首次出现', onboarding: '逐步信任', stable: '长期稳定', suspicious: '异常/可疑', retired: '已废弃' }[stage] || stage;
-}
 function stageTagType(stage) {
     return { new: 'info', onboarding: 'warning', stable: 'success', suspicious: 'danger', retired: 'info' }[stage] || 'info';
 }
@@ -705,7 +729,7 @@ async function openProfileDialog(row) {
         const { data: res } = await deviceApi.profile(row.id);
         if (res.success) profileData.value = res.data;
     } catch {
-        ElMessage.error('加载画像失败');
+        ElMessage.error(t(`${P}.profile_load_fail`));
     } finally {
         profileLoading.value = false;
     }
@@ -717,36 +741,39 @@ async function handleAdjustTrust(row) {
     trustDialogVisible.value = true;
 }
 async function confirmAdjustTrust() {
-    if (!trustReason.value.trim()) { ElMessage.warning('请输入调整原因'); return; }
+    if (!trustReason.value.trim()) { ElMessage.warning(t(`${P}.reason_required`)); return; }
     trustSubmitting.value = true;
     try {
         const { data: res } = await deviceApi.adjustTrust(profileDevice.value.id, trustDelta.value, trustReason.value);
         if (res.success) {
-            ElMessage.success(`信任分已调整，新分数: ${res.data.new_trust_score}`);
+            ElMessage.success(t(`${P}.trust_adjusted`, { score: res.data.new_trust_score }));
             trustDialogVisible.value = false;
-            // Reload profile
             openProfileDialog(profileDevice.value);
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '调整失败');
+        ElMessage.error(e.response?.data?.message || t(`${P}.adjust_fail`));
     } finally {
         trustSubmitting.value = false;
     }
 }
 async function handleMarkSuspicious(row) {
     try {
-        await ElMessageBox.confirm(`确定将设备标记为可疑？`, '确认操作', { type: 'warning' });
-        const { data: res } = await deviceApi.markSuspicious(row.id, '管理员手动标记可疑');
-        if (res.success) { ElMessage.success('已标记为可疑'); openProfileDialog(row); }
+        await ElMessageBox.confirm(t(`${P}.confirm_suspicious`), t('actions.confirm'), { type: 'warning' });
+        const { data: res } = await deviceApi.markSuspicious(row.id, t(`${P}.suspicious_reason`));
+        if (res.success) { ElMessage.success(t(`${P}.marked_suspicious`)); openProfileDialog(row); }
     } catch {
         // cancelled
     }
 }
 async function handleRetire(row) {
     try {
-        await ElMessageBox.confirm(`确定废弃该设备？此操作将移除License关联并加入黑名单。`, '确认操作', { type: 'warning', confirmButtonText: '确认废弃', cancelButtonText: '取消' });
-        const { data: res } = await deviceApi.retire(row.id, '管理员手动废弃');
-        if (res.success) { ElMessage.success('设备已废弃'); openProfileDialog(row); }
+        await ElMessageBox.confirm(
+            t(`${P}.confirm_retire`),
+            t('actions.confirm'),
+            { type: 'warning', confirmButtonText: t(`${P}.confirm_retire_btn`), cancelButtonText: t('actions.cancel') }
+        );
+        const { data: res } = await deviceApi.retire(row.id, t(`${P}.retire_reason`));
+        if (res.success) { ElMessage.success(t(`${P}.retired`)); openProfileDialog(row); }
     } catch {
         // cancelled
     }

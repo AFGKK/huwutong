@@ -2,16 +2,16 @@
     <div class="license-analytics-page">
         <!-- 页面标题 + 操作 -->
         <div class="page-header">
-            <h2>License 分析引擎</h2>
+            <h2>{{ t('license_analytics_page.title') }}</h2>
             <div class="header-actions">
                 <el-button @click="detectViolations" :loading="detecting" type="warning">
-                    <el-icon><WarnTriangleFilled /></el-icon> 运行违规检测
+                    <el-icon><WarnTriangleFilled /></el-icon> {{ t('license_analytics_page.detect_violations') }}
                 </el-button>
                 <el-button @click="backfillData" :loading="backfilling">
-                    <el-icon><Refresh /></el-icon> 回填历史数据
+                    <el-icon><Refresh /></el-icon> {{ t('license_analytics_page.backfill_data') }}
                 </el-button>
                 <el-button @click="refreshAll" :loading="loading" type="primary">
-                    <el-icon><Refresh /></el-icon> 刷新
+                    <el-icon><Refresh /></el-icon> {{ t('license_analytics_page.refresh') }}
                 </el-button>
             </div>
         </div>
@@ -21,49 +21,49 @@
             <el-col :span="3">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ dashboard.total_licenses }}</div>
-                    <div class="stat-label">License 总数</div>
+                    <div class="stat-label">{{ t('license_analytics_page.stats.total_licenses') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="3">
                 <el-card shadow="hover" class="stat-card stat-active">
                     <div class="stat-value">{{ dashboard.active_licenses }}</div>
-                    <div class="stat-label">活跃中</div>
+                    <div class="stat-label">{{ t('licenses_page.st_active_now') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="3">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ dashboard.total_activations }}</div>
-                    <div class="stat-label">激活次数</div>
+                    <div class="stat-label">{{ t('license_analytics_page.stats.activations') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="3">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ dashboard.total_devices }}</div>
-                    <div class="stat-label">设备总数</div>
+                    <div class="stat-label">{{ t('license_analytics_page.stats.total_devices') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="3">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ dashboard.total_events }}</div>
-                    <div class="stat-label">分析事件</div>
+                    <div class="stat-label">{{ t('license_analytics_page.stats.analytics_events') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="3">
                 <el-card shadow="hover" class="stat-card stat-danger">
                     <div class="stat-value">{{ dashboard.total_violations }}</div>
-                    <div class="stat-label">违规事件</div>
+                    <div class="stat-label">{{ t('license_analytics_page.stats.violations') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="3">
                 <el-card shadow="hover" class="stat-card stat-warning">
                     <div class="stat-value">{{ dashboard.blacklisted_devices }}</div>
-                    <div class="stat-label">黑名单设备</div>
+                    <div class="stat-label">{{ t('license_analytics_page.stats.blacklisted_devices') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="3">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ dashboard.utilization?.avg_seat_utilization ?? 0 }}%</div>
-                    <div class="stat-label">座位利用率</div>
+                    <div class="stat-label">{{ t('license_analytics_page.stats.seat_utilization') }}</div>
                 </el-card>
             </el-col>
         </el-row>
@@ -71,22 +71,22 @@
         <!-- Tabs -->
         <el-tabs v-model="activeTab" type="border-card">
             <!-- ===== 1. 地理分布 ===== -->
-            <el-tab-pane label="地理分布" name="geo">
+            <el-tab-pane :label="t('license_analytics_page.tabs.geo')" name="geo">
                 <div v-loading="loading">
                     <el-row :gutter="16">
                         <el-col :span="16">
                             <el-card>
-                                <template #header><span>国家/地区分布</span></template>
+                                <template #header><span>{{ t('license_analytics_page.geo.country_distribution') }}</span></template>
                                 <el-table :data="geoData.countries" stripe style="width: 100%" max-height="500">
                                     <el-table-column type="index" label="#" width="50" />
-                                    <el-table-column prop="country_name" label="国家/地区" min-width="180" />
-                                    <el-table-column prop="country_code" label="代码" width="80" />
-                                    <el-table-column prop="count" label="事件数" width="120" sortable>
+                                    <el-table-column prop="country_name" :label="t('license_analytics_page.cols.country_region')" min-width="180" />
+                                    <el-table-column prop="country_code" :label="t('license_analytics_page.cols.code')" width="80" />
+                                    <el-table-column prop="count" :label="t('license_analytics_page.cols.event_count')" width="120" sortable>
                                         <template #default="{ row }">
                                             <el-tag>{{ row.count }}</el-tag>
                                         </template>
                                     </el-table-column>
-                                    <el-table-column label="占比" width="200">
+                                    <el-table-column :label="t('license_analytics_page.cols.share')" width="200">
                                         <template #default="{ row }">
                                             <el-progress
                                                 :percentage="geoData.total > 0 ? Math.round(row.count / geoData.total * 100) : 0"
@@ -95,9 +95,9 @@
                                             />
                                         </template>
                                     </el-table-column>
-                                    <el-table-column label="操作" width="100">
+                                    <el-table-column :label="t('licenses_page.col_actions')" width="100">
                                         <template #default="{ row }">
-                                            <el-button size="small" @click="viewGeoDetail(row.country_code)">详情</el-button>
+                                            <el-button size="small" @click="viewGeoDetail(row.country_code)">{{ t('license_analytics_page.cols.detail') }}</el-button>
                                         </template>
                                     </el-table-column>
                                 </el-table>
@@ -105,12 +105,12 @@
                         </el-col>
                         <el-col :span="8">
                             <el-card>
-                                <template #header><span>城市分布 (Top 20)</span></template>
+                                <template #header><span>{{ t('license_analytics_page.geo.city_top20') }}</span></template>
                                 <el-table :data="geoData.cities" stripe style="width: 100%" max-height="500">
                                     <el-table-column type="index" label="#" width="50" />
-                                    <el-table-column prop="city" label="城市" min-width="120" />
-                                    <el-table-column prop="country_code" label="国家" width="60" />
-                                    <el-table-column prop="count" label="事件数" width="100" sortable />
+                                    <el-table-column prop="city" :label="t('license_analytics_page.cols.city')" min-width="120" />
+                                    <el-table-column prop="country_code" :label="t('license_analytics_page.cols.country')" width="60" />
+                                    <el-table-column prop="count" :label="t('license_analytics_page.cols.event_count')" width="100" sortable />
                                 </el-table>
                             </el-card>
                         </el-col>
@@ -119,28 +119,30 @@
             </el-tab-pane>
 
             <!-- ===== 2. 激活趋势 ===== -->
-            <el-tab-pane label="激活趋势" name="trend">
+            <el-tab-pane :label="t('license_analytics_page.tabs.trend')" name="trend">
                 <div v-loading="loading">
                     <el-row :gutter="16" class="mb-4">
                         <el-col :span="6">
                             <el-select v-model="trendDays" @change="fetchTrends" style="width: 200px">
-                                <el-option label="近 7 天" :value="7" />
-                                <el-option label="近 30 天" :value="30" />
-                                <el-option label="近 90 天" :value="90" />
-                                <el-option label="近 365 天" :value="365" />
+                                <el-option
+                                    v-for="opt in trendDayOptions"
+                                    :key="opt.value"
+                                    :label="opt.label"
+                                    :value="opt.value"
+                                />
                             </el-select>
                         </el-col>
                     </el-row>
                     <el-row :gutter="16">
                         <el-col :span="12">
                             <el-card>
-                                <template #header><span>激活趋势</span></template>
+                                <template #header><span>{{ t('license_analytics_page.trend.activation') }}</span></template>
                                 <div style="height: 300px; overflow-y: auto">
                                     <el-table :data="activationTrend" stripe size="small" height="280">
-                                        <el-table-column prop="date" label="日期" width="120" />
-                                        <el-table-column prop="count" label="激活次数" sortable />
-                                        <el-table-column label="趋势">
-                                            <template #default="{ row, $index }">
+                                        <el-table-column prop="date" :label="t('license_analytics_page.cols.date')" width="120" />
+                                        <el-table-column prop="count" :label="t('license_analytics_page.cols.activation_count')" sortable />
+                                        <el-table-column :label="t('license_analytics_page.cols.trend')">
+                                            <template #default="{ row }">
                                                 <el-progress
                                                     :percentage="maxTrendCount > 0 ? Math.round(row.count / maxTrendCount * 100) : 0"
                                                     :stroke-width="12"
@@ -153,17 +155,17 @@
                         </el-col>
                         <el-col :span="12">
                             <el-card>
-                                <template #header><span>违规趋势</span></template>
+                                <template #header><span>{{ t('license_analytics_page.trend.violation') }}</span></template>
                                 <div style="height: 300px; overflow-y: auto">
                                     <el-table :data="violationTrend" stripe size="small" height="280">
-                                        <el-table-column prop="date" label="日期" width="120" />
-                                        <el-table-column prop="count" label="违规次数" sortable>
+                                        <el-table-column prop="date" :label="t('license_analytics_page.cols.date')" width="120" />
+                                        <el-table-column prop="count" :label="t('license_analytics_page.cols.violation_count')" sortable>
                                             <template #default="{ row }">
                                                 <el-tag v-if="row.count > 0" type="danger">{{ row.count }}</el-tag>
                                                 <span v-else>0</span>
                                             </template>
                                         </el-table-column>
-                                        <el-table-column label="趋势">
+                                        <el-table-column :label="t('license_analytics_page.cols.trend')">
                                             <template #default="{ row }">
                                                 <el-progress
                                                     :percentage="maxViolationCount > 0 ? Math.round(row.count / maxViolationCount * 100) : 0"
@@ -181,40 +183,46 @@
             </el-tab-pane>
 
             <!-- ===== 3. 使用饱和度 ===== -->
-            <el-tab-pane label="使用饱和度" name="utilization">
+            <el-tab-pane :label="t('license_analytics_page.tabs.utilization')" name="utilization">
                 <div v-loading="loading">
                     <el-row :gutter="16">
                         <el-col :span="8">
                             <el-card>
-                                <template #header><span>座位利用率</span></template>
+                                <template #header><span>{{ t('license_analytics_page.utilization.seat_utilization') }}</span></template>
                                 <div style="text-align: center; padding: 30px 0">
                                     <el-progress type="dashboard" :percentage="dashboard.utilization?.avg_seat_utilization ?? 0" :width="180" />
                                     <p class="mt-2 text-gray-500">
-                                        已用 {{ dashboard.utilization?.total_used_seats ?? 0 }} / 总计 {{ dashboard.utilization?.total_seats ?? 0 }} 座位
+                                        {{ t('license_analytics_page.utilization.seats_used_total', {
+                                            used: dashboard.utilization?.total_used_seats ?? 0,
+                                            total: dashboard.utilization?.total_seats ?? 0,
+                                        }) }}
                                     </p>
                                 </div>
                             </el-card>
                         </el-col>
                         <el-col :span="8">
                             <el-card>
-                                <template #header><span>设备配额利用率</span></template>
+                                <template #header><span>{{ t('license_analytics_page.utilization.device_quota') }}</span></template>
                                 <div style="text-align: center; padding: 30px 0">
                                     <el-progress type="dashboard" :percentage="dashboard.utilization?.avg_device_utilization ?? 0" :width="180" />
                                     <p class="mt-2 text-gray-500">
-                                        已用 {{ dashboard.utilization?.total_used_devices ?? 0 }} / 总计 {{ dashboard.utilization?.total_max_devices ?? 0 }} 设备配额
+                                        {{ t('license_analytics_page.utilization.devices_used_total', {
+                                            used: dashboard.utilization?.total_used_devices ?? 0,
+                                            total: dashboard.utilization?.total_max_devices ?? 0,
+                                        }) }}
                                     </p>
                                 </div>
                             </el-card>
                         </el-col>
                         <el-col :span="8">
                             <el-card>
-                                <template #header><span>超限概览</span></template>
+                                <template #header><span>{{ t('license_analytics_page.utilization.over_capacity_overview') }}</span></template>
                                 <div style="padding: 20px">
-                                    <el-statistic title="超容量 License" :value="dashboard.utilization?.over_capacity_count ?? 0" />
+                                    <el-statistic :title="t('license_analytics_page.utilization.over_capacity_licenses')" :value="dashboard.utilization?.over_capacity_count ?? 0" />
                                     <el-divider />
-                                    <el-statistic title="临近容量 (≥80%)" :value="dashboard.utilization?.near_capacity_count ?? 0" />
+                                    <el-statistic :title="t('license_analytics_page.utilization.near_capacity')" :value="dashboard.utilization?.near_capacity_count ?? 0" />
                                     <el-divider />
-                                    <el-statistic title="License 数量" :value="dashboard.utilization?.total_licenses ?? 0" />
+                                    <el-statistic :title="t('license_analytics_page.utilization.license_count')" :value="dashboard.utilization?.total_licenses ?? 0" />
                                 </div>
                             </el-card>
                         </el-col>
@@ -223,16 +231,16 @@
             </el-tab-pane>
 
             <!-- ===== 4. SDK 版本分布 ===== -->
-            <el-tab-pane label="SDK 版本" name="sdk">
+            <el-tab-pane :label="t('license_analytics_page.tabs.sdk')" name="sdk">
                 <div v-loading="loading">
                     <el-row :gutter="16">
                         <el-col :span="12">
                             <el-card>
-                                <template #header><span>SDK 版本分布 (近30天)</span></template>
+                                <template #header><span>{{ t('license_analytics_page.sdk.version_dist') }}</span></template>
                                 <el-table :data="sdkVersionArray" stripe size="small">
-                                    <el-table-column prop="version" label="版本" min-width="200" />
-                                    <el-table-column prop="count" label="心跳数" width="120" sortable />
-                                    <el-table-column label="占比" width="200">
+                                    <el-table-column prop="version" :label="t('license_analytics_page.cols.version')" min-width="200" />
+                                    <el-table-column prop="count" :label="t('license_analytics_page.cols.heartbeat_count')" width="120" sortable />
+                                    <el-table-column :label="t('license_analytics_page.cols.share')" width="200">
                                         <template #default="{ row }">
                                             <el-progress
                                                 :percentage="sdkTotal > 0 ? Math.round(row.count / sdkTotal * 100) : 0"
@@ -246,11 +254,11 @@
                         </el-col>
                         <el-col :span="12">
                             <el-card>
-                                <template #header><span>SDK 语言分布 (近30天)</span></template>
+                                <template #header><span>{{ t('license_analytics_page.sdk.lang_dist') }}</span></template>
                                 <el-table :data="sdkLangArray" stripe size="small">
-                                    <el-table-column prop="language" label="语言" min-width="200" />
-                                    <el-table-column prop="count" label="心跳数" width="120" sortable />
-                                    <el-table-column label="占比" width="200">
+                                    <el-table-column prop="language" :label="t('license_analytics_page.cols.language')" min-width="200" />
+                                    <el-table-column prop="count" :label="t('license_analytics_page.cols.heartbeat_count')" width="120" sortable />
+                                    <el-table-column :label="t('license_analytics_page.cols.share')" width="200">
                                         <template #default="{ row }">
                                             <el-progress
                                                 :percentage="sdkLangTotal > 0 ? Math.round(row.count / sdkLangTotal * 100) : 0"
@@ -266,11 +274,11 @@
                     <el-row :gutter="16" class="mt-4">
                         <el-col :span="24">
                             <el-card>
-                                <template #header><span>平台分布</span></template>
+                                <template #header><span>{{ t('license_analytics_page.sdk.platform_dist') }}</span></template>
                                 <el-table :data="platformArray" stripe size="small">
-                                    <el-table-column prop="platform" label="平台" min-width="200" />
-                                    <el-table-column prop="count" label="设备数" width="120" sortable />
-                                    <el-table-column label="占比" width="200">
+                                    <el-table-column prop="platform" :label="t('license_analytics_page.cols.platform')" min-width="200" />
+                                    <el-table-column prop="count" :label="t('license_analytics_page.cols.device_count')" width="120" sortable />
+                                    <el-table-column :label="t('license_analytics_page.cols.share')" width="200">
                                         <template #default="{ row }">
                                             <el-progress
                                                 :percentage="platformTotal > 0 ? Math.round(row.count / platformTotal * 100) : 0"
@@ -287,21 +295,21 @@
             </el-tab-pane>
 
             <!-- ===== 5. 产品统计 ===== -->
-            <el-tab-pane label="产品统计" name="products">
+            <el-tab-pane :label="t('license_analytics_page.tabs.products')" name="products">
                 <div v-loading="loading">
                     <el-card>
-                        <template #header><span>按产品 License 使用量</span></template>
+                        <template #header><span>{{ t('license_analytics_page.products.usage_title') }}</span></template>
                         <el-table :data="productStats" stripe style="width: 100%">
                             <el-table-column type="index" label="#" width="50" />
-                            <el-table-column prop="product_name" label="产品名称" min-width="200" />
-                            <el-table-column prop="total_licenses" label="总 License" width="120" sortable />
-                            <el-table-column prop="active_licenses" label="活跃中" width="120" sortable>
+                            <el-table-column prop="product_name" :label="t('license_analytics_page.cols.product_name')" min-width="200" />
+                            <el-table-column prop="total_licenses" :label="t('license_analytics_page.cols.total_licenses')" width="120" sortable />
+                            <el-table-column prop="active_licenses" :label="t('licenses_page.st_active_now')" width="120" sortable>
                                 <template #default="{ row }">
                                     <el-tag type="success">{{ row.active_licenses }}</el-tag>
                                 </template>
                             </el-table-column>
-                            <el-table-column prop="total_events" label="分析事件" width="120" sortable />
-                            <el-table-column label="激活率" width="200">
+                            <el-table-column prop="total_events" :label="t('license_analytics_page.cols.analytics_events')" width="120" sortable />
+                            <el-table-column :label="t('license_analytics_page.cols.activation_rate')" width="200">
                                 <template #default="{ row }">
                                     <el-progress
                                         :percentage="row.total_licenses > 0 ? Math.round(row.active_licenses / row.total_licenses * 100) : 0"
@@ -316,24 +324,24 @@
             </el-tab-pane>
 
             <!-- ===== 6. 违规检测 ===== -->
-            <el-tab-pane label="违规检测" name="violations">
+            <el-tab-pane :label="t('license_analytics_page.tabs.violations')" name="violations">
                 <div v-loading="loading">
                     <el-card class="mb-4">
                         <el-form :model="violationFilters" inline>
-                            <el-form-item label="违规类型">
-                                <el-select v-model="violationFilters.violation_type" placeholder="全部" clearable style="width: 180px">
+                            <el-form-item :label="t('license_analytics_page.cols.violation_type')">
+                                <el-select v-model="violationFilters.violation_type" :placeholder="t('licenses_page.all')" clearable style="width: 180px">
                                     <el-option v-for="(label, key) in violationTypeMap" :key="key" :label="label" :value="key" />
                                 </el-select>
                             </el-form-item>
-                            <el-form-item label="开始日期">
-                                <el-date-picker v-model="violationFilters.date_from" type="date" placeholder="选择日期" />
+                            <el-form-item :label="t('licenses_page.date_start')">
+                                <el-date-picker v-model="violationFilters.date_from" type="date" :placeholder="t('license_analytics_page.filters.date_ph')" />
                             </el-form-item>
-                            <el-form-item label="结束日期">
-                                <el-date-picker v-model="violationFilters.date_to" type="date" placeholder="选择日期" />
+                            <el-form-item :label="t('licenses_page.date_end')">
+                                <el-date-picker v-model="violationFilters.date_to" type="date" :placeholder="t('license_analytics_page.filters.date_ph')" />
                             </el-form-item>
                             <el-form-item>
-                                <el-button type="primary" @click="fetchViolations(1)">搜索</el-button>
-                                <el-button @click="resetViolationFilters">重置</el-button>
+                                <el-button type="primary" @click="fetchViolations(1)">{{ t('actions.search') }}</el-button>
+                                <el-button @click="resetViolationFilters">{{ t('actions.reset') }}</el-button>
                             </el-form-item>
                         </el-form>
                         <el-alert
@@ -347,28 +355,28 @@
                     </el-card>
                     <el-table :data="violationList" stripe style="width: 100%">
                         <el-table-column type="index" label="#" width="50" />
-                        <el-table-column label="License Key" width="180">
+                        <el-table-column :label="t('licenses_page.license_key')" width="180">
                             <template #default="{ row }">
                                 <router-link :to="`/admin/licenses/${row.license_id}`" class="text-blue-500">
                                     {{ row.license?.license_key ?? row.license_id }}
                                 </router-link>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="violation_type" label="违规类型" width="140">
+                        <el-table-column prop="violation_type" :label="t('license_analytics_page.cols.violation_type')" width="140">
                             <template #default="{ row }">
                                 <el-tag :type="violationTagType(row.violation_type)" effect="dark">
                                     {{ violationTypeMap[row.violation_type] || row.violation_type }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="violation_detail" label="详情" min-width="300" show-overflow-tooltip />
-                        <el-table-column prop="ip_address" label="IP" width="140" />
-                        <el-table-column prop="country_name" label="位置" width="140">
+                        <el-table-column prop="violation_detail" :label="t('license_analytics_page.cols.detail')" min-width="300" show-overflow-tooltip />
+                        <el-table-column prop="ip_address" :label="t('license_analytics_page.cols.ip')" width="140" />
+                        <el-table-column prop="country_name" :label="t('license_analytics_page.cols.location')" width="140">
                             <template #default="{ row }">
                                 {{ [row.country_name, row.city].filter(Boolean).join(', ') || '-' }}
                             </template>
                         </el-table-column>
-                        <el-table-column prop="occurred_at" label="发生时间" width="170" sortable>
+                        <el-table-column prop="occurred_at" :label="t('license_analytics_page.cols.occurred_at')" width="170" sortable>
                             <template #default="{ row }">{{ formatDate(row.occurred_at) }}</template>
                         </el-table-column>
                     </el-table>
@@ -385,21 +393,21 @@
             </el-tab-pane>
 
             <!-- ===== 7. 违规类型分布 ===== -->
-            <el-tab-pane label="违规概览" name="violation-overview">
+            <el-tab-pane :label="t('license_analytics_page.tabs.violation_overview')" name="violation-overview">
                 <div v-loading="loading">
                     <el-row :gutter="16">
                         <el-col :span="24">
                             <el-card class="mb-4">
                                 <template #header>
                                     <div class="flex justify-between items-center">
-                                        <span>违规分类统计</span>
+                                        <span>{{ t('license_analytics_page.violations.category_stats') }}</span>
                                         <el-button size="small" @click="detectViolations" :loading="detecting" type="warning">
-                                            运行检测
+                                            {{ t('license_analytics_page.violations.run_detection') }}
                                         </el-button>
                                     </div>
                                 </template>
                                 <div v-if="violationTypeKeys.length === 0" class="text-center py-8 text-gray-400">
-                                    <el-empty description="暂无违规数据" />
+                                    <el-empty :description="t('license_analytics_page.violations.empty')" />
                                 </div>
                                 <div v-else>
                                     <el-row :gutter="16">
@@ -427,47 +435,58 @@
         </el-tabs>
 
         <!-- 地理详情对话框 -->
-        <el-dialog v-model="geoDetailVisible" title="国家/地区详情" width="80%" top="5vh">
+        <el-dialog v-model="geoDetailVisible" :title="t('license_analytics_page.geo.detail_title')" width="80%" top="5vh">
             <div v-if="geoDetailData">
                 <el-row :gutter="16" class="mb-4">
                     <el-col :span="6" v-for="s in geoDetailData.stats" :key="s.event_type">
                         <el-card shadow="hover">
                             <div class="stat-value">{{ s.count }}</div>
-                            <div class="stat-label">{{ s.event_type }} ({{ s.unique_licenses }} License)</div>
+                            <div class="stat-label">{{ t('license_analytics_page.geo.event_stat', { event: s.event_type, licenses: s.unique_licenses }) }}</div>
                         </el-card>
                     </el-col>
                 </el-row>
                 <el-table :data="geoDetailData.events?.data ?? []" stripe size="small">
-                    <el-table-column prop="event_type" label="事件类型" width="120" />
-                    <el-table-column prop="ip_address" label="IP" width="140" />
-                    <el-table-column prop="city" label="城市" width="120" />
-                    <el-table-column prop="occurred_at" label="时间" width="170">
+                    <el-table-column prop="event_type" :label="t('license_analytics_page.cols.event_type')" width="120" />
+                    <el-table-column prop="ip_address" :label="t('license_analytics_page.cols.ip')" width="140" />
+                    <el-table-column prop="city" :label="t('license_analytics_page.cols.city')" width="120" />
+                    <el-table-column prop="occurred_at" :label="t('license_analytics_page.cols.time')" width="170">
                         <template #default="{ row }">{{ formatDate(row.occurred_at) }}</template>
                     </el-table-column>
-                    <el-table-column label="License" min-width="200">
+                    <el-table-column :label="t('license_analytics_page.cols.license')" min-width="200">
                         <template #default="{ row }">
                             {{ row.license?.license_key ?? row.license_id }}
                         </template>
                     </el-table-column>
                 </el-table>
             </div>
-            <div v-else class="text-center py-8 text-gray-400">加载中...</div>
+            <div v-else class="text-center py-8 text-gray-400">{{ t('actions.loading') }}</div>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
-    Refresh, WarnTriangleFilled, DataBoard,
+    Refresh, WarnTriangleFilled,
 } from '@element-plus/icons-vue';
 import licenseAnalyticsApi from '../../api/licenseAnalytics';
+
+const { t, te, locale } = useI18n();
 
 const loading = ref(false);
 const detecting = ref(false);
 const backfilling = ref(false);
 const activeTab = ref('geo');
+
+const VIOLATION_TYPE_KEYS = [
+    'excessive_activations',
+    'expired_use',
+    'tampered',
+    'blacklisted_device',
+    'suspicious_location',
+];
 
 // Dashboard data
 const dashboard = reactive({
@@ -502,8 +521,15 @@ const geoDetailData = ref(null);
 const trendDays = ref(30);
 const activationTrend = ref([]);
 const violationTrend = ref([]);
-const maxTrendCount = computed(() => Math.max(...activationTrend.value.map(t => t.count), 1));
-const maxViolationCount = computed(() => Math.max(...violationTrend.value.map(t => t.count), 1));
+const maxTrendCount = computed(() => Math.max(...activationTrend.value.map(item => item.count), 1));
+const maxViolationCount = computed(() => Math.max(...violationTrend.value.map(item => item.count), 1));
+
+const trendDayOptions = computed(() => [
+    { label: t('license_analytics_page.trend.last_7d'), value: 7 },
+    { label: t('license_analytics_page.trend.last_30d'), value: 30 },
+    { label: t('license_analytics_page.trend.last_90d'), value: 90 },
+    { label: t('license_analytics_page.trend.last_365d'), value: 365 },
+]);
 
 // SDK
 const sdkVersionStats = reactive({ by_version: {}, by_language: {} });
@@ -530,17 +556,21 @@ const productStats = ref([]);
 const violationList = ref([]);
 const violationPage = ref(1);
 const violationTotal = ref(0);
-const violationTypeMap = ref({
-    excessive_activations: '超量激活',
-    expired_use: '过期使用',
-    tampered: '信息篡改',
-    blacklisted_device: '黑名单设备',
-    suspicious_location: '异常地理位置',
-});
+const apiViolationTypes = ref({});
 const violationFilters = reactive({
     violation_type: '',
     date_from: '',
     date_to: '',
+});
+
+const violationTypeMap = computed(() => {
+    const map = {};
+    const keys = new Set([...VIOLATION_TYPE_KEYS, ...Object.keys(apiViolationTypes.value)]);
+    for (const key of keys) {
+        const i18nKey = `license_analytics_page.violation_types.${key}`;
+        map[key] = te(i18nKey) ? t(i18nKey) : (apiViolationTypes.value[key] || key);
+    }
+    return map;
 });
 
 const violationTypeKeys = computed(() => Object.keys(dashboard.violations_by_type));
@@ -550,8 +580,11 @@ const violationTypeTotal = computed(() =>
 
 const violationSummary = computed(() => {
     const parts = Object.entries(dashboard.violations_by_type)
-        .map(([type, count]) => `${violationTypeMap.value[type] || type}: ${count} 次`);
-    return `违规概况 — ${parts.join(' | ')}`;
+        .map(([type, count]) => t('license_analytics_page.violations.summary_item', {
+            type: violationTypeMap.value[type] || type,
+            count,
+        }));
+    return t('license_analytics_page.violations.summary', { parts: parts.join(' | ') });
 });
 
 function violationTagType(type) {
@@ -567,7 +600,8 @@ function violationTagType(type) {
 
 function formatDate(date) {
     if (!date) return '-';
-    return new Date(date).toLocaleString('zh-CN', { hour12: false });
+    const loc = locale.value === 'zh_CN' ? 'zh-CN' : 'en-US';
+    return new Date(date).toLocaleString(loc, { hour12: false });
 }
 
 async function refreshAll() {
@@ -581,9 +615,9 @@ async function refreshAll() {
             fetchProductStats(),
             fetchViolationTypes(),
         ]);
-        ElMessage.success('数据已刷新');
+        ElMessage.success(t('license_analytics_page.messages.refreshed'));
     } catch (e) {
-        ElMessage.error('加载数据失败');
+        ElMessage.error(t('license_analytics_page.messages.load_failed'));
     } finally {
         loading.value = false;
     }
@@ -645,7 +679,7 @@ async function fetchProductStats() {
 async function fetchViolationTypes() {
     try {
         const { data: res } = await licenseAnalyticsApi.violationTypes();
-        violationTypeMap.value = res.data || res || violationTypeMap.value;
+        apiViolationTypes.value = res.data || res || {};
     } catch (e) {
         console.error('Failed to fetch violation types', e);
     }
@@ -667,7 +701,7 @@ async function fetchViolations(page = 1) {
 
         activeTab.value = 'violations';
     } catch (e) {
-        ElMessage.error('获取违规数据失败');
+        ElMessage.error(t('license_analytics_page.messages.fetch_violations_failed'));
     } finally {
         loading.value = false;
     }
@@ -685,11 +719,14 @@ async function detectViolations() {
     try {
         const { data: res } = await licenseAnalyticsApi.detectViolations();
         const d = res.data || res;
-        ElMessage.success(`违规检测完成：发现 ${d.violations_found} 个问题，新记录 ${d.violations_recorded} 条`);
+        ElMessage.success(t('license_analytics_page.messages.detect_complete', {
+            found: d.violations_found,
+            recorded: d.violations_recorded,
+        }));
         await fetchDashboard();
         if (activeTab.value === 'violations') await fetchViolations(1);
     } catch (e) {
-        ElMessage.error('违规检测失败');
+        ElMessage.error(t('license_analytics_page.messages.detect_failed'));
     } finally {
         detecting.value = false;
     }
@@ -697,11 +734,15 @@ async function detectViolations() {
 
 async function backfillData() {
     try {
-        await ElMessageBox.confirm('将从现有激活记录回填数据到分析引擎，确定继续？', '确认', {
-            type: 'warning',
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-        });
+        await ElMessageBox.confirm(
+            t('license_analytics_page.confirm.backfill_message'),
+            t('actions.confirm'),
+            {
+                type: 'warning',
+                confirmButtonText: t('actions.confirm'),
+                cancelButtonText: t('actions.cancel'),
+            },
+        );
     } catch {
         return;
     }
@@ -710,10 +751,10 @@ async function backfillData() {
     try {
         const { data: res } = await licenseAnalyticsApi.backfill();
         const d = res.data || res;
-        ElMessage.success(`回填完成：${d.activations} 条激活记录`);
+        ElMessage.success(t('license_analytics_page.messages.backfill_complete', { count: d.activations }));
         await refreshAll();
     } catch (e) {
-        ElMessage.error('回填失败');
+        ElMessage.error(t('license_analytics_page.messages.backfill_failed'));
     } finally {
         backfilling.value = false;
     }
@@ -726,9 +767,13 @@ async function viewGeoDetail(countryCode) {
         const { data: res } = await licenseAnalyticsApi.geoDetail(countryCode);
         geoDetailData.value = res.data || res;
     } catch (e) {
-        ElMessage.error('获取地理详情失败');
+        ElMessage.error(t('license_analytics_page.messages.fetch_geo_failed'));
     }
 }
+
+watch(activeTab, (val) => {
+    if (val === 'violations') fetchViolations(1)
+})
 
 onMounted(() => {
     refreshAll();
@@ -801,7 +846,7 @@ onMounted(() => {
     color: #f56c6c;
 }
 .text-blue-500 {
-    color: #409eff;
+    color: #0f172a;
     text-decoration: none;
 }
 .text-blue-500:hover {

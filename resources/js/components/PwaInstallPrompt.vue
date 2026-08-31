@@ -5,17 +5,17 @@
       <div class="pwa-install-content">
         <div class="pwa-install-icon">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="12" width="18" height="9" rx="2" stroke="#409eff" stroke-width="2"/>
-            <path d="M12 3v9m0 0l-4-4m4 4l4-4" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="3" y="12" width="18" height="9" rx="2" stroke="#0f172a" stroke-width="2"/>
+            <path d="M12 3v9m0 0l-4-4m4 4l4-4" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <div class="pwa-install-text">
-          <strong>安装 HWT License</strong>
-          <span>添加到主屏幕，获得更好的移动体验</span>
+          <strong>{{ t('pwa.install_title', { app: t('app_name') }) }}</strong>
+          <span>{{ t('pwa.install_desc') }}</span>
         </div>
         <div class="pwa-install-actions">
-          <el-button size="small" type="primary" @click="install">安装</el-button>
-          <el-button size="small" @click="dismiss">稍后</el-button>
+          <el-button size="small" type="primary" @click="install">{{ t('pwa.install') }}</el-button>
+          <el-button size="small" @click="dismiss">{{ t('pwa.later') }}</el-button>
         </div>
       </div>
     </div>
@@ -24,24 +24,26 @@
     <div v-if="showUpdatePrompt" class="pwa-update-banner" role="alert">
       <div class="pwa-update-content">
         <el-icon color="#e6a23c"><WarningFilled /></el-icon>
-        <span>发现新版本</span>
-        <el-button size="small" type="warning" @click="update">立即更新</el-button>
-        <el-button size="small" text @click="showUpdatePrompt = false">忽略</el-button>
+        <span>{{ t('pwa.update_available') }}</span>
+        <el-button size="small" type="warning" @click="update">{{ t('pwa.update_now') }}</el-button>
+        <el-button size="small" text @click="showUpdatePrompt = false">{{ t('pwa.dismiss') }}</el-button>
       </div>
     </div>
 
     <!-- 离线提示 -->
     <div v-if="!isOnline" class="pwa-offline-banner" role="alert">
       <el-icon color="#f56c6c"><WarnTriangleFilled /></el-icon>
-      <span>当前处于离线模式</span>
+      <span>{{ t('pwa.offline') }}</span>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { WarningFilled, WarnTriangleFilled } from '@element-plus/icons-vue';
 
+const { t } = useI18n();
 const showInstallPrompt = ref(false);
 const showUpdatePrompt = ref(false);
 const isOnline = ref(navigator.onLine);
@@ -64,7 +66,7 @@ onMounted(() => {
   window.addEventListener('appinstalled', () => {
     showInstallPrompt.value = false;
     deferredPrompt = null;
-    console.log('[PWA] App installed');
+    // PWA installed
   });
 
   // 更新提示
@@ -89,7 +91,7 @@ async function install() {
 
   deferredPrompt.prompt();
   const result = await deferredPrompt.userChoice;
-  console.log('[PWA] Install result:', result.outcome);
+  // PWA install result tracked
 
   if (result.outcome === 'accepted') {
     showInstallPrompt.value = false;

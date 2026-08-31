@@ -4,20 +4,20 @@
             <!-- 标题 -->
             <div class="appeal-header">
                 <div class="appeal-logo">🛡️</div>
-                <h1>账号申诉</h1>
-                <p class="appeal-desc">您的账号已被停用，请填写以下信息提交申诉，我们将在 3 个工作日内处理</p>
+                <h1>{{ $t('appeal_page.title') }}</h1>
+                <p class="appeal-desc">{{ $t('appeal_page.desc') }}</p>
             </div>
 
             <!-- 成功状态 -->
             <div v-if="submitted" class="appeal-success">
-                <el-result icon="success" title="申诉已提交">
+                <el-result icon="success" :title="$t('appeal_page.submitted')">
                     <template #sub-title>
-                        <p>申诉编号：<strong>#{{ appealId }}</strong></p>
-                        <p>提交时间：{{ submitTime }}</p>
-                        <p class="text-gray">预计处理时间：3 个工作日</p>
+                        <p>{{ $t('appeal_page.appeal_id') }}：<strong>#{{ appealId }}</strong></p>
+                        <p>{{ $t('appeal_page.submit_time') }}：{{ submitTime }}</p>
+                        <p class="text-gray">{{ $t('appeal_page.eta') }}</p>
                     </template>
                     <template #extra>
-                        <el-button type="primary" @click="checkStatus">查询申诉进度</el-button>
+                        <el-button type="primary" @click="checkStatus">{{ $t('appeal_page.check_progress') }}</el-button>
                     </template>
                 </el-result>
             </div>
@@ -25,80 +25,80 @@
             <!-- 查询状态 -->
             <div v-else-if="showStatus" class="appeal-status-card">
                 <el-card>
-                    <template #header><span>📋 申诉进度查询</span></template>
+                    <template #header><span>📋 {{ $t('appeal_page.progress_title') }}</span></template>
                     <div v-if="statusLoading" class="text-center"><el-icon class="is-loading" :size="24"><Loading /></el-icon></div>
                     <div v-else-if="statusResult" class="status-steps">
                         <el-steps :active="statusStepIndex" align-center finish-status="success">
-                            <el-step title="已提交" :description="statusResult.appeal?.appealed_at" />
-                            <el-step title="审核中" />
-                            <el-step :title="statusResult.appeal?.status === 'approved' ? '已通过' : statusResult.appeal?.status === 'rejected' ? '未通过' : '待审核'" />
+                            <el-step :title="$t('appeal_page.step_submitted')" :description="statusResult.appeal?.appealed_at" />
+                            <el-step :title="$t('appeal_page.step_reviewing')" />
+                            <el-step :title="statusResult.appeal?.status === 'approved' ? $t('appeal_page.step_approved') : statusResult.appeal?.status === 'rejected' ? $t('appeal_page.step_rejected') : $t('appeal_page.step_pending')" />
                         </el-steps>
                         <div class="status-detail" v-if="statusResult.appeal">
                             <el-descriptions :column="1" border size="small" class="mt-4">
-                                <el-descriptions-item label="申诉编号">#{{ statusResult.appeal.id }}</el-descriptions-item>
-                                <el-descriptions-item label="申诉原因">{{ reasonLabel(statusResult.appeal.reason) }}</el-descriptions-item>
-                                <el-descriptions-item label="当前状态">
+                                <el-descriptions-item :label="$t('appeal_page.appeal_id')">#{{ statusResult.appeal.id }}</el-descriptions-item>
+                                <el-descriptions-item :label="$t('appeal_page.reason')">{{ reasonLabel(statusResult.appeal.reason) }}</el-descriptions-item>
+                                <el-descriptions-item :label="$t('appeal_page.status')">
                                     <el-tag :type="statusTagType(statusResult.appeal.status)">{{ statusLabel(statusResult.appeal.status) }}</el-tag>
                                 </el-descriptions-item>
-                                <el-descriptions-item label="审核意见" v-if="statusResult.appeal.review_comment">{{ statusResult.appeal.review_comment }}</el-descriptions-item>
-                                <el-descriptions-item label="审核时间" v-if="statusResult.appeal.reviewed_at">{{ statusResult.appeal.reviewed_at }}</el-descriptions-item>
+                                <el-descriptions-item :label="$t('appeal_page.review_comment')" v-if="statusResult.appeal.review_comment">{{ statusResult.appeal.review_comment }}</el-descriptions-item>
+                                <el-descriptions-item :label="$t('appeal_page.reviewed_at')" v-if="statusResult.appeal.reviewed_at">{{ statusResult.appeal.reviewed_at }}</el-descriptions-item>
                             </el-descriptions>
                         </div>
-                        <div v-else class="status-empty">未找到申诉记录</div>
-                        <el-button class="mt-4" @click="showStatus = false; submitted = false">返回</el-button>
+                        <div v-else class="status-empty">{{ $t('appeal_page.not_found') }}</div>
+                        <el-button class="mt-4" @click="showStatus = false; submitted = false">{{ $t('appeal_page.back') }}</el-button>
                     </div>
                 </el-card>
                 <div class="status-query-form" v-if="!statusResult">
-                    <el-input v-model="statusQueryEmail" placeholder="输入申诉时填写的邮箱" size="large" class="mb-3" />
-                    <el-button type="primary" size="large" :loading="statusLoading" @click="checkStatus" style="width:100%">查询</el-button>
+                    <el-input v-model="statusQueryEmail" :placeholder="$t('appeal_page.email_ph')" size="large" class="mb-3" />
+                    <el-button type="primary" size="large" :loading="statusLoading" @click="checkStatus" style="width:100%">{{ $t('appeal_page.query') }}</el-button>
                 </div>
             </div>
 
             <!-- 申诉表单 -->
             <el-card v-else class="appeal-form-card">
                 <el-form :model="form" :rules="rules" ref="formRef" label-position="top" size="large" @submit.prevent="submitAppeal">
-                    <el-form-item label="账号邮箱" prop="email">
-                        <el-input v-model="form.email" placeholder="请输入您的注册邮箱" />
+                    <el-form-item :label="$t('appeal_page.email_label')" prop="email">
+                        <el-input v-model="form.email" :placeholder="$t('appeal_page.email_input_ph')" />
                     </el-form-item>
 
-                    <el-form-item label="申诉原因" prop="reason">
+                    <el-form-item :label="$t('appeal_page.reason_label')" prop="reason">
                         <el-radio-group v-model="form.reason">
-                            <el-radio value="misunderstanding">账号被误封</el-radio>
-                            <el-radio value="behavior_changed">已改正违规行为</el-radio>
-                            <el-radio value="urgent_need">账号内有重要数据急需使用</el-radio>
-                            <el-radio value="other">其他原因</el-radio>
+                            <el-radio value="misunderstanding">{{ $t('appeal_page.reason_misunderstanding') }}</el-radio>
+                            <el-radio value="behavior_changed">{{ $t('appeal_page.reason_behavior') }}</el-radio>
+                            <el-radio value="urgent_need">{{ $t('appeal_page.reason_urgent') }}</el-radio>
+                            <el-radio value="other">{{ $t('appeal_page.reason_other') }}</el-radio>
                         </el-radio-group>
                     </el-form-item>
 
-                    <el-form-item label="详细说明" prop="explanation">
+                    <el-form-item :label="$t('appeal_page.explanation')" prop="explanation">
                         <el-input v-model="form.explanation" type="textarea" :rows="5" maxlength="5000"
-                            placeholder="请详细描述您的情况，包括可能的误判原因、已采取的改正措施等" show-word-limit />
+                            :placeholder="$t('appeal_page.explanation_ph')" show-word-limit />
                     </el-form-item>
 
-                    <el-form-item label="证明材料（选填）">
+                    <el-form-item :label="$t('appeal_page.evidence')">
                         <el-upload v-model:file-list="fileList" :auto-upload="false" list-type="picture-card"
-                            accept="image/*,.pdf" multiple :limit="5" :on-exceed="() => $message.warning('最多上传 5 个文件')">
+                            accept="image/*,.pdf" multiple :limit="5" :on-exceed="() => $message.warning($t('appeal_page.evidence_max'))">
                             <el-icon><Plus /></el-icon>
                         </el-upload>
-                        <div class="form-hint">支持图片和 PDF，最多 5 个文件，每个最大 10MB</div>
+                        <div class="form-hint">{{ $t('appeal_page.evidence_hint') }}</div>
                     </el-form-item>
 
-                    <el-form-item label="联系电话（选填）" prop="contact_phone">
-                        <el-input v-model="form.contact_phone" placeholder="方便我们与您联系" />
+                    <el-form-item :label="$t('appeal_page.phone')" prop="contact_phone">
+                        <el-input v-model="form.contact_phone" :placeholder="$t('appeal_page.phone_ph')" />
                     </el-form-item>
 
                     <el-divider />
 
                     <el-form-item>
                         <el-button type="primary" native-type="submit" :loading="submitting" size="large" style="width:100%">
-                            {{ submitting ? '提交中...' : '提交申诉' }}
+                            {{ submitting ? $t('appeal_page.submitting') : $t('appeal_page.submit') }}
                         </el-button>
                     </el-form-item>
                 </el-form>
 
                 <div class="appeal-footer">
-                    <el-button text @click="showStatus = true">已有申诉？查询进度</el-button>
-                    <el-button text @click="goLogin">返回登录</el-button>
+                    <el-button text @click="showStatus = true">{{ $t('appeal_page.has_appeal') }}</el-button>
+                    <el-button text @click="goLogin">{{ $t('appeal_page.back_login') }}</el-button>
                 </div>
             </el-card>
         </div>
@@ -106,10 +106,12 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import apiClient from '@/utils/request'
 
+const { t } = useI18n()
 const formRef = ref(null)
 const form = reactive({
     email: '',
@@ -118,10 +120,10 @@ const form = reactive({
     contact_phone: '',
 })
 const fileList = ref([])
-const rules = {
-    email: [{ required: true, message: '请输入注册邮箱', trigger: 'blur' }, { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
-    reason: [{ required: true, message: '请选择申诉原因', trigger: 'change' }],
-}
+const rules = computed(() => ({
+    email: [{ required: true, message: t('appeal_page.email_required'), trigger: 'blur' }, { type: 'email', message: t('appeal_page.email_invalid'), trigger: 'blur' }],
+    reason: [{ required: true, message: t('appeal_page.reason_required'), trigger: 'change' }],
+}))
 
 const submitting = ref(false)
 const submitted = ref(false)
@@ -141,14 +143,22 @@ const statusStepIndex = computed(() => {
     return 0
 })
 
-import { computed } from 'vue'
-
 function reasonLabel(val) {
-    const map = { misunderstanding: '账号被误封', behavior_changed: '已改正违规行为', urgent_need: '账号内有重要数据', other: '其他原因' }
+    const map = {
+        misunderstanding: t('appeal_page.reason_misunderstanding'),
+        behavior_changed: t('appeal_page.reason_behavior'),
+        urgent_need: t('appeal_page.reason_urgent'),
+        other: t('appeal_page.reason_other'),
+    }
     return map[val] || val
 }
 function statusLabel(val) {
-    const map = { pending: '待审核', reviewing: '审核中', approved: '已通过 ✅', rejected: '未通过 ❌' }
+    const map = {
+        pending: t('appeal_page.step_pending'),
+        reviewing: t('appeal_page.step_reviewing'),
+        approved: t('appeal_page.step_approved'),
+        rejected: t('appeal_page.step_rejected'),
+    }
     return map[val] || val
 }
 function statusTagType(val) {
@@ -189,9 +199,9 @@ async function submitAppeal() {
         appealId.value = data.appeal_id
         submitTime.value = data.appealed_at
         submitted.value = true
-        ElMessage.success('申诉已提交')
+        ElMessage.success(t('appeal_page.submit_ok'))
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '提交失败，请稍后重试')
+        ElMessage.error(e.response?.data?.message || t('appeal_page.submit_fail'))
     } finally {
         submitting.value = false
     }
@@ -199,16 +209,17 @@ async function submitAppeal() {
 
 async function checkStatus() {
     const email = statusQueryEmail.value || form.email
-    if (!email) { ElMessage.warning('请输入邮箱'); return }
+    if (!email) { ElMessage.warning(t('appeal_page.email_warn')); return }
     statusLoading.value = true
     statusResult.value = null
     try {
-        // 通过提交时的邮箱查询 -- 用提交接口检查
-        const res = await apiClient.post('/appeal/submit', { email, reason: 'misunderstanding', _check: true })
-        // 实际上需要单独的查询接口，这里先简化
-        ElMessage.info('请登录后查看申诉进度')
+        const res = await apiClient.get('/appeal/lookup', { params: { email } })
+        statusResult.value = res.data?.data || {}
+        if (!statusResult.value.has_appeal) {
+            ElMessage.info(t('appeal_page.lookup_empty'))
+        }
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '查询失败')
+        ElMessage.error(e.response?.data?.message || t('appeal_page.lookup_fail'))
     } finally {
         statusLoading.value = false
     }

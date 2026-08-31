@@ -2,16 +2,16 @@
   <div class="flow-designer">
     <!-- 顶部操作栏 -->
     <div class="toolbar">
-      <h2 class="m-0">低代码工作流设计器</h2>
+      <h2 class="m-0">{{ t('flow_designer_page.title') }}</h2>
       <div class="toolbar-actions">
         <el-button @click="activeView = 'list'" :type="activeView === 'list' ? 'default' : 'text'">
-          工作流列表
+          {{ t('flow_designer_page.toolbar.workflow_list') }}
         </el-button>
         <template v-if="activeView === 'canvas'">
-          <el-button @click="saveGraph" type="success" :loading="saving" icon="Plus">保存</el-button>
-          <el-button @click="exportDesign" type="primary" :loading="exporting">导出到引擎</el-button>
+          <el-button @click="saveGraph" type="success" :loading="saving" icon="Plus">{{ t('actions.save') }}</el-button>
+          <el-button @click="exportDesign" type="primary" :loading="exporting">{{ t('flow_designer_page.toolbar.export_to_engine') }}</el-button>
           <el-button @click="previewMode = !previewMode" :type="previewMode ? 'warning' : 'default'">
-            {{ previewMode ? '编辑模式' : '预览模式' }}
+            {{ previewMode ? t('flow_designer_page.toolbar.edit_mode') : t('flow_designer_page.toolbar.preview_mode') }}
           </el-button>
         </template>
       </div>
@@ -23,24 +23,24 @@
       <el-row :gutter="20" class="mb-4">
         <el-col :span="6">
           <el-card shadow="hover">
-            <div class="stat-card"><div class="stat-value">{{ stats.total_designs }}</div><div class="stat-label">总设计</div></div>
+            <div class="stat-card"><div class="stat-value">{{ stats.total_designs }}</div><div class="stat-label">{{ t('flow_designer_page.stats.total_designs') }}</div></div>
           </el-card>
         </el-col>
         <el-col :span="6">
           <el-card shadow="hover">
-            <div class="stat-card"><div class="stat-value text-success">{{ stats.published }}</div><div class="stat-label">已发布</div></div>
+            <div class="stat-card"><div class="stat-value text-success">{{ stats.published }}</div><div class="stat-label">{{ t('flow_designer_page.stats.published') }}</div></div>
           </el-card>
         </el-col>
         <el-col :span="6">
           <el-card shadow="hover">
-            <div class="stat-card"><div class="stat-value text-warning">{{ stats.drafts }}</div><div class="stat-label">草稿</div></div>
+            <div class="stat-card"><div class="stat-value text-warning">{{ stats.drafts }}</div><div class="stat-label">{{ t('flow_designer_page.stats.drafts') }}</div></div>
           </el-card>
         </el-col>
         <el-col :span="6">
           <el-card shadow="hover">
             <div class="stat-card">
               <div class="stat-value">{{ Object.keys(stats.by_category || {}).length }}</div>
-              <div class="stat-label">分类数</div>
+              <div class="stat-label">{{ t('flow_designer_page.stats.categories') }}</div>
             </div>
           </el-card>
         </el-col>
@@ -48,38 +48,36 @@
 
       <!-- 操作栏 -->
       <div class="mb-4 flex gap-2">
-        <el-button type="primary" @click="showCreateDialog" icon="Plus">新建工作流</el-button>
-        <el-input v-model="filters.search" placeholder="搜索工作流..." clearable style="width:240px" @clear="loadData" @keyup.enter="loadData" />
-        <el-select v-model="filters.status" placeholder="状态" clearable style="width:140px" @change="loadData">
-          <el-option label="草稿" value="draft" />
-          <el-option label="已发布" value="published" />
-          <el-option label="已归档" value="archived" />
+        <el-button type="primary" @click="showCreateDialog" icon="Plus">{{ t('flow_designer_page.list.create_workflow') }}</el-button>
+        <el-input v-model="filters.search" :placeholder="t('flow_designer_page.list.search_placeholder')" clearable style="width:240px" @clear="loadData" @keyup.enter="loadData" />
+        <el-select v-model="filters.status" :placeholder="t('flow_designer_page.filters.status')" clearable style="width:140px" @change="loadData">
+          <el-option v-for="opt in statusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
         </el-select>
       </div>
 
       <!-- 设计列表 -->
-      <el-table :data="designs" stripe v-loading="loading" empty-text="暂无工作流设计">
-        <el-table-column label="名称" prop="name" min-width="200">
+      <el-table :data="designs" stripe v-loading="loading" :empty-text="t('flow_designer_page.list.empty')">
+        <el-table-column :label="t('flow_designer_page.cols.name')" prop="name" min-width="200">
           <template #default="{ row }">
             <el-link type="primary" :underline="'never'" @click="openDesign(row)">{{ row.name }}</el-link>
           </template>
         </el-table-column>
-        <el-table-column label="分类" prop="category" width="120">
+        <el-table-column :label="t('flow_designer_page.cols.category')" prop="category" width="120">
           <template #default="{ row }"><el-tag size="small">{{ catLabel(row.category) }}</el-tag></template>
         </el-table-column>
-        <el-table-column label="节点数" prop="nodes_count" width="80" align="center" />
-        <el-table-column label="状态" prop="status" width="100">
+        <el-table-column :label="t('flow_designer_page.cols.nodes_count')" prop="nodes_count" width="80" align="center" />
+        <el-table-column :label="t('flow_designer_page.cols.status')" prop="status" width="100">
           <template #default="{ row }">
             <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="更新时间" prop="updated_at" width="160" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column :label="t('flow_designer_page.cols.updated_at')" prop="updated_at" width="160" />
+        <el-table-column :label="t('flow_designer_page.cols.actions')" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openDesign(row)">编辑</el-button>
-            <el-button link type="primary" @click="exportDesign(row)">导出</el-button>
-            <el-popconfirm title="确定删除?" @confirm="doDelete(row)">
-              <template #reference><el-button link type="danger">删除</el-button></template>
+            <el-button link type="primary" @click="openDesign(row)">{{ t('actions.edit') }}</el-button>
+            <el-button link type="primary" @click="exportDesign(row)">{{ t('actions.export') }}</el-button>
+            <el-popconfirm :title="t('messages.confirm_delete')" @confirm="doDelete(row)">
+              <template #reference><el-button link type="danger">{{ t('actions.delete') }}</el-button></template>
             </el-popconfirm>
           </template>
         </el-table-column>
@@ -94,13 +92,13 @@
     <!-- 画布视图 -->
     <template v-if="activeView === 'canvas' && currentDesign">
       <el-alert v-if="previewMode" type="warning" :closable="false" show-icon class="mb-3">
-        <template #title>预览模式 — 点击节点查看配置，不可编辑</template>
+        <template #title>{{ t('flow_designer_page.canvas.preview_alert') }}</template>
       </el-alert>
 
       <div class="canvas-container">
         <!-- 左侧：节点面板 -->
         <div class="node-palette" v-if="!previewMode">
-          <div class="palette-title">节点类型</div>
+          <div class="palette-title">{{ t('flow_designer_page.canvas.node_types') }}</div>
           <div
             v-for="nt in nodeTypes"
             :key="nt.type"
@@ -112,8 +110,8 @@
               <el-icon :size="18"><component :is="nt.icon" /></el-icon>
             </div>
             <div>
-              <div class="palette-label">{{ nt.label }}</div>
-              <div class="palette-desc">{{ nt.description }}</div>
+              <div class="palette-label">{{ paletteLabel(nt) }}</div>
+              <div class="palette-desc">{{ paletteDesc(nt) }}</div>
             </div>
           </div>
         </div>
@@ -129,7 +127,7 @@
         >
           <!-- 网格背景提示 -->
           <div class="canvas-hint" v-if="!currentDesign.nodes?.length && !previewMode">
-            从左侧拖拽节点到此处开始设计
+            {{ t('flow_designer_page.canvas.drag_hint') }}
           </div>
 
           <!-- 节点 -->
@@ -180,37 +178,33 @@
             <line
               :x1="connectLine.x1" :y1="connectLine.y1"
               :x2="mousePos.x" :y2="mousePos.y"
-              stroke="#409eff" stroke-width="2" stroke-dasharray="5,3"
+              stroke="#0f172a" stroke-width="2" stroke-dasharray="5,3"
             />
           </svg>
         </div>
 
         <!-- 右侧：属性面板 -->
         <div class="property-panel" v-if="selectedNode">
-          <div class="panel-title">节点属性</div>
+          <div class="panel-title">{{ t('flow_designer_page.node_panel.title') }}</div>
           <el-form size="small" label-position="top">
-            <el-form-item label="节点ID">
+            <el-form-item :label="t('flow_designer_page.node_panel.node_id')">
               <el-input v-model="editingNode.node_id" :disabled="true" />
             </el-form-item>
-            <el-form-item label="类型">
+            <el-form-item :label="t('flow_designer_page.node_panel.type')">
               <el-tag :color="getNodeColor(editingNode.type) + '30'" size="small">{{ typeLabel(editingNode.type) }}</el-tag>
             </el-form-item>
-            <el-form-item label="标签">
+            <el-form-item :label="t('flow_designer_page.node_panel.label')">
               <el-input v-model="editingNode.label" :disabled="previewMode" @change="updateNodeProp('label', editingNode.label)" />
             </el-form-item>
-            <el-form-item v-if="editingNode.type === 'action'" label="动作类型">
+            <el-form-item v-if="editingNode.type === 'action'" :label="t('flow_designer_page.node_panel.action_type')">
               <el-select v-model="editingNode.config.action_type" :disabled="previewMode" style="width:100%" @change="updateNodeConfig('action_type', editingNode.config.action_type)">
-                <el-option label="Webhook" value="webhook" />
-                <el-option label="发送邮件" value="send_email" />
-                <el-option label="更新License" value="update_license" />
-                <el-option label="更新订阅" value="update_subscription" />
-                <el-option label="通知管理员" value="notify_admin" />
+                <el-option v-for="opt in actionTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </el-form-item>
-            <el-form-item v-if="editingNode.type === 'webhook'" label="URL">
+            <el-form-item v-if="editingNode.type === 'webhook'" :label="t('flow_designer_page.node_panel.url')">
               <el-input v-model="editingNode.config.url" :disabled="previewMode" placeholder="https://..." @change="updateNodeConfig('url', editingNode.config.url)" />
             </el-form-item>
-            <el-form-item v-if="['webhook','action'].includes(editingNode.type) && editingNode.config.action_type === 'webhook'" label="请求方法">
+            <el-form-item v-if="['webhook','action'].includes(editingNode.type) && editingNode.config.action_type === 'webhook'" :label="t('flow_designer_page.node_panel.method')">
               <el-select v-model="editingNode.config.method" :disabled="previewMode" style="width:100%" @change="updateNodeConfig('method', editingNode.config.method)">
                 <el-option label="POST" value="POST" />
                 <el-option label="GET" value="GET" />
@@ -218,41 +212,37 @@
                 <el-option label="DELETE" value="DELETE" />
               </el-select>
             </el-form-item>
-            <el-form-item v-if="editingNode.type === 'approval'" label="审批类型">
+            <el-form-item v-if="editingNode.type === 'approval'" :label="t('flow_designer_page.node_panel.approval_type')">
               <el-select v-model="editingNode.config.approval_type" :disabled="previewMode" style="width:100%" @change="updateNodeConfig('approval_type', editingNode.config.approval_type)">
-                <el-option label="单人审批" value="single" />
-                <el-option label="多人审批（任一通过）" value="any" />
-                <el-option label="多人审批（全部通过）" value="all" />
+                <el-option v-for="opt in approvalTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </el-form-item>
-            <el-form-item v-if="editingNode.type === 'condition'" label="条件字段">
+            <el-form-item v-if="editingNode.type === 'condition'" :label="t('flow_designer_page.node_panel.condition_field')">
               <el-input v-model="editingNode.config.field" :disabled="previewMode" @change="updateNodeConfig('field', editingNode.config.field)" />
             </el-form-item>
-            <el-form-item v-if="editingNode.type === 'condition'" label="条件值">
+            <el-form-item v-if="editingNode.type === 'condition'" :label="t('flow_designer_page.node_panel.condition_value')">
               <el-input v-model="editingNode.config.value" :disabled="previewMode" @change="updateNodeConfig('value', editingNode.config.value)" />
             </el-form-item>
             <el-form-item v-if="!previewMode && selectedNode">
-              <el-button type="danger" size="small" @click="deleteSelectedNode" style="width:100%">删除节点</el-button>
+              <el-button type="danger" size="small" @click="deleteSelectedNode" style="width:100%">{{ t('flow_designer_page.node_panel.delete_node') }}</el-button>
             </el-form-item>
           </el-form>
         </div>
 
         <!-- 连线属性面板 -->
         <div class="property-panel" v-else-if="selectedEdge && !previewMode">
-          <div class="panel-title">连线属性</div>
+          <div class="panel-title">{{ t('flow_designer_page.edge_panel.title') }}</div>
           <el-form size="small" label-position="top">
-            <el-form-item label="条件类型">
+            <el-form-item :label="t('flow_designer_page.edge_panel.condition_type')">
               <el-select v-model="editingEdge.condition_type" style="width:100%" @change="updateEdge">
-                <el-option label="成功" value="success" />
-                <el-option label="失败" value="failure" />
-                <el-option label="条件分支" value="conditional" />
+                <el-option v-for="opt in edgeConditionOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </el-form-item>
-            <el-form-item label="标签">
+            <el-form-item :label="t('flow_designer_page.edge_panel.label')">
               <el-input v-model="editingEdge.label" @change="updateEdge" />
             </el-form-item>
             <el-form-item>
-              <el-button type="danger" size="small" @click="deleteSelectedEdge" style="width:100%">删除连线</el-button>
+              <el-button type="danger" size="small" @click="deleteSelectedEdge" style="width:100%">{{ t('flow_designer_page.edge_panel.delete_edge') }}</el-button>
             </el-form-item>
           </el-form>
         </div>
@@ -260,23 +250,23 @@
     </template>
 
     <!-- 创建设计对话框 -->
-    <el-dialog v-model="createDialog.visible" title="新建工作流" width="480">
+    <el-dialog v-model="createDialog.visible" :title="t('flow_designer_page.create_dialog.title')" width="480">
       <el-form :model="createDialog" label-position="top">
-        <el-form-item label="名称" required>
-          <el-input v-model="createDialog.name" placeholder="如：License 过期自动处理" />
+        <el-form-item :label="t('flow_designer_page.create_dialog.name')" required>
+          <el-input v-model="createDialog.name" :placeholder="t('flow_designer_page.create_dialog.name_placeholder')" />
         </el-form-item>
-        <el-form-item label="描述">
+        <el-form-item :label="t('flow_designer_page.create_dialog.description')">
           <el-input v-model="createDialog.description" type="textarea" :rows="3" />
         </el-form-item>
-        <el-form-item label="分类">
+        <el-form-item :label="t('flow_designer_page.create_dialog.category')">
           <el-select v-model="createDialog.category" style="width:100%">
-            <el-option v-for="(l,v) in categories" :key="v" :label="l" :value="v" />
+            <el-option v-for="(l,v) in localizedCategories" :key="v" :label="l" :value="v" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="createDialog.loading" @click="doCreate">创建并编辑</el-button>
+        <el-button @click="createDialog.visible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="createDialog.loading" @click="doCreate">{{ t('flow_designer_page.create_dialog.create_and_edit') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -284,7 +274,8 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
 import {
   VideoPlay, QuestionFilled, SetUp, EditPen, Connection, CircleClose,
 } from '@element-plus/icons-vue'
@@ -292,6 +283,49 @@ import {
   listFlowDesigns, createFlowDesign, deleteFlowDesign, getFlowDesign,
   saveFlowGraph, exportFlowDesign, getFlowDesignerStats, getNodePalette, getFlowCategories,
 } from '../../api/flowDesigner'
+
+const { t } = useI18n()
+
+const statusKeys = ['draft', 'published', 'archived']
+const nodeTypeKeys = ['trigger', 'condition', 'action', 'approval', 'webhook', 'end']
+const conditionKeys = ['success', 'failure', 'conditional']
+const actionTypeKeys = ['webhook', 'send_email', 'update_license', 'update_subscription', 'notify_admin']
+const approvalTypeKeys = ['single', 'any', 'all']
+
+const statusMap = computed(() =>
+  Object.fromEntries(statusKeys.map((key) => [key, t(`flow_designer_page.status.${key}`)]))
+)
+const typeMap = computed(() =>
+  Object.fromEntries(nodeTypeKeys.map((key) => [key, t(`flow_designer_page.node_types.${key}`)]))
+)
+const conditionMap = computed(() => ({
+  success: t('flow_designer_page.conditions.success'),
+  failure: t('flow_designer_page.conditions.failure'),
+  conditional: t('flow_designer_page.conditions.short'),
+}))
+
+const statusOptions = computed(() =>
+  statusKeys.map((value) => ({ value, label: t(`flow_designer_page.status.${value}`) }))
+)
+const actionTypeOptions = computed(() =>
+  actionTypeKeys.map((value) => ({ value, label: t(`flow_designer_page.action_types.${value}`) }))
+)
+const approvalTypeOptions = computed(() =>
+  approvalTypeKeys.map((value) => ({ value, label: t(`flow_designer_page.approval_types.${value}`) }))
+)
+const edgeConditionOptions = computed(() =>
+  conditionKeys.map((value) => ({ value, label: t(`flow_designer_page.conditions.${value}`) }))
+)
+const localizedCategories = computed(() => {
+  const base = categories.value || {}
+  return Object.fromEntries(
+    Object.keys(base).map((key) => {
+      const k = `flow_designer_page.categories.${key}`
+      const label = t(k)
+      return [key, label !== k ? label : base[key]]
+    })
+  )
+})
 
 const activeView = ref('list')
 const loading = ref(false)
@@ -323,19 +357,33 @@ const canvasStyle = computed(() => ({
 }))
 
 function getNodeColor(type) {
-  const colors = { trigger: '#409eff', condition: '#e6a23c', action: '#67c23a', approval: '#9b59b6', webhook: '#00adef', end: '#909399' }
+  const colors = { trigger: '#0f172a', condition: '#e6a23c', action: '#67c23a', approval: '#9b59b6', webhook: '#00adef', end: '#909399' }
   return colors[type] || '#909399'
 }
 function getNodeIcon(type) {
   const icons = { trigger: VideoPlay, condition: QuestionFilled, action: SetUp, approval: EditPen, webhook: Connection, end: CircleClose }
   return icons[type] || CircleClose
 }
-function typeLabel(t) { const labels = { trigger: '触发器', condition: '条件', action: '动作', approval: '审批', webhook: 'Webhook', end: '结束' }; return labels[t] || t }
+function typeLabel(type) { return typeMap.value[type] || type }
 function statusTag(s) { return { draft: 'info', published: 'success', archived: 'danger' }[s] || 'info' }
-function statusLabel(s) { return { draft: '草稿', published: '已发布', archived: '已归档' }[s] || s }
-function catLabel(c) { return categories.value[c] || c }
-function conditionLabel(t) { return { success: '成功', failure: '失败', conditional: '条件' }[t] || '' }
-function getEdgeColor(t) { return { success: '#67c23a', failure: '#f56c6c', conditional: '#e6a23c' }[t] || '#909399' }
+function statusLabel(s) { return statusMap.value[s] || s }
+function catLabel(c) {
+  const k = `flow_designer_page.categories.${c}`
+  const label = t(k)
+  return label !== k ? label : (categories.value[c] || c)
+}
+function conditionLabel(type) { return conditionMap.value[type] || '' }
+function paletteLabel(nt) {
+  const k = `flow_designer_page.palette.${nt.type}.label`
+  const label = t(k)
+  return label !== k ? label : nt.label
+}
+function paletteDesc(nt) {
+  const k = `flow_designer_page.palette.${nt.type}.desc`
+  const desc = t(k)
+  return desc !== k ? desc : nt.description
+}
+function getEdgeColor(type) { return { success: '#67c23a', failure: '#f56c6c', conditional: '#e6a23c' }[type] || '#909399' }
 
 function getNodeStyle(node) {
   const pos = node.position || { x: 100, y: 100 }
@@ -367,7 +415,7 @@ async function loadData() {
       pagination.current = designsRes.data.meta.current_page
       pagination.total = designsRes.data.meta.total
     }
-  } catch (e) { ElMessage.error('加载失败') }
+  } catch (e) { ElMessage.error(t('messages.load_failed')) }
   finally { loading.value = false }
 }
 
@@ -385,7 +433,7 @@ async function loadMeta() {
 // Create design
 function showCreateDialog() { createDialog.visible = true }
 async function doCreate() {
-  if (!createDialog.name) { ElMessage.warning('请输入名称'); return }
+  if (!createDialog.name) { ElMessage.warning(t('flow_designer_page.messages.name_required')); return }
   createDialog.loading = true
   try {
     const { data } = await createFlowDesign({
@@ -393,19 +441,19 @@ async function doCreate() {
       description: createDialog.description,
       category: createDialog.category,
     })
-    ElMessage.success('创建成功')
+    ElMessage.success(t('flow_designer_page.messages.create_ok'))
     createDialog.visible = false
     openDesign(data)
-  } catch (e) { ElMessage.error('创建失败') }
+  } catch (e) { ElMessage.error(t('flow_designer_page.messages.create_failed')) }
   finally { createDialog.loading = false }
 }
 
 async function doDelete(row) {
   try {
     await deleteFlowDesign(row.id)
-    ElMessage.success('已删除')
+    ElMessage.success(t('flow_designer_page.messages.deleted_ok'))
     loadData()
-  } catch (e) { ElMessage.error('删除失败') }
+  } catch (e) { ElMessage.error(t('flow_designer_page.messages.delete_failed')) }
 }
 
 // Open designer
@@ -434,8 +482,8 @@ async function saveGraph() {
       })),
     }
     await saveFlowGraph(currentDesign.value.id, graph)
-    ElMessage.success('已保存')
-  } catch (e) { ElMessage.error('保存失败') }
+    ElMessage.success(t('flow_designer_page.messages.saved_ok'))
+  } catch (e) { ElMessage.error(t('flow_designer_page.messages.save_failed')) }
   finally { saving.value = false }
 }
 
@@ -446,15 +494,15 @@ async function exportDesign(design) {
   exporting.value = true
   try {
     await exportFlowDesign(id)
-    ElMessage.success('已导出到工作流引擎')
-  } catch (e) { ElMessage.error('导出失败') }
+    ElMessage.success(t('flow_designer_page.messages.export_ok'))
+  } catch (e) { ElMessage.error(t('flow_designer_page.messages.export_failed')) }
   finally { exporting.value = false }
 }
 
 // Drag & drop
 function onDragStart(e, nt) {
   e.dataTransfer.setData('nodeType', nt.type)
-  e.dataTransfer.setData('nodeLabel', nt.label)
+  e.dataTransfer.setData('nodeLabel', paletteLabel(nt))
 }
 function onDrop(e) {
   const type = e.dataTransfer.getData('nodeType')
@@ -633,7 +681,7 @@ onUnmounted(() => {
 .node-palette { width: 200px; flex-shrink: 0; background: #f5f7fa; border-radius: 8px; padding: 12px; }
 .palette-title { font-size: 13px; font-weight: 600; color: #606266; margin-bottom: 10px; }
 .palette-item { display: flex; gap: 8px; padding: 8px; margin-bottom: 4px; border-radius: 6px; cursor: grab; transition: all 0.2s; }
-.palette-item:hover { background: #ecf5ff; }
+.palette-item:hover { background: #f1f5f9; }
 .palette-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; flex-shrink: 0; }
 .palette-label { font-size: 13px; font-weight: 500; color: #303133; }
 .palette-desc { font-size: 11px; color: #909399; }
@@ -644,7 +692,7 @@ onUnmounted(() => {
   border-radius: 8px; cursor: pointer; transition: box-shadow 0.2s; z-index: 2;
 }
 .canvas-node:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
-.canvas-node.selected { border-color: #409eff; box-shadow: 0 0 0 2px rgba(64,158,255,0.2); }
+.canvas-node.selected { border-color: #0f172a; box-shadow: 0 0 0 2px rgba(15,23,42,0.2); }
 .canvas-node.preview-mode { cursor: default; }
 .node-header { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 6px 6px 0 0; font-size: 12px; }
 .node-type-label { font-size: 11px; color: #606266; font-weight: 500; }
@@ -652,7 +700,7 @@ onUnmounted(() => {
 .node-label { font-size: 14px; color: #303133; font-weight: 500; }
 .node-id { font-size: 11px; color: #c0c4cc; margin-top: 2px; }
 .port { position: absolute; width: 12px; height: 12px; background: #fff; border: 2px solid #909399; border-radius: 50%; z-index: 3; }
-.port:hover { border-color: #409eff; background: #ecf5ff; }
+.port:hover { border-color: #0f172a; background: #f1f5f9; }
 .port-source { top: 50%; right: -6px; transform: translateY(-50%); cursor: crosshair; }
 .port-target { top: 50%; left: -6px; transform: translateY(-50%); }
 
@@ -660,7 +708,7 @@ onUnmounted(() => {
 .edges-svg { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1; }
 .edge-line { pointer-events: stroke; }
 .edge-line:hover { stroke-width: 3; cursor: pointer; }
-.edge-line.selected { stroke-width: 3; stroke: #409eff; }
+.edge-line.selected { stroke-width: 3; stroke: #0f172a; }
 
 /* 属性面板 */
 .property-panel { width: 280px; flex-shrink: 0; background: #f5f7fa; border-radius: 8px; padding: 12px; }

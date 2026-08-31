@@ -238,7 +238,7 @@ describe('System Health View Component', () => {
     });
 
     it('health page mounts successfully', async () => {
-        const Health = (await import('@/views/system/Health.vue')).default;
+        const Health = (await import('@/views/system-health/Index.vue')).default;
         const wrapper = mount(Health, {
             global: {
                 plugins: createGlobalPlugins(),

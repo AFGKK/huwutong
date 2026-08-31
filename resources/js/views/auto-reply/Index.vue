@@ -2,129 +2,163 @@
     <div>
         <div class="page-header">
             <div>
-                <h2>🤖 个人自动回复</h2>
-                <p class="text-gray-500 text-sm">设置离开/忙碌/休假时的自动回复消息，以及关键词自动回复</p>
+                <h2>{{ t('auto_reply_page.title') }}</h2>
+                <p class="text-gray-500 text-sm">{{ t('auto_reply_page.subtitle') }}</p>
             </div>
             <el-button type="primary" @click="openAdd">
-                <el-icon><Plus /></el-icon> 添加规则
+                <el-icon><Plus /></el-icon> {{ t('auto_reply_page.add_rule') }}
             </el-button>
         </div>
 
         <!-- 当前状态 -->
         <el-card shadow="never" class="mb-4">
             <div class="status-bar">
-                <span class="status-label">当前状态：</span>
+                <span class="status-label">{{ t('auto_reply_page.current_status') }}</span>
                 <el-tag :type="statusTagType(userStatus.status)" size="large">
                     {{ statusLabel(userStatus.status) }}
                 </el-tag>
-                <span v-if="userStatus.has_auto_reply" class="status-hint">（已启用自动回复，共 {{ userStatus.reply_count }} 次回复）</span>
-                <span v-else class="status-hint">未设置自动回复规则</span>
+                <span v-if="userStatus.has_auto_reply" class="status-hint">
+                    （{{ t('auto_reply_page.auto_reply_active', { count: userStatus.reply_count }) }}）
+                </span>
+                <span v-else class="status-hint">{{ t('auto_reply_page.no_rules_configured') }}</span>
             </div>
         </el-card>
 
         <!-- 规则列表 -->
         <el-card shadow="never">
             <el-table :data="rules" v-loading="loading" stripe style="width:100%">
-                <el-table-column label="类型" width="100">
+                <el-table-column :label="t('auto_reply_page.cols.type')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="typeTagType(row.type)" size="small">{{ typeLabel(row.type) }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="keyword" label="关键词" width="140">
+                <el-table-column prop="keyword" :label="t('auto_reply_page.cols.keyword')" width="140">
                     <template #default="{ row }">{{ row.type === 'keyword' ? row.keyword : '-' }}</template>
                 </el-table-column>
-                <el-table-column prop="reply_content" label="回复内容" min-width="220">
+                <el-table-column prop="reply_content" :label="t('auto_reply_page.cols.reply_content')" min-width="220">
                     <template #default="{ row }">
                         <div class="reply-preview-text">{{ row.reply_content }}</div>
                     </template>
                 </el-table-column>
-                <el-table-column label="生效时段" width="160">
+                <el-table-column :label="t('auto_reply_page.cols.effective_period')" width="160">
                     <template #default="{ row }">
-                        <span v-if="row.time_start && row.time_end">{{ row.time_start }} ~ {{ row.time_end }}</span>
-                        <span v-else-if="row.time_start">从 {{ row.time_start }} 起</span>
-                        <span v-else-if="row.time_end">至 {{ row.time_end }} 止</span>
-                        <span v-else>全天</span>
+                        <span v-if="row.time_start && row.time_end">
+                            {{ t('auto_reply_page.time.range', { start: row.time_start, end: row.time_end }) }}
+                        </span>
+                        <span v-else-if="row.time_start">{{ t('auto_reply_page.time.from', { time: row.time_start }) }}</span>
+                        <span v-else-if="row.time_end">{{ t('auto_reply_page.time.until', { time: row.time_end }) }}</span>
+                        <span v-else>{{ t('auto_reply_page.time.all_day') }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="过期时间" width="140">
+                <el-table-column :label="t('auto_reply_page.cols.expires_at')" width="140">
                     <template #default="{ row }">{{ row.expires_at || '-' }}</template>
                 </el-table-column>
-                <el-table-column prop="reply_count" label="已回复" width="70" />
-                <el-table-column label="启用" width="70">
+                <el-table-column prop="reply_count" :label="t('auto_reply_page.cols.reply_count')" width="70" />
+                <el-table-column :label="t('auto_reply_page.cols.active')" width="70">
                     <template #default="{ row }">
                         <el-switch :model-value="row.is_active" @change="toggleActive(row)" size="small" />
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="120" fixed="right">
+                <el-table-column :label="t('auto_reply_page.cols.actions')" width="120" fixed="right">
                     <template #default="{ row }">
-                        <el-button text size="small" @click="openEdit(row)">编辑</el-button>
-                        <el-button text size="small" type="danger" @click="removeRule(row)">删除</el-button>
+                        <el-button text size="small" @click="openEdit(row)">{{ t('actions.edit') }}</el-button>
+                        <el-button text size="small" type="danger" @click="removeRule(row)">{{ t('actions.delete') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
             <div v-if="!rules.length && !loading" class="empty-state">
-                <el-empty description="暂无自动回复规则" />
+                <el-empty :description="t('auto_reply_page.empty')" />
             </div>
         </el-card>
 
         <!-- 添加/编辑对话框 -->
-        <el-dialog v-model="showDialog" :title="editing ? '编辑规则' : '添加规则'" width="520px">
-            <el-form :model="form" :rules="rules" ref="formRef" label-width="100px" size="small">
-                <el-form-item label="类型" prop="type">
+        <el-dialog
+            v-model="showDialog"
+            :title="editing ? t('auto_reply_page.edit_rule') : t('auto_reply_page.add_rule')"
+            width="520px"
+        >
+            <el-form :model="form" :rules="formRules" ref="formRef" label-width="100px" size="small">
+                <el-form-item :label="t('auto_reply_page.form.type')" prop="type">
                     <el-radio-group v-model="form.type">
-                        <el-radio value="away">💤 离开</el-radio>
-                        <el-radio value="busy">🔴 忙碌</el-radio>
-                        <el-radio value="vacation">🏖️ 休假</el-radio>
-                        <el-radio value="keyword">🔑 关键词</el-radio>
+                        <el-radio v-for="opt in ruleTypeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</el-radio>
                     </el-radio-group>
                 </el-form-item>
 
-                <el-form-item v-if="form.type === 'keyword'" label="关键词" prop="keyword">
-                    <el-input v-model="form.keyword" placeholder="触发自动回复的关键词" maxlength="100" />
-                    <div class="form-hint">消息包含此关键词时将自动回复</div>
+                <el-form-item v-if="form.type === 'keyword'" :label="t('auto_reply_page.form.keyword')" prop="keyword">
+                    <el-input v-model="form.keyword" :placeholder="t('auto_reply_page.form.keyword_ph')" maxlength="100" />
+                    <div class="form-hint">{{ t('auto_reply_page.form.keyword_hint') }}</div>
                 </el-form-item>
-                <el-form-item v-if="form.type === 'keyword'" label="匹配方式">
+                <el-form-item v-if="form.type === 'keyword'" :label="t('auto_reply_page.form.match_mode')">
                     <el-select v-model="form.match_mode" style="width:100%">
-                        <el-option label="包含（含关键词即触发）" value="contains" />
-                        <el-option label="精确匹配（完全相同）" value="exact" />
-                        <el-option label="正则表达式" value="regex" />
+                        <el-option v-for="opt in matchModeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
 
-                <el-form-item label="回复内容" prop="reply_content">
-                    <el-input v-model="form.reply_content" type="textarea" :rows="4" maxlength="500" placeholder="输入自动回复内容" show-word-limit />
+                <el-form-item :label="t('auto_reply_page.form.reply_content')" prop="reply_content">
+                    <el-input
+                        v-model="form.reply_content"
+                        type="textarea"
+                        :rows="4"
+                        maxlength="500"
+                        :placeholder="t('auto_reply_page.form.reply_content_ph')"
+                        show-word-limit
+                    />
                 </el-form-item>
 
                 <el-row :gutter="12">
                     <el-col :span="12">
-                        <el-form-item label="生效开始">
-                            <el-time-picker v-model="form.time_start" format="HH:mm" placeholder="不限制" style="width:100%" />
+                        <el-form-item :label="t('auto_reply_page.form.time_start')">
+                            <el-time-picker
+                                v-model="form.time_start"
+                                format="HH:mm"
+                                :placeholder="t('auto_reply_page.form.no_limit_ph')"
+                                style="width:100%"
+                            />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="生效结束">
-                            <el-time-picker v-model="form.time_end" format="HH:mm" placeholder="不限制" style="width:100%" />
+                        <el-form-item :label="t('auto_reply_page.form.time_end')">
+                            <el-time-picker
+                                v-model="form.time_end"
+                                format="HH:mm"
+                                :placeholder="t('auto_reply_page.form.no_limit_ph')"
+                                style="width:100%"
+                            />
                         </el-form-item>
                     </el-col>
                 </el-row>
 
-                <el-form-item label="过期时间">
-                    <el-date-picker v-model="form.expires_at" type="datetime" placeholder="永不过期" style="width:100%" />
-                    <div class="form-hint">设置后到此时间自动停用，适合休假场景</div>
+                <el-form-item :label="t('auto_reply_page.form.expires_at')">
+                    <el-date-picker
+                        v-model="form.expires_at"
+                        type="datetime"
+                        :placeholder="t('auto_reply_page.form.never_expire_ph')"
+                        style="width:100%"
+                    />
+                    <div class="form-hint">{{ t('auto_reply_page.form.expires_hint') }}</div>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showDialog = false">取消</el-button>
-                <el-button type="primary" :loading="saving" @click="saveRule">保存</el-button>
+                <el-button @click="showDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="saving" @click="saveRule">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import apiClient from '@/utils/request'
+import {
+    getAutoReplies,
+    getAutoReplyStatus,
+    createAutoReply,
+    updateAutoReply,
+    deleteAutoReply,
+} from '@/api/autoReply'
+
+const { t } = useI18n()
 
 const rules = ref([])
 const loading = ref(false)
@@ -138,20 +172,40 @@ const form = reactive({
     type: 'away', keyword: '', match_mode: 'contains',
     reply_content: '', time_start: null, time_end: null, expires_at: null,
 })
-const formRules = {
-    reply_content: [{ required: true, message: '请输入回复内容', trigger: 'blur' }],
-    keyword: [{ required: true, message: '请输入关键词', trigger: 'blur' }],
+
+const formRules = computed(() => ({
+    reply_content: [{ required: true, message: t('auto_reply_page.validation.reply_content_required'), trigger: 'blur' }],
+    keyword: [{ required: true, message: t('auto_reply_page.validation.keyword_required'), trigger: 'blur' }],
+}))
+
+const ruleTypeOptions = computed(() => [
+    { value: 'away', label: t('auto_reply_page.rule_type.away') },
+    { value: 'busy', label: t('auto_reply_page.rule_type.busy') },
+    { value: 'vacation', label: t('auto_reply_page.rule_type.vacation') },
+    { value: 'keyword', label: t('auto_reply_page.rule_type.keyword') },
+])
+
+const matchModeOptions = computed(() => [
+    { value: 'contains', label: t('auto_reply_page.form.match_contains') },
+    { value: 'exact', label: t('auto_reply_page.form.match_exact') },
+    { value: 'regex', label: t('auto_reply_page.form.match_regex') },
+])
+
+function labelFromMap(prefix, key) {
+    const i18nKey = `${prefix}.${key}`
+    const translated = t(i18nKey)
+    return translated !== i18nKey ? translated : key
 }
 
-function typeLabel(t) { return { away: '离开', busy: '忙碌', vacation: '休假', keyword: '关键词' }[t] || t }
-function typeTagType(t) { return { away: 'warning', busy: 'danger', vacation: 'info', keyword: 'primary' }[t] || 'info' }
-function statusLabel(s) { return { online: '在线', away: '离开', busy: '忙碌', vacation: '休假', offline: '离线' }[s] || s }
-function statusTagType(s) { return { online: 'success', away: 'warning', busy: 'danger', vacation: 'info', offline: 'info' }[s] || 'info' }
+function typeLabel(type) { return labelFromMap('auto_reply_page.rule_type', type) }
+function typeTagType(type) { return { away: 'warning', busy: 'danger', vacation: 'info', keyword: 'primary' }[type] || 'info' }
+function statusLabel(status) { return labelFromMap('auto_reply_page.user_status', status) }
+function statusTagType(status) { return { online: 'success', away: 'warning', busy: 'danger', vacation: 'info', offline: 'info' }[status] || 'info' }
 
 async function loadRules() {
     loading.value = true
     try {
-        const res = await apiClient.get('/user-chat/auto-reply')
+        const res = await getAutoReplies()
         rules.value = res.data?.data || []
     } catch { rules.value = [] }
     finally { loading.value = false }
@@ -159,7 +213,7 @@ async function loadRules() {
 
 async function loadStatus() {
     try {
-        const res = await apiClient.get('/user-chat/auto-reply/status')
+        const res = await getAutoReplyStatus()
         Object.assign(userStatus, res.data?.data || {})
     } catch {}
 }
@@ -204,17 +258,17 @@ async function saveRule() {
             expires_at: form.expires_at || undefined,
         }
         if (editing.value) {
-            await apiClient.put('/user-chat/auto-reply/' + form._id, payload)
-            ElMessage.success('已更新')
+            await updateAutoReply(form._id, payload)
+            ElMessage.success(t('auto_reply_page.messages.updated'))
         } else {
-            await apiClient.post('/user-chat/auto-reply', payload)
-            ElMessage.success('已创建')
+            await createAutoReply(payload)
+            ElMessage.success(t('auto_reply_page.messages.created'))
         }
         showDialog.value = false
         loadRules()
         loadStatus()
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '保存失败')
+        ElMessage.error(e.response?.data?.message || t('auto_reply_page.messages.save_failed'))
     } finally {
         saving.value = false
     }
@@ -222,18 +276,18 @@ async function saveRule() {
 
 async function toggleActive(row) {
     try {
-        await apiClient.put('/user-chat/auto-reply/' + row.id, { is_active: !row.is_active })
+        await updateAutoReply(row.id, { is_active: !row.is_active })
         row.is_active = !row.is_active
-        ElMessage.success(row.is_active ? '已启用' : '已禁用')
+        ElMessage.success(row.is_active ? t('auto_reply_page.messages.enabled') : t('auto_reply_page.messages.disabled'))
         loadStatus()
-    } catch { ElMessage.error('操作失败') }
+    } catch { ElMessage.error(t('messages.failed')) }
 }
 
 async function removeRule(row) {
     try {
-        await ElMessageBox.confirm(`确定删除自动回复规则？`, '确认')
-        await apiClient.delete('/user-chat/auto-reply/' + row.id)
-        ElMessage.success('已删除')
+        await ElMessageBox.confirm(t('auto_reply_page.confirm_delete'), t('actions.confirm'))
+        await deleteAutoReply(row.id)
+        ElMessage.success(t('auto_reply_page.messages.deleted'))
         loadRules()
         loadStatus()
     } catch {}

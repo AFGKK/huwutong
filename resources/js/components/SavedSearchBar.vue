@@ -6,7 +6,7 @@
             :max-height="320"
         >
             <el-button size="small" :icon="Search" class="saved-search-btn">
-                {{ selectedName || '保存的搜索' }}
+                {{ selectedName || t('saved_search.label') }}
                 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
             </el-button>
             <template #dropdown>
@@ -15,7 +15,7 @@
                         v-if="searches.length === 0"
                         disabled
                     >
-                        <span class="text-muted">暂无保存的搜索</span>
+                        <span class="text-muted">{{ t('saved_search.empty') }}</span>
                     </el-dropdown-item>
                     <el-dropdown-item
                         v-for="s in searches"
@@ -29,12 +29,12 @@
                                 <span>{{ s.name }}</span>
                             </div>
                             <div class="search-item-actions" @click.stop>
-                                <el-tooltip content="更新为当前筛选" placement="top">
+                                <el-tooltip :content="t('saved_search.update_tooltip')" placement="top">
                                     <el-button text size="small" @click="handleUpdate(s)">
                                         <el-icon><Refresh /></el-icon>
                                     </el-button>
                                 </el-tooltip>
-                                <el-tooltip content="删除" placement="top">
+                                <el-tooltip :content="t('saved_search.delete_tooltip')" placement="top">
                                     <el-button text size="small" @click="handleDelete(s)">
                                         <el-icon><Delete /></el-icon>
                                     </el-button>
@@ -52,31 +52,31 @@
             @click="dialogVisible = true"
             :disabled="!hasActiveFilters"
         >
-            保存当前筛选
+            {{ t('saved_search.save_current') }}
         </el-button>
 
         <el-dialog
             v-model="dialogVisible"
-            title="保存搜索"
+            :title="t('saved_search.dialog_title')"
             width="400px"
             :close-on-click-modal="false"
         >
             <el-form @submit.prevent="handleSave">
-                <el-form-item label="名称">
+                <el-form-item :label="t('saved_search.name')">
                     <el-input
                         v-model="saveName"
-                        placeholder="例如: 30天到期的VIP客户"
+                        :placeholder="t('saved_search.name_ph')"
                         maxlength="100"
                         ref="nameInput"
                     />
                 </el-form-item>
                 <el-form-item>
-                    <el-checkbox v-model="saveShared">分享给团队成员</el-checkbox>
+                    <el-checkbox v-model="saveShared">{{ t('saved_search.share') }}</el-checkbox>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+                <el-button @click="dialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="saving" @click="handleSave">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -84,11 +84,14 @@
 
 <script setup>
 import { ref, computed, nextTick, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import {
     Search, ArrowDown, Plus, Share, Refresh, Delete,
 } from '@element-plus/icons-vue';
 import savedSearchApi from '@/api/savedSearch';
+
+const { t } = useI18n();
 
 const props = defineProps({
     page: { type: String, required: true },
@@ -154,14 +157,14 @@ async function handleSave() {
             is_shared: saveShared.value,
         });
         if (res.success) {
-            ElMessage.success('搜索已保存');
+            ElMessage.success(t('saved_search.saved'));
             dialogVisible.value = false;
             saveName.value = '';
             saveShared.value = false;
             await fetchSearches();
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.error?.message || '保存失败');
+        ElMessage.error(e.response?.data?.error?.message || t('saved_search.save_fail'));
     } finally {
         saving.value = false;
     }
@@ -173,11 +176,11 @@ async function handleUpdate(saved) {
             filters: buildFilterPayload(),
         });
         if (res.success) {
-            ElMessage.success('搜索已更新');
+            ElMessage.success(t('saved_search.updated'));
             await fetchSearches();
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.error?.message || '更新失败');
+        ElMessage.error(e.response?.data?.error?.message || t('saved_search.update_fail'));
     }
 }
 
@@ -185,14 +188,14 @@ async function handleDelete(saved) {
     try {
         const { data: res } = await savedSearchApi.destroy(saved.id);
         if (res.success) {
-            ElMessage.success('搜索已删除');
+            ElMessage.success(t('saved_search.deleted'));
             if (selectedId.value === saved.id) {
                 selectedId.value = null;
             }
             await fetchSearches();
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.error?.message || '删除失败');
+        ElMessage.error(e.response?.data?.error?.message || t('saved_search.delete_fail'));
     }
 }
 

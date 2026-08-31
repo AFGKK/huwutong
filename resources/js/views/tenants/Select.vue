@@ -2,9 +2,9 @@
     <div class="tenant-select-page">
         <div class="tenant-card">
             <div class="tenant-header">
-                <el-icon :size="40" color="#409eff"><Key /></el-icon>
-                <h2>选择租户</h2>
-                <p class="text-gray-500">您有多个租户，请选择一个进入管理后台</p>
+                <el-icon :size="40" color="#0f172a"><Key /></el-icon>
+                <h2>{{ t('tenant_select_page.title') }}</h2>
+                <p class="text-gray-500">{{ t('tenant_select_page.desc') }}</p>
             </div>
 
             <div v-if="loading" class="flex justify-center py-12">
@@ -32,7 +32,7 @@
                         <div class="tenant-id">ID: {{ tenant.id }}</div>
                     </div>
                     <div class="tenant-check">
-                        <el-icon v-if="tenant.id === selectedId" color="#409eff" :size="20">
+                        <el-icon v-if="tenant.id === selectedId" color="#0f172a" :size="20">
                             <CircleCheck />
                         </el-icon>
                     </div>
@@ -41,13 +41,13 @@
 
             <div class="tenant-actions" v-if="tenants.length > 0">
                 <el-button type="primary" size="large" class="w-full" @click="confirmSelect">
-                    进入 {{ selectedName }}
+                    {{ t('tenant_select_page.enter', { name: selectedName }) }}
                 </el-button>
             </div>
 
             <div class="tenant-actions" v-else-if="!loading">
-                <p class="text-gray-400 mb-4">您暂时没有可访问的租户</p>
-                <el-button @click="handleLogout">返回登录</el-button>
+                <p class="text-gray-400 mb-4">{{ t('tenant_select_page.no_tenants') }}</p>
+                <el-button @click="handleLogout">{{ t('tenant_select_page.back_login') }}</el-button>
             </div>
         </div>
     </div>
@@ -55,6 +55,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import tenantApi from '@/api/tenant';
@@ -62,6 +63,7 @@ import {
     Key, Loading, CircleCheck, OfficeBuilding,
 } from '@element-plus/icons-vue';
 
+const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -70,14 +72,13 @@ const tenants = ref([]);
 const selectedId = ref(null);
 
 const selectedName = computed(() => {
-    const t = tenants.value.find((item) => item.id === selectedId.value);
-    return t ? t.name : '';
+    const item = tenants.value.find((tenant) => tenant.id === selectedId.value);
+    return item ? item.name : '';
 });
 
 async function loadTenants() {
     loading.value = true;
     try {
-        // 先从用户数据中获取
         if (authStore.user?.tenants?.length) {
             tenants.value = authStore.user.tenants;
             selectedId.value = authStore.activeTenantId || tenants.value[0]?.id;
@@ -159,13 +160,13 @@ onMounted(loadTenants);
 }
 
 .tenant-item:hover {
-    border-color: #409eff;
+    border-color: #0f172a;
     background: #f0f7ff;
 }
 
 .tenant-item.active {
-    border-color: #409eff;
-    background: #ecf5ff;
+    border-color: #0f172a;
+    background: #f1f5f9;
 }
 
 .tenant-icon {

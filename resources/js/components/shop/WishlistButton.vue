@@ -1,5 +1,5 @@
 <template>
-  <el-tooltip :content="wishlisted ? '取消收藏' : '加入收藏'" placement="top">
+  <el-tooltip :content="wishlisted ? t('wishlist.remove') : t('wishlist.add')" placement="top">
     <button
       class="wishlist-btn"
       :class="{ active: wishlisted }"
@@ -16,9 +16,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Star, StarFilled } from '@element-plus/icons-vue';
 import shopApi from '@/api/shop';
+
+const { t } = useI18n();
 
 const props = defineProps({
   productId: { type: [Number, String], required: true },
@@ -42,12 +45,12 @@ onMounted(async () => {
 async function handleToggle() {
   toggling.value = true;
   try {
-    const res = await shopApi.toggleWishlist(props.productId);
+    await shopApi.toggleWishlist(props.productId);
     wishlisted.value = !wishlisted.value;
     emit('update:modelValue', wishlisted.value);
     emit('change', wishlisted.value);
   } catch (e) {
-    ElMessage.error(e?.response?.data?.message || '操作失败');
+    ElMessage.error(e?.response?.data?.message || t('wishlist.fail'));
   } finally {
     toggling.value = false;
   }

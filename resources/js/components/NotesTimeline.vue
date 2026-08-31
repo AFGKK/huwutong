@@ -2,7 +2,7 @@
   <div class="license-notes">
     <!-- 备注列表 -->
     <div v-if="notes.length === 0 && !loading" class="notes-empty">
-      <el-empty :description="$t('暂无内部备注')" :image-size="80" />
+      <el-empty :description="$t('messages.no_data')" :image-size="80" />
     </div>
 
     <div v-loading="loading" class="notes-timeline">
@@ -12,7 +12,7 @@
         </div>
         <div class="note-body">
           <div class="note-header">
-            <span class="note-author">{{ note.user?.name || $t('未知用户') }}</span>
+            <span class="note-author">{{ note.user?.name || $t('notes.unknown_user') }}</span>
             <span class="note-time">{{ formatTime(note.created_at) }}</span>
             <el-button
               v-if="note.user_id === currentUserId"
@@ -42,7 +42,7 @@
         v-model="newContent"
         type="textarea"
         :rows="3"
-        :placeholder="$t('输入内部备注...')"
+        :placeholder="$t('notes.placeholder')"
         resize="none"
         @keydown="handleKeydown"
       />
@@ -62,14 +62,14 @@
               <span class="mention-email">{{ user.email }}</span>
             </div>
             <div v-if="mentionSearch.results.length === 0" class="mention-no-results">
-              {{ $t('无匹配用户') }}
+              {{ $t('notes.no_match') }}
             </div>
           </div>
         </div>
         <div class="input-actions">
           <span class="char-count">{{ newContent.length }} / 5000</span>
           <el-button type="primary" size="small" :disabled="!newContent.trim() || submitting" @click="handleSubmit">
-            {{ $t('发送') }}
+            {{ $t('notes.send') }}
           </el-button>
         </div>
       </div>
@@ -79,10 +79,13 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Delete, UserFilled } from '@element-plus/icons-vue';
 import { licenseNoteApi } from '@/api/licenseNote';
 import { useAuthStore } from '@/stores/auth';
+
+const { t } = useI18n();
 
 const props = defineProps({
   licenseId: { type: [Number, String], required: true },
@@ -144,7 +147,7 @@ async function handleSubmit() {
     await fetchNotes();
     emit('note-changed');
   } catch (err) {
-    ElMessage.error(err.response?.data?.message || '添加备注失败');
+    ElMessage.error(err.response?.data?.message || t('notes.add_fail'));
   } finally {
     submitting.value = false;
   }
@@ -153,15 +156,15 @@ async function handleSubmit() {
 /* ---------- 删除 ---------- */
 async function handleDelete(note) {
   try {
-    await ElMessageBox.confirm('确定删除此备注？', '确认', {
+    await ElMessageBox.confirm(t('notes.delete_confirm'), t('notes.delete_title'), {
       type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
+      confirmButtonText: t('actions.delete'),
+      cancelButtonText: t('actions.cancel'),
     });
     await licenseNoteApi.destroy(props.licenseId, note.id);
     notes.value = notes.value.filter((n) => n.id !== note.id);
     emit('note-changed');
-    ElMessage.success('备注已删除');
+    ElMessage.success(t('notes.deleted'));
   } catch {
     // cancelled
   }

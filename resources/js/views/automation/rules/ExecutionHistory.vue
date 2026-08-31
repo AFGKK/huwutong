@@ -3,45 +3,45 @@
     <el-card shadow="never" class="mb-4">
       <el-row :gutter="12">
         <el-col :span="6">
-          <el-input v-model="filters.rule_name" placeholder="搜索规则名称..." clearable size="small"
+          <el-input v-model="filters.rule_name" :placeholder="t('execution_history.search_rule')" clearable size="small"
             @clear="fetchExecutions" @keyup.enter="fetchExecutions" />
         </el-col>
         <el-col :span="4">
-          <el-select v-model="filters.status" placeholder="状态" clearable size="small" style="width:100%" @change="fetchExecutions">
-            <el-option label="全部" value="" />
-            <el-option label="完成" value="completed" />
-            <el-option label="失败" value="failed" />
-            <el-option label="运行中" value="running" />
-            <el-option label="跳过" value="skipped" />
+          <el-select v-model="filters.status" :placeholder="t('execution_history.status')" clearable size="small" style="width:100%" @change="fetchExecutions">
+            <el-option :label="t('execution_history.all')" value="" />
+            <el-option :label="t('execution_history.statuses.completed')" value="completed" />
+            <el-option :label="t('execution_history.statuses.failed')" value="failed" />
+            <el-option :label="t('execution_history.statuses.running')" value="running" />
+            <el-option :label="t('execution_history.statuses.skipped')" value="skipped" />
           </el-select>
         </el-col>
         <el-col :span="14" class="text-right">
-          <el-button size="small" @click="fetchExecutions" :icon="Refresh">刷新</el-button>
+          <el-button size="small" @click="fetchExecutions" :icon="Refresh">{{ t('actions.refresh') }}</el-button>
         </el-col>
       </el-row>
     </el-card>
 
     <el-card shadow="never">
       <el-table :data="executions" v-loading="loading" stripe style="width:100%">
-        <el-table-column label="规则" min-width="160">
+        <el-table-column :label="t('execution_history.cols.rule')" min-width="160">
           <template #default="{ row }">{{ row.rule?.name ?? row.rule_id }}</template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="status" :label="t('execution_history.cols.status')" width="100">
           <template #default="{ row }">
             <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="动作" width="120" align="center">
+        <el-table-column :label="t('execution_history.cols.actions')" width="120" align="center">
           <template #default="{ row }">{{ row.successful_actions }}/{{ row.action_count }}</template>
         </el-table-column>
-        <el-table-column prop="execution_time_ms" label="耗时(ms)" width="100" align="center" />
-        <el-table-column label="触发源" width="120">
+        <el-table-column prop="execution_time_ms" :label="t('execution_history.cols.duration')" width="100" align="center" />
+        <el-table-column :label="t('execution_history.cols.trigger')" width="120">
           <template #default="{ row }">{{ row.trigger_source || '—' }}</template>
         </el-table-column>
-        <el-table-column prop="created_at" label="时间" width="160" />
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column prop="created_at" :label="t('execution_history.cols.time')" width="160" />
+        <el-table-column :label="t('execution_history.cols.ops')" width="100" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" link type="primary" @click="viewDetail(row)">详情</el-button>
+            <el-button size="small" link type="primary" @click="viewDetail(row)">{{ t('execution_history.detail') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -53,18 +53,19 @@
       </div>
     </el-card>
 
-    <!-- 执行详情 -->
     <ExecutionDetail ref="detailRef" />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import api from '../../../api/automation'
 import ExecutionDetail from './ExecutionDetail.vue'
 
+const { t } = useI18n()
 const loading = ref(false)
 const executions = ref([])
 const total = ref(0)
@@ -74,7 +75,10 @@ const detailRef = ref(null)
 const filters = reactive({ rule_name: '', status: '' })
 
 function statusTag(s) { return { completed: 'success', failed: 'danger', running: 'warning', skipped: 'info', pending: '' }[s] || '' }
-function statusLabel(s) { return { completed: '完成', failed: '失败', running: '运行中', skipped: '跳过', pending: '待处理' }[s] || s }
+function statusLabel(s) {
+  const key = { completed: 'completed', failed: 'failed', running: 'running', skipped: 'skipped', pending: 'pending' }[s]
+  return key ? t(`execution_history.statuses.${key}`) : s
+}
 
 async function fetchExecutions(page = 1) {
   loading.value = true
@@ -83,7 +87,7 @@ async function fetchExecutions(page = 1) {
     executions.value = data.data ?? data ?? []
     total.value = data.total ?? 0
   } catch (e) {
-    ElMessage.error('获取执行历史失败')
+    ElMessage.error(t('execution_history.messages.load_failed'))
   } finally {
     loading.value = false
   }

@@ -1,8 +1,8 @@
 <template>
     <div class="geo-container">
-        <el-page-header :content="'设备地理位置记录'" @back="$router.push('/admin/dashboard')" />
+        <el-page-header :content="t('geo_location_page.title')" @back="$router.push('/admin/dashboard')" />
 
-        <el-alert title="记录设备 IP 归属地、展示地域分布热力图和管理黑名单区域。每次设备激活/验证时自动记录。" type="info" show-icon :closable="false" class="alert-info" />
+        <el-alert :title="t('geo_location_page.alert')" type="info" show-icon :closable="false" class="alert-info" />
 
         <!-- 统计卡片 -->
         <el-row :gutter="20" class="stat-cards">
@@ -10,7 +10,7 @@
                 <el-card shadow="hover">
                     <div class="stat-item">
                         <div class="stat-value">{{ dashboard.total_records }}</div>
-                        <div class="stat-label">总记录数</div>
+                        <div class="stat-label">{{ t('geo_location_page.stats.total_records') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -18,7 +18,7 @@
                 <el-card shadow="hover">
                     <div class="stat-item">
                         <div class="stat-value">{{ dashboard.covered_countries }}</div>
-                        <div class="stat-label">覆盖国家/地区</div>
+                        <div class="stat-label">{{ t('heatmap_page.stats.countries') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -26,7 +26,7 @@
                 <el-card shadow="hover">
                     <div class="stat-item">
                         <div class="stat-value">{{ dashboard.today_activations }}</div>
-                        <div class="stat-label">今日激活</div>
+                        <div class="stat-label">{{ t('geo_location_page.stats.today_activations') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -34,7 +34,7 @@
                 <el-card shadow="hover">
                     <div class="stat-item">
                         <div class="stat-value" style="color: #f56c6c;">{{ dashboard.blacklisted_count }}</div>
-                        <div class="stat-label">黑名单拦截</div>
+                        <div class="stat-label">{{ t('geo_location_page.stats.blacklisted_count') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -42,19 +42,19 @@
 
         <el-tabs v-model="activeTab">
             <!-- 地域分布 -->
-            <el-tab-pane label="地域分布" name="stats">
+            <el-tab-pane :label="t('geo_location_page.tabs.stats')" name="stats">
                 <el-row :gutter="20">
                     <el-col :span="24">
                         <el-card>
                             <template #header>
-                                <span>国家/地区分布 Top 20</span>
+                                <span>{{ t('geo_location_page.stats_section.title') }}</span>
                                 <div class="card-extra">
                                     <el-date-picker
                                         v-model="dateRange"
                                         type="daterange"
-                                        range-separator="至"
-                                        start-placeholder="开始日期"
-                                        end-placeholder="结束日期"
+                                        :range-separator="t('licenses_page.date_range_sep')"
+                                        :start-placeholder="t('licenses_page.date_start')"
+                                        :end-placeholder="t('licenses_page.date_end')"
                                         size="small"
                                         @change="loadStats"
                                     />
@@ -67,17 +67,17 @@
             </el-tab-pane>
 
             <!-- 地图视图 -->
-            <el-tab-pane label="地图视图" name="map">
+            <el-tab-pane :label="t('geo_location_page.tabs.map')" name="map">
                 <el-card>
                     <template #header>
-                        <span>全球设备分布</span>
+                        <span>{{ t('geo_location_page.map_section.title') }}</span>
                         <div class="card-extra">
                             <el-date-picker
                                 v-model="mapDateRange"
                                 type="daterange"
-                                range-separator="至"
-                                start-placeholder="开始日期"
-                                end-placeholder="结束日期"
+                                :range-separator="t('licenses_page.date_range_sep')"
+                                :start-placeholder="t('licenses_page.date_start')"
+                                :end-placeholder="t('licenses_page.date_end')"
                                 size="small"
                                 @change="loadMapData"
                             />
@@ -88,17 +88,17 @@
             </el-tab-pane>
 
             <!-- 黑名单管理 -->
-            <el-tab-pane label="黑名单管理" name="blacklist">
+            <el-tab-pane :label="t('geo_location_page.tabs.blacklist')" name="blacklist">
                 <el-card>
-                    <template #header><span>黑名单国家/地区</span></template>
-                    <p class="tip-text">列入黑名单的国家/地区的设备请求将被标记。输入 ISO 3166-1 alpha-2 国家代码（如：CN, US, RU）。</p>
+                    <template #header><span>{{ t('geo_location_page.blacklist.title') }}</span></template>
+                    <p class="tip-text">{{ t('geo_location_page.blacklist.tip') }}</p>
                     <el-select
                         v-model="blacklistCountries"
                         multiple
                         filterable
                         allow-create
                         default-first-option
-                        placeholder="输入国家代码（如 CN, US）"
+                        :placeholder="t('geo_location_page.blacklist.placeholder')"
                         style="width: 100%;"
                     >
                         <el-option
@@ -109,20 +109,20 @@
                         />
                     </el-select>
                     <div class="actions">
-                        <el-button type="primary" :loading="savingBlacklist" @click="handleSaveBlacklist">保存黑名单</el-button>
+                        <el-button type="primary" :loading="savingBlacklist" @click="handleSaveBlacklist">{{ t('actions.save') }}</el-button>
                     </div>
                 </el-card>
             </el-tab-pane>
 
             <!-- 记录列表 -->
-            <el-tab-pane label="记录列表" name="records">
+            <el-tab-pane :label="t('geo_location_page.tabs.records')" name="records">
                 <el-card>
                     <template #header>
-                        <span>地理位置记录</span>
+                        <span>{{ t('geo_location_page.records.title') }}</span>
                         <div class="card-extra">
                             <el-input
                                 v-model="recordSearch"
-                                placeholder="搜索 IP / 国家 / 城市"
+                                :placeholder="t('geo_location_page.records.search_ph')"
                                 size="small"
                                 clearable
                                 style="width: 200px;"
@@ -132,24 +132,24 @@
                         </div>
                     </template>
                     <el-table :data="records" stripe size="small" v-loading="loadingRecords">
-                        <el-table-column prop="ip_address" label="IP" width="140" />
-                        <el-table-column prop="country" label="国家" width="120" />
-                        <el-table-column prop="country_code" label="代码" width="70" />
-                        <el-table-column prop="region" label="区域" width="120" />
-                        <el-table-column prop="city" label="城市" width="120" />
-                        <el-table-column prop="isp" label="ISP" width="120" />
-                        <el-table-column prop="source" label="来源" width="100">
+                        <el-table-column prop="ip_address" :label="t('license_restrictions_page.cols.ip')" width="140" />
+                        <el-table-column prop="country" :label="t('license_restrictions_page.cols.country')" width="120" />
+                        <el-table-column prop="country_code" :label="t('geo_location_page.cols.code')" width="70" />
+                        <el-table-column prop="region" :label="t('geo_location_page.cols.region')" width="120" />
+                        <el-table-column prop="city" :label="t('heatmap_page.cols.city')" width="120" />
+                        <el-table-column prop="isp" :label="t('geo_location_page.cols.isp')" width="120" />
+                        <el-table-column prop="source" :label="t('geo_location_page.cols.source')" width="100">
                             <template #default="{ row }">
                                 <el-tag size="small">{{ row.source }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="黑名单" width="70">
+                        <el-table-column :label="t('geo_location_page.cols.blacklisted')" width="70">
                             <template #default="{ row }">
-                                <el-tag v-if="row.is_blacklisted" type="danger" size="small">是</el-tag>
+                                <el-tag v-if="row.is_blacklisted" type="danger" size="small">{{ t('geo_location_page.yes') }}</el-tag>
                                 <span v-else>-</span>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="created_at" label="时间" width="160" />
+                        <el-table-column prop="created_at" :label="t('geo_location_page.cols.time')" width="160" />
                     </el-table>
                 </el-card>
             </el-tab-pane>
@@ -159,9 +159,12 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import geoLocation from '@/api/geoLocation';
 import * as echarts from 'echarts';
+
+const { t } = useI18n();
 
 const activeTab = ref('stats');
 const barChartRef = ref(null);
@@ -188,37 +191,18 @@ const mapData = ref([]);
 const records = ref([]);
 const blacklistCountries = ref([]);
 
-const commonCountryCodes = [
-    { value: 'CN', label: '中国' },
-    { value: 'US', label: '美国' },
-    { value: 'JP', label: '日本' },
-    { value: 'KR', label: '韩国' },
-    { value: 'GB', label: '英国' },
-    { value: 'DE', label: '德国' },
-    { value: 'FR', label: '法国' },
-    { value: 'SG', label: '新加坡' },
-    { value: 'HK', label: '香港' },
-    { value: 'TW', label: '台湾' },
-    { value: 'RU', label: '俄罗斯' },
-    { value: 'IN', label: '印度' },
-    { value: 'AU', label: '澳大利亚' },
-    { value: 'CA', label: '加拿大' },
-    { value: 'BR', label: '巴西' },
-    { value: 'NL', label: '荷兰' },
-    { value: 'SE', label: '瑞典' },
-    { value: 'NO', label: '挪威' },
-    { value: 'FI', label: '芬兰' },
-    { value: 'DK', label: '丹麦' },
-    { value: 'CH', label: '瑞士' },
-    { value: 'IT', label: '意大利' },
-    { value: 'ES', label: '西班牙' },
-    { value: 'KR', label: '韩国' },
-    { value: 'TH', label: '泰国' },
-    { value: 'VN', label: '越南' },
-    { value: 'ID', label: '印度尼西亚' },
-    { value: 'PH', label: '菲律宾' },
-    { value: 'MY', label: '马来西亚' },
+const countryCodeValues = [
+    'CN', 'US', 'JP', 'KR', 'GB', 'DE', 'FR', 'SG', 'HK', 'TW',
+    'RU', 'IN', 'AU', 'CA', 'BR', 'NL', 'SE', 'NO', 'FI', 'DK',
+    'CH', 'IT', 'ES', 'TH', 'VN', 'ID', 'PH', 'MY',
 ];
+
+const commonCountryCodes = computed(() =>
+    countryCodeValues.map((value) => ({
+        value,
+        label: t(`geo_location_page.countries.${value}`),
+    }))
+);
 
 async function loadDashboard() {
     try {
@@ -294,8 +278,8 @@ function renderBarChart() {
             data: values,
             itemStyle: {
                 color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                    { offset: 0, color: '#409eff' },
-                    { offset: 1, color: '#79bbff' },
+                    { offset: 0, color: '#0f172a' },
+                    { offset: 1, color: '#94a3b8' },
                 ]),
                 borderRadius: [4, 4, 0, 0],
             },
@@ -317,7 +301,7 @@ function renderMapChart() {
     mapChartInstance.setOption({
         tooltip: {
             trigger: 'item',
-            formatter: (p) => `${p.name}<br/>数量: ${p.value?.[2] || 0}`,
+            formatter: (p) => `${p.name}<br/>${t('geo_location_page.chart.count', { count: p.value?.[2] || 0 })}`,
         },
         geo: {
             map: 'world',
@@ -328,7 +312,7 @@ function renderMapChart() {
                 borderColor: '#a0c4ff',
             },
             emphasis: {
-                itemStyle: { areaColor: '#409eff' },
+                itemStyle: { areaColor: '#0f172a' },
             },
         },
         series: [{
@@ -338,8 +322,8 @@ function renderMapChart() {
             symbolSize: (val) => Math.max(4, Math.min(30, val[2] * 0.8)),
             itemStyle: {
                 color: new echarts.graphic.RadialGradient(0.5, 0.5, 0.5, [
-                    { offset: 0, color: 'rgba(64, 158, 255, 0.9)' },
-                    { offset: 1, color: 'rgba(64, 158, 255, 0.2)' },
+                    { offset: 0, color: 'rgba(15, 23, 42, 0.9)' },
+                    { offset: 1, color: 'rgba(15, 23, 42, 0.2)' },
                 ]),
             },
             emphasis: {
@@ -354,7 +338,7 @@ async function handleSaveBlacklist() {
     savingBlacklist.value = true;
     try {
         await geoLocation.updateBlacklist({ countries: blacklistCountries.value });
-        ElMessage.success('黑名单已更新');
+        ElMessage.success(t('geo_location_page.messages.blacklist_updated'));
     } catch {} finally {
         savingBlacklist.value = false;
     }
@@ -391,7 +375,7 @@ window.addEventListener('resize', () => {
 .alert-info { margin: 16px 0; }
 .stat-cards { margin-bottom: 16px; }
 .stat-item { text-align: center; padding: 8px 0; }
-.stat-value { font-size: 32px; font-weight: 700; color: #409eff; }
+.stat-value { font-size: 32px; font-weight: 700; color: #0f172a; }
 .stat-label { font-size: 14px; color: #909399; margin-top: 4px; }
 .card-extra { float: right; }
 .actions { margin-top: 16px; }

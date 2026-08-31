@@ -14,20 +14,20 @@
                     <button
                         class="cookie-consent__close"
                         @click="dismissBanner"
-                        title="关闭"
+                        :title="t('cookie.close')"
                     >
                         &times;
                     </button>
                     <div class="cookie-consent__text">
-                        <strong>{{ config.title || 'Cookie 设置' }}</strong>
-                        <p>{{ config.description || '我们使用 Cookie 来提升您的使用体验。您可以选择接受或拒绝非必要的 Cookie。' }}</p>
+                        <strong>{{ config.title || t('cookie.title') }}</strong>
+                        <p>{{ config.description || t('cookie.description') }}</p>
                         <a
                             v-if="config.privacy_policy_url"
                             :href="config.privacy_policy_url"
                             target="_blank"
                             class="cookie-consent__link"
                         >
-                            {{ config.privacy_policy_text || '隐私政策' }}
+                            {{ config.privacy_policy_text || t('footer.privacy_policy') }}
                         </a>
                     </div>
 
@@ -54,7 +54,7 @@
                             size="small"
                             @click="acceptAll"
                         >
-                            {{ config.accept_all_text || '接受全部' }}
+                            {{ config.accept_all_text || t('cookie.accept_all') }}
                         </el-button>
                         <el-button
                             v-if="showPreferences"
@@ -62,13 +62,13 @@
                             size="small"
                             @click="savePreferences"
                         >
-                            保存设置
+                            {{ t('cookie.save') }}
                         </el-button>
                         <el-button
                             size="small"
                             @click="rejectAll"
                         >
-                            {{ config.reject_all_text || '拒绝全部' }}
+                            {{ config.reject_all_text || t('cookie.reject_all') }}
                         </el-button>
                         <el-button
                             v-if="!showPreferences"
@@ -76,7 +76,7 @@
                             size="small"
                             @click="showPreferences = true"
                         >
-                            {{ config.customize_text || '自定义设置' }}
+                            {{ config.customize_text || t('cookie.customize') }}
                         </el-button>
                         <el-button
                             v-if="showPreferences"
@@ -84,7 +84,7 @@
                             size="small"
                             @click="showPreferences = false"
                         >
-                            返回
+                            {{ t('cookie.back') }}
                         </el-button>
                     </div>
                 </div>
@@ -97,7 +97,7 @@
                 class="cookie-consent__recall"
                 :class="`cookie-consent__recall--${config.theme === 'dark' ? 'dark' : 'light'}`"
                 @click="reopenSettings"
-                title="Cookie 设置"
+                :title="t('cookie.title')"
             >
                 🍪
             </button>
@@ -107,19 +107,21 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { getCookieConfig, submitConsent } from '@/api/cookie-consent';
 import { notifyConsent, clearConsent } from '@/utils/cookieConsentManager';
 
+const { t } = useI18n();
 const visible = ref(false);
 const showPreferences = ref(false);
 const hasConsented = ref(false);
 const config = ref({
     position: 'bottom',
     layout: 'bar',
-    title: 'Cookie 设置',
-    accept_all_text: '接受全部',
-    reject_all_text: '拒绝全部',
-    customize_text: '自定义设置',
+    title: '',
+    accept_all_text: '',
+    reject_all_text: '',
+    customize_text: '',
     categories: [],
 });
 const selectedCategories = reactive({});
@@ -360,13 +362,13 @@ onMounted(() => {
 
 .cookie-consent__link {
     font-size: 13px;
-    color: #409eff;
+    color: #0f172a;
     text-decoration: none;
     font-weight: 500;
     transition: color 0.2s;
 }
 .cookie-consent__link:hover {
-    color: #337ecc;
+    color: #1e293b;
     text-decoration: underline;
 }
 
@@ -417,17 +419,17 @@ onMounted(() => {
 
 .cookie-consent__actions .el-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
 }
 
 .cookie-consent__actions .el-button--primary {
-    background: linear-gradient(135deg, #409eff, #337ecc);
+    background: linear-gradient(135deg, #0f172a, #1e293b);
     border: none;
 }
 
 .cookie-consent__actions .el-button--primary:hover {
     background: linear-gradient(135deg, #3399ff, #2d72c4);
-    box-shadow: 0 4px 16px rgba(64, 158, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.3);
 }
 
 /* ─── 过渡动画 ─── */

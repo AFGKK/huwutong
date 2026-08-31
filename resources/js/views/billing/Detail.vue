@@ -4,9 +4,9 @@
             <div class="header-left">
                 <el-button text @click="goBack">
                     <el-icon><ArrowLeft /></el-icon>
-                    返回
+                    {{ t('actions.back') }}
                 </el-button>
-                <h2>订阅详情</h2>
+                <h2>{{ t('billing_detail_page.title') }}</h2>
             </div>
             <div class="header-right" v-if="subscription">
                 <el-button
@@ -16,7 +16,7 @@
                     @click="openChangePlan"
                 >
                     <el-icon><Coin /></el-icon>
-                    变更套餐
+                    {{ t('billing_detail_page.change_plan') }}
                 </el-button>
                 <el-button
                     v-if="subscription.status === 'active'"
@@ -25,7 +25,7 @@
                     @click="handleSuspend"
                 >
                     <el-icon><VideoPause /></el-icon>
-                    暂停订阅
+                    {{ t('billing_detail_page.suspend') }}
                 </el-button>
                 <el-button
                     v-if="subscription.status === 'suspended'"
@@ -34,7 +34,7 @@
                     @click="handleResume"
                 >
                     <el-icon><CircleCheck /></el-icon>
-                    恢复订阅
+                    {{ t('billing_detail_page.resume_sub') }}
                 </el-button>
                 <el-button
                     v-if="subscription.status === 'active' || subscription.status === 'grace'"
@@ -43,7 +43,7 @@
                     @click="handleCancel"
                 >
                     <el-icon><CircleClose /></el-icon>
-                    取消订阅
+                    {{ t('billing_detail_page.cancel_sub') }}
                 </el-button>
                 <el-button
                     v-if="subscription.status === 'canceled'"
@@ -51,7 +51,7 @@
                     @click="handleResume"
                 >
                     <el-icon><CircleCheck /></el-icon>
-                    恢复订阅
+                    {{ t('billing_detail_page.resume_sub') }}
                 </el-button>
                 <el-button
                     v-if="subscription.status === 'active' && subscription.auto_renew"
@@ -59,7 +59,7 @@
                     @click="handleRenew"
                 >
                     <el-icon><Refresh /></el-icon>
-                    手动续费
+                    {{ t('billing_detail_page.manual_renew') }}
                 </el-button>
                 <el-button
                     v-if="subscription.status === 'active'"
@@ -68,77 +68,75 @@
                     @click="showToggleAutoRenew"
                 >
                     <el-icon :class="{ 'is-active': subscription.auto_renew }"><SwitchButton /></el-icon>
-                    {{ subscription.auto_renew ? '关闭自动续费' : '开启自动续费' }}
+                    {{ subscription.auto_renew ? t('billing_detail_page.btn_auto_renew_off') : t('billing_detail_page.btn_auto_renew_on') }}
                 </el-button>
             </div>
         </div>
 
         <div v-if="subscription">
-            <!-- 基本信息卡片 -->
             <el-card shadow="never" class="mb-4">
                 <template #header>
                     <div class="card-header">
-                        <span>基本信息</span>
+                        <span>{{ t('billing_detail_page.basic_info') }}</span>
                         <div class="header-tags">
                             <el-tag :type="statusType(subscription.status)" size="large" effect="dark">
                                 {{ statusLabel(subscription.status) }}
                             </el-tag>
                             <el-tag v-if="subscription.auto_renew" type="success" size="small" effect="plain" class="ml-2">
-                                自动续费
+                                {{ t('billing_detail_page.tag_auto_renew') }}
                             </el-tag>
                             <el-tag v-else size="small" effect="plain" class="ml-2">
-                                手动续费
+                                {{ t('billing_detail_page.tag_manual_renew') }}
                             </el-tag>
                         </div>
                     </div>
                 </template>
 
                 <el-descriptions :column="3" border>
-                    <el-descriptions-item label="订阅 ID">#{{ subscription.id }}</el-descriptions-item>
-                    <el-descriptions-item label="客户">
+                    <el-descriptions-item :label="t('billing_detail_page.cols.subscription_id')">#{{ subscription.id }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_page.col_customer')">
                         <router-link :to="`/customers/${subscription.customer_id}`" class="link">
-                            {{ subscription.customer?.name || subscription.customer?.user?.name || '-' }}
+                            {{ subscription.customer?.name || subscription.customer?.user?.name || emDash }}
                         </router-link>
                     </el-descriptions-item>
-                    <el-descriptions-item label="邮箱">{{ subscription.customer?.email || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="产品">{{ subscription.product?.name || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="定价方案">
+                    <el-descriptions-item :label="t('billing_detail_page.cols.email')">{{ subscription.customer?.email || emDash }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_page.col_product')">{{ subscription.product?.name || emDash }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_page.form_plan')">
                         <el-tag size="small">{{ subscription.plan }}</el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="计费周期">{{ periodLabel(subscription.billing_period) }}</el-descriptions-item>
-                    <el-descriptions-item label="单价">
+                    <el-descriptions-item :label="t('billing_page.form_billing_period')">{{ periodLabel(subscription.billing_period) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_detail_page.cols.unit_price')">
                         <span class="price">¥{{ subscription.price }}</span>
                     </el-descriptions-item>
-                    <el-descriptions-item label="货币">{{ subscription.currency || 'CNY' }}</el-descriptions-item>
-                    <el-descriptions-item label="已付总额">
+                    <el-descriptions-item :label="t('billing_page.form_currency')">{{ subscription.currency || 'CNY' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_detail_page.cols.total_paid')">
                         <span class="price">¥{{ (subscription.total_paid || 0).toFixed(2) }}</span>
                     </el-descriptions-item>
-                    <el-descriptions-item label="计费周期数">
-                        {{ subscription.billing_cycles_completed || 0 }} 次
+                    <el-descriptions-item :label="t('billing_detail_page.cols.billing_cycles')">
+                        {{ t('billing_detail_page.cycles_suffix', { n: subscription.billing_cycles_completed || 0 }) }}
                     </el-descriptions-item>
-                    <el-descriptions-item label="宽限期">{{ subscription.grace_days || 7 }} 天</el-descriptions-item>
-                    <el-descriptions-item label="试用天数">{{ subscription.trial_days || 0 }} 天</el-descriptions-item>
-                    <el-descriptions-item label="开始时间">{{ formatDate(subscription.starts_at) }}</el-descriptions-item>
-                    <el-descriptions-item label="到期时间">{{ formatDate(subscription.ends_at) }}</el-descriptions-item>
-                    <el-descriptions-item label="下次账单日">{{ formatDate(subscription.next_billing_at) }}</el-descriptions-item>
-                    <el-descriptions-item label="上次账单日">{{ formatDate(subscription.last_billed_at) }}</el-descriptions-item>
-                    <el-descriptions-item label="宽限期截止">{{ formatDate(subscription.grace_ends_at) }}</el-descriptions-item>
-                    <el-descriptions-item label="取消时间">{{ formatDate(subscription.canceled_at) }}</el-descriptions-item>
-                    <el-descriptions-item label="取消原因">{{ subscription.cancellation_reason || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="关联 License">
+                    <el-descriptions-item :label="t('billing_detail_page.cols.grace_days')">{{ t('billing_page.days_suffix', { n: subscription.grace_days || 7 }) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_page.form_trial_days')">{{ t('billing_page.days_suffix', { n: subscription.trial_days || 0 }) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_detail_page.cols.starts_at')">{{ formatDate(subscription.starts_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_page.col_expires')">{{ formatDate(subscription.ends_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_detail_page.cols.next_billing')">{{ formatDate(subscription.next_billing_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_detail_page.cols.last_billed')">{{ formatDate(subscription.last_billed_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_detail_page.cols.grace_ends')">{{ formatDate(subscription.grace_ends_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_detail_page.cols.canceled_at')">{{ formatDate(subscription.canceled_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_detail_page.cols.cancel_reason')">{{ subscription.cancellation_reason || emDash }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_page.form_license')">
                         <el-tag v-if="subscription.license_id" size="small" effect="plain">#{{ subscription.license_id }}</el-tag>
-                        <span v-else>-</span>
+                        <span v-else>{{ emDash }}</span>
                     </el-descriptions-item>
-                    <el-descriptions-item label="创建时间">{{ formatDate(subscription.created_at) }}</el-descriptions-item>
-                    <el-descriptions-item label="最近更新">{{ formatDate(subscription.updated_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_page.col_created')">{{ formatDate(subscription.created_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('billing_detail_page.cols.updated_at')">{{ formatDate(subscription.updated_at) }}</el-descriptions-item>
                 </el-descriptions>
             </el-card>
 
-            <!-- 操作历史 -->
             <el-card shadow="never" class="mb-4">
                 <template #header>
                     <div class="card-header">
-                        <span>操作日志</span>
+                        <span>{{ t('billing_detail_page.activity_log') }}</span>
                     </div>
                 </template>
                 <el-timeline v-if="activityLog.length > 0">
@@ -148,115 +146,114 @@
                         :timestamp="formatDate(log.created_at)"
                         :type="log.type === 'success' ? 'success' : log.type === 'warning' ? 'warning' : 'primary'"
                     >
-                        {{ log.description || log.action || log.message || '-' }}
+                        {{ log.description || log.action || log.message || emDash }}
                     </el-timeline-item>
                 </el-timeline>
-                <el-empty v-else :image-size="60" description="暂无操作日志" />
+                <el-empty v-else :image-size="60" :description="t('billing_detail_page.no_activity')" />
             </el-card>
 
-            <!-- 最近发票 -->
             <el-card shadow="never">
                 <template #header>
                     <div class="card-header">
-                        <span>最近发票</span>
+                        <span>{{ t('billing_detail_page.recent_invoices') }}</span>
                         <el-button text size="small" type="primary" @click="$router.push('/billing?tab=invoices')">
-                            查看全部
+                            {{ t('billing_detail_page.view_all') }}
                         </el-button>
                     </div>
                 </template>
 
                 <el-table :data="subscription.invoices || []" stripe size="small">
-                    <el-table-column prop="invoice_no" label="发票号" width="180" />
-                    <el-table-column label="金额" width="120">
+                    <el-table-column prop="invoice_no" :label="t('billing_page.col_invoice_no')" width="180" />
+                    <el-table-column :label="t('billing_page.col_amount')" width="120">
                         <template #default="{ row }">
                             <span class="price">¥{{ row.amount }}</span>
-                            <el-tag v-if="row.discount_amount > 0" size="small" type="warning" class="ml-1">折扣</el-tag>
+                            <el-tag v-if="row.discount_amount > 0" size="small" type="warning" class="ml-1">{{ t('billing_page.discounted') }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="状态" width="100">
+                    <el-table-column :label="t('billing_page.col_status')" width="100">
                         <template #default="{ row }">
-                            <el-tag :type="row.status === 'paid' ? 'success' : 'warning'" size="small">
-                                {{ row.status === 'paid' ? '已支付' : row.status === 'pending' ? '待支付' : row.status === 'refunded' ? '已退款' : row.status }}
+                            <el-tag :type="invoiceStatusType(row.status)" size="small">
+                                {{ invoiceStatusLabel(row.status) }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="billing_reason" label="原因" width="140" />
-                    <el-table-column prop="created_at" label="创建时间" width="170">
+                    <el-table-column prop="billing_reason" :label="t('billing_page.col_reason')" width="140" />
+                    <el-table-column prop="created_at" :label="t('billing_page.col_created')" width="170">
                         <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
                     </el-table-column>
-                    <el-table-column label="操作" width="80">
+                    <el-table-column :label="t('billing_page.col_actions')" width="80">
                         <template #default="{ row }">
-                            <el-button text size="small" type="primary" @click="viewInvoice(row)">详情</el-button>
+                            <el-button text size="small" type="primary" @click="viewInvoice(row)">{{ t('billing_page.detail') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
 
-                <el-empty v-if="!subscription.invoices?.length" :image-size="60" description="暂无发票记录" />
+                <el-empty v-if="!subscription.invoices?.length" :image-size="60" :description="t('billing_detail_page.no_invoices')" />
             </el-card>
         </div>
 
-        <!-- 变更套餐 Dialog（使用定价方案选择） -->
-        <el-dialog v-model="showChangePlan" title="变更套餐" width="550px" :close-on-click-modal="false">
+        <el-dialog v-model="showChangePlan" :title="t('billing_detail_page.dialog_change_plan')" width="550px" :close-on-click-modal="false">
             <el-form ref="changePlanFormRef" :model="changePlanForm" :rules="changePlanRules" label-position="top">
                 <el-alert type="info" :closable="false" class="mb-3">
                     <template #title>
-                        当前套餐: <strong>{{ subscription?.plan }}</strong> — ¥{{ subscription?.price }} / {{ periodLabel(subscription?.billing_period) }}
+                        {{ t('billing_detail_page.current_plan_alert', {
+                            plan: subscription?.plan,
+                            price: subscription?.price,
+                            period: periodLabel(subscription?.billing_period),
+                        }) }}
                     </template>
                 </el-alert>
                 <el-divider />
-                <el-form-item label="选择定价方案" prop="plan_slug">
-                    <el-select v-model="changePlanForm.plan_slug" filterable placeholder="搜索或选择方案" style="width:100%"
+                <el-form-item :label="t('billing_detail_page.select_plan')" prop="plan_slug">
+                    <el-select v-model="changePlanForm.plan_slug" filterable :placeholder="t('billing_detail_page.search_plan_ph')" style="width:100%"
                         @change="onPlanSelect">
                         <el-option v-for="p in planOptions" :key="p.slug" :label="`${p.name} (${p.slug})`" :value="p.slug">
                             <div class="plan-option">
                                 <span>{{ p.name }}</span>
-                                <span class="plan-price">¥{{ p.price_monthly || '—' }}/月</span>
+                                <span class="plan-price">{{ t('billing_detail_page.price_per_month', { price: p.price_monthly || emDash }) }}</span>
                             </div>
                         </el-option>
                     </el-select>
                 </el-form-item>
-                <el-form-item label="计费周期" prop="billing_period">
+                <el-form-item :label="t('billing_page.form_billing_period')" prop="billing_period">
                     <el-select v-model="changePlanForm.billing_period" style="width:160px">
-                        <el-option label="月付" value="monthly" />
-                        <el-option label="季付" value="quarterly" />
-                        <el-option label="半年付" value="semi_annually" />
-                        <el-option label="年付" value="yearly" />
+                        <el-option v-for="opt in billingPeriodOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="新价格">
+                <el-form-item :label="t('billing_detail_page.new_price')">
                     <el-input-number v-model="changePlanForm.price" :min="0" :precision="2" style="width:200px" />
                 </el-form-item>
-                <el-form-item label="变更原因">
-                    <el-input v-model="changePlanForm.reason" type="textarea" :rows="2" placeholder="可选" />
+                <el-form-item :label="t('billing_detail_page.change_reason')">
+                    <el-input v-model="changePlanForm.reason" type="textarea" :rows="2" :placeholder="t('billing_page.ph_optional')" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showChangePlan = false">取消</el-button>
-                <el-button type="primary" @click="handleChangePlan" :loading="changingPlan">确认变更</el-button>
+                <el-button @click="showChangePlan = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleChangePlan" :loading="changingPlan">{{ t('billing_detail_page.confirm_change') }}</el-button>
             </template>
         </el-dialog>
 
-        <!-- 暂停确认 Dialog -->
-        <el-dialog v-model="showSuspend" title="暂停订阅" width="450px">
+        <el-dialog v-model="showSuspend" :title="t('billing_detail_page.suspend')" width="450px">
             <el-form :model="suspendForm" label-position="top">
                 <el-alert type="warning" :closable="false" class="mb-3">
-                    <template #title>暂停后订阅将变为「已暂停」状态，关联的 License 也会同步暂停</template>
+                    <template #title>{{ t('billing_detail_page.suspend_warning') }}</template>
                 </el-alert>
-                <el-form-item label="暂停原因">
-                    <el-input v-model="suspendForm.reason" type="textarea" :rows="3" placeholder="请输入暂停原因" />
+                <el-form-item :label="t('billing_detail_page.suspend_reason')">
+                    <el-input v-model="suspendForm.reason" type="textarea" :rows="3" :placeholder="t('billing_detail_page.suspend_reason_ph')" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showSuspend = false">取消</el-button>
-                <el-button type="warning" @click="confirmSuspend" :loading="suspending">确认暂停</el-button>
+                <el-button @click="showSuspend = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="warning" @click="confirmSuspend" :loading="suspending">{{ t('billing_detail_page.confirm_suspend') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft, Coin, VideoPause, CircleClose, CircleCheck, Refresh, SwitchButton } from '@element-plus/icons-vue';
 import apiClient from '@/api/client';
@@ -264,6 +261,8 @@ import billingApi from '@/api/billing';
 
 const route = useRoute();
 const router = useRouter();
+const { t, locale } = useI18n();
+
 const loading = ref(false);
 const changingPlan = ref(false);
 const suspending = ref(false);
@@ -271,9 +270,8 @@ const subscription = ref(null);
 const showChangePlan = ref(false);
 const showSuspend = ref(false);
 const activityLog = ref([]);
-
-// Pricing Plan options
 const planOptions = ref([]);
+const emDash = '—';
 
 const changePlanFormRef = ref(null);
 const changePlanForm = reactive({
@@ -282,38 +280,72 @@ const changePlanForm = reactive({
     billing_period: 'monthly',
     reason: '',
 });
-const changePlanRules = {
-    plan_slug: [{ required: true, message: '请选择定价方案', trigger: 'change' }],
-    billing_period: [{ required: true, message: '请选择计费周期', trigger: 'change' }],
-};
 
 const suspendForm = reactive({
     reason: '',
 });
 
-const STATUS_MAP = {
-    active: { type: 'success', label: '活跃' },
-    canceled: { type: 'warning', label: '已取消' },
-    expired: { type: 'danger', label: '已过期' },
-    grace: { type: 'warning', label: '宽限期' },
-    suspended: { type: 'danger', label: '已暂停' },
-    trialing: { type: 'primary', label: '试用中' },
+const STATUS_TYPES = {
+    active: 'success',
+    canceled: 'warning',
+    expired: 'danger',
+    grace: 'warning',
+    suspended: 'danger',
+    trialing: 'primary',
 };
 
-function statusType(s) { return STATUS_MAP[s]?.type || 'info'; }
-function statusLabel(s) { return STATUS_MAP[s]?.label || s; }
+const billingPeriodOptions = computed(() => [
+    { label: t('billing_page.period_monthly'), value: 'monthly' },
+    { label: t('billing_page.period_quarterly'), value: 'quarterly' },
+    { label: t('billing_page.period_semi_annually'), value: 'semi_annually' },
+    { label: t('billing_page.period_yearly'), value: 'yearly' },
+]);
+
+const periodLabels = computed(() => ({
+    monthly: t('billing_page.period_monthly'),
+    quarterly: t('billing_page.period_quarterly'),
+    semi_annually: t('billing_page.period_semi_annually'),
+    yearly: t('billing_page.period_yearly'),
+}));
+
+const subscriptionStatusLabels = computed(() => ({
+    active: t('billing_page.sub_active'),
+    grace: t('billing_page.sub_grace'),
+    expired: t('billing_page.sub_expired'),
+    canceled: t('billing_page.sub_canceled'),
+    suspended: t('billing_page.sub_suspended'),
+    trialing: t('billing_page.sub_trialing'),
+}));
+
+const invoiceStatusLabels = computed(() => ({
+    paid: t('billing_page.inv_paid'),
+    pending: t('billing_page.inv_pending'),
+    cancelled: t('billing_page.inv_cancelled'),
+    refunded: t('billing_page.inv_refunded'),
+}));
+
+const changePlanRules = computed(() => ({
+    plan_slug: [{ required: true, message: t('billing_detail_page.validation.plan_required'), trigger: 'change' }],
+    billing_period: [{ required: true, message: t('billing_detail_page.validation.period_required'), trigger: 'change' }],
+}));
+
+function statusType(s) { return STATUS_TYPES[s] || 'info'; }
+function statusLabel(s) { return subscriptionStatusLabels.value[s] || s; }
+function periodLabel(p) { return periodLabels.value[p] || p; }
+function invoiceStatusType(s) {
+    const map = { paid: 'success', pending: 'warning', cancelled: 'info', refunded: 'danger' };
+    return map[s] || 'warning';
+}
+function invoiceStatusLabel(s) { return invoiceStatusLabels.value[s] || s; }
 
 function formatDate(dateStr) {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    if (!dateStr) return emDash;
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(dateStr).toLocaleString(loc, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false,
     });
-}
-
-function periodLabel(p) {
-    const map = { monthly: '月付', quarterly: '季付', semi_annually: '半年付', yearly: '年付' };
-    return map[p] || p;
 }
 
 function goBack() { router.push('/billing'); }
@@ -334,7 +366,7 @@ async function loadSubscription() {
         const { data: res } = await billingApi.show(id);
         subscription.value = res.data || null;
     } catch {
-        ElMessage.error('加载订阅详情失败');
+        ElMessage.error(t('billing_detail_page.messages.load_failed'));
         subscription.value = null;
     } finally {
         loading.value = false;
@@ -352,7 +384,6 @@ async function loadPlans() {
 
 async function loadActivity() {
     try {
-        // Try to load activity log from the renewal/activity endpoint
         const { data: res } = await apiClient.get('/admin/renewal-dashboard/activity-log', {
             params: { subscription_id: route.params.id, per_page: 20 }
         }).catch(() => ({ data: { success: false } }));
@@ -362,10 +393,7 @@ async function loadActivity() {
     } catch { /* ignore */ }
 }
 
-// ── Lifecycle Actions ──
-
 async function openChangePlan() {
-    // Preset current values
     changePlanForm.plan_slug = subscription.value.plan || '';
     changePlanForm.price = subscription.value.price || 0;
     changePlanForm.billing_period = subscription.value.billing_period || 'monthly';
@@ -384,11 +412,11 @@ async function handleChangePlan() {
             price: changePlanForm.price,
             billing_period: changePlanForm.billing_period,
         });
-        ElMessage.success('套餐已变更');
+        ElMessage.success(t('billing_detail_page.messages.plan_changed'));
         showChangePlan.value = false;
         loadSubscription();
     } catch (err) {
-        ElMessage.error(err?.response?.data?.message || '变更失败');
+        ElMessage.error(err?.response?.data?.message || t('billing_detail_page.messages.change_failed'));
     } finally {
         changingPlan.value = false;
     }
@@ -397,35 +425,40 @@ async function handleChangePlan() {
 async function handleCancel() {
     try {
         const { value: reason } = await ElMessageBox.prompt(
-            '取消后当前周期结束后不再续费，但服务可用至周期结束。',
-            '确认取消订阅',
+            t('billing_detail_page.cancel.message'),
+            t('billing_detail_page.cancel.title'),
             {
-                confirmButtonText: '确认取消',
-                cancelButtonText: '暂不取消',
-                inputPlaceholder: '取消原因（可选）',
+                confirmButtonText: t('billing_detail_page.cancel.confirm'),
+                cancelButtonText: t('billing_detail_page.cancel.dismiss'),
+                inputPlaceholder: t('billing_detail_page.cancel.reason_ph'),
                 inputType: 'textarea',
                 type: 'warning',
             }
         );
-        await apiClient.post(`/billing/subscriptions/${subscription.value.id}/cancel`, { reason: reason || '管理员取消' });
-        ElMessage.success('订阅已取消');
+        await apiClient.post(`/billing/subscriptions/${subscription.value.id}/cancel`, {
+            reason: reason || t('billing_detail_page.cancel.admin_reason'),
+        });
+        ElMessage.success(t('billing_page.subscription_canceled'));
         loadSubscription();
     } catch { /* cancelled */ }
 }
 
 async function handleResume() {
     try {
-        const msg = subscription.value.status === 'canceled'
-            ? '恢复后将重新开启自动续费，服务不受影响。'
-            : subscription.value.status === 'suspended'
-                ? '恢复后订阅及关联 License 将重新激活。'
-                : '确定恢复此订阅？';
+        let msg = t('billing_detail_page.resume.generic');
+        if (subscription.value.status === 'canceled') {
+            msg = t('billing_detail_page.resume.from_canceled');
+        } else if (subscription.value.status === 'suspended') {
+            msg = t('billing_detail_page.resume.from_suspended');
+        }
 
-        await ElMessageBox.confirm(msg, '恢复订阅', {
-            confirmButtonText: '确认恢复', cancelButtonText: '取消', type: 'info',
+        await ElMessageBox.confirm(msg, t('billing_detail_page.resume.title'), {
+            confirmButtonText: t('billing_detail_page.resume.confirm'),
+            cancelButtonText: t('actions.cancel'),
+            type: 'info',
         });
         await apiClient.post(`/billing/subscriptions/${subscription.value.id}/resume`);
-        ElMessage.success('订阅已恢复');
+        ElMessage.success(t('billing_page.subscription_resumed'));
         loadSubscription();
     } catch { /* cancelled */ }
 }
@@ -434,12 +467,16 @@ async function handleRenew() {
     try {
         const amount = subscription.value.price || 0;
         await ElMessageBox.confirm(
-            `将为当前订阅手动续费 ¥${amount}，是否继续？`,
-            '手动续费',
-            { confirmButtonText: '确认续费', cancelButtonText: '取消', type: 'info' }
+            t('billing_detail_page.renew.message', { amount }),
+            t('billing_detail_page.renew.title'),
+            {
+                confirmButtonText: t('billing_detail_page.renew.confirm'),
+                cancelButtonText: t('actions.cancel'),
+                type: 'info',
+            }
         );
         await apiClient.post(`/billing/subscriptions/${subscription.value.id}/renew`);
-        ElMessage.success('续费成功');
+        ElMessage.success(t('billing_detail_page.messages.renew_success'));
         loadSubscription();
     } catch { /* cancelled */ }
 }
@@ -452,12 +489,12 @@ async function confirmSuspend() {
     suspending.value = true;
     try {
         await billingApi.suspend(subscription.value.id);
-        ElMessage.success('订阅已暂停');
+        ElMessage.success(t('billing_detail_page.messages.suspended'));
         showSuspend.value = false;
         suspendForm.reason = '';
         loadSubscription();
     } catch (err) {
-        ElMessage.error(err?.response?.data?.message || '暂停失败');
+        ElMessage.error(err?.response?.data?.message || t('billing_detail_page.messages.suspend_failed'));
     } finally {
         suspending.value = false;
     }
@@ -465,22 +502,29 @@ async function confirmSuspend() {
 
 async function showToggleAutoRenew() {
     const current = subscription.value.auto_renew;
-    const action = current ? '关闭' : '开启';
+    const action = current
+        ? t('billing_detail_page.auto_renew.action_off')
+        : t('billing_detail_page.auto_renew.action_on');
     try {
         if (current) {
-            await ElMessageBox.confirm('关闭自动续费后，当前周期结束后不再自动续费。', `确认${action}自动续费`, {
-                confirmButtonText: `确认${action}`, cancelButtonText: '取消', type: 'warning',
-            });
+            await ElMessageBox.confirm(
+                t('billing_detail_page.auto_renew.disable_warning'),
+                t('billing_detail_page.auto_renew.confirm_title', { action }),
+                {
+                    confirmButtonText: t('billing_detail_page.auto_renew.confirm_btn', { action }),
+                    cancelButtonText: t('actions.cancel'),
+                    type: 'warning',
+                }
+            );
         }
-        // Toggle via cancel/resume mechanism
         if (current) {
             await apiClient.post(`/billing/subscriptions/${subscription.value.id}/cancel`, {
-                reason: '管理员关闭自动续费',
+                reason: t('billing_detail_page.auto_renew.admin_disable_reason'),
             });
         } else {
             await apiClient.post(`/billing/subscriptions/${subscription.value.id}/resume`);
         }
-        ElMessage.success(`自动续费已${action}`);
+        ElMessage.success(t('billing_detail_page.auto_renew.success', { action }));
         loadSubscription();
     } catch { /* cancelled */ }
 }
@@ -488,15 +532,15 @@ async function showToggleAutoRenew() {
 function viewInvoice(invoice) {
     ElMessageBox.alert(
         `<div style="font-size:14px">
-            <p><b>发票号：</b>${invoice.invoice_no}</p>
-            <p><b>金额：</b>¥${invoice.amount}</p>
-            <p><b>状态：</b>${invoice.status === 'paid' ? '已支付' : '待支付'}</p>
-            <p><b>原因：</b>${invoice.billing_reason || '-'}</p>
-            <p><b>创建时间：</b>${formatDate(invoice.created_at)}</p>
-            <p><b>支付时间：</b>${invoice.paid_at ? formatDate(invoice.paid_at) : '-'}</p>
+            <p><b>${t('billing_page.col_invoice_no')}:</b> ${invoice.invoice_no}</p>
+            <p><b>${t('billing_page.col_amount')}:</b> ¥${invoice.amount}</p>
+            <p><b>${t('billing_page.col_status')}:</b> ${invoiceStatusLabel(invoice.status)}</p>
+            <p><b>${t('billing_page.col_reason')}:</b> ${invoice.billing_reason || emDash}</p>
+            <p><b>${t('billing_page.col_created')}:</b> ${formatDate(invoice.created_at)}</p>
+            <p><b>${t('billing_page.col_paid_at')}:</b> ${invoice.paid_at ? formatDate(invoice.paid_at) : emDash}</p>
         </div>`,
-        '发票详情',
-        { dangerouslyUseHTMLString: true, confirmButtonText: '关闭' }
+        t('billing_page.dialog_invoice_detail'),
+        { dangerouslyUseHTMLString: true, confirmButtonText: t('actions.close') }
     );
 }
 
@@ -550,11 +594,11 @@ onMounted(() => {
 .price {
     font-family: 'Courier New', monospace;
     font-weight: 700;
-    color: #409eff;
+    color: #0f172a;
 }
 
 .link {
-    color: #409eff;
+    color: #0f172a;
     text-decoration: none;
 }
 .link:hover {
@@ -575,6 +619,6 @@ onMounted(() => {
 :deep(.el-card__body) { padding: 16px; }
 
 .is-active {
-    color: #409eff;
+    color: #0f172a;
 }
 </style>

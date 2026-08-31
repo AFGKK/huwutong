@@ -2,11 +2,11 @@
     <div class="portal-dashboard">
         <div class="page-header">
             <div>
-                <h2>我的仪表盘</h2>
-                <p class="text-muted">欢迎回来，{{ authStore.userName }}！以下是您的 License 概览。</p>
+                <h2>{{ $t('portal.dash_title') }}</h2>
+                <p class="text-muted">{{ $t('portal.dash_welcome', { name: authStore.userName }) }}</p>
             </div>
             <el-button type="primary" @click="refreshAll" :loading="loading" :icon="Refresh">
-                刷新
+                {{ $t('portal.refresh') }}
             </el-button>
         </div>
 
@@ -36,8 +36,8 @@
                 <el-card class="mb-4">
                     <template #header>
                         <div class="card-header">
-                            <span>我的 License</span>
-                            <el-link type="primary" :underline="'never'" @click="$router.push('/portal/licenses')">查看全部</el-link>
+                            <span>{{ $t('portal.my_licenses') }}</span>
+                            <el-link type="primary" :underline="'never'" @click="$router.push('/portal/licenses')">{{ $t('portal.view_all') }}</el-link>
                         </div>
                     </template>
                     <el-table v-if="licenses.length" :data="licenses" stripe style="width: 100%" v-loading="loading">
@@ -48,53 +48,53 @@
                                 </el-link>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="product?.name" label="产品" width="100">
+                        <el-table-column prop="product?.name" :label="$t('portal.product')" width="100">
                             <template #default="{ row }">{{ row.product?.name || '-' }}</template>
                         </el-table-column>
-                        <el-table-column prop="status" label="状态" width="90">
+                        <el-table-column prop="status" :label="$t('portal.status')" width="90">
                             <template #default="{ row }">
                                 <el-tag :type="statusType(row.status)" size="small" effect="dark">
                                     {{ statusLabel(row.status) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="expires_at" label="到期时间" width="180">
+                        <el-table-column prop="expires_at" :label="$t('portal.expires_at')" width="180">
                             <template #default="{ row }">
                                 <span v-if="row.expires_at" :class="'expiry-badge ' + expiryClass(row.expires_at)">
                                     {{ expiryText(row.expires_at) }}
                                 </span>
-                                <span v-else>永久</span>
+                                <span v-else>{{ $t('portal.lifetime') }}</span>
                             </template>
                         </el-table-column>
                     </el-table>
-                    <el-empty v-else-if="!loading" description="暂无 License" />
+                    <el-empty v-else-if="!loading" :description="$t('portal.no_licenses')" />
                 </el-card>
 
                 <!-- 最近设备 -->
                 <el-card>
                     <template #header>
                         <div class="card-header">
-                            <span>最近激活的设备</span>
-                            <el-link type="primary" :underline="'never'" @click="$router.push('/portal/devices')">查看全部</el-link>
+                            <span>{{ $t('portal.recent_devices') }}</span>
+                            <el-link type="primary" :underline="'never'" @click="$router.push('/portal/devices')">{{ $t('portal.view_all') }}</el-link>
                         </div>
                     </template>
                     <el-table v-if="devices.length" :data="devices" stripe style="width: 100%">
-                        <el-table-column prop="name" label="设备名称" min-width="120">
-                            <template #default="{ row }">{{ row.name || row.hostname || '未知设备' }}</template>
+                        <el-table-column prop="name" :label="$t('portal.device_name')" min-width="120">
+                            <template #default="{ row }">{{ row.name || row.hostname || $t('portal.unknown_device') }}</template>
                         </el-table-column>
-                        <el-table-column prop="fingerprint" label="指纹" width="120">
+                        <el-table-column prop="fingerprint" :label="$t('portal.fingerprint')" width="120">
                             <template #default="{ row }"><code class="small-text">{{ row.fingerprint?.substring(0, 12) }}...</code></template>
                         </el-table-column>
-                        <el-table-column prop="last_seen_at" label="最后活动" width="160" />
-                        <el-table-column prop="is_active" label="状态" width="70">
+                        <el-table-column prop="last_seen_at" :label="$t('portal.last_seen')" width="160" />
+                        <el-table-column prop="is_active" :label="$t('portal.status')" width="70">
                             <template #default="{ row }">
                                 <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-                                    {{ row.is_active ? '在线' : '离线' }}
+                                    {{ row.is_active ? $t('portal.online') : $t('portal.offline') }}
                                 </el-tag>
                             </template>
                         </el-table-column>
                     </el-table>
-                    <el-empty v-else-if="!loading" description="暂无设备" />
+                    <el-empty v-else-if="!loading" :description="$t('portal.no_devices')" />
                 </el-card>
             </el-col>
 
@@ -103,7 +103,7 @@
                 <!-- 状态分布 -->
                 <el-card class="mb-4">
                     <template #header>
-                        <span>License 状态分布</span>
+                        <span>{{ $t('portal.status_dist') }}</span>
                     </template>
                     <div v-if="Object.keys(licenseStats.by_status || {}).length" class="status-distribution">
                         <div v-for="(count, status) in licenseStats.by_status" :key="status" class="status-row">
@@ -122,16 +122,16 @@
                             </el-progress>
                         </div>
                     </div>
-                    <el-empty v-else description="暂无数据" />
+                    <el-empty v-else :description="$t('portal.no_data')" />
                 </el-card>
 
                 <!-- 即将到期 -->
                 <el-card class="mb-4">
                     <template #header>
                         <div class="card-header">
-                            <span>即将到期 (30天内)</span>
+                            <span>{{ $t('portal.expiring_soon') }}</span>
                             <el-tag v-if="licenseStats.expiring_soon" type="warning" size="small">
-                                {{ licenseStats.expiring_soon }} 个
+                                {{ $t('portal.count_n', { n: licenseStats.expiring_soon }) }}
                             </el-tag>
                         </div>
                     </template>
@@ -143,45 +143,45 @@
                                 </el-link>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="product?.name" label="产品" width="80" />
-                        <el-table-column prop="expires_at" label="到期" width="150">
+                        <el-table-column prop="product?.name" :label="$t('portal.product')" width="80" />
+                        <el-table-column prop="expires_at" :label="$t('portal.expires_at')" width="150">
                             <template #default="{ row }">
                                 <span v-if="row.expires_at" :class="'expiry-badge ' + expiryClass(row.expires_at)">
                                     {{ expiryText(row.expires_at) }}
                                 </span>
-                                <span v-else>永久</span>
+                                <span v-else>{{ $t('portal.lifetime') }}</span>
                             </template>
                         </el-table-column>
                     </el-table>
-                    <el-empty v-else description="暂无即将到期的 License" />
+                    <el-empty v-else :description="$t('portal.no_expiring')" />
                 </el-card>
 
                 <!-- 快捷入口 -->
                 <el-card>
                     <template #header>
-                        <span>快捷操作</span>
+                        <span>{{ $t('portal.shortcuts') }}</span>
                     </template>
                     <el-row :gutter="12">
                         <el-col :span="12" class="mb-2">
                             <el-button class="action-btn" @click="$router.push('/portal/licenses')">
-                                <el-icon><Key /></el-icon> 查看 License
+                                <el-icon><Key /></el-icon> {{ $t('portal.view_licenses') }}
                             </el-button>
                         </el-col>
                         <el-col :span="12" class="mb-2">
                             <el-button class="action-btn" @click="$router.push('/portal/devices')">
-                                <el-icon><Monitor /></el-icon> 管理设备
+                                <el-icon><Monitor /></el-icon> {{ $t('portal.manage_devices') }}
                             </el-button>
                         </el-col>
                     </el-row>
                     <el-row :gutter="12">
                         <el-col :span="12" class="mb-2">
                             <el-button class="action-btn" @click="$router.push('/portal/billing')">
-                                <el-icon><Goods /></el-icon> 账单发票
+                                <el-icon><Goods /></el-icon> {{ $t('portal.billing_invoices') }}
                             </el-button>
                         </el-col>
                         <el-col :span="12" class="mb-2">
                             <el-button class="action-btn" @click="$router.push('/portal/settings')">
-                                <el-icon><Setting /></el-icon> 个人设置
+                                <el-icon><Setting /></el-icon> {{ $t('portal.settings') }}
                             </el-button>
                         </el-col>
                     </el-row>
@@ -192,8 +192,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, markRaw, onMounted } from 'vue';
+import { ref, reactive, markRaw, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import licenseApi from '@/api/license';
 import deviceApi from '@/api/device';
@@ -206,11 +207,13 @@ import {
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 const loading = ref(false);
 const licenses = ref([]);
 const expiringLicenses = ref([]);
 const devices = ref([]);
+const deviceCount = ref(0);
 
 const licenseStats = reactive({
     total: 0,
@@ -221,26 +224,33 @@ const licenseStats = reactive({
     by_type: {},
 });
 
-const statCards = reactive([
-    { label: '全部 License', value: '0', icon: markRaw(Key), color: '#409eff', action: () => router.push('/portal/licenses') },
-    { label: '活跃中', value: '0', icon: markRaw(Odometer), color: '#67c23a', action: () => router.push('/portal/licenses') },
-    { label: '已过期', value: '0', icon: markRaw(Key), color: '#f56c6c', action: () => router.push('/portal/licenses') },
-    { label: '已激活设备', value: '0', icon: markRaw(Monitor), color: '#e6a23c', action: () => router.push('/portal/devices') },
+const statCards = computed(() => [
+    { label: t('portal.stat_all'), value: String(licenseStats.total || 0), icon: markRaw(Key), color: '#0f172a', action: () => router.push('/portal/licenses') },
+    { label: t('portal.stat_active'), value: String(licenseStats.active || 0), icon: markRaw(Odometer), color: '#67c23a', action: () => router.push('/portal/licenses') },
+    { label: t('portal.stat_expired'), value: String(licenseStats.expired || 0), icon: markRaw(Key), color: '#f56c6c', action: () => router.push('/portal/licenses') },
+    { label: t('portal.stat_devices'), value: String(deviceCount.value || 0), icon: markRaw(Monitor), color: '#e6a23c', action: () => router.push('/portal/devices') },
 ]);
 
-const STATUS_MAP = {
-    pending: { type: 'info', label: '待激活' },
-    active: { type: 'success', label: '活跃' },
-    suspended: { type: 'warning', label: '已暂停' },
-    frozen: { type: 'warning', label: '已冻结' },
-    expired: { type: 'info', label: '已过期' },
-    revoked: { type: 'danger', label: '已吊销' },
-    refunded: { type: 'danger', label: '已退款' },
-    blacklisted: { type: 'danger', label: '黑名单' },
-};
-
-function statusType(status) { return STATUS_MAP[status]?.type || 'info'; }
-function statusLabel(status) { return STATUS_MAP[status]?.label || status; }
+function statusType(status) {
+    const map = {
+        pending: 'info', active: 'success', suspended: 'warning', frozen: 'warning',
+        expired: 'info', revoked: 'danger', refunded: 'danger', blacklisted: 'danger',
+    };
+    return map[status] || 'info';
+}
+function statusLabel(status) {
+    const map = {
+        pending: t('portal.st_pending'),
+        active: t('portal.st_active'),
+        suspended: t('portal.st_suspended'),
+        frozen: t('portal.st_frozen'),
+        expired: t('portal.st_expired'),
+        revoked: t('portal.st_revoked'),
+        refunded: t('portal.st_refunded'),
+        blacklisted: t('portal.st_blacklisted'),
+    };
+    return map[status] || status;
+}
 
 function statusColor(status) {
     const map = {
@@ -248,7 +258,7 @@ function statusColor(status) {
         frozen: '#e6a23c', expired: '#909399', revoked: '#f56c6c',
         refunded: '#f56c6c', blacklisted: '#f56c6c',
     };
-    return map[status] || '#409eff';
+    return map[status] || '#0f172a';
 }
 
 function calcPercent(count, total) {
@@ -281,12 +291,12 @@ function expiryClass(dateStr) {
 }
 
 function expiryText(dateStr) {
-    if (!dateStr) return '永久';
+    if (!dateStr) return t('portal.lifetime');
     const d = daysUntil(dateStr);
-    if (d < 0) return `已过期 ${Math.ceil(Math.abs(d))} 天`;
-    if (d < 1) return '今天到期';
+    if (d < 0) return t('portal.expired_days', { n: Math.ceil(Math.abs(d)) });
+    if (d < 1) return t('portal.expires_today');
     const cd = Math.ceil(d);
-    if (cd <= 30) return `${cd} 天后到期`;
+    if (cd <= 30) return t('portal.expires_in', { n: cd });
     return dateStr;
 }
 
@@ -303,10 +313,6 @@ async function refreshAll() {
         licenseStats.by_status = stats.by_status || {};
         licenseStats.by_type = stats.by_type || {};
 
-        statCards[0].value = String(stats.total || 0);
-        statCards[1].value = String(stats.active || 0);
-        statCards[2].value = String(stats.expired || 0);
-
         // 我的 License 列表
         const { data: listRes } = await licenseApi.list({ per_page: 5, sort: '-created_at' });
         licenses.value = listRes.data?.data || [];
@@ -317,12 +323,12 @@ async function refreshAll() {
 
         // 设备统计 & 最近设备
         const { data: devStatsRes } = await deviceApi.stats();
-        statCards[3].value = String(devStatsRes.data?.active || devStatsRes.data?.total || 0);
+        deviceCount.value = Number(devStatsRes.data?.active ?? devStatsRes.data?.total ?? 0);
 
         const { data: devRes } = await deviceApi.list({ per_page: 5, sort: '-last_seen_at' });
         devices.value = devRes.data?.data || [];
     } catch (e) {
-        ElMessage.error('获取数据失败，请稍后重试');
+        ElMessage.error(t('portal.load_failed'));
     } finally {
         loading.value = false;
     }

@@ -1,13 +1,13 @@
 <template>
   <div class="lifecycle-page">
     <div class="page-header">
-      <h2><el-icon style="vertical-align:middle;margin-right:8px"><Histogram /></el-icon>客户生命周期管理</h2>
+      <h2><el-icon style="vertical-align:middle;margin-right:8px"><Histogram /></el-icon>{{ t('lifecycle_page.title') }}</h2>
       <div class="header-actions">
         <el-button @click="handleAutoEvaluate" :loading="evaluating" style="margin-right:8px">
-          <el-icon><DataAnalysis /></el-icon> 自动评估
+          <el-icon><DataAnalysis /></el-icon> {{ t('lifecycle_page.auto_evaluate') }}
         </el-button>
         <el-button type="primary" @click="refreshAll" :loading="loading">
-          <el-icon><Refresh /></el-icon> 刷新
+          <el-icon><Refresh /></el-icon> {{ t('lifecycle_page.refresh') }}
         </el-button>
       </div>
     </div>
@@ -17,7 +17,7 @@
       <el-col v-for="s in stages" :key="s.name" :span="3">
         <el-card shadow="hover" class="stage-card" :class="'stage-' + s.name" @click="filterStage = s.name; activeTab='transitions'">
           <div class="stage-value">{{ s.count }}</div>
-          <div class="stage-label">{{ s.label }}</div>
+          <div class="stage-label">{{ stageLabels[s.name] || s.label }}</div>
           <div class="stage-pct">{{ s.percentage }}%</div>
         </el-card>
       </el-col>
@@ -27,13 +27,13 @@
     <el-row :gutter="16" class="mb-4">
       <el-col :span="12">
         <el-card shadow="hover">
-          <template #header><span>阶段分布</span></template>
+          <template #header><span>{{ t('lifecycle_page.stage_distribution') }}</span></template>
           <div ref="stageChartRef" style="height:200px"></div>
         </el-card>
       </el-col>
       <el-col :span="12">
         <el-card shadow="hover">
-          <template #header><span>各阶段 MRR</span></template>
+          <template #header><span>{{ t('lifecycle_page.mrr_by_stage') }}</span></template>
           <div ref="mrrChartRef" style="height:200px"></div>
         </el-card>
       </el-col>
@@ -42,42 +42,39 @@
     <!-- 主内容区 -->
     <el-card shadow="hover">
       <el-tabs v-model="activeTab">
-        <el-tab-pane label="阶段迁移历史" name="transitions">
+        <el-tab-pane :label="t('lifecycle_page.tabs.transitions')" name="transitions">
           <div class="tab-toolbar">
-            <el-select v-model="filterStage" placeholder="阶段" clearable style="width:130px">
-              <el-option label="全部阶段" value="" />
+            <el-select v-model="filterStage" :placeholder="t('lifecycle_page.filters.stage_ph')" clearable style="width:130px">
+              <el-option :label="t('lifecycle_page.filters.all_stages')" value="" />
               <el-option v-for="(l, k) in stageLabels" :key="k" :label="l" :value="k" />
             </el-select>
-            <el-select v-model="filterTrigger" placeholder="触发方式" clearable style="width:130px;margin-left:8px">
-              <el-option label="全部" value="" />
-              <el-option label="手动" value="manual" />
-              <el-option label="自动" value="auto" />
-              <el-option label="工作流" value="workflow" />
+            <el-select v-model="filterTrigger" :placeholder="t('lifecycle_page.filters.trigger_ph')" clearable style="width:130px;margin-left:8px">
+              <el-option v-for="opt in triggerFilterOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
           </div>
           <el-table :data="transitions" stripe v-loading="transLoading">
-            <el-table-column label="客户" width="100">
+            <el-table-column :label="t('lifecycle_page.cols.customer')" width="100">
               <template #default="{ row }">{{ row.customer_name }}</template>
             </el-table-column>
-            <el-table-column label="阶段" width="100">
+            <el-table-column :label="t('lifecycle_page.cols.stage')" width="100">
               <template #default="{ row }">
                 <el-tag :type="stageTag(row.stage)" size="small">{{ stageLabels[row.stage] || row.stage }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="上一阶段" width="100">
+            <el-table-column :label="t('lifecycle_page.cols.previous_stage')" width="100">
               <template #default="{ row }">
                 <span v-if="row.previous_stage">{{ stageLabels[row.previous_stage] || row.previous_stage }}</span>
                 <span v-else class="no-data">-</span>
               </template>
             </el-table-column>
-            <el-table-column prop="reason" label="原因" min-width="160" show-overflow-tooltip />
-            <el-table-column label="触发方式" width="80">
-              <template #default="{ row }">{{ row.triggered_by === 'auto' ? '自动' : row.triggered_by === 'manual' ? '手动' : row.triggered_by }}</template>
+            <el-table-column prop="reason" :label="t('lifecycle_page.cols.reason')" min-width="160" show-overflow-tooltip />
+            <el-table-column :label="t('lifecycle_page.cols.trigger')" width="80">
+              <template #default="{ row }">{{ triggerLabel(row.triggered_by) }}</template>
             </el-table-column>
-            <el-table-column label="停留天数" width="90" align="center">
-              <template #default="{ row }">{{ row.duration_days }} 天</template>
+            <el-table-column :label="t('lifecycle_page.cols.duration_days')" width="90" align="center">
+              <template #default="{ row }">{{ row.duration_days }} {{ t('lifecycle_page.days_unit') }}</template>
             </el-table-column>
-            <el-table-column label="进入时间" width="150">
+            <el-table-column :label="t('lifecycle_page.cols.entered_at')" width="150">
               <template #default="{ row }">{{ formatTime(row.entered_at) }}</template>
             </el-table-column>
           </el-table>
@@ -86,23 +83,23 @@
     </el-card>
 
     <!-- 手动迁移对话框 -->
-    <el-dialog v-model="showTransitionDialog" title="手动迁移阶段" width="420px">
+    <el-dialog v-model="showTransitionDialog" :title="t('lifecycle_page.dialog.title')" width="420px">
       <el-form :model="transitionForm" label-width="90px">
-        <el-form-item label="客户ID" required>
+        <el-form-item :label="t('lifecycle_page.dialog.customer_id')" required>
           <el-input-number v-model="transitionForm.customer_id" :min="1" style="width:100%" />
         </el-form-item>
-        <el-form-item label="目标阶段" required>
+        <el-form-item :label="t('lifecycle_page.dialog.target_stage')" required>
           <el-select v-model="transitionForm.stage" style="width:100%">
             <el-option v-for="(l, k) in stageLabels" :key="k" :label="l" :value="k" />
           </el-select>
         </el-form-item>
-        <el-form-item label="原因">
+        <el-form-item :label="t('lifecycle_page.dialog.reason')">
           <el-input v-model="transitionForm.reason" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showTransitionDialog = false">取消</el-button>
-        <el-button type="primary" @click="confirmTransition" :loading="transitioning">确认迁移</el-button>
+        <el-button @click="showTransitionDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="confirmTransition" :loading="transitioning">{{ t('lifecycle_page.dialog.confirm') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -110,20 +107,31 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
 import { Histogram, Refresh, DataAnalysis } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import api from '../../api/lifecycle'
+
+const { t, locale } = useI18n()
 
 const loading = ref(false)
 const evaluating = ref(false)
 const activeTab = ref('transitions')
 
 const stages = ref([])
-const stageLabels = {
-    prospect: '潜在客户', onboarding: '引导期', active: '活跃期',
-    growing: '成长期', mature: '成熟期', at_risk: '风险期', churned: '已流失',
-}
+const stageKeys = ['prospect', 'onboarding', 'active', 'growing', 'mature', 'at_risk', 'churned']
+
+const stageLabels = computed(() => Object.fromEntries(
+    stageKeys.map((k) => [k, t(`lifecycle_page.stages.${k}`)]),
+))
+
+const triggerFilterOptions = computed(() => [
+    { label: t('lifecycle_page.filters.all'), value: '' },
+    { label: t('lifecycle_page.triggers.manual'), value: 'manual' },
+    { label: t('lifecycle_page.triggers.auto'), value: 'auto' },
+    { label: t('lifecycle_page.triggers.workflow'), value: 'workflow' },
+])
 
 const transitions = ref([])
 const transLoading = ref(false)
@@ -139,9 +147,16 @@ const mrrChartRef = ref(null)
 let stageChart = null
 let mrrChart = null
 
-function formatTime(t) {
-    if (!t) return '-'
-    return new Date(t).toLocaleString('zh-CN')
+function triggerLabel(value) {
+    const key = `lifecycle_page.triggers.${value}`
+    const translated = t(key)
+    return translated !== key ? translated : value
+}
+
+function formatTime(time) {
+    if (!time) return '-'
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN'
+    return new Date(time).toLocaleString(loc)
 }
 
 function stageTag(stage) {
@@ -182,7 +197,7 @@ function renderCharts() {
         if (stageChart) stageChart.dispose()
         stageChart = echarts.init(stageChartRef.value)
         const data = stages.value.filter(s => s.count > 0).map(s => ({
-            name: s.label,
+            name: stageLabels.value[s.name] || s.label,
             value: s.count,
         }))
         stageChart.setOption({
@@ -191,7 +206,7 @@ function renderCharts() {
                 type: 'pie', radius: ['35%', '65%'],
                 data,
                 label: { show: true, formatter: '{b}: {c}' },
-                color: ['#909399', '#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#783887', '#c0c4cc'],
+                color: ['#909399', '#0f172a', '#67c23a', '#e6a23c', '#f56c6c', '#783887', '#c0c4cc'],
             }],
         })
     }
@@ -200,7 +215,7 @@ function renderCharts() {
         if (mrrChart) mrrChart.dispose()
         mrrChart = echarts.init(mrrChartRef.value)
         const data = stages.value.filter(s => s.total_mrr > 0).map(s => ({
-            name: s.label,
+            name: stageLabels.value[s.name] || s.label,
             value: s.total_mrr,
         }))
         mrrChart.setOption({
@@ -217,10 +232,13 @@ async function handleAutoEvaluate() {
     try {
         const res = await api.autoEvaluate()
         const d = res.data || {}
-        ElMessage.success(`自动评估完成：${d.evaluated || 0} 个客户，${d.changed || 0} 个变更`)
+        ElMessage.success(t('lifecycle_page.messages.auto_evaluate_done', {
+            evaluated: d.evaluated || 0,
+            changed: d.changed || 0,
+        }))
         loadDashboard()
         loadTransitions()
-    } catch (e) { ElMessage.error('自动评估失败') }
+    } catch (e) { ElMessage.error(t('lifecycle_page.messages.auto_evaluate_failed')) }
     finally { evaluating.value = false }
 }
 
@@ -228,17 +246,24 @@ async function confirmTransition() {
     transitioning.value = true
     try {
         await api.transitionCustomer(transitionForm.value)
-        ElMessage.success('阶段迁移成功')
+        ElMessage.success(t('lifecycle_page.messages.transition_success'))
         showTransitionDialog.value = false
         transitionForm.value = { customer_id: '', stage: 'active', reason: '' }
         loadDashboard()
         loadTransitions()
-    } catch (e) { ElMessage.error('迁移失败: ' + (e.response?.data?.message || e.message)) }
+    } catch (e) {
+        ElMessage.error(t('lifecycle_page.messages.transition_failed', {
+            error: e.response?.data?.message || e.message,
+        }))
+    }
     finally { transitioning.value = false }
 }
 
 watch(filterStage, () => loadTransitions())
 watch(filterTrigger, () => loadTransitions())
+watch(locale, () => {
+    nextTick(() => renderCharts())
+})
 
 onMounted(() => { refreshAll() })
 </script>
@@ -256,7 +281,7 @@ onMounted(() => { refreshAll() })
 .stage-label { font-size: 13px; margin-top: 2px; }
 .stage-pct { font-size: 11px; color: #909399; margin-top: 1px; }
 .stage-prospect .stage-value { color: #909399; }
-.stage-onboarding .stage-value { color: #409eff; }
+.stage-onboarding .stage-value { color: #0f172a; }
 .stage-active .stage-value { color: #67c23a; }
 .stage-growing .stage-value { color: #67c23a; }
 .stage-mature .stage-value { color: #e6a23c; }

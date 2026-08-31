@@ -17,12 +17,15 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { KEYBOARD_SHORTCUTS } from '@/utils/a11y';
 import { useAriaAnnouncer, useKeyboardShortcuts } from '@/composables/useA11y';
+import { resolveDocumentTitle } from '@/utils/resolveDocumentTitle';
 import SkipToContent from '@/components/SkipToContent.vue';
 import KeyboardShortcutsHelp from '@/components/KeyboardShortcutsHelp.vue';
 
 const router = useRouter();
+const { t } = useI18n();
 const { announce } = useAriaAnnouncer();
 const shortcutsVisible = ref(false);
 
@@ -39,26 +42,23 @@ useKeyboardShortcuts({
 });
 
 function beforeMountRoute() {
-    // 路由变化时向屏幕阅读器通告
     const route = router.currentRoute.value;
-    const title = route.meta?.title || document.title;
+    const title = resolveDocumentTitle(route)?.split(' - ')[0] || route.meta?.title || document.title;
     if (title) {
-        announce(`已导航到 ${title}`);
+        announce(t('a11y.navigated_to', { title }));
     }
 }
 
 function triggerGlobalSearch() {
-    // 派发自定义事件，GlobalSearch 组件会监听
     window.dispatchEvent(new CustomEvent('a11y:global-search'));
 }
 
-// 监听路由变化，更新页面标题
 watch(
     () => router.currentRoute.value,
     (route) => {
-        const title = route.meta?.title;
+        const title = resolveDocumentTitle(route);
         if (title) {
-            document.title = title + ' - HWT License 管理后台';
+            document.title = title;
         }
     },
     { immediate: true },
@@ -89,13 +89,13 @@ watch(
     left: 8px;
     z-index: 10000;
     padding: 10px 20px;
-    background: #409eff;
+    background: #0f172a;
     color: #fff;
     border-radius: 0 0 4px 4px;
     font-size: 14px;
     font-weight: 600;
     text-decoration: none;
-    outline: 3px solid #a0cfff;
+    outline: 3px solid #cbd5e1;
     outline-offset: 2px;
     transition: top 0.15s ease-in;
 }
@@ -106,14 +106,14 @@ watch(
 
 /* WCAG 2.4.7: 焦点可见指示器 */
 :focus-visible {
-    outline: 2px solid #409eff;
+    outline: 2px solid #0f172a;
     outline-offset: 2px;
     border-radius: 2px;
 }
 
 /* Element Plus 按钮焦点样式覆盖 */
 .el-button:focus-visible {
-    outline: 2px solid #409eff;
+    outline: 2px solid #0f172a;
     outline-offset: 2px;
 }
 
@@ -134,12 +134,12 @@ html {
 
 /* 确保表格行在焦点/悬停时有足够对比度 */
 .el-table__body tr:hover > td {
-    background-color: #ecf5ff;
+    background-color: #f1f5f9;
 }
 
 /* 选中状态的颜色对比度增强 */
 .el-table__body tr.current-row > td {
-    background-color: #d9ecff;
+    background-color: #e2e8f0;
 }
 
 /* WCAG 1.4.11: 非文本对比度 — 输入框边框 */
@@ -151,8 +151,8 @@ html {
 
 .el-input__wrapper.is-focus,
 .el-select__wrapper.is-focus {
-    border-color: #409eff;
-    box-shadow: 0 0 0 1px #409eff inset;
+    border-color: #0f172a;
+    box-shadow: 0 0 0 1px #0f172a inset;
 }
 
 /* WCAG 2.4.4/2.4.9: 链接文本有下划线区分 */
@@ -176,7 +176,7 @@ a:not(.el-button):not(.skip-link) {
     width: 32px;
     height: 32px;
     border: 3px solid #e4e7ed;
-    border-top-color: #409eff;
+    border-top-color: #0f172a;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
     margin-bottom: 16px;

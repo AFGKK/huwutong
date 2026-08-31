@@ -1,30 +1,28 @@
 <template>
     <div class="points-daily-page">
-        <!-- 积分概览 -->
         <el-card shadow="never" class="points-summary-card">
             <div class="points-summary-row">
                 <div class="points-balance-block">
-                    <div class="points-balance-label">当前积分</div>
-                    <div class="points-balance-value">🪙 {{ pointsBalance }}</div>
+                    <div class="points-balance-label">{{ t('points_daily.balance') }}</div>
+                    <div class="points-balance-value">{{ pointsBalance }}</div>
                 </div>
-                <el-button type="primary" plain @click="openPointsHistory">交易记录</el-button>
+                <el-button type="primary" plain @click="openPointsHistory">{{ t('points_daily.history') }}</el-button>
             </div>
         </el-card>
 
-        <!-- 每日签到 / 今日任务 -->
         <el-card shadow="never" class="daily-card" style="margin-top:16px">
             <template #header>
                 <div class="daily-card-header">
-                    <span>📅 每日签到</span>
-                    <span class="daily-card-sub">完成今日任务赚取积分</span>
+                    <span>{{ t('points_daily.checkin') }}</span>
+                    <span class="daily-card-sub">{{ t('points_daily.checkin_sub') }}</span>
                 </div>
             </template>
-            <div class="my-section-header">🎯 今日任务</div>
+            <div class="my-section-header">{{ t('points_daily.today_tasks') }}</div>
             <div class="daily-task-item" v-for="task in dailyTasks" :key="task.key">
                 <div class="daily-task-info">
-                    <span class="daily-task-icon">{{ task.done ? '✅' : '⭕' }}</span>
+                    <span class="daily-task-icon">{{ task.done ? '✓' : '○' }}</span>
                     <span class="daily-task-label" :class="{ 'task-done': task.done }">{{ task.label }}</span>
-                    <span class="daily-task-reward">+{{ task.reward }}分</span>
+                    <span class="daily-task-reward">{{ t('points_daily.reward', { n: task.reward }) }}</span>
                 </div>
                 <div class="daily-task-bar-wrap">
                     <div class="daily-task-bar" :style="{ width: (task.progress / task.total * 100) + '%' }"></div>
@@ -32,7 +30,7 @@
                 <div class="daily-task-progress">{{ task.progress }}/{{ task.total }}</div>
             </div>
             <div class="daily-summary">
-                🎉 今日已得 <strong>{{ dailyEarned }}</strong> / <strong>{{ dailyMax }}</strong> 积分
+                {{ t('points_daily.earned_summary') }} <strong>{{ dailyEarned }}</strong> / <strong>{{ dailyMax }}</strong>
             </div>
         </el-card>
 
@@ -42,21 +40,24 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import apiClient from '@/api/client'
 import PointsHistory from '@/components/PointsHistory.vue'
 
+const { t } = useI18n()
 const pointsBalance = ref(0)
 const pointsHistoryVisible = ref(false)
 
-const dailyTasks = ref([
-    { key: 'read', label: '浏览3篇文章', reward: 5, total: 3, progress: 0, done: false },
-    { key: 'comment', label: '发表1条评论', reward: 3, total: 1, progress: 0, done: false },
-    { key: 'share', label: '分享1次内容', reward: 2, total: 1, progress: 0, done: false },
-    { key: 'tip', label: '打赏1次', reward: 5, total: 1, progress: 0, done: false },
+const dailyTasks = computed(() => [
+    { key: 'read', label: t('points_daily.tasks.read'), reward: 5, total: 3, progress: taskProgress.value.read, done: taskProgress.value.read >= 3 },
+    { key: 'comment', label: t('points_daily.tasks.comment'), reward: 3, total: 1, progress: taskProgress.value.comment, done: taskProgress.value.comment >= 1 },
+    { key: 'share', label: t('points_daily.tasks.share'), reward: 2, total: 1, progress: taskProgress.value.share, done: taskProgress.value.share >= 1 },
+    { key: 'tip', label: t('points_daily.tasks.tip'), reward: 5, total: 1, progress: taskProgress.value.tip, done: taskProgress.value.tip >= 1 },
 ])
+const taskProgress = ref({ read: 0, comment: 0, share: 0, tip: 0 })
 const dailyMax = 15
 const dailyEarned = computed(() =>
-    dailyTasks.value.filter(t => t.done).reduce((sum, t) => sum + t.reward, 0)
+    dailyTasks.value.filter(task => task.done).reduce((sum, task) => sum + task.reward, 0)
 )
 
 async function loadPointsBalance() {

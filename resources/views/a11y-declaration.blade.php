@@ -1,10 +1,15 @@
+@php
+    $appName = __('app.app_name');
+    $htmlLang = str_replace('_', '-', app()->getLocale());
+@endphp
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{ $htmlLang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>无障碍声明 - HWT License</title>
+    <title>{{ __('app.a11y_declaration.title', ['app_name' => $appName]) }}</title>
     @vite('resources/css/public.css')
+    <script>window.A11Y_I18N = @json(__('app.a11y_declaration'));</script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #202124; background: #fff; margin: 0; }
         .a11y-container { max-width: 800px; margin: 0 auto; padding: 24px; }
@@ -26,82 +31,100 @@
     </style>
 </head>
 <body>
-    <a href="#main" class="sr-only" style="position:absolute;left:8px;top:8px;background:#1a73e8;color:#fff;padding:8px 16px;border-radius:4px;z-index:9999;text-decoration:none">跳转到主要内容</a>
+    <a href="#main" class="sr-only" style="position:absolute;left:8px;top:8px;background:#1a73e8;color:#fff;padding:8px 16px;border-radius:4px;z-index:9999;text-decoration:none">{{ __('app.a11y_declaration.skip') }}</a>
 
     <div class="a11y-container">
     <header role="banner">
         <span class="badge">WCAG 2.1 AA</span>
-        <h1>无障碍声明</h1>
-        <p><strong>HWT License 企业授权管理系统</strong> 致力于为所有用户提供包容和无障碍的使用体验。</p>
-        <p>最后更新: 2026-06-13</p>
+        <h1>{{ __('app.a11y_declaration.heading') }}</h1>
+        <p>{{ __('app.a11y_declaration.intro', ['app_name' => $appName]) }}</p>
+        <p>{{ __('app.a11y_declaration.updated', ['date' => '2026-06-13']) }}</p>
     </header>
 
     <main id="main" role="main">
-        <h2>合规状态</h2>
-        <p>本系统已按照 <strong>WCAG 2.1 AA 级别</strong> 标准进行评估。我们致力于使所有功能对残障人士可用，包括屏幕阅读器用户、键盘用户以及对色彩/对比度有特殊要求的用户。</p>
+        <h2>{{ __('app.a11y_declaration.compliance_h') }}</h2>
+        <p>{!! __('app.a11y_declaration.compliance_p') !!}</p>
 
-        <div class="progress-bar" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" aria-label="WCAG 合规完成度">
+        <div class="progress-bar" role="progressbar" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100" aria-label="{{ __('app.a11y_declaration.progress_label') }}">
             <div class="progress-fill" style="width:92%"></div>
         </div>
 
-        <h2>已支持的无障碍功能</h2>
+        <h2>{{ __('app.a11y_declaration.features_h') }}</h2>
         <ul>
-            <li><strong>键盘导航</strong>: 所有功能均可通过键盘操作，提供可见的焦点指示器</li>
-            <li><strong>屏幕阅读器</strong>: 使用 ARIA 标签和角色确保与 JAWS/NVDA/VoiceOver/TalkBack 兼容</li>
-            <li><strong>跳过导航</strong>: 提供跳过导航链接，直接跳转到主内容</li>
-            <li><strong>色彩对比度</strong>: 文本对比度 ≥ 4.5:1，UI 组件对比度 ≥ 3:1</li>
-            <li><strong>文字缩放</strong>: 内容可在 200% 缩放比例下正常使用</li>
-            <li><strong>焦点管理</strong>: 对话框和弹窗实施焦点陷阱，确保键盘导航不溢出</li>
-            <li><strong>实时通告</strong>: 使用 aria-live 区域向屏幕阅读器发送即时状态更新</li>
-            <li><strong>语义化结构</strong>: 使用正确的 HTML5 语义元素和 ARIA 角色</li>
-            <li><strong>键盘快捷键</strong>: 提供全局快捷键（Ctrl+/ 搜索，Alt+1 跳转内容等）</li>
+            <li>{!! __('app.a11y_declaration.feat_keyboard') !!}</li>
+            <li>{!! __('app.a11y_declaration.feat_sr') !!}</li>
+            <li>{!! __('app.a11y_declaration.feat_skip') !!}</li>
+            <li>{!! __('app.a11y_declaration.feat_contrast') !!}</li>
+            <li>{!! __('app.a11y_declaration.feat_zoom') !!}</li>
+            <li>{!! __('app.a11y_declaration.feat_focus') !!}</li>
+            <li>{!! __('app.a11y_declaration.feat_live') !!}</li>
+            <li>{!! __('app.a11y_declaration.feat_semantic') !!}</li>
+            <li>{!! __('app.a11y_declaration.feat_shortcuts') !!}</li>
         </ul>
 
-        <h2>WCAG 2.1 AA 成功准则评估</h2>
-        <p>以下是我们对 WCAG 2.1 AA 所有 50 条成功准则的自评结果：</p>
+        <h2>{{ __('app.a11y_declaration.criteria_h') }}</h2>
+        <p>{{ __('app.a11y_declaration.criteria_p') }}</p>
 
-        <table aria-label="WCAG 2.1 AA 成功准则评估结果">
+        <table aria-label="{{ __('app.a11y_declaration.table_criteria') }}">
             <thead>
                 <tr>
-                    <th>准则</th>
-                    <th>级别</th>
-                    <th>名称</th>
-                    <th>状态</th>
+                    <th>{{ __('app.a11y_declaration.col_id') }}</th>
+                    <th>{{ __('app.a11y_declaration.col_level') }}</th>
+                    <th>{{ __('app.a11y_declaration.col_name') }}</th>
+                    <th>{{ __('app.a11y_declaration.col_status') }}</th>
                 </tr>
             </thead>
-            <tbody id="guidelines-table">
-                <!-- 由 JavaScript 动态填充 -->
-            </tbody>
+            <tbody id="guidelines-table"></tbody>
         </table>
 
-        <h2>已知限制与改进计划</h2>
-        <table aria-label="已知无障碍限制和改进计划">
+        <h2>{{ __('app.a11y_declaration.limits_h') }}</h2>
+        <table aria-label="{{ __('app.a11y_declaration.table_limits') }}">
             <thead>
-                <tr><th>限制</th><th>影响</th><th>计划修复时间</th></tr>
+                <tr>
+                    <th>{{ __('app.a11y_declaration.col_limit') }}</th>
+                    <th>{{ __('app.a11y_declaration.col_impact') }}</th>
+                    <th>{{ __('app.a11y_declaration.col_plan') }}</th>
+                </tr>
             </thead>
             <tbody>
-                <tr><td>部分图标的替代文本不够详细</td><td>屏幕阅读器用户可能无法完全理解图标含义</td><td>下个版本</td></tr>
-                <tr><td>复杂数据表格的行标题关联</td><td>部分表格缺少 scope 属性</td><td>下个版本</td></tr>
-                <tr><td>部分表单错误信息未通过 aria-describedby 关联</td><td>屏幕阅读器用户可能错过错误信息</td><td>规划中</td></tr>
-                <tr><td>拖拽排序组件的键盘替代操作有限</td><td>键盘用户无法使用拖拽功能</td><td>规划中</td></tr>
+                <tr>
+                    <td>{{ __('app.a11y_declaration.limit1') }}</td>
+                    <td>{{ __('app.a11y_declaration.impact1') }}</td>
+                    <td>{{ __('app.a11y_declaration.plan_next') }}</td>
+                </tr>
+                <tr>
+                    <td>{{ __('app.a11y_declaration.limit2') }}</td>
+                    <td>{{ __('app.a11y_declaration.impact2') }}</td>
+                    <td>{{ __('app.a11y_declaration.plan_next') }}</td>
+                </tr>
+                <tr>
+                    <td>{{ __('app.a11y_declaration.limit3') }}</td>
+                    <td>{{ __('app.a11y_declaration.impact3') }}</td>
+                    <td>{{ __('app.a11y_declaration.plan_planned') }}</td>
+                </tr>
+                <tr>
+                    <td>{{ __('app.a11y_declaration.limit4') }}</td>
+                    <td>{{ __('app.a11y_declaration.impact4') }}</td>
+                    <td>{{ __('app.a11y_declaration.plan_planned') }}</td>
+                </tr>
             </tbody>
         </table>
 
-        <h2>兼容性</h2>
+        <h2>{{ __('app.a11y_declaration.compat_h') }}</h2>
         <ul>
-            <li><strong>浏览器</strong>: Chrome 最新版、Firefox 最新版、Safari 最新版、Edge 最新版</li>
-            <li><strong>屏幕阅读器</strong>: JAWS 2024+、NVDA 2024+、VoiceOver (macOS/iOS)、TalkBack (Android)</li>
-            <li><strong>操作系统</strong>: Windows 10+、macOS 12+、iOS 15+、Android 10+</li>
+            <li>{!! __('app.a11y_declaration.compat_browser') !!}</li>
+            <li>{!! __('app.a11y_declaration.compat_sr') !!}</li>
+            <li>{!! __('app.a11y_declaration.compat_os') !!}</li>
         </ul>
 
-        <h2>反馈渠道</h2>
-        <p>如果您在使用本系统时遇到任何无障碍相关的问题，请通过以下方式联系我们：</p>
+        <h2>{{ __('app.a11y_declaration.feedback_h') }}</h2>
+        <p>{{ __('app.a11y_declaration.feedback_p') }}</p>
         <ul>
-            <li>邮件: <a href="mailto:a11y@huwutong.com">a11y@huwutong.com</a></li>
-            <li>工单: 登录后在「帮助中心」提交无障碍反馈工单</li>
-            <li>电话: 400-xxx-xxxx</li>
+            <li>{{ __('app.a11y_declaration.feedback_email') }}<a href="mailto:a11y@huwutong.com">a11y@huwutong.com</a></li>
+            <li>{{ __('app.a11y_declaration.feedback_ticket') }}</li>
+            <li>{{ __('app.a11y_declaration.feedback_phone') }}</li>
         </ul>
-        <p>我们承诺在收到反馈后的 <strong>5 个工作日内</strong> 回复，并在 <strong>30 天内</strong> 解决或给出明确的改进计划。</p>
+        <p>{!! __('app.a11y_declaration.feedback_sla') !!}</p>
     </main>
 
     </div>
@@ -112,15 +135,16 @@
     fetch('/api/a11y/guidelines')
         .then(r => r.json())
         .then(res => {
+            const I = window.A11Y_I18N || {};
             const data = res.data || res;
             const tbody = document.getElementById('guidelines-table');
             if (!data || !data.length) {
-                tbody.innerHTML = '<tr><td colspan="4">无法加载准则数据</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4">' + (I.load_empty || '') + '</td></tr>';
                 return;
             }
             data.forEach(g => {
                 const statusClass = g.status === 'compliant' ? 'status-compliant' : g.status === 'needs_work' ? 'status-needs-work' : 'status-not-applicable';
-                const statusLabel = g.status === 'compliant' ? '✅ 符合' : g.status === 'needs_work' ? '⚠️ 需改进' : '— 不适用';
+                const statusLabel = g.status === 'compliant' ? (I.status_ok || '') : g.status === 'needs_work' ? (I.status_needs || '') : (I.status_na || '');
                 tbody.innerHTML += `<tr>
                     <td><strong>${g.id}</strong></td>
                     <td>${g.level}</td>
@@ -130,7 +154,8 @@
             });
         })
         .catch(() => {
-            document.getElementById('guidelines-table').innerHTML = '<tr><td colspan="4">加载数据失败，请稍后重试。</td></tr>';
+            const I = window.A11Y_I18N || {};
+            document.getElementById('guidelines-table').innerHTML = '<tr><td colspan="4">' + (I.load_fail || '') + '</td></tr>';
         });
     </script>
 </body>

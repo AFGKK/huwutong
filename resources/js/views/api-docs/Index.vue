@@ -3,40 +3,40 @@
     <!-- 多语言切换条 -->
     <el-card shadow="never" class="mb-3 i18n-bar">
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
-        <span style="font-size:13px;color:#909399">文档语言:</span>
+        <span style="font-size:13px;color:#909399">{{ t('api_docs_page.doc_language') }}:</span>
         <el-radio-group v-model="currentLocale" size="small" @change="onLocaleChange">
-          <el-radio-button value="en">English</el-radio-button>
-          <el-radio-button value="zh_CN">简体中文</el-radio-button>
-          <el-radio-button value="ja">日本語</el-radio-button>
+          <el-radio-button value="en">{{ t('language.en') }}</el-radio-button>
+          <el-radio-button value="zh_CN">{{ t('language.zh_CN') }}</el-radio-button>
+          <el-radio-button value="ja">{{ t('language.ja') }}</el-radio-button>
         </el-radio-group>
         <el-button size="small" type="warning" :loading="exportLocalizedLoading" @click="exportLocalizedOpenApi">
-          <el-icon><Download /></el-icon> 导出 {{ localeLabel }} OpenAPI
+          <el-icon><Download /></el-icon> {{ t('api_docs_page.export_localized_openapi', { locale: localeLabel }) }}
         </el-button>
       </div>
     </el-card>
 
     <!-- 统计 -->
     <el-row :gutter="16" class="mb-4">
-      <el-col :span="4"><el-card shadow="hover"><div class="stat-item"><div class="stat-value">{{ stats.total_endpoints }}</div><div class="stat-label">总端点</div></div></el-card></el-col>
-      <el-col :span="4"><el-card shadow="hover"><div class="stat-item"><div class="stat-value text-success">{{ stats.active_endpoints }}</div><div class="stat-label">活跃</div></div></el-card></el-col>
-      <el-col :span="4"><el-card shadow="hover"><div class="stat-item"><div class="stat-value">{{ stats.total_schemas }}</div><div class="stat-label">Schema</div></div></el-card></el-col>
-      <el-col :span="4"><el-card shadow="hover"><div class="stat-item"><div class="stat-value">{{ stats.active_sdks }}</div><div class="stat-label">SDK</div></div></el-card></el-col>
-      <el-col :span="4"><el-card shadow="hover"><div class="stat-item"><div class="stat-value">{{ stats.total_changelogs }}</div><div class="stat-label">变更</div></div></el-card></el-col>
-      <el-col :span="4"><el-card shadow="hover"><div class="stat-item"><div class="stat-value">{{ stats.total_tests }}</div><div class="stat-label">测试请求</div></div></el-card></el-col>
+      <el-col :span="4"><el-card shadow="hover"><div class="stat-item"><div class="stat-value">{{ stats.total_endpoints }}</div><div class="stat-label">{{ t('api_docs_page.stats.total_endpoints') }}</div></div></el-card></el-col>
+      <el-col :span="4"><el-card shadow="hover"><div class="stat-item"><div class="stat-value text-success">{{ stats.active_endpoints }}</div><div class="stat-label">{{ t('api_docs_page.stats.active') }}</div></div></el-card></el-col>
+      <el-col :span="4"><el-card shadow="hover"><div class="stat-item"><div class="stat-value">{{ stats.total_schemas }}</div><div class="stat-label">{{ t('api_docs_page.stats.schemas') }}</div></div></el-card></el-col>
+      <el-col :span="4"><el-card shadow="hover"><div class="stat-item"><div class="stat-value">{{ stats.active_sdks }}</div><div class="stat-label">{{ t('api_docs_page.stats.sdks') }}</div></div></el-card></el-col>
+      <el-col :span="4"><el-card shadow="hover"><div class="stat-item"><div class="stat-value">{{ stats.total_changelogs }}</div><div class="stat-label">{{ t('api_docs_page.stats.changelogs') }}</div></div></el-card></el-col>
+      <el-col :span="4"><el-card shadow="hover"><div class="stat-item"><div class="stat-value">{{ stats.total_tests }}</div><div class="stat-label">{{ t('api_docs_page.stats.test_requests') }}</div></div></el-card></el-col>
     </el-row>
 
     <el-tabs v-model="activeTab" type="border-card">
       <!-- ──────── 标签1: API 文档 ──────── -->
-      <el-tab-pane label="API 文档" name="docs">
+      <el-tab-pane :label="t('api_docs_page.tabs.docs')" name="docs">
         <div class="tab-toolbar">
           <el-form :inline="true" size="small">
             <el-form-item>
-              <el-select v-model="docFilter.group" placeholder="分组" clearable @change="fetchEndpoints" style="width:130px">
+              <el-select v-model="docFilter.group" :placeholder="t('api_docs_page.filters.group')" clearable @change="fetchEndpoints" style="width:130px">
                 <el-option v-for="(label, key) in groups" :key="key" :label="label" :value="key" />
               </el-select>
             </el-form-item>
             <el-form-item>
-              <el-select v-model="docFilter.method" placeholder="方法" clearable @change="fetchEndpoints" style="width:100px">
+              <el-select v-model="docFilter.method" :placeholder="t('api_docs_page.filters.method')" clearable @change="fetchEndpoints" style="width:100px">
                 <el-option label="GET" value="GET" />
                 <el-option label="POST" value="POST" />
                 <el-option label="PUT" value="PUT" />
@@ -45,23 +45,20 @@
               </el-select>
             </el-form-item>
             <el-form-item>
-              <el-select v-model="docFilter.status" placeholder="状态" clearable @change="fetchEndpoints" style="width:110px">
-                <el-option label="活跃" value="active" />
-                <el-option label="Beta" value="beta" />
-                <el-option label="已废弃" value="deprecated" />
-                <el-option label="实验性" value="experimental" />
+              <el-select v-model="docFilter.status" :placeholder="t('api_docs_page.filters.status')" clearable @change="fetchEndpoints" style="width:110px">
+                <el-option v-for="opt in endpointStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </el-form-item>
             <el-form-item>
-              <el-input v-model="docFilter.search" placeholder="搜索路径/说明" clearable @input="onSearchDebounce" style="width:200px" />
+              <el-input v-model="docFilter.search" :placeholder="t('api_docs_page.filters.search_ph')" clearable @input="onSearchDebounce" style="width:200px" />
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="fetchEndpoints"><el-icon><Refresh /></el-icon> 刷新</el-button>
+              <el-button type="primary" @click="fetchEndpoints"><el-icon><Refresh /></el-icon> {{ t('api_docs_page.refresh') }}</el-button>
               <el-button type="success" :loading="scanning" @click="scanRoutes">
-                <el-icon><Search /></el-icon> 扫描路由
+                <el-icon><Search /></el-icon> {{ t('api_docs_page.scan_routes') }}
               </el-button>
               <el-button type="warning" @click="showExportDlg = true">
-                <el-icon><Download /></el-icon> 导出 OpenAPI
+                <el-icon><Download /></el-icon> {{ t('api_docs_page.export_openapi') }}
               </el-button>
             </el-form-item>
           </el-form>
@@ -69,41 +66,38 @@
 
         <!-- 批量操作工具栏 -->
         <div v-if="selectedEndpointIds.length > 0" class="batch-toolbar mb-2">
-          <span class="mr-2">已选 {{ selectedEndpointIds.length }} 个端点</span>
-          <el-select v-model="batchStatus" placeholder="批量设置状态" size="small" style="width:130px" class="mr-2">
-            <el-option label="活跃" value="active" />
-            <el-option label="Beta" value="beta" />
-            <el-option label="已废弃" value="deprecated" />
-            <el-option label="实验性" value="experimental" />
+          <span class="mr-2">{{ t('api_docs_page.batch.selected', { n: selectedEndpointIds.length }) }}</span>
+          <el-select v-model="batchStatus" :placeholder="t('api_docs_page.batch.status_ph')" size="small" style="width:130px" class="mr-2">
+            <el-option v-for="opt in endpointStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
-          <el-button :loading="batchUpdating" size="small" type="primary" :disabled="!batchStatus" @click="batchUpdateStatus">应用</el-button>
-          <el-button size="small" @click="selectedEndpointIds = []">取消选择</el-button>
+          <el-button :loading="batchUpdating" size="small" type="primary" :disabled="!batchStatus" @click="batchUpdateStatus">{{ t('api_docs_page.batch.apply') }}</el-button>
+          <el-button size="small" @click="selectedEndpointIds = []">{{ t('api_docs_page.batch.clear_selection') }}</el-button>
         </div>
 
         <el-table :data="endpoints" v-loading="loading" stripe @row-click="showEndpointDetail" style="cursor:pointer"
           @selection-change="onSelectionChange">
           <el-table-column type="selection" width="40" />
-          <el-table-column label="方法" width="90">
+          <el-table-column :label="t('api_docs_page.cols.method')" width="90">
             <template #default="{ row }">
               <el-tag :type="methodTag(row.method)" size="small" effect="dark" style="width:60px;text-align:center">{{ row.method }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="path" label="路径" min-width="300" show-overflow-tooltip />
-          <el-table-column prop="summary" label="说明" min-width="200" show-overflow-tooltip />
-          <el-table-column prop="group" label="分组" width="100">
+          <el-table-column prop="path" :label="t('api_docs_page.cols.path')" min-width="300" show-overflow-tooltip />
+          <el-table-column prop="summary" :label="t('api_docs_page.cols.summary')" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="group" :label="t('api_docs_page.cols.group')" width="100">
             <template #default="{ row }">{{ groups[row.group] || row.group }}</template>
           </el-table-column>
-          <el-table-column label="状态" width="90">
+          <el-table-column :label="t('api_docs_page.cols.status')" width="90">
             <template #default="{ row }">
               <el-tag v-if="row.status === 'beta'" type="warning" size="small">Beta</el-tag>
-              <el-tag v-else-if="row.status === 'deprecated'" type="danger" size="small">废弃</el-tag>
-              <el-tag v-else-if="row.status === 'experimental'" type="info" size="small">实验</el-tag>
-              <span v-else class="text-success">活跃</span>
+              <el-tag v-else-if="row.status === 'deprecated'" type="danger" size="small">{{ statusTextMap.deprecated }}</el-tag>
+              <el-tag v-else-if="row.status === 'experimental'" type="info" size="small">{{ statusTextMap.experimental }}</el-tag>
+              <span v-else class="text-success">{{ statusTextMap.active }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="收藏" width="60">
+          <el-table-column :label="t('api_docs_page.cols.favorite')" width="60">
             <template #default="{ row }">
-              <el-tooltip :content="favoriteIds.has(row.id) ? '取消收藏' : '收藏'">
+              <el-tooltip :content="favoriteIds.has(row.id) ? t('api_docs_page.favorite.remove') : t('api_docs_page.favorite.add')">
                 <el-icon :class="{ 'favorite-active': favoriteIds.has(row.id) }" class="favorite-btn" @click.stop="toggleFavorite(row.id)">
                   <StarFilled v-if="favoriteIds.has(row.id)" />
                   <Star v-else />
@@ -115,11 +109,11 @@
       </el-tab-pane>
 
       <!-- ──────── 标签2: 测试控制台 ──────── -->
-      <el-tab-pane label="测试控制台" name="console">
+      <el-tab-pane :label="t('api_docs_page.tabs.console')" name="console">
         <el-row :gutter="20">
           <el-col :span="14">
             <el-card shadow="never">
-              <template #header>请求</template>
+              <template #header>{{ t('api_docs_page.console.request') }}</template>
               <el-form label-width="0" size="small">
                 <el-row :gutter="8">
                   <el-col :span="4">
@@ -136,18 +130,18 @@
                   </el-col>
                 </el-row>
                 <div class="mt-2">
-                  <div class="label-text">请求头 (JSON)</div>
+                  <div class="label-text">{{ t('api_docs_page.console.headers_json') }}</div>
                   <el-input v-model="testHeadersText" type="textarea" :rows="3" placeholder='{"Authorization": "Bearer xxx"}' />
                 </div>
                 <div class="mt-2">
-                  <div class="label-text">请求体 (JSON)</div>
+                  <div class="label-text">{{ t('api_docs_page.console.body_json') }}</div>
                   <el-input v-model="testBodyText" type="textarea" :rows="6" placeholder='{"key": "value"}' />
                 </div>
                 <div class="mt-2">
                   <el-button type="primary" :loading="testLoading" @click="sendTest">
-                    <el-icon><CaretRight /></el-icon> 发送请求
+                    <el-icon><CaretRight /></el-icon> {{ t('api_docs_page.console.send') }}
                   </el-button>
-                  <el-button @click="clearTest">清空</el-button>
+                  <el-button @click="clearTest">{{ t('api_docs_page.console.clear') }}</el-button>
                 </div>
               </el-form>
             </el-card>
@@ -155,17 +149,17 @@
           <el-col :span="10">
             <el-card shadow="never">
               <template #header>
-                <span>响应</span>
+                <span>{{ t('api_docs_page.console.response') }}</span>
                 <el-tag v-if="testResult.status === 'success'" type="success" size="small" class="ml-2">{{ testResult.response_status }}</el-tag>
-                <el-tag v-else-if="testResult.status === 'failed'" type="danger" size="small" class="ml-2">失败</el-tag>
+                <el-tag v-else-if="testResult.status === 'failed'" type="danger" size="small" class="ml-2">{{ t('api_docs_page.console.failed') }}</el-tag>
                 <span v-if="testResult.response_time_ms" class="ml-2 text-muted">{{ testResult.response_time_ms }}ms</span>
               </template>
               <pre v-if="testResult.response" class="response-pre">{{ formatJson(testResult.response) }}</pre>
               <div v-else-if="testResult.error_message" class="text-danger">{{ testResult.error_message }}</div>
-              <div v-else class="text-muted">等待发送请求...</div>
+              <div v-else class="text-muted">{{ t('api_docs_page.console.waiting') }}</div>
             </el-card>
             <el-card shadow="never" class="mt-3">
-              <template #header>历史记录</template>
+              <template #header>{{ t('api_docs_page.console.history') }}</template>
               <div v-if="testHistory.length">
                 <div v-for="h in testHistory" :key="h.id" class="history-item" @click="restoreTest(h)">
                   <el-tag :type="h.status === 'success' ? 'success' : 'danger'" size="small">{{ h.method }}</el-tag>
@@ -173,14 +167,14 @@
                   <small class="text-muted">{{ formatTime(h.created_at) }}</small>
                 </div>
               </div>
-              <div v-else class="text-muted">暂无记录</div>
+              <div v-else class="text-muted">{{ t('api_docs_page.console.no_history') }}</div>
             </el-card>
           </el-col>
         </el-row>
       </el-tab-pane>
 
       <!-- ──────── 标签3: SDK ──────── -->
-      <el-tab-pane label="SDK 客户端" name="sdk">
+      <el-tab-pane :label="t('api_docs_page.tabs.sdk')" name="sdk">
         <el-row :gutter="16" class="mb-3">
           <el-col v-for="sdk in sdks" :key="sdk.id" :span="8">
             <el-card shadow="hover" class="sdk-card">
@@ -194,38 +188,34 @@
               <p class="text-muted mt-1">{{ sdk.description }}</p>
               <div v-if="sdk.install_command" class="install-cmd">$ {{ sdk.install_command }}</div>
               <div class="mt-2">
-                <el-button size="small" @click="previewSdk(sdk.language)"><el-icon><View /></el-icon> 预览</el-button>
-                <el-button size="small" type="primary" @click="copySetupCode(sdk)"><el-icon><CopyDocument /></el-icon> 复制初始化</el-button>
+                <el-button size="small" @click="previewSdk(sdk.language)"><el-icon><View /></el-icon> {{ t('api_docs_page.sdk.preview') }}</el-button>
+                <el-button size="small" type="primary" @click="copySetupCode(sdk)"><el-icon><CopyDocument /></el-icon> {{ t('api_docs_page.sdk.copy_setup') }}</el-button>
               </div>
             </el-card>
           </el-col>
         </el-row>
         <el-card v-if="sdkPreview" shadow="never">
           <template #header>
-            <span>SDK 预览 - {{ sdkPreview.language }}</span>
-            <el-button size="small" class="ml-2" @click="sdkPreview = null">关闭</el-button>
-            <el-button size="small" type="primary" class="ml-2" @click="copySdkCode"><el-icon><CopyDocument /></el-icon> 复制代码</el-button>
+            <span>{{ t('api_docs_page.sdk.preview_title', { language: sdkPreview.language }) }}</span>
+            <el-button size="small" class="ml-2" @click="sdkPreview = null">{{ t('actions.close') }}</el-button>
+            <el-button size="small" type="primary" class="ml-2" @click="copySdkCode"><el-icon><CopyDocument /></el-icon> {{ t('api_docs_page.sdk.copy_code') }}</el-button>
           </template>
           <pre class="code-pre">{{ sdkPreview.code }}</pre>
         </el-card>
       </el-tab-pane>
 
       <!-- ──────── 标签4: 变更日志 ──────── -->
-      <el-tab-pane label="API 变更日志" name="changelog">
+      <el-tab-pane :label="t('api_docs_page.tabs.changelog')" name="changelog">
         <div class="tab-toolbar">
-          <el-button type="primary" @click="showChangelogDlg = true"><el-icon><Plus /></el-icon> 新增变更</el-button>
+          <el-button type="primary" @click="showChangelogDlg = true"><el-icon><Plus /></el-icon> {{ t('api_docs_page.changelog.add') }}</el-button>
           <el-button type="success" :loading="autoDetecting" @click="autoDetectChanges">
-            <el-icon><MagicStick /></el-icon> 自动检测变更
+            <el-icon><MagicStick /></el-icon> {{ t('api_docs_page.changelog.auto_detect') }}
           </el-button>
-          <el-select v-model="changelogFilter.type" placeholder="类型" clearable @change="fetchChangelogs" style="width:120px" class="ml-2">
-            <el-option label="新功能" value="new" />
-            <el-option label="更新" value="update" />
-            <el-option label="破坏性" value="breaking" />
-            <el-option label="废弃" value="deprecation" />
-            <el-option label="移除" value="removal" />
+          <el-select v-model="changelogFilter.type" :placeholder="t('api_docs_page.filters.type')" clearable @change="fetchChangelogs" style="width:120px" class="ml-2">
+            <el-option v-for="opt in changelogTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
           <el-tag v-if="autoDetectLogs.length" type="info" effect="plain" size="small" class="ml-2">
-            已自动生成 {{ autoDetectLogs.length }} 条记录
+            {{ t('api_docs_page.changelog.auto_generated_count', { n: autoDetectLogs.length }) }}
           </el-tag>
         </div>
         <el-timeline>
@@ -233,11 +223,11 @@
             <el-card shadow="hover">
               <h4>
                 <el-tag :type="changelogTag(log.type)" size="small" effect="dark">{{ log.version }}</el-tag>
-                <el-tag v-if="log.source === 'auto_detect'" size="small" type="success" effect="plain" class="ml-1">自动</el-tag>
+                <el-tag v-if="log.source === 'auto_detect'" size="small" type="success" effect="plain" class="ml-1">{{ t('api_docs_page.changelog.auto_badge') }}</el-tag>
                 <span class="ml-2">{{ log.title }}</span>
               </h4>
               <p v-if="log.description" class="text-muted mt-1" style="white-space:pre-wrap">{{ log.description }}</p>
-              <p v-if="log.migration_guide" class="mt-1"><el-tag type="warning" size="small">迁移指南:</el-tag> {{ log.migration_guide }}</p>
+              <p v-if="log.migration_guide" class="mt-1"><el-tag type="warning" size="small">{{ t('api_docs_page.changelog.migration_guide') }}</el-tag> {{ log.migration_guide }}</p>
               <p v-if="log.affected_endpoints?.length" class="mt-1">
                 <el-tag v-for="ep in log.affected_endpoints" :key="ep" size="small" class="mr-1">{{ ep }}</el-tag>
               </p>
@@ -246,7 +236,7 @@
         </el-timeline>
 
         <!-- 自动检测结果对话框 -->
-        <el-dialog v-model="showAutoDetectResult" title="自动检测结果" width="600px">
+        <el-dialog v-model="showAutoDetectResult" :title="t('api_docs_page.auto_detect.title')" width="600px">
           <el-alert v-if="autoDetectResult.status === 'snapshot_created'" type="info" :description="autoDetectResult.message" show-icon :closable="false" />
           <div v-else>
             <el-alert :type="autoDetectResult.changelogs_created > 0 ? 'success' : 'info'" show-icon :closable="false">
@@ -256,14 +246,14 @@
             </el-alert>
             <div v-if="autoDetectResult.changes" class="mt-3">
               <el-descriptions :column="4" border size="small">
-                <el-descriptions-item v-if="autoDetectResult.changes.added" label="新增" label-class-name="text-success">{{ autoDetectResult.changes.added }}</el-descriptions-item>
-                <el-descriptions-item v-if="autoDetectResult.changes.changed" label="修改" label-class-name="text-primary">{{ autoDetectResult.changes.changed }}</el-descriptions-item>
-                <el-descriptions-item v-if="autoDetectResult.changes.deprecated" label="弃用" label-class-name="text-warning">{{ autoDetectResult.changes.deprecated }}</el-descriptions-item>
-                <el-descriptions-item v-if="autoDetectResult.changes.removed" label="移除" label-class-name="text-danger">{{ autoDetectResult.changes.removed }}</el-descriptions-item>
+                <el-descriptions-item v-if="autoDetectResult.changes.added" :label="t('api_docs_page.auto_detect.added')" label-class-name="text-success">{{ autoDetectResult.changes.added }}</el-descriptions-item>
+                <el-descriptions-item v-if="autoDetectResult.changes.changed" :label="t('api_docs_page.auto_detect.changed')" label-class-name="text-primary">{{ autoDetectResult.changes.changed }}</el-descriptions-item>
+                <el-descriptions-item v-if="autoDetectResult.changes.deprecated" :label="t('api_docs_page.auto_detect.deprecated')" label-class-name="text-warning">{{ autoDetectResult.changes.deprecated }}</el-descriptions-item>
+                <el-descriptions-item v-if="autoDetectResult.changes.removed" :label="t('api_docs_page.auto_detect.removed')" label-class-name="text-danger">{{ autoDetectResult.changes.removed }}</el-descriptions-item>
               </el-descriptions>
             </div>
             <div v-if="autoDetectResult.added?.length" class="mt-3">
-              <h5>新增端点:</h5>
+              <h5>{{ t('api_docs_page.auto_detect.added_endpoints') }}</h5>
               <div v-for="item in autoDetectResult.added" :key="item.key" class="change-item">
                 <el-tag size="small" type="success" effect="plain">{{ item.method }}</el-tag>
                 <code>{{ item.path }}</code>
@@ -271,7 +261,7 @@
               </div>
             </div>
             <div v-if="autoDetectResult.removed?.length" class="mt-3">
-              <h5>移除端点:</h5>
+              <h5>{{ t('api_docs_page.auto_detect.removed_endpoints') }}</h5>
               <div v-for="item in autoDetectResult.removed" :key="item.key" class="change-item">
                 <el-tag size="small" type="danger" effect="plain">{{ item.method }}</el-tag>
                 <code>{{ item.path }}</code>
@@ -283,36 +273,36 @@
       </el-tab-pane>
 
       <!-- ──────── 标签5: 版本差异 ──────── -->
-      <el-tab-pane label="版本差异对比" name="diff">
+      <el-tab-pane :label="t('api_docs_page.tabs.diff')" name="diff">
         <VersionDiff />
       </el-tab-pane>
 
       <!-- ──────── 标签6: 我的收藏 ──────── -->
-      <el-tab-pane label="我的收藏" name="favorites">
+      <el-tab-pane :label="t('api_docs_page.tabs.favorites')" name="favorites">
         <div class="tab-toolbar">
-          <el-button type="primary" @click="fetchFavorites"><el-icon><Refresh /></el-icon> 刷新</el-button>
+          <el-button type="primary" @click="fetchFavorites"><el-icon><Refresh /></el-icon> {{ t('api_docs_page.refresh') }}</el-button>
         </div>
         <el-table :data="favorites" v-loading="favoritesLoading" stripe @row-click="showFavoriteEndpoint" style="cursor:pointer">
-          <el-table-column label="方法" width="90">
+          <el-table-column :label="t('api_docs_page.cols.method')" width="90">
             <template #default="{ row }">
               <el-tag :type="methodTag(row.endpoint.method)" size="small" effect="dark" style="width:60px;text-align:center">{{ row.endpoint.method }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="endpoint.path" label="路径" min-width="300" show-overflow-tooltip />
-          <el-table-column prop="endpoint.summary" label="说明" min-width="200" show-overflow-tooltip />
-          <el-table-column prop="note" label="备注" min-width="150" show-overflow-tooltip />
-          <el-table-column label="收藏时间" width="170">
+          <el-table-column prop="endpoint.path" :label="t('api_docs_page.cols.path')" min-width="300" show-overflow-tooltip />
+          <el-table-column prop="endpoint.summary" :label="t('api_docs_page.cols.summary')" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="note" :label="t('api_docs_page.cols.note')" min-width="150" show-overflow-tooltip />
+          <el-table-column :label="t('api_docs_page.cols.favorited_at')" width="170">
             <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="80">
+          <el-table-column :label="t('api_docs_page.cols.actions')" width="80">
             <template #default="{ row }">
               <el-button size="small" type="danger" link @click.stop="removeFavorite(row.endpoint_id)">
-                取消收藏
+                {{ t('api_docs_page.favorite.remove') }}
               </el-button>
             </template>
           </el-table-column>
         </el-table>
-        <el-empty v-if="!favorites.length && !favoritesLoading" description="暂无收藏的端点" />
+        <el-empty v-if="!favorites.length && !favoritesLoading" :description="t('api_docs_page.favorites.empty')" />
       </el-tab-pane>
     </el-tabs>
 
@@ -321,16 +311,16 @@
       <template v-if="detailEndpoint">
         <!-- 端点信息 -->
         <el-descriptions :column="2" border size="small">
-          <el-descriptions-item label="方法">
+          <el-descriptions-item :label="t('api_docs_page.cols.method')">
             <el-tag :type="methodTag(detailEndpoint.method)" size="small">{{ detailEndpoint.method }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="路径">{{ detailEndpoint.path }}</el-descriptions-item>
-          <el-descriptions-item label="分组">{{ groups[detailEndpoint.group] || detailEndpoint.group }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
+          <el-descriptions-item :label="t('api_docs_page.cols.path')">{{ detailEndpoint.path }}</el-descriptions-item>
+          <el-descriptions-item :label="t('api_docs_page.cols.group')">{{ groups[detailEndpoint.group] || detailEndpoint.group }}</el-descriptions-item>
+          <el-descriptions-item :label="t('api_docs_page.cols.status')">
             <el-tag v-if="detailEndpoint.status === 'beta'" type="warning" size="small">Beta</el-tag>
-            <el-tag v-else-if="detailEndpoint.status === 'deprecated'" type="danger" size="small">废弃</el-tag>
-            <el-tag v-else-if="detailEndpoint.status === 'experimental'" type="info" size="small">实验</el-tag>
-            <span v-else class="text-success">活跃</span>
+            <el-tag v-else-if="detailEndpoint.status === 'deprecated'" type="danger" size="small">{{ statusTextMap.deprecated }}</el-tag>
+            <el-tag v-else-if="detailEndpoint.status === 'experimental'" type="info" size="small">{{ statusTextMap.experimental }}</el-tag>
+            <span v-else class="text-success">{{ statusTextMap.active }}</span>
           </el-descriptions-item>
         </el-descriptions>
 
@@ -339,81 +329,81 @@
           <el-button size="small" :type="favoriteIds.has(detailEndpoint.id) ? 'danger' : 'default'"
             @click="toggleFavorite(detailEndpoint.id)">
             <el-icon><StarFilled v-if="favoriteIds.has(detailEndpoint.id)" /><Star v-else /></el-icon>
-            {{ favoriteIds.has(detailEndpoint.id) ? '取消收藏' : '收藏' }}
+            {{ favoriteIds.has(detailEndpoint.id) ? t('api_docs_page.favorite.remove') : t('api_docs_page.favorite.add') }}
           </el-button>
           <el-button size="small" :loading="genSnippetLoading" @click="autoGenerateSnippets(detailEndpoint.id)">
-            <el-icon><MagicStick /></el-icon> 自动生成代码示例
+            <el-icon><MagicStick /></el-icon> {{ t('api_docs_page.detail.auto_generate_snippets') }}
           </el-button>
           <el-button size="small" @click="fillTestFromEndpoint">
-            <el-icon><CaretRight /></el-icon> 在控制台测试
+            <el-icon><CaretRight /></el-icon> {{ t('api_docs_page.detail.test_in_console') }}
           </el-button>
         </div>
 
         <!-- 端点统计 -->
         <el-collapse class="mt-2">
-          <el-collapse-item title="端点统计" name="stats">
+          <el-collapse-item :title="t('api_docs_page.detail.stats_title')" name="stats">
             <el-descriptions v-if="endpointStats" :column="3" border size="small">
-              <el-descriptions-item label="测试次数">{{ endpointStats.total_tests }}</el-descriptions-item>
-              <el-descriptions-item label="成功率">
+              <el-descriptions-item :label="t('api_docs_page.detail.test_count')">{{ endpointStats.total_tests }}</el-descriptions-item>
+              <el-descriptions-item :label="t('api_docs_page.detail.success_rate')">
                 <span :class="successRateClass">{{ successRate }}%</span>
               </el-descriptions-item>
-              <el-descriptions-item label="平均响应">{{ endpointStats.avg_response_time_ms }}ms</el-descriptions-item>
-              <el-descriptions-item label="收藏数">{{ endpointStats.favorite_count }}</el-descriptions-item>
-              <el-descriptions-item label="最近测试">{{ endpointStats.last_tested_at ? formatTime(endpointStats.last_tested_at) : '从未' }}</el-descriptions-item>
+              <el-descriptions-item :label="t('api_docs_page.detail.avg_response')">{{ endpointStats.avg_response_time_ms }}ms</el-descriptions-item>
+              <el-descriptions-item :label="t('api_docs_page.detail.favorite_count')">{{ endpointStats.favorite_count }}</el-descriptions-item>
+              <el-descriptions-item :label="t('api_docs_page.detail.last_tested')">{{ endpointStats.last_tested_at ? formatTime(endpointStats.last_tested_at) : t('api_docs_page.detail.never') }}</el-descriptions-item>
             </el-descriptions>
-            <div v-else class="text-muted">暂无统计数据</div>
+            <div v-else class="text-muted">{{ t('api_docs_page.detail.no_stats') }}</div>
           </el-collapse-item>
         </el-collapse>
 
         <!-- 说明 -->
         <div class="mt-3">
-          <h4>说明</h4>
-          <p>{{ detailEndpoint.summary || '无' }}</p>
+          <h4>{{ t('api_docs_page.detail.description') }}</h4>
+          <p>{{ detailEndpoint.summary || t('api_docs_page.detail.none') }}</p>
           <p v-if="detailEndpoint.description">{{ detailEndpoint.description }}</p>
         </div>
 
         <!-- 参数 -->
         <div v-if="detailEndpoint.parameters?.length" class="mt-3">
-          <h4>参数</h4>
+          <h4>{{ t('api_docs_page.detail.parameters') }}</h4>
           <el-table :data="detailEndpoint.parameters" size="small" border>
-            <el-table-column prop="name" label="名称" width="120" />
-            <el-table-column prop="type" label="类型" width="80" />
-            <el-table-column label="必需" width="60">
+            <el-table-column prop="name" :label="t('api_docs_page.cols.name')" width="120" />
+            <el-table-column prop="type" :label="t('api_docs_page.detail.param_type')" width="80" />
+            <el-table-column :label="t('api_docs_page.detail.param_required')" width="60">
               <template #default="{ row }">
-                <el-tag v-if="row.required" type="danger" size="small">必填</el-tag>
-                <span v-else>可选</span>
+                <el-tag v-if="row.required" type="danger" size="small">{{ t('api_docs_page.detail.param_required_yes') }}</el-tag>
+                <span v-else>{{ t('api_docs_page.detail.param_required_no') }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="description" label="说明" />
+            <el-table-column prop="description" :label="t('api_docs_page.cols.summary')" />
           </el-table>
         </div>
 
         <!-- 请求体 Schema -->
         <div v-if="detailEndpoint.request_body" class="mt-3">
-          <h4>请求体 Schema</h4>
+          <h4>{{ t('api_docs_page.detail.request_body_schema') }}</h4>
           <pre class="code-pre">{{ formatJson(detailEndpoint.request_body) }}</pre>
         </div>
 
         <!-- 请求示例 -->
         <div v-if="detailEndpoint.example_request" class="mt-3">
-          <h4>请求示例</h4>
+          <h4>{{ t('api_docs_page.detail.request_example') }}</h4>
           <pre class="code-pre">{{ formatJson(detailEndpoint.example_request) }}</pre>
         </div>
 
         <!-- 响应示例 -->
         <div v-if="detailEndpoint.example_response" class="mt-3">
-          <h4>响应示例</h4>
+          <h4>{{ t('api_docs_page.detail.response_example') }}</h4>
           <pre class="code-pre">{{ formatJson(detailEndpoint.example_response) }}</pre>
         </div>
 
         <!-- 代码片段 -->
         <div v-if="detailEndpoint.snippets?.length" class="mt-3">
-          <h4>代码示例</h4>
+          <h4>{{ t('api_docs_page.detail.code_examples') }}</h4>
           <el-tabs>
             <el-tab-pane v-for="snippet in detailEndpoint.snippets" :key="snippet.id" :label="snippet.title || snippet.language">
               <pre class="code-pre">{{ snippet.code }}</pre>
               <el-button size="small" class="mt-1" @click="copyText(snippet.code)">
-                <el-icon><CopyDocument /></el-icon> 复制
+                <el-icon><CopyDocument /></el-icon> {{ t('actions.copy') }}
               </el-button>
             </el-tab-pane>
           </el-tabs>
@@ -421,7 +411,7 @@
 
         <!-- 原 code_examples 回退 -->
         <div v-else-if="detailEndpoint.code_examples" class="mt-3">
-          <h4>代码示例</h4>
+          <h4>{{ t('api_docs_page.detail.code_examples') }}</h4>
           <el-tabs>
             <el-tab-pane v-for="(code, lang) in detailEndpoint.code_examples" :key="lang" :label="lang">
               <pre class="code-pre">{{ code }}</pre>
@@ -432,56 +422,52 @@
     </el-drawer>
 
     <!-- ───── 新增变更日志对话框 ───── -->
-    <el-dialog v-model="showChangelogDlg" title="新增 API 变更日志" width="600px">
+    <el-dialog v-model="showChangelogDlg" :title="t('api_docs_page.changelog.dialog_title')" width="600px">
       <el-form :model="changelogForm" :rules="changelogRules" ref="clFormRef" label-width="100px">
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="版本" prop="version"><el-input v-model="changelogForm.version" placeholder="v2.1.0" /></el-form-item>
+            <el-form-item :label="t('api_docs_page.changelog.form.version')" prop="version"><el-input v-model="changelogForm.version" placeholder="v2.1.0" /></el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="发布日期" prop="release_date"><el-date-picker v-model="changelogForm.release_date" type="date" style="width:100%" /></el-form-item>
+            <el-form-item :label="t('api_docs_page.changelog.form.release_date')" prop="release_date"><el-date-picker v-model="changelogForm.release_date" type="date" style="width:100%" /></el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="类型" prop="type">
+        <el-form-item :label="t('api_docs_page.changelog.form.type')" prop="type">
           <el-select v-model="changelogForm.type" style="width:100%">
-            <el-option label="新功能" value="new" />
-            <el-option label="更新" value="update" />
-            <el-option label="破坏性变更" value="breaking" />
-            <el-option label="废弃" value="deprecation" />
-            <el-option label="移除" value="removal" />
+            <el-option v-for="opt in changelogFormTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="标题" prop="title"><el-input v-model="changelogForm.title" maxlength="300" /></el-form-item>
-        <el-form-item label="描述"><el-input v-model="changelogForm.description" type="textarea" :rows="3" /></el-form-item>
-        <el-form-item label="迁移指南"><el-input v-model="changelogForm.migration_guide" type="textarea" :rows="2" /></el-form-item>
+        <el-form-item :label="t('api_docs_page.changelog.form.title')" prop="title"><el-input v-model="changelogForm.title" maxlength="300" /></el-form-item>
+        <el-form-item :label="t('api_docs_page.changelog.form.description')"><el-input v-model="changelogForm.description" type="textarea" :rows="3" /></el-form-item>
+        <el-form-item :label="t('api_docs_page.changelog.form.migration_guide')"><el-input v-model="changelogForm.migration_guide" type="textarea" :rows="2" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showChangelogDlg = false">取消</el-button>
-        <el-button type="primary" :loading="clLoading" @click="submitChangelog">提交</el-button>
+        <el-button @click="showChangelogDlg = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="clLoading" @click="submitChangelog">{{ t('actions.submit') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ───── 导出 OpenAPI 对话框 ───── -->
-    <el-dialog v-model="showExportDlg" title="导出 OpenAPI 3.0 规范" width="700px">
+    <el-dialog v-model="showExportDlg" :title="t('api_docs_page.export.dialog_title')" width="700px">
       <el-form label-width="0" size="small">
         <el-form-item>
           <el-button type="primary" :loading="exportLoading" @click="doExport">
-            <el-icon><Download /></el-icon> 生成并导出
+            <el-icon><Download /></el-icon> {{ t('api_docs_page.export.generate') }}
           </el-button>
           <el-button v-if="exportResult.spec" type="success" class="ml-2" @click="downloadOpenApi">
-            <el-icon><Download /></el-icon> 下载 JSON 文件
+            <el-icon><Download /></el-icon> {{ t('api_docs_page.export.download_json') }}
           </el-button>
         </el-form-item>
       </el-form>
       <div v-if="exportResult.spec" class="mt-2">
         <div class="mb-2">
-          <el-tag>版本: {{ exportResult.version }}</el-tag>
-          <el-tag type="success" class="ml-2">端点: {{ exportResult.endpoint_count }}</el-tag>
+          <el-tag>{{ t('api_docs_page.export.version') }}: {{ exportResult.version }}</el-tag>
+          <el-tag type="success" class="ml-2">{{ t('api_docs_page.export.endpoints') }}: {{ exportResult.endpoint_count }}</el-tag>
         </div>
         <pre class="code-pre" style="max-height:400px">{{ exportResult.spec }}</pre>
       </div>
       <template #footer>
-        <el-button @click="showExportDlg = false">关闭</el-button>
+        <el-button @click="showExportDlg = false">{{ t('actions.close') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -489,19 +475,22 @@
 
 <script>
 import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import {
   Refresh, Search, CaretRight, View, CopyDocument, Plus,
   Download, Star, StarFilled, MagicStick
 } from '@element-plus/icons-vue';
 import apiDocsApi from '../../api/apiDocs';
-import { getSupportedLocales, exportLocalizedOpenApi as doExportLocalized } from '@/api/multilingualApiDocs';
+import { exportLocalizedOpenApi as doExportLocalized } from '@/api/multilingualApiDocs';
 import VersionDiff from './components/VersionDiff.vue';
 
 export default {
   name: 'ApiDocs',
   components: { VersionDiff, Refresh, Search, CaretRight, View, CopyDocument, Plus, Download, Star, StarFilled, MagicStick },
   setup() {
+    const { t, locale } = useI18n();
+
     const activeTab = ref('docs');
     const loading = ref(false);
     const scanning = ref(false);
@@ -518,6 +507,45 @@ export default {
     const detailEndpoint = ref(null);
     const selectedEndpointIds = ref([]);
     const batchStatus = ref('');
+
+    // 文档语言（OpenAPI 导出）
+    const currentLocale = ref('zh_CN');
+    const exportLocalizedLoading = ref(false);
+    const docLocaleLabels = computed(() => ({
+      en: t('language.en'),
+      zh_CN: t('language.zh_CN'),
+      ja: t('language.ja'),
+    }));
+    const localeLabel = computed(() => docLocaleLabels.value[currentLocale.value] || currentLocale.value);
+
+    const endpointStatusOptions = computed(() => [
+      { label: t('api_docs_page.status.active'), value: 'active' },
+      { label: 'Beta', value: 'beta' },
+      { label: t('api_docs_page.status.deprecated'), value: 'deprecated' },
+      { label: t('api_docs_page.status.experimental'), value: 'experimental' },
+    ]);
+
+    const statusTextMap = computed(() => ({
+      active: t('api_docs_page.status.active'),
+      deprecated: t('api_docs_page.status.deprecated_short'),
+      experimental: t('api_docs_page.status.experimental_short'),
+    }));
+
+    const changelogTypeOptions = computed(() => [
+      { label: t('api_docs_page.changelog.types.new'), value: 'new' },
+      { label: t('api_docs_page.changelog.types.update'), value: 'update' },
+      { label: t('api_docs_page.changelog.types.breaking'), value: 'breaking' },
+      { label: t('api_docs_page.changelog.types.deprecation'), value: 'deprecation' },
+      { label: t('api_docs_page.changelog.types.removal'), value: 'removal' },
+    ]);
+
+    const changelogFormTypeOptions = computed(() => [
+      { label: t('api_docs_page.changelog.types.new'), value: 'new' },
+      { label: t('api_docs_page.changelog.types.update'), value: 'update' },
+      { label: t('api_docs_page.changelog.types.breaking_full'), value: 'breaking' },
+      { label: t('api_docs_page.changelog.types.deprecation'), value: 'deprecation' },
+      { label: t('api_docs_page.changelog.types.removal'), value: 'removal' },
+    ]);
 
     // 统计
     const stats = reactive({
@@ -549,12 +577,12 @@ export default {
     const changelogForm = reactive({
       version: '', release_date: '', type: 'update', title: '', description: '', migration_guide: '',
     });
-    const changelogRules = {
-      version: [{ required: true, message: '请输入版本号' }],
-      release_date: [{ required: true, message: '请选择日期' }],
-      type: [{ required: true, message: '请选择类型' }],
-      title: [{ required: true, message: '请输入标题' }],
-    };
+    const changelogRules = computed(() => ({
+      version: [{ required: true, message: t('api_docs_page.validation.version_required') }],
+      release_date: [{ required: true, message: t('api_docs_page.validation.release_date_required') }],
+      type: [{ required: true, message: t('api_docs_page.validation.type_required') }],
+      title: [{ required: true, message: t('api_docs_page.validation.title_required') }],
+    }));
 
     // 自动检测变更 (M3-32)
     const autoDetecting = ref(false);
@@ -584,6 +612,32 @@ export default {
       return 'text-danger';
     });
 
+    function onLocaleChange() {
+      // 文档语言切换仅影响本地化 OpenAPI 导出
+    }
+
+    async function exportLocalizedOpenApi() {
+      exportLocalizedLoading.value = true;
+      try {
+        const { data } = await doExportLocalized({ locale: currentLocale.value });
+        if (data.success) {
+          const spec = typeof data.data === 'string' ? data.data : JSON.stringify(data.data, null, 2);
+          const blob = new Blob([spec], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `openapi-${currentLocale.value}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          ElMessage.success(t('api_docs_page.messages.openapi_generated'));
+        }
+      } catch (e) {
+        ElMessage.error(t('api_docs_page.messages.export_localized_failed', { msg: e.response?.data?.message || e.message }));
+      } finally {
+        exportLocalizedLoading.value = false;
+      }
+    }
+
     // ─── 数据加载 ───
     async function fetchDashboard() {
       try {
@@ -612,7 +666,7 @@ export default {
         const { data } = await apiDocsApi.getEndpoints(params);
         if (data.success) endpoints.value = data.data.data || [];
       } catch (e) {
-        ElMessage.error('获取端点列表失败');
+        ElMessage.error(t('api_docs_page.messages.fetch_endpoints_failed'));
       } finally {
         loading.value = false;
       }
@@ -649,7 +703,7 @@ export default {
       } catch (e) { /* ignore */ }
 
       if (!versionId) {
-        ElMessage.warning('请先创建 API 版本');
+        ElMessage.warning(t('api_docs_page.messages.create_version_first'));
         return;
       }
 
@@ -660,16 +714,15 @@ export default {
           autoDetectResult.value = data.data;
           showAutoDetectResult.value = true;
           if (data.data.changelogs_created > 0) {
-            ElMessage.success(data.message || '检测完成');
+            ElMessage.success(data.message || t('api_docs_page.messages.detect_complete'));
             fetchChangelogs();
-            // Refresh auto-detect logs count
             fetchAutoDetectLogs();
           } else {
-            ElMessage.info(data.message || '无变更');
+            ElMessage.info(data.message || t('api_docs_page.messages.no_changes'));
           }
         }
       } catch (e) {
-        ElMessage.error(e.response?.data?.message || '自动检测失败');
+        ElMessage.error(e.response?.data?.message || t('api_docs_page.messages.auto_detect_failed'));
       } finally {
         autoDetecting.value = false;
       }
@@ -707,17 +760,16 @@ export default {
         const { data } = await apiDocsApi.toggleFavorite(endpointId);
         if (data.success) {
           if (data.data.favorited) {
-            ElMessage.success('已收藏');
+            ElMessage.success(t('api_docs_page.messages.favorited'));
             favoriteIds.value.add(endpointId);
           } else {
-            ElMessage.info('已取消收藏');
+            ElMessage.info(t('api_docs_page.messages.unfavorited'));
             favoriteIds.value.delete(endpointId);
-            // 如果在收藏标签页，刷新列表
             if (activeTab.value === 'favorites') fetchFavorites();
           }
         }
       } catch (e) {
-        ElMessage.error('操作失败');
+        ElMessage.error(t('messages.failed'));
       }
     }
 
@@ -725,10 +777,10 @@ export default {
       try {
         await apiDocsApi.toggleFavorite(endpointId);
         favoriteIds.value.delete(endpointId);
-        ElMessage.info('已取消收藏');
+        ElMessage.info(t('api_docs_page.messages.unfavorited'));
         fetchFavorites();
       } catch (e) {
-        ElMessage.error('操作失败');
+        ElMessage.error(t('messages.failed'));
       }
     }
 
@@ -739,7 +791,6 @@ export default {
         if (data.success) {
           detailEndpoint.value = data.data;
           showDetail.value = true;
-          // 获取统计
           fetchEndpointStats(row.id);
         }
       } catch (e) { /* ignore */ }
@@ -764,13 +815,12 @@ export default {
       try {
         const { data } = await apiDocsApi.autoGenerateSnippets(endpointId);
         if (data.success) {
-          ElMessage.success('代码示例已生成');
-          // 刷新端点详情
+          ElMessage.success(t('api_docs_page.messages.snippets_generated'));
           const detail = await apiDocsApi.getEndpoint(endpointId);
           if (detail.data.success) detailEndpoint.value = detail.data.data;
         }
       } catch (e) {
-        ElMessage.error('生成失败: ' + (e.response?.data?.message || e.message));
+        ElMessage.error(t('api_docs_page.messages.generate_failed', { msg: e.response?.data?.message || e.message }));
       } finally {
         genSnippetLoading.value = false;
       }
@@ -799,7 +849,7 @@ export default {
           fetchDashboard();
         }
       } catch (e) {
-        ElMessage.error('扫描失败: ' + (e.response?.data?.message || e.message));
+        ElMessage.error(t('api_docs_page.messages.scan_failed', { msg: e.response?.data?.message || e.message }));
       } finally {
         scanning.value = false;
       }
@@ -823,14 +873,14 @@ export default {
       try {
         const { data } = await apiDocsApi.batchUpdateEndpoints(selectedEndpointIds.value, batchStatus.value);
         if (data.success) {
-          ElMessage.success(data.message || '批量更新成功');
+          ElMessage.success(data.message || t('api_docs_page.messages.batch_update_success'));
           selectedEndpointIds.value = [];
           batchStatus.value = '';
           fetchEndpoints();
           fetchDashboard();
         }
       } catch (e) {
-        ElMessage.error('批量更新失败');
+        ElMessage.error(t('api_docs_page.messages.batch_update_failed'));
       } finally {
         batchUpdating.value = false;
       }
@@ -882,20 +932,20 @@ export default {
         const { data } = await apiDocsApi.generateSdk(language);
         if (data.success) sdkPreview.value = data.data;
       } catch (e) {
-        ElMessage.error('SDK 生成失败');
+        ElMessage.error(t('api_docs_page.messages.sdk_generate_failed'));
       }
     }
 
     function copySetupCode(sdk) {
       navigator.clipboard.writeText(sdk.setup_code || '').then(() => {
-        ElMessage.success('初始化代码已复制');
+        ElMessage.success(t('api_docs_page.messages.setup_code_copied'));
       });
     }
 
     function copySdkCode() {
       if (sdkPreview.value) {
         navigator.clipboard.writeText(sdkPreview.value.code).then(() => {
-          ElMessage.success('SDK 代码已复制');
+          ElMessage.success(t('api_docs_page.messages.sdk_code_copied'));
         });
       }
     }
@@ -907,7 +957,7 @@ export default {
       clLoading.value = true;
       try {
         await apiDocsApi.createChangelog({ ...changelogForm });
-        ElMessage.success('变更日志已创建');
+        ElMessage.success(t('api_docs_page.messages.changelog_created'));
         showChangelogDlg.value = false;
         changelogForm.version = '';
         changelogForm.release_date = '';
@@ -918,7 +968,7 @@ export default {
         fetchChangelogs();
         fetchDashboard();
       } catch (e) {
-        ElMessage.error(e.response?.data?.message || '创建失败');
+        ElMessage.error(e.response?.data?.message || t('api_docs_page.messages.create_failed'));
       } finally {
         clLoading.value = false;
       }
@@ -931,10 +981,10 @@ export default {
         const { data } = await apiDocsApi.exportOpenApi();
         if (data.success) {
           Object.assign(exportResult, data.data);
-          ElMessage.success('OpenAPI 规范已生成');
+          ElMessage.success(t('api_docs_page.messages.openapi_generated'));
         }
       } catch (e) {
-        ElMessage.error('导出失败: ' + (e.response?.data?.message || e.message));
+        ElMessage.error(t('api_docs_page.messages.export_failed', { msg: e.response?.data?.message || e.message }));
       } finally {
         exportLoading.value = false;
       }
@@ -953,7 +1003,7 @@ export default {
 
     // ─── 通用 ───
     function copyText(text) {
-      navigator.clipboard.writeText(text).then(() => ElMessage.success('已复制'));
+      navigator.clipboard.writeText(text).then(() => ElMessage.success(t('api_docs_page.messages.copied')));
     }
 
     // ─── 工具函数 ───
@@ -962,9 +1012,9 @@ export default {
       return map[m] || '';
     }
 
-    function changelogTag(t) {
+    function changelogTag(type) {
       const map = { new: 'success', update: 'primary', breaking: 'danger', deprecation: 'warning', removal: 'info' };
-      return map[t] || '';
+      return map[type] || '';
     }
 
     function formatJson(obj) {
@@ -975,9 +1025,10 @@ export default {
       }
     }
 
-    function formatTime(t) {
-      if (!t) return '';
-      return new Date(t).toLocaleString('zh-CN', { hour12: false });
+    function formatTime(timeStr) {
+      if (!timeStr) return '';
+      const loc = locale.value === 'zh_CN' ? 'zh-CN' : locale.value === 'en' ? 'en-US' : locale.value;
+      return new Date(timeStr).toLocaleString(loc, { hour12: false });
     }
 
     // ─── 初始化 ───
@@ -993,6 +1044,7 @@ export default {
     });
 
     return {
+      t,
       activeTab, loading, scanning, testLoading, clLoading,
       showDetail, showChangelogDlg, showExportDlg, exportLoading,
       genSnippetLoading, batchUpdating, favoritesLoading,
@@ -1000,7 +1052,9 @@ export default {
       testForm, testHeadersText, testBodyText, testResult, testHistory,
       sdks, sdkPreview,
       changelogs, changelogFilter, changelogForm, changelogRules,
-      // M3-32
+      endpointStatusOptions, statusTextMap, changelogTypeOptions, changelogFormTypeOptions,
+      currentLocale, localeLabel, exportLocalizedLoading,
+      onLocaleChange, exportLocalizedOpenApi,
       autoDetecting, showAutoDetectResult, autoDetectResult, autoDetectLogs,
       autoDetectChanges, fetchAutoDetectLogs,
       favorites, favoriteIds, endpointStats, successRate, successRateClass,
@@ -1058,7 +1112,7 @@ export default {
 .sdk-header { display: flex; align-items: center; gap: 12px; }
 .sdk-icon {
   width: 40px; height: 40px; border-radius: 8px;
-  background: #409eff; color: #fff;
+  background: #0f172a; color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 14px;
 }

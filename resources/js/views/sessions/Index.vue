@@ -1,24 +1,24 @@
 <template>
     <div class="sessions-admin-page">
         <div class="page-header">
-            <h2>Session 管理 <small class="text-muted">M1.4-30</small></h2>
+            <h2>{{ t('sessions_page.title') }} <small class="text-muted">M1.4-30</small></h2>
             <div class="header-actions">
                 <el-button @click="loadDashboard(); loadList()">
-                    <el-icon><Refresh /></el-icon> 刷新
+                    <el-icon><Refresh /></el-icon> {{ t('security_page.refresh') }}
                 </el-button>
             </div>
         </div>
 
         <el-tabs v-model="activeTab">
-            <!-- ═══════════════ 概览 ═══════════════ -->
-            <el-tab-pane label="概览" name="dashboard">
+            <!-- 概览 -->
+            <el-tab-pane :label="t('sessions_page.tabs.dashboard')" name="dashboard">
                 <div v-loading="dashboardLoading">
                     <el-row :gutter="16" class="mb-4">
                         <el-col :span="6">
                             <el-card shadow="never">
                                 <div class="stat-item">
                                     <div class="stat-value text-primary">{{ dashboard.total_sessions || 0 }}</div>
-                                    <div class="stat-label">总会话</div>
+                                    <div class="stat-label">{{ t('sessions_page.stats.total_sessions') }}</div>
                                 </div>
                             </el-card>
                         </el-col>
@@ -26,7 +26,7 @@
                             <el-card shadow="never">
                                 <div class="stat-item">
                                     <div class="stat-value text-success">{{ dashboard.active_users || 0 }}</div>
-                                    <div class="stat-label">活跃用户</div>
+                                    <div class="stat-label">{{ t('sessions_page.stats.active_users') }}</div>
                                 </div>
                             </el-card>
                         </el-col>
@@ -34,7 +34,7 @@
                             <el-card shadow="never">
                                 <div class="stat-item">
                                     <div class="stat-value text-warning">{{ dashboard.mfa_sessions || 0 }}</div>
-                                    <div class="stat-label">MFA 已验证</div>
+                                    <div class="stat-label">{{ t('sessions_page.stats.mfa_verified') }}</div>
                                 </div>
                             </el-card>
                         </el-col>
@@ -42,7 +42,7 @@
                             <el-card shadow="never">
                                 <div class="stat-item">
                                     <div class="stat-value text-danger">{{ dashboard.expiring_soon || 0 }}</div>
-                                    <div class="stat-label">即将过期</div>
+                                    <div class="stat-label">{{ t('sessions_page.stats.expiring_soon') }}</div>
                                 </div>
                             </el-card>
                         </el-col>
@@ -51,102 +51,111 @@
                     <el-row :gutter="16">
                         <el-col :span="12">
                             <el-card shadow="never" class="mb-4">
-                                <template #header><span>设备类型分布</span></template>
+                                <template #header><span>{{ t('sessions_page.charts.device_distribution') }}</span></template>
                                 <div v-if="dashboard.device_type_distribution" class="distribution-list">
                                     <div v-for="(count, type) in dashboard.device_type_distribution" :key="type" class="dist-item">
-                                        <span class="dist-label">{{ type || '未知' }}</span>
+                                        <span class="dist-label">{{ deviceTypeLabel(type) }}</span>
                                         <el-progress :percentage="calcPct(count, dashboard.total_sessions)" :stroke-width="16" />
                                         <span class="dist-count">{{ count }}</span>
                                     </div>
-                                    <div v-if="!Object.keys(dashboard.device_type_distribution || {}).length" class="text-center text-muted">暂无数据</div>
+                                    <div v-if="!Object.keys(dashboard.device_type_distribution || {}).length" class="text-center text-muted">{{ t('messages.no_data') }}</div>
                                 </div>
-                                <div v-else class="text-center text-muted py-4">暂无数据</div>
+                                <div v-else class="text-center text-muted py-4">{{ t('messages.no_data') }}</div>
                             </el-card>
                         </el-col>
                         <el-col :span="12">
                             <el-card shadow="never" class="mb-4">
-                                <template #header><span>今日会话趋势（按小时）</span></template>
+                                <template #header><span>{{ t('sessions_page.charts.hourly_trend') }}</span></template>
                                 <div v-if="dashboard.hourly_trend" class="trend-chart">
                                     <div v-for="(count, hour) in dashboard.hourly_trend" :key="hour" class="trend-bar-wrapper">
-                                        <div class="trend-bar" :style="{ height: calcBar(count, dashboard.hourly_trend) + '%' }" :title="`${hour}:00 - ${count} 会话`"></div>
+                                        <div
+                                            class="trend-bar"
+                                            :style="{ height: calcBar(count, dashboard.hourly_trend) + '%' }"
+                                            :title="trendTooltip(hour, count)"
+                                        ></div>
                                         <span class="trend-label">{{ hour }}:00</span>
                                     </div>
                                 </div>
-                                <div v-else class="text-center text-muted py-4">暂无数据</div>
+                                <div v-else class="text-center text-muted py-4">{{ t('messages.no_data') }}</div>
                             </el-card>
                         </el-col>
                     </el-row>
                 </div>
             </el-tab-pane>
 
-            <!-- ═══════════════ 会话列表 ═══════════════ -->
-            <el-tab-pane label="会话列表" name="list">
+            <!-- 会话列表 -->
+            <el-tab-pane :label="t('sessions_page.tabs.list')" name="list">
                 <el-card shadow="never">
                     <div class="toolbar">
-                        <el-input v-model="filters.search" placeholder="搜索用户/设备/IP" clearable style="width:240px" @clear="loadList" @keyup.enter="loadList" />
-                        <el-select v-model="filters.device_type" placeholder="设备类型" clearable style="width:140px" @change="loadList">
-                            <el-option label="桌面" value="desktop" />
-                            <el-option label="移动端" value="mobile" />
-                            <el-option label="平板" value="tablet" />
-                            <el-option label="API" value="api" />
-                            <el-option label="未知" value="unknown" />
+                        <el-input v-model="filters.search" :placeholder="t('sessions_page.filters.search_ph')" clearable style="width:240px" @clear="loadList" @keyup.enter="loadList" />
+                        <el-select v-model="filters.device_type" :placeholder="t('sessions_page.filters.device_type_ph')" clearable style="width:140px" @change="loadList">
+                            <el-option v-for="opt in deviceTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                         </el-select>
-                        <el-select v-model="filters.is_current" placeholder="当前设备" clearable style="width:120px" @change="loadList">
-                            <el-option label="是" :value="1" />
-                            <el-option label="否" :value="0" />
+                        <el-select v-model="filters.is_current" :placeholder="t('sessions_page.filters.current_device_ph')" clearable style="width:120px" @change="loadList">
+                            <el-option v-for="opt in currentDeviceOptions" :key="String(opt.value)" :label="opt.label" :value="opt.value" />
                         </el-select>
-                        <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" @change="onDateChange" />
+                        <el-date-picker
+                            v-model="dateRange"
+                            type="daterange"
+                            :range-separator="t('sessions_page.filters.date_range_sep')"
+                            :start-placeholder="t('sessions_page.filters.date_start_ph')"
+                            :end-placeholder="t('sessions_page.filters.date_end_ph')"
+                            value-format="YYYY-MM-DD"
+                            @change="onDateChange"
+                        />
                         <el-button type="danger" plain :disabled="!selectedIds.length" @click="handleBatchTerminate">
-                            <el-icon><Remove /></el-icon> 批量踢出 ({{ selectedIds.length }})
+                            <el-icon><Remove /></el-icon> {{ t('sessions_page.batch_terminate', { count: selectedIds.length }) }}
                         </el-button>
                     </div>
 
                     <el-table v-loading="loading" :data="sessions" @selection-change="onSelectionChange" stripe border style="width:100%">
                         <el-table-column type="selection" width="40" />
-                        <el-table-column label="用户" width="140" show-overflow-tooltip>
+                        <el-table-column :label="t('sessions_page.cols.user')" width="140" show-overflow-tooltip>
                             <template #default="{ row }">
                                 <span>{{ row.user?.name || row.user_id }}</span>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="session_id" label="Session ID" width="200" show-overflow-tooltip />
-                        <el-table-column label="IP / 位置" width="150" show-overflow-tooltip>
+                        <el-table-column prop="session_id" :label="t('sessions_page.cols.session_id')" width="200" show-overflow-tooltip />
+                        <el-table-column :label="t('sessions_page.cols.ip_location')" width="150" show-overflow-tooltip>
                             <template #default="{ row }">
                                 <div>{{ row.ip_address || '-' }}</div>
                                 <small class="text-muted">{{ row.location || '' }}</small>
                             </template>
                         </el-table-column>
-                        <el-table-column label="设备" width="120">
+                        <el-table-column :label="t('sessions_page.cols.device')" width="120">
                             <template #default="{ row }">
-                                <el-tag :type="deviceTypeTag(row.device_type)" size="small">{{ row.device_type || '未知' }}</el-tag>
+                                <el-tag :type="deviceTypeTag(row.device_type)" size="small">{{ deviceTypeLabel(row.device_type) }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="浏览器 / 系统" width="160" show-overflow-tooltip>
+                        <el-table-column :label="t('sessions_page.cols.browser_os')" width="160" show-overflow-tooltip>
                             <template #default="{ row }">
                                 <div>{{ row.browser || '-' }}</div>
                                 <small class="text-muted">{{ row.os || '' }}</small>
                             </template>
                         </el-table-column>
-                        <el-table-column label="MFA" width="70" align="center">
+                        <el-table-column :label="t('sessions_page.cols.mfa')" width="70" align="center">
                             <template #default="{ row }">
-                                <el-tag :type="row.is_mfa_verified ? 'success' : 'danger'" size="small">{{ row.is_mfa_verified ? '是' : '否' }}</el-tag>
+                                <el-tag :type="row.is_mfa_verified ? 'success' : 'danger'" size="small">
+                                    {{ row.is_mfa_verified ? t('sessions_page.yes') : t('sessions_page.no') }}
+                                </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="当前" width="60" align="center">
+                        <el-table-column :label="t('sessions_page.cols.current')" width="60" align="center">
                             <template #default="{ row }">
-                                <el-tag v-if="row.is_current" type="primary" size="small">是</el-tag>
-                                <span v-else class="text-muted">否</span>
+                                <el-tag v-if="row.is_current" type="primary" size="small">{{ t('sessions_page.yes') }}</el-tag>
+                                <span v-else class="text-muted">{{ t('sessions_page.no') }}</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="最后活跃" width="170">
+                        <el-table-column :label="t('sessions_page.cols.last_active')" width="170">
                             <template #default="{ row }">{{ formatDate(row.last_activity_at) }}</template>
                         </el-table-column>
-                        <el-table-column label="过期时间" width="170">
+                        <el-table-column :label="t('sessions_page.cols.expires_at')" width="170">
                             <template #default="{ row }">{{ formatDate(row.expires_at) }}</template>
                         </el-table-column>
-                        <el-table-column label="操作" width="120" fixed="right">
+                        <el-table-column :label="t('sessions_page.cols.actions')" width="120" fixed="right">
                             <template #default="{ row }">
                                 <el-button type="danger" size="small" :disabled="row.is_current" @click="handleTerminate(row)">
-                                    踢出
+                                    {{ t('portal.kick') }}
                                 </el-button>
                             </template>
                         </el-table-column>
@@ -167,25 +176,47 @@
         </el-tabs>
 
         <!-- 踢出用户所有会话对话框 -->
-        <el-dialog v-model="terminateUserDialog" title="踢出用户所有会话" width="420px">
+        <el-dialog v-model="terminateUserDialog" :title="t('sessions_page.dialog.terminate_user_title')" width="420px">
             <el-form label-position="top">
-                <el-form-item label="用户 ID">
-                    <el-input-number v-model="terminateUserId" :min="1" style="width:100%" placeholder="请输入用户 ID" />
+                <el-form-item :label="t('sessions_page.dialog.user_id_label')">
+                    <el-input-number v-model="terminateUserId" :min="1" style="width:100%" :placeholder="t('sessions_page.dialog.user_id_ph')" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="terminateUserDialog = false">取消</el-button>
-                <el-button type="danger" @click="handleTerminateUser">确认踢出</el-button>
+                <el-button @click="terminateUserDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="danger" @click="handleTerminateUser">{{ t('sessions_page.dialog.confirm_terminate') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh, Remove } from '@element-plus/icons-vue';
 import { getSessionDashboard, getSessions, terminateSession, batchTerminateSessions, terminateUserSessions } from '@/api/session';
+
+const { t, locale } = useI18n();
+
+const deviceTypeKeys = ['desktop', 'mobile', 'tablet', 'api', 'unknown'];
+
+const deviceTypeOptions = computed(() =>
+    deviceTypeKeys.filter((key) => key !== 'unknown').map((key) => ({
+        label: t(`sessions_page.device_types.${key}`),
+        value: key,
+    })).concat([{
+        label: t('sessions_page.device_types.unknown'),
+        value: 'unknown',
+    }])
+);
+
+const currentDeviceOptions = computed(() => [
+    { label: t('sessions_page.yes'), value: 1 },
+    { label: t('sessions_page.no'), value: 0 },
+]);
+
+const dateLocale = computed(() => (locale.value === 'zh_CN' ? 'zh-CN' : 'en-US'));
 
 const activeTab = ref('dashboard');
 const dashboardLoading = ref(false);
@@ -212,7 +243,6 @@ const pagination = reactive({
 const terminateUserDialog = ref(false);
 const terminateUserId = ref(null);
 
-// ── 仪表盘 ──
 async function loadDashboard() {
     dashboardLoading.value = true;
     try {
@@ -225,7 +255,6 @@ async function loadDashboard() {
     }
 }
 
-// ── 会话列表 ──
 async function loadList() {
     loading.value = true;
     try {
@@ -261,67 +290,72 @@ function onSelectionChange(selection) {
     selectedIds.value = selection.map(s => s.id);
 }
 
-// ── 踢出单个会话 ──
 async function handleTerminate(row) {
     try {
         await ElMessageBox.confirm(
-            `确定踢出用户「${row.user?.name || row.user_id}」的会话？`,
-            '踢出会话',
-            { confirmButtonText: '确定踢出', cancelButtonText: '取消', type: 'warning' }
+            t('sessions_page.confirm.terminate_one', { name: row.user?.name || row.user_id }),
+            t('sessions_page.confirm.terminate_one_title'),
+            { confirmButtonText: t('sessions_page.confirm.confirm_btn'), cancelButtonText: t('actions.cancel'), type: 'warning' }
         );
         const { data: res } = await terminateSession(row.id);
-        ElMessage.success(res.message || '已踢出');
+        ElMessage.success(res.message || t('sessions_page.messages.terminated'));
         loadList();
     } catch { /* cancelled */ }
 }
 
-// ── 批量踢出 ──
 async function handleBatchTerminate() {
     if (!selectedIds.value.length) return;
     try {
         await ElMessageBox.confirm(
-            `确定批量踢出 ${selectedIds.value.length} 个会话？`,
-            '批量踢出',
-            { confirmButtonText: '确定踢出', cancelButtonText: '取消', type: 'warning' }
+            t('sessions_page.confirm.terminate_batch', { count: selectedIds.value.length }),
+            t('sessions_page.confirm.terminate_batch_title'),
+            { confirmButtonText: t('sessions_page.confirm.confirm_btn'), cancelButtonText: t('actions.cancel'), type: 'warning' }
         );
         const { data: res } = await batchTerminateSessions(selectedIds.value);
-        ElMessage.success(res.message || `成功踢出 ${res.data?.success || 0} 个`);
+        ElMessage.success(res.message || t('sessions_page.messages.batch_terminated', { count: res.data?.success || 0 }));
         selectedIds.value = [];
         loadList();
     } catch { /* cancelled */ }
 }
 
-// ── 踢出用户所有会话 ──
 async function handleTerminateUser() {
     if (!terminateUserId.value) {
-        ElMessage.warning('请输入用户 ID');
+        ElMessage.warning(t('sessions_page.messages.user_id_required'));
         return;
     }
     try {
         await ElMessageBox.confirm(
-            `确定踢出用户 ID ${terminateUserId.value} 的所有会话？`,
-            '踢出用户所有会话',
-            { confirmButtonText: '确定踢出', cancelButtonText: '取消', type: 'warning' }
+            t('sessions_page.confirm.terminate_user', { id: terminateUserId.value }),
+            t('sessions_page.confirm.terminate_user_title'),
+            { confirmButtonText: t('sessions_page.confirm.confirm_btn'), cancelButtonText: t('actions.cancel'), type: 'warning' }
         );
         const { data: res } = await terminateUserSessions(terminateUserId.value);
-        ElMessage.success(res.message || '已踢出');
+        ElMessage.success(res.message || t('sessions_page.messages.terminated'));
         terminateUserDialog.value = false;
         loadList();
     } catch { /* cancelled */ }
 }
 
-// ── 工具函数 ──
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    return new Date(dateStr).toLocaleString(dateLocale.value, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit',
     });
 }
 
+function deviceTypeLabel(type) {
+    const key = deviceTypeKeys.includes(type) ? type : 'unknown';
+    return t(`sessions_page.device_types.${key}`);
+}
+
 function deviceTypeTag(type) {
     const map = { desktop: '', mobile: 'warning', tablet: 'info', api: 'success' };
     return map[type] || 'info';
+}
+
+function trendTooltip(hour, count) {
+    return t('sessions_page.charts.trend_tooltip', { hour, count });
 }
 
 function calcPct(count, total) {

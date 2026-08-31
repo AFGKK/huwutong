@@ -6,7 +6,7 @@
         <el-card shadow="hover">
           <div class="stat-item">
             <div class="stat-value">{{ stats.total_connections }}</div>
-            <div class="stat-label">连接数</div>
+            <div class="stat-label">{{ t('bi_export_page.stats.connections') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -14,7 +14,7 @@
         <el-card shadow="hover">
           <div class="stat-item">
             <div class="stat-value">{{ stats.total_datasets }}</div>
-            <div class="stat-label">数据集</div>
+            <div class="stat-label">{{ t('bi_export_page.stats.datasets') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -22,7 +22,7 @@
         <el-card shadow="hover">
           <div class="stat-item">
             <div class="stat-value">{{ stats.total_syncs }}</div>
-            <div class="stat-label">同步总次数</div>
+            <div class="stat-label">{{ t('bi_export_page.stats.total_syncs') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -30,7 +30,7 @@
         <el-card shadow="hover">
           <div class="stat-item">
             <div class="stat-value">{{ stats.recent_syncs }}</div>
-            <div class="stat-label">今日同步</div>
+            <div class="stat-label">{{ t('bi_export_page.stats.recent_syncs') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -39,62 +39,62 @@
     <!-- 操作工具栏 -->
     <el-card class="mb-4">
       <div class="flex items-center justify-between">
-        <span class="text-lg font-medium">BI 数据仓库连接</span>
+        <span class="text-lg font-medium">{{ t('bi_export_page.toolbar.title') }}</span>
         <el-button type="primary" @click="showCreateDialog = true">
-          <el-icon><Plus /></el-icon> 新建连接
+          <el-icon><Plus /></el-icon> {{ t('bi_export_page.toolbar.new_connection') }}
         </el-button>
       </div>
     </el-card>
 
     <!-- 连接列表 -->
     <el-card v-loading="loading">
-      <el-empty v-if="!loading && connections.length === 0" description="暂无连接" />
+      <el-empty v-if="!loading && connections.length === 0" :description="t('bi_export_page.empty.no_connections')" />
       <div v-else class="connection-grid">
         <div v-for="conn in connections" :key="conn.id" class="connection-card">
           <div class="card-header">
             <span class="platform-icon">{{ platformIcon(conn.platform) }}</span>
             <span class="platform-name">{{ conn.name }}</span>
             <el-tag :type="conn.status === 'connected' ? 'success' : 'danger'" size="small">
-              {{ conn.status === 'connected' ? '已连接' : '未连接' }}
+              {{ conn.status === 'connected' ? t('bi_export_page.connection.connected') : t('bi_export_page.connection.disconnected') }}
             </el-tag>
           </div>
           <div class="card-body">
             <div class="info-row">
-              <span class="label">平台:</span>
+              <span class="label">{{ t('bi_export_page.connection.platform') }}:</span>
               <span class="value">{{ platformLabel(conn.platform) }}</span>
             </div>
             <div class="info-row">
-              <span class="label">数据集:</span>
-              <span class="value">{{ conn.datasets_count || 0 }} 个</span>
+              <span class="label">{{ t('bi_export_page.connection.datasets') }}:</span>
+              <span class="value">{{ t('bi_export_page.connection.datasets_count', { n: conn.datasets_count || 0 }) }}</span>
             </div>
             <div class="info-row">
-              <span class="label">创建时间:</span>
+              <span class="label">{{ t('bi_export_page.connection.created_at') }}:</span>
               <span class="value">{{ formatDate(conn.created_at) }}</span>
             </div>
           </div>
           <div class="card-actions">
-            <el-button size="small" @click="testConn(conn)">测试</el-button>
-            <el-button size="small" @click="viewDatasets(conn)">数据集</el-button>
-            <el-button size="small" type="danger" plain @click="confirmDelete(conn)">删除</el-button>
+            <el-button size="small" @click="testConn(conn)">{{ t('scim_page.actions.test') }}</el-button>
+            <el-button size="small" @click="viewDatasets(conn)">{{ t('bi_export_page.row_actions.datasets') }}</el-button>
+            <el-button size="small" type="danger" plain @click="confirmDelete(conn)">{{ t('actions.delete') }}</el-button>
           </div>
         </div>
       </div>
     </el-card>
 
     <!-- 新建连接对话框 -->
-    <el-dialog v-model="showCreateDialog" title="新建 BI 连接" width="520px" destroy-on-close>
+    <el-dialog v-model="showCreateDialog" :title="t('bi_export_page.dialog.create_connection')" width="520px" destroy-on-close>
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="createForm.name" placeholder="例: 生产数据导出" />
+        <el-form-item :label="t('bi_export_page.form.name')" prop="name">
+          <el-input v-model="createForm.name" :placeholder="t('bi_export_page.form.name_ph')" />
         </el-form-item>
-        <el-form-item label="平台" prop="platform">
+        <el-form-item :label="t('bi_export_page.form.platform')" prop="platform">
           <el-select v-model="createForm.platform" style="width:100%" @change="loadConfigTemplate">
             <el-option v-for="p in platforms" :key="p.key" :label="p.name" :value="p.key">
               <span>{{ p.icon }} {{ p.name }}</span>
             </el-option>
           </el-select>
         </el-form-item>
-        <el-form-item v-if="configFields.length > 0" label="配置" prop="config">
+        <el-form-item v-if="configFields.length > 0" :label="t('bi_export_page.form.config')" prop="config">
           <div class="config-fields">
             <div v-for="field in configFields" :key="field.key" class="config-field-row">
               <label>{{ field.label }}<span v-if="field.required" class="text-red-500">*</span></label>
@@ -110,16 +110,21 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showCreateDialog = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleCreate">创建</el-button>
+        <el-button @click="showCreateDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleCreate">{{ t('actions.create') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 数据集面板 -->
-    <el-drawer v-model="showDatasetDrawer" :title="`数据集 - ${currentConn?.name}`" size="500px" destroy-on-close>
+    <el-drawer
+      v-model="showDatasetDrawer"
+      :title="t('bi_export_page.dialog.datasets_title', { name: currentConn?.name })"
+      size="500px"
+      destroy-on-close
+    >
       <div class="mb-3">
         <el-button type="primary" size="small" @click="showCreateDataset = true">
-          <el-icon><Plus /></el-icon> 新建数据集
+          <el-icon><Plus /></el-icon> {{ t('bi_export_page.dialog.create_dataset') }}
         </el-button>
       </div>
 
@@ -131,65 +136,57 @@
               <el-tag size="small">{{ ds.source_table }}</el-tag>
             </div>
             <div class="text-sm text-gray-500 mt-1">
-              频率: {{ freqLabel(ds.sync_frequency) }}
+              {{ t('bi_export_page.form.frequency_label') }}: {{ freqLabel(ds.sync_frequency) }}
             </div>
             <div class="mt-2 flex gap-2">
               <el-button size="small" type="primary" :loading="syncingId === ds.id" @click="handleSync(ds)">
-                {{ syncingId === ds.id ? '同步中...' : '同步' }}
+                {{ syncingId === ds.id ? t('actions.loading') : t('bi_export_page.row_actions.sync') }}
               </el-button>
-              <el-button size="small" @click="viewLogs(ds)">日志</el-button>
-              <el-button size="small" type="danger" plain @click="confirmDeleteDataset(ds)">删除</el-button>
+              <el-button size="small" @click="viewLogs(ds)">{{ t('scim_page.actions.logs') }}</el-button>
+              <el-button size="small" type="danger" plain @click="confirmDeleteDataset(ds)">{{ t('actions.delete') }}</el-button>
             </div>
           </el-card>
         </el-timeline-item>
       </el-timeline>
-      <el-empty v-else description="暂无数据集" />
+      <el-empty v-else :description="t('bi_export_page.empty.no_datasets')" />
 
       <!-- 新建数据集 -->
-      <el-dialog v-model="showCreateDataset" title="新建数据集" width="420px" append-to-body destroy-on-close>
+      <el-dialog v-model="showCreateDataset" :title="t('bi_export_page.dialog.create_dataset')" width="420px" append-to-body destroy-on-close>
         <el-form ref="dsFormRef" :model="dsForm" :rules="dsRules" label-width="100px">
-          <el-form-item label="名称" prop="name">
-            <el-input v-model="dsForm.name" placeholder="数据集名称" />
+          <el-form-item :label="t('bi_export_page.form.name')" prop="name">
+            <el-input v-model="dsForm.name" :placeholder="t('bi_export_page.form.dataset_name_ph')" />
           </el-form-item>
-          <el-form-item label="数据表" prop="source_table">
+          <el-form-item :label="t('bi_export_page.form.source_table')" prop="source_table">
             <el-select v-model="dsForm.source_table" style="width:100%">
-              <el-option label="License" value="licenses" />
-              <el-option label="客户" value="customers" />
-              <el-option label="订单" value="orders" />
-              <el-option label="发票" value="invoices" />
-              <el-option label="订阅" value="subscriptions" />
+              <el-option v-for="opt in sourceTableOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
           </el-form-item>
-          <el-form-item label="同步频率" prop="sync_frequency">
+          <el-form-item :label="t('bi_export_page.form.sync_frequency')" prop="sync_frequency">
             <el-select v-model="dsForm.sync_frequency" style="width:100%">
-              <el-option label="手动" value="manual" />
-              <el-option label="每小时" value="hourly" />
-              <el-option label="每天" value="daily" />
-              <el-option label="每周" value="weekly" />
-              <el-option label="每月" value="monthly" />
+              <el-option v-for="opt in frequencyOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="showCreateDataset = false">取消</el-button>
-          <el-button type="primary" :loading="submitting" @click="handleCreateDataset">创建</el-button>
+          <el-button @click="showCreateDataset = false">{{ t('actions.cancel') }}</el-button>
+          <el-button type="primary" :loading="submitting" @click="handleCreateDataset">{{ t('actions.create') }}</el-button>
         </template>
       </el-dialog>
 
       <!-- 同步日志 -->
-      <el-dialog v-model="showLogDialog" title="同步日志" width="700px" append-to-body destroy-on-close>
+      <el-dialog v-model="showLogDialog" :title="t('bi_export_page.dialog.sync_logs')" width="700px" append-to-body destroy-on-close>
         <el-table :data="syncLogs" stripe size="small" max-height="400">
-          <el-table-column prop="created_at" label="时间" width="160" />
-          <el-table-column prop="status" label="状态" width="80">
+          <el-table-column prop="created_at" :label="t('bi_export_page.logs.time')" width="160" />
+          <el-table-column prop="status" :label="t('bi_export_page.logs.status')" width="80">
             <template #default="{ row }">
               <el-tag :type="row.status === 'success' ? 'success' : row.status === 'running' ? 'warning' : 'danger'" size="small">
-                {{ row.status === 'success' ? '成功' : row.status === 'running' ? '运行中' : row.status === 'partial' ? '部分' : '失败' }}
+                {{ logStatusLabel(row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="total_records" label="总数" width="60" />
-          <el-table-column prop="synced_records" label="成功" width="60" />
-          <el-table-column prop="error_message" label="错误信息" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="total_records" :label="t('bi_export_page.logs.total')" width="60" />
+          <el-table-column prop="synced_records" :label="t('bi_export_page.logs.success')" width="60" />
+          <el-table-column prop="error_message" :label="t('bi_export_page.logs.error')" min-width="200" show-overflow-tooltip />
         </el-table>
         <div v-if="logPagination.total > logPagination.perPage" class="mt-3 text-center">
           <el-pagination
@@ -207,7 +204,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import {
@@ -215,6 +213,51 @@ import {
   getConnections, createConnection, deleteConnection, testConnection,
   getDatasets, createDataset, deleteDataset, syncDataset, getSyncLogs,
 } from '../../api/biExport';
+
+const { t, locale } = useI18n();
+
+const frequencyKeys = ['manual', 'hourly', 'daily', 'weekly', 'monthly'];
+const sourceTableKeys = ['licenses', 'customers', 'orders', 'invoices', 'subscriptions'];
+
+const frequencyOptions = computed(() =>
+  frequencyKeys.map((value) => ({
+    value,
+    label: value === 'monthly'
+      ? t('bi_export_page.frequencies.monthly')
+      : t(`scim_page.frequencies.${value}`),
+  }))
+);
+
+const freqLabels = computed(() =>
+  Object.fromEntries(frequencyKeys.map((k) => [
+    k,
+    k === 'monthly' ? t('bi_export_page.frequencies.monthly') : t(`scim_page.frequencies.${k}`),
+  ]))
+);
+
+const sourceTableOptions = computed(() =>
+  sourceTableKeys.map((value) => ({
+    value,
+    label: t(`bi_export_page.source_tables.${value}`),
+  }))
+);
+
+const logStatusLabels = computed(() => ({
+  success: t('scim_page.log_status.success'),
+  running: t('bi_export_page.log_status.running'),
+  partial: t('scim_page.log_status.partial'),
+  failed: t('bi_export_page.log_status.failed'),
+}));
+
+const createRules = computed(() => ({
+  name: [{ required: true, message: t('bi_export_page.validation.name_required'), trigger: 'blur' }],
+  platform: [{ required: true, message: t('bi_export_page.validation.platform_required'), trigger: 'change' }],
+}));
+
+const dsRules = computed(() => ({
+  name: [{ required: true, message: t('bi_export_page.validation.dataset_name_required'), trigger: 'blur' }],
+  source_table: [{ required: true, message: t('bi_export_page.validation.source_table_required'), trigger: 'change' }],
+}));
 
 const loading = ref(false);
 const submitting = ref(false);
@@ -225,10 +268,6 @@ const stats = reactive({ total_connections: 0, total_datasets: 0, total_syncs: 0
 const showCreateDialog = ref(false);
 const configFields = ref([]);
 const createForm = reactive({ name: '', platform: '', config: {} });
-const createRules = {
-  name: [{ required: true, message: '请输入连接名称', trigger: 'blur' }],
-  platform: [{ required: true, message: '请选择平台', trigger: 'change' }],
-};
 
 // 数据集
 const showDatasetDrawer = ref(false);
@@ -236,10 +275,6 @@ const currentConn = ref(null);
 const datasets = ref([]);
 const showCreateDataset = ref(false);
 const dsForm = reactive({ name: '', source_table: 'licenses', sync_frequency: 'manual' });
-const dsRules = {
-  name: [{ required: true, message: '请输入数据集名称', trigger: 'blur' }],
-  source_table: [{ required: true, message: '请选择数据表', trigger: 'change' }],
-};
 
 // 日志
 const showLogDialog = ref(false);
@@ -248,8 +283,8 @@ const currentLogDs = ref(null);
 const logPage = ref(1);
 const logPagination = reactive({ total: 0, perPage: 20 });
 
-function platformIcon(key) {
-  return '📈';
+function platformIcon() {
+  return '';
 }
 
 function platformLabel(key) {
@@ -258,12 +293,16 @@ function platformLabel(key) {
 
 function formatDate(date) {
   if (!date) return '';
-  return new Date(date).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const loc = locale.value === 'zh_CN' ? 'zh-CN' : 'en-US';
+  return new Date(date).toLocaleString(loc, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 function freqLabel(f) {
-  const map = { manual: '手动', hourly: '每小时', daily: '每天', weekly: '每周', monthly: '每月' };
-  return map[f] || f;
+  return freqLabels.value[f] || f;
+}
+
+function logStatusLabel(status) {
+  return logStatusLabels.value[status] || status;
 }
 
 async function loadStats() {
@@ -279,7 +318,7 @@ async function loadConnections() {
     const { data } = await getConnections();
     connections.value = data.data;
   } catch (e) {
-    ElMessage.error('加载连接列表失败');
+    ElMessage.error(t('bi_export_page.messages.load_connections_failed'));
   } finally {
     loading.value = false;
   }
@@ -307,7 +346,7 @@ async function handleCreate() {
   submitting.value = true;
   try {
     await createConnection({ ...createForm });
-    ElMessage.success('连接创建成功');
+    ElMessage.success(t('bi_export_page.messages.connection_created'));
     showCreateDialog.value = false;
     createForm.name = '';
     createForm.platform = '';
@@ -316,7 +355,7 @@ async function handleCreate() {
     await loadConnections();
     await loadStats();
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '创建失败');
+    ElMessage.error(e.response?.data?.message || t('bi_export_page.messages.create_failed'));
   } finally {
     submitting.value = false;
   }
@@ -325,19 +364,19 @@ async function handleCreate() {
 async function testConn(conn) {
   try {
     await testConnection(conn.id);
-    ElMessage.success('连接测试成功');
+    ElMessage.success(t('scim_page.messages.test_ok'));
     await loadConnections();
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '连接测试失败');
+    ElMessage.error(e.response?.data?.message || t('scim_page.messages.test_failed'));
   }
 }
 
 function confirmDelete(conn) {
-  ElMessageBox.confirm(`确定删除连接「${conn.name}」？所有数据集将被一并删除。`, '确认', {
-    confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning',
+  ElMessageBox.confirm(t('bi_export_page.confirm.delete_connection', { name: conn.name }), t('actions.confirm'), {
+    confirmButtonText: t('actions.delete'), cancelButtonText: t('actions.cancel'), type: 'warning',
   }).then(async () => {
     await deleteConnection(conn.id);
-    ElMessage.success('已删除');
+    ElMessage.success(t('bi_export_page.messages.deleted'));
     await loadConnections();
     await loadStats();
   }).catch(() => {});
@@ -358,7 +397,7 @@ async function handleCreateDataset() {
   submitting.value = true;
   try {
     await createDataset(currentConn.value.id, { ...dsForm });
-    ElMessage.success('数据集创建成功');
+    ElMessage.success(t('bi_export_page.messages.dataset_created'));
     showCreateDataset.value = false;
     dsForm.name = '';
     dsForm.source_table = 'licenses';
@@ -366,18 +405,18 @@ async function handleCreateDataset() {
     const { data } = await getDatasets(currentConn.value.id);
     datasets.value = data.data;
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '创建失败');
+    ElMessage.error(e.response?.data?.message || t('bi_export_page.messages.create_failed'));
   } finally {
     submitting.value = false;
   }
 }
 
 function confirmDeleteDataset(ds) {
-  ElMessageBox.confirm(`确定删除数据集「${ds.name}」？`, '确认', {
-    confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning',
+  ElMessageBox.confirm(t('bi_export_page.confirm.delete_dataset', { name: ds.name }), t('actions.confirm'), {
+    confirmButtonText: t('actions.delete'), cancelButtonText: t('actions.cancel'), type: 'warning',
   }).then(async () => {
     await deleteDataset(ds.id);
-    ElMessage.success('已删除');
+    ElMessage.success(t('bi_export_page.messages.deleted'));
     const { data } = await getDatasets(currentConn.value.id);
     datasets.value = data.data;
   }).catch(() => {});
@@ -387,10 +426,10 @@ async function handleSync(ds) {
   syncingId.value = ds.id;
   try {
     const { data } = await syncDataset(ds.id);
-    ElMessage.success(`同步完成，共 ${data.data.synced_records || 0} 条记录`);
+    ElMessage.success(t('bi_export_page.messages.sync_complete', { n: data.data.synced_records || 0 }));
     await loadStats();
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '同步失败');
+    ElMessage.error(e.response?.data?.message || t('scim_page.messages.sync_failed'));
   } finally {
     syncingId.value = null;
   }

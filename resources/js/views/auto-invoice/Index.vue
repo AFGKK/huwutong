@@ -1,109 +1,105 @@
 <template>
   <div class="auto-invoice-page">
     <div class="page-header">
-      <h2>📄 自动开票管理</h2>
+      <h2>{{ t('auto_invoice_page.title') }}</h2>
       <div class="header-actions">
         <el-button @click="loadAll" :loading="loading">
-          <el-icon><Refresh /></el-icon> 刷新
+          <el-icon><Refresh /></el-icon> {{ t('auto_invoice_page.refresh') }}
         </el-button>
       </div>
     </div>
 
-    <!-- 统计卡片 -->
     <el-row :gutter="16" class="mb-6">
       <el-col :xs="12" :sm="6">
         <el-card shadow="hover">
-          <div class="stat-label">总发票数</div>
+          <div class="stat-label">{{ t('auto_invoice_page.stats.total') }}</div>
           <div class="stat-value">{{ stats.total_invoices }}</div>
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="6">
         <el-card shadow="hover">
-          <div class="stat-label">总开票金额</div>
+          <div class="stat-label">{{ t('auto_invoice_page.stats.total_amount') }}</div>
           <div class="stat-value">¥{{ formatNum(stats.total_amount) }}</div>
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="6">
         <el-card shadow="hover">
-          <div class="stat-label">今日开票数</div>
+          <div class="stat-label">{{ t('auto_invoice_page.stats.today') }}</div>
           <div class="stat-value">{{ stats.today_invoices }}</div>
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="6">
         <el-card shadow="hover">
-          <div class="stat-label">今日开票金额</div>
+          <div class="stat-label">{{ t('auto_invoice_page.stats.today_amount') }}</div>
           <div class="stat-value">¥{{ formatNum(stats.today_amount) }}</div>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 发票抬头管理 -->
     <el-card shadow="hover" class="mb-6">
       <template #header>
         <div class="card-header">
-          <span>🏢 企业发票抬头</span>
-          <el-button size="small" type="primary" @click="showTitleDialog = true; titleForm = {}">新增抬头</el-button>
+          <span>{{ t('auto_invoice_page.titles_section') }}</span>
+          <el-button size="small" type="primary" @click="showTitleDialog = true; editingTitle = false; Object.assign(titleForm, emptyTitle())">{{ t('auto_invoice_page.add_title') }}</el-button>
         </div>
       </template>
-      <div v-if="titles.length === 0" class="empty-state">暂无发票抬头，请添加</div>
+      <div v-if="titles.length === 0" class="empty-state">{{ t('auto_invoice_page.empty_titles') }}</div>
       <el-table v-else :data="titles" size="small" stripe>
-        <el-table-column prop="title" label="抬头名称" min-width="160" />
-        <el-table-column prop="tax_no" label="税号" width="140" />
-        <el-table-column label="默认" width="60" align="center">
+        <el-table-column prop="title" :label="t('auto_invoice_page.cols.title_name')" min-width="160" />
+        <el-table-column prop="tax_no" :label="t('auto_invoice_page.cols.tax_no')" width="140" />
+        <el-table-column :label="t('auto_invoice_page.cols.default')" width="60" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.is_default" type="success" size="small">默认</el-tag>
+            <el-tag v-if="row.is_default" type="success" size="small">{{ t('auto_invoice_page.default') }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column :label="t('auto_invoice_page.cols.actions')" width="160" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="editTitle(row)">编辑</el-button>
-            <el-button size="small" type="danger" @click="deleteTitle(row)">删除</el-button>
+            <el-button size="small" @click="editTitle(row)">{{ t('actions.edit') }}</el-button>
+            <el-button size="small" type="danger" @click="deleteTitle(row)">{{ t('actions.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
-    <!-- 筛选 -->
     <el-card shadow="hover" class="mb-6">
       <el-form :inline="true" :model="filters">
-        <el-form-item label="搜索">
-          <el-input v-model="filters.search" placeholder="发票号/客户名" clearable style="width:180px" @input="onSearch" />
+        <el-form-item :label="t('actions.search')">
+          <el-input v-model="filters.search" :placeholder="t('auto_invoice_page.search_ph')" clearable style="width:180px" @input="onSearch" />
         </el-form-item>
-        <el-form-item label="日期从">
-          <el-date-picker v-model="filters.date_from" type="date" placeholder="开始" style="width:140px" @change="loadInvoices" />
+        <el-form-item :label="t('auto_invoice_page.date_from')">
+          <el-date-picker v-model="filters.date_from" type="date" :placeholder="t('auto_invoice_page.start')" style="width:140px" @change="loadInvoices" />
         </el-form-item>
-        <el-form-item label="日期至">
-          <el-date-picker v-model="filters.date_to" type="date" placeholder="结束" style="width:140px" @change="loadInvoices" />
+        <el-form-item :label="t('auto_invoice_page.date_to')">
+          <el-date-picker v-model="filters.date_to" type="date" :placeholder="t('auto_invoice_page.end')" style="width:140px" @change="loadInvoices" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="loadInvoices">查询</el-button>
+          <el-button type="primary" @click="loadInvoices()">{{ t('auto_invoice_page.query') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- 发票列表 -->
     <el-table :data="invoices" v-loading="loading" stripe style="width:100%">
-      <el-table-column prop="invoice_no" label="发票号" width="200" />
-      <el-table-column label="客户" min-width="140">
+      <el-table-column prop="invoice_no" :label="t('auto_invoice_page.cols.invoice_no')" width="200" />
+      <el-table-column :label="t('auto_invoice_page.cols.customer')" min-width="140">
         <template #default="{ row }">{{ row.customer?.name || '—' }}</template>
       </el-table-column>
-      <el-table-column prop="subtotal" label="金额" width="120" align="right">
+      <el-table-column prop="subtotal" :label="t('auto_invoice_page.cols.amount')" width="120" align="right">
         <template #default="{ row }">¥{{ formatNum(row.amount) }}</template>
       </el-table-column>
-      <el-table-column prop="tax_amount" label="税额" width="100" align="right">
+      <el-table-column prop="tax_amount" :label="t('auto_invoice_page.cols.tax')" width="100" align="right">
         <template #default="{ row }">¥{{ formatNum(row.tax_amount) }}</template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="80">
+      <el-table-column prop="status" :label="t('auto_invoice_page.cols.status')" width="80">
         <template #default="{ row }">
           <el-tag :type="row.status === 'paid' ? 'success' : 'warning'" size="small">{{ row.status }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="created_at" label="开票日期" width="170" />
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column prop="created_at" :label="t('auto_invoice_page.cols.issued_at')" width="170" />
+      <el-table-column :label="t('auto_invoice_page.cols.actions')" width="200" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" @click="showDetail(row)">详情</el-button>
-          <el-button size="small" @click="preview(row)">预览</el-button>
-          <el-button size="small" @click="resend(row)">重发</el-button>
+          <el-button size="small" @click="showDetail(row)">{{ t('actions.view_details') }}</el-button>
+          <el-button size="small" @click="preview(row)">{{ t('auto_invoice_page.preview') }}</el-button>
+          <el-button size="small" @click="resend(row)">{{ t('auto_invoice_page.resend') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -117,67 +113,65 @@
       style="margin-top:16px;justify-content:center"
     />
 
-    <!-- 发票详情抽屉 -->
-    <el-drawer v-model="showDetailDrawer" :title="'发票 #' + (detail?.invoice_no || '')" size="500px">
+    <el-drawer v-model="showDetailDrawer" :title="t('auto_invoice_page.detail_title', { no: detail?.invoice_no || '' })" size="500px">
       <template v-if="detail">
         <el-descriptions :column="2" border size="small">
-          <el-descriptions-item label="发票号">{{ detail.invoice_no }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
+          <el-descriptions-item :label="t('auto_invoice_page.cols.invoice_no')">{{ detail.invoice_no }}</el-descriptions-item>
+          <el-descriptions-item :label="t('auto_invoice_page.cols.status')">
             <el-tag :type="detail.status === 'paid' ? 'success' : 'warning'" size="small">{{ detail.status }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="金额">¥{{ formatNum(detail.amount) }}</el-descriptions-item>
-          <el-descriptions-item label="税额">¥{{ formatNum(detail.tax_amount) }}</el-descriptions-item>
-          <el-descriptions-item label="开票日期">{{ detail.created_at }}</el-descriptions-item>
-          <el-descriptions-item label="备注">{{ detail.notes || '—' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('auto_invoice_page.cols.amount')">¥{{ formatNum(detail.amount) }}</el-descriptions-item>
+          <el-descriptions-item :label="t('auto_invoice_page.cols.tax')">¥{{ formatNum(detail.tax_amount) }}</el-descriptions-item>
+          <el-descriptions-item :label="t('auto_invoice_page.cols.issued_at')">{{ detail.created_at }}</el-descriptions-item>
+          <el-descriptions-item :label="t('auto_invoice_page.cols.notes')">{{ detail.notes || '—' }}</el-descriptions-item>
         </el-descriptions>
 
-        <h4 style="margin:20px 0 12px">明细</h4>
+        <h4 style="margin:20px 0 12px">{{ t('auto_invoice_page.line_items') }}</h4>
         <el-table :data="detail.line_items || []" size="small" stripe>
-          <el-table-column prop="description" label="商品" min-width="120" />
-          <el-table-column prop="quantity" label="数量" width="60" />
-          <el-table-column prop="unit_price" label="单价" width="80" align="right">
+          <el-table-column prop="description" :label="t('auto_invoice_page.cols.item')" min-width="120" />
+          <el-table-column prop="quantity" :label="t('auto_invoice_page.cols.qty')" width="60" />
+          <el-table-column prop="unit_price" :label="t('auto_invoice_page.cols.unit_price')" width="80" align="right">
             <template #default="{ row }">¥{{ formatNum(row.unit_price) }}</template>
           </el-table-column>
-          <el-table-column prop="subtotal" label="小计" width="80" align="right">
+          <el-table-column prop="subtotal" :label="t('auto_invoice_page.cols.subtotal')" width="80" align="right">
             <template #default="{ row }">¥{{ formatNum(row.subtotal) }}</template>
           </el-table-column>
         </el-table>
 
         <div style="margin-top:16px;display:flex;gap:8px">
-          <el-button @click="preview(detail)" :icon="View">预览发票</el-button>
-          <el-button @click="resend(detail)" :icon="Message">重发邮件</el-button>
+          <el-button @click="preview(detail)" :icon="View">{{ t('auto_invoice_page.preview_invoice') }}</el-button>
+          <el-button @click="resend(detail)" :icon="Message">{{ t('auto_invoice_page.resend_email') }}</el-button>
         </div>
       </template>
     </el-drawer>
 
-    <!-- 发票抬头对话框 -->
-    <el-dialog v-model="showTitleDialog" :title="editingTitle ? '编辑发票抬头' : '新增发票抬头'" width="600px">
+    <el-dialog v-model="showTitleDialog" :title="editingTitle ? t('auto_invoice_page.edit_title') : t('auto_invoice_page.new_title')" width="600px">
       <el-form :model="titleForm" label-width="100px" size="small">
-        <el-form-item label="抬头名称" required>
-          <el-input v-model="titleForm.title" placeholder="企业全称" />
+        <el-form-item :label="t('auto_invoice_page.form.title')" required>
+          <el-input v-model="titleForm.title" :placeholder="t('auto_invoice_page.form.title_ph')" />
         </el-form-item>
-        <el-form-item label="税号">
-          <el-input v-model="titleForm.tax_no" placeholder="统一社会信用代码" />
+        <el-form-item :label="t('auto_invoice_page.form.tax_no')">
+          <el-input v-model="titleForm.tax_no" :placeholder="t('auto_invoice_page.form.tax_no_ph')" />
         </el-form-item>
-        <el-form-item label="地址">
-          <el-input v-model="titleForm.address" placeholder="注册地址" />
+        <el-form-item :label="t('auto_invoice_page.form.address')">
+          <el-input v-model="titleForm.address" :placeholder="t('auto_invoice_page.form.address_ph')" />
         </el-form-item>
-        <el-form-item label="电话">
-          <el-input v-model="titleForm.phone" placeholder="注册电话" />
+        <el-form-item :label="t('auto_invoice_page.form.phone')">
+          <el-input v-model="titleForm.phone" :placeholder="t('auto_invoice_page.form.phone_ph')" />
         </el-form-item>
-        <el-form-item label="开户行">
-          <el-input v-model="titleForm.bank_name" placeholder="开户银行名称" />
+        <el-form-item :label="t('auto_invoice_page.form.bank_name')">
+          <el-input v-model="titleForm.bank_name" :placeholder="t('auto_invoice_page.form.bank_name_ph')" />
         </el-form-item>
-        <el-form-item label="银行账号">
-          <el-input v-model="titleForm.bank_account" placeholder="银行账号" />
+        <el-form-item :label="t('auto_invoice_page.form.bank_account')">
+          <el-input v-model="titleForm.bank_account" :placeholder="t('auto_invoice_page.form.bank_account_ph')" />
         </el-form-item>
-        <el-form-item label="设为默认">
+        <el-form-item :label="t('auto_invoice_page.form.is_default')">
           <el-switch v-model="titleForm.is_default" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showTitleDialog = false">取消</el-button>
-        <el-button type="primary" :loading="savingTitle" @click="saveTitle">{{ editingTitle ? '保存' : '创建' }}</el-button>
+        <el-button @click="showTitleDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="savingTitle" @click="saveTitle">{{ editingTitle ? t('actions.save') : t('actions.create') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -185,13 +179,16 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Refresh, View, Message } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getInvoiceStats, getInvoices, getInvoiceDetail,
-  previewInvoice, generateInvoice, resendInvoice,
+  previewInvoice, resendInvoice,
   getInvoiceTitles, createInvoiceTitle, updateInvoiceTitle, deleteInvoiceTitle,
 } from '@/api/autoInvoice'
+
+const { t, locale } = useI18n()
 
 const loading = ref(false)
 const invoices = ref([])
@@ -204,13 +201,18 @@ const detail = ref(null)
 const showTitleDialog = ref(false)
 const editingTitle = ref(false)
 const savingTitle = ref(false)
-const titleForm = reactive({ title: '', tax_no: '', address: '', phone: '', bank_name: '', bank_account: '', is_default: false })
+
+function emptyTitle() {
+  return { title: '', tax_no: '', address: '', phone: '', bank_name: '', bank_account: '', is_default: false }
+}
+const titleForm = reactive(emptyTitle())
 
 let searchTimer = null
 
 function formatNum(val) {
   if (val === null || val === undefined) return '0.00'
-  return Number(val).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const loc = locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US'
+  return Number(val).toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 async function loadStats() {
@@ -271,7 +273,7 @@ async function preview(row) {
 async function resend(row) {
   try {
     await resendInvoice(row.id)
-    ElMessage.success('发票邮件已重新发送')
+    ElMessage.success(t('auto_invoice_page.messages.resent'))
   } catch { /* ignore */ }
 }
 
@@ -280,10 +282,10 @@ async function saveTitle() {
   try {
     if (editingTitle.value) {
       await updateInvoiceTitle(editingTitle.value, titleForm)
-      ElMessage.success('发票抬头已更新')
+      ElMessage.success(t('auto_invoice_page.messages.title_updated'))
     } else {
       await createInvoiceTitle(titleForm)
-      ElMessage.success('发票抬头已创建')
+      ElMessage.success(t('auto_invoice_page.messages.title_created'))
     }
     showTitleDialog.value = false
     loadTitles()
@@ -299,9 +301,9 @@ function editTitle(row) {
 
 async function deleteTitle(row) {
   try {
-    await ElMessageBox.confirm(`确定删除抬头「${row.title}」？`)
+    await ElMessageBox.confirm(t('auto_invoice_page.messages.delete_confirm', { title: row.title }), t('actions.confirm'))
     await deleteInvoiceTitle(row.id)
-    ElMessage.success('已删除')
+    ElMessage.success(t('auto_invoice_page.messages.deleted'))
     loadTitles()
   } catch { /* ignore */ }
 }

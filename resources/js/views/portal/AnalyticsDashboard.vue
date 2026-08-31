@@ -3,17 +3,17 @@
     <!-- 页面标题 & 操作 -->
     <div class="page-header">
       <div>
-        <h2>📊 分析仪表盘</h2>
-        <p class="text-muted">深入了解您的 License、设备、消费和使用趋势</p>
+        <h2>{{ t('portal.analytics_title') }}</h2>
+        <p class="text-muted">{{ t('portal.analytics_subtitle') }}</p>
       </div>
       <div class="header-actions">
         <el-select v-model="period" size="small" style="width:130px" @change="fetchAll">
-          <el-option label="近30天" value="month" />
-          <el-option label="近90天" value="quarter" />
-          <el-option label="近一年" value="year" />
+          <el-option :label="t('portal.period_30d')" value="month" />
+          <el-option :label="t('portal.period_90d')" value="quarter" />
+          <el-option :label="t('portal.period_1y')" value="year" />
         </el-select>
-        <el-button size="small" @click="exportCSV('licenses')">导出 CSV</el-button>
-        <el-button size="small" @click="refreshAll">刷新</el-button>
+        <el-button size="small" @click="exportCSV('licenses')">{{ t('portal.export_csv') }}</el-button>
+        <el-button size="small" @click="refreshAll">{{ t('portal.refresh') }}</el-button>
       </div>
     </div>
 
@@ -22,30 +22,30 @@
       <div class="health-content">
         <div class="health-score-section">
           <div class="health-score-value">{{ health.score }}</div>
-          <div class="health-score-label">健康评分</div>
+          <div class="health-score-label">{{ t('portal.health_score') }}</div>
           <el-tag :type="health.level === 'healthy' ? 'success' : health.level === 'warning' ? 'warning' : 'danger'" size="small">
-            {{ health.level === 'healthy' ? '健康' : health.level === 'warning' ? '警告' : '严重' }}
+            {{ health.level === 'healthy' ? t('portal.health_ok') : health.level === 'warning' ? t('portal.health_warn') : t('portal.health_critical') }}
           </el-tag>
         </div>
         <div class="health-metrics">
           <div class="health-metric">
             <div class="hm-value">{{ health.activation_rate }}%</div>
-            <div class="hm-label">激活率</div>
+            <div class="hm-label">{{ t('portal.activation_rate') }}</div>
           </div>
           <div class="health-divider" />
           <div class="health-metric">
             <div class="hm-value">{{ health.device_usage_rate }}%</div>
-            <div class="hm-label">设备使用率</div>
+            <div class="hm-label">{{ t('portal.device_usage_rate') }}</div>
           </div>
           <div class="health-divider" />
           <div class="health-metric">
             <div class="hm-value">{{ health.recent_activity_rate }}%</div>
-            <div class="hm-label">近期活跃率</div>
+            <div class="hm-label">{{ t('portal.recent_activity_rate') }}</div>
           </div>
         </div>
         <div class="health-issues" v-if="health.issues?.length">
           <div v-for="issue in health.issues" :key="issue" class="health-issue">
-            ⚠️ {{ issue }}
+            {{ issue }}
           </div>
         </div>
       </div>
@@ -54,24 +54,24 @@
     <!-- 概览卡片 -->
     <el-row :gutter="16" class="mb-4">
       <el-col :span="6"><el-card shadow="hover" class="stat-card">
-        <div class="stat-value" style="color:#409eff">{{ overview.licenses.active }}/{{ overview.licenses.total }}</div>
-        <div class="stat-label">活跃 License</div>
-        <div class="stat-trend" v-if="overview.licenses.new > 0">+{{ overview.licenses.new }} 本月新增</div>
+        <div class="stat-value" style="color:#0f172a">{{ overview.licenses.active }}/{{ overview.licenses.total }}</div>
+        <div class="stat-label">{{ t('portal.active_licenses') }}</div>
+        <div class="stat-trend" v-if="overview.licenses.new > 0">{{ t('portal.new_this_month', { n: overview.licenses.new }) }}</div>
       </el-card></el-col>
       <el-col :span="6"><el-card shadow="hover" class="stat-card">
         <div class="stat-value" style="color:#67c23a">{{ overview.devices.active }}/{{ overview.devices.total }}</div>
-        <div class="stat-label">活跃设备</div>
-        <div class="stat-trend" v-if="overview.devices.new > 0">+{{ overview.devices.new }} 本月新增</div>
+        <div class="stat-label">{{ t('portal.usage_active_devices') }}</div>
+        <div class="stat-trend" v-if="overview.devices.new > 0">{{ t('portal.new_this_month', { n: overview.devices.new }) }}</div>
       </el-card></el-col>
       <el-col :span="6"><el-card shadow="hover" class="stat-card">
         <div class="stat-value" style="color:#e6a23c">¥{{ formatMoney(overview.orders.period_spend) }}</div>
-        <div class="stat-label">本期消费</div>
-        <div class="stat-trend">{{ overview.orders.period }} 笔订单</div>
+        <div class="stat-label">{{ t('portal.period_spend') }}</div>
+        <div class="stat-trend">{{ t('portal.orders_n', { n: overview.orders.period }) }}</div>
       </el-card></el-col>
       <el-col :span="6"><el-card shadow="hover" class="stat-card">
-        <div class="stat-value" :style="{color: overview.api.trend >= 0 ? '#409eff' : '#f56c6c'}">{{ overview.api.period_calls }}</div>
-        <div class="stat-label">API 调用</div>
-        <div class="stat-trend" :style="{color: overview.api.trend >= 0 ? '#67c23a' : '#f56c6c'}">{{ overview.api.trend >= 0 ? '+' : '' }}{{ overview.api.trend }}% 较上期</div>
+        <div class="stat-value" :style="{color: overview.api.trend >= 0 ? '#0f172a' : '#f56c6c'}">{{ overview.api.period_calls }}</div>
+        <div class="stat-label">{{ t('portal.usage_api_calls') }}</div>
+        <div class="stat-trend" :style="{color: overview.api.trend >= 0 ? '#67c23a' : '#f56c6c'}">{{ overview.api.trend >= 0 ? '+' : '' }}{{ overview.api.trend }}% {{ t('portal.vs_prev') }}</div>
       </el-card></el-col>
     </el-row>
 
@@ -80,14 +80,14 @@
       <!-- License 激活趋势 -->
       <el-col :span="12">
         <el-card class="mb-4">
-          <template #header><div class="card-header"><span>📈 License 激活趋势</span></div></template>
+          <template #header><div class="card-header"><span>{{ t('portal.license_activation_trend') }}</span></div></template>
           <div ref="licenseChartRef" style="width:100%;height:260px;"></div>
         </el-card>
       </el-col>
       <!-- 月度消费趋势 -->
       <el-col :span="12">
         <el-card class="mb-4">
-          <template #header><div class="card-header"><span>💰 月度消费趋势</span></div></template>
+          <template #header><div class="card-header"><span>{{ t('portal.monthly_spend_trend') }}</span></div></template>
           <div ref="spendChartRef" style="width:100%;height:260px;"></div>
         </el-card>
       </el-col>
@@ -97,21 +97,21 @@
       <!-- License 类型分布 -->
       <el-col :span="8">
         <el-card class="mb-4">
-          <template #header><div class="card-header"><span>🧩 License 分布</span></div></template>
+          <template #header><div class="card-header"><span>{{ t('portal.license_distribution') }}</span></div></template>
           <div ref="distChartRef" style="width:100%;height:250px;"></div>
         </el-card>
       </el-col>
       <!-- 设备新增趋势 -->
       <el-col :span="8">
         <el-card class="mb-4">
-          <template #header><div class="card-header"><span>🖥️ 设备新增趋势</span></div></template>
+          <template #header><div class="card-header"><span>{{ t('portal.device_growth_trend') }}</span></div></template>
           <div ref="deviceChartRef" style="width:100%;height:250px;"></div>
         </el-card>
       </el-col>
       <!-- 用量排行榜 -->
       <el-col :span="8">
         <el-card class="mb-4">
-          <template #header><div class="card-header"><span>🏆 License 用量排行</span></div></template>
+          <template #header><div class="card-header"><span>{{ t('portal.license_usage_rank') }}</span></div></template>
           <div v-if="topLicenses.length" class="top-list">
             <div v-for="(l, i) in topLicenses" :key="l.license_key" class="top-item">
               <div class="top-rank" :class="'rank-' + (i+1)">{{ i + 1 }}</div>
@@ -129,7 +129,7 @@
               </div>
             </div>
           </div>
-          <el-empty v-else description="暂无数据" :image-size="60" />
+          <el-empty v-else :description="t('portal.no_data')" :image-size="60" />
         </el-card>
       </el-col>
     </el-row>
@@ -138,9 +138,12 @@
 
 <script setup>
 import { ref, reactive, onMounted, nextTick, markRaw } from 'vue';
+import { useI18n } from 'vue-i18n';
 import apiClient from '@/api/client';
 import { ElMessage } from 'element-plus';
 import * as echarts from 'echarts';
+
+const { t, locale } = useI18n();
 
 const period = ref('month');
 const licenseChartRef = ref(null);
@@ -165,8 +168,14 @@ const health = reactive({
 const topLicenses = ref([]);
 
 function formatMoney(v) {
-  const n = Number(v);
-  return n >= 10000 ? (n / 10000).toFixed(1) + '万' : n.toLocaleString('zh-CN', { minimumFractionDigits: 0 });
+  const n = Number(v) || 0;
+  const loc = (locale.value === 'zh_CN' || locale.value === 'zh-CN' || String(locale.value).startsWith('zh'))
+    ? 'zh-CN'
+    : 'en-US';
+  if (n >= 10000) {
+    return new Intl.NumberFormat(loc, { notation: 'compact', maximumFractionDigits: 1 }).format(n);
+  }
+  return n.toLocaleString(loc, { maximumFractionDigits: 0 });
 }
 
 async function fetchOverview() {
@@ -228,7 +237,7 @@ function renderLicenseChart(data) {
     yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } } },
     series: [{
       type: 'bar', data: data.map(d => d.activated),
-      itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#409eff' }, { offset: 1, color: 'rgba(64,158,255,0.3)' }]), borderRadius: [4, 4, 0, 0] },
+      itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#0f172a' }, { offset: 1, color: 'rgba(15,23,42,0.3)' }]), borderRadius: [4, 4, 0, 0] },
     }],
   });
   licenseChart.resize();
@@ -240,18 +249,21 @@ function renderSpendChart(data) {
   const months = data.map(d => d.month.slice(5));
   const spends = data.map(d => d.spend);
   const orders = data.map(d => d.orders);
+  const spendLabel = t('portal.spend_amount');
+  const orderLabel = t('portal.order_count');
+  const amountLabel = t('portal.amount_cny');
   spendChart.setOption({
     tooltip: { trigger: 'axis' },
-    legend: { data: ['消费金额', '订单数'], bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 11 } },
+    legend: { data: [spendLabel, orderLabel], bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 11 } },
     grid: { left: 60, right: 50, top: 20, bottom: 40 },
     xAxis: { type: 'category', data: months, axisLabel: { fontSize: 11, color: '#909399' }, axisLine: { show: false } },
     yAxis: [
-      { type: 'value', name: '金额 (¥)', splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }, axisLabel: { fontSize: 11, color: '#909399' } },
-      { type: 'value', name: '订单数', axisLabel: { fontSize: 11, color: '#909399' } },
+      { type: 'value', name: amountLabel, splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }, axisLabel: { fontSize: 11, color: '#909399' } },
+      { type: 'value', name: orderLabel, axisLabel: { fontSize: 11, color: '#909399' } },
     ],
     series: [
-      { name: '消费金额', type: 'bar', data: spends, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#e6a23c' }, { offset: 1, color: 'rgba(230,162,60,0.3)' }]), borderRadius: [4, 4, 0, 0] } },
-      { name: '订单数', type: 'line', yAxisIndex: 1, data: orders, smooth: true, lineStyle: { width: 2, color: '#67c23a' }, symbol: 'circle', symbolSize: 4, itemStyle: { color: '#67c23a' } },
+      { name: spendLabel, type: 'bar', data: spends, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#e6a23c' }, { offset: 1, color: 'rgba(230,162,60,0.3)' }]), borderRadius: [4, 4, 0, 0] } },
+      { name: orderLabel, type: 'line', yAxisIndex: 1, data: orders, smooth: true, lineStyle: { width: 2, color: '#67c23a' }, symbol: 'circle', symbolSize: 4, itemStyle: { color: '#67c23a' } },
     ],
   });
   spendChart.resize();
@@ -267,7 +279,7 @@ function renderDistChart(data) {
     tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     series: [{
       type: 'pie', radius: ['40%', '65%'], center: ['50%', '50%'],
-      data: byStatus.map(d => ({ name: d.status, value: d.count, itemStyle: { color: statusColors[d.status] || '#409eff' } })),
+      data: byStatus.map(d => ({ name: d.status, value: d.count, itemStyle: { color: statusColors[d.status] || '#0f172a' } })),
       label: { formatter: '{b}\n{d}%', fontSize: 11 },
       emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.2)' } },
     }],
@@ -301,9 +313,9 @@ async function exportCSV(type) {
     link.download = `${type}_${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(link.href);
-    ElMessage.success('导出成功');
+    ElMessage.success(t('portal.export_ok'));
   } catch {
-    ElMessage.error('导出失败');
+    ElMessage.error(t('portal.export_fail'));
   }
 }
 
@@ -360,7 +372,7 @@ onMounted(() => {
 .top-rank { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #fff; background: #909399; }
 .top-rank.rank-1 { background: #f56c6c; }
 .top-rank.rank-2 { background: #e6a23c; }
-.top-rank.rank-3 { background: #409eff; }
+.top-rank.rank-3 { background: #0f172a; }
 .top-info { flex: 1; min-width: 0; }
 .top-name { display: flex; align-items: center; gap: 6px; }
 .top-product { font-size: 11px; color: #909399; margin-top: 2px; }

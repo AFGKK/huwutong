@@ -1,10 +1,10 @@
 <template>
     <div class="billing-page">
         <div class="page-header">
-            <h2>订阅计费</h2>
+            <h2>{{ t('billing_page.title') }}</h2>
             <div class="header-actions">
                 <el-button type="primary" @click="showCreate = true">
-                    <el-icon><Plus /></el-icon> 创建订阅
+                    <el-icon><Plus /></el-icon> {{ t('billing_page.create_subscription') }}
                 </el-button>
             </div>
         </div>
@@ -15,7 +15,7 @@
                 <el-card shadow="never">
                     <div class="stat-card">
                         <div class="stat-value">{{ stats.active }}</div>
-                        <div class="stat-label">活跃订阅</div>
+                        <div class="stat-label">{{ t('billing_page.stat_active') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -23,15 +23,15 @@
                 <el-card shadow="never">
                     <div class="stat-card">
                         <div class="stat-value" style="color: #e6a23c">{{ stats.in_grace_period }}</div>
-                        <div class="stat-label">宽限期</div>
+                        <div class="stat-label">{{ t('billing_page.stat_grace_period') }}</div>
                     </div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-card">
-                        <div class="stat-value" style="color: #409eff">{{ stats.mrr }}</div>
-                        <div class="stat-label">MRR (¥)</div>
+                        <div class="stat-value" style="color: #0f172a">{{ stats.mrr }}</div>
+                        <div class="stat-label">{{ t('billing_page.stat_mrr') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -39,7 +39,7 @@
                 <el-card shadow="never">
                     <div class="stat-card">
                         <div class="stat-value" style="color: #67c23a">{{ stats.estimated_arr }}</div>
-                        <div class="stat-label">ARR (¥)</div>
+                        <div class="stat-label">{{ t('billing_page.stat_arr') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -51,7 +51,7 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value">{{ stats.total_plans }}</div>
-                        <div class="mini-label">定价方案</div>
+                        <div class="mini-label">{{ t('billing_page.stat_total_plans') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -59,7 +59,7 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value">{{ stats.active_coupons }}</div>
-                        <div class="mini-label">活跃优惠券</div>
+                        <div class="mini-label">{{ t('billing_page.stat_active_coupons') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -67,7 +67,7 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value">{{ stats.coupon_usage_30d }}</div>
-                        <div class="mini-label">近30天用券</div>
+                        <div class="mini-label">{{ t('billing_page.stat_coupon_usage_30d') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -75,7 +75,7 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value">¥{{ stats.recent_revenue || 0 }}</div>
-                        <div class="mini-label">本月收入</div>
+                        <div class="mini-label">{{ t('billing_page.stat_recent_revenue') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -83,7 +83,7 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value">¥{{ stats.coupon_savings_30d || 0 }}</div>
-                        <div class="mini-label">近30天折扣</div>
+                        <div class="mini-label">{{ t('billing_page.stat_coupon_savings_30d') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -92,201 +92,201 @@
         <!-- Tabs -->
         <el-card shadow="never">
             <el-tabs v-model="activeTab">
-                <el-tab-pane label="订阅列表" name="subscriptions">
+                <el-tab-pane :label="t('billing_page.tab_subscriptions')" name="subscriptions">
                     <el-table :data="subscriptions" v-loading="loading" stripe>
                         <el-table-column prop="id" label="ID" width="60" />
-                        <el-table-column label="客户" min-width="150">
+                        <el-table-column :label="t('billing_page.col_customer')" min-width="150">
                             <template #default="{ row }">
-                                {{ row.customer?.name || row.customer?.user?.name || '—' }}
+                                {{ row.customer?.name || row.customer?.user?.name || emDash }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="产品" min-width="120">
+                        <el-table-column :label="t('billing_page.col_product')" min-width="120">
                             <template #default="{ row }">
-                                {{ row.product?.name || '—' }}
+                                {{ row.product?.name || emDash }}
                             </template>
                         </el-table-column>
-                        <el-table-column prop="plan" label="方案" width="100" />
-                        <el-table-column label="金额" width="130">
+                        <el-table-column prop="plan" :label="t('billing_page.col_plan')" width="100" />
+                        <el-table-column :label="t('billing_page.col_amount')" width="130">
                             <template #default="{ row }">
                                 ¥{{ row.price }} / {{ periodLabel(row.billing_period) }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="状态" width="100">
+                        <el-table-column :label="t('billing_page.col_status')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="statusType(row.status)" size="small">
                                     {{ statusLabel(row.status) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="到期" width="170">
+                        <el-table-column :label="t('billing_page.col_expires')" width="170">
                             <template #default="{ row }">
-                                {{ row.ends_at ? formatTime(row.ends_at) : '—' }}
+                                {{ row.ends_at ? formatTime(row.ends_at) : emDash }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="自动续费" width="90">
+                        <el-table-column :label="t('billing_page.col_auto_renew')" width="90">
                             <template #default="{ row }">
                                 <el-tag :type="row.auto_renew ? 'success' : 'info'" size="small">
-                                    {{ row.auto_renew ? '开启' : '关闭' }}
+                                    {{ row.auto_renew ? t('billing_page.auto_renew_on') : t('billing_page.auto_renew_off') }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="200" fixed="right">
+                        <el-table-column :label="t('billing_page.col_actions')" width="200" fixed="right">
                             <template #default="{ row }">
-                                <el-button text size="small" @click="viewSubscription(row)">详情</el-button>
-                                <el-button v-if="row.status === 'active'" text size="small" type="warning" @click="handleCancel(row)">取消</el-button>
-                                <el-button v-if="row.status !== 'active' && row.status !== 'expired'" text size="small" type="primary" @click="handleResume(row)">恢复</el-button>
+                                <el-button text size="small" @click="viewSubscription(row)">{{ t('billing_page.detail') }}</el-button>
+                                <el-button v-if="row.status === 'active'" text size="small" type="warning" @click="handleCancel(row)">{{ t('billing_page.cancel_sub') }}</el-button>
+                                <el-button v-if="row.status !== 'active' && row.status !== 'expired'" text size="small" type="primary" @click="handleResume(row)">{{ t('billing_page.resume') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
                 </el-tab-pane>
 
-                <el-tab-pane label="发票记录" name="invoices">
+                <el-tab-pane :label="t('billing_page.tab_invoices')" name="invoices">
                     <el-table :data="invoices" v-loading="loadingInvoices" stripe>
-                        <el-table-column prop="invoice_no" label="发票号" width="180" />
-                        <el-table-column label="客户" min-width="130">
+                        <el-table-column prop="invoice_no" :label="t('billing_page.col_invoice_no')" width="180" />
+                        <el-table-column :label="t('billing_page.col_customer')" min-width="130">
                             <template #default="{ row }">
-                                {{ row.customer?.name || row.customer?.user?.name || '—' }}
+                                {{ row.customer?.name || row.customer?.user?.name || emDash }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="金额" width="110">
+                        <el-table-column :label="t('billing_page.col_amount')" width="110">
                             <template #default="{ row }">
                                 <span class="font-mono">¥{{ row.amount }}</span>
-                                <el-tag v-if="row.discount_amount > 0" size="small" type="warning" class="ml-1">已折扣</el-tag>
+                                <el-tag v-if="row.discount_amount > 0" size="small" type="warning" class="ml-1">{{ t('billing_page.discounted') }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="折扣" width="90">
+                        <el-table-column :label="t('billing_page.col_discount')" width="90">
                             <template #default="{ row }">
                                 <span v-if="row.discount_amount > 0" class="font-mono" style="color:#e6a23c">-¥{{ row.discount_amount }}</span>
-                                <span v-else>—</span>
+                                <span v-else>{{ emDash }}</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="状态" width="90">
+                        <el-table-column :label="t('billing_page.col_status')" width="90">
                             <template #default="{ row }">
                                 <el-tag :type="invoiceStatusType(row.status)" size="small">
                                     {{ invoiceStatusLabel(row.status) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="billing_reason" label="原因" width="140" />
-                        <el-table-column label="创建时间" width="170">
+                        <el-table-column prop="billing_reason" :label="t('billing_page.col_reason')" width="140" />
+                        <el-table-column :label="t('billing_page.col_created')" width="170">
                             <template #default="{ row }">
                                 {{ formatTime(row.created_at) }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="120">
+                        <el-table-column :label="t('billing_page.col_actions')" width="120">
                             <template #default="{ row }">
-                                <el-button text size="small" @click="viewInvoice(row)">详情</el-button>
+                                <el-button text size="small" @click="viewInvoice(row)">{{ t('billing_page.detail') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
                 </el-tab-pane>
 
-                <el-tab-pane label="定价方案" name="plans">
+                <el-tab-pane :label="t('billing_page.tab_plans')" name="plans">
                     <div class="tab-header mb-3">
                         <el-button type="primary" @click="showCreatePlanDialog">
-                            <el-icon><Plus /></el-icon> 创建方案
+                            <el-icon><Plus /></el-icon> {{ t('billing_page.create_plan') }}
                         </el-button>
                     </div>
                     <div v-loading="loadingPlans">
-                        <div v-if="plans.length === 0" class="text-center text-gray-400 py-8">暂无定价方案</div>
+                        <div v-if="plans.length === 0" class="text-center text-gray-400 py-8">{{ t('billing_page.no_plans') }}</div>
                         <el-table v-else :data="plans" stripe>
-                            <el-table-column prop="name" label="方案名称" width="150" />
-                            <el-table-column prop="slug" label="标识" width="120" />
-                            <el-table-column label="月付" width="100">
-                                <template #default="{ row }">¥{{ row.price_monthly || '—' }}</template>
+                            <el-table-column prop="name" :label="t('billing_page.col_plan_name')" width="150" />
+                            <el-table-column prop="slug" :label="t('billing_page.col_slug')" width="120" />
+                            <el-table-column :label="t('billing_page.period_monthly')" width="100">
+                                <template #default="{ row }">¥{{ row.price_monthly || emDash }}</template>
                             </el-table-column>
-                            <el-table-column label="季付" width="100">
-                                <template #default="{ row }">¥{{ row.price_quarterly || '—' }}</template>
+                            <el-table-column :label="t('billing_page.period_quarterly')" width="100">
+                                <template #default="{ row }">¥{{ row.price_quarterly || emDash }}</template>
                             </el-table-column>
-                            <el-table-column label="半年付" width="100">
-                                <template #default="{ row }">¥{{ row.price_semi_annually || '—' }}</template>
+                            <el-table-column :label="t('billing_page.period_semi_annually')" width="100">
+                                <template #default="{ row }">¥{{ row.price_semi_annually || emDash }}</template>
                             </el-table-column>
-                            <el-table-column label="年付" width="100">
-                                <template #default="{ row }">¥{{ row.price_yearly || '—' }}</template>
+                            <el-table-column :label="t('billing_page.period_yearly')" width="100">
+                                <template #default="{ row }">¥{{ row.price_yearly || emDash }}</template>
                             </el-table-column>
-                            <el-table-column label="试用" width="70">
-                                <template #default="{ row }">{{ row.trial_days }}天</template>
+                            <el-table-column :label="t('billing_page.col_trial')" width="70">
+                                <template #default="{ row }">{{ t('billing_page.days_suffix', { n: row.trial_days }) }}</template>
                             </el-table-column>
-                            <el-table-column label="状态" width="80">
+                            <el-table-column :label="t('billing_page.col_status')" width="80">
                                 <template #default="{ row }">
                                     <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
-                                        {{ row.is_active ? '启用' : '停用' }}
+                                        {{ row.is_active ? t('actions.enable') : t('actions.disable') }}
                                     </el-tag>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="角标" width="80">
+                            <el-table-column :label="t('billing_page.col_badge')" width="80">
                                 <template #default="{ row }">
                                     <el-tag v-if="row.badge" type="warning" size="small">{{ row.badge }}</el-tag>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="操作" width="150">
+                            <el-table-column :label="t('billing_page.col_actions')" width="150">
                                 <template #default="{ row }">
-                                    <el-button text size="small" @click="editPlan(row)">编辑</el-button>
-                                    <el-button text size="small" type="danger" @click="handleDeletePlan(row)">停用</el-button>
+                                    <el-button text size="small" @click="editPlan(row)">{{ t('actions.edit') }}</el-button>
+                                    <el-button text size="small" type="danger" @click="handleDeletePlan(row)">{{ t('billing_page.deactivate') }}</el-button>
                                 </template>
                             </el-table-column>
                         </el-table>
                     </div>
                 </el-tab-pane>
 
-                <el-tab-pane label="优惠券" name="coupons">
+                <el-tab-pane :label="t('billing_page.tab_coupons')" name="coupons">
                     <div class="tab-header mb-3">
                         <el-button type="primary" @click="showCreateCouponDialog">
-                            <el-icon><Plus /></el-icon> 创建优惠券
+                            <el-icon><Plus /></el-icon> {{ t('billing_page.create_coupon') }}
                         </el-button>
                     </div>
 
                     <div class="coupon-stats mb-3">
                         <el-row :gutter="12">
                             <el-col :span="6">
-                                <el-statistic title="总优惠券" :value="couponStats.total" />
+                                <el-statistic :title="t('billing_page.coupon_stat_total')" :value="couponStats.total" />
                             </el-col>
                             <el-col :span="6">
-                                <el-statistic title="活跃" :value="couponStats.active" />
+                                <el-statistic :title="t('billing_page.coupon_stat_active')" :value="couponStats.active" />
                             </el-col>
                             <el-col :span="6">
-                                <el-statistic title="总使用次数" :value="couponStats.total_redemptions" />
+                                <el-statistic :title="t('billing_page.coupon_stat_redemptions')" :value="couponStats.total_redemptions" />
                             </el-col>
                             <el-col :span="6">
-                                <el-statistic title="总折扣金额" :value="'¥' + (couponStats.total_discount_amount || 0)" />
+                                <el-statistic :title="t('billing_page.coupon_stat_discount_total')" :value="'¥' + (couponStats.total_discount_amount || 0)" />
                             </el-col>
                         </el-row>
                     </div>
 
                     <el-table :data="coupons" v-loading="loadingCoupons" stripe>
-                        <el-table-column prop="code" label="优惠码" width="120" />
-                        <el-table-column prop="name" label="名称" min-width="120" />
-                        <el-table-column label="类型" width="100">
+                        <el-table-column prop="code" :label="t('billing_page.col_code')" width="120" />
+                        <el-table-column prop="name" :label="t('billing_page.col_name')" min-width="120" />
+                        <el-table-column :label="t('billing_page.col_type')" width="100">
                             <template #default="{ row }">
                                 {{ couponTypeLabel(row.type) }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="折扣" width="100">
+                        <el-table-column :label="t('billing_page.col_discount')" width="100">
                             <template #default="{ row }">
                                 {{ row.type === 'percentage' ? row.value + '%' : '¥' + row.value }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="状态" width="70">
+                        <el-table-column :label="t('billing_page.col_status')" width="70">
                             <template #default="{ row }">
                                 <el-tag :type="row.status === 'active' ? 'success' : 'danger'" size="small">
-                                    {{ row.status === 'active' ? '启用' : '停用' }}
+                                    {{ row.status === 'active' ? t('actions.enable') : t('actions.disable') }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="使用/限制" width="100">
+                        <el-table-column :label="t('billing_page.col_usage_limit')" width="100">
                             <template #default="{ row }">
-                                {{ row.usage_count || 0 }} / {{ row.usage_limit || '不限' }}
+                                {{ row.usage_count || 0 }} / {{ row.usage_limit || t('billing_page.unlimited') }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="有效期" width="170">
+                        <el-table-column :label="t('billing_page.col_validity')" width="170">
                             <template #default="{ row }">
-                                {{ row.expires_at ? formatTime(row.expires_at) : '永久' }}
+                                {{ row.expires_at ? formatTime(row.expires_at) : t('billing_page.forever') }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="150">
+                        <el-table-column :label="t('billing_page.col_actions')" width="150">
                             <template #default="{ row }">
-                                <el-button text size="small" @click="editCoupon(row)">编辑</el-button>
-                                <el-button text size="small" @click="showCouponRedemptions(row)">记录</el-button>
+                                <el-button text size="small" @click="editCoupon(row)">{{ t('actions.edit') }}</el-button>
+                                <el-button text size="small" @click="showCouponRedemptions(row)">{{ t('billing_page.records') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -294,81 +294,79 @@
             </el-tabs>
         </el-card>
 
-        <!-- 创建订阅 Dialog -->
-        <el-dialog v-model="showCreate" title="创建订阅" width="600px" :close-on-click-modal="false">
+        <!-- Create subscription dialog -->
+        <el-dialog v-model="showCreate" :title="t('billing_page.dialog_create_subscription')" width="600px" :close-on-click-modal="false">
             <el-form ref="createFormRef" :model="createForm" label-width="100px" v-loading="submitting">
-                <el-form-item label="客户" prop="customer_id" required>
+                <el-form-item :label="t('billing_page.form_customer')" prop="customer_id" required>
                     <el-select v-model="createForm.customer_id" filterable remote
                         :remote-method="searchCustomers" :loading="searchingCustomer"
-                        placeholder="搜索客户" style="width:100%">
+                        :placeholder="t('billing_page.ph_search_customer')" style="width:100%">
                         <el-option v-for="c in customerOptions" :key="c.id"
                             :label="c.name || c.user?.name || 'ID:'+c.id"
                             :value="c.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="产品" prop="product_id" required>
+                <el-form-item :label="t('billing_page.form_product')" prop="product_id" required>
                     <el-select v-model="createForm.product_id" style="width:100%">
                         <el-option v-for="p in productOptions" :key="p.id"
                             :label="p.name" :value="p.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="定价方案" prop="plan_slug" required>
+                <el-form-item :label="t('billing_page.form_plan')" prop="plan_slug" required>
                     <el-select v-model="createForm.plan_slug" style="width:100%">
                         <el-option v-for="p in planOptions" :key="p.slug"
                             :label="`${p.name} (${p.slug})`" :value="p.slug" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="计费周期" prop="billing_period">
+                <el-form-item :label="t('billing_page.form_billing_period')" prop="billing_period">
                     <el-select v-model="createForm.billing_period" style="width:100%">
-                        <el-option label="月付" value="monthly" />
-                        <el-option label="季付" value="quarterly" />
-                        <el-option label="半年付" value="semi_annually" />
-                        <el-option label="年付" value="yearly" />
+                        <el-option v-for="opt in billingPeriodOptions" :key="opt.value"
+                            :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="自动续费">
+                <el-form-item :label="t('billing_page.form_auto_renew')">
                     <el-switch v-model="createForm.auto_renew" />
                 </el-form-item>
-                <el-form-item label="试用天数">
+                <el-form-item :label="t('billing_page.form_trial_days')">
                     <el-input-number v-model="createForm.trial_days" :min="0" :max="90" />
                 </el-form-item>
-                <el-form-item label="宽限天数">
+                <el-form-item :label="t('billing_page.form_grace_days')">
                     <el-input-number v-model="createForm.grace_days" :min="0" :max="90" />
                 </el-form-item>
-                <el-form-item label="优惠码">
-                    <el-input v-model="createForm.coupon_code" placeholder="可选" />
+                <el-form-item :label="t('billing_page.form_coupon_code')">
+                    <el-input v-model="createForm.coupon_code" :placeholder="t('billing_page.ph_optional')" />
                 </el-form-item>
-                <el-form-item label="关联 License">
-                    <el-input v-model="createForm.license_id" placeholder="License ID，可选" />
+                <el-form-item :label="t('billing_page.form_license')">
+                    <el-input v-model="createForm.license_id" :placeholder="t('billing_page.ph_license_id')" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showCreate = false">取消</el-button>
-                <el-button type="primary" :loading="submitting" @click="handleCreate">创建</el-button>
+                <el-button @click="showCreate = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="submitting" @click="handleCreate">{{ t('actions.create') }}</el-button>
             </template>
         </el-dialog>
 
-        <!-- 定价方案 Dialog -->
-        <el-dialog v-model="showPlanForm" :title="planForm.id ? '编辑定价方案' : '创建定价方案'" width="700px">
+        <!-- Pricing plan dialog -->
+        <el-dialog v-model="showPlanForm" :title="planForm.id ? t('billing_page.dialog_edit_plan') : t('billing_page.dialog_create_plan')" width="700px">
             <el-form ref="planFormRef" :model="planForm" label-width="100px" v-loading="planSubmitting">
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="方案标识" prop="slug" required>
+                        <el-form-item :label="t('billing_page.form_slug')" prop="slug" required>
                             <el-input v-model="planForm.slug" :disabled="!!planForm.id" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="方案名称" prop="name" required>
+                        <el-form-item :label="t('billing_page.form_plan_name')" prop="name" required>
                             <el-input v-model="planForm.name" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-form-item label="描述" prop="description">
+                <el-form-item :label="t('billing_page.form_description')" prop="description">
                     <el-input v-model="planForm.description" type="textarea" :rows="2" />
                 </el-form-item>
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="关联产品" prop="product_id">
+                        <el-form-item :label="t('billing_page.form_linked_product')" prop="product_id">
                             <el-select v-model="planForm.product_id" clearable style="width:100%">
                                 <el-option v-for="p in productOptions" :key="p.id"
                                     :label="p.name" :value="p.id" />
@@ -376,215 +374,214 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="货币" prop="currency">
-                            <el-input v-model="planForm.currency" placeholder="CNY" maxlength="3" />
+                        <el-form-item :label="t('billing_page.form_currency')" prop="currency">
+                            <el-input v-model="planForm.currency" :placeholder="t('billing_page.ph_currency')" maxlength="3" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-divider>价格设置</el-divider>
+                <el-divider>{{ t('billing_page.form_price_settings') }}</el-divider>
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="月付" prop="price_monthly">
+                        <el-form-item :label="t('billing_page.period_monthly')" prop="price_monthly">
                             <el-input-number v-model="planForm.price_monthly" :min="0" :precision="2" style="width:100%" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="季付" prop="price_quarterly">
+                        <el-form-item :label="t('billing_page.period_quarterly')" prop="price_quarterly">
                             <el-input-number v-model="planForm.price_quarterly" :min="0" :precision="2" style="width:100%" />
                         </el-form-item>
                     </el-col>
                 </el-row>
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="半年付" prop="price_semi_annually">
+                        <el-form-item :label="t('billing_page.period_semi_annually')" prop="price_semi_annually">
                             <el-input-number v-model="planForm.price_semi_annually" :min="0" :precision="2" style="width:100%" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="年付" prop="price_yearly">
+                        <el-form-item :label="t('billing_page.period_yearly')" prop="price_yearly">
                             <el-input-number v-model="planForm.price_yearly" :min="0" :precision="2" style="width:100%" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-divider>其他设置</el-divider>
+                <el-divider>{{ t('billing_page.form_other_settings') }}</el-divider>
                 <el-row :gutter="16">
                     <el-col :span="8">
-                        <el-form-item label="试用天数">
+                        <el-form-item :label="t('billing_page.form_trial_days')">
                             <el-input-number v-model="planForm.trial_days" :min="0" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="排序">
+                        <el-form-item :label="t('billing_page.form_sort_order')">
                             <el-input-number v-model="planForm.sort_order" :min="0" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="角标">
-                            <el-input v-model="planForm.badge" placeholder="推荐/热门" />
+                        <el-form-item :label="t('billing_page.col_badge')">
+                            <el-input v-model="planForm.badge" :placeholder="t('billing_page.ph_badge')" />
                         </el-form-item>
                     </el-col>
                 </el-row>
                 <el-row :gutter="16">
                     <el-col :span="8">
-                        <el-form-item label="公开可见">
+                        <el-form-item :label="t('billing_page.form_public')">
                             <el-switch v-model="planForm.is_public" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="启用">
+                        <el-form-item :label="t('actions.enable')">
                             <el-switch v-model="planForm.is_active" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-divider>功能特性 (JSON)</el-divider>
+                <el-divider>{{ t('billing_page.form_features_json') }}</el-divider>
                 <el-input v-model="featuresText" type="textarea" :rows="4"
-                    placeholder='["功能1", "功能2", "功能3"]' />
-                <el-divider>使用限制 (JSON)</el-divider>
+                    :placeholder="t('billing_page.ph_features')" />
+                <el-divider>{{ t('billing_page.form_limits_json') }}</el-divider>
                 <el-input v-model="limitsText" type="textarea" :rows="4"
-                    placeholder='{"max_users": 10, "max_projects": 5}' />
+                    :placeholder="t('billing_page.ph_limits')" />
             </el-form>
             <template #footer>
-                <el-button @click="showPlanForm = false">取消</el-button>
-                <el-button type="primary" :loading="planSubmitting" @click="handleSavePlan">保存</el-button>
+                <el-button @click="showPlanForm = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="planSubmitting" @click="handleSavePlan">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
 
-        <!-- 优惠券 Dialog -->
-        <el-dialog v-model="showCouponForm" :title="couponForm.id ? '编辑优惠券' : '创建优惠券'" width="700px">
+        <!-- Coupon dialog -->
+        <el-dialog v-model="showCouponForm" :title="couponForm.id ? t('billing_page.dialog_edit_coupon') : t('billing_page.dialog_create_coupon')" width="700px">
             <el-form ref="couponFormRef" :model="couponForm" label-width="120px" v-loading="couponSubmitting">
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="优惠码" prop="code" required>
+                        <el-form-item :label="t('billing_page.col_code')" prop="code" required>
                             <el-input v-model="couponForm.code" :disabled="!!couponForm.id" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="名称" prop="name" required>
+                        <el-form-item :label="t('billing_page.col_name')" prop="name" required>
                             <el-input v-model="couponForm.name" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-form-item label="描述" prop="description">
+                <el-form-item :label="t('billing_page.form_description')" prop="description">
                     <el-input v-model="couponForm.description" type="textarea" :rows="2" />
                 </el-form-item>
                 <el-row :gutter="16">
                     <el-col :span="8">
-                        <el-form-item label="类型" prop="type" required>
+                        <el-form-item :label="t('billing_page.col_type')" prop="type" required>
                             <el-select v-model="couponForm.type" style="width:100%">
-                                <el-option label="百分比" value="percentage" />
-                                <el-option label="固定金额" value="fixed_amount" />
-                                <el-option label="免费试用" value="free_trial" />
+                                <el-option v-for="opt in couponTypeOptions" :key="opt.value"
+                                    :label="opt.label" :value="opt.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="折扣值" prop="value" required>
+                        <el-form-item :label="t('billing_page.form_discount_value')" prop="value" required>
                             <el-input-number v-model="couponForm.value" :min="0" :precision="2" style="width:100%" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="货币" prop="currency">
-                            <el-input v-model="couponForm.currency" placeholder="CNY" maxlength="3" />
+                        <el-form-item :label="t('billing_page.form_currency')" prop="currency">
+                            <el-input v-model="couponForm.currency" :placeholder="t('billing_page.ph_currency')" maxlength="3" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-divider>使用限制</el-divider>
+                <el-divider>{{ t('billing_page.form_usage_limits') }}</el-divider>
                 <el-row :gutter="16">
                     <el-col :span="8">
-                        <el-form-item label="总使用上限">
-                            <el-input-number v-model="couponForm.usage_limit" :min="0" style="width:100%" placeholder="0=不限" />
+                        <el-form-item :label="t('billing_page.form_total_usage_limit')">
+                            <el-input-number v-model="couponForm.usage_limit" :min="0" style="width:100%" :placeholder="t('billing_page.ph_unlimited')" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="每用户上限">
-                            <el-input-number v-model="couponForm.usage_limit_per_user" :min="0" style="width:100%" placeholder="0=不限" />
+                        <el-form-item :label="t('billing_page.form_per_user_limit')">
+                            <el-input-number v-model="couponForm.usage_limit_per_user" :min="0" style="width:100%" :placeholder="t('billing_page.ph_unlimited')" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="最高折扣">
+                        <el-form-item :label="t('billing_page.form_max_discount')">
                             <el-input-number v-model="couponForm.maximum_discount" :min="0" :precision="2" style="width:100%" />
                         </el-form-item>
                     </el-col>
                 </el-row>
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="最低订单金额">
+                        <el-form-item :label="t('billing_page.form_min_order')">
                             <el-input-number v-model="couponForm.minimum_order_amount" :min="0" :precision="2" style="width:100%" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="允许与其他券叠加">
+                        <el-form-item :label="t('billing_page.form_stackable')">
                             <el-switch v-model="couponForm.is_redeemable_with_other_coupons" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-divider>有效期</el-divider>
+                <el-divider>{{ t('billing_page.form_validity') }}</el-divider>
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="开始时间">
+                        <el-form-item :label="t('billing_page.form_starts_at')">
                             <el-date-picker v-model="couponForm.starts_at" type="datetime" style="width:100%"
-                                placeholder="立即生效" />
+                                :placeholder="t('billing_page.ph_starts_immediately')" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="过期时间">
+                        <el-form-item :label="t('billing_page.form_expires_at')">
                             <el-date-picker v-model="couponForm.expires_at" type="datetime" style="width:100%"
-                                placeholder="永不过期" />
+                                :placeholder="t('billing_page.ph_never_expires')" />
                         </el-form-item>
                     </el-col>
                 </el-row>
             </el-form>
             <template #footer>
-                <el-button @click="showCouponForm = false">取消</el-button>
-                <el-button type="primary" :loading="couponSubmitting" @click="handleSaveCoupon">保存</el-button>
+                <el-button @click="showCouponForm = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="couponSubmitting" @click="handleSaveCoupon">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
 
-        <!-- 发票详情 Dialog -->
-        <el-dialog v-model="showInvoiceDetail" title="发票详情" width="550px">
+        <!-- Invoice detail dialog -->
+        <el-dialog v-model="showInvoiceDetail" :title="t('billing_page.dialog_invoice_detail')" width="550px">
             <el-descriptions v-if="invoiceDetail" :column="2" border>
-                <el-descriptions-item label="发票号">{{ invoiceDetail.invoice_no }}</el-descriptions-item>
-                <el-descriptions-item label="状态">
+                <el-descriptions-item :label="t('billing_page.col_invoice_no')">{{ invoiceDetail.invoice_no }}</el-descriptions-item>
+                <el-descriptions-item :label="t('billing_page.col_status')">
                     <el-tag :type="invoiceDetail.status === 'paid' ? 'success' : 'warning'" size="small">
-                        {{ invoiceDetail.status === 'paid' ? '已支付' : invoiceDetail.status === 'pending' ? '待支付' : invoiceDetail.status }}
+                        {{ invoiceStatusLabel(invoiceDetail.status) }}
                     </el-tag>
                 </el-descriptions-item>
-                <el-descriptions-item label="金额">¥{{ invoiceDetail.amount }}</el-descriptions-item>
-                <el-descriptions-item label="折扣">¥{{ invoiceDetail.discount_amount || 0 }}</el-descriptions-item>
-                <el-descriptions-item label="原因">{{ invoiceDetail.billing_reason }}</el-descriptions-item>
-                <el-descriptions-item label="创建时间">{{ formatTime(invoiceDetail.created_at) }}</el-descriptions-item>
-                <el-descriptions-item label="支付时间">{{ invoiceDetail.paid_at ? formatTime(invoiceDetail.paid_at) : '—' }}</el-descriptions-item>
-                <el-descriptions-item label="到期时间">{{ invoiceDetail.due_at ? formatTime(invoiceDetail.due_at) : '—' }}</el-descriptions-item>
+                <el-descriptions-item :label="t('billing_page.col_amount')">¥{{ invoiceDetail.amount }}</el-descriptions-item>
+                <el-descriptions-item :label="t('billing_page.col_discount')">¥{{ invoiceDetail.discount_amount || 0 }}</el-descriptions-item>
+                <el-descriptions-item :label="t('billing_page.col_reason')">{{ invoiceDetail.billing_reason }}</el-descriptions-item>
+                <el-descriptions-item :label="t('billing_page.col_created')">{{ formatTime(invoiceDetail.created_at) }}</el-descriptions-item>
+                <el-descriptions-item :label="t('billing_page.col_paid_at')">{{ invoiceDetail.paid_at ? formatTime(invoiceDetail.paid_at) : emDash }}</el-descriptions-item>
+                <el-descriptions-item :label="t('billing_page.col_due_at')">{{ invoiceDetail.due_at ? formatTime(invoiceDetail.due_at) : emDash }}</el-descriptions-item>
             </el-descriptions>
             <template #footer>
-                <el-button @click="showInvoiceDetail = false">关闭</el-button>
+                <el-button @click="showInvoiceDetail = false">{{ t('actions.close') }}</el-button>
             </template>
         </el-dialog>
 
-        <!-- 优惠券使用记录 Dialog -->
-        <el-dialog v-model="showRedemption" :title="'优惠券使用记录 - ' + (redemptionCoupon?.code || '')" width="650px">
+        <!-- Coupon redemption dialog -->
+        <el-dialog v-model="showRedemption" :title="t('billing_page.dialog_redemption_title', { code: redemptionCoupon?.code || '' })" width="650px">
             <el-table :data="redemptions" v-loading="loadingRedemptions" stripe max-height="400">
-                <el-table-column label="客户" min-width="130">
-                    <template #default="{ row }">{{ row.customer?.user?.name || '—' }}</template>
+                <el-table-column :label="t('billing_page.col_customer')" min-width="130">
+                    <template #default="{ row }">{{ row.customer?.user?.name || emDash }}</template>
                 </el-table-column>
-                <el-table-column label="订阅方案" width="100">
-                    <template #default="{ row }">{{ row.subscription?.plan || '—' }}</template>
+                <el-table-column :label="t('billing_page.col_sub_plan')" width="100">
+                    <template #default="{ row }">{{ row.subscription?.plan || emDash }}</template>
                 </el-table-column>
-                <el-table-column label="折扣金额" width="110">
+                <el-table-column :label="t('billing_page.col_discount_amount')" width="110">
                     <template #default="{ row }">¥{{ row.discount_amount }}</template>
                 </el-table-column>
-                <el-table-column label="原始金额" width="110">
+                <el-table-column :label="t('billing_page.col_original_amount')" width="110">
                     <template #default="{ row }">¥{{ row.original_amount }}</template>
                 </el-table-column>
-                <el-table-column label="最终金额" width="110">
+                <el-table-column :label="t('billing_page.col_final_amount')" width="110">
                     <template #default="{ row }">¥{{ row.final_amount }}</template>
                 </el-table-column>
-                <el-table-column label="使用时间" width="170">
+                <el-table-column :label="t('billing_page.col_used_at')" width="170">
                     <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
                 </el-table-column>
             </el-table>
             <template #footer>
-                <el-button @click="showRedemption = false">关闭</el-button>
+                <el-button @click="showRedemption = false">{{ t('actions.close') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -592,6 +589,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Coin, CircleClose, CircleCheck, Refresh, ArrowLeft } from '@element-plus/icons-vue'
 import billingApi from '@/api/billing'
@@ -599,6 +597,7 @@ import customerApi from '@/api/customer'
 import productApi from '@/api/product'
 
 const router = useRouter()
+const { t, locale } = useI18n()
 
 // ── State ──
 const activeTab = ref('subscriptions')
@@ -673,38 +672,78 @@ const loadingRedemptions = ref(false)
 
 // ── Computed ──
 const couponStats = computed(() => couponStatsData)
+const emDash = '—'
+
+const billingPeriodOptions = computed(() => [
+    { label: t('billing_page.period_monthly'), value: 'monthly' },
+    { label: t('billing_page.period_quarterly'), value: 'quarterly' },
+    { label: t('billing_page.period_semi_annually'), value: 'semi_annually' },
+    { label: t('billing_page.period_yearly'), value: 'yearly' },
+])
+
+const couponTypeOptions = computed(() => [
+    { label: t('billing_page.coupon_percentage'), value: 'percentage' },
+    { label: t('billing_page.coupon_fixed'), value: 'fixed_amount' },
+    { label: t('billing_page.coupon_free_trial'), value: 'free_trial' },
+])
+
+const periodLabels = computed(() => ({
+    monthly: t('billing_page.period_short_monthly'),
+    quarterly: t('billing_page.period_short_quarterly'),
+    semi_annually: t('billing_page.period_short_semi_annually'),
+    yearly: t('billing_page.period_short_yearly'),
+}))
+
+const subscriptionStatusLabels = computed(() => ({
+    active: t('billing_page.sub_active'),
+    grace: t('billing_page.sub_grace'),
+    expired: t('billing_page.sub_expired'),
+    canceled: t('billing_page.sub_canceled'),
+    suspended: t('billing_page.sub_suspended'),
+    trialing: t('billing_page.sub_trialing'),
+}))
+
+const invoiceStatusLabels = computed(() => ({
+    paid: t('billing_page.inv_paid'),
+    pending: t('billing_page.inv_pending'),
+    cancelled: t('billing_page.inv_cancelled'),
+    refunded: t('billing_page.inv_refunded'),
+}))
+
+const couponTypeLabels = computed(() => ({
+    percentage: t('billing_page.coupon_percentage'),
+    fixed_amount: t('billing_page.coupon_fixed'),
+    free_trial: t('billing_page.coupon_free_trial'),
+    custom: t('billing_page.coupon_custom'),
+}))
 
 // ── Methods ──
 
-// Period labels
 function periodLabel(p) {
-    const map = { monthly: '月', quarterly: '季', semi_annually: '半年', yearly: '年' }
-    return map[p] || p
+    return periodLabels.value[p] || p
 }
 function statusType(s) {
     const map = { active: 'success', grace: 'warning', expired: 'danger', canceled: 'info', suspended: 'info' }
     return map[s] || 'info'
 }
 function statusLabel(s) {
-    const map = { active: '活跃', grace: '宽限期', expired: '已过期', canceled: '已取消', suspended: '已暂停', trialing: '试用中' }
-    return map[s] || s
+    return subscriptionStatusLabels.value[s] || s
 }
 function invoiceStatusType(s) {
     const map = { paid: 'success', pending: 'warning', cancelled: 'info', refunded: 'danger' }
     return map[s] || 'info'
 }
 function invoiceStatusLabel(s) {
-    const map = { paid: '已支付', pending: '待支付', cancelled: '已取消', refunded: '已退款' }
-    return map[s] || s
+    return invoiceStatusLabels.value[s] || s
 }
-function couponTypeLabel(t) {
-    const map = { percentage: '百分比', fixed_amount: '固定金额', free_trial: '免费试用', custom: '自定义' }
-    return map[t] || t
+function couponTypeLabel(type) {
+    return couponTypeLabels.value[type] || type
 }
 
-function formatTime(t) {
-    if (!t) return '—'
-    return new Date(t).toLocaleString('zh-CN', { hour12: false })
+function formatTime(time) {
+    if (!time) return emDash
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN'
+    return new Date(time).toLocaleString(loc, { hour12: false })
 }
 
 // Fetch data
@@ -728,7 +767,7 @@ async function fetchSubscriptions() {
             subscriptions.value = data.data.data || data.data
         }
     } catch (e) {
-        ElMessage.error('加载订阅列表失败')
+        ElMessage.error(t('billing_page.load_subscriptions_fail'))
     } finally {
         loading.value = false
     }
@@ -744,7 +783,7 @@ async function fetchInvoices() {
             invoices.value = data.data.data || data.data
         }
     } catch (e) {
-        ElMessage.error('加载发票记录失败')
+        ElMessage.error(t('billing_page.load_invoices_fail'))
     } finally {
         loadingInvoices.value = false
     }
@@ -758,7 +797,7 @@ async function fetchPlans() {
             plans.value = data.data.data || data.data
         }
     } catch (e) {
-        ElMessage.error('加载定价方案失败')
+        ElMessage.error(t('billing_page.load_plans_fail'))
     } finally {
         loadingPlans.value = false
     }
@@ -772,7 +811,7 @@ async function fetchCoupons() {
             coupons.value = data.data.data || data.data
         }
     } catch (e) {
-        ElMessage.error('加载优惠券失败')
+        ElMessage.error(t('billing_page.load_coupons_fail'))
     } finally {
         loadingCoupons.value = false
     }
@@ -803,7 +842,7 @@ async function searchCustomers(query) {
 
 async function handleCreate() {
     if (!createForm.customer_id || !createForm.product_id || !createForm.plan_slug) {
-        ElMessage.warning('请填写必要信息')
+        ElMessage.warning(t('billing_page.fill_required'))
         return
     }
     submitting.value = true
@@ -813,7 +852,7 @@ async function handleCreate() {
         if (!payload.license_id) delete payload.license_id
         const { data } = await billingApi.create(payload)
         if (data.success) {
-            ElMessage.success('订阅创建成功')
+            ElMessage.success(t('billing_page.subscription_created'))
             showCreate.value = false
             createForm.customer_id = null
             createForm.product_id = null
@@ -823,10 +862,10 @@ async function handleCreate() {
             fetchSubscriptions()
             fetchStats()
         } else {
-            ElMessage.error(data.message || '创建失败')
+            ElMessage.error(data.message || t('billing_page.create_fail'))
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '创建失败')
+        ElMessage.error(e.response?.data?.message || t('billing_page.create_fail'))
     } finally {
         submitting.value = false
     }
@@ -839,29 +878,36 @@ function viewSubscription(row) {
 
 async function handleCancel(row) {
     try {
-        await ElMessageBox.confirm(`确定取消 ${row.customer?.name || ''} 的订阅？`, '确认', { type: 'warning' })
-        const { data } = await billingApi.cancel(row.id, '管理员取消')
+        await ElMessageBox.confirm(
+            t('billing_page.cancel_confirm', { name: row.customer?.name || '' }),
+            t('actions.confirm'),
+            { type: 'warning' },
+        )
+        const { data } = await billingApi.cancel(row.id, t('billing_page.admin_cancel_reason'))
         if (data.success) {
-            ElMessage.success('订阅已取消')
+            ElMessage.success(t('billing_page.subscription_canceled'))
             fetchSubscriptions()
             fetchStats()
         }
     } catch (e) {
-        if (e !== 'cancel') ElMessage.error('取消失败')
+        if (e !== 'cancel') ElMessage.error(t('billing_page.cancel_fail'))
     }
 }
 
 async function handleResume(row) {
     try {
-        await ElMessageBox.confirm(`确定恢复 ${row.customer?.name || ''} 的订阅？`, '确认')
+        await ElMessageBox.confirm(
+            t('billing_page.resume_confirm', { name: row.customer?.name || '' }),
+            t('actions.confirm'),
+        )
         const { data } = await billingApi.resume(row.id)
         if (data.success) {
-            ElMessage.success('订阅已恢复')
+            ElMessage.success(t('billing_page.subscription_resumed'))
             fetchSubscriptions()
             fetchStats()
         }
     } catch (e) {
-        if (e !== 'cancel') ElMessage.error('恢复失败')
+        if (e !== 'cancel') ElMessage.error(t('billing_page.resume_fail'))
     }
 }
 
@@ -908,7 +954,7 @@ function resetPlanForm() {
 
 async function handleSavePlan() {
     if (!planForm.slug || !planForm.name) {
-        ElMessage.warning('请填写方案标识和名称')
+        ElMessage.warning(t('billing_page.fill_plan_required'))
         return
     }
     planSubmitting.value = true
@@ -927,14 +973,14 @@ async function handleSavePlan() {
             res = await billingApi.createPlan(payload)
         }
         if (res.data.success) {
-            ElMessage.success(planForm.id ? '方案已更新' : '方案已创建')
+            ElMessage.success(planForm.id ? t('billing_page.plan_updated') : t('billing_page.plan_created'))
             showPlanForm.value = false
             fetchPlans()
         } else {
-            ElMessage.error(res.data.message || '操作失败')
+            ElMessage.error(res.data.message || t('messages.failed'))
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '操作失败')
+        ElMessage.error(e.response?.data?.message || t('messages.failed'))
     } finally {
         planSubmitting.value = false
     }
@@ -942,16 +988,20 @@ async function handleSavePlan() {
 
 async function handleDeletePlan(row) {
     try {
-        await ElMessageBox.confirm(`确定停用定价方案「${row.name}」？`, '确认', { type: 'warning' })
+        await ElMessageBox.confirm(
+            t('billing_page.deactivate_plan_confirm', { name: row.name }),
+            t('actions.confirm'),
+            { type: 'warning' },
+        )
         const { data } = await billingApi.deletePlan(row.id)
         if (data.success) {
-            ElMessage.success('方案已停用')
+            ElMessage.success(t('billing_page.plan_deactivated'))
             fetchPlans()
         } else {
-            ElMessage.error(data.message || '停用失败')
+            ElMessage.error(data.message || t('billing_page.deactivate_fail'))
         }
     } catch (e) {
-        if (e !== 'cancel') ElMessage.error('操作失败')
+        if (e !== 'cancel') ElMessage.error(t('messages.failed'))
     }
 }
 
@@ -1002,7 +1052,7 @@ function resetCouponForm() {
 
 async function handleSaveCoupon() {
     if (!couponForm.code || !couponForm.name || !couponForm.type) {
-        ElMessage.warning('请填写必要信息')
+        ElMessage.warning(t('billing_page.fill_required'))
         return
     }
     couponSubmitting.value = true
@@ -1019,15 +1069,15 @@ async function handleSaveCoupon() {
             res = await billingApi.createCoupon(payload)
         }
         if (res.data.success) {
-            ElMessage.success(couponForm.id ? '优惠券已更新' : '优惠券已创建')
+            ElMessage.success(couponForm.id ? t('billing_page.coupon_updated') : t('billing_page.coupon_created'))
             showCouponForm.value = false
             fetchCoupons()
             fetchCouponStats()
         } else {
-            ElMessage.error(res.data.message || '操作失败')
+            ElMessage.error(res.data.message || t('messages.failed'))
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '操作失败')
+        ElMessage.error(e.response?.data?.message || t('messages.failed'))
     } finally {
         couponSubmitting.value = false
     }
@@ -1042,7 +1092,7 @@ async function viewInvoice(row) {
             showInvoiceDetail.value = true
         }
     } catch (e) {
-        ElMessage.error('加载发票详情失败')
+        ElMessage.error(t('billing_page.load_invoice_fail'))
     }
 }
 
@@ -1057,7 +1107,7 @@ async function showCouponRedemptions(row) {
             redemptions.value = data.data.data || data.data || []
         }
     } catch (e) {
-        ElMessage.error('加载使用记录失败')
+        ElMessage.error(t('billing_page.load_redemptions_fail'))
     } finally {
         loadingRedemptions.value = false
     }
@@ -1146,6 +1196,20 @@ onMounted(async () => {
 .py-8 { padding-top: 32px; padding-bottom: 32px; }
 .tab-header { display: flex; justify-content: flex-end; }
 </style>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

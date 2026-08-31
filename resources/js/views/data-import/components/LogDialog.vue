@@ -1,31 +1,31 @@
 <template>
-  <el-dialog v-model="visible" title="导入日志" width="900px" destroy-on-close>
+  <el-dialog v-model="visible" :title="t('import_log_dialog.title')" width="900px" destroy-on-close>
     <div class="mb-4">
       <el-radio-group v-model="filterLevel" size="small" @change="fetchLogs">
-        <el-radio-button label="">全部</el-radio-button>
-        <el-radio-button label="info">成功</el-radio-button>
-        <el-radio-button label="warning">警告</el-radio-button>
-        <el-radio-button label="error">错误</el-radio-button>
+        <el-radio-button label="">{{ t('import_log_dialog.all') }}</el-radio-button>
+        <el-radio-button label="info">{{ t('import_log_dialog.success') }}</el-radio-button>
+        <el-radio-button label="warning">{{ t('import_log_dialog.warning') }}</el-radio-button>
+        <el-radio-button label="error">{{ t('import_log_dialog.error') }}</el-radio-button>
       </el-radio-group>
     </div>
     <el-table :data="logs" size="small" v-loading="loading" max-height="480" border stripe>
       <el-table-column label="#" type="index" width="50" />
-      <el-table-column prop="row_number" label="行号" width="70" align="center" />
-      <el-table-column label="级别" width="70" align="center">
+      <el-table-column prop="row_number" :label="t('import_log_dialog.cols.row')" width="70" align="center" />
+      <el-table-column :label="t('import_log_dialog.cols.level')" width="70" align="center">
         <template #default="{ row }">
           <el-tag :type="row.level === 'error' ? 'danger' : row.level === 'warning' ? 'warning' : 'success'" size="small">
             {{ row.level }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="action" label="操作" width="80" align="center" />
-      <el-table-column prop="message" label="消息" min-width="200" show-overflow-tooltip />
-      <el-table-column label="原始数据" min-width="160">
+      <el-table-column prop="action" :label="t('import_log_dialog.cols.action')" width="80" align="center" />
+      <el-table-column prop="message" :label="t('import_log_dialog.cols.message')" min-width="200" show-overflow-tooltip />
+      <el-table-column :label="t('import_log_dialog.cols.raw')" min-width="160">
         <template #default="{ row }">
           <pre class="log-data">{{ JSON.stringify(row.original_data, null, 1)?.slice(0, 100) }}</pre>
         </template>
       </el-table-column>
-      <el-table-column prop="created_at" label="时间" width="140" />
+      <el-table-column prop="created_at" :label="t('import_log_dialog.cols.time')" width="140" />
     </el-table>
     <div v-if="total > perPage" class="mt-4 text-center">
       <el-pagination v-model:page="page" :total="total" :page-size="perPage" layout="prev, pager, next"
@@ -36,8 +36,10 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getImportLogs } from '../../../api/dataImport'
 
+const { t } = useI18n()
 const visible = ref(false)
 const loading = ref(false)
 const taskId = ref(null)

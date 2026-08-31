@@ -1,14 +1,14 @@
 <template>
     <el-dialog
         v-model="visible"
-        :title="uploadType === 'package' ? '上传安装包' : '上传截图'"
+        :title="uploadType === 'package' ? t('marketplace_uploader.title_package') : t('marketplace_uploader.title_screenshot')"
         width="500px"
         :close-on-click-modal="false"
         @closed="resetForm"
     >
         <el-alert v-if="uploadedFile" type="success" :closable="false" class="mb-4">
             <template #title>
-                <div>上传成功！</div>
+                <div>{{ t('marketplace_uploader.success_title') }}</div>
                 <div class="text-muted small">{{ uploadedFile.original_name }} ({{ formatSize(uploadedFile.size) }})</div>
             </template>
         </el-alert>
@@ -24,37 +24,37 @@
         >
             <el-icon class="upload-icon" :size="40"><UploadFilled /></el-icon>
             <div class="upload-text" v-if="uploadType === 'package'">
-                将 APK / IPA / AppImage 安装包拖拽到此处，或 <em>点击选择文件</em>
+                {{ t('marketplace_uploader.drag_package') }} <em>{{ t('marketplace_uploader.click_select') }}</em>
             </div>
             <div class="upload-text" v-else>
-                将应用截图拖拽到此处，或 <em>点击选择文件</em>
+                {{ t('marketplace_uploader.drag_screenshot') }} <em>{{ t('marketplace_uploader.click_select') }}</em>
             </div>
             <template #tip>
                 <div class="upload-tip" v-if="uploadType === 'package'">
-                    支持格式：APK / IPA / AppImage，最大 500MB
+                    {{ t('marketplace_uploader.tip_package') }}
                 </div>
                 <div class="upload-tip" v-else>
-                    支持格式：JPG / PNG / WebP，最大 5MB
+                    {{ t('marketplace_uploader.tip_screenshot') }}
                 </div>
             </template>
         </el-upload>
 
         <div v-if="uploadResult" class="result-box">
-            <div class="result-label">文件 URL：</div>
+            <div class="result-label">{{ t('marketplace_uploader.file_url') }}</div>
             <el-input :model-value="uploadResult.url" readonly>
                 <template #append>
-                    <el-button @click="copyUrl(uploadResult.url)">复制</el-button>
+                    <el-button @click="copyUrl(uploadResult.url)">{{ t('marketplace_uploader.copy') }}</el-button>
                 </template>
             </el-input>
         </div>
 
         <template #footer>
-            <el-button @click="visible = false">关闭</el-button>
+            <el-button @click="visible = false">{{ t('marketplace_uploader.close') }}</el-button>
             <el-button v-if="!uploadedFile" type="primary" :loading="uploading" @click="startUpload">
-                {{ selectedFile ? '开始上传' : '请选择文件' }}
+                {{ selectedFile ? t('marketplace_uploader.start') : t('marketplace_uploader.select_file') }}
             </el-button>
             <el-button v-else type="primary" @click="confirmResult">
-                使用此文件
+                {{ t('marketplace_uploader.use_file') }}
             </el-button>
         </template>
     </el-dialog>
@@ -62,9 +62,12 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { UploadFilled } from '@element-plus/icons-vue';
 import api from '@/api/openPlatform';
+
+const { t } = useI18n();
 
 const props = defineProps({
     uploadType: { type: String, default: 'package' }, // package / screenshot
@@ -101,7 +104,7 @@ function handleFileChange(file) {
 
 async function startUpload() {
     if (!selectedFile.value) {
-        ElMessage.warning('请先选择文件');
+        ElMessage.warning(t('marketplace_uploader.select_first'));
         return;
     }
 
@@ -116,10 +119,10 @@ async function startUpload() {
         if (res.success) {
             uploadedFile.value = res.data;
             uploadResult.value = res.data;
-            ElMessage.success('上传成功');
+            ElMessage.success(t('marketplace_uploader.upload_ok'));
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '上传失败');
+        ElMessage.error(e.response?.data?.message || t('marketplace_uploader.upload_fail'));
     } finally {
         uploading.value = false;
     }
@@ -134,7 +137,7 @@ function confirmResult() {
 
 function copyUrl(url) {
     navigator.clipboard.writeText(url).then(() => {
-        ElMessage.success('已复制到剪贴板');
+        ElMessage.success(t('marketplace_uploader.copied'));
     });
 }
 
@@ -153,7 +156,7 @@ defineExpose({ open });
 <style scoped>
 .upload-icon { margin-bottom: 8px; }
 .upload-text { font-size: 14px; color: #606266; }
-.upload-text em { color: #409eff; font-style: normal; }
+.upload-text em { color: #0f172a; font-style: normal; }
 .upload-tip { font-size: 12px; color: #909399; margin-top: 4px; }
 .mb-4 { margin-bottom: 16px; }
 .small { font-size: 12px; }

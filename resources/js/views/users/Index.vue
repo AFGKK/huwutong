@@ -1,6 +1,5 @@
 <template>
     <div class="users-page">
-        <!-- 统计卡片 -->
         <el-row :gutter="16" class="mb-4">
             <el-col :span="4" v-for="card in statCards" :key="card.label">
                 <el-card shadow="never" :body-style="{ padding: '16px' }">
@@ -12,14 +11,13 @@
             </el-col>
         </el-row>
 
-        <!-- 筛选与操作栏 -->
         <el-card shadow="never">
             <div class="toolbar">
                 <el-form :inline="true" :model="filters" size="small">
                     <el-form-item>
                         <el-input
                             v-model="filters.search"
-                            placeholder="搜索用户（姓名/邮箱/手机）"
+                            :placeholder="t('users_page.search_ph')"
                             clearable
                             @clear="fetchUsers"
                             @keyup.enter="fetchUsers"
@@ -31,34 +29,33 @@
                         </el-input>
                     </el-form-item>
                     <el-form-item>
-                        <el-select v-model="filters['filter.status']" placeholder="状态" clearable @change="fetchUsers" style="width: 120px">
-                            <el-option label="活跃" value="active" />
-                            <el-option label="已停用" value="inactive" />
-                            <el-option label="已锁定" value="locked" />
+                        <el-select v-model="filters['filter.status']" :placeholder="t('users_page.status')" clearable @change="fetchUsers" style="width: 120px">
+                            <el-option :label="t('users_page.st_active')" value="active" />
+                            <el-option :label="t('users_page.st_inactive')" value="inactive" />
+                            <el-option :label="t('users_page.st_locked')" value="locked" />
                         </el-select>
                     </el-form-item>
                     <el-form-item v-if="isSuperAdmin">
-                        <el-select v-model="filters['filter.tenant_id']" placeholder="租户" clearable filterable @change="fetchUsers" style="width: 200px">
-                            <el-option v-for="t in tenants" :key="t.id" :label="t.name" :value="t.id" />
+                        <el-select v-model="filters['filter.tenant_id']" :placeholder="t('users_page.tenant')" clearable filterable @change="fetchUsers" style="width: 200px">
+                            <el-option v-for="tn in tenants" :key="tn.id" :label="tn.name" :value="tn.id" />
                         </el-select>
                     </el-form-item>
                     <el-form-item>
                         <el-button type="primary" @click="fetchUsers">
-                            <el-icon><Search /></el-icon>查询
+                            <el-icon><Search /></el-icon>{{ t('users_page.query') }}
                         </el-button>
                     </el-form-item>
                 </el-form>
                 <div class="toolbar-actions">
                     <el-button type="primary" @click="openCreate">
-                        <el-icon><Plus /></el-icon>新建用户
+                        <el-icon><Plus /></el-icon>{{ t('users_page.create') }}
                     </el-button>
                 </div>
             </div>
 
-            <!-- 用户表格 -->
             <el-table :data="users" v-loading="loading" stripe style="width: 100%">
                 <el-table-column prop="id" label="ID" width="60" />
-                <el-table-column label="用户" min-width="180">
+                <el-table-column :label="t('users_page.col_user')" min-width="180">
                     <template #default="{ row }">
                         <div class="user-cell">
                             <el-avatar :size="28" :src="row.avatar_url">
@@ -72,13 +69,13 @@
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column prop="phone" label="手机" width="130" />
-                <el-table-column label="租户" width="150" v-if="isSuperAdmin">
+                <el-table-column prop="phone" :label="t('users_page.col_phone')" width="130" />
+                <el-table-column :label="t('users_page.tenant')" width="150" v-if="isSuperAdmin">
                     <template #default="{ row }">
                         {{ row.tenant?.name || '-' }}
                     </template>
                 </el-table-column>
-                <el-table-column label="角色" width="180">
+                <el-table-column :label="t('users_page.col_roles')" width="180">
                     <template #default="{ row }">
                         <el-tag
                             v-for="role in row.roles"
@@ -92,24 +89,24 @@
                         <span v-if="!row.roles?.length" class="no-role">-</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="状态" width="100">
+                <el-table-column :label="t('users_page.status')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="row.status === 'active' ? 'success' : row.status === 'locked' ? 'danger' : 'info'" size="small">
-                            {{ row.status === 'active' ? '活跃' : row.status === 'locked' ? '已锁定' : '已停用' }}
+                            {{ row.status === 'active' ? t('users_page.st_active') : row.status === 'locked' ? t('users_page.st_locked') : t('users_page.st_inactive') }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="last_login_at" label="最后登录" width="170">
+                <el-table-column prop="last_login_at" :label="t('users_page.col_last_login')" width="170">
                     <template #default="{ row }">
                         <span v-if="row.last_login_at">{{ row.last_login_at }}</span>
-                        <span v-else class="no-login">从未登录</span>
+                        <span v-else class="no-login">{{ t('users_page.never_login') }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="created_at" label="创建时间" width="170" />
-                <el-table-column label="操作" width="200" fixed="right">
+                <el-table-column prop="created_at" :label="t('users_page.col_created')" width="170" />
+                <el-table-column :label="t('users_page.col_actions')" width="200" fixed="right">
                     <template #default="{ row }">
-                        <el-button text size="small" type="primary" @click="openEdit(row)">编辑</el-button>
-                        <el-button text size="small" type="warning" @click="handleResetPassword(row)" v-if="row.id !== currentUserId">改密</el-button>
+                        <el-button text size="small" type="primary" @click="openEdit(row)">{{ t('users_page.edit') }}</el-button>
+                        <el-button text size="small" type="warning" @click="handleResetPassword(row)" v-if="row.id !== currentUserId">{{ t('users_page.reset_pwd') }}</el-button>
                         <el-button
                             text
                             size="small"
@@ -117,13 +114,12 @@
                             @click="handleToggleStatus(row)"
                             v-if="row.id !== currentUserId"
                         >
-                            {{ row.status === 'active' ? '停用' : '启用' }}
+                            {{ row.status === 'active' ? t('users_page.deactivate') : t('users_page.activate') }}
                         </el-button>
                     </template>
                 </el-table-column>
             </el-table>
 
-            <!-- 分页 -->
             <div class="pagination-wrap">
                 <el-pagination
                     v-model:current-page="page"
@@ -136,57 +132,55 @@
             </div>
         </el-card>
 
-        <!-- 创建/编辑对话框 -->
-        <el-dialog v-model="showDialog" :title="isEditing ? '编辑用户' : '新建用户'" width="520px">
+        <el-dialog v-model="showDialog" :title="isEditing ? t('users_page.edit_title') : t('users_page.create_title')" width="520px">
             <el-form ref="formRef" :model="form" :rules="formRules" label-width="100px">
-                <el-form-item label="姓名" prop="name">
-                    <el-input v-model="form.name" placeholder="输入用户姓名" />
+                <el-form-item :label="t('users_page.name')" prop="name">
+                    <el-input v-model="form.name" :placeholder="t('users_page.name_ph')" />
                 </el-form-item>
-                <el-form-item label="邮箱" prop="email">
-                    <el-input v-model="form.email" placeholder="输入邮箱地址" :disabled="isEditing" />
+                <el-form-item :label="t('users_page.email')" prop="email">
+                    <el-input v-model="form.email" :placeholder="t('users_page.email_ph')" :disabled="isEditing" />
                 </el-form-item>
-                <el-form-item label="手机" prop="phone">
-                    <el-input v-model="form.phone" placeholder="输入手机号码" />
+                <el-form-item :label="t('users_page.phone')" prop="phone">
+                    <el-input v-model="form.phone" :placeholder="t('users_page.phone_ph')" />
                 </el-form-item>
-                <el-form-item label="密码" prop="password" v-if="!isEditing">
-                    <el-input v-model="form.password" type="password" placeholder="至少 8 位" show-password />
+                <el-form-item :label="t('users_page.password')" prop="password" v-if="!isEditing">
+                    <el-input v-model="form.password" type="password" :placeholder="t('users_page.password_ph')" show-password />
                 </el-form-item>
-                <el-form-item label="状态" prop="status">
+                <el-form-item :label="t('users_page.status')" prop="status">
                     <el-radio-group v-model="form.status">
-                        <el-radio value="active">活跃</el-radio>
-                        <el-radio value="inactive">停用</el-radio>
+                        <el-radio value="active">{{ t('users_page.st_active') }}</el-radio>
+                        <el-radio value="inactive">{{ t('users_page.deactivate') }}</el-radio>
                     </el-radio-group>
                 </el-form-item>
-                <el-form-item label="角色" prop="roles">
-                    <el-select v-model="form.roles" multiple placeholder="选择角色" style="width: 100%">
+                <el-form-item :label="t('users_page.roles')" prop="roles">
+                    <el-select v-model="form.roles" multiple :placeholder="t('users_page.roles_ph')" style="width: 100%">
                         <el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="租户" prop="tenant_id" v-if="isSuperAdmin && !isEditing">
-                    <el-select v-model="form.tenant_id" placeholder="选择租户" filterable style="width: 100%">
-                        <el-option v-for="t in tenants" :key="t.id" :label="t.name" :value="t.id" />
+                <el-form-item :label="t('users_page.tenant')" prop="tenant_id" v-if="isSuperAdmin && !isEditing">
+                    <el-select v-model="form.tenant_id" :placeholder="t('users_page.tenant_ph')" filterable style="width: 100%">
+                        <el-option v-for="tn in tenants" :key="tn.id" :label="tn.name" :value="tn.id" />
                     </el-select>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showDialog = false">取消</el-button>
-                <el-button type="primary" :loading="submitting" @click="confirmSubmit">{{ isEditing ? '保存修改' : '创建用户' }}</el-button>
+                <el-button @click="showDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="submitting" @click="confirmSubmit">{{ isEditing ? t('users_page.save') : t('users_page.create_btn') }}</el-button>
             </template>
         </el-dialog>
 
-        <!-- 重置密码对话框 -->
-        <el-dialog v-model="showPasswordDialog" title="重置密码" width="400px">
+        <el-dialog v-model="showPasswordDialog" :title="t('users_page.reset_title')" width="400px">
             <el-form ref="pwdFormRef" :model="pwdForm" :rules="pwdRules" label-width="100px">
-                <el-form-item label="新密码" prop="password">
-                    <el-input v-model="pwdForm.password" type="password" placeholder="至少 8 位" show-password />
+                <el-form-item :label="t('users_page.new_password')" prop="password">
+                    <el-input v-model="pwdForm.password" type="password" :placeholder="t('users_page.password_ph')" show-password />
                 </el-form-item>
-                <el-form-item label="确认密码" prop="password_confirmation">
-                    <el-input v-model="pwdForm.password_confirmation" type="password" placeholder="再次输入新密码" show-password />
+                <el-form-item :label="t('users_page.confirm_password')" prop="password_confirmation">
+                    <el-input v-model="pwdForm.password_confirmation" type="password" :placeholder="t('users_page.confirm_ph')" show-password />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showPasswordDialog = false">取消</el-button>
-                <el-button type="primary" :loading="submittingPwd" @click="confirmResetPassword">确认重置</el-button>
+                <el-button @click="showPasswordDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="submittingPwd" @click="confirmResetPassword">{{ t('users_page.confirm_reset') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -194,26 +188,26 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus } from '@element-plus/icons-vue';
 import adminUserApi from '@/api/adminUser';
 import { useAuthStore } from '@/stores/auth';
 
+const { t } = useI18n();
 const authStore = useAuthStore();
 const currentUserId = computed(() => authStore.user?.id);
 const isSuperAdmin = computed(() => authStore.userRoles?.includes('super-admin'));
 
-// ─── 统计卡片 ───
 const stats = reactive({ total: 0, active: 0, inactive: 0, locked: 0, recent_logins: 0 });
 const statCards = computed(() => [
-    { label: '总用户', value: stats.total, color: '#409eff' },
-    { label: '活跃', value: stats.active, color: '#67c23a' },
-    { label: '已停用', value: stats.inactive, color: '#909399' },
-    { label: '已锁定', value: stats.locked, color: '#f56c6c' },
-    { label: '7 天内登录', value: stats.recent_logins, color: '#e6a23c' },
+    { label: t('users_page.stat_total'), value: stats.total, color: '#0f172a' },
+    { label: t('users_page.stat_active'), value: stats.active, color: '#67c23a' },
+    { label: t('users_page.stat_inactive'), value: stats.inactive, color: '#909399' },
+    { label: t('users_page.stat_locked'), value: stats.locked, color: '#f56c6c' },
+    { label: t('users_page.stat_recent'), value: stats.recent_logins, color: '#e6a23c' },
 ]);
 
-// ─── 列表 ───
 const users = ref([]);
 const loading = ref(false);
 const page = ref(1);
@@ -230,8 +224,7 @@ const tenants = ref([]);
 
 async function fetchRoles() {
     try {
-        const res = await adminUserApi.list({ per_page: 999 });
-        // roles from PermissionController
+        await adminUserApi.list({ per_page: 999 });
         const rolesRes = await import('@/api/permission').then(m => m.default.roles());
         roles.value = rolesRes.data?.data || [];
     } catch {
@@ -257,7 +250,6 @@ async function fetchUsers() {
             per_page: perPage.value,
             ...filters,
         };
-        // 移除空筛选
         Object.keys(params).forEach(k => { if (!params[k] && params[k] !== false) delete params[k]; });
 
         const [usersRes, statsRes] = await Promise.all([
@@ -269,13 +261,12 @@ async function fetchUsers() {
         total.value = usersRes.data?.meta?.total || usersRes.data?.total || 0;
         Object.assign(stats, statsRes.data?.data || statsRes.data || {});
     } catch {
-        ElMessage.error('获取用户列表失败');
+        ElMessage.error(t('users_page.load_fail'));
     } finally {
         loading.value = false;
     }
 }
 
-// ─── 创建 / 编辑 ───
 const showDialog = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
@@ -292,14 +283,14 @@ const form = reactive({
     tenant_id: null,
 });
 
-const formRules = {
-    name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+const formRules = computed(() => ({
+    name: [{ required: true, message: t('users_page.name_required'), trigger: 'blur' }],
     email: [
-        { required: true, message: '请输入邮箱', trigger: 'blur' },
-        { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
+        { required: true, message: t('users_page.email_required'), trigger: 'blur' },
+        { type: 'email', message: t('users_page.email_invalid'), trigger: 'blur' },
     ],
-    password: [{ min: 8, message: '密码至少 8 位', trigger: 'blur' }],
-};
+    password: [{ min: 8, message: t('users_page.password_min'), trigger: 'blur' }],
+}));
 
 function openCreate() {
     isEditing.value = false;
@@ -310,7 +301,7 @@ function openCreate() {
     form.password = '';
     form.status = 'active';
     form.roles = [];
-    form.tenant_id = isSuperAdmin.value ? null : null;
+    form.tenant_id = null;
     showDialog.value = true;
 }
 
@@ -345,41 +336,40 @@ async function confirmSubmit() {
                 payload.tenant_id = form.tenant_id;
             }
             await adminUserApi.create(payload);
-            ElMessage.success('用户创建成功');
+            ElMessage.success(t('users_page.create_ok'));
         } else {
             if (form.password) payload.password = form.password;
             await adminUserApi.update(editingId.value, payload);
-            ElMessage.success('用户更新成功');
+            ElMessage.success(t('users_page.update_ok'));
         }
         showDialog.value = false;
         await fetchUsers();
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '操作失败');
+        ElMessage.error(err.response?.data?.message || t('users_page.action_fail'));
     } finally {
         submitting.value = false;
     }
 }
 
-// ─── 重置密码 ───
 const showPasswordDialog = ref(false);
 const pwdForm = reactive({ password: '', password_confirmation: '' });
 const submittingPwd = ref(false);
 const pwdFormRef = ref(null);
 const resettingUserId = ref(null);
 
-const pwdRules = {
+const pwdRules = computed(() => ({
     password: [
-        { required: true, message: '请输入新密码', trigger: 'blur' },
-        { min: 8, message: '密码至少 8 位', trigger: 'blur' },
+        { required: true, message: t('users_page.pwd_required'), trigger: 'blur' },
+        { min: 8, message: t('users_page.password_min'), trigger: 'blur' },
     ],
     password_confirmation: [
-        { required: true, message: '请确认新密码', trigger: 'blur' },
+        { required: true, message: t('users_page.pwd_confirm_required'), trigger: 'blur' },
         {
-            validator: (_, value) => value === pwdForm.password ? Promise.resolve() : Promise.reject(new Error('两次密码输入不一致')),
+            validator: (_, value) => value === pwdForm.password ? Promise.resolve() : Promise.reject(new Error(t('users_page.pwd_mismatch'))),
             trigger: 'blur',
         },
     ],
-};
+}));
 
 function handleResetPassword(row) {
     resettingUserId.value = row.id;
@@ -398,22 +388,21 @@ async function confirmResetPassword() {
             password: pwdForm.password,
             password_confirmation: pwdForm.password_confirmation,
         });
-        ElMessage.success('密码已重置');
+        ElMessage.success(t('users_page.pwd_ok'));
         showPasswordDialog.value = false;
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '密码重置失败');
+        ElMessage.error(err.response?.data?.message || t('users_page.pwd_fail'));
     } finally {
         submittingPwd.value = false;
     }
 }
 
-// ─── 启用/停用 ───
 async function handleToggleStatus(row) {
-    const action = row.status === 'active' ? '停用' : '启用';
+    const action = row.status === 'active' ? t('users_page.deactivate') : t('users_page.activate');
     try {
-        await ElMessageBox.confirm(`确定要${action}用户「${row.name}」吗？`, '确认操作', { type: 'warning' });
+        await ElMessageBox.confirm(t('users_page.toggle_confirm', { action, name: row.name }), t('users_page.toggle_title'), { type: 'warning' });
         await adminUserApi.toggleStatus(row.id);
-        ElMessage.success(`用户已${action}`);
+        ElMessage.success(t('users_page.toggle_ok', { action }));
         await fetchUsers();
     } catch {
         // cancelled

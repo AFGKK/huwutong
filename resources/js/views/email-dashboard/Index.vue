@@ -21,7 +21,7 @@
                         <div class="stat-value" :class="trend.direction === 'up' ? 'success' : 'danger'">
                             {{ trend.direction === 'up' ? '↑' : '↓' }} {{ Math.abs(trend.change_percent) }}%
                         </div>
-                        <div class="stat-label">本周 vs 上周</div>
+                        <div class="stat-label">{{ t('email_dashboard_page.trend_week_vs_last') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -29,7 +29,7 @@
                 <el-card shadow="never" :body-style="{ padding: '16px' }">
                     <div class="stat-card">
                         <div class="stat-value">{{ bounceAnalysis.total ?? '-' }}</div>
-                        <div class="stat-label">总退信数</div>
+                        <div class="stat-label">{{ t('email_dashboard_page.total_bounces') }}</div>
                         <div class="stat-rate" v-if="bounceAnalysis.rate !== undefined">{{ bounceAnalysis.rate }}%</div>
                     </div>
                 </el-card>
@@ -38,7 +38,7 @@
                 <el-card shadow="never" :body-style="{ padding: '16px' }">
                     <div class="stat-card">
                         <div class="stat-value info">{{ funnel.queued ?? '-' }}</div>
-                        <div class="stat-label">排队中</div>
+                        <div class="stat-label">{{ t('email_dashboard_page.queued') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -46,7 +46,7 @@
                 <el-card shadow="never" :body-style="{ padding: '16px' }">
                     <div class="stat-card">
                         <div class="stat-value warning">{{ funnel.failed ?? '-' }}</div>
-                        <div class="stat-label">发送失败</div>
+                        <div class="stat-label">{{ t('email_dashboard_page.send_failed') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -56,15 +56,32 @@
             <!-- 按日发送趋势 -->
             <el-col :span="16">
                 <el-card shadow="never">
-                    <template #header><span>近30天发送趋势</span></template>
+                    <template #header><span>{{ t('email_dashboard_page.chart_daily_title') }}</span></template>
                     <div class="chart-placeholder" ref="dailyChartRef">
-                        <div class="chart-empty" v-if="!dailyData.length">暂无数据</div>
+                        <div class="chart-empty" v-if="!dailyData.length">{{ t('messages.no_data') }}</div>
                         <div class="bar-chart" v-else>
-                            <div class="bar-item" v-for="day in dailyData" :key="day.date" :title="`${day.date}: ${day.total} 封`">
+                            <div
+                                class="bar-item"
+                                v-for="day in dailyData"
+                                :key="day.date"
+                                :title="dayTooltip(day)"
+                            >
                                 <div class="bar-stacked">
-                                    <div class="bar-segment bar-bounced" :style="{ height: barHeight(day.bounced, day.total) + '%' }" :title="`退信: ${day.bounced}`"></div>
-                                    <div class="bar-segment bar-opened" :style="{ height: barHeight(day.opened, day.total) + '%' }" :title="`打开: ${day.opened}`"></div>
-                                    <div class="bar-segment bar-delivered" :style="{ height: barHeight(day.delivered, day.total) + '%' }" :title="`投递: ${day.delivered}`"></div>
+                                    <div
+                                        class="bar-segment bar-bounced"
+                                        :style="{ height: barHeight(day.bounced, day.total) + '%' }"
+                                        :title="chartSegmentTooltip('bounced', day.bounced)"
+                                    ></div>
+                                    <div
+                                        class="bar-segment bar-opened"
+                                        :style="{ height: barHeight(day.opened, day.total) + '%' }"
+                                        :title="chartSegmentTooltip('opened', day.opened)"
+                                    ></div>
+                                    <div
+                                        class="bar-segment bar-delivered"
+                                        :style="{ height: barHeight(day.delivered, day.total) + '%' }"
+                                        :title="chartSegmentTooltip('delivered', day.delivered)"
+                                    ></div>
                                 </div>
                                 <div class="bar-label">{{ day.date.slice(5) }}</div>
                             </div>
@@ -76,9 +93,9 @@
             <!-- 按时段分布 -->
             <el-col :span="8">
                 <el-card shadow="never">
-                    <template #header><span>近7天时段分布</span></template>
+                    <template #header><span>{{ t('email_dashboard_page.chart_hourly_title') }}</span></template>
                     <div class="chart-placeholder">
-                        <div class="chart-empty" v-if="!hourlyData.length">暂无数据</div>
+                        <div class="chart-empty" v-if="!hourlyData.length">{{ t('messages.no_data') }}</div>
                         <div class="hourly-chart" v-else>
                             <div class="hour-item" v-for="h in hourlyData" :key="h.hour">
                                 <div class="hour-bar" :style="{ height: barHeight(h.total, maxHourly) + '%' }"></div>
@@ -94,13 +111,13 @@
         <el-card shadow="never">
             <el-tabs v-model="activeTab">
                 <!-- 邮件明细 -->
-                <el-tab-pane label="邮件明细" name="logs">
+                <el-tab-pane :label="t('email_dashboard_page.tabs.logs')" name="logs">
                     <div class="toolbar">
                         <el-form :inline="true" size="small">
                             <el-form-item>
                                 <el-input
                                     v-model="logFilters.search"
-                                    placeholder="搜索收件人 / 主题 / 模板"
+                                    :placeholder="t('email_dashboard_page.search_ph')"
                                     clearable
                                     @clear="fetchLogs"
                                     @keyup.enter="fetchLogs"
@@ -110,59 +127,69 @@
                                 </el-input>
                             </el-form-item>
                             <el-form-item>
-                                <el-select v-model="logFilters['filter.status']" placeholder="状态" clearable @change="fetchLogs" style="width: 120px">
-                                    <el-option label="排队中" value="queued" />
-                                    <el-option label="已发送" value="sent" />
-                                    <el-option label="已投递" value="delivered" />
-                                    <el-option label="已打开" value="opened" />
-                                    <el-option label="退信" value="bounced" />
-                                    <el-option label="失败" value="failed" />
+                                <el-select
+                                    v-model="logFilters['filter.status']"
+                                    :placeholder="t('email_dashboard_page.status_ph')"
+                                    clearable
+                                    @change="fetchLogs"
+                                    style="width: 120px"
+                                >
+                                    <el-option
+                                        v-for="opt in logStatusOptions"
+                                        :key="opt.value"
+                                        :label="opt.label"
+                                        :value="opt.value"
+                                    />
                                 </el-select>
                             </el-form-item>
                             <el-form-item>
                                 <el-select
                                     v-model="logFilters['filter.template_code']"
-                                    placeholder="模板"
+                                    :placeholder="t('email_dashboard_page.template_ph')"
                                     clearable
                                     @change="fetchLogs"
                                     style="width: 160px"
                                 >
-                                    <el-option v-for="t in templateOptions" :key="t.code" :label="t.code" :value="t.code" />
+                                    <el-option v-for="tpl in templateOptions" :key="tpl.code" :label="tpl.code" :value="tpl.code" />
                                 </el-select>
                             </el-form-item>
                             <el-form-item>
-                                <el-button type="primary" @click="fetchLogs"><el-icon><Search /></el-icon> 查询</el-button>
+                                <el-button type="primary" @click="fetchLogs">
+                                    <el-icon><Search /></el-icon> {{ t('actions.search') }}
+                                </el-button>
                             </el-form-item>
                         </el-form>
                     </div>
 
                     <el-table :data="logs" v-loading="logsLoading" stripe>
-                        <el-table-column prop="to_email" label="收件人" width="200" />
-                        <el-table-column prop="subject" label="主题" min-width="200">
+                        <el-table-column prop="to_email" :label="t('email_dashboard_page.cols.recipient')" width="200" />
+                        <el-table-column prop="subject" :label="t('email_dashboard_page.cols.subject')" min-width="200">
                             <template #default="{ row }">
                                 <span class="subject-text">{{ row.subject }}</span>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="template_code" label="模板" width="140" />
-                        <el-table-column label="状态" width="100">
+                        <el-table-column prop="template_code" :label="t('email_dashboard_page.cols.template')" width="140" />
+                        <el-table-column :label="t('email_dashboard_page.cols.status')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="logStatusType(row.status)" size="small">{{ logStatusLabel(row.status) }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="投递/打开" width="160">
+                        <el-table-column :label="t('email_dashboard_page.cols.delivery_open')" width="160">
                             <template #default="{ row }">
                                 <div class="timeline-col">
                                     <span v-if="row.delivered_at" class="text-success">✓ {{ row.delivered_at }}</span>
                                     <span v-else-if="row.sent_at" class="text-info">→ {{ row.sent_at }}</span>
                                     <span v-else class="text-muted">-</span>
-                                    <span v-if="row.opened_at" class="text-primary ml-1">👁 {{ row.opened_at }}</span>
+                                    <span v-if="row.opened_at" class="text-primary ml-1">{{ row.opened_at }}</span>
                                 </div>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="created_at" label="创建时间" width="160" />
-                        <el-table-column label="操作" width="80" fixed="right">
+                        <el-table-column prop="created_at" :label="t('email_dashboard_page.cols.created_at')" width="160" />
+                        <el-table-column :label="t('email_dashboard_page.cols.actions')" width="80" fixed="right">
                             <template #default="{ row }">
-                                <el-button text size="small" type="primary" @click="openLogDetail(row)">详情</el-button>
+                                <el-button text size="small" type="primary" @click="openLogDetail(row)">
+                                    {{ t('email_dashboard_page.detail') }}
+                                </el-button>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -180,49 +207,51 @@
                 </el-tab-pane>
 
                 <!-- 模板统计 -->
-                <el-tab-pane label="模板统计" name="templates">
+                <el-tab-pane :label="t('email_dashboard_page.tabs.templates')" name="templates">
                     <el-table :data="byTemplate" v-loading="loading" stripe>
-                        <el-table-column prop="template_code" label="模板代码" min-width="160" />
-                        <el-table-column prop="total_sent" label="发送量" width="80" align="center" />
-                        <el-table-column label="投递" width="80" align="center">
+                        <el-table-column prop="template_code" :label="t('email_dashboard_page.cols.template_code')" min-width="160" />
+                        <el-table-column prop="total_sent" :label="t('email_dashboard_page.cols.sent_count')" width="80" align="center" />
+                        <el-table-column :label="t('email_dashboard_page.cols.delivered')" width="80" align="center">
                             <template #default="{ row }">{{ row.delivered }}</template>
                         </el-table-column>
-                        <el-table-column label="打开" width="80" align="center">
+                        <el-table-column :label="t('email_dashboard_page.cols.opened')" width="80" align="center">
                             <template #default="{ row }">{{ row.opened }}</template>
                         </el-table-column>
-                        <el-table-column label="点击" width="80" align="center">
+                        <el-table-column :label="t('email_dashboard_page.cols.clicked')" width="80" align="center">
                             <template #default="{ row }">{{ row.clicked }}</template>
                         </el-table-column>
-                        <el-table-column label="退信" width="80" align="center">
+                        <el-table-column :label="t('email_dashboard_page.cols.bounced')" width="80" align="center">
                             <template #default="{ row }">{{ row.bounced }}</template>
                         </el-table-column>
-                        <el-table-column label="打开率" width="80" align="center">
+                        <el-table-column :label="t('email_dashboard_page.cols.open_rate')" width="80" align="center">
                             <template #default="{ row }">{{ row.delivered > 0 ? ((row.opened / row.delivered) * 100).toFixed(1) : 0 }}%</template>
                         </el-table-column>
-                        <el-table-column label="操作" width="80">
+                        <el-table-column :label="t('email_dashboard_page.cols.actions')" width="80">
                             <template #default="{ row }">
-                                <el-button text size="small" type="primary" @click="openTemplateDetail(row)">下钻</el-button>
+                                <el-button text size="small" type="primary" @click="openTemplateDetail(row)">
+                                    {{ t('email_dashboard_page.drill_down') }}
+                                </el-button>
                             </template>
                         </el-table-column>
                     </el-table>
                 </el-tab-pane>
 
                 <!-- 退信分析 -->
-                <el-tab-pane label="退信分析" name="bounces">
+                <el-tab-pane :label="t('email_dashboard_page.tabs.bounces')" name="bounces">
                     <el-row :gutter="16">
                         <el-col :span="12">
-                            <h4 class="section-title">退信原因</h4>
+                            <h4 class="section-title">{{ t('email_dashboard_page.bounce.reasons_title') }}</h4>
                             <el-table :data="bounceAnalysis.by_reason || []" v-loading="loading" size="small" stripe>
-                                <el-table-column prop="bounce_reason" label="原因" min-width="200" />
-                                <el-table-column prop="count" label="次数" width="80" align="center" />
-                                <el-table-column prop="last_bounced_at" label="最近退信" width="160" />
+                                <el-table-column prop="bounce_reason" :label="t('email_dashboard_page.bounce.reason')" min-width="200" />
+                                <el-table-column prop="count" :label="t('email_dashboard_page.bounce.count')" width="80" align="center" />
+                                <el-table-column prop="last_bounced_at" :label="t('email_dashboard_page.bounce.last_bounced')" width="160" />
                             </el-table>
                         </el-col>
                         <el-col :span="12">
-                            <h4 class="section-title">退信域名</h4>
+                            <h4 class="section-title">{{ t('email_dashboard_page.bounce.domains_title') }}</h4>
                             <el-table :data="bounceAnalysis.by_domain || []" v-loading="loading" size="small" stripe>
-                                <el-table-column prop="domain" label="邮箱域名" min-width="200" />
-                                <el-table-column prop="count" label="退信数" width="80" align="center" />
+                                <el-table-column prop="domain" :label="t('email_dashboard_page.bounce.domain')" min-width="200" />
+                                <el-table-column prop="count" :label="t('email_dashboard_page.bounce.bounce_count')" width="80" align="center" />
                             </el-table>
                         </el-col>
                     </el-row>
@@ -231,40 +260,42 @@
         </el-card>
 
         <!-- 邮件详情对话框 -->
-        <el-dialog v-model="showLogDetail" title="邮件详情" width="600px">
+        <el-dialog v-model="showLogDetail" :title="t('email_dashboard_page.log_detail_title')" width="600px">
             <template v-if="logDetailData">
                 <el-descriptions :column="2" border>
-                    <el-descriptions-item label="收件人">{{ logDetailData.to_email }}</el-descriptions-item>
-                    <el-descriptions-item label="模板">{{ logDetailData.template_code }}</el-descriptions-item>
-                    <el-descriptions-item label="主题" :span="2">{{ logDetailData.subject }}</el-descriptions-item>
-                    <el-descriptions-item label="状态">{{ logStatusLabel(logDetailData.status) }}</el-descriptions-item>
-                    <el-descriptions-item label="追踪 ID">{{ logDetailData.tracking_id || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="发送时间">{{ logDetailData.sent_at || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="投递时间">{{ logDetailData.delivered_at || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="打开时间">{{ logDetailData.opened_at || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="点击时间">{{ logDetailData.clicked_at || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="退信原因" :span="2">{{ logDetailData.bounce_reason || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="错误信息" :span="2">{{ logDetailData.error_message || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('email_dashboard_page.fields.recipient')">{{ logDetailData.to_email }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('email_dashboard_page.fields.template')">{{ logDetailData.template_code }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('email_dashboard_page.fields.subject')" :span="2">{{ logDetailData.subject }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('email_dashboard_page.fields.status')">{{ logStatusLabel(logDetailData.status) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('email_dashboard_page.fields.tracking_id')">{{ logDetailData.tracking_id || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('email_dashboard_page.fields.sent_at')">{{ logDetailData.sent_at || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('email_dashboard_page.fields.delivered_at')">{{ logDetailData.delivered_at || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('email_dashboard_page.fields.opened_at')">{{ logDetailData.opened_at || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('email_dashboard_page.fields.clicked_at')">{{ logDetailData.clicked_at || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('email_dashboard_page.fields.bounce_reason')" :span="2">{{ logDetailData.bounce_reason || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('email_dashboard_page.fields.error_message')" :span="2">{{ logDetailData.error_message || '-' }}</el-descriptions-item>
                 </el-descriptions>
             </template>
             <template #footer>
-                <el-button @click="showLogDetail = false">关闭</el-button>
+                <el-button @click="showLogDetail = false">{{ t('actions.close') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 模板下钻对话框 -->
-        <el-dialog v-model="showTemplateDetail" title="模板详情" width="700px">
+        <el-dialog v-model="showTemplateDetail" :title="t('email_dashboard_page.template_detail_title')" width="700px">
             <template v-if="templateDetailData">
-                <p class="mb-4"><strong>模板代码：</strong>{{ templateDetailData.template_code }}</p>
+                <p class="mb-4">
+                    <strong>{{ t('email_dashboard_page.template_code_label') }}</strong>{{ templateDetailData.template_code }}
+                </p>
                 <el-row :gutter="16" class="mb-4">
                     <el-col :span="6" v-for="s in templateFunnelCards" :key="s.label">
                         <el-statistic :title="s.label" :value="s.value" />
                     </el-col>
                 </el-row>
                 <el-table :data="templateDetailData.daily || []" size="small" stripe>
-                    <el-table-column prop="date" label="日期" width="120" />
-                    <el-table-column prop="total" label="发送量" width="80" align="center" />
-                    <el-table-column prop="opened" label="打开数" width="80" align="center" />
+                    <el-table-column prop="date" :label="t('email_dashboard_page.cols.date')" width="120" />
+                    <el-table-column prop="total" :label="t('email_dashboard_page.cols.sent_count')" width="80" align="center" />
+                    <el-table-column prop="opened" :label="t('email_dashboard_page.cols.open_count')" width="80" align="center" />
                 </el-table>
             </template>
         </el-dialog>
@@ -273,9 +304,12 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
 import emailDashboardApi from '@/api/emailDashboard';
+
+const { t } = useI18n();
 
 // ─── 漏斗统计 ───
 const funnel = reactive({
@@ -286,11 +320,11 @@ const funnel = reactive({
 });
 
 const funnelCards = computed(() => [
-    { label: '总发送', value: funnel.total_sent, color: '' },
-    { label: '已投递', value: funnel.delivered, color: 'success', rate: funnel.delivery_rate, clickable: true },
-    { label: '已打开', value: funnel.opened, color: 'primary', rate: funnel.open_rate, clickable: true },
-    { label: '已点击', value: funnel.clicked, color: 'info', rate: funnel.click_rate, clickable: true },
-    { label: '退信', value: funnel.bounced, color: 'danger', rate: funnel.bounce_rate, clickable: true },
+    { label: t('email_dashboard_page.funnel.total_sent'), value: funnel.total_sent, color: '' },
+    { label: t('email_dashboard_page.funnel.delivered'), value: funnel.delivered, color: 'success', rate: funnel.delivery_rate, clickable: true },
+    { label: t('email_dashboard_page.funnel.opened'), value: funnel.opened, color: 'primary', rate: funnel.open_rate, clickable: true },
+    { label: t('email_dashboard_page.funnel.clicked'), value: funnel.clicked, color: 'info', rate: funnel.click_rate, clickable: true },
+    { label: t('email_dashboard_page.funnel.bounced'), value: funnel.bounced, color: 'danger', rate: funnel.bounce_rate, clickable: true },
 ]);
 
 const trend = reactive({ this_week: 0, last_week: 0, change_percent: 0, direction: 'up' });
@@ -301,6 +335,14 @@ const hourlyData = ref([]);
 function barHeight(val, max) {
     if (!max || max === 0) return 0;
     return Math.max(2, (val / max) * 100);
+}
+
+function dayTooltip(day) {
+    return t('email_dashboard_page.chart.day_tooltip', { date: day.date, count: day.total });
+}
+
+function chartSegmentTooltip(segment, count) {
+    return t(`email_dashboard_page.chart.${segment}`, { count });
 }
 
 const maxHourly = computed(() => {
@@ -320,6 +362,25 @@ const logFilters = reactive({
     'filter.template_code': '',
 });
 
+const logStatusLabels = computed(() => ({
+    queued: t('email_dashboard_page.status.queued'),
+    sent: t('email_dashboard_page.status.sent'),
+    delivered: t('email_dashboard_page.status.delivered'),
+    opened: t('email_dashboard_page.status.opened'),
+    clicked: t('email_dashboard_page.status.clicked'),
+    bounced: t('email_dashboard_page.status.bounced'),
+    failed: t('email_dashboard_page.status.failed'),
+}));
+
+const logStatusOptions = computed(() => [
+    { value: 'queued', label: logStatusLabels.value.queued },
+    { value: 'sent', label: logStatusLabels.value.sent },
+    { value: 'delivered', label: logStatusLabels.value.delivered },
+    { value: 'opened', label: logStatusLabels.value.opened },
+    { value: 'bounced', label: logStatusLabels.value.bounced },
+    { value: 'failed', label: logStatusLabels.value.failed },
+]);
+
 async function fetchLogs() {
     logsLoading.value = true;
     try {
@@ -332,7 +393,7 @@ async function fetchLogs() {
         logs.value = res.data?.data || [];
         logTotal.value = res.data?.meta?.total || 0;
     } catch {
-        ElMessage.error('获取邮件日志失败');
+        ElMessage.error(t('email_dashboard_page.messages.fetch_logs_failed'));
     } finally {
         logsLoading.value = false;
     }
@@ -340,7 +401,7 @@ async function fetchLogs() {
 
 // ─── 模板统计 ───
 const byTemplate = ref([]);
-const templateOptions = computed(() => byTemplate.value.map(t => ({ code: t.template_code })));
+const templateOptions = computed(() => byTemplate.value.map(tpl => ({ code: tpl.template_code })));
 
 // ─── 邮件详情 ───
 const showLogDetail = ref(false);
@@ -352,7 +413,7 @@ async function openLogDetail(row) {
         logDetailData.value = res.data?.data;
         showLogDetail.value = true;
     } catch {
-        ElMessage.error('获取邮件详情失败');
+        ElMessage.error(t('email_dashboard_page.messages.fetch_detail_failed'));
     }
 }
 
@@ -364,10 +425,10 @@ const templateFunnelCards = computed(() => {
     if (!templateDetailData.value?.funnel) return [];
     const f = templateDetailData.value.funnel;
     return [
-        { label: '总发送', value: f.total_sent },
-        { label: '已投递', value: f.delivered },
-        { label: '已打开', value: f.opened },
-        { label: '退信', value: f.bounced },
+        { label: t('email_dashboard_page.funnel.total_sent'), value: f.total_sent },
+        { label: t('email_dashboard_page.funnel.delivered'), value: f.delivered },
+        { label: t('email_dashboard_page.funnel.opened'), value: f.opened },
+        { label: t('email_dashboard_page.funnel.bounced'), value: f.bounced },
     ];
 });
 
@@ -377,12 +438,13 @@ async function openTemplateDetail(row) {
         templateDetailData.value = res.data?.data;
         showTemplateDetail.value = true;
     } catch {
-        ElMessage.error('获取模板详情失败');
+        ElMessage.error(t('email_dashboard_page.messages.fetch_template_failed'));
     }
 }
 
 // ─── 辅助 ───
 const activeTab = ref('logs');
+const loading = ref(false);
 
 function logStatusType(status) {
     const map = { queued: 'info', sent: '', delivered: 'success', opened: 'primary', clicked: 'success', bounced: 'danger', failed: 'warning' };
@@ -390,8 +452,7 @@ function logStatusType(status) {
 }
 
 function logStatusLabel(status) {
-    const map = { queued: '排队中', sent: '已发送', delivered: '已投递', opened: '已打开', clicked: '已点击', bounced: '退信', failed: '失败' };
-    return map[status] || status;
+    return logStatusLabels.value[status] || status;
 }
 
 async function fetchOverview() {
@@ -405,7 +466,7 @@ async function fetchOverview() {
         Object.assign(trend, data.trend || {});
         hourlyData.value = data.hourly || [];
     } catch {
-        ElMessage.error('获取邮件概览失败');
+        ElMessage.error(t('email_dashboard_page.messages.fetch_overview_failed'));
     }
 }
 

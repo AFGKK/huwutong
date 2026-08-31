@@ -3,16 +3,16 @@
         <!-- 统计卡片 -->
         <el-row :gutter="16" class="mb-4">
             <el-col :span="6"><el-card shadow="never">
-                <div class="stat-item"><div class="stat-value">{{ stats.total || 0 }}</div><div class="stat-label">总模板</div></div>
+                <div class="stat-item"><div class="stat-value">{{ stats.total || 0 }}</div><div class="stat-label">{{ t(`${P}.stats.total`) }}</div></div>
             </el-card></el-col>
             <el-col :span="6"><el-card shadow="never">
-                <div class="stat-item"><div class="stat-value text-green-600">{{ stats.active || 0 }}</div><div class="stat-label">活跃</div></div>
+                <div class="stat-item"><div class="stat-value text-green-600">{{ stats.active || 0 }}</div><div class="stat-label">{{ t(`${P}.stats.active`) }}</div></div>
             </el-card></el-col>
             <el-col :span="6"><el-card shadow="never">
-                <div class="stat-item"><div class="stat-value text-yellow-600">{{ stats.drafts || 0 }}</div><div class="stat-label">草稿</div></div>
+                <div class="stat-item"><div class="stat-value text-yellow-600">{{ stats.drafts || 0 }}</div><div class="stat-label">{{ t(`${P}.stats.drafts`) }}</div></div>
             </el-card></el-col>
             <el-col :span="6"><el-card shadow="never">
-                <div class="stat-item"><div class="stat-value text-blue-600">{{ categoryCount }}</div><div class="stat-label">场景分类</div></div>
+                <div class="stat-item"><div class="stat-value text-blue-600">{{ categoryCount }}</div><div class="stat-label">{{ t(`${P}.stats.categories`) }}</div></div>
             </el-card></el-col>
         </el-row>
 
@@ -20,10 +20,10 @@
         <el-card shadow="never">
             <template #header>
                 <div class="flex-between">
-                    <span>Prompt 模板管理</span>
+                    <span>{{ t(`${P}.title`) }}</span>
                     <div>
-                        <el-button type="primary" size="small" @click="showCreate = true">
-                            <el-icon><Plus /></el-icon>新建模板
+                        <el-button type="primary" size="small" @click="showDialog = true">
+                            <el-icon><Plus /></el-icon>{{ t(`${P}.create_btn`) }}
                         </el-button>
                     </div>
                 </div>
@@ -31,51 +31,49 @@
 
             <!-- 筛选 -->
             <div class="flex gap-3 mb-4">
-                <el-select v-model="filters.category" placeholder="场景分类" clearable style="width:150px" @change="loadList">
+                <el-select v-model="filters.category" :placeholder="t(`${P}.filters.category_ph`)" clearable style="width:150px" @change="loadList">
                     <el-option v-for="c in categories" :key="c.value" :label="c.label" :value="c.value" />
                 </el-select>
-                <el-select v-model="filters.status" placeholder="状态" clearable style="width:120px" @change="loadList">
-                    <el-option label="活跃" value="active" />
-                    <el-option label="草稿" value="draft" />
-                    <el-option label="已归档" value="archived" />
+                <el-select v-model="filters.status" :placeholder="t(`${P}.filters.status_ph`)" clearable style="width:120px" @change="loadList">
+                    <el-option v-for="opt in statusFilterOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
-                <el-input v-model="filters.search" placeholder="搜索名称/说明" clearable style="width:250px" @clear="loadList" @keyup.enter="loadList" />
-                <el-button @click="loadList">搜索</el-button>
+                <el-input v-model="filters.search" :placeholder="t(`${P}.filters.search_ph`)" clearable style="width:250px" @clear="loadList" @keyup.enter="loadList" />
+                <el-button @click="loadList">{{ t('actions.search') }}</el-button>
             </div>
 
             <!-- 表格 -->
             <el-table :data="list" v-loading="loading" stripe @row-click="showDetail">
-                <el-table-column prop="name" label="模板名称" min-width="180" />
-                <el-table-column label="场景" width="120">
+                <el-table-column prop="name" :label="t(`${P}.cols.name`)" min-width="180" />
+                <el-table-column :label="t(`${P}.cols.category`)" width="120">
                     <template #default="{ row }">
                         <el-tag :type="categoryTag(row.category)" size="small">{{ categoryLabel(row.category) }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="版本" width="80">
+                <el-table-column :label="t(`${P}.cols.version`)" width="80">
                     <template #default="{ row }">v{{ row.version }}</template>
                 </el-table-column>
-                <el-table-column label="当前生效" width="100" align="center">
+                <el-table-column :label="t(`${P}.cols.is_current`)" width="100" align="center">
                     <template #default="{ row }">
-                        <el-tag v-if="row.is_current" type="success" size="small">生效中</el-tag>
+                        <el-tag v-if="row.is_current" type="success" size="small">{{ t(`${P}.badge.current`) }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="engine" label="模型" width="100" />
-                <el-table-column label="温度" width="70" align="center">
+                <el-table-column prop="engine" :label="t(`${P}.cols.engine`)" width="100" />
+                <el-table-column :label="t(`${P}.cols.temperature`)" width="70" align="center">
                     <template #default="{ row }">{{ row.temperature }}</template>
                 </el-table-column>
-                <el-table-column label="状态" width="80">
+                <el-table-column :label="t(`${P}.cols.status`)" width="80">
                     <template #default="{ row }">
                         <el-tag :type="row.status === 'active' ? 'success' : row.status === 'draft' ? 'warning' : 'info'" size="small">
-                            {{ { active: '活跃', draft: '草稿', archived: '归档' }[row.status] }}
+                            {{ statusLabel(row.status) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="200" fixed="right">
+                <el-table-column :label="t(`${P}.cols.actions`)" width="200" fixed="right">
                     <template #default="{ row }">
-                        <el-button size="small" @click.stop="showEdit(row)">编辑</el-button>
-                        <el-button v-if="!row.is_current" size="small" type="primary" plain @click.stop="handleSetActive(row)">设为生效</el-button>
-                        <el-popconfirm title="确定删除?" @confirm.stop="handleDelete(row.id)">
-                            <template #reference><el-button size="small" type="danger" plain @click.stop>删除</el-button></template>
+                        <el-button size="small" @click.stop="showEdit(row)">{{ t('actions.edit') }}</el-button>
+                        <el-button v-if="!row.is_current" size="small" type="primary" plain @click.stop="handleSetActive(row)">{{ t(`${P}.set_active_btn`) }}</el-button>
+                        <el-popconfirm :title="t('messages.confirm_delete')" @confirm.stop="handleDelete(row.id)">
+                            <template #reference><el-button size="small" type="danger" plain @click.stop>{{ t('actions.delete') }}</el-button></template>
                         </el-popconfirm>
                     </template>
                 </el-table-column>
@@ -86,102 +84,98 @@
         </el-card>
 
         <!-- 创建/编辑对话框 -->
-        <el-dialog v-model="showDialog" :title="editingId ? '编辑 Prompt 模板' : '新建 Prompt 模板'" width="750px">
+        <el-dialog v-model="showDialog" :title="editingId ? t(`${P}.dialog.edit_title`) : t(`${P}.dialog.create_title`)" width="750px">
             <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="模板名称" prop="name">
-                            <el-input v-model="form.name" placeholder="如: 客服对话 System Prompt" />
+                        <el-form-item :label="t(`${P}.form.name`)" prop="name">
+                            <el-input v-model="form.name" :placeholder="t(`${P}.form.name_ph`)" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="场景分类" prop="category">
+                        <el-form-item :label="t(`${P}.form.category`)" prop="category">
                             <el-select v-model="form.category" style="width:100%">
                                 <el-option v-for="c in categories" :key="c.value" :label="c.label" :value="c.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="推荐模型">
+                        <el-form-item :label="t(`${P}.form.engine`)">
                             <el-select v-model="form.engine" style="width:100%">
-                                <el-option label="DeepSeek" value="deepseek" />
-                                <el-option label="OpenAI GPT" value="openai" />
-                                <el-option label="Claude" value="claude" />
-                                <el-option label="通义千问" value="qwen" />
-                                <el-option label="文心一言" value="ernie" />
+                                <el-option v-for="e in engineOptions" :key="e.value" :label="e.label" :value="e.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-form-item label="说明">
-                    <el-input v-model="form.description" placeholder="模板用途说明" :rows="2" type="textarea" />
+                <el-form-item :label="t(`${P}.form.description`)">
+                    <el-input v-model="form.description" :placeholder="t(`${P}.form.description_ph`)" :rows="2" type="textarea" />
                 </el-form-item>
-                <el-form-item label="变量定义" prop="variables">
-                    <el-select v-model="form.variables" multiple filterable allow-create default-first-option style="width:100%" placeholder="输入变量名后回车添加，如: topic">
+                <el-form-item :label="t(`${P}.form.variables`)" prop="variables">
+                    <el-select v-model="form.variables" multiple filterable allow-create default-first-option style="width:100%" :placeholder="t(`${P}.form.variables_ph`)">
                         <el-option v-for="v in form.variables" :key="v" :label="v" :value="v" />
                     </el-select>
-                    <div class="text-gray-400 text-xs mt-1">在模板内容中使用 {变量名} 引用</div>
+                    <div class="text-gray-400 text-xs mt-1">{{ t(`${P}.form.variables_hint`) }}</div>
                 </el-form-item>
-                <el-form-item label="Prompt 内容" prop="content">
-                    <el-input v-model="form.content" type="textarea" :rows="12" placeholder="输入 Prompt 模板内容，使用 {变量名} 作为占位符" />
+                <el-form-item :label="t(`${P}.form.content`)" prop="content">
+                    <el-input v-model="form.content" type="textarea" :rows="12" :placeholder="t(`${P}.form.content_ph`)" />
                 </el-form-item>
                 <el-row :gutter="16">
                     <el-col :span="8">
-                        <el-form-item label="温度">
+                        <el-form-item :label="t(`${P}.form.temperature`)">
                             <el-slider v-model="form.temperature" :min="0" :max="2" :step="0.05" show-input :debounce="500" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="最大 Token">
+                        <el-form-item :label="t(`${P}.form.max_tokens`)">
                             <el-input-number v-model="form.max_tokens" :min="100" :max="32000" :step="100" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="状态">
+                        <el-form-item :label="t(`${P}.form.status`)">
                             <el-radio-group v-model="form.status">
-                                <el-radio value="active">活跃</el-radio>
-                                <el-radio value="draft">草稿</el-radio>
+                                <el-radio value="active">{{ t(`${P}.status.active`) }}</el-radio>
+                                <el-radio value="draft">{{ t(`${P}.status.draft`) }}</el-radio>
                             </el-radio-group>
                         </el-form-item>
                     </el-col>
                 </el-row>
             </el-form>
             <template #footer>
-                <el-button @click="showDialog = false">取消</el-button>
-                <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+                <el-button @click="showDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="saving" @click="handleSave">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 详情对话框 -->
-        <el-dialog v-model="showDetailDialog" title="Prompt 模板详情" width="800px">
+        <el-dialog v-model="showDetailDialog" :title="t(`${P}.detail.title`)" width="800px">
             <template v-if="detail">
                 <div class="mb-3">
                     <el-tag :type="categoryTag(detail.category)" size="small">{{ categoryLabel(detail.category) }}</el-tag>
                     <el-tag class="ml-2">v{{ detail.version }}</el-tag>
-                    <el-tag v-if="detail.is_current" class="ml-2" type="success">生效中</el-tag>
-                    <el-tag v-else class="ml-2" type="info">历史版本</el-tag>
+                    <el-tag v-if="detail.is_current" class="ml-2" type="success">{{ t(`${P}.badge.current`) }}</el-tag>
+                    <el-tag v-else class="ml-2" type="info">{{ t(`${P}.badge.historical`) }}</el-tag>
                 </div>
                 <div class="text-sm text-gray-500 mb-3">{{ detail.description }}</div>
-                <div class="mb-2 text-sm"><b>变量:</b> {{ detail.variables?.join(', ') || '无' }}</div>
-                <div class="mb-2 text-sm"><b>模型:</b> {{ detail.engine }} | <b>温度:</b> {{ detail.temperature }} | <b>最大Token:</b> {{ detail.max_tokens }}</div>
-                <div class="mb-2 text-sm"><b>创建者:</b> {{ detail.creator?.name || '系统' }} | <b>创建时间:</b> {{ detail.created_at }}</div>
+                <div class="mb-2 text-sm"><b>{{ t(`${P}.detail.variables`) }}:</b> {{ detail.variables?.join(', ') || t(`${P}.detail.none`) }}</div>
+                <div class="mb-2 text-sm"><b>{{ t(`${P}.detail.engine`) }}:</b> {{ detail.engine }} | <b>{{ t(`${P}.detail.temperature`) }}:</b> {{ detail.temperature }} | <b>{{ t(`${P}.detail.max_tokens`) }}:</b> {{ detail.max_tokens }}</div>
+                <div class="mb-2 text-sm"><b>{{ t(`${P}.detail.creator`) }}:</b> {{ detail.creator?.name || t(`${P}.detail.system`) }} | <b>{{ t(`${P}.detail.created_at`) }}:</b> {{ detail.created_at }}</div>
 
                 <el-divider />
                 <div class="font-mono text-sm whitespace-pre-wrap bg-gray-50 p-3 rounded" style="max-height:400px;overflow:auto">{{ detail.content }}</div>
 
                 <!-- 渲染测试 -->
-                <el-divider>渲染测试</el-divider>
+                <el-divider>{{ t(`${P}.detail.render_test`) }}</el-divider>
                 <div class="flex gap-2 mb-2">
-                    <el-input v-model="testVars" placeholder='输入测试变量 JSON，如 {"topic":"激活问题"}' :rows="2" type="textarea" />
-                    <el-button @click="handleRenderTest" :loading="rendering" style="flex-shrink:0">测试渲染</el-button>
+                    <el-input v-model="testVars" :placeholder="t(`${P}.detail.test_vars_ph`)" :rows="2" type="textarea" />
+                    <el-button @click="handleRenderTest" :loading="rendering" style="flex-shrink:0">{{ t(`${P}.detail.render_btn`) }}</el-button>
                 </div>
                 <div v-if="renderedContent" class="font-mono text-sm whitespace-pre-wrap bg-blue-50 p-3 rounded">{{ renderedContent }}</div>
 
                 <!-- 创建新版本 -->
-                <el-divider>创建新版本</el-divider>
-                <el-input v-model="newVersionContent" type="textarea" :rows="6" placeholder="输入新版本的 Prompt 内容..." />
-                <el-input v-model="newVersionNote" class="mt-2" placeholder="版本说明（可选）" />
-                <el-button class="mt-2" type="primary" @click="handleCreateVersion" :loading="creatingVersion">创建新版本</el-button>
+                <el-divider>{{ t(`${P}.detail.new_version`) }}</el-divider>
+                <el-input v-model="newVersionContent" type="textarea" :rows="6" :placeholder="t(`${P}.detail.new_version_ph`)" />
+                <el-input v-model="newVersionNote" class="mt-2" :placeholder="t(`${P}.detail.version_note_ph`)" />
+                <el-button class="mt-2" type="primary" @click="handleCreateVersion" :loading="creatingVersion">{{ t(`${P}.detail.create_version_btn`) }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -189,6 +183,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import {
@@ -196,6 +191,9 @@ import {
     createPrompt, updatePrompt, createPromptVersion,
     setActivePrompt, renderTestPrompt, deletePrompt,
 } from '@/api/promptTemplate'
+
+const P = 'prompt_templates_page'
+const { t } = useI18n()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -212,18 +210,41 @@ const testVars = ref('')
 const newVersionContent = ref('')
 const newVersionNote = ref('')
 
-const categories = [
-    { value: 'chat', label: '💬 客服对话' },
-    { value: 'summary', label: '📝 会话摘要' },
-    { value: 'sentiment', label: '😊 情感分析' },
-    { value: 'translation', label: '🌐 翻译' },
-    { value: 'quality', label: '✅ 会话质检' },
-    { value: 'todo', label: '📋 待办提取' },
-    { value: 'agent', label: '🤖 Agent 工具' },
-]
+const categoryKeys = ['chat', 'summary', 'sentiment', 'translation', 'quality', 'todo', 'agent']
+
+const categories = computed(() =>
+    categoryKeys.map((value) => ({ value, label: t(`${P}.categories.${value}`) })),
+)
+
+const statusFilterOptions = computed(() => [
+    { value: 'active', label: t(`${P}.status.active`) },
+    { value: 'draft', label: t(`${P}.status.draft`) },
+    { value: 'archived', label: t(`${P}.status.archived`) },
+])
+
+const engineOptions = computed(() => [
+    { value: 'deepseek', label: t(`${P}.engines.deepseek`) },
+    { value: 'openai', label: t(`${P}.engines.openai`) },
+    { value: 'claude', label: t(`${P}.engines.claude`) },
+    { value: 'qwen', label: t(`${P}.engines.qwen`) },
+    { value: 'ernie', label: t(`${P}.engines.ernie`) },
+])
 
 const categoryTag = (v) => ({ chat: 'primary', summary: 'success', sentiment: 'warning', translation: 'info', quality: 'danger', todo: '', agent: 'primary' }[v] || '')
-const categoryLabel = (v) => categories.find(c => c.value === v)?.label || v
+
+function categoryLabel(v) {
+    return categoryKeys.includes(v) ? t(`${P}.categories.${v}`) : v
+}
+
+function statusLabel(status) {
+    const map = {
+        active: t(`${P}.status.active`),
+        draft: t(`${P}.status.draft`),
+        archived: t(`${P}.status.archived_short`),
+    }
+    return map[status] || status
+}
+
 const categoryCount = computed(() => Object.keys(stats.value?.byCategory || {}).length)
 
 const filters = reactive({ category: '', status: '', search: '' })
@@ -236,11 +257,12 @@ const form = reactive({
     variables: [], engine: 'deepseek', temperature: 0.7,
     max_tokens: 2000, status: 'active',
 })
-const rules = {
-    name: [{ required: true, message: '请输入模板名称' }],
-    category: [{ required: true, message: '请选择场景' }],
-    content: [{ required: true, message: '请输入 Prompt 内容' }],
-}
+
+const rules = computed(() => ({
+    name: [{ required: true, message: t(`${P}.rules.name_required`) }],
+    category: [{ required: true, message: t(`${P}.rules.category_required`) }],
+    content: [{ required: true, message: t(`${P}.rules.content_required`) }],
+}))
 
 async function loadDashboard() {
     try {
@@ -293,10 +315,10 @@ async function handleSave() {
         const data = { ...form }
         if (editingId.value) {
             await updatePrompt(editingId.value, data)
-            ElMessage.success('已更新')
+            ElMessage.success(t(`${P}.messages.updated`))
         } else {
             await createPrompt(data)
-            ElMessage.success('已创建')
+            ElMessage.success(t(`${P}.messages.created`))
         }
         showDialog.value = false
         loadList()
@@ -307,7 +329,7 @@ async function handleSave() {
 async function handleSetActive(row) {
     try {
         await setActivePrompt(row.id)
-        ElMessage.success('已设为生效版本')
+        ElMessage.success(t(`${P}.messages.set_active`))
         loadList()
     } catch {}
 }
@@ -315,7 +337,7 @@ async function handleSetActive(row) {
 async function handleDelete(id) {
     try {
         await deletePrompt(id)
-        ElMessage.success('已删除')
+        ElMessage.success(t(`${P}.messages.deleted`))
         loadList()
         loadDashboard()
     } catch {}
@@ -340,8 +362,7 @@ async function handleCreateVersion() {
             content: newVersionContent.value,
             note: newVersionNote.value,
         })
-        ElMessage.success('新版本已创建')
-        // 刷新详情
+        ElMessage.success(t(`${P}.messages.version_created`))
         const { data: res } = await getPromptDetail(detail.value.id)
         if (res.success) detail.value = res.data
         newVersionContent.value = ''

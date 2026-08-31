@@ -3,13 +3,13 @@
         <el-card shadow="hover" class="mb-4">
             <template #header>
                 <div class="card-header">
-                    <span><el-icon><Promotion /></el-icon> LLM 翻译引擎</span>
-                    <el-tag type="success" size="small" v-if="memoryStats">记忆效率: {{ memoryStats.memory_efficiency }}%</el-tag>
+                    <span><el-icon><Promotion /></el-icon> {{ t('translation_engine_page.title') }}</span>
+                    <el-tag type="success" size="small" v-if="memoryStats">{{ t('translation_engine_page.memory_efficiency', { pct: memoryStats.memory_efficiency }) }}</el-tag>
                 </div>
             </template>
 
             <el-alert
-                title="翻译引擎使用 AI 大模型自动翻译缺失的翻译条目。每翻译一条都会产生 LLM API 调用费用，建议先选择特定语言和命名空间进行翻译。"
+                :title="t('translation_engine_page.alert')"
                 type="info"
                 show-icon
                 :closable="false"
@@ -19,8 +19,8 @@
             <el-form :model="form" label-width="120px">
                 <el-row :gutter="16">
                     <el-col :span="8">
-                        <el-form-item label="目标语言">
-                            <el-select v-model="form.locale" placeholder="选择语言" clearable filterable style="width: 100%">
+                        <el-form-item :label="t('translation_engine_page.target_locale')">
+                            <el-select v-model="form.locale" :placeholder="t('translation_engine_page.select_locale')" clearable filterable style="width: 100%">
                                 <el-option
                                     v-for="l in languages"
                                     :key="l.locale"
@@ -32,8 +32,8 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="命名空间">
-                            <el-select v-model="form.namespace_id" placeholder="全部命名空间" clearable filterable style="width: 100%">
+                        <el-form-item :label="t('translation_engine_page.namespace')">
+                            <el-select v-model="form.namespace_id" :placeholder="t('translation_engine_page.all_namespaces')" clearable filterable style="width: 100%">
                                 <el-option
                                     v-for="ns in namespaces"
                                     :key="ns.id"
@@ -52,82 +52,79 @@
                             size="default"
                         >
                             <el-icon><Promotion /></el-icon>
-                            {{ translating ? '翻译中...' : '开始批量翻译' }}
+                            {{ translating ? t('translation_engine_page.translating') : t('translation_engine_page.start_batch') }}
                         </el-button>
                     </el-col>
                 </el-row>
             </el-form>
         </el-card>
 
-        <!-- 统计卡片 -->
         <el-row :gutter="16" class="mb-4">
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ dashboardStats?.total_auto_translated || 0 }}</div>
-                    <div class="stat-label">AI 翻译条目</div>
+                    <div class="stat-label">{{ t('translation_engine_page.stats.ai_translated') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ dashboardStats?.total_missing || 0 }}</div>
-                    <div class="stat-label">待翻译条目</div>
+                    <div class="stat-label">{{ t('translation_engine_page.stats.missing') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ memoryStats?.unique_source_texts || 0 }}</div>
-                    <div class="stat-label">翻译记忆条目</div>
+                    <div class="stat-label">{{ t('translation_engine_page.stats.memory') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ dashboardStats?.total_published || 0 }}</div>
-                    <div class="stat-label">已发布翻译</div>
+                    <div class="stat-label">{{ t('translation_engine_page.stats.published') }}</div>
                 </el-card>
             </el-col>
         </el-row>
 
-        <!-- 翻译结果 -->
         <el-card shadow="hover" v-if="translateResult">
             <template #header>
                 <div class="card-header">
-                    <span>翻译结果</span>
-                    <el-button size="small" @click="translateResult = null">清除</el-button>
+                    <span>{{ t('translation_engine_page.result_title') }}</span>
+                    <el-button size="small" @click="translateResult = null">{{ t('translation_engine_page.clear') }}</el-button>
                 </div>
             </template>
             <el-result
                 :icon="translateResult.failed > 0 ? 'warning' : 'success'"
                 :title="translateResult.message"
-                :sub-title="`已翻译: ${translateResult.translated} | 失败: ${translateResult.failed} | 跳过: ${translateResult.skipped}`"
+                :sub-title="t('translation_engine_page.result_sub', { translated: translateResult.translated, failed: translateResult.failed, skipped: translateResult.skipped })"
             >
                 <template #extra>
-                    <el-button type="primary" @click="refreshDashboard">刷新面板</el-button>
+                    <el-button type="primary" @click="refreshDashboard">{{ t('translation_engine_page.refresh_panel') }}</el-button>
                 </template>
             </el-result>
         </el-card>
 
-        <!-- 各语言翻译进度 -->
         <el-card shadow="hover" class="mt-4" v-if="perLanguage?.length">
             <template #header>
                 <div class="card-header">
-                    <span>各语言翻译进度</span>
+                    <span>{{ t('translation_engine_page.progress_title') }}</span>
                 </div>
             </template>
             <el-table :data="perLanguage" stripe size="small" max-height="400">
-                <el-table-column label="语言" min-width="120">
+                <el-table-column :label="t('translation_engine_page.cols.language')" min-width="120">
                     <template #default="{ row }">
                         {{ row.name }} <span class="text-muted">({{ row.native_name }})</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="总数" prop="total" width="80" />
-                <el-table-column label="已发布" prop="published" width="80" />
-                <el-table-column label="缺失" prop="missing" width="80" />
-                <el-table-column label="进度" width="180">
+                <el-table-column :label="t('translation_engine_page.cols.total')" prop="total" width="80" />
+                <el-table-column :label="t('translation_engine_page.cols.published')" prop="published" width="80" />
+                <el-table-column :label="t('translation_engine_page.cols.missing')" prop="missing" width="80" />
+                <el-table-column :label="t('translation_engine_page.cols.progress')" width="180">
                     <template #default="{ row }">
                         <el-progress :percentage="row.progress" :color="progressColor(row.progress)" />
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="160">
+                <el-table-column :label="t('translation_engine_page.cols.actions')" width="160">
                     <template #default="{ row }">
                         <el-button
                             size="small"
@@ -136,7 +133,7 @@
                             :disabled="row.missing === 0 || row.locale === defaultLocale"
                             @click="quickTranslate(row.locale)"
                         >
-                            翻译缺失
+                            {{ t('translation_engine_page.translate_missing') }}
                         </el-button>
                     </template>
                 </el-table-column>
@@ -146,27 +143,29 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { Promotion } from '@element-plus/icons-vue';
-import i18nApi from '@/api/i18n';
+import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Promotion } from '@element-plus/icons-vue'
+import i18nApi from '@/api/i18n'
 
-const emit = defineEmits(['refresh']);
+const { t } = useI18n()
+const emit = defineEmits(['refresh'])
 
-const form = ref({ locale: '', namespace_id: null });
-const languages = ref([]);
-const namespaces = ref([]);
-const dashboardStats = ref(null);
-const perLanguage = ref([]);
-const memoryStats = ref(null);
-const translating = ref(false);
-const translateResult = ref(null);
-const defaultLocale = ref('');
+const form = ref({ locale: '', namespace_id: null })
+const languages = ref([])
+const namespaces = ref([])
+const dashboardStats = ref(null)
+const perLanguage = ref([])
+const memoryStats = ref(null)
+const translating = ref(false)
+const translateResult = ref(null)
+const defaultLocale = ref('')
 
 function progressColor(pct) {
-    if (pct >= 80) return '#67c23a';
-    if (pct >= 50) return '#e6a23c';
-    return '#f56c6c';
+    if (pct >= 80) return '#67c23a'
+    if (pct >= 50) return '#e6a23c'
+    return '#f56c6c'
 }
 
 async function loadData() {
@@ -174,82 +173,81 @@ async function loadData() {
         const [dashRes, memoryRes] = await Promise.all([
             i18nApi.getDashboard(),
             i18nApi.getMemoryStats(),
-        ]);
+        ])
 
-        const dashData = dashRes.data.data;
-        dashboardStats.value = dashData.stats;
-        languages.value = dashData.languages || [];
-        namespaces.value = dashData.namespaces || [];
-        perLanguage.value = dashData.per_language || [];
+        const dashData = dashRes.data.data
+        dashboardStats.value = dashData.stats
+        languages.value = dashData.languages || []
+        namespaces.value = dashData.namespaces || []
+        perLanguage.value = dashData.per_language || []
 
-        memoryStats.value = memoryRes.data.data;
+        memoryStats.value = memoryRes.data.data
 
-        // Set default locale
-        const defaultLang = languages.value.find(l => l.is_default);
+        const defaultLang = languages.value.find(l => l.is_default)
         if (defaultLang) {
-            defaultLocale.value = defaultLang.locale;
+            defaultLocale.value = defaultLang.locale
         }
     } catch (e) {
-        ElMessage.error('加载翻译引擎数据失败');
+        ElMessage.error(t('translation_engine_page.messages.load_failed'))
     }
 }
 
 async function handleBatchTranslate() {
     if (!form.value.locale) {
-        ElMessage.warning('请选择目标语言');
-        return;
+        ElMessage.warning(t('translation_engine_page.messages.select_locale'))
+        return
     }
 
     if (form.value.locale === defaultLocale.value) {
-        ElMessage.info('源语言无需翻译');
-        return;
+        ElMessage.info(t('translation_engine_page.messages.source_skip'))
+        return
     }
 
     try {
         await ElMessageBox.confirm(
-            `确定要使用 AI 翻译引擎批量翻译 "${form.value.locale}" 语言的缺失条目吗？`,
-            '确认批量翻译',
+            t('translation_engine_page.messages.confirm_batch', { locale: form.value.locale }),
+            t('translation_engine_page.messages.confirm_title'),
             {
-                confirmButtonText: '开始翻译',
-                cancelButtonText: '取消',
+                confirmButtonText: t('translation_engine_page.start_translate'),
+                cancelButtonText: t('actions.cancel'),
                 type: 'info',
             }
-        );
+        )
     } catch {
-        return;
+        return
     }
 
-    translating.value = true;
-    translateResult.value = null;
+    translating.value = true
+    translateResult.value = null
 
     try {
         const { data } = await i18nApi.engineTranslateMissing({
             locale: form.value.locale,
             namespace_id: form.value.namespace_id || undefined,
-        });
-        translateResult.value = data.data;
-        ElMessage.success(data.message || '批量翻译完成');
-        emit('refresh');
-        loadData();
+        })
+        translateResult.value = data.data
+        ElMessage.success(data.message || t('translation_engine_page.messages.batch_done'))
+        emit('refresh')
+        loadData()
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '批量翻译失败');
+        ElMessage.error(e.response?.data?.message || t('translation_engine_page.messages.batch_failed'))
     } finally {
-        translating.value = false;
+        translating.value = false
     }
 }
 
 async function quickTranslate(locale) {
-    form.value.locale = locale;
-    form.value.namespace_id = null;
-    await handleBatchTranslate();
+    form.value.locale = locale
+    form.value.namespace_id = null
+    await handleBatchTranslate()
 }
 
 async function refreshDashboard() {
-    translateResult.value = null;
-    await loadData();
+    translateResult.value = null
+    await loadData()
 }
 
-onMounted(() => loadData());
+onMounted(() => loadData())
 </script>
 
 <style scoped>
@@ -282,7 +280,7 @@ onMounted(() => loadData());
 .stat-value {
     font-size: 28px;
     font-weight: 700;
-    color: #409eff;
+    color: #0f172a;
     line-height: 1.2;
 }
 

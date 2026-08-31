@@ -5,10 +5,10 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-item">
-            <div class="stat-label">主密钥状态</div>
+            <div class="stat-label">{{ t(`${P}.stats.master_key_status`) }}</div>
             <div class="stat-value">
-              <el-tag v-if="health.has_current_key" type="success" size="large">活跃</el-tag>
-              <el-tag v-else type="danger" size="large">未初始化</el-tag>
+              <el-tag v-if="health.has_current_key" type="success" size="large">{{ t(`${P}.stats.active`) }}</el-tag>
+              <el-tag v-else type="danger" size="large">{{ t(`${P}.stats.not_initialized`) }}</el-tag>
             </div>
           </div>
         </el-card>
@@ -16,7 +16,7 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-item">
-            <div class="stat-label">凭据总数 / 活跃</div>
+            <div class="stat-label">{{ t(`${P}.stats.total_active_secrets`) }}</div>
             <div class="stat-value">{{ health.total_secrets }} / {{ health.active_secrets }}</div>
           </div>
         </el-card>
@@ -24,7 +24,7 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-item">
-            <div class="stat-label">7日内过期</div>
+            <div class="stat-label">{{ t(`${P}.stats.expiring_7d`) }}</div>
             <div class="stat-value">
               <el-tag v-if="health.expiring_secrets_7d > 0" type="warning" size="large">
                 {{ health.expiring_secrets_7d }}
@@ -37,7 +37,7 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-item">
-            <div class="stat-label">已过期</div>
+            <div class="stat-label">{{ t(`${P}.stats.expired`) }}</div>
             <div class="stat-value">
               <el-tag v-if="health.expired_secrets > 0" type="danger" size="large">
                 {{ health.expired_secrets }}
@@ -52,67 +52,65 @@
     <!-- 标签页 -->
     <el-tabs v-model="activeTab">
       <!-- 凭据列表 -->
-      <el-tab-pane label="凭据管理" name="secrets">
+      <el-tab-pane :label="t(`${P}.tabs.secrets`)" name="secrets">
         <div class="flex justify-between mb-3">
           <el-form :inline="true" :model="filters" size="small">
             <el-form-item>
-              <el-input v-model="filters.search" placeholder="搜索名称或 slug" clearable
+              <el-input v-model="filters.search" :placeholder="t(`${P}.filters.search_ph`)" clearable
                         @clear="fetchSecrets" @keyup.enter="fetchSecrets" />
             </el-form-item>
             <el-form-item>
-              <el-select v-model="filters.type" placeholder="类型" clearable @change="fetchSecrets">
-                <el-option v-for="t in secretTypes" :key="t.id" :label="t.name" :value="t.id" />
+              <el-select v-model="filters.type" :placeholder="t(`${P}.filters.type`)" clearable @change="fetchSecrets">
+                <el-option v-for="st in secretTypes" :key="st.id" :label="st.name" :value="st.id" />
               </el-select>
             </el-form-item>
             <el-form-item>
-              <el-select v-model="filters.status" placeholder="状态" clearable @change="fetchSecrets">
-                <el-option label="活跃" value="active" />
-                <el-option label="已吊销" value="revoked" />
-                <el-option label="已过期" value="expired" />
+              <el-select v-model="filters.status" :placeholder="t(`${P}.filters.status`)" clearable @change="fetchSecrets">
+                <el-option v-for="opt in statusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="fetchSecrets">查询</el-button>
+              <el-button type="primary" @click="fetchSecrets">{{ t('actions.search') }}</el-button>
             </el-form-item>
           </el-form>
           <div>
             <el-button type="success" @click="openCreateDialog">
-              <el-icon><Plus /></el-icon>新建凭据
+              <el-icon><Plus /></el-icon>{{ t(`${P}.create_secret`) }}
             </el-button>
           </div>
         </div>
 
         <el-table :data="secrets" v-loading="loading" stripe>
-          <el-table-column prop="name" label="名称" min-width="140" />
-          <el-table-column prop="slug" label="Slug" min-width="120" />
-          <el-table-column prop="type" label="类型" width="90">
+          <el-table-column prop="name" :label="t(`${P}.columns.name`)" min-width="140" />
+          <el-table-column prop="slug" :label="t(`${P}.columns.slug`)" min-width="120" />
+          <el-table-column prop="type" :label="t(`${P}.columns.type`)" width="90">
             <template #default="{ row }">
               <el-tag :type="typeTag(row.type)" size="small">{{ row.type }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="tenant_id" label="租户" width="70" />
-          <el-table-column label="状态" width="80">
+          <el-table-column prop="tenant_id" :label="t(`${P}.columns.tenant`)" width="70" />
+          <el-table-column :label="t(`${P}.columns.status`)" width="80">
             <template #default="{ row }">
-              <el-tag v-if="row.status === 'active'" type="success" size="small">活跃</el-tag>
-              <el-tag v-else-if="row.status === 'revoked'" type="danger" size="small">吊销</el-tag>
-              <el-tag v-else type="warning" size="small">{{ row.status }}</el-tag>
+              <el-tag v-if="row.status === 'active'" type="success" size="small">{{ t(`${P}.status.active`) }}</el-tag>
+              <el-tag v-else-if="row.status === 'revoked'" type="danger" size="small">{{ t(`${P}.status.revoked_short`) }}</el-tag>
+              <el-tag v-else type="warning" size="small">{{ secretStatusLabel(row.status) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="expires_at" label="过期时间" width="170">
+          <el-table-column prop="expires_at" :label="t(`${P}.columns.expires_at`)" width="170">
             <template #default="{ row }">
               <span v-if="row.expires_at">{{ row.expires_at }}</span>
-              <span v-else class="text-gray-400">永不过期</span>
+              <span v-else class="text-gray-400">{{ t(`${P}.never_expires`) }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="last_used_at" label="最后使用" width="170" />
-          <el-table-column label="操作" width="260" fixed="right">
+          <el-table-column prop="last_used_at" :label="t(`${P}.columns.last_used_at`)" width="170" />
+          <el-table-column :label="t(`${P}.columns.actions`)" width="260" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" @click="viewSecret(row)">查看</el-button>
-              <el-button size="small" type="warning" @click="openRotateDialog(row)">轮换</el-button>
+              <el-button size="small" @click="viewSecret(row)">{{ t('actions.view') }}</el-button>
+              <el-button size="small" type="warning" @click="openRotateDialog(row)">{{ t(`${P}.rotate`) }}</el-button>
               <el-button v-if="row.status === 'active'" size="small" type="danger"
-                         @click="confirmRevoke(row)">吊销</el-button>
+                         @click="confirmRevoke(row)">{{ t(`${P}.revoke`) }}</el-button>
               <el-button v-else size="small" type="info"
-                         @click="confirmRestore(row)">恢复</el-button>
+                         @click="confirmRestore(row)">{{ t(`${P}.restore`) }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -124,58 +122,58 @@
       </el-tab-pane>
 
       <!-- 主密钥管理 -->
-      <el-tab-pane label="主密钥" name="master-keys">
+      <el-tab-pane :label="t(`${P}.tabs.master_keys`)" name="master-keys">
         <div class="mb-3">
           <el-button type="primary" @click="generateMasterKey">
-            <el-icon><Plus /></el-icon>生成新主密钥
+            <el-icon><Plus /></el-icon>{{ t(`${P}.generate_master_key`) }}
           </el-button>
           <el-button type="warning" @click="confirmRotateMasterKey" class="ml-2">
-            <el-icon><Refresh /></el-icon>轮换主密钥
+            <el-icon><Refresh /></el-icon>{{ t(`${P}.rotate_master_key`) }}
           </el-button>
         </div>
-        <el-alert title="主密钥是密钥管理的根信任锚点。轮换主密钥将重新加密所有已存储的凭据，此操作不可撤销。" type="info" :closable="false" show-icon class="mb-3" />
+        <el-alert :title="t(`${P}.master_key_alert`)" type="info" :closable="false" show-icon class="mb-3" />
         <el-table :data="masterKeys" v-loading="masterLoading" stripe>
-          <el-table-column prop="key_id" label="密钥 ID" width="140" />
-          <el-table-column prop="label" label="名称" min-width="160" />
-          <el-table-column prop="algorithm" label="算法" width="100" />
-          <el-table-column label="状态" width="90">
+          <el-table-column prop="key_id" :label="t(`${P}.columns.key_id`)" width="140" />
+          <el-table-column prop="label" :label="t(`${P}.columns.name`)" min-width="160" />
+          <el-table-column prop="algorithm" :label="t(`${P}.columns.algorithm`)" width="100" />
+          <el-table-column :label="t(`${P}.columns.status`)" width="90">
             <template #default="{ row }">
-              <el-tag v-if="row.is_current" type="success" size="small">当前</el-tag>
-              <el-tag v-else-if="row.status === 'deprecated'" type="warning" size="small">已弃用</el-tag>
+              <el-tag v-if="row.is_current" type="success" size="small">{{ t(`${P}.status.current`) }}</el-tag>
+              <el-tag v-else-if="row.status === 'deprecated'" type="warning" size="small">{{ t(`${P}.status.deprecated`) }}</el-tag>
               <el-tag v-else :type="row.status === 'active' ? 'info' : 'danger'" size="small">
-                {{ row.status === 'revoked' ? '已吊销' : row.status }}
+                {{ masterKeyStatusLabel(row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="rotated_at" label="轮换时间" width="170" />
-          <el-table-column prop="expires_at" label="过期时间" width="170" />
-          <el-table-column prop="created_at" label="创建时间" width="170" />
+          <el-table-column prop="rotated_at" :label="t(`${P}.columns.rotated_at`)" width="170" />
+          <el-table-column prop="expires_at" :label="t(`${P}.columns.expires_at`)" width="170" />
+          <el-table-column prop="created_at" :label="t(`${P}.columns.created_at`)" width="170" />
         </el-table>
       </el-tab-pane>
 
       <!-- 访问审计 -->
-      <el-tab-pane label="访问审计" name="logs">
+      <el-tab-pane :label="t(`${P}.tabs.logs`)" name="logs">
         <div class="mb-3">
-          <el-select v-model="logFilters.secret_id" placeholder="筛选凭据" clearable filterable
+          <el-select v-model="logFilters.secret_id" :placeholder="t(`${P}.filters.secret_ph`)" clearable filterable
                      @change="fetchLogs" size="small" class="w-60">
             <el-option v-for="s in secrets" :key="s.id" :label="s.name" :value="s.id" />
           </el-select>
         </div>
         <el-table :data="auditLogs" v-loading="logsLoading" stripe>
-          <el-table-column prop="action" label="操作" width="90">
+          <el-table-column prop="action" :label="t(`${P}.columns.action`)" width="90">
             <template #default="{ row }">
               <el-tag :type="actionTag(row.action)" size="small">{{ actionLabel(row.action) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="secret.name" label="凭据" min-width="120" />
-          <el-table-column prop="accessed_by" label="访问来源" min-width="140" />
-          <el-table-column prop="ip_address" label="IP" width="130" />
-          <el-table-column prop="context" label="上下文" min-width="120">
+          <el-table-column prop="secret.name" :label="t(`${P}.columns.secret`)" min-width="120" />
+          <el-table-column prop="accessed_by" :label="t(`${P}.columns.accessed_by`)" min-width="140" />
+          <el-table-column prop="ip_address" :label="t(`${P}.columns.ip`)" width="130" />
+          <el-table-column prop="context" :label="t(`${P}.columns.context`)" min-width="120">
             <template #default="{ row }">
               <code class="text-xs" v-if="row.context">{{ JSON.stringify(row.context) }}</code>
             </template>
           </el-table-column>
-          <el-table-column prop="created_at" label="时间" width="170" />
+          <el-table-column prop="created_at" :label="t(`${P}.columns.time`)" width="170" />
         </el-table>
         <div class="flex justify-center mt-3">
           <el-pagination v-if="logTotal > 0" background layout="prev, pager, next"
@@ -185,85 +183,87 @@
       </el-tab-pane>
 
       <!-- 健康状态详情 -->
-      <el-tab-pane label="系统健康" name="health">
-        <el-descriptions title="Secret Manager 健康状态" :column="2" border>
-          <el-descriptions-item label="主密钥就绪">
+      <el-tab-pane :label="t(`${P}.tabs.health`)" name="health">
+        <el-descriptions :title="t(`${P}.health.title`)" :column="2" border>
+          <el-descriptions-item :label="t(`${P}.health.master_key_ready`)">
             <el-tag :type="health.has_current_key ? 'success' : 'danger'">
-              {{ health.has_current_key ? '是' : '否' }}
+              {{ health.has_current_key ? yesLabel : noLabel }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="当前密钥 ID">{{ health.current_key_id || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="加密算法">{{ health.key_algorithm || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="密钥创建时间">{{ health.current_key_created || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="密钥过期时间">{{ health.current_key_expires || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="凭据总数">{{ health.total_secrets }}</el-descriptions-item>
-          <el-descriptions-item label="活跃凭据">{{ health.active_secrets }}</el-descriptions-item>
-          <el-descriptions-item label="7日内过期">{{ health.expiring_secrets_7d }}</el-descriptions-item>
-          <el-descriptions-item label="已过期">{{ health.expired_secrets }}</el-descriptions-item>
+          <el-descriptions-item :label="t(`${P}.health.current_key_id`)">{{ health.current_key_id || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t(`${P}.health.key_algorithm`)">{{ health.key_algorithm || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t(`${P}.health.key_created`)">{{ health.current_key_created || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t(`${P}.health.key_expires`)">{{ health.current_key_expires || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t(`${P}.health.total_secrets`)">{{ health.total_secrets }}</el-descriptions-item>
+          <el-descriptions-item :label="t(`${P}.health.active_secrets`)">{{ health.active_secrets }}</el-descriptions-item>
+          <el-descriptions-item :label="t(`${P}.health.expiring_7d`)">{{ health.expiring_secrets_7d }}</el-descriptions-item>
+          <el-descriptions-item :label="t(`${P}.health.expired`)">{{ health.expired_secrets }}</el-descriptions-item>
         </el-descriptions>
       </el-tab-pane>
     </el-tabs>
 
     <!-- 创建 / 编辑凭据 Dialog -->
-    <el-dialog v-model="createDialog" :title="editingSecret ? '编辑凭据' : '新建凭据'" width="520px">
+    <el-dialog v-model="createDialog" :title="editingSecret ? t(`${P}.dialog.edit_title`) : t(`${P}.dialog.create_title`)" width="520px">
       <el-form :model="secretForm" :rules="formRules" ref="formRef" label-width="100px">
-        <el-form-item label="租户 ID" prop="tenant_id">
+        <el-form-item :label="t(`${P}.form.tenant_id`)" prop="tenant_id">
           <el-input-number v-model="secretForm.tenant_id" :min="1" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="凭据名称" prop="name">
-          <el-input v-model="secretForm.name" placeholder="例如：Stripe 生产密钥" />
+        <el-form-item :label="t(`${P}.form.name`)" prop="name">
+          <el-input v-model="secretForm.name" :placeholder="t(`${P}.form.name_ph`)" />
         </el-form-item>
-        <el-form-item label="Slug" prop="slug">
-          <el-input v-model="secretForm.slug" placeholder="例如：stripe_secret_key" />
+        <el-form-item :label="t(`${P}.form.slug`)" prop="slug">
+          <el-input v-model="secretForm.slug" :placeholder="t(`${P}.form.slug_ph`)" />
         </el-form-item>
-        <el-form-item label="类型" prop="type">
+        <el-form-item :label="t(`${P}.form.type`)" prop="type">
           <el-select v-model="secretForm.type" style="width: 100%">
-            <el-option v-for="t in secretTypes" :key="t.id" :label="t.name" :value="t.id" />
+            <el-option v-for="st in secretTypes" :key="st.id" :label="st.name" :value="st.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="凭据值" prop="value">
+        <el-form-item :label="t(`${P}.form.value`)" prop="value">
           <el-input v-model="secretForm.value" type="textarea" :rows="3"
-                    placeholder="待加密存储的敏感值" />
+                    :placeholder="t(`${P}.form.value_ph`)" />
         </el-form-item>
-        <el-form-item label="描述">
+        <el-form-item :label="t(`${P}.form.description`)">
           <el-input v-model="secretForm.description" type="textarea" :rows="2" />
         </el-form-item>
-        <el-form-item label="过期时间">
-          <el-date-picker v-model="secretForm.expires_at" type="datetime" placeholder="留空则默认两年"
+        <el-form-item :label="t(`${P}.form.expires_at`)">
+          <el-date-picker v-model="secretForm.expires_at" type="datetime" :placeholder="t(`${P}.form.expires_at_ph`)"
                           style="width: 100%" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitSecret" :loading="submitting">提交</el-button>
+        <el-button @click="createDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="submitSecret" :loading="submitting">{{ t('actions.submit') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 查看凭据明文 Dialog -->
-    <el-dialog v-model="viewDialog" title="查看凭据明文" width="500px">
-      <el-alert title="出于安全考虑，查看凭证明文前需要确认操作。" type="warning" show-icon class="mb-3" />
+    <el-dialog v-model="viewDialog" :title="t(`${P}.dialog.view_title`)" width="500px">
+      <el-alert :title="t(`${P}.view.security_alert`)" type="warning" show-icon class="mb-3" />
       <div v-if="viewValue">
         <el-input v-model="viewValue" type="textarea" :rows="4" readonly />
         <div class="mt-2 text-xs text-gray-400">
-          <el-button size="small" @click="copyValue">复制到剪贴板</el-button>
+          <el-button size="small" @click="copyValue">{{ t(`${P}.view.copy_clipboard`) }}</el-button>
         </div>
       </div>
       <div v-else-if="viewLoading" class="text-center py-4">
         <el-icon class="is-loading" size="24"><Loading /></el-icon>
-        <p class="mt-2">解密中...</p>
+        <p class="mt-2">{{ t(`${P}.view.decrypting`) }}</p>
       </div>
       <template #footer>
-        <el-button @click="viewDialog = false">关闭</el-button>
+        <el-button @click="viewDialog = false">{{ t('actions.close') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 轮换 Dialog -->
-    <el-dialog v-model="rotateDialog" title="轮换凭据" width="480px">
-      <p class="mb-2 text-sm text-gray-600">正在轮换: <strong>{{ rotatingSecret?.name }}</strong> ({{ rotatingSecret?.slug }})</p>
-      <el-input v-model="rotateValue" type="textarea" :rows="3" placeholder="输入新凭据值" />
+    <el-dialog v-model="rotateDialog" :title="t(`${P}.dialog.rotate_title`)" width="480px">
+      <p class="mb-2 text-sm text-gray-600">
+        {{ t(`${P}.dialog.rotate_intro`, { name: rotatingSecret?.name, slug: rotatingSecret?.slug }) }}
+      </p>
+      <el-input v-model="rotateValue" type="textarea" :rows="3" :placeholder="t(`${P}.form.rotate_value_ph`)" />
       <template #footer>
-        <el-button @click="rotateDialog = false">取消</el-button>
-        <el-button type="warning" @click="submitRotate" :loading="rotateLoading">确认轮换</el-button>
+        <el-button @click="rotateDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="warning" @click="submitRotate" :loading="rotateLoading">{{ t(`${P}.confirm_rotate`) }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -271,9 +271,13 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Refresh, Loading } from '@element-plus/icons-vue';
 import api from '@/api/secret-manager';
+
+const { t } = useI18n();
+const P = 'secret_manager_page';
 
 const activeTab = ref('secrets');
 
@@ -289,6 +293,36 @@ const health = reactive({
   current_key_created: null,
   current_key_expires: null,
 });
+
+const yesLabel = computed(() => t(`${P}.yes`));
+const noLabel = computed(() => t(`${P}.no`));
+
+const statusOptions = computed(() => [
+  { value: 'active', label: t(`${P}.status.active`) },
+  { value: 'revoked', label: t(`${P}.status.revoked`) },
+  { value: 'expired', label: t(`${P}.status.expired`) },
+]);
+
+const auditActionLabels = computed(() => Object.fromEntries(
+  ['create', 'access', 'rotate', 'revoke', 'restore'].map((k) => [k, t(`${P}.audit_action.${k}`)])
+));
+
+const formRules = computed(() => ({
+  tenant_id: [{ required: true, message: t(`${P}.rules.tenant_id_required`), trigger: 'blur' }],
+  name: [{ required: true, message: t(`${P}.rules.name_required`), trigger: 'blur' }],
+  slug: [{ required: true, message: t(`${P}.rules.slug_required`), trigger: 'blur' }],
+  value: [{ required: true, message: t(`${P}.rules.value_required`), trigger: 'blur' }],
+}));
+
+function secretStatusLabel(status) {
+  if (status === 'expired') return t(`${P}.status.expired`);
+  return status;
+}
+
+function masterKeyStatusLabel(status) {
+  if (status === 'revoked') return t(`${P}.status.revoked`);
+  return status;
+}
 
 // 凭据管理
 const loading = ref(false);
@@ -336,13 +370,6 @@ const secretForm = reactive({
   expires_at: null,
 });
 
-const formRules = {
-  tenant_id: [{ required: true, message: '请填写租户 ID', trigger: 'blur' }],
-  name: [{ required: true, message: '请输入凭据名称', trigger: 'blur' }],
-  slug: [{ required: true, message: '请输入 Slug', trigger: 'blur' }],
-  value: [{ required: true, message: '请输入凭据值', trigger: 'blur' }],
-};
-
 function openCreateDialog() {
   editingSecret.value = null;
   secretForm.tenant_id = 1;
@@ -361,12 +388,12 @@ function submitSecret() {
     submitting.value = true;
     api.create({ ...secretForm, expires_at: secretForm.expires_at || undefined })
       .then(() => {
-        ElMessage.success('凭据创建成功');
+        ElMessage.success(t(`${P}.messages.created`));
         createDialog.value = false;
         fetchSecrets();
       })
       .catch(err => {
-        ElMessage.error(err.response?.data?.errors?.slug?.[0] || '创建失败');
+        ElMessage.error(err.response?.data?.errors?.slug?.[0] || t(`${P}.messages.create_failed`));
       })
       .finally(() => submitting.value = false);
   });
@@ -383,18 +410,18 @@ function viewSecret(row) {
   viewLoading.value = true;
   api.show(row.id)
     .then(res => {
-      viewValue.value = res.data.data?.value || '无法解密';
+      viewValue.value = res.data.data?.value || t(`${P}.messages.decrypt_failed`);
     })
     .catch(() => {
-      ElMessage.error('解密失败，凭据可能已吊销');
-      viewValue.value = '解密失败';
+      ElMessage.error(t(`${P}.messages.decrypt_error`));
+      viewValue.value = t(`${P}.messages.decrypt_failed_short`);
     })
     .finally(() => viewLoading.value = false);
 }
 
 function copyValue() {
   navigator.clipboard.writeText(viewValue.value).then(() => {
-    ElMessage.success('已复制');
+    ElMessage.success(t(`${P}.messages.copied`));
   });
 }
 
@@ -412,29 +439,29 @@ function openRotateDialog(row) {
 
 function submitRotate() {
   if (!rotateValue.value) {
-    ElMessage.warning('请输入新凭据值');
+    ElMessage.warning(t(`${P}.messages.rotate_value_required`));
     return;
   }
   rotateLoading.value = true;
   api.rotate(rotatingSecret.value.id, rotateValue.value)
     .then(() => {
-      ElMessage.success('凭据已轮换');
+      ElMessage.success(t(`${P}.messages.rotated`));
       rotateDialog.value = false;
       fetchSecrets();
     })
-    .catch(() => ElMessage.error('轮换失败'))
+    .catch(() => ElMessage.error(t(`${P}.messages.rotate_failed`)))
     .finally(() => rotateLoading.value = false);
 }
 
 // 吊销
 function confirmRevoke(row) {
-  ElMessageBox.confirm(`确定吊销凭据 "${row.name}"？此操作不可撤销。`, '确认吊销', {
-    confirmButtonText: '确定吊销',
-    cancelButtonText: '取消',
+  ElMessageBox.confirm(t(`${P}.confirm.revoke`, { name: row.name }), t(`${P}.confirm.revoke_title`), {
+    confirmButtonText: t(`${P}.confirm.revoke_confirm`),
+    cancelButtonText: t('actions.cancel'),
     type: 'warning',
   }).then(() => {
     api.revoke(row.id).then(() => {
-      ElMessage.success('已吊销');
+      ElMessage.success(t(`${P}.messages.revoked`));
       fetchSecrets();
     });
   }).catch(() => {});
@@ -443,10 +470,10 @@ function confirmRevoke(row) {
 // 恢复
 function confirmRestore(row) {
   api.restore(row.id).then(() => {
-    ElMessage.success('已恢复');
+    ElMessage.success(t(`${P}.messages.restored`));
     fetchSecrets();
   }).catch(err => {
-    ElMessage.error(err.response?.data?.message || '恢复失败');
+    ElMessage.error(err.response?.data?.message || t(`${P}.messages.restore_failed`));
   });
 }
 
@@ -462,13 +489,13 @@ function fetchMasterKeys() {
 }
 
 function generateMasterKey() {
-  ElMessageBox.prompt('为此主密钥输入一个标签（可选）：', '生成新主密钥', {
-    confirmButtonText: '生成',
-    cancelButtonText: '取消',
+  ElMessageBox.prompt(t(`${P}.prompt.master_key_label`), t(`${P}.prompt.generate_master_key_title`), {
+    confirmButtonText: t(`${P}.prompt.generate`),
+    cancelButtonText: t('actions.cancel'),
     inputPattern: /.*/,
   }).then(({ value }) => {
     api.generateMasterKey(value || '').then(res => {
-      ElMessage.success(`主密钥已生成: ${res.data.data?.key_id}`);
+      ElMessage.success(t(`${P}.messages.master_key_generated`, { key_id: res.data.data?.key_id }));
       fetchMasterKeys();
       fetchHealth();
     });
@@ -477,17 +504,17 @@ function generateMasterKey() {
 
 function confirmRotateMasterKey() {
   ElMessageBox.confirm(
-    '确定轮换主密钥？<br>这将重新加密所有存储的凭据。<br><strong>此操作不可撤销。</strong>',
-    '轮换主密钥',
+    t(`${P}.confirm.rotate_master`),
+    t(`${P}.confirm.rotate_master_title`),
     {
-      confirmButtonText: '确认轮换',
-      cancelButtonText: '取消',
+      confirmButtonText: t(`${P}.confirm_rotate`),
+      cancelButtonText: t('actions.cancel'),
       type: 'warning',
       dangerouslyUseHTMLString: true,
     }
   ).then(() => {
     api.rotateMasterKey().then(res => {
-      ElMessage.success(res.data.message || '主密钥已轮换');
+      ElMessage.success(res.data.message || t(`${P}.messages.master_key_rotated`));
       fetchMasterKeys();
       fetchHealth();
     });
@@ -550,8 +577,7 @@ function actionTag(action) {
 }
 
 function actionLabel(action) {
-  const map = { create: '创建', access: '访问', rotate: '轮换', revoke: '吊销', restore: '恢复' };
-  return map[action] || action;
+  return auditActionLabels.value[action] || action;
 }
 
 onMounted(() => {

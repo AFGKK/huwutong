@@ -1,8 +1,11 @@
 import { nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import apiClient from '@/api/client'
+import i18n from '@/i18n'
 
 const DM_TEXT_MAX_LENGTH = 2000
+const t = (key, params) => i18n.global.t('user_chat_page.' + key, params)
+const apiZh = (key) => i18n.global.t('user_chat_page.' + key, {}, { locale: 'zh_CN' })
 
 function parseMessagePage(res) {
     const body = res.data || {}
@@ -60,7 +63,7 @@ export function useUserChatMessages({
             }
         } catch (e) {
             console.error('loadMessages failed', e)
-            ElMessage.error('加载消息失败')
+            ElMessage.error(t('msg.load_failed'))
         }
     }
 
@@ -85,9 +88,10 @@ export function useUserChatMessages({
 
     function getSendConfirmationMsg(content, conv) {
         const warnings = []
-        if (/@(all|everyone|所有人)/i.test(content)) {
+        const atAll = apiZh('api.at_all')
+        if (new RegExp(`@(all|everyone|${atAll})`, 'i').test(content)) {
             if (conv.type === 'group') {
-                warnings.push('⚠️ 消息中包含 <strong>@所有人</strong>，将通知全部群成员')
+                warnings.push(t('msg.warn_at_all'))
             }
         }
         const urlRegex = /https?:\/\/([^\s\/]+)/gi
@@ -95,12 +99,12 @@ export function useUserChatMessages({
         while ((match = urlRegex.exec(content)) !== null) {
             const domain = match[1].toLowerCase()
             if (!domain.includes(window.location.hostname) && !domain.includes('huwutong.com')) {
-                warnings.push(`🔗 消息包含外部链接 <strong>${match[0].substring(0, 50)}</strong>，请确认链接安全`)
+                warnings.push(t('msg.warn_external_link', { url: match[0].substring(0, 50) }))
                 break
             }
         }
         if (pendingAttachments.value.length >= 5) {
-            warnings.push(`📎 即将发送 <strong>${pendingAttachments.value.length}</strong> 个文件，请确认`)
+            warnings.push(t('msg.warn_many_files', { n: pendingAttachments.value.length }))
         }
         return warnings.length ? warnings.join('<br>') : null
     }
@@ -111,16 +115,16 @@ export function useUserChatMessages({
         if (!content && !pendingAttachments.value.length) return
 
         if (content.length > DM_TEXT_MAX_LENGTH) {
-            ElMessage.warning(`消息不能超过 ${DM_TEXT_MAX_LENGTH} 字`)
+            ElMessage.warning(t('msg.too_long', { n: DM_TEXT_MAX_LENGTH }))
             return
         }
 
         const confirmMsg = getSendConfirmationMsg(content, activeConv.value)
         if (confirmMsg) {
             try {
-                await ElMessageBox.confirm(confirmMsg, '发送确认', {
-                    confirmButtonText: '确认发送',
-                    cancelButtonText: '取消',
+                await ElMessageBox.confirm(confirmMsg, t('msg.send_confirm_title'), {
+                    confirmButtonText: t('msg.send_confirm_ok'),
+                    cancelButtonText: t('msg.send_confirm_cancel'),
                     type: 'warning',
                     dangerouslyUseHTMLString: true,
                 })
@@ -136,11 +140,11 @@ export function useUserChatMessages({
                     const warningHtml = (review.warnings || []).map(w => `⚠️ ${w}`).join('<br>')
                     try {
                         await ElMessageBox.confirm(
-                            `🔍 <strong>AI 预审提示</strong><br><br>${warningHtml}<br><br>您可以选择修改内容后重试，或忽略提示继续发送。`,
-                            '消息预审',
+                            t('msg.pre_review_body', { warnings: warningHtml }),
+                            t('msg.pre_review_title'),
                             {
-                                confirmButtonText: '忽略提示，继续发送',
-                                cancelButtonText: '修改内容',
+                                confirmButtonText: t('msg.pre_review_ok'),
+                                cancelButtonText: t('msg.pre_review_cancel'),
                                 type: 'warning',
                                 dangerouslyUseHTMLString: true,
                                 distinguishCancelAndClose: true,
@@ -155,7 +159,7 @@ export function useUserChatMessages({
         sending.value = true
         try {
             const payload = {
-                content: content || '(文件)',
+                content: content || t('msg.file_placeholder'),
                 message_type: 'text',
                 reply_to_id: replyToMsg.value?.id || undefined,
                 client_msg_id: crypto.randomUUID?.() || Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10),
@@ -171,7 +175,7 @@ export function useUserChatMessages({
             await loadMessages()
             if (typeof loadConversations === 'function') await loadConversations()
         } catch (e) {
-            ElMessage.error(e.response?.data?.message || '发送失败')
+            ElMessage.error(e.response?.data?.message || t('msg.send_failed'))
         } finally {
             sending.value = false
         }
@@ -182,9 +186,9 @@ export function useUserChatMessages({
             await apiClient.post('/user-chat/messages/' + msg.id + '/recall')
             msg.is_recalled = true
             msg.content = null
-            ElMessage.success('消息已撤回')
+            ElMessage.success(t('msg.recalled'))
         } catch (e) {
-            ElMessage.error(e.response?.data?.message || '撤回失败')
+            ElMessage.error(e.response?.data?.message || t('msg.recall_failed'))
         }
     }
 

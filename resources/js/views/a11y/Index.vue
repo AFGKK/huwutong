@@ -13,22 +13,26 @@
     <!-- Tabs -->
     <el-tabs v-model="activeTab" type="border-card">
       <!-- Tab: 符合性声明 -->
-      <el-tab-pane label="符合性声明" name="declaration">
+      <el-tab-pane :label="t('a11y_page.tabs.declaration')" name="declaration">
         <el-card shadow="never" class="mb-4">
-          <template #header><span class="font-semibold">WCAG 2.1 AA 符合性声明</span></template>
-          <p>本系统致力于为所有用户提供无障碍的使用体验，包括残障人士。我们遵循 <strong>Web内容无障碍指南 (WCAG) 2.1 AA 级别</strong> 标准，持续优化产品的可访问性。</p>
+          <template #header><span class="font-semibold">{{ t('a11y_page.declaration.title') }}</span></template>
+          <p>
+            {{ t('a11y_page.declaration.body_prefix') }}
+            <strong>{{ t('a11y_page.declaration.wcag_standard') }}</strong>
+            {{ t('a11y_page.declaration.body_suffix') }}
+          </p>
         </el-card>
 
         <el-table :data="guidelines" stripe v-loading="loading" size="small">
-          <el-table-column label="准则" prop="id" width="80" />
-          <el-table-column label="名称" prop="name" width="160" />
-          <el-table-column label="级别" width="70">
+          <el-table-column :label="t('a11y_page.columns.guideline_id')" prop="id" width="80" />
+          <el-table-column :label="t('a11y_page.columns.name')" prop="name" width="160" />
+          <el-table-column :label="t('a11y_page.columns.level')" width="70">
             <template #default="{ row }">
               <el-tag size="small" :type="row.level === 'A' ? 'warning' : 'success'" effect="plain">{{ row.level }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="说明" prop="description" />
-          <el-table-column label="状态" width="120">
+          <el-table-column :label="t('a11y_page.columns.description')" prop="description" />
+          <el-table-column :label="t('a11y_page.columns.status')" width="120">
             <template #default="{ row }">
               <el-tag size="small" :type="statusType(row.status)">
                 {{ statusLabel(row.status) }}
@@ -38,29 +42,29 @@
         </el-table>
 
         <el-divider />
-        <h3 class="text-lg font-medium mb-2">已知限制</h3>
+        <h3 class="text-lg font-medium mb-2">{{ t('a11y_page.limitations_title') }}</h3>
         <el-table :data="limitations" v-loading="loadingLim" size="small">
-          <el-table-column label="领域" prop="area" width="160" />
-          <el-table-column label="描述" prop="description" />
-          <el-table-column label="严重程度" width="100">
+          <el-table-column :label="t('a11y_page.columns.area')" prop="area" width="160" />
+          <el-table-column :label="t('a11y_page.columns.description')" prop="description" />
+          <el-table-column :label="t('a11y_page.columns.severity')" width="100">
             <template #default="{ row }">
               <el-tag size="small" :type="sevType(row.severity)">{{ sevLabel(row.severity) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="替代方案" prop="workaround" />
+          <el-table-column :label="t('a11y_page.columns.workaround')" prop="workaround" />
         </el-table>
       </el-tab-pane>
 
       <!-- Tab: 对比度检查 -->
-      <el-tab-pane label="对比度检查" name="contrast">
+      <el-tab-pane :label="t('a11y_page.tabs.contrast')" name="contrast">
         <el-card shadow="never">
-          <template #header><span class="font-semibold">WCAG 对比度检查工具</span></template>
+          <template #header><span class="font-semibold">{{ t('a11y_page.contrast.title') }}</span></template>
           <el-form :inline="true">
-            <el-form-item label="前景色">
+            <el-form-item :label="t('a11y_page.contrast.foreground')">
               <el-color-picker v-model="contrastFg" @change="doContrastCheck" />
               <span class="ml-2 font-mono">{{ contrastFg }}</span>
             </el-form-item>
-            <el-form-item label="背景色">
+            <el-form-item :label="t('a11y_page.contrast.background')">
               <el-color-picker v-model="contrastBg" @change="doContrastCheck" />
               <span class="ml-2 font-mono">{{ contrastBg }}</span>
             </el-form-item>
@@ -68,23 +72,23 @@
 
           <div v-if="contrastResult" class="contrast-result">
             <div class="sample-text" :style="{ color: contrastFg, background: contrastBg, padding: '12px', borderRadius: '4px', fontSize: '16px' }">
-              <div class="font-bold text-lg">示例文本（大文本 18pt+ 或 14pt 粗体）</div>
-              <div>示例文本（普通文本）</div>
-              <div style="font-size:12px">示例文本（小文本 12px）</div>
+              <div class="font-bold text-lg">{{ t('a11y_page.contrast.sample_large') }}</div>
+              <div>{{ t('a11y_page.contrast.sample_normal') }}</div>
+              <div style="font-size:12px">{{ t('a11y_page.contrast.sample_small') }}</div>
             </div>
             <el-descriptions :column="2" border class="mt-4" size="small">
-              <el-descriptions-item label="对比度">{{ contrastResult.ratio }}:1</el-descriptions-item>
-              <el-descriptions-item label="评级">
+              <el-descriptions-item :label="t('a11y_page.contrast.ratio')">{{ contrastResult.ratio }}:1</el-descriptions-item>
+              <el-descriptions-item :label="t('a11y_page.contrast.rating')">
                 <el-tag :type="ratingType(contrastResult.rating)">{{ contrastResult.rating }}</el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="AA 普通文本（4.5:1）">
-                <el-tag :type="contrastResult.passes_AA ? 'success' : 'danger'">{{ contrastResult.passes_AA ? '通过' : '未通过' }}</el-tag>
+              <el-descriptions-item :label="t('a11y_page.contrast.aa_normal')">
+                <el-tag :type="contrastResult.passes_AA ? 'success' : 'danger'">{{ contrastResult.passes_AA ? t('a11y_page.contrast.pass') : t('a11y_page.contrast.fail') }}</el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="AA 大文本（3:1）">
-                <el-tag :type="contrastResult.passes_AA_large ? 'success' : 'danger'">{{ contrastResult.passes_AA_large ? '通过' : '未通过' }}</el-tag>
+              <el-descriptions-item :label="t('a11y_page.contrast.aa_large')">
+                <el-tag :type="contrastResult.passes_AA_large ? 'success' : 'danger'">{{ contrastResult.passes_AA_large ? t('a11y_page.contrast.pass') : t('a11y_page.contrast.fail') }}</el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="AAA 增强（7:1）">
-                <el-tag :type="contrastResult.passes_AAA ? 'success' : 'warning'">{{ contrastResult.passes_AAA ? '通过' : '未通过' }}</el-tag>
+              <el-descriptions-item :label="t('a11y_page.contrast.aaa')">
+                <el-tag :type="contrastResult.passes_AAA ? 'success' : 'warning'">{{ contrastResult.passes_AAA ? t('a11y_page.contrast.pass') : t('a11y_page.contrast.fail') }}</el-tag>
               </el-descriptions-item>
             </el-descriptions>
           </div>
@@ -92,88 +96,81 @@
       </el-tab-pane>
 
       <!-- Tab: 色盲模拟 -->
-      <el-tab-pane label="色盲模拟" name="colorblind">
+      <el-tab-pane :label="t('a11y_page.tabs.colorblind')" name="colorblind">
         <el-card shadow="never">
-          <template #header><span class="font-semibold">色盲模拟器</span></template>
-          <p class="text-gray-500 mb-4">选择色盲类型，查看界面在不同色觉缺陷下的表现。</p>
+          <template #header><span class="font-semibold">{{ t('a11y_page.colorblind.title') }}</span></template>
+          <p class="text-gray-500 mb-4">{{ t('a11y_page.colorblind.desc') }}</p>
 
           <el-form inline>
-            <el-form-item label="模拟类型">
+            <el-form-item :label="t('a11y_page.colorblind.sim_type')">
               <el-select v-model="cbType" @change="applyCbFilter">
-                <el-option label="正常视觉" value="none" />
-                <el-option label="红色盲 (Protanopia)" value="protanopia" />
-                <el-option label="绿色盲 (Deuteranopia)" value="deuteranopia" />
-                <el-option label="蓝色盲 (Tritanopia)" value="tritanopia" />
-                <el-option label="全色盲 (Achromatopsia)" value="achromatopsia" />
+                <el-option v-for="opt in cbTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </el-form-item>
           </el-form>
 
           <div class="cb-preview" :class="'cb-' + cbType">
             <el-card shadow="hover" class="mb-2">
-              <template #header><span class="font-semibold">功能状态示例</span></template>
+              <template #header><span class="font-semibold">{{ t('a11y_page.colorblind.preview_status') }}</span></template>
               <div class="flex gap-3">
-                <el-tag type="success">已激活</el-tag>
-                <el-tag type="danger">已过期</el-tag>
-                <el-tag type="warning">即将到期</el-tag>
-                <el-tag type="info">待审核</el-tag>
-                <el-tag type="primary">进行中</el-tag>
+                <el-tag type="success">{{ t('a11y_page.colorblind.tags.active') }}</el-tag>
+                <el-tag type="danger">{{ t('a11y_page.colorblind.tags.expired') }}</el-tag>
+                <el-tag type="warning">{{ t('a11y_page.colorblind.tags.expiring') }}</el-tag>
+                <el-tag type="info">{{ t('a11y_page.colorblind.tags.pending') }}</el-tag>
+                <el-tag type="primary">{{ t('a11y_page.colorblind.tags.in_progress') }}</el-tag>
               </div>
             </el-card>
 
             <el-card shadow="hover" class="mb-2">
-              <template #header><span class="font-semibold">图表颜色示例</span></template>
+              <template #header><span class="font-semibold">{{ t('a11y_page.colorblind.preview_chart') }}</span></template>
               <div class="flex gap-3 items-center">
                 <div v-for="c in chartColors" :key="c" class="cb-color-sample" :style="{ background: c }" />
               </div>
             </el-card>
 
             <el-card shadow="hover">
-              <template #header><span class="font-semibold">按钮状态示例</span></template>
+              <template #header><span class="font-semibold">{{ t('a11y_page.colorblind.preview_buttons') }}</span></template>
               <div class="flex gap-3">
-                <el-button type="primary">主要按钮</el-button>
-                <el-button type="success">成功</el-button>
-                <el-button type="warning">警告</el-button>
-                <el-button type="danger">危险</el-button>
-                <el-button type="info">信息</el-button>
+                <el-button type="primary">{{ t('a11y_page.colorblind.buttons.primary') }}</el-button>
+                <el-button type="success">{{ t('a11y_page.colorblind.buttons.success') }}</el-button>
+                <el-button type="warning">{{ t('a11y_page.colorblind.buttons.warning') }}</el-button>
+                <el-button type="danger">{{ t('a11y_page.colorblind.buttons.danger') }}</el-button>
+                <el-button type="info">{{ t('a11y_page.colorblind.buttons.info') }}</el-button>
               </div>
             </el-card>
           </div>
 
           <el-alert type="warning" :closable="false" class="mt-4">
-            <template #title>提示</template>
-            <template #default>色盲模拟仅在前端展示效果，不会影响实际数据。建议避免仅依赖颜色传达信息，配合图标和文字标识使用。</template>
+            <template #title>{{ t('a11y_page.colorblind.tip_title') }}</template>
+            <template #default>{{ t('a11y_page.colorblind.tip_body') }}</template>
           </el-alert>
         </el-card>
       </el-tab-pane>
 
       <!-- Tab: 无障碍偏好 -->
-      <el-tab-pane label="无障碍偏好" name="preferences">
+      <el-tab-pane :label="t('a11y_page.tabs.preferences')" name="preferences">
         <el-card shadow="never">
-          <template #header><span class="font-semibold">无障碍偏好设置</span></template>
+          <template #header><span class="font-semibold">{{ t('a11y_page.preferences.title') }}</span></template>
 
           <el-form label-position="top" v-if="prefs" v-loading="savingPrefs">
-            <el-form-item label="减少动画">
+            <el-form-item :label="t('a11y_page.preferences.reduced_motion')">
               <el-switch v-model="prefs.reduced_motion" @change="savePrefs" />
-              <span class="ml-2 text-gray-500 text-sm">减少页面动画和过渡效果，适合前庭障碍用户</span>
+              <span class="ml-2 text-gray-500 text-sm">{{ t('a11y_page.preferences.reduced_motion_hint') }}</span>
             </el-form-item>
 
-            <el-form-item label="高对比度模式">
+            <el-form-item :label="t('a11y_page.preferences.high_contrast')">
               <el-switch v-model="prefs.high_contrast" @change="savePrefs" />
-              <span class="ml-2 text-gray-500 text-sm">增强所有界面元素的颜色对比度</span>
+              <span class="ml-2 text-gray-500 text-sm">{{ t('a11y_page.preferences.high_contrast_hint') }}</span>
             </el-form-item>
 
-            <el-form-item label="屏幕阅读器优化">
+            <el-form-item :label="t('a11y_page.preferences.screen_reader')">
               <el-switch v-model="prefs.screen_reader_optimized" @change="savePrefs" />
-              <span class="ml-2 text-gray-500 text-sm">为屏幕阅读器用户优化 ARIA 标签和信息播报</span>
+              <span class="ml-2 text-gray-500 text-sm">{{ t('a11y_page.preferences.screen_reader_hint') }}</span>
             </el-form-item>
 
-            <el-form-item label="字体大小">
+            <el-form-item :label="t('a11y_page.preferences.font_size')">
               <el-radio-group :model-value="prefs.font_size" @change="updateFontSize">
-                <el-radio value="small">小</el-radio>
-                <el-radio value="normal">默认</el-radio>
-                <el-radio value="large">大</el-radio>
-                <el-radio value="extra_large">超大</el-radio>
+                <el-radio v-for="opt in fontSizeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-form>
@@ -184,28 +181,36 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import a11yApi from '@/api/a11y';
+
+const { t } = useI18n();
 
 const activeTab = ref('declaration');
 const loading = ref(false);
 const loadingLim = ref(false);
 
 // ─── 统计 ───
-const statItems = ref([]);
+const stats = ref(null);
+
+const statItems = computed(() => {
+  if (!stats.value) return [];
+  const s = stats.value;
+  return [
+    { label: t('a11y_page.stats.total'), value: s.total, color: 'text-blue-500' },
+    { label: t('a11y_page.stats.compliant'), value: s.compliant, color: 'text-green-500' },
+    { label: t('a11y_page.stats.needs_work'), value: s.needsWork, color: 'text-yellow-500' },
+    { label: t('a11y_page.stats.pass_rate'), value: s.passRate + '%', color: 'text-teal-500' },
+  ];
+});
 
 async function loadStats() {
   try {
     const { data } = await a11yApi.stats();
     if (data?.data) {
-      const s = data.data;
-      statItems.value = [
-        { label: '总准则', value: s.total, color: 'text-blue-500' },
-        { label: '已符合', value: s.compliant, color: 'text-green-500' },
-        { label: '待改进', value: s.needsWork, color: 'text-yellow-500' },
-        { label: '通过率', value: s.passRate + '%', color: 'text-teal-500' },
-      ];
+      stats.value = data.data;
     }
   } catch (e) { /* ignore */ }
 }
@@ -235,7 +240,7 @@ async function loadLimitations() {
 }
 
 // ─── 对比度 ───
-const contrastFg = ref('#409eff');
+const contrastFg = ref('#0f172a');
 const contrastBg = ref('#ffffff');
 const contrastResult = ref(null);
 
@@ -244,13 +249,28 @@ async function doContrastCheck() {
     const { data } = await a11yApi.checkContrast(contrastFg.value, contrastBg.value);
     contrastResult.value = data?.data || null;
   } catch (e) {
-    ElMessage.error('对比度检查失败');
+    ElMessage.error(t('a11y_page.messages.contrast_check_failed'));
   }
 }
 
 // ─── 色盲模拟 ───
 const cbType = ref('none');
-const chartColors = ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#909399', '#b37feb', '#36cfc9'];
+const chartColors = ['#0f172a', '#67c23a', '#e6a23c', '#f56c6c', '#909399', '#b37feb', '#36cfc9'];
+
+const cbTypeOptions = computed(() => [
+  { value: 'none', label: t('a11y_page.colorblind.types.none') },
+  { value: 'protanopia', label: t('a11y_page.colorblind.types.protanopia') },
+  { value: 'deuteranopia', label: t('a11y_page.colorblind.types.deuteranopia') },
+  { value: 'tritanopia', label: t('a11y_page.colorblind.types.tritanopia') },
+  { value: 'achromatopsia', label: t('a11y_page.colorblind.types.achromatopsia') },
+]);
+
+const fontSizeOptions = computed(() => [
+  { value: 'small', label: t('a11y_page.preferences.font_sizes.small') },
+  { value: 'normal', label: t('a11y_page.preferences.font_sizes.normal') },
+  { value: 'large', label: t('a11y_page.preferences.font_sizes.large') },
+  { value: 'extra_large', label: t('a11y_page.preferences.font_sizes.extra_large') },
+]);
 
 function applyCbFilter() {
   // 通过 CSS filter 实现色盲模拟
@@ -286,9 +306,9 @@ async function savePrefs() {
   savingPrefs.value = true;
   try {
     await a11yApi.savePreferences(prefs.value);
-    ElMessage.success('偏好已保存');
+    ElMessage.success(t('messages.success'));
   } catch (e) {
-    ElMessage.error('保存失败');
+    ElMessage.error(t('messages.failed'));
   } finally {
     savingPrefs.value = false;
   }
@@ -308,8 +328,9 @@ function statusType(s) {
 }
 
 function statusLabel(s) {
-  const map = { compliant: '符合', needs_work: '待改进', not_applicable: '不适用' };
-  return map[s] || s;
+  const key = `a11y_page.status.${s}`;
+  const translated = t(key);
+  return translated !== key ? translated : s;
 }
 
 function sevType(s) {
@@ -318,8 +339,9 @@ function sevType(s) {
 }
 
 function sevLabel(s) {
-  const map = { high: '严重', medium: '中等', low: '轻微' };
-  return map[s] || s;
+  const key = `a11y_page.severity.${s}`;
+  const translated = t(key);
+  return translated !== key ? translated : s;
 }
 
 function ratingType(r) {

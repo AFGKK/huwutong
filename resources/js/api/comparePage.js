@@ -11,3 +11,15 @@ export function getAdvantages() {
 export function getCompetitors() {
     return request.get('/compare/competitors');
 }
+
+export function getCompareConfig() {
+    return request.get('/compare/config');
+}
+
+export function updateCompareConfig(data) {
+    return request.put('/compare', data);
+}
+
+export function resetCompareConfig() {
+    return request.post('/compare/reset');
+}

@@ -1,28 +1,27 @@
 <template>
     <div class="portal-licenses">
         <div class="page-header">
-            <h2>我的 License</h2>
+            <h2>{{ $t('portal.my_licenses') }}</h2>
             <div class="header-actions">
                 <el-input
                     v-model="searchKey"
-                    placeholder="搜索 License Key..."
+                    :placeholder="$t('portal.licenses_search_ph')"
                     clearable
                     style="width: 240px"
                     :prefix-icon="Search"
                     @clear="fetchLicenses"
                     @keyup.enter="fetchLicenses"
                 />
-                <el-button @click="fetchLicenses" :icon="Refresh">刷新</el-button>
+                <el-button @click="fetchLicenses" :icon="Refresh">{{ $t('portal.refresh') }}</el-button>
             </div>
         </div>
 
-        <!-- 统计卡片 -->
         <el-row :gutter="16" class="mb-4">
             <el-col :span="8">
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value">{{ stats.total }}</div>
-                        <div class="mini-label">全部</div>
+                        <div class="mini-label">{{ $t('portal.stat_all_short') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -30,7 +29,7 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value" style="color: #67c23a">{{ stats.active }}</div>
-                        <div class="mini-label">活跃中</div>
+                        <div class="mini-label">{{ $t('portal.stat_active') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -38,51 +37,48 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value" style="color: #f56c6c">{{ stats.expired }}</div>
-                        <div class="mini-label">已过期</div>
+                        <div class="mini-label">{{ $t('portal.stat_expired') }}</div>
                     </div>
                 </el-card>
             </el-col>
         </el-row>
 
-        <!-- License 列表 -->
-        <!-- 批量操作栏 -->
         <div class="batch-bar" v-if="selectedIds.length > 0">
-            <span class="batch-info">已选择 {{ selectedIds.length }} 个 License</span>
-            <el-button size="small" @click="clearSelection">取消选择</el-button>
+            <span class="batch-info">{{ $t('portal.selected_n', { n: selectedIds.length }) }}</span>
+            <el-button size="small" @click="clearSelection">{{ $t('portal.clear_selection') }}</el-button>
             <el-divider direction="vertical" />
             <el-button size="small" type="primary" @click="handleBatchRenew">
-                📤 批量续费
+                {{ $t('portal.batch_renew') }}
             </el-button>
             <el-button size="small" type="success" @click="handleBatchActivate">
-                ✅ 批量激活
+                {{ $t('portal.batch_activate') }}
             </el-button>
             <el-button size="small" @click="handleBatchExport">
-                📊 批量导出报表
+                {{ $t('portal.batch_export') }}
             </el-button>
         </div>
 
-        <!-- 批量续费对话框 -->
-        <el-dialog v-model="renewDialog.visible" title="批量续费" width="450px">
+        <el-dialog v-model="renewDialog.visible" :title="$t('portal.batch_renew')" width="450px">
             <el-form :model="renewDialog" label-position="top">
-                <el-form-item label="续费时长">
+                <el-form-item :label="$t('portal.renew_duration')">
                     <el-radio-group v-model="renewDialog.days">
-                        <el-radio-button :value="30">1 个月</el-radio-button>
-                        <el-radio-button :value="90">3 个月</el-radio-button>
-                        <el-radio-button :value="180">6 个月</el-radio-button>
-                        <el-radio-button :value="365">1 年</el-radio-button>
-                        <el-radio-button :value="730">2 年</el-radio-button>
+                        <el-radio-button :value="30">{{ $t('portal.months_1') }}</el-radio-button>
+                        <el-radio-button :value="90">{{ $t('portal.months_3') }}</el-radio-button>
+                        <el-radio-button :value="180">{{ $t('portal.months_6') }}</el-radio-button>
+                        <el-radio-button :value="365">{{ $t('portal.years_1') }}</el-radio-button>
+                        <el-radio-button :value="730">{{ $t('portal.years_2') }}</el-radio-button>
                     </el-radio-group>
                 </el-form-item>
-                <el-form-item label="涉及 License">
+                <el-form-item :label="$t('portal.involved_licenses')">
                     <el-tag v-for="id in selectedIds" :key="id" size="small" style="margin:2px">
                         #{{ id }}
                     </el-tag>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="renewDialog.visible = false">取消</el-button>
+                <el-button @click="renewDialog.visible = false">{{ $t('actions.cancel') }}</el-button>
                 <el-button type="primary" :loading="renewDialog.loading" @click="confirmBatchRenew">
-                    确认续费
+                    {{ $t('portal.confirm_renew') }}
                 </el-button>
             </template>
         </el-dialog>
@@ -102,27 +98,27 @@
                         </el-link>
                     </template>
                 </el-table-column>
-                <el-table-column prop="product?.name" label="产品" min-width="120">
+                <el-table-column prop="product?.name" :label="$t('portal.product')" min-width="120">
                     <template #default="{ row }">{{ row.product?.name || '-' }}</template>
                 </el-table-column>
-                <el-table-column label="类型" width="100">
+                <el-table-column :label="$t('portal.type')" width="100">
                     <template #default="{ row }">
-                        <el-tag v-if="row.type === 'trial'" type="warning" size="small">试用</el-tag>
-                        <el-tag v-else-if="row.type === 'enterprise'" type="success" size="small">企业版</el-tag>
-                        <el-tag v-else-if="row.type === 'development'" size="small">开发版</el-tag>
-                        <span v-else>标准</span>
+                        <el-tag v-if="row.type === 'trial'" type="warning" size="small">{{ $t('portal.type_trial') }}</el-tag>
+                        <el-tag v-else-if="row.type === 'enterprise'" type="success" size="small">{{ $t('portal.type_enterprise') }}</el-tag>
+                        <el-tag v-else-if="row.type === 'development'" size="small">{{ $t('portal.type_development') }}</el-tag>
+                        <span v-else>{{ $t('portal.type_standard') }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="状态" width="90">
+                <el-table-column :label="$t('portal.status')" width="90">
                     <template #default="{ row }">
                         <el-tag :type="statusType(row.status)" size="small" effect="dark">
                             {{ statusLabel(row.status) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="seats" label="座位数" width="70" align="center" />
-                <el-table-column prop="max_devices" label="设备限制" width="80" align="center" />
-                <el-table-column prop="expires_at" label="到期时间" width="180">
+                <el-table-column prop="seats" :label="$t('portal.seats')" width="70" align="center" />
+                <el-table-column prop="max_devices" :label="$t('portal.device_limit')" width="80" align="center" />
+                <el-table-column prop="expires_at" :label="$t('portal.expires_at')" width="180">
                     <template #default="{ row }">
                         <template v-if="row.expires_at">
                             <span v-if="expiryInfo(row.expires_at).class" :class="'expiry-badge ' + expiryInfo(row.expires_at).class">
@@ -130,20 +126,19 @@
                             </span>
                             <span v-else>{{ row.expires_at }}</span>
                         </template>
-                        <span v-else>永久</span>
+                        <span v-else>{{ $t('portal.lifetime') }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="created_at" label="创建时间" width="160" />
-                <el-table-column label="操作" width="100" fixed="right">
+                <el-table-column prop="created_at" :label="$t('portal.created_at')" width="160" />
+                <el-table-column :label="$t('portal.actions')" width="100" fixed="right">
                     <template #default="{ row }">
                         <el-button type="primary" link size="small" @click="$router.push(`/portal/licenses/${row.id}`)">
-                            详情
+                            {{ $t('portal.detail') }}
                         </el-button>
                     </template>
                 </el-table-column>
             </el-table>
 
-            <!-- 分页 -->
             <div class="pagination-wrap">
                 <el-pagination
                     v-model:current-page="page"
@@ -160,10 +155,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import licenseApi from '@/api/license';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Refresh } from '@element-plus/icons-vue';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const licenses = ref([]);
@@ -172,7 +170,6 @@ const page = ref(1);
 const perPage = ref(10);
 const searchKey = ref('');
 
-// 批量选择
 const selectedIds = ref([]);
 function onSelectionChange(rows) {
     selectedIds.value = rows.map(r => r.id);
@@ -181,7 +178,6 @@ function clearSelection() {
     selectedIds.value = [];
 }
 
-// 批量续费对话框
 const renewDialog = reactive({
     visible: false,
     days: 365,
@@ -194,18 +190,6 @@ const stats = reactive({
     expired: 0,
 });
 
-const STATUS_MAP = {
-    pending: { type: 'info', label: '待激活' },
-    active: { type: 'success', label: '活跃' },
-    suspended: { type: 'warning', label: '已暂停' },
-    frozen: { type: 'warning', label: '已冻结' },
-    expired: { type: 'info', label: '已过期' },
-    revoked: { type: 'danger', label: '已吊销' },
-    refunded: { type: 'danger', label: '已退款' },
-    blacklisted: { type: 'danger', label: '黑名单' },
-};
-
-// 过期倒计时
 const now = ref(Date.now());
 let countdownTimer = null;
 
@@ -216,32 +200,36 @@ function daysUntilExpiry(dateStr) {
 }
 
 function expiryInfo(dateStr) {
-    if (!dateStr) return { text: '永久', class: '', urgent: false };
+    if (!dateStr) return { text: t('portal.lifetime'), class: '', urgent: false };
     const days = daysUntilExpiry(dateStr);
-    if (days < 0) return { text: `已过期 ${Math.ceil(Math.abs(days))} 天`, class: 'expiry-overdue', urgent: true };
-    if (days < 1) return { text: '今天到期', class: 'expiry-urgent', urgent: true };
+    if (days < 0) return { text: t('portal.expired_days', { n: Math.ceil(Math.abs(days)) }), class: 'expiry-overdue', urgent: true };
+    if (days < 1) return { text: t('portal.expires_today'), class: 'expiry-urgent', urgent: true };
     const d = Math.ceil(days);
-    if (d <= 3) return { text: `${d} 天后到期`, class: 'expiry-urgent', urgent: true };
-    if (d <= 7) return { text: `${d} 天后到期`, class: 'expiry-warning', urgent: false };
-    if (d <= 30) return { text: `${d} 天后到期`, class: 'expiry-soon', urgent: false };
+    if (d <= 3) return { text: t('portal.expires_in', { n: d }), class: 'expiry-urgent', urgent: true };
+    if (d <= 7) return { text: t('portal.expires_in', { n: d }), class: 'expiry-warning', urgent: false };
+    if (d <= 30) return { text: t('portal.expires_in', { n: d }), class: 'expiry-soon', urgent: false };
     return { text: dateStr, class: '', urgent: false };
 }
 
-onMounted(() => {
-    // 每分钟更新一次倒计时
-    countdownTimer = setInterval(() => { now.value = Date.now(); }, 60000);
-});
-
-// 清理定时器（组件卸载时）
-import { onUnmounted } from 'vue';
-onUnmounted(() => { if (countdownTimer) clearInterval(countdownTimer); });
-
-function statusType(status) { return STATUS_MAP[status]?.type || 'info'; }
-function statusLabel(status) { return STATUS_MAP[status]?.label || status; }
-function isExpiring(dateStr) {
-    if (!dateStr) return false;
-    const days = daysUntilExpiry(dateStr);
-    return days >= 0 && days <= 30;
+function statusType(status) {
+    const map = {
+        pending: 'info', active: 'success', suspended: 'warning', frozen: 'warning',
+        expired: 'info', revoked: 'danger', refunded: 'danger', blacklisted: 'danger',
+    };
+    return map[status] || 'info';
+}
+function statusLabel(status) {
+    const map = {
+        pending: t('portal.st_pending'),
+        active: t('portal.st_active'),
+        suspended: t('portal.st_suspended'),
+        frozen: t('portal.st_frozen'),
+        expired: t('portal.st_expired'),
+        revoked: t('portal.st_revoked'),
+        refunded: t('portal.st_refunded'),
+        blacklisted: t('portal.st_blacklisted'),
+    };
+    return map[status] || status;
 }
 
 async function fetchLicenses() {
@@ -259,22 +247,18 @@ async function fetchLicenses() {
         licenses.value = res.data || [];
         total.value = res.meta?.total || res.data?.length || 0;
 
-        // 获取统计数据
         const { data: statsRes } = await licenseApi.stats();
         const s = statsRes.data || {};
         stats.total = s.total || 0;
         stats.active = s.active || 0;
         stats.expired = s.expired || 0;
     } catch {
-        ElMessage.error('获取 License 列表失败');
+        ElMessage.error(t('portal.licenses_load_failed'));
     } finally {
         loading.value = false;
     }
 }
 
-// ── 批量操作 ──
-
-/** 批量续费 */
 async function handleBatchRenew() {
     if (selectedIds.value.length === 0) return;
     renewDialog.days = 365;
@@ -289,41 +273,43 @@ async function confirmBatchRenew() {
             action: 'renew',
             payload: { days: renewDialog.days },
         });
-        ElMessage.success(res.message || `批量续费成功`);
+        ElMessage.success(res.message || t('portal.batch_renew_ok'));
         renewDialog.visible = false;
         clearSelection();
         fetchLicenses();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '批量续费失败');
+        ElMessage.error(e.response?.data?.message || t('portal.batch_renew_fail'));
     } finally {
         renewDialog.loading = false;
     }
 }
 
-/** 批量激活 */
 async function handleBatchActivate() {
     if (selectedIds.value.length === 0) return;
     try {
         await ElMessageBox.confirm(
-            `确定要激活选中的 ${selectedIds.value.length} 个 License 吗？`,
-            '批量激活',
-            { confirmButtonText: '确定', cancelButtonText: '取消', type: 'info' }
+            t('portal.batch_activate_confirm', { n: selectedIds.value.length }),
+            t('portal.batch_activate'),
+            {
+                confirmButtonText: t('actions.confirm'),
+                cancelButtonText: t('actions.cancel'),
+                type: 'info',
+            }
         );
         const { data: res } = await licenseApi.batchOperation({
             license_ids: selectedIds.value,
             action: 'activate',
         });
-        ElMessage.success(res.message || `批量激活成功`);
+        ElMessage.success(res.message || t('portal.batch_activate_ok'));
         clearSelection();
         fetchLicenses();
     } catch (e) {
         if (e !== 'cancel') {
-            ElMessage.error(e.response?.data?.message || '批量激活失败');
+            ElMessage.error(e.response?.data?.message || t('portal.batch_activate_fail'));
         }
     }
 }
 
-/** 批量导出报表 */
 async function handleBatchExport() {
     try {
         const params = {};
@@ -331,7 +317,6 @@ async function handleBatchExport() {
             params.ids = selectedIds.value.join(',');
         }
         const res = await licenseApi.exportCsv(params);
-        // 处理文件下载
         const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -341,13 +326,17 @@ async function handleBatchExport() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        ElMessage.success('报表导出成功');
+        ElMessage.success(t('portal.export_ok'));
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '导出失败');
+        ElMessage.error(e.response?.data?.message || t('portal.export_fail'));
     }
 }
 
-onMounted(fetchLicenses);
+onMounted(() => {
+    countdownTimer = setInterval(() => { now.value = Date.now(); }, 60000);
+    fetchLicenses();
+});
+onUnmounted(() => { if (countdownTimer) clearInterval(countdownTimer); });
 </script>
 
 <style scoped>
@@ -398,20 +387,19 @@ onMounted(fetchLicenses);
 .expiry-soon { background:#f0f9eb; color:#67c23a; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 
-/* 批量操作栏 */
 .batch-bar {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
     margin-bottom: 12px;
-    background: #ecf5ff;
+    background: #f1f5f9;
     border: 1px solid #b3d8ff;
     border-radius: 6px;
     font-size: 14px;
 }
 .batch-info {
     font-weight: 600;
-    color: #409eff;
+    color: #0f172a;
 }
 </style>

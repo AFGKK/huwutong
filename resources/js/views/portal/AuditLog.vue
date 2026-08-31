@@ -2,38 +2,37 @@
     <div class="portal-audit-log">
         <div class="page-header">
             <div>
-                <h2>操作审计日志</h2>
-                <p class="text-muted">查看您的账户下所有操作记录，了解谁在何时做了什么。</p>
+                <h2>{{ $t('portal.audit_title') }}</h2>
+                <p class="text-muted">{{ $t('portal.audit_subtitle') }}</p>
             </div>
             <div class="header-actions">
-                <el-select v-model="actionFilter" placeholder="操作类型" clearable size="small" style="width: 140px" @change="fetchLogs">
-                    <el-option label="全部" value="" />
-                    <el-option label="激活设备" value="device_activation" />
-                    <el-option label="解绑设备" value="device_deactivation" />
-                    <el-option label="登录" value="login" />
-                    <el-option label="修改密码" value="password_change" />
-                    <el-option label="修改设置" value="settings_change" />
-                    <el-option label="支付操作" value="payment" />
+                <el-select v-model="actionFilter" :placeholder="$t('portal.action_type')" clearable size="small" style="width: 140px" @change="fetchLogs">
+                    <el-option :label="$t('portal.all')" value="" />
+                    <el-option :label="$t('portal.act_device_activation')" value="device_activation" />
+                    <el-option :label="$t('portal.act_device_deactivation')" value="device_deactivation" />
+                    <el-option :label="$t('portal.act_login')" value="login" />
+                    <el-option :label="$t('portal.act_password_change')" value="password_change" />
+                    <el-option :label="$t('portal.act_settings_change')" value="settings_change" />
+                    <el-option :label="$t('portal.act_payment')" value="payment" />
                 </el-select>
-                <el-button @click="fetchLogs" :icon="Refresh" :loading="loading">刷新</el-button>
+                <el-button @click="fetchLogs" :icon="Refresh" :loading="loading">{{ $t('portal.refresh') }}</el-button>
             </div>
         </div>
 
-        <!-- 统计摘要 -->
         <el-row :gutter="16" class="mb-4">
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value">{{ stats.total || 0 }}</div>
-                        <div class="mini-label">总操作次数</div>
+                        <div class="mini-label">{{ $t('portal.total_actions') }}</div>
                     </div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="mini-stat">
-                        <div class="mini-value" style="color: #409eff">{{ stats.this_week || 0 }}</div>
-                        <div class="mini-label">本周操作</div>
+                        <div class="mini-value" style="color: #0f172a">{{ stats.this_week || 0 }}</div>
+                        <div class="mini-label">{{ $t('portal.week_actions') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -41,7 +40,7 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value" style="color: #67c23a">{{ stats.today || 0 }}</div>
-                        <div class="mini-label">今日操作</div>
+                        <div class="mini-label">{{ $t('portal.today_actions') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -49,41 +48,39 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value" style="color: #e6a23c">{{ licenseActions }}</div>
-                        <div class="mini-label">License 相关</div>
+                        <div class="mini-label">{{ $t('portal.license_related') }}</div>
                     </div>
                 </el-card>
             </el-col>
         </el-row>
 
-        <!-- 日志列表 -->
         <el-card shadow="never">
             <el-table :data="logs" v-loading="loading" stripe>
-                <el-table-column label="时间" width="170" prop="created_at" />
-                <el-table-column label="操作类型" width="140">
+                <el-table-column :label="$t('portal.time')" width="170" prop="created_at" />
+                <el-table-column :label="$t('portal.action_type')" width="140">
                     <template #default="{ row }">
                         <el-tag :type="actionTypeTag(row.action)" size="small">
                             {{ actionLabel(row.action) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="描述" min-width="260">
+                <el-table-column :label="$t('portal.description')" min-width="260">
                     <template #default="{ row }">
                         <span>{{ row.description || row.action_label || '-' }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="IP 地址" width="140">
+                <el-table-column :label="$t('portal.ip_address')" width="140">
                     <template #default="{ row }">
                         <code class="small-text">{{ row.ip_address || '-' }}</code>
                     </template>
                 </el-table-column>
-                <el-table-column label="设备/浏览器" min-width="160">
+                <el-table-column :label="$t('portal.device_browser')" min-width="160">
                     <template #default="{ row }">
                         <span class="small-text">{{ row.user_agent ? truncateUA(row.user_agent) : '-' }}</span>
                     </template>
                 </el-table-column>
             </el-table>
 
-            <!-- 分页 -->
             <div class="pagination-wrap">
                 <el-pagination
                     v-model:current-page="page"
@@ -101,9 +98,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import apiClient from '@/api/client';
 import { ElMessage } from 'element-plus';
 import { Refresh } from '@element-plus/icons-vue';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const logs = ref([]);
@@ -119,28 +119,31 @@ const licenseActions = computed(() => {
     ).length || 0;
 });
 
-const ACTION_LABELS = {
-    device_activation: { type: 'success', label: '激活设备' },
-    device_deactivation: { type: 'warning', label: '解绑设备' },
-    login: { type: 'primary', label: '登录' },
-    login_failed: { type: 'danger', label: '登录失败' },
-    logout: { type: 'info', label: '登出' },
-    password_change: { type: 'warning', label: '修改密码' },
-    settings_change: { type: 'info', label: '修改设置' },
-    payment_success: { type: 'success', label: '支付成功' },
-    payment_failed: { type: 'danger', label: '支付失败' },
-    invoice_view: { type: 'info', label: '查看发票' },
-    license_view: { type: 'info', label: '查看 License' },
-    api_key_create: { type: 'warning', label: '创建 API Key' },
-    api_key_revoke: { type: 'danger', label: '撤销 API Key' },
-};
+function actionMeta(action) {
+    const map = {
+        device_activation: { type: 'success', label: t('portal.act_device_activation') },
+        device_deactivation: { type: 'warning', label: t('portal.act_device_deactivation') },
+        login: { type: 'primary', label: t('portal.act_login') },
+        login_failed: { type: 'danger', label: t('portal.act_login_failed') },
+        logout: { type: 'info', label: t('portal.act_logout') },
+        password_change: { type: 'warning', label: t('portal.act_password_change') },
+        settings_change: { type: 'info', label: t('portal.act_settings_change') },
+        payment_success: { type: 'success', label: t('portal.act_payment_success') },
+        payment_failed: { type: 'danger', label: t('portal.act_payment_failed') },
+        invoice_view: { type: 'info', label: t('portal.act_invoice_view') },
+        license_view: { type: 'info', label: t('portal.act_license_view') },
+        api_key_create: { type: 'warning', label: t('portal.act_api_key_create') },
+        api_key_revoke: { type: 'danger', label: t('portal.act_api_key_revoke') },
+    };
+    return map[action] || { type: 'info', label: action || '-' };
+}
 
 function actionTypeTag(action) {
-    return ACTION_LABELS[action]?.type || 'info';
+    return actionMeta(action).type;
 }
 
 function actionLabel(action) {
-    return ACTION_LABELS[action]?.label || action || '-';
+    return actionMeta(action).label;
 }
 
 function truncateUA(ua) {
@@ -163,11 +166,10 @@ async function fetchLogs() {
         logs.value = res.data?.data || [];
         total.value = res.data?.total || 0;
 
-        // Stats
         const { data: statsRes } = await apiClient.get('/audit-logs/stats');
         stats.value = statsRes.data || { total: 0, this_week: 0, today: 0 };
     } catch {
-        ElMessage.error('获取审计日志失败');
+        ElMessage.error(t('portal.audit_load_failed'));
     } finally {
         loading.value = false;
     }

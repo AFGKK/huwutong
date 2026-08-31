@@ -2,12 +2,12 @@
   <div class="grpc-page">
     <el-row :gutter="16" class="mb-4">
       <el-col :span="12">
-        <h2 class="page-title">gRPC 服务间通信</h2>
-        <p class="page-desc text-secondary">License · Device · Billing · Notification — 内部服务 gRPC 调用</p>
+        <h2 class="page-title">{{ t('grpc_page.title') }}</h2>
+        <p class="page-desc text-secondary">{{ t('grpc_page.desc') }}</p>
       </el-col>
       <el-col :span="12" class="text-right">
         <el-button type="primary" @click="refreshAll" :loading="loading">
-          <el-icon class="mr-1"><Refresh /></el-icon>刷新
+          <el-icon class="mr-1"><Refresh /></el-icon>{{ t('grpc_page.refresh') }}
         </el-button>
       </el-col>
     </el-row>
@@ -16,17 +16,17 @@
     <el-row :gutter="16" class="mb-4">
       <el-col :span="6">
         <el-card shadow="never" class="stat-card" :class="enabled ? 'status-ok' : 'status-critical'">
-          <div class="stat-label">服务状态</div>
+          <div class="stat-label">{{ t('grpc_page.stats.service_status') }}</div>
           <div class="stat-value">
             <el-tag :type="enabled ? 'success' : 'info'" effect="dark" size="large">
-              {{ enabled ? '已启用' : '未启用' }}
+              {{ enabled ? statusLabels.enabled : statusLabels.disabled }}
             </el-tag>
           </div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
-          <div class="stat-label">运行模式</div>
+          <div class="stat-label">{{ t('grpc_page.stats.run_mode') }}</div>
           <div class="stat-value">
             <el-tag :type="modeTagType" effect="dark" size="large">{{ modeLabel }}</el-tag>
           </div>
@@ -34,13 +34,13 @@
       </el-col>
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
-          <div class="stat-label">健康服务</div>
+          <div class="stat-label">{{ t('grpc_page.stats.healthy_services') }}</div>
           <div class="stat-value">{{ healthyCount }}<small class="text-secondary"> / {{ totalCount }}</small></div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
-          <div class="stat-label">客户端超时</div>
+          <div class="stat-label">{{ t('grpc_page.stats.client_timeout') }}</div>
           <div class="stat-value">{{ clientTimeout }}<small>s</small></div>
         </el-card>
       </el-col>
@@ -49,63 +49,63 @@
     <!-- 服务状态卡片 -->
     <el-card shadow="never" class="mb-4">
       <template #header>
-        <span><el-icon class="mr-1"><Connection /></el-icon> 服务状态</span>
+        <span><el-icon class="mr-1"><Connection /></el-icon> {{ t('grpc_page.sections.service_status') }}</span>
       </template>
       <el-table :data="serviceList" border stripe size="small">
-        <el-table-column prop="name" label="服务" width="150">
+        <el-table-column prop="name" :label="t('grpc_page.cols.service')" width="150">
           <template #default="{ row }">
-            <el-tag size="small">{{ serviceIcon(row.name) }} {{ row.name }}</el-tag>
+            <el-tag size="small">{{ row.name }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="健康状态" width="120">
+        <el-table-column :label="t('grpc_page.cols.health')" width="120">
           <template #default="{ row }">
             <el-tag :type="row.healthy ? 'success' : 'danger'" size="small">
-              {{ row.healthy ? '✓ 正常' : '✗ 异常' }}
+              {{ row.healthy ? statusLabels.healthy : statusLabels.unhealthy }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="熔断器" width="120">
+        <el-table-column :label="t('grpc_page.cols.circuit_breaker')" width="120">
           <template #default="{ row }">
             <el-tag :type="row.circuit_breaker?.circuit_open ? 'danger' : 'info'" size="small">
-              {{ row.circuit_breaker?.circuit_open ? '已打开' : '正常' }}
+              {{ row.circuit_breaker?.circuit_open ? statusLabels.circuit_open : statusLabels.circuit_closed }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="circuit_breaker.failure_count" label="失败次数" width="80" />
-        <el-table-column prop="circuit_breaker.threshold" label="熔断阈值" width="80" />
+        <el-table-column prop="circuit_breaker.failure_count" :label="t('grpc_page.cols.failure_count')" width="80" />
+        <el-table-column prop="circuit_breaker.threshold" :label="t('grpc_page.cols.threshold')" width="80" />
       </el-table>
     </el-card>
 
     <!-- 端点列表 -->
     <el-card shadow="never" class="mb-4">
       <template #header>
-        <span><el-icon class="mr-1"><Position /></el-icon> 服务端点</span>
+        <span><el-icon class="mr-1"><Position /></el-icon> {{ t('grpc_page.sections.endpoints') }}</span>
       </template>
       <el-table :data="endpointList" border stripe size="small">
-        <el-table-column prop="name" label="服务" width="150" />
-        <el-table-column prop="address" label="gRPC 地址" min-width="200" />
-        <el-table-column prop="host" label="Host" width="160" />
-        <el-table-column prop="port" label="Port" width="70" />
+        <el-table-column prop="name" :label="t('grpc_page.cols.service')" width="150" />
+        <el-table-column prop="address" :label="t('grpc_page.cols.address')" min-width="200" />
+        <el-table-column prop="host" :label="t('grpc_page.cols.host')" width="160" />
+        <el-table-column prop="port" :label="t('grpc_page.cols.port')" width="70" />
       </el-table>
     </el-card>
 
     <!-- 配置详情 -->
     <el-card shadow="never">
       <template #header>
-        <span><el-icon class="mr-1"><Setting /></el-icon> 配置详情</span>
+        <span><el-icon class="mr-1"><Setting /></el-icon> {{ t('grpc_page.sections.config') }}</span>
       </template>
       <el-descriptions :column="3" border size="small">
-        <el-descriptions-item label="启用">{{ config?.enabled ? '是' : '否' }}</el-descriptions-item>
-        <el-descriptions-item label="模式">{{ config?.mode }}</el-descriptions-item>
-        <el-descriptions-item label="服务端端口">{{ config?.server_port }}</el-descriptions-item>
-        <el-descriptions-item label="客户端超时">{{ config?.client_timeout }}s</el-descriptions-item>
-        <el-descriptions-item label="重试次数">{{ config?.client_retries }}</el-descriptions-item>
-        <el-descriptions-item label="服务发现">{{ config?.discovery }}</el-descriptions-item>
-        <el-descriptions-item label="Proto 文件" :span="3">{{ protoList }}</el-descriptions-item>
+        <el-descriptions-item :label="t('grpc_page.config.enabled')">{{ config?.enabled ? statusLabels.yes : statusLabels.no }}</el-descriptions-item>
+        <el-descriptions-item :label="t('grpc_page.config.mode')">{{ config?.mode }}</el-descriptions-item>
+        <el-descriptions-item :label="t('grpc_page.config.server_port')">{{ config?.server_port }}</el-descriptions-item>
+        <el-descriptions-item :label="t('grpc_page.config.client_timeout')">{{ config?.client_timeout }}s</el-descriptions-item>
+        <el-descriptions-item :label="t('grpc_page.config.client_retries')">{{ config?.client_retries }}</el-descriptions-item>
+        <el-descriptions-item :label="t('grpc_page.config.discovery')">{{ config?.discovery }}</el-descriptions-item>
+        <el-descriptions-item :label="t('grpc_page.config.proto_files')" :span="3">{{ protoList }}</el-descriptions-item>
       </el-descriptions>
 
       <el-button size="small" class="mt-2" @click="handleResetBreaker">
-        <el-icon class="mr-1"><RefreshRight /></el-icon>重置所有熔断器
+        <el-icon class="mr-1"><RefreshRight /></el-icon>{{ t('grpc_page.btn_reset_breakers') }}
       </el-button>
     </el-card>
   </div>
@@ -113,6 +113,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Refresh, Connection, Position, Setting, RefreshRight } from '@element-plus/icons-vue';
 import {
@@ -120,16 +121,35 @@ import {
   getGrpcCircuitBreaker, resetGrpcCircuitBreaker,
 } from '../../api/grpc';
 
+const { t } = useI18n();
+
 const loading = ref(false);
 const dashboard = ref(null);
 const config = ref(null);
 const endpoints = ref(null);
 const circuitBreaker = ref(null);
 
+const statusLabels = computed(() => ({
+  enabled: t('grpc_page.status.enabled'),
+  disabled: t('grpc_page.status.disabled'),
+  healthy: t('grpc_page.status.healthy'),
+  unhealthy: t('grpc_page.status.unhealthy'),
+  circuit_open: t('grpc_page.status.circuit_open'),
+  circuit_closed: t('grpc_page.status.circuit_closed'),
+  yes: t('grpc_page.status.yes'),
+  no: t('grpc_page.status.no'),
+}));
+
+const modeLabels = computed(() => ({
+  grpc: t('grpc_page.mode.grpc'),
+  http2: t('grpc_page.mode.http2'),
+  rest: t('grpc_page.mode.rest'),
+}));
+
 const enabled = computed(() => dashboard.value?.enabled ?? false);
 const modeLabel = computed(() => {
-  const map = { grpc: 'gRPC (原生)', http2: 'HTTP/2 (模拟)', rest: 'REST (回退)' };
-  return map[dashboard.value?.mode] || dashboard.value?.mode || '-';
+  const mode = dashboard.value?.mode;
+  return modeLabels.value[mode] || mode || '-';
 });
 const modeTagType = computed(() => {
   const map = { grpc: 'success', http2: 'warning', rest: 'info' };
@@ -158,11 +178,6 @@ const protoList = computed(() => {
   return (config.value?.protos || []).join(', ');
 });
 
-function serviceIcon(name) {
-  const icons = { license: '🔑', device: '💻', billing: '💰', notification: '🔔' };
-  return icons[name] || '📦';
-}
-
 async function refreshAll() {
   loading.value = true;
   try {
@@ -177,7 +192,7 @@ async function refreshAll() {
     endpoints.value = epRes.data;
     circuitBreaker.value = cbRes.data;
   } catch (e) {
-    ElMessage.error('获取 gRPC 状态失败');
+    ElMessage.error(t('messages.load_failed'));
   } finally {
     loading.value = false;
   }
@@ -186,10 +201,10 @@ async function refreshAll() {
 async function handleResetBreaker() {
   try {
     await resetGrpcCircuitBreaker();
-    ElMessage.success('所有 gRPC 熔断器已重置');
+    ElMessage.success(t('grpc_page.messages.breaker_reset'));
     await refreshAll();
   } catch (e) {
-    ElMessage.error('重置失败');
+    ElMessage.error(t('messages.failed'));
   }
 }
 

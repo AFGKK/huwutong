@@ -1,23 +1,25 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="{{ $description ?? site_setting('site_description') }}">
-    <meta name="theme-color" content="#409eff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="canonical" href="{{ $canonical ?? url()->current() }}">
     <link rel="manifest" href="/manifest.json">
+    @include('public.partials.theme-vars')
+    <link rel="icon" href="{{ site_setting('favicon_url') ?: '/images/favicon.svg' }}" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="{{ site_setting('logo_url') ?: '/images/pwa-icon-192.png' }}">
 
     {{-- Open Graph --}}
-    <meta property="og:title" content="{{ $title ?? '社区 - 互物通' }}">
-    <meta property="og:description" content="{{ $description ?? site_setting('site_description') }}">
+    <meta property="og:title" content="{{ $title ?? __('app.nav.community') . ' - ' . __('app.app_name') }}">
+    <meta property="og:description" content="{{ $description ?? site_setting('site_description', __('app.app_description')) }}">
     <meta property="og:url" content="{{ $canonical ?? url()->current() }}">
     <meta property="og:type" content="{{ $og_type ?? 'website' }}">
-    <meta property="og:site_name" content="互物通">
-    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="{{ __('app.app_name') }}">
+    <meta property="og:locale" content="{{ str_replace('_', '-', app()->getLocale()) }}">
     @if(isset($og_image) && $og_image)
     <meta property="og:image" content="{{ $og_image }}">
     <meta property="og:image:width" content="1200">
@@ -26,8 +28,8 @@
 
     {{-- Twitter Card --}}
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{ $title ?? '社区 - 互物通' }}">
-    <meta name="twitter:description" content="{{ $description ?? site_setting('site_description') }}">
+    <meta name="twitter:title" content="{{ $title ?? __('app.nav.community') . ' - ' . __('app.app_name') }}">
+    <meta name="twitter:description" content="{{ $description ?? site_setting('site_description', __('app.app_description')) }}">
     @if(isset($og_image) && $og_image)
     <meta name="twitter:image" content="{{ $og_image }}">
     @endif
@@ -60,18 +62,18 @@
     </script>
     @endif
 
-    <title>{{ $title ?? '社区 - 互物通' }}</title>
+    <title>{{ $title ?? (__('app.nav.community') . ' - ' . __('app.app_name')) }}</title>
     @vite(['resources/css/app.css', 'resources/js/admin.js'])
 </head>
 <body class="font-sans antialiased text-gray-800 bg-white">
-    <a href="#main-content" class="skip-link" tabindex="1">跳转到主内容</a>
+    <a href="#main-content" class="skip-link" tabindex="1">{{ __('app.skip_to_content') }}</a>
 
     @include('public.partials.nav')
 
     <div id="admin-app">
         <div class="app-loading" role="status" aria-live="polite">
             <div class="loading-spinner" aria-hidden="true"></div>
-            <p>加载中...</p>
+            <p>{{ __('app.actions.loading') }}</p>
         </div>
     </div>
 

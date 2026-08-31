@@ -1,48 +1,48 @@
 <template>
     <div class="licenses-page">
         <!-- 统计仪表盘 -->
-        <el-row :gutter="16" class="mb-4">
-            <el-col :span="6">
+        <el-row :gutter="16" class="mb-4 stat-cards-row">
+            <el-col :xs="12" :md="6">
                 <el-card shadow="hover" class="stat-card" @click="filters.status = ''; fetchData(1)">
                     <div class="stat-value">{{ stats.total }}</div>
-                    <div class="stat-label">全部 License</div>
+                    <div class="stat-label">{{ t('licenses_page.stat_all') }}</div>
                 </el-card>
             </el-col>
-            <el-col :span="6">
+            <el-col :xs="12" :md="6">
                 <el-card shadow="hover" class="stat-card stat-active" @click="filters.status = 'active'; fetchData(1)">
                     <div class="stat-value">{{ stats.active }}</div>
-                    <div class="stat-label">活跃中</div>
+                    <div class="stat-label">{{ t('licenses_page.stat_active') }}</div>
                 </el-card>
             </el-col>
-            <el-col :span="6">
+            <el-col :xs="12" :md="6">
                 <el-card shadow="hover" class="stat-card stat-warning" @click="filters.status = 'active'; fetchData(1)">
                     <div class="stat-value">{{ stats.expiring_soon }}</div>
-                    <div class="stat-label">30天内到期</div>
+                    <div class="stat-label">{{ t('licenses_page.stat_expiring_soon') }}</div>
                 </el-card>
             </el-col>
-            <el-col :span="6">
+            <el-col :xs="12" :md="6">
                 <el-card shadow="hover" class="stat-card stat-danger" @click="filters.status = 'expired'; fetchData(1)">
                     <div class="stat-value">{{ stats.expired }}</div>
-                    <div class="stat-label">已过期</div>
+                    <div class="stat-label">{{ t('licenses_page.stat_expired') }}</div>
                 </el-card>
             </el-col>
         </el-row>
 
         <div class="page-header">
-            <h2>License 管理</h2>
+            <h2>{{ t('licenses_page.title') }}</h2>
             <div class="header-actions">
                 <el-dropdown @command="handleBulkCmd" trigger="click">
-                    <el-button><el-icon><Download /></el-icon> 导出</el-button>
+                    <el-button size="small"><el-icon><Download /></el-icon> {{ t('actions.export') }}</el-button>
                     <template #dropdown>
                         <el-dropdown-menu>
-                            <el-dropdown-item command="export-csv">导出 CSV</el-dropdown-item>
+                            <el-dropdown-item command="export-csv">{{ t('licenses_page.export_csv') }}</el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
                 </el-dropdown>
-                <el-button @click="showImport = true"><el-icon><Upload /></el-icon> 导入</el-button>
-                <el-button @click="showBatchCreate = true"><el-icon><DocumentAdd /></el-icon> 批量创建</el-button>
-                <el-button type="primary" @click="openCreate">
-                    <el-icon><Plus /></el-icon> 创建 License
+                <el-button size="small" @click="showImport = true"><el-icon><Upload /></el-icon> {{ t('actions.import') }}</el-button>
+                <el-button size="small" @click="showBatchCreate = true"><el-icon><DocumentAdd /></el-icon> {{ t('licenses_page.batch') }}</el-button>
+                <el-button type="primary" size="small" @click="openCreate">
+                    <el-icon><Plus /></el-icon> {{ t('actions.create') }}
                 </el-button>
             </div>
         </div>
@@ -55,7 +55,7 @@
                 class="clickable-tag"
                 @click="filters.status = ''; fetchData(1)"
             >
-                全部
+                {{ t('licenses_page.all') }}
             </el-tag>
             <el-tag
                 v-for="s in quickFilterOptions"
@@ -74,49 +74,46 @@
             <el-form :model="filters" inline label-width="90px" @keyup.enter="fetchData">
                 <el-row :gutter="16">
                     <el-col :span="6">
-                        <el-form-item label="License Key">
-                            <el-input v-model="filters.license_key" placeholder="支持模糊搜索" clearable />
+                        <el-form-item :label="t('licenses_page.license_key')">
+                            <el-input v-model="filters.license_key" :placeholder="t('licenses_page.search_key_ph')" clearable />
                         </el-form-item>
                     </el-col>
                     <el-col :span="4">
-                        <el-form-item label="状态">
-                            <el-select v-model="filters.status" placeholder="全部" clearable style="width: 120px">
+                        <el-form-item :label="t('licenses_page.status')">
+                            <el-select v-model="filters.status" :placeholder="t('licenses_page.all')" clearable style="width: 120px">
                                 <el-option v-for="s in statusOptions" :key="s.value" :label="s.label" :value="s.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="4">
-                        <el-form-item label="类型">
-                            <el-select v-model="filters.type" placeholder="全部" clearable style="width: 120px">
-                                <el-option label="标准" value="standard" />
-                                <el-option label="试用" value="trial" />
-                                <el-option label="企业版" value="enterprise" />
-                                <el-option label="开发版" value="development" />
+                        <el-form-item :label="t('licenses_page.type')">
+                            <el-select v-model="filters.type" :placeholder="t('licenses_page.all')" clearable style="width: 120px">
+                                <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="4">
-                        <el-form-item label="产品">
-                            <el-select v-model="filters.product_id" placeholder="全部" clearable filterable style="width: 140px">
+                        <el-form-item :label="t('licenses_page.product')">
+                            <el-select v-model="filters.product_id" :placeholder="t('licenses_page.all')" clearable filterable style="width: 140px">
                                 <el-option v-for="p in products" :key="p.id" :label="p.name" :value="p.id" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="客户">
-                            <el-select v-model="filters.customer_id" placeholder="全部" clearable filterable style="width: 160px">
+                        <el-form-item :label="t('licenses_page.customer')">
+                            <el-select v-model="filters.customer_id" :placeholder="t('licenses_page.all')" clearable filterable style="width: 160px">
                                 <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="6">
-                        <el-form-item label="创建时间">
+                        <el-form-item :label="t('licenses_page.created_at')">
                             <el-date-picker
                                 v-model="filters.date_range"
                                 type="datetimerange"
-                                range-separator="至"
-                                start-placeholder="开始"
-                                end-placeholder="结束"
+                                :range-separator="t('licenses_page.date_range_sep')"
+                                :start-placeholder="t('licenses_page.date_start')"
+                                :end-placeholder="t('licenses_page.date_end')"
                                 value-format="YYYY-MM-DD HH:mm:ss"
                                 style="width: 260px"
                             />
@@ -124,8 +121,8 @@
                     </el-col>
                     <el-col :span="6">
                         <el-form-item label=" ">
-                            <el-button type="primary" @click="fetchData">搜索</el-button>
-                            <el-button @click="resetFilters">重置</el-button>
+                            <el-button type="primary" @click="fetchData">{{ t('actions.search') }}</el-button>
+                            <el-button @click="resetFilters">{{ t('actions.reset') }}</el-button>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -141,37 +138,38 @@
 
         <!-- 批量操作栏 -->
         <div class="batch-bar" v-if="selectedIds.length > 0">
-            <span class="selected-info">已选择 {{ selectedIds.length }} 项</span>
+            <span class="selected-info">{{ t('licenses_page.selected_count', { n: selectedIds.length }) }}</span>
 
             <el-dropdown trigger="click" @command="handleBatchActionCmd">
                 <el-button size="small">
-                    状态变更 <el-icon><ArrowDown /></el-icon>
+                    {{ t('licenses_page.status_change') }} <el-icon><ArrowDown /></el-icon>
                 </el-button>
                 <template #dropdown>
                     <el-dropdown-menu>
-                        <el-dropdown-item command="activate">批量激活</el-dropdown-item>
-                        <el-dropdown-item command="deactivate">批量停用</el-dropdown-item>
-                        <el-dropdown-item command="suspend">批量暂停</el-dropdown-item>
-                        <el-dropdown-item command="restore">批量恢复</el-dropdown-item>
-                        <el-dropdown-item command="freeze">批量冻结</el-dropdown-item>
-                        <el-dropdown-item command="revoke" divided>批量吊销</el-dropdown-item>
-                        <el-dropdown-item command="blacklist">批量加入黑名单</el-dropdown-item>
-                        <el-dropdown-item command="refund">批量退款</el-dropdown-item>
+                        <el-dropdown-item command="activate">{{ t('licenses_page.batch_activate') }}</el-dropdown-item>
+                        <el-dropdown-item command="deactivate">{{ t('licenses_page.batch_deactivate') }}</el-dropdown-item>
+                        <el-dropdown-item command="suspend">{{ t('licenses_page.batch_suspend') }}</el-dropdown-item>
+                        <el-dropdown-item command="restore">{{ t('licenses_page.batch_restore') }}</el-dropdown-item>
+                        <el-dropdown-item command="freeze">{{ t('licenses_page.batch_freeze') }}</el-dropdown-item>
+                        <el-dropdown-item command="revoke" divided>{{ t('licenses_page.batch_revoke') }}</el-dropdown-item>
+                        <el-dropdown-item command="blacklist">{{ t('licenses_page.batch_blacklist') }}</el-dropdown-item>
+                        <el-dropdown-item command="refund">{{ t('licenses_page.batch_refund') }}</el-dropdown-item>
                     </el-dropdown-menu>
                 </template>
             </el-dropdown>
 
-            <el-button size="small" @click="openBatchEditDialog('renew')">批量续期</el-button>
-            <el-button size="small" @click="openBatchEditDialog('update_seats')">批量改席位</el-button>
-            <el-button size="small" @click="openBatchEditDialog('update_metadata')">批量更新元数据</el-button>
-            <el-button size="small" @click="openBatchEditDialog('add_tags')">批量添加标签</el-button>
-            <el-button size="small" @click="openBatchEditDialog('transfer')" v-if="isSuperAdmin">批量转移租户</el-button>
-            <el-button size="small" type="danger" plain @click="confirmBatchDelete">批量删除</el-button>
-            <el-button text size="small" @click="selectedIds = []">取消选择</el-button>
+            <el-button size="small" @click="openBatchEditDialog('renew')">{{ t('licenses_page.batch_renew') }}</el-button>
+            <el-button size="small" @click="openBatchEditDialog('update_seats')">{{ t('licenses_page.batch_update_seats') }}</el-button>
+            <el-button size="small" @click="openBatchEditDialog('update_metadata')">{{ t('licenses_page.batch_update_metadata') }}</el-button>
+            <el-button size="small" @click="openBatchEditDialog('add_tags')">{{ t('licenses_page.batch_add_tags') }}</el-button>
+            <el-button size="small" @click="openBatchEditDialog('transfer')" v-if="isSuperAdmin">{{ t('licenses_page.batch_transfer') }}</el-button>
+            <el-button size="small" type="danger" plain @click="confirmBatchDelete">{{ t('licenses_page.batch_delete') }}</el-button>
+            <el-button text size="small" @click="selectedIds = []">{{ t('licenses_page.deselect') }}</el-button>
         </div>
 
         <!-- 表格 -->
         <el-card>
+            <div class="table-scroll-wrap">
             <el-table
                 :data="licenses"
                 v-loading="loading"
@@ -182,7 +180,7 @@
                 :default-sort="{ prop: 'created_at', order: 'descending' }"
             >
                 <el-table-column type="selection" width="40" />
-                <el-table-column prop="license_key" label="License Key" min-width="200" sortable="custom">
+                <el-table-column prop="license_key" :label="t('licenses_page.license_key')" min-width="200" sortable="custom">
                     <template #default="{ row }">
                         <div class="key-cell">
                             <el-link type="primary" :underline="'never'" @click="$router.push(`/licenses/${row.id}`)">
@@ -193,79 +191,80 @@
                                 size="small"
                                 class="copy-btn"
                                 @click.stop="copyLicenseKey(row.license_key)"
-                                title="复制 License Key"
+                                :title="t('licenses_page.copy_key')"
                             >
                                 <el-icon><CopyDocument /></el-icon>
                             </el-button>
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column prop="product?.name" label="产品" width="120" :formatter="(r) => r.product?.name || '-'" />
-                <el-table-column prop="customer?.name" label="客户" width="120" :formatter="(r) => r.customer?.name || '-'" />
-                <el-table-column prop="type" label="类型" width="90">
+                <el-table-column prop="product?.name" :label="t('licenses_page.col_product')" width="120" :formatter="(r) => r.product?.name || '-'" />
+                <el-table-column prop="customer?.name" :label="t('licenses_page.col_customer')" width="120" :formatter="(r) => r.customer?.name || '-'" />
+                <el-table-column prop="type" :label="t('licenses_page.col_type')" width="90">
                     <template #default="{ row }">
-                        <el-tag v-if="row.type === 'trial'" type="warning" size="small">试用</el-tag>
-                        <el-tag v-else-if="row.type === 'enterprise'" type="success" size="small">企业版</el-tag>
-                        <el-tag v-else-if="row.type === 'development'" size="small">开发版</el-tag>
-                        <span v-else>标准</span>
+                        <el-tag v-if="row.type === 'trial'" type="warning" size="small">{{ t('licenses_page.type_trial') }}</el-tag>
+                        <el-tag v-else-if="row.type === 'enterprise'" type="success" size="small">{{ t('licenses_page.type_enterprise') }}</el-tag>
+                        <el-tag v-else-if="row.type === 'development'" size="small">{{ t('licenses_page.type_development') }}</el-tag>
+                        <span v-else>{{ t('licenses_page.type_standard') }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="status" label="状态" width="100" sortable="custom">
+                <el-table-column prop="status" :label="t('licenses_page.col_status')" width="100" sortable="custom">
                     <template #default="{ row }">
                         <el-tag :type="statusType(row.status)" size="small" effect="dark">
                             {{ statusLabel(row.status) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="max_devices" label="设备限制" width="90" align="center" />
-                <el-table-column prop="expires_at" label="过期时间" width="170" sortable="custom">
+                <el-table-column prop="max_devices" :label="t('licenses_page.col_max_devices')" width="90" align="center" />
+                <el-table-column prop="expires_at" :label="t('licenses_page.col_expires_at')" width="170" sortable="custom">
                     <template #default="{ row }">
                         <el-tooltip :content="expiryTooltip(row)" placement="top" :disabled="!row.expires_at">
-                            <span :class="expiryClass(row)">{{ row.expires_at || '永久' }}</span>
+                            <span :class="expiryClass(row)">{{ row.expires_at || t('licenses_page.permanent') }}</span>
                         </el-tooltip>
                     </template>
                 </el-table-column>
-                <el-table-column prop="created_at" label="创建时间" width="170" sortable="custom" />
-                <el-table-column label="操作" width="310" fixed="right">
+                <el-table-column prop="created_at" :label="t('licenses_page.col_created_at')" width="170" sortable="custom" />
+                <el-table-column :label="t('licenses_page.col_actions')" width="310" fixed="right">
                     <template #default="{ row }">
-                        <el-button size="small" text type="primary" @click="openEdit(row)">编辑</el-button>
+                        <el-button size="small" text type="primary" @click="openEdit(row)">{{ t('actions.edit') }}</el-button>
                         <el-dropdown trigger="click" @command="(cmd) => handleAction(cmd, row)">
                             <el-button size="small">
-                                状态操作 <el-icon><ArrowDown /></el-icon>
+                                {{ t('licenses_page.status_actions') }} <el-icon><ArrowDown /></el-icon>
                             </el-button>
                             <template #dropdown>
                                 <el-dropdown-menu>
                                     <el-dropdown-item command="detail">
-                                        <el-icon><View /></el-icon>查看详情
+                                        <el-icon><View /></el-icon>{{ t('licenses_page.view_detail') }}
                                     </el-dropdown-item>
                                     <el-dropdown-item v-if="row.status === 'active'" command="suspend" divided>
-                                        <el-icon><VideoPause /></el-icon>暂停
+                                        <el-icon><VideoPause /></el-icon>{{ t('licenses_page.suspend') }}
                                     </el-dropdown-item>
                                     <el-dropdown-item v-if="row.status === 'active'" command="freeze">
-                                        <el-icon><ColdDrink /></el-icon>冻结
+                                        <el-icon><ColdDrink /></el-icon>{{ t('licenses_page.freeze') }}
                                     </el-dropdown-item>
                                     <el-dropdown-item v-if="row.status === 'suspended' || row.status === 'frozen'" command="restore">
-                                        <el-icon><Refresh /></el-icon>恢复
+                                        <el-icon><Refresh /></el-icon>{{ t('licenses_page.restore') }}
                                     </el-dropdown-item>
                                     <el-dropdown-item v-if="row.status !== 'revoked' && row.status !== 'blacklisted'" command="revoke" divided>
-                                        <el-icon><Remove /></el-icon>吊销
+                                        <el-icon><Remove /></el-icon>{{ t('licenses_page.revoke') }}
                                     </el-dropdown-item>
                                     <el-dropdown-item v-if="row.status !== 'blacklisted'" command="blacklist">
-                                        <el-icon><WarningFilled /></el-icon>加入黑名单
+                                        <el-icon><WarningFilled /></el-icon>{{ t('licenses_page.blacklist') }}
                                     </el-dropdown-item>
                                     <el-dropdown-item v-if="row.status !== 'refunded'" command="refund" divided>
-                                        <el-icon><Money /></el-icon>退款
+                                        <el-icon><Money /></el-icon>{{ t('licenses_page.refund') }}
                                     </el-dropdown-item>
                                     <el-dropdown-item command="seat-pool" divided>
-                                        <el-icon><Grid /></el-icon>席位池
+                                        <el-icon><Grid /></el-icon>{{ t('licenses_page.seat_pool') }}
                                     </el-dropdown-item>
                                 </el-dropdown-menu>
                             </template>
                         </el-dropdown>
-                        <el-button size="small" text type="danger" @click="handleAction('destroy', row)">删除</el-button>
+                        <el-button size="small" text type="danger" @click="handleAction('destroy', row)">{{ t('actions.delete') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
+            </div><!-- table-scroll-wrap -->
 
             <div class="pagination-wrap" v-if="meta">
                 <el-pagination
@@ -281,152 +280,143 @@
         </el-card>
 
         <!-- 创建 License 对话框 -->
-        <el-dialog v-model="showCreate" title="创建 License" width="560px">
+        <el-dialog v-model="showCreate" :title="t('licenses_page.create_title')" width="560px">
             <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
-                <el-form-item label="选择模板" v-if="licenseTemplates.length > 0">
+                <el-form-item :label="t('licenses_page.select_template')" v-if="licenseTemplates.length > 0">
                     <el-select
                         v-model="selectedTemplateId"
-                        placeholder="从模板快速填充（可选）"
+                        :placeholder="t('licenses_page.template_ph')"
                         filterable
                         clearable
                         style="width: 100%"
                         @change="applyTemplate"
                     >
                         <el-option
-                            v-for="t in licenseTemplates"
-                            :key="t.id"
-                            :label="t.name"
-                            :value="t.id"
+                            v-for="tpl in licenseTemplates"
+                            :key="tpl.id"
+                            :label="tpl.name"
+                            :value="tpl.id"
                         >
-                            <span>{{ t.name }}</span>
-                            <span class="template-option-desc">{{ t.description || typeLabel(t.type) }}</span>
+                            <span>{{ tpl.name }}</span>
+                            <span class="template-option-desc">{{ tpl.description || typeLabel(tpl.type) }}</span>
                         </el-option>
                     </el-select>
                 </el-form-item>
                 <el-divider v-if="licenseTemplates.length > 0" />
-                <el-form-item label="产品" prop="product_id">
-                    <el-select v-model="createForm.product_id" placeholder="选择产品" filterable style="width: 100%">
+                <el-form-item :label="t('licenses_page.product')" prop="product_id">
+                    <el-select v-model="createForm.product_id" :placeholder="t('licenses_page.select_product')" filterable style="width: 100%">
                         <el-option v-for="p in products" :key="p.id" :label="p.name" :value="p.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="客户" prop="customer_id">
-                    <el-select v-model="createForm.customer_id" placeholder="选择客户" filterable style="width: 100%">
+                <el-form-item :label="t('licenses_page.customer')" prop="customer_id">
+                    <el-select v-model="createForm.customer_id" :placeholder="t('licenses_page.select_customer')" filterable style="width: 100%">
                         <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="类型" prop="type">
+                <el-form-item :label="t('licenses_page.type')" prop="type">
                     <el-select v-model="createForm.type" style="width: 100%">
-                        <el-option label="标准" value="standard" />
-                        <el-option label="试用" value="trial" />
-                        <el-option label="企业版" value="enterprise" />
-                        <el-option label="开发版" value="development" />
+                        <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="过期时间" prop="expires_at">
+                <el-form-item :label="t('licenses_page.expires_at')" prop="expires_at">
                     <el-date-picker
                         v-model="createForm.expires_at"
                         type="datetime"
-                        placeholder="留空为永久"
+                        :placeholder="t('licenses_page.expires_ph')"
                         value-format="YYYY-MM-DD HH:mm:ss"
                         style="width: 100%"
                     />
                 </el-form-item>
-                <el-form-item label="设备限制">
+                <el-form-item :label="t('licenses_page.max_devices')">
                     <el-input-number v-model="createForm.max_devices" :min="1" :max="9999" />
                 </el-form-item>
-                <el-form-item label="座位数">
+                <el-form-item :label="t('licenses_page.seats')">
                     <el-input-number v-model="createForm.seats" :min="1" :max="99999" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showCreate = false">取消</el-button>
-                <el-button type="primary" :loading="creating" @click="confirmCreate">确认创建</el-button>
+                <el-button @click="showCreate = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="creating" @click="confirmCreate">{{ t('licenses_page.confirm_create') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 编辑 License 对话框 -->
-        <el-dialog v-model="showEdit" title="编辑 License" width="560px">
+        <el-dialog v-model="showEdit" :title="t('licenses_page.edit_title')" width="560px">
             <el-form ref="editFormRef" :model="editForm" label-width="100px">
-                <el-form-item label="产品">
-                    <el-select v-model="editForm.product_id" placeholder="选择产品" filterable style="width: 100%">
+                <el-form-item :label="t('licenses_page.product')">
+                    <el-select v-model="editForm.product_id" :placeholder="t('licenses_page.select_product')" filterable style="width: 100%">
                         <el-option v-for="p in products" :key="p.id" :label="p.name" :value="p.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="客户">
-                    <el-select v-model="editForm.customer_id" placeholder="选择客户" filterable style="width: 100%">
+                <el-form-item :label="t('licenses_page.customer')">
+                    <el-select v-model="editForm.customer_id" :placeholder="t('licenses_page.select_customer')" filterable style="width: 100%">
                         <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="类型">
+                <el-form-item :label="t('licenses_page.type')">
                     <el-select v-model="editForm.type" style="width: 100%">
-                        <el-option label="标准" value="standard" />
-                        <el-option label="试用" value="trial" />
-                        <el-option label="企业版" value="enterprise" />
-                        <el-option label="开发版" value="development" />
+                        <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="过期时间">
+                <el-form-item :label="t('licenses_page.expires_at')">
                     <el-date-picker
                         v-model="editForm.expires_at"
                         type="datetime"
-                        placeholder="留空为永久"
+                        :placeholder="t('licenses_page.expires_ph')"
                         value-format="YYYY-MM-DD HH:mm:ss"
                         style="width: 100%"
                     />
                 </el-form-item>
-                <el-form-item label="设备限制">
+                <el-form-item :label="t('licenses_page.max_devices')">
                     <el-input-number v-model="editForm.max_devices" :min="1" :max="9999" />
                 </el-form-item>
-                <el-form-item label="座位数">
+                <el-form-item :label="t('licenses_page.seats')">
                     <el-input-number v-model="editForm.seats" :min="1" :max="99999" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showEdit = false">取消</el-button>
-                <el-button type="primary" :loading="updating" @click="confirmEdit">保存修改</el-button>
+                <el-button @click="showEdit = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="updating" @click="confirmEdit">{{ t('licenses_page.save') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 批量创建对话框 -->
-        <el-dialog v-model="showBatchCreate" title="批量创建 License" width="560px">
+        <el-dialog v-model="showBatchCreate" :title="t('licenses_page.batch_create_title')" width="560px">
             <el-form label-width="100px">
-                <el-form-item label="产品" prop="product_id">
-                    <el-select v-model="batchForm.product_id" placeholder="选择产品" filterable style="width: 100%">
+                <el-form-item :label="t('licenses_page.product')" prop="product_id">
+                    <el-select v-model="batchForm.product_id" :placeholder="t('licenses_page.select_product')" filterable style="width: 100%">
                         <el-option v-for="p in products" :key="p.id" :label="p.name" :value="p.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="客户" prop="customer_id">
-                    <el-select v-model="batchForm.customer_id" placeholder="选择客户" filterable style="width: 100%">
+                <el-form-item :label="t('licenses_page.customer')" prop="customer_id">
+                    <el-select v-model="batchForm.customer_id" :placeholder="t('licenses_page.select_customer')" filterable style="width: 100%">
                         <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="数量">
+                <el-form-item :label="t('licenses_page.count')">
                     <el-input-number v-model="batchForm.count" :min="2" :max="1000" />
                 </el-form-item>
-                <el-form-item label="类型">
+                <el-form-item :label="t('licenses_page.type')">
                     <el-select v-model="batchForm.type" style="width: 100%">
-                        <el-option label="标准" value="standard" />
-                        <el-option label="试用" value="trial" />
-                        <el-option label="企业版" value="enterprise" />
-                        <el-option label="开发版" value="development" />
+                        <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="设备限制">
+                <el-form-item :label="t('licenses_page.max_devices')">
                     <el-input-number v-model="batchForm.max_devices" :min="1" :max="99" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showBatchCreate = false">取消</el-button>
+                <el-button @click="showBatchCreate = false">{{ t('actions.cancel') }}</el-button>
                 <el-button type="primary" :loading="batchCreating" @click="confirmBatchCreate">
-                    批量创建 {{ batchForm.count }} 个
+                    {{ t('licenses_page.batch_create_btn', { n: batchForm.count }) }}
                 </el-button>
             </template>
         </el-dialog>
 
         <!-- 导入 License 对话框 -->
-        <el-dialog v-model="showImport" title="导入 License" width="520px">
+        <el-dialog v-model="showImport" :title="t('licenses_page.import_title')" width="520px">
             <el-form label-width="100px">
-                <el-form-item label="CSV 文件">
+                <el-form-item :label="t('licenses_page.csv_file')">
                     <el-upload
                         ref="importUploadRef"
                         :auto-upload="false"
@@ -436,15 +426,15 @@
                         accept=".csv,.txt"
                     >
                         <el-button type="primary" plain>
-                            <el-icon><Upload /></el-icon> 选择文件
+                            <el-icon><Upload /></el-icon> {{ t('licenses_page.select_file') }}
                         </el-button>
                         <template #tip>
                             <div class="el-upload__tip">
-                                <p>支持 .csv / .txt 格式，最大 5MB</p>
-                                <p>必填列：<strong>产品</strong>（产品名称或产品 ID）</p>
-                                <p>可选列：客户、类型（trial/standard/enterprise/development）、座位数、设备限制、过期时间、元数据</p>
+                                <p>{{ t('licenses_page.import_tip_format') }}</p>
+                                <p>{{ t('licenses_page.import_tip_required') }}</p>
+                                <p>{{ t('licenses_page.import_tip_optional') }}</p>
                                 <el-button text size="small" type="primary" @click="downloadTemplate">
-                                    下载 CSV 模板
+                                    {{ t('licenses_page.download_template') }}
                                 </el-button>
                             </div>
                         </template>
@@ -452,7 +442,7 @@
                 </el-form-item>
                 <el-form-item v-if="importResult">
                     <el-alert
-                        :title="`导入完成：成功 ${importResult.success} 条，失败 ${importResult.failed} 条`"
+                        :title="t('licenses_page.import_done', { success: importResult.success, failed: importResult.failed })"
                         :type="importResult.failed > 0 ? 'warning' : 'success'"
                         show-icon
                     />
@@ -462,9 +452,9 @@
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="resetImport">取消</el-button>
+                <el-button @click="resetImport">{{ t('actions.cancel') }}</el-button>
                 <el-button type="primary" :loading="importing" :disabled="!importFile" @click="confirmImport">
-                    开始导入
+                    {{ t('licenses_page.start_import') }}
                 </el-button>
             </template>
         </el-dialog>
@@ -472,28 +462,28 @@
         <!-- 批量操作对话框 -->
         <el-dialog v-model="showBatchDialog" :title="batchDialogTitle" width="480px">
             <template v-if="batchActionType">
-                <p class="mb-4">共选择 <strong>{{ selectedIds.length }}</strong> 个 License</p>
+                <p class="mb-4">{{ t('licenses_page.batch_selected', { n: selectedIds.length }) }}</p>
 
                 <!-- 续期 -->
                 <el-form v-if="batchActionType === 'renew'" label-width="100px">
-                    <el-form-item label="续期天数">
+                    <el-form-item :label="t('licenses_page.renew_days')">
                         <el-input-number v-model="batchActionPayload.days" :min="1" :max="3650" :step="30" style="width: 200px" />
                     </el-form-item>
-                    <el-form-item label="发送通知">
+                    <el-form-item :label="t('licenses_page.send_notify')">
                         <el-switch v-model="batchActionPayload.notify" />
                     </el-form-item>
                 </el-form>
 
                 <!-- 改席位 -->
                 <el-form v-if="batchActionType === 'update_seats'" label-width="100px">
-                    <el-form-item label="新席位数量">
+                    <el-form-item :label="t('licenses_page.new_seats')">
                         <el-input-number v-model="batchActionPayload.seats" :min="1" :max="999999" style="width: 200px" />
                     </el-form-item>
                 </el-form>
 
                 <!-- 更新元数据 -->
                 <el-form v-if="batchActionType === 'update_metadata'" label-width="100px">
-                    <el-form-item label="元数据(JSON)">
+                    <el-form-item :label="t('licenses_page.metadata_json')">
                         <el-input
                             v-model="batchActionPayload.metadata_json"
                             type="textarea"
@@ -506,8 +496,8 @@
 
                 <!-- 添加标签 -->
                 <el-form v-if="batchActionType === 'add_tags'" label-width="100px">
-                    <el-form-item label="标签名称">
-                        <el-select v-model="batchActionPayload.tags" multiple filterable allow-create default-first-option placeholder="输入标签名后回车添加" style="width: 100%">
+                    <el-form-item :label="t('licenses_page.tag_names')">
+                        <el-select v-model="batchActionPayload.tags" multiple filterable allow-create default-first-option :placeholder="t('licenses_page.tag_ph')" style="width: 100%">
                             <el-option v-for="tag in allTags" :key="tag" :label="tag" :value="tag" />
                         </el-select>
                     </el-form-item>
@@ -515,21 +505,21 @@
 
                 <!-- 转移租户 -->
                 <el-form v-if="batchActionType === 'transfer'" label-width="100px">
-                    <el-form-item label="目标租户 ID">
+                    <el-form-item :label="t('licenses_page.target_tenant_id')">
                         <el-input-number v-model="batchActionPayload.tenant_id" :min="1" style="width: 200px" />
                     </el-form-item>
-                    <el-alert type="warning" :closable="false" title="仅超级管理员可执行租户转移操作" show-icon />
+                    <el-alert type="warning" :closable="false" :title="t('licenses_page.transfer_warn')" show-icon />
                 </el-form>
             </template>
 
             <template #footer>
-                <el-button @click="showBatchDialog = false">取消</el-button>
-                <el-button type="primary" :loading="batchSubmitting" @click="confirmBatchAction">确认执行</el-button>
+                <el-button @click="showBatchDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="batchSubmitting" @click="confirmBatchAction">{{ t('licenses_page.confirm_execute') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 批量操作结果对话框 -->
-        <el-dialog v-model="showBatchResult" title="批量操作结果" width="500px">
+        <el-dialog v-model="showBatchResult" :title="t('licenses_page.batch_result_title')" width="500px">
             <template v-if="batchResult">
                 <el-alert
                     :title="batchResult.message"
@@ -538,21 +528,21 @@
                     :closable="false"
                 />
                 <el-table :data="batchResult.details || []" size="small" stripe class="mt-4" max-height="300">
-                    <el-table-column prop="license_key" label="License Key" width="220" />
-                    <el-table-column label="结果" width="80">
+                    <el-table-column prop="license_key" :label="t('licenses_page.license_key')" width="220" />
+                    <el-table-column :label="t('licenses_page.result')" width="80">
                         <template #default="{ row }">
                             <el-tag :type="row.success ? 'success' : 'danger'" size="small">
-                                {{ row.success ? '成功' : '失败' }}
+                                {{ row.success ? t('licenses_page.success') : t('licenses_page.failed') }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="error" label="错误信息" min-width="150">
+                    <el-table-column prop="error" :label="t('licenses_page.error_info')" min-width="150">
                         <template #default="{ row }">{{ row.error || '-' }}</template>
                     </el-table-column>
                 </el-table>
             </template>
             <template #footer>
-                <el-button @click="showBatchResult = false">关闭</el-button>
+                <el-button @click="showBatchResult = false">{{ t('actions.close') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -561,6 +551,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useAuthStore } from '@/stores/auth';
 import licenseApi from '@/api/license';
@@ -570,9 +561,10 @@ import SavedSearchBar from '@/components/SavedSearchBar.vue';
 import {
     Plus, Download, Upload, DocumentAdd, ArrowDown,
     View, VideoPause, ColdDrink, Refresh, Remove,
-    WarningFilled, Money, CopyDocument,
+    WarningFilled, Money, CopyDocument, Grid,
 } from '@element-plus/icons-vue';
 
+const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
 const isSuperAdmin = computed(() => authStore.user?.roles?.includes('super-admin') || false);
@@ -609,16 +601,29 @@ const stats = reactive({
     expiring_soon: 0,
 });
 
-const statusOptions = [
-    { value: 'pending', label: '待激活' },
-    { value: 'active', label: '活跃' },
-    { value: 'suspended', label: '已暂停' },
-    { value: 'frozen', label: '已冻结' },
-    { value: 'expired', label: '已过期' },
-    { value: 'revoked', label: '已吊销' },
-    { value: 'refunded', label: '已退款' },
-    { value: 'blacklisted', label: '黑名单' },
-];
+const TYPE_VALUES = ['standard', 'trial', 'enterprise', 'development'];
+
+const typeOptions = computed(() =>
+    TYPE_VALUES.map((value) => ({
+        value,
+        label: t(`licenses_page.type_${value}`),
+    })),
+);
+
+function typeLabel(type) {
+    return t(`licenses_page.type_${type}`) || type;
+}
+
+const statusOptions = computed(() => [
+    { value: 'pending', label: t('licenses_page.st_pending') },
+    { value: 'active', label: t('licenses_page.st_active') },
+    { value: 'suspended', label: t('licenses_page.st_suspended') },
+    { value: 'frozen', label: t('licenses_page.st_frozen') },
+    { value: 'expired', label: t('licenses_page.st_expired') },
+    { value: 'revoked', label: t('licenses_page.st_revoked') },
+    { value: 'refunded', label: t('licenses_page.st_refunded') },
+    { value: 'blacklisted', label: t('licenses_page.st_blacklisted') },
+]);
 
 const filters = reactive({
     license_key: '',
@@ -670,10 +675,10 @@ function applyTemplate(templateId) {
     }
 }
 
-const createRules = {
-    product_id: [{ required: true, message: '请选择产品' }],
-    type: [{ required: true, message: '请选择类型' }],
-};
+const createRules = computed(() => ({
+    product_id: [{ required: true, message: t('licenses_page.product_required') }],
+    type: [{ required: true, message: t('licenses_page.type_required') }],
+}));
 
 const editForm = reactive({
     id: null,
@@ -788,12 +793,12 @@ async function confirmCreate() {
         const payload = { ...createForm };
         if (!payload.expires_at) delete payload.expires_at;
         await licenseApi.create(payload);
-        ElMessage.success('License 创建成功');
+        ElMessage.success(t('licenses_page.create_ok'));
         showCreate.value = false;
         fetchData(1);
         fetchStats();
     } catch {
-        ElMessage.error('创建失败');
+        ElMessage.error(t('licenses_page.create_fail'));
     } finally {
         creating.value = false;
     }
@@ -825,11 +830,11 @@ async function confirmEdit() {
         payload.seats = editForm.seats;
 
         await licenseApi.update(editForm.id, payload);
-        ElMessage.success('License 已更新');
+        ElMessage.success(t('licenses_page.update_ok'));
         showEdit.value = false;
         fetchData();
     } catch {
-        ElMessage.error('更新失败');
+        ElMessage.error(t('licenses_page.update_fail'));
     } finally {
         updating.value = false;
     }
@@ -837,7 +842,7 @@ async function confirmEdit() {
 
 // ─── 批量创建 ───
 async function confirmBatchCreate() {
-    if (!batchForm.product_id) return ElMessage.warning('请选择产品');
+    if (!batchForm.product_id) return ElMessage.warning(t('licenses_page.product_required'));
 
     batchCreating.value = true;
     try {
@@ -849,12 +854,12 @@ async function confirmBatchCreate() {
             max_devices: batchForm.max_devices,
         });
         const count = res.data?.length || 0;
-        ElMessage.success(`成功创建 ${count} 个 License`);
+        ElMessage.success(t('licenses_page.batch_create_ok', { n: count }));
         showBatchCreate.value = false;
         fetchData(1);
         fetchStats();
     } catch {
-        ElMessage.error('批量创建失败');
+        ElMessage.error(t('licenses_page.batch_create_fail'));
     } finally {
         batchCreating.value = false;
     }
@@ -886,12 +891,12 @@ async function confirmImport() {
         const { data: res } = await licenseApi.import(formData);
         importResult.value = res.data || res;
         if (importResult.value.failed === 0) {
-            ElMessage.success(`成功导入 ${importResult.value.success} 个 License`);
+            ElMessage.success(t('licenses_page.import_ok', { n: importResult.value.success }));
             fetchData(1);
             fetchStats();
         }
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '导入失败');
+        ElMessage.error(err.response?.data?.message || t('licenses_page.import_fail'));
     } finally {
         importing.value = false;
     }
@@ -899,8 +904,24 @@ async function confirmImport() {
 
 function downloadTemplate() {
     // Build a simple CSV template
-    const headers = ['产品', '类型', '客户', '座位数', '设备限制', '过期时间', '元数据'];
-    const example = ['产品名称（必填）', 'standard', '客户名称（选填）', '1', '1', '2026-12-31 23:59:59', '{"key":"value"}'];
+    const headers = [
+        t('licenses_page.col_product'),
+        t('licenses_page.col_type'),
+        t('licenses_page.col_customer'),
+        t('licenses_page.seats'),
+        t('licenses_page.col_max_devices'),
+        t('licenses_page.col_expires_at'),
+        t('licenses_page.csv_metadata'),
+    ];
+    const example = [
+        t('licenses_page.csv_product_ex'),
+        'standard',
+        t('licenses_page.csv_customer_ex'),
+        '1',
+        '1',
+        '2026-12-31 23:59:59',
+        '{"key":"value"}',
+    ];
     const BOM = '\uFEFF';
     const csv = BOM + headers.join(',') + '\n' + example.join(',') + '\n';
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -915,14 +936,13 @@ function downloadTemplate() {
 }
 
 // ─── 操作 ───
-async function handleAction(cmd, row) {
-    const actionLabels = {
-        detail: '查看详情',
-        suspend: '暂停', freeze: '冻结', restore: '恢复',
-        revoke: '吊销', blacklist: '加入黑名单', refund: '退款',
-        destroy: '删除',
-    };
+function actionLabel(cmd) {
+    const key = `licenses_page.act_${cmd}`;
+    const translated = t(key);
+    return translated !== key ? translated : cmd;
+}
 
+async function handleAction(cmd, row) {
     if (cmd === 'detail') {
         router.push(`/licenses/${row.id}`);
         return;
@@ -936,12 +956,12 @@ async function handleAction(cmd, row) {
     if (cmd === 'destroy') {
         try {
             await ElMessageBox.confirm(
-                `确定要删除 License "${row.license_key}" 吗？删除后可在回收站恢复。`,
-                '确认删除',
-                { confirmButtonText: '确认删除', cancelButtonText: '取消', type: 'warning' },
+                t('licenses_page.delete_confirm', { key: row.license_key }),
+                t('licenses_page.delete_title'),
+                { confirmButtonText: t('licenses_page.confirm_delete'), cancelButtonText: t('actions.cancel'), type: 'warning' },
             );
             await licenseApi.destroy(row.id);
-            ElMessage.success('License 已移至回收站');
+            ElMessage.success(t('licenses_page.deleted_ok'));
             fetchData();
             fetchStats();
         } catch {
@@ -950,11 +970,12 @@ async function handleAction(cmd, row) {
         return;
     }
 
+    const label = actionLabel(cmd);
     try {
         await ElMessageBox.confirm(
-            `确定要${actionLabels[cmd]} License "${row.license_key}" 吗？`,
-            '确认操作',
-            { confirmButtonText: '确认', cancelButtonText: '取消', type: 'warning' },
+            t('licenses_page.action_confirm', { action: label, key: row.license_key }),
+            t('licenses_page.confirm_action_title'),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning' },
         );
         const apiMap = {
             suspend: licenseApi.suspend,
@@ -965,7 +986,7 @@ async function handleAction(cmd, row) {
             refund: licenseApi.refund,
         };
         await apiMap[cmd](row.id);
-        ElMessage.success(`${actionLabels[cmd]}成功`);
+        ElMessage.success(t('licenses_page.action_ok', { action: label }));
         fetchData();
         fetchStats();
     } catch {
@@ -973,18 +994,21 @@ async function handleAction(cmd, row) {
     }
 }
 
+function handleBatchActionCmd(cmd) {
+    batchAction(cmd);
+}
+
 async function batchAction(action) {
     if (!selectedIds.value.length) return;
 
-    const actionLabels = { suspend: '暂停', restore: '恢复', revoke: '吊销', activate: '激活', deactivate: '停用', freeze: '冻结', blacklist: '加入黑名单', refund: '退款', delete: '删除' };
-    const label = actionLabels[action] || action;
+    const label = actionLabel(action === 'delete' ? 'destroy' : action);
     const ids = [...selectedIds.value];
 
     try {
         await ElMessageBox.confirm(
-            `确定要批量${label}选中的 ${ids.length} 个 License 吗？`,
-            '批量操作',
-            { confirmButtonText: '确认', cancelButtonText: '取消', type: 'warning' },
+            t('licenses_page.batch_action_confirm', { action: label, n: ids.length }),
+            t('licenses_page.batch_action_title'),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning' },
         );
 
         const res = await licenseApi.batchOperation({
@@ -993,13 +1017,17 @@ async function batchAction(action) {
         });
         const data = res.data?.data || {};
 
-        ElMessage.success(`批量${label}完成：成功 ${data.processed || 0}，失败 ${data.failed || 0}`);
+        ElMessage.success(t('licenses_page.batch_action_done', {
+            action: label,
+            processed: data.processed || 0,
+            failed: data.failed || 0,
+        }));
         selectedIds.value = [];
         fetchData();
         fetchStats();
     } catch (err) {
         if (err.code !== 'CANCEL') {
-            ElMessage.error(err.response?.data?.message || '批量操作失败');
+            ElMessage.error(err.response?.data?.message || t('licenses_page.batch_action_fail'));
         }
     }
 }
@@ -1021,13 +1049,13 @@ const batchActionPayload = reactive({
 
 const batchDialogTitle = computed(() => {
     const titles = {
-        renew: '批量续期',
-        update_seats: '批量改席位',
-        update_metadata: '批量更新元数据',
-        add_tags: '批量添加标签',
-        transfer: '批量转移租户',
+        renew: t('licenses_page.batch_renew'),
+        update_seats: t('licenses_page.batch_update_seats'),
+        update_metadata: t('licenses_page.batch_update_metadata'),
+        add_tags: t('licenses_page.batch_add_tags'),
+        transfer: t('licenses_page.batch_transfer'),
     };
-    return titles[batchActionType.value] || '批量操作';
+    return titles[batchActionType.value] || t('licenses_page.batch_dialog_default');
 });
 
 function openBatchEditDialog(type) {
@@ -1056,7 +1084,7 @@ async function confirmBatchAction() {
             try {
                 metadata = JSON.parse(batchActionPayload.metadata_json || '{}');
             } catch {
-                ElMessage.warning('元数据 JSON 格式无效');
+                ElMessage.warning(t('licenses_page.metadata_invalid'));
                 batchSubmitting.value = false;
                 return;
             }
@@ -1069,7 +1097,7 @@ async function confirmBatchAction() {
 
         const res = await licenseApi.batchOperation(payload);
         batchResult.value = {
-            message: res.data?.message || '操作完成',
+            message: res.data?.message || t('licenses_page.operation_done'),
             processed: res.data?.data?.processed || 0,
             failed: res.data?.data?.failed || 0,
             details: res.data?.data?.details || [],
@@ -1081,7 +1109,7 @@ async function confirmBatchAction() {
         fetchData();
         fetchStats();
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '批量操作失败');
+        ElMessage.error(err.response?.data?.message || t('licenses_page.batch_action_fail'));
     } finally {
         batchSubmitting.value = false;
     }
@@ -1091,20 +1119,23 @@ async function confirmBatchDelete() {
     const ids = [...selectedIds.value];
     try {
         await ElMessageBox.confirm(
-            `确定要批量删除选中的 ${ids.length} 个 License 吗？（将移入回收站）`,
-            '批量删除',
-            { confirmButtonText: '确认', cancelButtonText: '取消', type: 'warning' },
+            t('licenses_page.batch_delete_confirm', { n: ids.length }),
+            t('licenses_page.batch_delete_title'),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning' },
         );
 
         const res = await licenseApi.batchOperation({ license_ids: ids, action: 'delete' });
         const data = res.data?.data || {};
-        ElMessage.success(`批量删除完成：成功 ${data.processed || 0}，失败 ${data.failed || 0}`);
+        ElMessage.success(t('licenses_page.batch_delete_done', {
+            processed: data.processed || 0,
+            failed: data.failed || 0,
+        }));
         selectedIds.value = [];
         fetchData();
         fetchStats();
     } catch (err) {
         if (err.code !== 'CANCEL') {
-            ElMessage.error(err.response?.data?.message || '批量删除失败');
+            ElMessage.error(err.response?.data?.message || t('licenses_page.batch_delete_fail'));
         }
     }
 }
@@ -1133,7 +1164,7 @@ function handleBulkCmd(cmd) {
             // Use fetch to include auth header, then download
             fetch(url, { headers: { Authorization: `Bearer ${token}` } })
                 .then(res => {
-                    if (!res.ok) throw new Error('导出失败');
+                    if (!res.ok) throw new Error('export failed');
                     return res.blob();
                 })
                 .then(blob => {
@@ -1145,39 +1176,40 @@ function handleBulkCmd(cmd) {
                     a.click();
                     URL.revokeObjectURL(blobUrl);
                     a.remove();
-                    ElMessage.success('导出成功');
+                    ElMessage.success(t('licenses_page.export_ok'));
                 })
-                .catch(() => ElMessage.error('导出失败'));
+                .catch(() => ElMessage.error(t('licenses_page.export_fail')));
         }
     }
 }
 
 // ─── 展示辅助 ───
-const STATUS_MAP = {
-    pending: { type: 'info', label: '待激活' },
-    active: { type: 'success', label: '活跃' },
-    suspended: { type: 'warning', label: '已暂停' },
-    frozen: { type: 'warning', label: '已冻结' },
-    expired: { type: 'info', label: '已过期' },
-    revoked: { type: 'danger', label: '已吊销' },
-    refunded: { type: 'danger', label: '已退款' },
-    blacklisted: { type: 'danger', label: '黑名单' },
+const STATUS_TYPES = {
+    pending: 'info',
+    active: 'success',
+    suspended: 'warning',
+    frozen: 'warning',
+    expired: 'info',
+    revoked: 'danger',
+    refunded: 'danger',
+    blacklisted: 'danger',
 };
 
-// 快速筛选标签（主要状态，不含终态）
-const quickFilterOptions = [
-    { value: 'active', label: '活跃中', type: 'success' },
-    { value: 'expired', label: '已过期', type: 'info' },
-    { value: 'suspended', label: '已暂停', type: 'warning' },
-    { value: 'frozen', label: '已冻结', type: 'warning' },
-    { value: 'revoked', label: '已吊销', type: 'danger' },
-];
+const quickFilterOptions = computed(() => [
+    { value: 'active', label: t('licenses_page.st_active_now'), type: 'success' },
+    { value: 'expired', label: t('licenses_page.st_expired'), type: 'info' },
+    { value: 'suspended', label: t('licenses_page.st_suspended'), type: 'warning' },
+    { value: 'frozen', label: t('licenses_page.st_frozen'), type: 'warning' },
+    { value: 'revoked', label: t('licenses_page.st_revoked'), type: 'danger' },
+]);
 
 function statusType(status) {
-    return STATUS_MAP[status]?.type || 'info';
+    return STATUS_TYPES[status] || 'info';
 }
 function statusLabel(status) {
-    return STATUS_MAP[status]?.label || status;
+    const key = `licenses_page.st_${status}`;
+    const translated = t(key);
+    return translated !== key ? translated : status;
 }
 function expiryClass(row) {
     if (!row.expires_at) return '';
@@ -1188,19 +1220,20 @@ function expiryClass(row) {
     return days <= 7 ? 'expiring-soon-text' : '';
 }
 function expiryTooltip(row) {
-    if (!row.expires_at) return '永久有效';
+    if (!row.expires_at) return t('licenses_page.expiry_permanent');
     const now = Date.now();
     const expiry = new Date(row.expires_at).getTime();
     const diffMs = expiry - now;
     const days = Math.ceil(diffMs / 86400000);
-    if (diffMs < 0) return `已过期 ${Math.abs(days)} 天`;
-    if (days <= 7) return `⚠️ 还剩 ${days} 天过期`;
-    if (days <= 30) return `还剩 ${days} 天过期`;
-    return `有效期至 ${row.expires_at}`;
+    if (diffMs < 0) return t('licenses_page.expiry_past', { n: Math.abs(days) });
+    if (days <= 7) return t('licenses_page.expiry_soon', { n: days });
+    if (days <= 30) return t('licenses_page.expiry_soon', { n: days });
+    return t('licenses_page.expiry_until', { date: row.expires_at });
 }
 function copyLicenseKey(key) {
+    const copiedMsg = t('licenses_page.key_copied');
     navigator.clipboard.writeText(key).then(() => {
-        ElMessage.success({ message: 'License Key 已复制', duration: 1500 });
+        ElMessage.success({ message: copiedMsg, duration: 1500 });
     }).catch(() => {
         // fallback
         const ta = document.createElement('textarea');
@@ -1209,7 +1242,7 @@ function copyLicenseKey(key) {
         ta.select();
         document.execCommand('copy');
         ta.remove();
-        ElMessage.success({ message: 'License Key 已复制', duration: 1500 });
+        ElMessage.success({ message: copiedMsg, duration: 1500 });
     });
 }
 
@@ -1259,11 +1292,11 @@ onMounted(() => {
     align-items: center;
     gap: 12px;
     padding: 10px 16px;
-    background: #ecf5ff;
+    background: #f1f5f9;
     border-radius: 4px;
     margin-bottom: 16px;
 }
-.selected-info { font-size: 14px; color: #409eff; font-weight: 500; }
+.selected-info { font-size: 14px; color: #0f172a; font-weight: 500; }
 
 .pagination-wrap {
     display: flex;
@@ -1337,4 +1370,35 @@ onMounted(() => {
 }
 .mt-4 { margin-top: 16px; }
 .mb-4 { margin-bottom: 16px; }
+
+/* ─── 移动端响应式 ─── */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .header-actions {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    .header-actions .el-button {
+        flex: 1;
+        min-width: 0;
+    }
+    .stat-cards-row .el-col {
+        margin-bottom: 12px;
+    }
+    .stat-value {
+        font-size: 22px;
+    }
+    .batch-bar {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .batch-bar .el-button {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+}
 </style>

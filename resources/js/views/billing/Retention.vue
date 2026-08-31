@@ -2,13 +2,13 @@
     <div class="retention-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>续费失败流水线</h2>
-                <span class="header-subtitle">监控自动续费失败情况、处理重试和人工介入</span>
+                <h2>{{ t('billing_retention_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('billing_retention_page.subtitle') }}</span>
             </div>
             <div class="header-right">
                 <el-button @click="loadAll">
                     <el-icon><Refresh /></el-icon>
-                    刷新
+                    {{ t('billing_retention_page.refresh') }}
                 </el-button>
             </div>
         </div>
@@ -18,7 +18,7 @@
             <el-col :span="4">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">总尝试</div>
+                        <div class="stat-label">{{ t('billing_retention_page.stats.total_attempts') }}</div>
                         <div class="stat-value">{{ stats.total_attempts }}</div>
                     </div>
                 </el-card>
@@ -26,7 +26,7 @@
             <el-col :span="4">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">总失败</div>
+                        <div class="stat-label">{{ t('billing_retention_page.stats.total_failures') }}</div>
                         <div class="stat-value text-danger">{{ stats.total_failures }}</div>
                     </div>
                 </el-card>
@@ -34,7 +34,7 @@
             <el-col :span="4">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">失败率</div>
+                        <div class="stat-label">{{ t('billing_retention_page.stats.failure_rate') }}</div>
                         <div class="stat-value" :class="failureRateClass">{{ stats.failure_rate }}%</div>
                     </div>
                 </el-card>
@@ -42,7 +42,7 @@
             <el-col :span="4">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">待重试</div>
+                        <div class="stat-label">{{ t('billing_retention_page.stats.pending_retries') }}</div>
                         <div class="stat-value text-warning">{{ stats.pending_retries }}</div>
                     </div>
                 </el-card>
@@ -50,7 +50,7 @@
             <el-col :span="4">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">待人工介入</div>
+                        <div class="stat-label">{{ t('billing_retention_page.stats.escalated_pending') }}</div>
                         <div class="stat-value text-danger">{{ stats.escalated_pending }}</div>
                     </div>
                 </el-card>
@@ -58,352 +58,321 @@
             <el-col :span="4">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">近 7 天失败</div>
+                        <div class="stat-label">{{ t('billing_retention_page.stats.recent_7d_failures') }}</div>
                         <div class="stat-value text-warning">{{ stats.recent_7d_failures }}</div>
                     </div>
                 </el-card>
             </el-col>
         </el-row>
 
-        <!-- Tab: 待处理介入 / 查询失败记录 / 续费策略配置 -->
         <el-tabs v-model="activeTab" class="mb-4">
-            <el-tab-pane label="待处理人工介入" name="escalations">
+            <el-tab-pane :label="t('billing_retention_page.tabs.escalations')" name="escalations">
                 <el-card shadow="never">
                     <el-table :data="escalations" v-loading="loadingEscalations" stripe style="width: 100%">
                         <el-table-column type="index" label="#" width="50" />
-                        <el-table-column prop="id" label="介入 ID" width="80" />
-                        <el-table-column label="客户" min-width="140">
+                        <el-table-column prop="id" :label="t('billing_retention_page.cols.escalation_id')" width="80" />
+                        <el-table-column :label="t('billing_page.col_customer')" min-width="140">
                             <template #default="{ row }">
                                 {{ row.subscription?.customer?.name || row.subscription?.customer_id || '-' }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="订阅" min-width="120">
+                        <el-table-column :label="t('billing_retention_page.cols.subscription')" min-width="120">
                             <template #default="{ row }">
                                 <el-tag size="small" effect="plain">
                                     #{{ row.subscription_id }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="reason" label="升级原因" min-width="200">
+                        <el-table-column prop="reason" :label="t('billing_retention_page.cols.reason')" min-width="200">
                             <template #default="{ row }">
                                 <span class="reason-text">{{ row.reason || '-' }}</span>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="retry_count" label="已重试次数" width="100" />
-                        <el-table-column prop="created_at" label="创建时间" width="170">
+                        <el-table-column prop="retry_count" :label="t('billing_retention_page.cols.retry_count')" width="100" />
+                        <el-table-column prop="created_at" :label="t('billing_page.col_created')" width="170">
                             <template #default="{ row }">
                                 {{ formatDate(row.created_at) }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="180" fixed="right">
+                        <el-table-column :label="t('billing_page.col_actions')" width="180" fixed="right">
                             <template #default="{ row }">
                                 <el-button type="primary" size="small" @click="openResolveDialog(row)">
-                                    处理
+                                    {{ t('billing_retention_page.actions.resolve') }}
                                 </el-button>
                                 <el-button size="small" @click="viewSubscriptionFailures(row.subscription_id)">
-                                    查看失败
+                                    {{ t('billing_retention_page.actions.view_failures') }}
                                 </el-button>
                             </template>
                         </el-table-column>
                     </el-table>
-                    <el-empty v-if="escalations.length === 0 && !loadingEscalations" description="暂无待处理介入" :image-size="60" />
+                    <el-empty v-if="escalations.length === 0 && !loadingEscalations" :description="t('billing_retention_page.empty.escalations')" :image-size="60" />
                 </el-card>
             </el-tab-pane>
 
-            <el-tab-pane label="订阅失败记录查询" name="query">
+            <el-tab-pane :label="t('billing_retention_page.tabs.query')" name="query">
                 <el-card shadow="never">
                     <div class="query-section">
                         <el-form :inline="true">
-                            <el-form-item label="订阅 ID">
-                                <el-input v-model="querySubscriptionId" placeholder="输入订阅 ID" style="width: 200px" />
+                            <el-form-item :label="t('billing_retention_page.query.subscription_id')">
+                                <el-input v-model="querySubscriptionId" :placeholder="t('billing_retention_page.query.subscription_id_ph')" style="width: 200px" />
                             </el-form-item>
                             <el-form-item>
                                 <el-button type="primary" @click="handleQuerySubscription">
                                     <el-icon><Search /></el-icon>
-                                    查询
+                                    {{ t('billing_retention_page.query.btn') }}
                                 </el-button>
                             </el-form-item>
                         </el-form>
                     </div>
 
                     <div v-if="subscriptionFailures" class="subscription-failures">
-                        <h4 class="subsection-title">重试记录</h4>
+                        <h4 class="subsection-title">{{ t('billing_retention_page.sections.retry_attempts') }}</h4>
                         <el-table :data="subscriptionFailures.attempts || []" stripe style="width: 100%" size="small">
                             <el-table-column type="index" label="#" width="50" />
-                            <el-table-column prop="attempt_number" label="重试次数" width="100" />
-                            <el-table-column prop="status" label="状态" width="100">
+                            <el-table-column prop="attempt_number" :label="t('billing_retention_page.cols.attempt_number')" width="100" />
+                            <el-table-column prop="status" :label="t('billing_page.col_status')" width="100">
                                 <template #default="{ row }">
                                     <el-tag :type="row.status === 'success' ? 'success' : 'danger'" size="small">
-                                        {{ row.status === 'success' ? '成功' : '失败' }}
+                                        {{ attemptStatusLabel(row.status) }}
                                     </el-tag>
                                 </template>
                             </el-table-column>
-                            <el-table-column prop="error_message" label="错误信息" min-width="240" />
-                            <el-table-column prop="next_retry_at" label="下次重试" width="170">
+                            <el-table-column prop="error_message" :label="t('billing_retention_page.cols.error_message')" min-width="240" />
+                            <el-table-column prop="next_retry_at" :label="t('billing_retention_page.cols.next_retry')" width="170">
                                 <template #default="{ row }">
                                     {{ row.next_retry_at ? formatDate(row.next_retry_at) : '-' }}
                                 </template>
                             </el-table-column>
-                            <el-table-column prop="created_at" label="时间" width="170">
+                            <el-table-column prop="created_at" :label="t('billing_retention_page.cols.time')" width="170">
                                 <template #default="{ row }">
                                     {{ formatDate(row.created_at) }}
                                 </template>
                             </el-table-column>
                         </el-table>
 
-                        <h4 class="subsection-title mt-4">升级记录</h4>
+                        <h4 class="subsection-title mt-4">{{ t('billing_retention_page.sections.escalations') }}</h4>
                         <el-table :data="subscriptionFailures.escalations || []" stripe style="width: 100%" size="small">
                             <el-table-column type="index" label="#" width="50" />
-                            <el-table-column prop="reason" label="原因" min-width="200" />
-                            <el-table-column prop="status" label="状态" width="100">
+                            <el-table-column prop="reason" :label="t('billing_retention_page.cols.reason_short')" min-width="200" />
+                            <el-table-column prop="status" :label="t('billing_page.col_status')" width="100">
                                 <template #default="{ row }">
                                     <el-tag :type="row.status === 'resolved' ? 'success' : 'warning'" size="small">
-                                        {{ row.status === 'resolved' ? '已解决' : '待处理' }}
+                                        {{ escalationStatusLabel(row.status) }}
                                     </el-tag>
                                 </template>
                             </el-table-column>
-                            <el-table-column prop="resolution_note" label="处理备注" min-width="200" />
-                            <el-table-column prop="created_at" label="创建时间" width="170">
+                            <el-table-column prop="resolution_note" :label="t('billing_retention_page.cols.resolution_note')" min-width="200" />
+                            <el-table-column prop="created_at" :label="t('billing_page.col_created')" width="170">
                                 <template #default="{ row }">
                                     {{ formatDate(row.created_at) }}
                                 </template>
                             </el-table-column>
                         </el-table>
 
-                        <el-empty v-if="!subscriptionFailures.attempts?.length && !subscriptionFailures.escalations?.length" description="暂无失败记录" :image-size="60" />
+                        <el-empty v-if="!subscriptionFailures.attempts?.length && !subscriptionFailures.escalations?.length" :description="t('billing_retention_page.empty.failures')" :image-size="60" />
                     </div>
                 </el-card>
             </el-tab-pane>
 
-            <el-tab-pane label="续费策略配置" name="configs">
+            <el-tab-pane :label="t('billing_retention_page.tabs.configs')" name="configs">
                 <el-card shadow="never">
                     <div class="config-toolbar">
-                        <span class="toolbar-title">续费策略列表</span>
+                        <span class="toolbar-title">{{ t('billing_retention_page.configs.toolbar_title') }}</span>
                         <el-button type="primary" size="small" @click="openCreateConfig">
                             <el-icon><Plus /></el-icon>
-                            新建策略
+                            {{ t('billing_retention_page.configs.new_btn') }}
                         </el-button>
                     </div>
 
                     <el-table :data="configs" v-loading="loadingConfigs" stripe style="width: 100%">
-                        <el-table-column prop="name" label="策略名称" min-width="140" />
-                        <el-table-column prop="description" label="描述" min-width="160" />
-                        <el-table-column label="状态" width="80">
+                        <el-table-column prop="name" :label="t('billing_retention_page.cols.config_name')" min-width="140" />
+                        <el-table-column prop="description" :label="t('billing_page.form_description')" min-width="160" />
+                        <el-table-column :label="t('billing_page.col_status')" width="80">
                             <template #default="{ row }">
                                 <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-                                    {{ row.is_active ? '启用' : '停用' }}
+                                    {{ configActiveLabel(row.is_active) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="最大重试" width="90" align="center">
+                        <el-table-column :label="t('billing_retention_page.cols.max_attempts')" width="90" align="center">
                             <template #default="{ row }">{{ row.max_attempts }}</template>
                         </el-table-column>
-                        <el-table-column label="降级节点" width="90" align="center">
+                        <el-table-column :label="t('billing_retention_page.cols.downgrade_node')" width="90" align="center">
                             <template #default="{ row }">{{ row.downgrade_after_attempt }}</template>
                         </el-table-column>
-                        <el-table-column label="升级节点" width="90" align="center">
+                        <el-table-column :label="t('billing_retention_page.cols.escalate_node')" width="90" align="center">
                             <template #default="{ row }">{{ row.escalate_after_attempt }}</template>
                         </el-table-column>
-                        <el-table-column label="挽留券" width="80" align="center">
+                        <el-table-column :label="t('billing_retention_page.cols.retention_coupon')" width="80" align="center">
                             <template #default="{ row }">
                                 <el-tag :type="row.retention_coupon_enabled ? 'success' : 'info'" size="small">
-                                    {{ row.retention_coupon_enabled ? '开启' : '关闭' }}
+                                    {{ retentionCouponLabel(row.retention_coupon_enabled) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="220" fixed="right">
+                        <el-table-column :label="t('billing_page.col_actions')" width="220" fixed="right">
                             <template #default="{ row }">
-                                <el-button size="small" type="primary" plain @click="openEditConfig(row)">编辑</el-button>
+                                <el-button size="small" type="primary" plain @click="openEditConfig(row)">{{ t('actions.edit') }}</el-button>
                                 <el-button
                                     size="small"
                                     :type="row.is_active ? 'warning' : 'success'"
                                     plain
                                     @click="handleToggleConfig(row)"
                                 >
-                                    {{ row.is_active ? '停用' : '启用' }}
+                                    {{ row.is_active ? t('actions.disable') : t('actions.enable') }}
                                 </el-button>
-                                <el-popconfirm title="确认删除此策略？" @confirm="handleDeleteConfig(row)">
+                                <el-popconfirm :title="t('billing_retention_page.configs.delete_confirm')" @confirm="handleDeleteConfig(row)">
                                     <template #reference>
-                                        <el-button size="small" type="danger" plain>删除</el-button>
+                                        <el-button size="small" type="danger" plain>{{ t('actions.delete') }}</el-button>
                                     </template>
                                 </el-popconfirm>
                             </template>
                         </el-table-column>
                     </el-table>
-                    <el-empty v-if="configs.length === 0 && !loadingConfigs" description="暂无策略配置" :image-size="60" />
+                    <el-empty v-if="configs.length === 0 && !loadingConfigs" :description="t('billing_retention_page.configs.empty')" :image-size="60" />
                 </el-card>
             </el-tab-pane>
         </el-tabs>
 
-        <!-- 处理介入 Dialog -->
-        <el-dialog v-model="showResolveDialog" title="处理人工介入" width="500px">
+        <el-dialog v-model="showResolveDialog" :title="t('billing_retention_page.dialog.resolve_title')" width="500px">
             <el-form ref="resolveFormRef" :model="resolveForm" :rules="resolveRules" label-position="top">
-                <el-form-item label="介入 ID">
+                <el-form-item :label="t('billing_retention_page.form.escalation_id')">
                     <el-tag>{{ resolveEscalation?.id }}</el-tag>
                 </el-form-item>
-                <el-form-item label="升级原因">
-                    <div class="reason-display">{{ resolveEscalation?.message || '-' }}</div>
+                <el-form-item :label="t('billing_retention_page.form.escalation_reason')">
+                    <div class="reason-display">{{ resolveEscalation?.reason || '-' }}</div>
                 </el-form-item>
-                <el-form-item label="处理备注" prop="resolution_note">
+                <el-form-item :label="t('billing_retention_page.form.resolution_note')" prop="resolution_note">
                     <el-input
                         v-model="resolveForm.resolution_note"
                         type="textarea"
                         :rows="4"
-                        placeholder="详细描述处理方式"
+                        :placeholder="t('billing_retention_page.form.resolution_note_ph')"
                         maxlength="500"
                         show-word-limit
                     />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showResolveDialog = false">取消</el-button>
+                <el-button @click="showResolveDialog = false">{{ t('actions.cancel') }}</el-button>
                 <el-button type="primary" @click="handleResolve" :loading="resolving">
-                    确认处理
+                    {{ t('billing_retention_page.actions.confirm_resolve') }}
                 </el-button>
             </template>
         </el-dialog>
 
-        <!-- 续费策略配置 Dialog -->
-        <el-dialog v-model="showConfigDialog" :title="configForm.id ? '编辑策略' : '新建策略'" width="640px" :close-on-click-modal="false">
+        <el-dialog v-model="showConfigDialog" :title="configForm.id ? t('billing_retention_page.dialog.edit_config') : t('billing_retention_page.dialog.create_config')" width="640px" :close-on-click-modal="false">
             <el-form ref="configFormRef" :model="configForm" :rules="configRules" label-position="top" size="small">
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="策略名称" prop="name">
-                            <el-input v-model="configForm.name" placeholder="如：默认策略" />
+                        <el-form-item :label="t('billing_retention_page.form.name')" prop="name">
+                            <el-input v-model="configForm.name" :placeholder="t('billing_retention_page.form.name_ph')" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="描述">
-                            <el-input v-model="configForm.description" placeholder="策略说明" />
+                        <el-form-item :label="t('billing_retention_page.form.description')">
+                            <el-input v-model="configForm.description" :placeholder="t('billing_retention_page.form.description_ph')" />
                         </el-form-item>
                     </el-col>
                 </el-row>
 
-                <el-divider content-position="left">重试策略</el-divider>
+                <el-divider content-position="left">{{ t('billing_retention_page.sections.retry_policy') }}</el-divider>
 
                 <el-row :gutter="16">
                     <el-col :span="8">
-                        <el-form-item label="最大重试次数" prop="max_attempts">
+                        <el-form-item :label="t('billing_retention_page.form.max_attempts')" prop="max_attempts">
                             <el-input-number v-model="configForm.max_attempts" :min="1" :max="20" style="width:100%" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="降级节点（第N次）" prop="downgrade_after_attempt">
+                        <el-form-item :label="t('billing_retention_page.form.downgrade_after')" prop="downgrade_after_attempt">
                             <el-input-number v-model="configForm.downgrade_after_attempt" :min="1" :max="20" style="width:100%" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="人工介入节点" prop="escalate_after_attempt">
+                        <el-form-item :label="t('billing_retention_page.form.escalate_after')" prop="escalate_after_attempt">
                             <el-input-number v-model="configForm.escalate_after_attempt" :min="1" :max="20" style="width:100%" />
                         </el-form-item>
                     </el-col>
                 </el-row>
 
-                <el-form-item label="重试间隔（各次对应的天数）">
+                <el-form-item :label="t('billing_retention_page.form.retry_intervals')">
                     <div class="retry-intervals">
                         <div v-for="(_, idx) in configForm.retry_intervals_days" :key="idx" class="retry-interval-item">
-                            <span class="interval-label">第 {{ idx + 1 }} 次</span>
+                            <span class="interval-label">{{ t('billing_retention_page.form.attempt_nth', { n: idx + 1 }) }}</span>
                             <el-input-number v-model="configForm.retry_intervals_days[idx]" :min="1" :max="90" size="small" :controls-position="'right'" style="width:120px" />
-                            <span class="interval-unit">天</span>
-                            <el-button v-if="configForm.retry_intervals_days.length > 1" text type="danger" size="small" @click="configForm.retry_intervals_days.splice(idx, 1)">移除</el-button>
+                            <span class="interval-unit">{{ t('billing_retention_page.form.unit_days') }}</span>
+                            <el-button v-if="configForm.retry_intervals_days.length > 1" text type="danger" size="small" @click="configForm.retry_intervals_days.splice(idx, 1)">{{ t('billing_retention_page.form.remove_interval') }}</el-button>
                         </div>
                         <el-button text type="primary" size="small" @click="configForm.retry_intervals_days.push(7)">
-                            + 添加重试间隔
+                            + {{ t('billing_retention_page.form.add_interval') }}
                         </el-button>
                     </div>
                 </el-form-item>
 
-                <el-divider content-position="left">通知策略</el-divider>
+                <el-divider content-position="left">{{ t('billing_retention_page.sections.notification_policy') }}</el-divider>
 
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="提醒渠道">
+                        <el-form-item :label="t('billing_retention_page.form.notification_channels')">
                             <el-checkbox-group v-model="configForm.notification_channels">
-                                <el-checkbox label="database">站内信</el-checkbox>
-                                <el-checkbox label="mail">邮件</el-checkbox>
-                                <el-checkbox label="sms">短信</el-checkbox>
+                                <el-checkbox label="database">{{ t('billing_retention_page.form.channel_database') }}</el-checkbox>
+                                <el-checkbox label="mail">{{ t('billing_retention_page.form.channel_mail') }}</el-checkbox>
+                                <el-checkbox label="sms">{{ t('billing_retention_page.form.channel_sms') }}</el-checkbox>
                             </el-checkbox-group>
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="提前提醒天数" prop="reminder_days_before">
+                        <el-form-item :label="t('billing_retention_page.form.reminder_days_before')" prop="reminder_days_before">
                             <el-input-number v-model="configForm.reminder_days_before" :min="0" :max="90" style="width:100%" />
                         </el-form-item>
                     </el-col>
                 </el-row>
 
-                <el-form-item label="提醒节奏（过期前天数）">
+                <el-form-item :label="t('billing_retention_page.form.reminder_schedule')">
                     <div class="retry-intervals">
                         <el-tag v-for="(day, idx) in configForm.reminder_schedule" :key="idx" closable @close="configForm.reminder_schedule.splice(idx, 1)" class="mr-1">
-                            {{ day }} 天
+                            {{ t('billing_page.days_suffix', { n: day }) }}
                         </el-tag>
-                        <el-select v-model="newScheduleDay" placeholder="添加天数" size="small" style="width:120px" @change="addScheduleDay">
-                            <el-option v-for="d in [1, 3, 7, 14, 30, 60, 90]" :key="d" :label="`${d} 天`" :value="d" />
+                        <el-select v-model="newScheduleDay" :placeholder="t('billing_retention_page.form.add_days_ph')" size="small" style="width:120px" @change="addScheduleDay">
+                            <el-option v-for="d in scheduleDayOptions" :key="d" :label="t('billing_page.days_suffix', { n: d })" :value="d" />
                         </el-select>
                     </div>
                 </el-form-item>
 
-                <el-divider content-position="left">挽留优惠券</el-divider>
+                <el-divider content-position="left">{{ t('billing_retention_page.sections.retention_coupon') }}</el-divider>
 
                 <el-form-item>
-                    <el-switch v-model="configForm.retention_coupon_enabled" active-text="启用挽留优惠券" />
+                    <el-switch v-model="configForm.retention_coupon_enabled" :active-text="t('billing_retention_page.form.retention_coupon_switch')" />
                 </el-form-item>
 
                 <template v-if="configForm.retention_coupon_enabled">
                     <el-row :gutter="16">
                         <el-col :span="8">
-                            <el-form-item label="折扣 (%)" prop="retention_coupon_discount_percent">
+                            <el-form-item :label="t('billing_retention_page.form.discount_percent')" prop="retention_coupon_discount_percent">
                                 <el-input-number v-model="configForm.retention_coupon_discount_percent" :min="0" :max="100" :precision="1" style="width:100%" />
                             </el-form-item>
                         </el-col>
                         <el-col :span="8">
-                            <el-form-item label="有效期（天）" prop="retention_coupon_valid_days">
+                            <el-form-item :label="t('billing_retention_page.form.valid_days')" prop="retention_coupon_valid_days">
                                 <el-input-number v-model="configForm.retention_coupon_valid_days" :min="1" :max="365" style="width:100%" />
                             </el-form-item>
                         </el-col>
                         <el-col :span="8">
-                            <el-form-item label="最大使用次数" prop="retention_coupon_max_uses">
+                            <el-form-item :label="t('billing_retention_page.form.max_uses')" prop="retention_coupon_max_uses">
                                 <el-input-number v-model="configForm.retention_coupon_max_uses" :min="1" :max="100" style="width:100%" />
                             </el-form-item>
                         </el-col>
                     </el-row>
-                    <el-form-item label="最大减免金额（可选）">
+                    <el-form-item :label="t('billing_retention_page.form.max_discount')">
                         <el-input-number v-model="configForm.retention_coupon_max_discount" :min="0" :precision="2" style="width:200px" />
                     </el-form-item>
                 </template>
             </el-form>
             <template #footer>
-                <el-button @click="showConfigDialog = false">取消</el-button>
+                <el-button @click="showConfigDialog = false">{{ t('actions.cancel') }}</el-button>
                 <el-button type="primary" @click="handleSaveConfig" :loading="savingConfig">
-                    {{ configForm.id ? '更新' : '创建' }}
-                </el-button>
-            </template>
-        </el-dialog>
-
-        <!-- 处理介入 Dialog -->
-        <el-dialog v-model="showResolveDialog" title="处理人工介入" width="500px">
-            <el-form ref="resolveFormRef" :model="resolveForm" :rules="resolveRules" label-position="top">
-                <el-form-item label="介入 ID">
-                    <el-tag>{{ resolveEscalation?.id }}</el-tag>
-                </el-form-item>
-                <el-form-item label="升级原因">
-                    <div class="reason-display">{{ resolveEscalation?.reason || '-' }}</div>
-                </el-form-item>
-                <el-form-item label="处理备注" prop="resolution_note">
-                    <el-input
-                        v-model="resolveForm.resolution_note"
-                        type="textarea"
-                        :rows="4"
-                        placeholder="详细描述处理方式"
-                        maxlength="500"
-                        show-word-limit
-                    />
-                </el-form-item>
-            </el-form>
-            <template #footer>
-                <el-button @click="showResolveDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleResolve" :loading="resolving">
-                    确认处理
+                    {{ configForm.id ? t('actions.update') : t('actions.create') }}
                 </el-button>
             </template>
         </el-dialog>
@@ -412,12 +381,14 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
+import { ElMessage } from 'element-plus';
 import { Refresh, Search, Plus } from '@element-plus/icons-vue';
 import apiClient from '@/api/client';
 import retentionApi from '@/api/retention';
 
-const loading = ref(false);
+const { t, locale } = useI18n();
+
 const loadingEscalations = ref(false);
 const resolving = ref(false);
 const activeTab = ref('escalations');
@@ -436,20 +407,42 @@ const showResolveDialog = ref(false);
 const resolveEscalation = ref(null);
 const resolveFormRef = ref(null);
 const resolveForm = reactive({ resolution_note: '' });
-const resolveRules = {
-    resolution_note: [
-        { required: true, message: '请输入处理备注', trigger: 'blur' },
-        { max: 500, message: '最多 500 字', trigger: 'blur' },
-    ],
-};
 
-// Config management
 const configs = ref([]);
 const loadingConfigs = ref(false);
 const savingConfig = ref(false);
 const showConfigDialog = ref(false);
 const configFormRef = ref(null);
 const newScheduleDay = ref(null);
+
+const scheduleDayOptions = [1, 3, 7, 14, 30, 60, 90];
+
+const attemptStatusLabels = computed(() => ({
+    success: t('billing_retention_page.status.success'),
+    failure: t('billing_retention_page.status.failure'),
+}));
+
+const escalationStatusLabels = computed(() => ({
+    resolved: t('billing_retention_page.status.resolved'),
+    pending: t('billing_retention_page.status.pending'),
+}));
+
+const configActiveLabels = computed(() => ({
+    true: t('billing_retention_page.status.active'),
+    false: t('billing_retention_page.status.inactive'),
+}));
+
+const resolveRules = computed(() => ({
+    resolution_note: [
+        { required: true, message: t('billing_retention_page.validation.resolution_note_required'), trigger: 'blur' },
+        { max: 500, message: t('billing_retention_page.validation.resolution_note_max'), trigger: 'blur' },
+    ],
+}));
+
+const configRules = computed(() => ({
+    name: [{ required: true, message: t('billing_retention_page.validation.name_required'), trigger: 'blur' }],
+    max_attempts: [{ required: true, type: 'number', min: 1, max: 20, message: t('billing_retention_page.validation.max_attempts_required'), trigger: 'blur' }],
+}));
 
 const defaultConfigForm = () => ({
     id: null,
@@ -472,20 +465,32 @@ const defaultConfigForm = () => ({
 
 const configForm = reactive(defaultConfigForm());
 
-const configRules = {
-    name: [{ required: true, message: '请输入策略名称', trigger: 'blur' }],
-    max_attempts: [{ required: true, type: 'number', min: 1, max: 20, message: '请输入重试次数', trigger: 'blur' }],
-};
-
 const failureRateClass = computed(() => {
     if (stats.failure_rate > 20) return 'text-danger';
     if (stats.failure_rate > 10) return 'text-warning';
     return '';
 });
 
+function attemptStatusLabel(status) {
+    return attemptStatusLabels.value[status] || status;
+}
+
+function escalationStatusLabel(status) {
+    return escalationStatusLabels.value[status] || status;
+}
+
+function configActiveLabel(isActive) {
+    return configActiveLabels.value[String(!!isActive)] || String(isActive);
+}
+
+function retentionCouponLabel(enabled) {
+    return enabled ? t('billing_page.auto_renew_on') : t('billing_page.auto_renew_off');
+}
+
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(dateStr).toLocaleString(loc, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit',
     });
@@ -513,7 +518,7 @@ async function loadEscalations() {
 
 async function handleQuerySubscription() {
     if (!querySubscriptionId.value) {
-        ElMessage.warning('请输入订阅 ID');
+        ElMessage.warning(t('billing_retention_page.messages.enter_subscription_id'));
         return;
     }
     subscriptionFailures.value = null;
@@ -521,13 +526,13 @@ async function handleQuerySubscription() {
         const { data: res } = await apiClient.get(`/retention/subscriptions/${querySubscriptionId.value}/failures`);
         subscriptionFailures.value = res.data || { attempts: [], escalations: [] };
         if (!subscriptionFailures.value.attempts?.length && !subscriptionFailures.value.escalations?.length) {
-            ElMessage.info('该订阅暂无失败记录');
+            ElMessage.info(t('billing_retention_page.messages.no_failures_for_sub'));
         }
     } catch (err) {
         if (err?.response?.status === 404) {
-            ElMessage.warning('订阅不存在');
+            ElMessage.warning(t('billing_retention_page.messages.subscription_not_found'));
         } else {
-            ElMessage.error('查询失败');
+            ElMessage.error(t('billing_retention_page.messages.query_failed'));
         }
         subscriptionFailures.value = null;
     }
@@ -556,12 +561,12 @@ async function handleResolve() {
         await apiClient.post(`/retention/escalations/${resolveEscalation.value.id}/resolve`, {
             resolution_note: resolveForm.resolution_note,
         });
-        ElMessage.success('介入已处理');
+        ElMessage.success(t('billing_retention_page.messages.escalation_resolved'));
         showResolveDialog.value = false;
         loadEscalations();
         loadStats();
     } catch (err) {
-        ElMessage.error(err?.response?.data?.message || '处理失败');
+        ElMessage.error(err?.response?.data?.message || t('billing_retention_page.messages.resolve_failed'));
     } finally {
         resolving.value = false;
     }
@@ -572,8 +577,6 @@ function loadAll() {
     loadEscalations();
     loadConfigs();
 }
-
-// ── Config Methods ──
 
 async function loadConfigs() {
     loadingConfigs.value = true;
@@ -625,11 +628,11 @@ async function handleSaveConfig() {
         delete payload.id;
 
         await retentionApi.saveConfig(payload, id);
-        ElMessage.success(id ? '策略已更新' : '策略已创建');
+        ElMessage.success(id ? t('billing_retention_page.messages.config_updated') : t('billing_retention_page.messages.config_created'));
         showConfigDialog.value = false;
         loadConfigs();
     } catch (err) {
-        ElMessage.error(err?.response?.data?.message || '保存失败');
+        ElMessage.error(err?.response?.data?.message || t('billing_retention_page.messages.save_failed'));
     } finally {
         savingConfig.value = false;
     }
@@ -638,20 +641,20 @@ async function handleSaveConfig() {
 async function handleToggleConfig(config) {
     try {
         await retentionApi.toggleConfig(config.id);
-        ElMessage.success('策略状态已切换');
+        ElMessage.success(t('billing_retention_page.messages.config_toggled'));
         loadConfigs();
     } catch {
-        ElMessage.error('操作失败');
+        ElMessage.error(t('messages.failed'));
     }
 }
 
 async function handleDeleteConfig(config) {
     try {
         await retentionApi.deleteConfig(config.id);
-        ElMessage.success('策略已删除');
+        ElMessage.success(t('billing_retention_page.messages.config_deleted'));
         loadConfigs();
     } catch {
-        ElMessage.error('删除失败');
+        ElMessage.error(t('billing_retention_page.messages.delete_failed'));
     }
 }
 

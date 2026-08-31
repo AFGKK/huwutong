@@ -2,14 +2,14 @@
     <div class="cookie-consent-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>Cookie 同意管理</h2>
-                <span class="header-subtitle">配置 GDPR Cookie 同意横幅、查看用户同意记录</span>
+                <h2>{{ t('cookie_consent_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('cookie_consent_page.subtitle') }}</span>
             </div>
         </div>
 
         <el-tabs v-model="activeTab" class="mt-4">
             <!-- 配置 Tab -->
-            <el-tab-pane label="横幅配置" name="config">
+            <el-tab-pane :label="t('cookie_consent_page.tabs.config')" name="config">
                 <el-card shadow="never">
                     <el-form
                         ref="formRef"
@@ -18,65 +18,74 @@
                         label-width="120px"
                         class="config-form"
                     >
-                        <el-form-item label="启用横幅" prop="is_active">
+                        <el-form-item :label="t('cookie_consent_page.form.enable_banner')" prop="is_active">
                             <el-switch v-model="form.is_active" />
                         </el-form-item>
-                        <el-form-item label="浮动 🍪 按钮" prop="show_floating_button">
+                        <el-form-item :label="t('cookie_consent_page.form.floating_button')" prop="show_floating_button">
                             <el-switch v-model="form.show_floating_button" />
-                            <span style="font-size:12px;color:#999;margin-left:8px">关闭横幅后显示悬浮按钮，可随时重新打开设置</span>
+                            <span style="font-size:12px;color:#999;margin-left:8px">{{ t('cookie_consent_page.form.floating_button_hint') }}</span>
                         </el-form-item>
 
                         <el-row :gutter="24">
                             <el-col :span="8">
-                                <el-form-item label="位置" prop="position">
+                                <el-form-item :label="t('cookie_consent_page.form.position')" prop="position">
                                     <el-select v-model="form.position" style="width: 100%">
-                                        <el-option label="底部" value="bottom" />
-                                        <el-option label="顶部" value="top" />
-                                        <el-option label="居中弹窗" value="center" />
+                                        <el-option
+                                            v-for="opt in positionOptions"
+                                            :key="opt.value"
+                                            :label="opt.label"
+                                            :value="opt.value"
+                                        />
                                     </el-select>
                                 </el-form-item>
                             </el-col>
                             <el-col :span="8">
-                                <el-form-item label="布局" prop="layout">
+                                <el-form-item :label="t('cookie_consent_page.form.layout')" prop="layout">
                                     <el-select v-model="form.layout" style="width: 100%">
-                                        <el-option label="横条" value="bar" />
-                                        <el-option label="弹窗" value="modal" />
-                                        <el-option label="浮动卡片" value="floating" />
+                                        <el-option
+                                            v-for="opt in layoutOptions"
+                                            :key="opt.value"
+                                            :label="opt.label"
+                                            :value="opt.value"
+                                        />
                                     </el-select>
                                 </el-form-item>
                             </el-col>
                             <el-col :span="8">
-                                <el-form-item label="主题" prop="theme">
+                                <el-form-item :label="t('cookie_consent_page.form.theme')" prop="theme">
                                     <el-select v-model="form.theme" style="width: 100%">
-                                        <el-option label="浅色" value="light" />
-                                        <el-option label="深色" value="dark" />
-                                        <el-option label="跟随系统" value="auto" />
+                                        <el-option
+                                            v-for="opt in themeOptions"
+                                            :key="opt.value"
+                                            :label="opt.label"
+                                            :value="opt.value"
+                                        />
                                     </el-select>
                                 </el-form-item>
                             </el-col>
                         </el-row>
 
-                        <el-form-item label="标题" prop="title">
+                        <el-form-item :label="t('cookie_consent_page.form.title')" prop="title">
                             <el-input v-model="form.title" maxlength="200" />
                         </el-form-item>
 
-                        <el-form-item label="说明文字" prop="description">
+                        <el-form-item :label="t('cookie_consent_page.form.description')" prop="description">
                             <el-input v-model="form.description" type="textarea" :rows="2" />
                         </el-form-item>
 
                         <el-row :gutter="24">
                             <el-col :span="8">
-                                <el-form-item label="接受按钮" prop="accept_all_text">
+                                <el-form-item :label="t('cookie_consent_page.form.accept_button')" prop="accept_all_text">
                                     <el-input v-model="form.accept_all_text" maxlength="100" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="8">
-                                <el-form-item label="拒绝按钮" prop="reject_all_text">
+                                <el-form-item :label="t('cookie_consent_page.form.reject_button')" prop="reject_all_text">
                                     <el-input v-model="form.reject_all_text" maxlength="100" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="8">
-                                <el-form-item label="自定义按钮" prop="customize_text">
+                                <el-form-item :label="t('cookie_consent_page.form.customize_button')" prop="customize_text">
                                     <el-input v-model="form.customize_text" maxlength="100" />
                                 </el-form-item>
                             </el-col>
@@ -84,28 +93,28 @@
 
                         <el-row :gutter="24">
                             <el-col :span="12">
-                                <el-form-item label="隐私政策链接" prop="privacy_policy_url">
-                                    <el-input v-model="form.privacy_policy_url" placeholder="https://..." />
+                                <el-form-item :label="t('cookie_consent_page.form.privacy_policy_url')" prop="privacy_policy_url">
+                                    <el-input v-model="form.privacy_policy_url" :placeholder="t('cookie_consent_page.form.privacy_policy_url_ph')" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="12">
-                                <el-form-item label="链接文字" prop="privacy_policy_text">
+                                <el-form-item :label="t('cookie_consent_page.form.privacy_policy_text')" prop="privacy_policy_text">
                                     <el-input v-model="form.privacy_policy_text" maxlength="100" />
                                 </el-form-item>
                             </el-col>
                         </el-row>
 
-                        <el-form-item label="同意有效期" prop="consent_lifetime_days">
+                        <el-form-item :label="t('cookie_consent_page.form.consent_lifetime')" prop="consent_lifetime_days">
                             <el-input-number
                                 v-model="form.consent_lifetime_days"
                                 :min="1"
                                 :max="1825"
                                 style="width: 200px"
                             />
-                            <span class="form-hint">天（1-1825天）</span>
+                            <span class="form-hint">{{ t('cookie_consent_page.form.consent_lifetime_hint') }}</span>
                         </el-form-item>
 
-                        <el-divider>Cookie 分类配置</el-divider>
+                        <el-divider>{{ t('cookie_consent_page.categories.divider') }}</el-divider>
 
                         <div
                             v-for="(cat, index) in form.categories"
@@ -113,21 +122,21 @@
                             class="cookie-category-card"
                         >
                             <div class="category-header">
-                                <el-tag v-if="cat.required" type="danger" size="small">必需</el-tag>
-                                <el-tag v-else type="info" size="small">可选</el-tag>
+                                <el-tag v-if="cat.required" type="danger" size="small">{{ t('cookie_consent_page.categories.required') }}</el-tag>
+                                <el-tag v-else type="info" size="small">{{ t('cookie_consent_page.categories.optional') }}</el-tag>
                                 <strong>{{ cat.name }}</strong>
                             </div>
                             <div class="category-fields">
                                 <el-input
                                     v-model="cat.name"
-                                    placeholder="分类名称"
+                                    :placeholder="t('cookie_consent_page.categories.name_ph')"
                                     size="small"
                                     style="width: 200px"
                                     @input="markDirty"
                                 />
                                 <el-input
                                     v-model="cat.description"
-                                    placeholder="分类描述"
+                                    :placeholder="t('cookie_consent_page.categories.description_ph')"
                                     size="small"
                                     style="flex: 1"
                                     @input="markDirty"
@@ -136,14 +145,14 @@
                                     :model-value="cat.required"
                                     @change="(v) => { cat.required = v; markDirty(); }"
                                 >
-                                    必需
+                                    {{ t('cookie_consent_page.categories.required') }}
                                 </el-checkbox>
                                 <el-checkbox
                                     :model-value="cat.default"
                                     :disabled="cat.required"
                                     @change="(v) => { cat.default = v; markDirty(); }"
                                 >
-                                    默认选中
+                                    {{ t('cookie_consent_page.categories.default_checked') }}
                                 </el-checkbox>
                             </div>
                             <el-button
@@ -153,7 +162,7 @@
                                 size="small"
                                 @click="removeCategory(index)"
                             >
-                                删除
+                                {{ t('actions.delete') }}
                             </el-button>
                         </div>
 
@@ -164,48 +173,48 @@
                             class="mt-2"
                             @click="addCategory"
                         >
-                            + 添加分类
+                            + {{ t('cookie_consent_page.categories.add') }}
                         </el-button>
 
                         <el-divider />
 
                         <el-form-item>
                             <el-button type="primary" @click="handleSave" :loading="saving">
-                                保存配置
+                                {{ t('cookie_consent_page.save_config') }}
                             </el-button>
-                            <el-button @click="resetForm">重置</el-button>
+                            <el-button @click="resetForm">{{ t('actions.reset') }}</el-button>
                         </el-form-item>
                     </el-form>
                 </el-card>
             </el-tab-pane>
 
             <!-- 统计 Tab -->
-            <el-tab-pane label="统计概览" name="stats">
+            <el-tab-pane :label="t('cookie_consent_page.tabs.stats')" name="stats">
                 <el-card shadow="never">
                     <div v-if="stats" class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-value">{{ stats.total }}</div>
-                            <div class="stat-label">总记录数</div>
+                            <div class="stat-label">{{ t('cookie_consent_page.stats.total') }}</div>
                         </div>
                         <div class="stat-card stat-card--success">
                             <div class="stat-value">{{ stats.accepted }}</div>
-                            <div class="stat-label">接受全部</div>
+                            <div class="stat-label">{{ t('cookie_consent_page.stats.accepted') }}</div>
                         </div>
                         <div class="stat-card stat-card--danger">
                             <div class="stat-value">{{ stats.rejected }}</div>
-                            <div class="stat-label">拒绝全部</div>
+                            <div class="stat-label">{{ t('cookie_consent_page.stats.rejected') }}</div>
                         </div>
                         <div class="stat-card stat-card--warning">
                             <div class="stat-value">{{ stats.customized }}</div>
-                            <div class="stat-label">自定义</div>
+                            <div class="stat-label">{{ t('cookie_consent_page.stats.customized') }}</div>
                         </div>
                         <div class="stat-card stat-card--info">
                             <div class="stat-value">{{ stats.today }}</div>
-                            <div class="stat-label">今日新增</div>
+                            <div class="stat-label">{{ t('cookie_consent_page.stats.today') }}</div>
                         </div>
                     </div>
                     <div v-if="stats?.category_breakdown" class="category-breakdown mt-4">
-                        <h4>分类同意分布</h4>
+                        <h4>{{ t('cookie_consent_page.stats.category_breakdown') }}</h4>
                         <div class="breakdown-list">
                             <div
                                 v-for="(count, cat) in stats.category_breakdown"
@@ -226,28 +235,28 @@
             </el-tab-pane>
 
             <!-- 日志 Tab -->
-            <el-tab-pane label="同意日志" name="logs">
+            <el-tab-pane :label="t('cookie_consent_page.tabs.logs')" name="logs">
                 <el-card shadow="never">
                     <el-table :data="logs" v-loading="logsLoading" stripe style="width: 100%">
-                        <el-table-column prop="created_at" label="时间" width="160">
+                        <el-table-column prop="created_at" :label="t('cookie_consent_page.logs.time')" width="160">
                             <template #default="{ row }">
                                 {{ formatTime(row.created_at) }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="用户" width="150">
+                        <el-table-column :label="t('cookie_consent_page.logs.user')" width="150">
                             <template #default="{ row }">
-                                {{ row.user?.name || row.user?.email || '匿名' }}
+                                {{ row.user?.name || row.user?.email || t('cookie_consent_page.logs.anonymous') }}
                             </template>
                         </el-table-column>
-                        <el-table-column prop="ip" label="IP" width="140" />
-                        <el-table-column prop="action" label="操作" width="100">
+                        <el-table-column prop="ip" :label="t('cookie_consent_page.logs.ip')" width="140" />
+                        <el-table-column prop="action" :label="t('cookie_consent_page.logs.action')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="actionTag(row.action)" size="small">
                                     {{ actionLabel(row.action) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="selected_categories" label="同意的分类">
+                        <el-table-column prop="selected_categories" :label="t('cookie_consent_page.logs.selected_categories')">
                             <template #default="{ row }">
                                 <el-tag
                                     v-for="cat in (row.selected_categories || [])"
@@ -277,12 +286,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import {
     getAdminConfig, updateAdminConfig,
     getCookieStats, getCookieLogs,
 } from '@/api/cookie-consent';
+
+const { t } = useI18n();
 
 const activeTab = ref('config');
 const formRef = ref(null);
@@ -292,12 +304,32 @@ const logs = ref([]);
 const logsLoading = ref(false);
 const pagination = ref(null);
 
-const defaultCategories = [
-    { id: 'necessary', name: '必要 Cookies', description: '网站运行必需的 Cookie，无法关闭', required: true, default: true },
-    { id: 'functional', name: '功能 Cookies', description: '记住您的偏好设置，提升使用体验', required: false, default: true },
-    { id: 'analytics', name: '分析 Cookies', description: '收集匿名使用数据，帮助我们改进产品', required: false, default: false },
-    { id: 'marketing', name: '营销 Cookies', description: '用于个性化广告和营销内容推送', required: false, default: false },
-];
+const positionOptions = computed(() => [
+    { label: t('cookie_consent_page.position.bottom'), value: 'bottom' },
+    { label: t('cookie_consent_page.position.top'), value: 'top' },
+    { label: t('cookie_consent_page.position.center'), value: 'center' },
+]);
+
+const layoutOptions = computed(() => [
+    { label: t('cookie_consent_page.layout.bar'), value: 'bar' },
+    { label: t('cookie_consent_page.layout.modal'), value: 'modal' },
+    { label: t('cookie_consent_page.layout.floating'), value: 'floating' },
+]);
+
+const themeOptions = computed(() => [
+    { label: t('cookie_consent_page.theme.light'), value: 'light' },
+    { label: t('cookie_consent_page.theme.dark'), value: 'dark' },
+    { label: t('cookie_consent_page.theme.auto'), value: 'auto' },
+]);
+
+function createDefaultCategories() {
+    return [
+        { id: 'necessary', name: t('cookie_consent_page.defaults.necessary_name'), description: t('cookie_consent_page.defaults.necessary_desc'), required: true, default: true },
+        { id: 'functional', name: t('cookie_consent_page.defaults.functional_name'), description: t('cookie_consent_page.defaults.functional_desc'), required: false, default: true },
+        { id: 'analytics', name: t('cookie_consent_page.defaults.analytics_name'), description: t('cookie_consent_page.defaults.analytics_desc'), required: false, default: false },
+        { id: 'marketing', name: t('cookie_consent_page.defaults.marketing_name'), description: t('cookie_consent_page.defaults.marketing_desc'), required: false, default: false },
+    ];
+}
 
 const form = reactive({
     is_active: true,
@@ -305,20 +337,30 @@ const form = reactive({
     position: 'bottom',
     layout: 'bar',
     theme: 'light',
-    title: 'Cookie 设置',
-    description: '我们使用 Cookie 来提升您的使用体验。',
-    accept_all_text: '接受全部',
-    reject_all_text: '拒绝全部',
-    customize_text: '自定义设置',
+    title: '',
+    description: '',
+    accept_all_text: '',
+    reject_all_text: '',
+    customize_text: '',
     privacy_policy_url: '',
-    privacy_policy_text: '隐私政策',
-    categories: JSON.parse(JSON.stringify(defaultCategories)),
+    privacy_policy_text: '',
+    categories: [],
     consent_lifetime_days: 365,
 });
 
-const rules = {
-    title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
-};
+const rules = computed(() => ({
+    title: [{ required: true, message: t('cookie_consent_page.validation.title_required'), trigger: 'blur' }],
+}));
+
+function applyFormDefaults() {
+    form.title = t('cookie_consent_page.defaults.title');
+    form.description = t('cookie_consent_page.defaults.description');
+    form.accept_all_text = t('cookie_consent_page.defaults.accept_all');
+    form.reject_all_text = t('cookie_consent_page.defaults.reject_all');
+    form.customize_text = t('cookie_consent_page.defaults.customize');
+    form.privacy_policy_text = t('footer.privacy_policy');
+    form.categories = JSON.parse(JSON.stringify(createDefaultCategories()));
+}
 
 function markDirty() {
     // 标记表单为已修改
@@ -328,7 +370,7 @@ function addCategory() {
     const id = `custom_${Date.now()}`;
     form.categories.push({
         id,
-        name: '新分类',
+        name: t('cookie_consent_page.defaults.new_category'),
         description: '',
         required: false,
         default: false,
@@ -349,19 +391,21 @@ async function fetchConfig() {
                 position: res.data.position || 'bottom',
                 layout: res.data.layout || 'bar',
                 theme: res.data.theme || 'light',
-                title: res.data.title || 'Cookie 设置',
-                description: res.data.description || '',
-                accept_all_text: res.data.accept_all_text || '接受全部',
-                reject_all_text: res.data.reject_all_text || '拒绝全部',
-                customize_text: res.data.customize_text || '自定义设置',
+                title: res.data.title || t('cookie_consent_page.defaults.title'),
+                description: res.data.description || t('cookie_consent_page.defaults.description'),
+                accept_all_text: res.data.accept_all_text || t('cookie_consent_page.defaults.accept_all'),
+                reject_all_text: res.data.reject_all_text || t('cookie_consent_page.defaults.reject_all'),
+                customize_text: res.data.customize_text || t('cookie_consent_page.defaults.customize'),
                 privacy_policy_url: res.data.privacy_policy_url || '',
-                privacy_policy_text: res.data.privacy_policy_text || '隐私政策',
-                categories: res.data.categories || JSON.parse(JSON.stringify(defaultCategories)),
+                privacy_policy_text: res.data.privacy_policy_text || t('footer.privacy_policy'),
+                categories: res.data.categories || JSON.parse(JSON.stringify(createDefaultCategories())),
                 consent_lifetime_days: res.data.consent_lifetime_days || 365,
             });
+        } else {
+            applyFormDefaults();
         }
     } catch {
-        // 使用默认值
+        applyFormDefaults();
     }
 }
 
@@ -372,9 +416,9 @@ async function handleSave() {
     saving.value = true;
     try {
         await updateAdminConfig({ ...form });
-        ElMessage.success('Cookie 配置已保存');
+        ElMessage.success(t('cookie_consent_page.messages.saved'));
     } catch {
-        ElMessage.error('保存失败');
+        ElMessage.error(t('messages.failed'));
     } finally {
         saving.value = false;
     }
@@ -417,8 +461,9 @@ function actionTag(action) {
 }
 
 function actionLabel(action) {
-    const map = { accepted: '接受', rejected: '拒绝', customized: '自定义' };
-    return map[action] || action;
+    const key = `cookie_consent_page.actions_map.${action}`;
+    const label = t(key);
+    return label !== key ? label : action;
 }
 
 onMounted(() => {
@@ -513,7 +558,7 @@ onMounted(() => {
 .stat-card--success .stat-value { color: #67c23a; }
 .stat-card--danger .stat-value { color: #f56c6c; }
 .stat-card--warning .stat-value { color: #e6a23c; }
-.stat-card--info .stat-value { color: #409eff; }
+.stat-card--info .stat-value { color: #0f172a; }
 
 .breakdown-list {
     display: flex;

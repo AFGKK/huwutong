@@ -1,27 +1,27 @@
 <template>
   <div class="feed-page">
     <div class="feed-page-header">
-      <h2>🔥 关注动态</h2>
-      <p>查看您关注的账号最新发布的内容</p>
+      <h2>{{ t('following_feed.title') }}</h2>
+      <p>{{ t('following_feed.desc') }}</p>
       <div class="feed-page-controls">
-        <el-input v-model="searchQuery" size="small" placeholder="🔍 搜索动态..." clearable style="width:220px" @input="filterFeed" />
-        <el-button size="small" @click="loadData" :loading="loading">🔄 刷新</el-button>
+        <el-input v-model="searchQuery" size="small" :placeholder="t('following_feed.search')" clearable style="width:220px" @input="filterFeed" />
+        <el-button size="small" @click="loadData" :loading="loading">{{ t('actions.refresh') }}</el-button>
       </div>
     </div>
 
     <div v-if="loading" style="text-align:center;padding:60px 0"><el-icon class="is-loading" :size="28"><Loading /></el-icon></div>
     <div v-else-if="filteredItems.length === 0" style="text-align:center;padding:60px 0;color:#909399">
-      <el-empty :description="searchQuery ? '没有匹配的动态' : '关注的账号还没有发布内容'" :image-size="60" />
+      <el-empty :description="searchQuery ? t('following_feed.no_match') : t('following_feed.empty')" :image-size="60" />
     </div>
     <div v-else class="feed-page-list">
       <div v-for="item in filteredItems" :key="item.id" class="feed-page-card" @click="openArticle(item)">
         <div class="feed-page-card-header">
           <el-avatar :size="32" :src="item.account?.avatar" class="feed-page-avatar">{{ item.account?.name?.charAt(0) || '?' }}</el-avatar>
           <div>
-            <div class="feed-page-account-name">{{ item.account?.name || '未知账号' }}</div>
+            <div class="feed-page-account-name">{{ item.account?.name || t('following_feed.unknown') }}</div>
             <div class="feed-page-time">{{ formatDate(item.published_at) }}</div>
           </div>
-          <el-tag v-if="item.account?.slug === 'hwt-blog'" size="small" type="primary" style="margin-left:auto">博客</el-tag>
+          <el-tag v-if="item.account?.slug === 'hwt-blog'" size="small" type="primary" style="margin-left:auto">{{ t('following_feed.blog') }}</el-tag>
         </div>
         <div class="feed-page-card-body">
           <div v-if="getCoverImage(item)" class="feed-page-cover"><img :src="getCoverImage(item)" :alt="item.title" /></div>
@@ -31,10 +31,10 @@
           </div>
         </div>
         <div class="feed-page-card-footer">
-          <span>👍 {{ item.likes_count }}</span>
-          <span>⭐ {{ item.favorites_count }}</span>
-          <span>💬 {{ item.comments_count }}</span>
-          <span style="margin-left:auto;font-size:12px;color:#409eff">阅读全文 →</span>
+          <span>{{ t('following_feed.likes', { n: item.likes_count }) }}</span>
+          <span>{{ t('following_feed.favorites', { n: item.favorites_count }) }}</span>
+          <span>{{ t('following_feed.comments', { n: item.comments_count }) }}</span>
+          <span style="margin-left:auto;font-size:12px;color:#0f172a">{{ t('following_feed.read_more') }}</span>
         </div>
       </div>
     </div>
@@ -43,8 +43,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Loading } from '@element-plus/icons-vue'
 import { getFollowingFeed } from '@/api/interaction'
+
+const { t, locale } = useI18n()
 
 function extractFirstImage(html) {
   if (!html) return ''
@@ -90,10 +93,11 @@ function formatDate(date) {
   const d = new Date(date)
   const now = new Date()
   const diff = now - d
-  if (diff < 3600000) return Math.round(diff / 60000) + ' 分钟前'
-  if (diff < 86400000) return Math.round(diff / 3600000) + ' 小时前'
-  if (diff < 172800000) return '昨天'
-  return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
+  if (diff < 3600000) return t('following_feed.mins_ago', { n: Math.round(diff / 60000) })
+  if (diff < 86400000) return t('following_feed.hours_ago', { n: Math.round(diff / 3600000) })
+  if (diff < 172800000) return t('following_feed.yesterday')
+  const loc = locale.value === 'en' || locale.value?.startsWith('en') ? 'en-US' : 'zh-CN'
+  return d.toLocaleDateString(loc, { month: '2-digit', day: '2-digit' })
 }
 
 onMounted(loadData)
@@ -110,7 +114,7 @@ onMounted(loadData)
   border: 1px solid #eee; border-radius: 10px; padding: 16px;
   cursor: pointer; transition: all .2s; background: #fff;
 }
-.feed-page-card:hover { border-color: #409eff; box-shadow: 0 2px 12px rgba(64,158,255,0.08); }
+.feed-page-card:hover { border-color: #0f172a; box-shadow: 0 2px 12px rgba(15,23,42,0.08); }
 .feed-page-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .feed-page-avatar { flex-shrink: 0; }
 .feed-page-account-name { font-size: 14px; font-weight: 600; color: #303133; }

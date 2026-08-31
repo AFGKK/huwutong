@@ -2,27 +2,26 @@
     <div class="account-binding-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>账号绑定管理</h2>
-                <span class="header-subtitle">管理第三方登录绑定和账号登录方式</span>
+                <h2>{{ t(`${P}.title`) }}</h2>
+                <span class="header-subtitle">{{ t(`${P}.subtitle`) }}</span>
             </div>
         </div>
 
         <el-alert
-            title="账号安全提示"
+            :title="t(`${P}.alert_title`)"
             type="info"
             :closable="false"
             show-icon
             class="mb-4"
-            description="绑定多个登录方式可以提高账号安全性，并在一种方式不可用时使用其他方式登录。"
+            :description="t(`${P}.alert_desc`)"
         />
 
         <el-row :gutter="16">
-            <!-- 第三方 OAuth 绑定 -->
             <el-col :span="16">
                 <el-card shadow="never" class="mb-4">
                     <template #header>
                         <div class="card-header">
-                            <span>第三方账号绑定</span>
+                            <span>{{ t(`${P}.oauth_title`) }}</span>
                         </div>
                     </template>
 
@@ -38,12 +37,12 @@
                             <div class="provider-info">
                                 <div class="provider-name">{{ provider.label }}</div>
                                 <div class="provider-desc" v-if="!getBoundProvider(provider.id)">
-                                    点击绑定 {{ provider.label }} 账号
+                                    {{ t(`${P}.click_bind`, { name: provider.label }) }}
                                 </div>
                                 <div class="provider-desc bound" v-else>
-                                    已绑定：{{ getBoundProvider(provider.id).nickname || '未知' }}
+                                    {{ t(`${P}.bound_as`, { name: getBoundProvider(provider.id).nickname || t(`${P}.unknown`) }) }}
                                     <span class="bound-time">
-                                        绑定于 {{ formatDate(getBoundProvider(provider.id).created_at) }}
+                                        {{ t(`${P}.bound_at`, { date: formatDate(getBoundProvider(provider.id).created_at) }) }}
                                     </span>
                                 </div>
                             </div>
@@ -55,7 +54,7 @@
                                     size="small"
                                     @click="handleBind(provider.id)"
                                 >
-                                    绑定
+                                    {{ t(`${P}.bind`) }}
                                 </el-button>
                                 <el-button
                                     v-else
@@ -64,7 +63,7 @@
                                     size="small"
                                     @click="handleUnbind(getBoundProvider(provider.id))"
                                 >
-                                    解绑
+                                    {{ t(`${P}.unbind`) }}
                                 </el-button>
                             </div>
                         </div>
@@ -72,12 +71,11 @@
                 </el-card>
             </el-col>
 
-            <!-- 账号登录方式状态 -->
             <el-col :span="8">
                 <el-card shadow="never" class="mb-4">
                     <template #header>
                         <div class="card-header">
-                            <span>登录方式</span>
+                            <span>{{ t(`${P}.login_methods`) }}</span>
                         </div>
                     </template>
 
@@ -85,43 +83,42 @@
                         <div class="method-item">
                             <div class="method-left">
                                 <el-icon :size="24" color="#67c23a"><Message /></el-icon>
-                                <span>邮箱密码</span>
+                                <span>{{ t(`${P}.email_password`) }}</span>
                             </div>
-                            <el-tag v-if="hasPassword" type="success" size="small" effect="dark">已设置</el-tag>
-                            <el-button v-else text type="primary" size="small">立即设置</el-button>
+                            <el-tag v-if="hasPassword" type="success" size="small" effect="dark">{{ t(`${P}.set`) }}</el-tag>
+                            <el-button v-else text type="primary" size="small">{{ t(`${P}.set_now`) }}</el-button>
                         </div>
                         <el-divider style="margin: 8px 0;" />
                         <div class="method-item">
                             <div class="method-left">
-                                <el-icon :size="24" color="#409eff"><Iphone /></el-icon>
-                                <span>手机号</span>
+                                <el-icon :size="24" color="#0f172a"><Iphone /></el-icon>
+                                <span>{{ t(`${P}.phone`) }}</span>
                             </div>
-                            <el-tag v-if="hasPhone" type="success" size="small" effect="dark">已绑定</el-tag>
-                            <el-button v-else text type="primary" size="small">绑定手机</el-button>
+                            <el-tag v-if="hasPhone" type="success" size="small" effect="dark">{{ t(`${P}.bound`) }}</el-tag>
+                            <el-button v-else text type="primary" size="small">{{ t(`${P}.bind_phone`) }}</el-button>
                         </div>
                     </div>
                 </el-card>
 
-                <!-- 安全建议 -->
                 <el-card shadow="never">
                     <template #header>
                         <div class="card-header">
-                            <span>安全建议</span>
+                            <span>{{ t(`${P}.tips_title`) }}</span>
                         </div>
                     </template>
 
                     <div class="security-tips">
                         <div class="tip-item">
                             <el-icon color="#e6a23c"><WarningFilled /></el-icon>
-                            <span>建议绑定至少 2 种登录方式</span>
+                            <span>{{ t(`${P}.tip1`) }}</span>
                         </div>
                         <div class="tip-item">
-                            <el-icon color="#409eff"><InfoFilled /></el-icon>
-                            <span>定期检查绑定账号的安全性</span>
+                            <el-icon color="#0f172a"><InfoFilled /></el-icon>
+                            <span>{{ t(`${P}.tip2`) }}</span>
                         </div>
                         <div class="tip-item">
                             <el-icon color="#f56c6c"><Remove /></el-icon>
-                            <span>解绑前请确保有其他可用登录方式</span>
+                            <span>{{ t(`${P}.tip3`) }}</span>
                         </div>
                     </div>
                 </el-card>
@@ -131,27 +128,30 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
     Message, Iphone, WarningFilled, InfoFilled, Remove,
-    ChromeFilled, Apple, ChatDotSquare,
+    ChromeFilled, ChatDotSquare,
 } from '@element-plus/icons-vue';
 import apiClient from '@/api/client';
+
+const { t, locale } = useI18n();
+const P = 'account_binding_page';
+const dateLocale = computed(() => (locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US'));
 
 const loading = ref(false);
 const boundProviders = ref([]);
 const hasPassword = ref(false);
 const hasPhone = ref(false);
 
-const supportedProviders = [
-    { id: 'wechat', label: '微信', icon: ChatDotSquare, color: '#07c160' },
+const supportedProviders = computed(() => [
+    { id: 'wechat', label: t(`${P}.providers.wechat`), icon: ChatDotSquare, color: '#07c160' },
     { id: 'google', label: 'Google', icon: ChromeFilled, color: '#4285f4' },
     { id: 'github', label: 'GitHub', icon: ChromeFilled, color: '#24292f' },
-    { id: 'apple', label: 'Apple', icon: Apple, color: '#000000' },
-    { id: 'alipay', label: '支付宝', icon: Apple, color: '#1677ff' },
     { id: 'qq', label: 'QQ', icon: ChatDotSquare, color: '#12b7f5' },
-];
+]);
 
 function getBoundProvider(providerId) {
     return boundProviders.value.find(p => p.provider === providerId);
@@ -159,7 +159,7 @@ function getBoundProvider(providerId) {
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    return new Date(dateStr).toLocaleString(dateLocale.value, {
         year: 'numeric', month: '2-digit', day: '2-digit',
     });
 }
@@ -179,40 +179,53 @@ async function loadData() {
 }
 
 async function handleBind(providerId) {
+    const label = supportedProviders.value.find(p => p.id === providerId)?.label;
     try {
         await ElMessageBox.confirm(
-            `即将跳转到 ${supportedProviders.find(p => p.id === providerId)?.label} 授权页面进行绑定。`,
-            '确认绑定',
+            t(`${P}.confirm_bind`, { name: label }),
+            t(`${P}.bind_title`),
             {
-                confirmButtonText: '前往授权',
-                cancelButtonText: '取消',
+                confirmButtonText: t(`${P}.go_auth`),
+                cancelButtonText: t('actions.cancel'),
                 type: 'info',
             }
         );
-        // 实际项目中这里会跳转到 OAuth 授权 URL
-        ElMessage.info(`跳转到 ${supportedProviders.find(p => p.id === providerId)?.label} 授权...`);
-    } catch {
-        // cancelled
+        const { data: res } = await apiClient.get(`/oauth/authorize-url/${providerId}`, {
+            params: {
+                intent: 'bind',
+                return_to: '/build/account/binding',
+            },
+        });
+        const url = res.data?.authorize_url;
+        if (!url) {
+            ElMessage.error(res.error?.message || res.message || t(`${P}.messages.no_url`));
+            return;
+        }
+        window.location.href = url;
+    } catch (e) {
+        if (e === 'cancel' || e === 'close') return;
+        ElMessage.error(e.response?.data?.error?.message || e.response?.data?.message || t(`${P}.messages.bind_failed`));
     }
 }
 
 async function handleUnbind(provider) {
-    const providerInfo = supportedProviders.find(p => p.id === provider.provider);
+    const providerInfo = supportedProviders.value.find(p => p.id === provider.provider);
     try {
         await ElMessageBox.confirm(
-            `确定要解除 ${providerInfo?.label || provider.provider} 的绑定吗？解绑后该方式将无法登录。`,
-            '确认解绑',
+            t(`${P}.confirm_unbind`, { name: providerInfo?.label || provider.provider }),
+            t(`${P}.unbind_title`),
             {
-                confirmButtonText: '确定解绑',
-                cancelButtonText: '取消',
+                confirmButtonText: t(`${P}.confirm_unbind_btn`),
+                cancelButtonText: t('actions.cancel'),
                 type: 'warning',
             }
         );
         await apiClient.delete(`/oauth/unbind/${provider.id}`);
-        ElMessage.success('解绑成功');
+        ElMessage.success(t(`${P}.messages.unbound`));
         loadData();
-    } catch {
-        // cancelled
+    } catch (e) {
+        if (e === 'cancel' || e === 'close') return;
+        ElMessage.error(e.response?.data?.error?.message || e.response?.data?.message || t(`${P}.messages.unbind_failed`));
     }
 }
 

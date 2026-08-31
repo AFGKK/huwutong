@@ -1,11 +1,11 @@
 <template>
   <div class="lark-page">
     <div class="page-header">
-      <h2>飞书/Lark 集成</h2>
+      <h2>{{ t('lark_page.title') }}</h2>
       <div class="header-actions">
-        <el-button @click="loadConfig" :loading="loading.load" plain>刷新</el-button>
+        <el-button @click="loadConfig" :loading="loading.load" plain>{{ t('lark_page.refresh') }}</el-button>
         <el-button type="primary" @click="saveConfig" :loading="loading.save" :disabled="!isDirty">
-          <el-icon><Check /></el-icon> 保存配置
+          <el-icon><Check /></el-icon> {{ t('lark_page.save_config') }}
         </el-button>
       </div>
     </div>
@@ -17,7 +17,7 @@
     <template v-else>
       <!-- 集成状态 -->
       <el-alert
-        :title="integration.configured ? '飞书集成已配置' : '飞书集成未配置'"
+        :title="integration.configured ? t('lark_page.alert.configured') : t('lark_page.alert.not_configured')"
         :type="integration.configured ? 'success' : 'info'"
         :closable="false"
         show-icon
@@ -25,13 +25,13 @@
       >
         <template #default>
           <p v-if="integration.configured">
-            飞书自建应用 App ID: <strong>{{ integration.data?.app_id }}</strong>，
-            状态: <el-tag :type="integration.data?.is_enabled ? 'success' : 'danger'" size="small">
-              {{ integration.data?.is_enabled ? '已启用' : '已禁用' }}
+            {{ t('lark_page.alert.configured_app_id') }} <strong>{{ integration.data?.app_id }}</strong>，
+            {{ t('lark_page.status.label') }}: <el-tag :type="integration.data?.is_enabled ? 'success' : 'danger'" size="small">
+              {{ integration.data?.is_enabled ? t('lark_page.status.enabled') : t('lark_page.status.disabled') }}
             </el-tag>
           </p>
           <p v-else>
-            配置飞书自建应用后，可实现告警通知推送、飞书登录、消息推送等功能。
+            {{ t('lark_page.alert.not_configured_desc') }}
           </p>
         </template>
       </el-alert>
@@ -42,51 +42,51 @@
           <el-card shadow="never">
             <template #header>
               <div class="card-header">
-                <span><el-icon><Setting /></el-icon> 飞书自建应用配置</span>
+                <span><el-icon><Setting /></el-icon> {{ t('lark_page.form.card_title') }}</span>
               </div>
             </template>
 
             <el-form :model="form" label-width="160px" label-position="top">
-              <el-form-item label="集成名称">
-                <el-input v-model="form.name" placeholder="飞书集成" maxlength="100" />
+              <el-form-item :label="t('lark_page.form.name')">
+                <el-input v-model="form.name" :placeholder="t('lark_page.form.name_ph')" maxlength="100" />
               </el-form-item>
 
-              <el-form-item label="启用状态">
-                <el-switch v-model="form.is_enabled" active-text="启用" inactive-text="禁用" />
+              <el-form-item :label="t('lark_page.form.enabled')">
+                <el-switch v-model="form.is_enabled" :active-text="t('actions.enable')" :inactive-text="t('actions.disable')" />
               </el-form-item>
 
-              <el-divider>应用凭证</el-divider>
+              <el-divider>{{ t('lark_page.form.divider_credentials') }}</el-divider>
 
-              <el-form-item label="App ID" required>
-                <el-input v-model="form.app_id" placeholder="飞书开放平台自建应用的 App ID" maxlength="100" />
+              <el-form-item :label="t('lark_page.form.app_id')" required>
+                <el-input v-model="form.app_id" :placeholder="t('lark_page.form.app_id_ph')" maxlength="100" />
               </el-form-item>
 
-              <el-form-item label="App Secret">
-                <el-input v-model="form.app_secret" type="password" show-password placeholder="App Secret（留空不修改）" maxlength="500" />
-                <div class="form-tip">留空则保持原值不变。首次配置时必填。</div>
+              <el-form-item :label="t('lark_page.form.app_secret')">
+                <el-input v-model="form.app_secret" type="password" show-password :placeholder="t('lark_page.form.app_secret_ph')" maxlength="500" />
+                <div class="form-tip">{{ t('lark_page.form.app_secret_tip') }}</div>
               </el-form-item>
 
-              <el-form-item label="Encrypt Key">
-                <el-input v-model="form.encrypt_key" placeholder="事件订阅加密密钥（可选）" maxlength="100" />
+              <el-form-item :label="t('lark_page.form.encrypt_key')">
+                <el-input v-model="form.encrypt_key" :placeholder="t('lark_page.form.encrypt_key_ph')" maxlength="100" />
               </el-form-item>
 
-              <el-form-item label="Verification Token">
-                <el-input v-model="form.verification_token" placeholder="事件订阅验证令牌（可选）" maxlength="100" />
+              <el-form-item :label="t('lark_page.form.verification_token')">
+                <el-input v-model="form.verification_token" :placeholder="t('lark_page.form.verification_token_ph')" maxlength="100" />
               </el-form-item>
 
-              <el-divider>机器人配置</el-divider>
+              <el-divider>{{ t('lark_page.form.divider_bot') }}</el-divider>
 
-              <el-form-item label="群机器人 Webhook URL">
-                <el-input v-model="form.bot_webhook_url" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..." maxlength="500" />
+              <el-form-item :label="t('lark_page.form.bot_webhook')">
+                <el-input v-model="form.bot_webhook_url" :placeholder="t('lark_page.form.bot_webhook_ph')" maxlength="500" />
                 <div class="form-tip">
-                  在飞书群中添加"群机器人"→"自定义机器人"，复制 Webhook 地址
-                  <el-link type="primary" :href="docsUrl" target="_blank" style="margin-left:4px;">查看文档</el-link>
+                  {{ t('lark_page.form.bot_webhook_tip') }}
+                  <el-link type="primary" :href="docsUrl" target="_blank" style="margin-left:4px;">{{ t('lark_page.form.view_docs') }}</el-link>
                 </div>
               </el-form-item>
 
-              <el-form-item label="启用通知推送">
-                <el-switch v-model="form.notify_enabled" active-text="启用" inactive-text="禁用" />
-                <div class="form-tip">启用后，系统告警将通过飞书 Webhook 推送到群聊</div>
+              <el-form-item :label="t('lark_page.form.notify_enabled')">
+                <el-switch v-model="form.notify_enabled" :active-text="t('actions.enable')" :inactive-text="t('actions.disable')" />
+                <div class="form-tip">{{ t('lark_page.form.notify_tip') }}</div>
               </el-form-item>
             </el-form>
           </el-card>
@@ -97,21 +97,21 @@
           <el-card shadow="never" class="mb-4">
             <template #header>
               <div class="card-header">
-                <span><el-icon><Connection /></el-icon> 连接测试</span>
+                <span><el-icon><Connection /></el-icon> {{ t('lark_page.connection.card_title') }}</span>
               </div>
             </template>
             <el-button @click="testConnection" :loading="loading.test" type="success" plain style="width:100%;margin-bottom:8px;">
-              <el-icon><Select /></el-icon> 测试连接
+              <el-icon><Select /></el-icon> {{ t('lark_page.connection.test') }}
             </el-button>
             <el-button @click="showTestMessage = true" :disabled="!integration.configured" plain style="width:100%;">
-              <el-icon><ChatDotSquare /></el-icon> 发送测试消息
+              <el-icon><ChatDotSquare /></el-icon> {{ t('lark_page.connection.send_test') }}
             </el-button>
             <div v-if="testResult" class="test-result" :class="testResult.success ? 'success' : 'fail'">
-              <div class="test-result-title">{{ testResult.success ? '✓ 测试通过' : '✗ 测试失败' }}</div>
+              <div class="test-result-title">{{ testResult.success ? t('lark_page.connection.pass') : t('lark_page.connection.fail') }}</div>
               <div class="test-result-msg">{{ testResult.message }}</div>
               <div class="test-result-detail" v-if="testResult.results">
-                <div>Tenant Token: {{ testResult.results.tenant_token ? '✓' : '✗' }}</div>
-                <div>Webhook: {{ testResult.results.webhook ? '✓' : '✗' }}</div>
+                <div>{{ t('lark_page.connection.tenant_token') }}: {{ testResult.results.tenant_token ? t('lark_page.connection.ok') : t('lark_page.connection.ng') }}</div>
+                <div>{{ t('lark_page.connection.webhook') }}: {{ testResult.results.webhook ? t('lark_page.connection.ok') : t('lark_page.connection.ng') }}</div>
               </div>
             </div>
           </el-card>
@@ -120,22 +120,22 @@
           <el-card shadow="never">
             <template #header>
               <div class="card-header">
-                <span><el-icon><InfoFilled /></el-icon> 配置说明</span>
+                <span><el-icon><InfoFilled /></el-icon> {{ t('lark_page.setup.card_title') }}</span>
               </div>
             </template>
             <div class="setup-guide">
-              <h4>配置步骤</h4>
+              <h4>{{ t('lark_page.setup.steps_title') }}</h4>
               <ol>
-                <li>前往 <el-link type="primary" :href="appConsoleUrl" target="_blank">飞书开放平台</el-link> 创建自建应用</li>
-                <li>获取 App ID 和 App Secret</li>
-                <li>在"权限管理"中添加需要的权限</li>
-                <li>在群中添加"群机器人"并复制 Webhook 地址</li>
-                <li>填入下方表单并保存</li>
+                <li>{{ t('lark_page.setup.step1_prefix') }} <el-link type="primary" :href="appConsoleUrl" target="_blank">{{ t('lark_page.setup.platform') }}</el-link> {{ t('lark_page.setup.step1_suffix') }}</li>
+                <li>{{ t('lark_page.setup.step2') }}</li>
+                <li>{{ t('lark_page.setup.step3') }}</li>
+                <li>{{ t('lark_page.setup.step4') }}</li>
+                <li>{{ t('lark_page.setup.step5') }}</li>
               </ol>
               <el-divider />
-              <h4>回调地址</h4>
+              <h4>{{ t('lark_page.setup.callback_title') }}</h4>
               <p class="callback-url" v-if="callbackUrl">{{ callbackUrl }}</p>
-              <p v-else class="text-muted callback-url">保存后才能生成</p>
+              <p v-else class="text-muted callback-url">{{ t('lark_page.setup.callback_pending') }}</p>
             </div>
           </el-card>
         </el-col>
@@ -143,25 +143,23 @@
     </template>
 
     <!-- 测试消息弹窗 -->
-    <el-dialog v-model="showTestMessage" title="发送测试消息" width="480px">
+    <el-dialog v-model="showTestMessage" :title="t('lark_page.test_dialog.title')" width="480px">
       <el-form>
-        <el-form-item label="发送方式">
+        <el-form-item :label="t('lark_page.test_dialog.send_method')">
           <el-select v-model="testMsg.type" style="width:100%;">
-            <el-option label="群机器人 Webhook" value="webhook" />
-            <el-option label="API 用户消息 (open_id)" value="user" />
-            <el-option label="API 群消息 (chat_id)" value="group" />
+            <el-option v-for="opt in testMsgTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="目标 ID" v-if="testMsg.type !== 'webhook'">
-          <el-input v-model="testMsg.target" :placeholder="testMsg.type === 'user' ? '用户 open_id' : '群 chat_id'" />
+        <el-form-item :label="t('lark_page.test_dialog.target_id')" v-if="testMsg.type !== 'webhook'">
+          <el-input v-model="testMsg.target" :placeholder="testMsg.type === 'user' ? t('lark_page.test_dialog.target_user_ph') : t('lark_page.test_dialog.target_group_ph')" />
         </el-form-item>
-        <el-form-item label="测试消息">
-          <el-input v-model="testMsg.message" type="textarea" :rows="3" placeholder="可选，默认为测试消息" />
+        <el-form-item :label="t('lark_page.test_dialog.message')">
+          <el-input v-model="testMsg.message" type="textarea" :rows="3" :placeholder="t('lark_page.test_dialog.message_ph')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showTestMessage = false">取消</el-button>
-        <el-button type="primary" @click="sendTestMsg" :loading="loading.testMsg">发送</el-button>
+        <el-button @click="showTestMessage = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="sendTestMsg" :loading="loading.testMsg">{{ t('lark_page.test_dialog.send') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -169,9 +167,34 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Check, Setting, Connection, Select, ChatDotSquare, InfoFilled } from '@element-plus/icons-vue';
 import api from '@/api/lark';
+
+const { t } = useI18n();
+
+const TEST_MSG_TYPES = ['webhook', 'user', 'group'];
+
+const testMsgTypeOptions = computed(() =>
+  TEST_MSG_TYPES.map((value) => ({
+    value,
+    label: t(`lark_page.test_msg_types.${value}`),
+  })),
+);
+
+function createDefaultForm() {
+  return {
+    name: t('lark_page.default_name'),
+    is_enabled: false,
+    app_id: '',
+    app_secret: '',
+    encrypt_key: '',
+    verification_token: '',
+    bot_webhook_url: '',
+    notify_enabled: true,
+  };
+}
 
 const pageLoading = ref(true);
 const loading = reactive({
@@ -188,17 +211,7 @@ const integration = reactive({
   data: null,
 });
 
-const defaultForm = {
-  name: '飞书集成',
-  is_enabled: false,
-  app_id: '',
-  app_secret: '',
-  encrypt_key: '',
-  verification_token: '',
-  bot_webhook_url: '',
-  notify_enabled: true,
-};
-
+const defaultForm = createDefaultForm();
 const form = reactive({ ...defaultForm });
 const originalForm = reactive({ ...defaultForm });
 const isDirty = computed(() => {
@@ -235,12 +248,12 @@ async function loadConfig() {
         originalForm[k] = val;
       });
     } else {
-      Object.assign(form, defaultForm);
-      Object.assign(originalForm, defaultForm);
+      Object.assign(form, createDefaultForm());
+      Object.assign(originalForm, createDefaultForm());
     }
     testResult.value = null;
   } catch (e) {
-    ElMessage.error('加载配置失败');
+    ElMessage.error(t('lark_page.messages.load_config_failed'));
   } finally {
     loading.load = false;
   }
@@ -249,7 +262,7 @@ async function loadConfig() {
 async function saveConfig() {
   loading.save = true;
   try {
-    const res = await api.saveConfig({
+    await api.saveConfig({
       name: form.name,
       is_enabled: form.is_enabled,
       app_id: form.app_id,
@@ -259,10 +272,10 @@ async function saveConfig() {
       bot_webhook_url: form.bot_webhook_url || undefined,
       notify_enabled: form.notify_enabled,
     });
-    ElMessage.success('配置已保存');
+    ElMessage.success(t('lark_page.messages.config_saved'));
     await loadConfig();
   } catch (e) {
-    ElMessage.error('保存配置失败');
+    ElMessage.error(t('lark_page.messages.save_config_failed'));
   } finally {
     loading.save = false;
   }
@@ -276,13 +289,13 @@ async function testConnection() {
     const data = res.data || {};
     testResult.value = data;
     if (data.success) {
-      ElMessage.success('连接测试通过');
+      ElMessage.success(t('lark_page.messages.test_connection_ok'));
     } else {
-      ElMessage.warning(data.message || '部分测试未通过');
+      ElMessage.warning(data.message || t('lark_page.messages.test_partial_fail'));
     }
   } catch (e) {
-    testResult.value = { success: false, message: '连接测试失败', results: {} };
-    ElMessage.error('连接测试失败');
+    testResult.value = { success: false, message: t('lark_page.messages.test_connection_failed'), results: {} };
+    ElMessage.error(t('lark_page.messages.test_connection_failed'));
   } finally {
     loading.test = false;
   }
@@ -296,10 +309,10 @@ async function sendTestMsg() {
       target: testMsg.target || undefined,
       message: testMsg.message || undefined,
     });
-    ElMessage.success('测试消息已发送');
+    ElMessage.success(t('lark_page.messages.test_message_sent'));
     showTestMessage.value = false;
   } catch (e) {
-    ElMessage.error('发送失败');
+    ElMessage.error(t('lark_page.messages.send_failed'));
   } finally {
     loading.testMsg = false;
   }

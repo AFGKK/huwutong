@@ -2,19 +2,20 @@
     <div class="slow-query-page">
         <div class="page-header">
             <div>
-                <h2>慢查询监控面板</h2>
-                <p class="text-muted">MySQL 慢查询日志采集 · Top 慢 SQL · EXPLAIN 建议 · 按表/API 下钻</p>
+                <h2>{{ t('slow_query_monitor_page.title') }}</h2>
+                <p class="text-muted">{{ t('slow_query_monitor_page.subtitle') }}</p>
             </div>
             <div class="header-actions">
                 <el-select v-model="timeRange" style="width:140px;margin-right:8px" @change="loadAll">
-                    <el-option label="最近 15 分钟" :value="15" />
-                    <el-option label="最近 30 分钟" :value="30" />
-                    <el-option label="最近 1 小时" :value="60" />
-                    <el-option label="最近 6 小时" :value="360" />
-                    <el-option label="最近 24 小时" :value="1440" />
+                    <el-option
+                        v-for="opt in timeRangeOptions"
+                        :key="opt.value"
+                        :label="opt.label"
+                        :value="opt.value"
+                    />
                 </el-select>
-                <el-button @click="loadAll" :loading="loading" :icon="Refresh">刷新</el-button>
-                <el-button type="danger" @click="handlePrune" :icon="Delete">清理过期</el-button>
+                <el-button @click="loadAll" :loading="loading" :icon="Refresh">{{ t('system_health_page.refresh') }}</el-button>
+                <el-button type="danger" @click="handlePrune" :icon="Delete">{{ t('slow_query_monitor_page.actions.prune') }}</el-button>
             </div>
         </div>
 
@@ -27,7 +28,7 @@
                 <el-card shadow="hover" class="metric-card">
                     <div class="metric-content">
                         <div class="metric-info">
-                            <div class="metric-label">慢查询总数</div>
+                            <div class="metric-label">{{ t('slow_query_monitor_page.stats.total_slow') }}</div>
                             <div class="metric-value danger">{{ dashboard.total_slow }}</div>
                         </div>
                         <el-icon :size="28" color="#f56c6c"><Warning /></el-icon>
@@ -38,7 +39,7 @@
                 <el-card shadow="hover" class="metric-card">
                     <div class="metric-content">
                         <div class="metric-info">
-                            <div class="metric-label">平均耗时</div>
+                            <div class="metric-label">{{ t('apm_page.stats.avg_duration') }}</div>
                             <div class="metric-value warning">{{ dashboard.avg_duration_ms }}ms</div>
                         </div>
                         <el-icon :size="28" color="#e6a23c"><Timer /></el-icon>
@@ -49,7 +50,7 @@
                 <el-card shadow="hover" class="metric-card">
                     <div class="metric-content">
                         <div class="metric-info">
-                            <div class="metric-label">最大耗时</div>
+                            <div class="metric-label">{{ t('apm_page.columns.max_duration') }}</div>
                             <div class="metric-value danger">{{ dashboard.max_duration_ms }}ms</div>
                         </div>
                         <el-icon :size="28" color="#f56c6c"><Top /></el-icon>
@@ -60,11 +61,11 @@
                 <el-card shadow="hover" class="metric-card">
                     <div class="metric-content">
                         <div class="metric-info">
-                            <div class="metric-label">唯一 SQL</div>
+                            <div class="metric-label">{{ t('slow_query_monitor_page.stats.unique_sql') }}</div>
                             <div class="metric-value">{{ dashboard.unique_hashes }}</div>
-                            <div class="metric-sub">不同的 SQL 哈希数</div>
+                            <div class="metric-sub">{{ t('slow_query_monitor_page.stats.unique_hashes_hint') }}</div>
                         </div>
-                        <el-icon :size="28" color="#409eff"><Document /></el-icon>
+                        <el-icon :size="28" color="#0f172a"><Document /></el-icon>
                     </div>
                 </el-card>
             </el-col>
@@ -72,7 +73,7 @@
                 <el-card shadow="hover" class="metric-card">
                     <div class="metric-content">
                         <div class="metric-info">
-                            <div class="metric-label">未处理</div>
+                            <div class="metric-label">{{ t('slow_query_monitor_page.stats.unresolved') }}</div>
                             <div class="metric-value" :class="dashboard.unresolved > 0 ? 'danger' : 'success'">{{ dashboard.unresolved }}</div>
                         </div>
                         <el-icon :size="28" :color="dashboard.unresolved > 0 ? '#f56c6c' : '#67c23a'"><CircleCheck /></el-icon>
@@ -85,31 +86,31 @@
         <el-row :gutter="16" class="mb-4">
             <el-col :span="8">
                 <el-card shadow="hover">
-                    <template #header><span><el-icon><Histogram /></el-icon> 类型分布</span></template>
+                    <template #header><span><el-icon><Histogram /></el-icon> {{ t('slow_query_monitor_page.sections.type_distribution') }}</span></template>
                     <el-table :data="dashboard.type_distribution" stripe size="small" v-loading="loading">
-                        <el-table-column prop="sql_type" label="类型" width="100" />
-                        <el-table-column prop="count" label="次数" width="80" />
-                        <el-table-column label="平均耗时">
+                        <el-table-column prop="sql_type" :label="t('slow_query_monitor_page.columns.type')" width="100" />
+                        <el-table-column prop="count" :label="t('slow_query_monitor_page.columns.count')" width="80" />
+                        <el-table-column :label="t('apm_page.columns.avg_duration')">
                             <template #default="{ row }">{{ row.avg_duration }}ms</template>
                         </el-table-column>
                     </el-table>
-                    <el-empty v-if="!dashboard.type_distribution?.length" description="暂无数据" />
+                    <el-empty v-if="!dashboard.type_distribution?.length" :description="t('messages.no_data')" />
                 </el-card>
             </el-col>
             <el-col :span="16">
                 <el-card shadow="hover">
-                    <template #header><span><el-icon><DataBoard /></el-icon> 按表分布 TOP 10</span></template>
+                    <template #header><span><el-icon><DataBoard /></el-icon> {{ t('slow_query_monitor_page.sections.table_distribution_top') }}</span></template>
                     <el-table :data="dashboard.table_distribution" stripe size="small" v-loading="loading">
-                        <el-table-column prop="table_name" label="表名" min-width="140" />
-                        <el-table-column prop="count" label="次数" width="70" />
-                        <el-table-column label="平均耗时" width="110">
+                        <el-table-column prop="table_name" :label="t('slow_query_monitor_page.columns.table_name')" min-width="140" />
+                        <el-table-column prop="count" :label="t('slow_query_monitor_page.columns.count')" width="70" />
+                        <el-table-column :label="t('apm_page.columns.avg_duration')" width="110">
                             <template #default="{ row }">{{ row.avg_duration }}ms</template>
                         </el-table-column>
-                        <el-table-column label="最大耗时" width="110">
+                        <el-table-column :label="t('apm_page.columns.max_duration')" width="110">
                             <template #default="{ row }">{{ row.max_duration }}ms</template>
                         </el-table-column>
                     </el-table>
-                    <el-empty v-if="!dashboard.table_distribution?.length" description="暂无数据" />
+                    <el-empty v-if="!dashboard.table_distribution?.length" :description="t('messages.no_data')" />
                 </el-card>
             </el-col>
         </el-row>
@@ -118,87 +119,89 @@
         <el-card shadow="hover" class="mb-4">
             <template #header>
                 <div class="card-header">
-                    <span><el-icon><Top /></el-icon> Top 慢 SQL <small class="text-muted">(按 {{ sortBy === 'avg_duration_ms' ? '平均耗时' : '出现次数' }} 排序)</small></span>
+                    <span><el-icon><Top /></el-icon> {{ t('slow_query_monitor_page.sections.top_slow_sql') }} <small class="text-muted">({{ t('slow_query_monitor_page.sections.sorted_by', { field: sortFieldLabel }) }})</small></span>
                     <el-radio-group v-model="sortBy" size="small" @change="loadTop">
-                        <el-radio-button value="avg_duration_ms">平均耗时</el-radio-button>
-                        <el-radio-button value="occurrence_count">出现次数</el-radio-button>
-                        <el-radio-button value="max_duration_ms">最大耗时</el-radio-button>
+                        <el-radio-button
+                            v-for="opt in sortOptions"
+                            :key="opt.value"
+                            :value="opt.value"
+                        >{{ opt.label }}</el-radio-button>
                     </el-radio-group>
                 </div>
             </template>
             <el-table :data="topQueries" stripe size="small" v-loading="topLoading" @row-click="showDetail">
                 <el-table-column type="index" label="#" width="50" />
-                <el-table-column label="SQL" min-width="300">
+                <el-table-column :label="t('slow_query_monitor_page.columns.sql')" min-width="300">
                     <template #default="{ row }">
                         <code class="sql-preview">{{ truncate(row.sql_text, 100) }}</code>
                     </template>
                 </el-table-column>
-                <el-table-column prop="sql_type" label="类型" width="80" />
-                <el-table-column prop="table_name" label="表" width="100" />
-                <el-table-column label="次数" width="70" prop="occurrence_count" />
-                <el-table-column label="平均耗时" width="110" sortable="custom">
+                <el-table-column prop="sql_type" :label="t('slow_query_monitor_page.columns.type')" width="80" />
+                <el-table-column prop="table_name" :label="t('slow_query_monitor_page.columns.table')" width="100" />
+                <el-table-column :label="t('slow_query_monitor_page.columns.count')" width="70" prop="occurrence_count" />
+                <el-table-column :label="t('apm_page.columns.avg_duration')" width="110" sortable="custom">
                     <template #default="{ row }">{{ row.avg_duration_ms }}ms</template>
                 </el-table-column>
-                <el-table-column label="最大耗时" width="110">
+                <el-table-column :label="t('apm_page.columns.max_duration')" width="110">
                     <template #default="{ row }">{{ row.max_duration_ms }}ms</template>
                 </el-table-column>
-                <el-table-column label="扫描行" width="100">
+                <el-table-column :label="t('slow_query_monitor_page.columns.rows_examined')" width="100">
                     <template #default="{ row }">{{ row.avg_rows_examined }} ({{ row.total_rows_examined }})</template>
                 </el-table-column>
-                <el-table-column label="路由" width="150" prop="route_name" />
-                <el-table-column label="状态" width="80">
+                <el-table-column :label="t('slow_query_monitor_page.columns.route')" width="150" prop="route_name" />
+                <el-table-column :label="t('slow_query_monitor_page.columns.status')" width="80">
                     <template #default="{ row }">
                         <el-tag :type="row.is_resolved ? 'success' : 'danger'" size="small">
-                            {{ row.is_resolved ? '已处理' : '未处理' }}
+                            {{ statusLabel(row.is_resolved) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="120" fixed="right">
+                <el-table-column :label="t('slow_query_monitor_page.columns.actions')" width="120" fixed="right">
                     <template #default="{ row }">
-                        <el-button size="small" @click.stop="showDetail(row)">详情</el-button>
-                        <el-button size="small" type="success" @click.stop="handleResolve(row)" v-if="!row.is_resolved">处理</el-button>
+                        <el-button size="small" @click.stop="showDetail(row)">{{ t('actions.view_details') }}</el-button>
+                        <el-button size="small" type="success" @click.stop="handleResolve(row)" v-if="!row.is_resolved">{{ t('slow_query_monitor_page.actions.resolve') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
-            <el-empty v-if="!topQueries.length && !topLoading" description="暂无慢查询" />
+            <el-empty v-if="!topQueries.length && !topLoading" :description="t('slow_query_monitor_page.empty.no_slow_queries')" />
         </el-card>
 
         <!-- ── 明细列表 ── -->
         <el-card shadow="hover">
             <template #header>
                 <div class="card-header">
-                    <span><el-icon><List /></el-icon> 慢查询明细</span>
+                    <span><el-icon><List /></el-icon> {{ t('slow_query_monitor_page.sections.detail_list') }}</span>
                     <div>
-                        <el-input v-model="searchText" placeholder="搜索 SQL/表/路由" clearable style="width:200px;margin-right:8px" @clear="loadList" @keyup.enter="loadList" />
-                        <el-button size="small" @click="loadList">搜索</el-button>
+                        <el-input v-model="searchText" :placeholder="t('slow_query_monitor_page.search_ph')" clearable style="width:200px;margin-right:8px" @clear="loadList" @keyup.enter="loadList" />
+                        <el-button size="small" @click="loadList">{{ t('actions.search') }}</el-button>
                     </div>
                 </div>
             </template>
             <el-table :data="listData.items" stripe size="small" v-loading="listLoading" @row-click="showDetail">
-                <el-table-column label="SQL" min-width="300">
+                <el-table-column :label="t('slow_query_monitor_page.columns.sql')" min-width="300">
                     <template #default="{ row }">
                         <code class="sql-preview">{{ truncate(row.sql_text, 80) }}</code>
                     </template>
                 </el-table-column>
-                <el-table-column prop="sql_type" label="类型" width="70" />
-                <el-table-column prop="table_name" label="表" width="100" />
-                <el-table-column label="耗时" width="90">
+                <el-table-column prop="sql_type" :label="t('slow_query_monitor_page.columns.type')" width="70" />
+                <el-table-column prop="table_name" :label="t('slow_query_monitor_page.columns.table')" width="100" />
+                <el-table-column :label="t('apm_page.columns.duration')" width="90">
                     <template #default="{ row }"><span :class="row.duration_ms > 500 ? 'danger' : 'warning'">{{ row.duration_ms }}ms</span></template>
                 </el-table-column>
-                <el-table-column prop="rows_examined" label="扫描行" width="80" />
-                <el-table-column prop="route_name" label="路由" width="140" />
-                <el-table-column label="时间" width="160">
+                <el-table-column prop="rows_examined" :label="t('slow_query_monitor_page.columns.rows_examined')" width="80" />
+                <el-table-column prop="route_name" :label="t('slow_query_monitor_page.columns.route')" width="140" />
+                <el-table-column :label="t('apm_page.columns.time')" width="160">
                     <template #default="{ row }">{{ formatTime(row.occurred_at) }}</template>
                 </el-table-column>
-                <el-table-column label="状态" width="70">
+                <el-table-column :label="t('slow_query_monitor_page.columns.status')" width="70">
                     <template #default="{ row }">
-                        <el-tag :type="row.is_resolved ? 'success' : 'danger'" size="small">{{ row.is_resolved ? '已处理' : '' }}</el-tag>
+                        <el-tag :type="row.is_resolved ? 'success' : 'danger'" size="small">{{ row.is_resolved ? statusLabel(true) : '' }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="120" fixed="right">
+                <el-table-column :label="t('slow_query_monitor_page.columns.actions')" width="120" fixed="right">
                     <template #default="{ row }">
-                        <el-button size="small" @click.stop="showDetail(row)">详情</el-button>
-                        <el-button size="small" type="success" @click.stop="handleResolve(row)" v-if="!row.is_resolved">处理</el-button>
+                        <el-button size="small" @click.stop="showDetail(row)">{{ t('actions.view_details') }}</el-button>
+                        <el-button size="small" type="success" @click.stop="handleResolve(row)" v-if="!row.is_resolved">{{ t('slow_query_monitor_page.actions.resolve') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -213,50 +216,53 @@
         </el-card>
 
         <!-- 详情对话框 -->
-        <el-dialog v-model="detailVisible" title="慢查询详情" width="800px" top="5vh">
+        <el-dialog v-model="detailVisible" :title="t('slow_query_monitor_page.dialog.detail_title')" width="800px" top="5vh">
             <template v-if="detail">
                 <el-descriptions :column="2" border size="small">
-                    <el-descriptions-item label="SQL 类型">{{ detail.sql_type }}</el-descriptions-item>
-                    <el-descriptions-item label="表名">{{ detail.table_name || '—' }}</el-descriptions-item>
-                    <el-descriptions-item label="耗时">{{ detail.duration_ms }}ms</el-descriptions-item>
-                    <el-descriptions-item label="扫描行">{{ detail.rows_examined }}</el-descriptions-item>
-                    <el-descriptions-item label="返回行">{{ detail.rows_sent }}</el-descriptions-item>
-                    <el-descriptions-item label="锁等待">{{ detail.lock_time_ms }}ms</el-descriptions-item>
-                    <el-descriptions-item label="路由">{{ detail.route_name || '—' }}</el-descriptions-item>
-                    <el-descriptions-item label="请求路径">{{ detail.request_path || '—' }}</el-descriptions-item>
-                    <el-descriptions-item label="状态" :span="2">
-                        <el-tag :type="detail.is_resolved ? 'success' : 'danger'">{{ detail.is_resolved ? '已处理' : '未处理' }}</el-tag>
-                        <span v-if="detail.resolver" class="ml-2">处理人: {{ detail.resolver.name }}</span>
+                    <el-descriptions-item :label="t('slow_query_monitor_page.columns.sql_type')">{{ detail.sql_type }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('slow_query_monitor_page.columns.table_name')">{{ detail.table_name || '—' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('apm_page.columns.duration')">{{ detail.duration_ms }}ms</el-descriptions-item>
+                    <el-descriptions-item :label="t('slow_query_monitor_page.columns.rows_examined')">{{ detail.rows_examined }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('slow_query_monitor_page.columns.rows_sent')">{{ detail.rows_sent }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('slow_query_monitor_page.columns.lock_wait')">{{ detail.lock_time_ms }}ms</el-descriptions-item>
+                    <el-descriptions-item :label="t('slow_query_monitor_page.columns.route')">{{ detail.route_name || '—' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('slow_query_monitor_page.columns.request_path')">{{ detail.request_path || '—' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('slow_query_monitor_page.columns.status')" :span="2">
+                        <el-tag :type="detail.is_resolved ? 'success' : 'danger'">{{ statusLabel(detail.is_resolved) }}</el-tag>
+                        <span v-if="detail.resolver" class="ml-2">{{ t('slow_query_monitor_page.detail.resolver', { name: detail.resolver.name }) }}</span>
                     </el-descriptions-item>
-                    <el-descriptions-item label="时间" :span="2">{{ formatTime(detail.occurred_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('apm_page.columns.time')" :span="2">{{ formatTime(detail.occurred_at) }}</el-descriptions-item>
                 </el-descriptions>
                 <div class="detail-section">
-                    <h4>SQL 原文</h4>
+                    <h4>{{ t('slow_query_monitor_page.detail.sql_text') }}</h4>
                     <pre class="sql-block"><code>{{ detail.sql_text }}</code></pre>
                 </div>
                 <div class="detail-section" v-if="detail.suggestion">
-                    <h4>优化建议</h4>
+                    <h4>{{ t('slow_query_monitor_page.detail.suggestion') }}</h4>
                     <pre class="suggestion-block"><code>{{ detail.suggestion }}</code></pre>
                 </div>
                 <div class="detail-section" v-if="explainResult">
-                    <h4>EXPLAIN 结果</h4>
+                    <h4>{{ t('slow_query_monitor_page.detail.explain_result') }}</h4>
                     <pre class="sql-block"><code>{{ JSON.stringify(explainResult, null, 2) }}</code></pre>
                 </div>
             </template>
             <template #footer>
-                <el-button @click="runExplain" :loading="explainLoading" v-if="detail && !explainResult">▶ 执行 EXPLAIN</el-button>
-                <el-button type="success" @click="handleResolveFromDetail" v-if="detail && !detail.is_resolved" :loading="resolving">✓ 标记已处理</el-button>
-                <el-button @click="detailVisible = false">关闭</el-button>
+                <el-button @click="runExplain" :loading="explainLoading" v-if="detail && !explainResult">{{ t('slow_query_monitor_page.actions.run_explain') }}</el-button>
+                <el-button type="success" @click="handleResolveFromDetail" v-if="detail && !detail.is_resolved" :loading="resolving">{{ t('slow_query_monitor_page.actions.mark_resolved') }}</el-button>
+                <el-button @click="detailVisible = false">{{ t('actions.close') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh, Delete, Warning, Timer, Top, Document, CircleCheck, Histogram, DataBoard, List } from '@element-plus/icons-vue';
 import slowQueryMonitorApi from '@/api/slowQueryMonitor';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const topLoading = ref(false);
@@ -279,6 +285,45 @@ const listData = reactive({ items: [], total: 0, page: 1, per_page: 25, last_pag
 const detailVisible = ref(false);
 const detail = ref(null);
 const explainResult = ref(null);
+
+const timeRangeSpec = [
+    { value: 15, key: 'm15' },
+    { value: 30, key: 'm30' },
+    { value: 60, key: 'h1', apm: true },
+    { value: 360, key: 'h6', apm: true },
+    { value: 1440, key: 'h24', apm: true },
+];
+
+const timeRangeOptions = computed(() =>
+    timeRangeSpec.map(({ value, key, apm }) => ({
+        value,
+        label: apm ? t(`apm_page.periods.${key}`) : t(`slow_query_monitor_page.periods.${key}`),
+    }))
+);
+
+const sortSpec = [
+    { value: 'avg_duration_ms', labelKey: 'apm_page.columns.avg_duration' },
+    { value: 'occurrence_count', labelKey: 'slow_query_monitor_page.sort.occurrence_count' },
+    { value: 'max_duration_ms', labelKey: 'apm_page.columns.max_duration' },
+];
+
+const sortOptions = computed(() =>
+    sortSpec.map(({ value, labelKey }) => ({
+        value,
+        label: t(labelKey),
+    }))
+);
+
+const sortFieldLabel = computed(() => {
+    const match = sortSpec.find((item) => item.value === sortBy.value);
+    return match ? t(match.labelKey) : '';
+});
+
+function statusLabel(isResolved) {
+    return isResolved
+        ? t('slow_query_monitor_page.status.resolved')
+        : t('slow_query_monitor_page.status.unresolved');
+}
 
 onMounted(loadAll);
 
@@ -325,7 +370,13 @@ async function checkAlert() {
     try {
         const res = await slowQueryMonitorApi.checkAlert();
         const alert = res.data?.data?.alert;
-        alertMsg.value = alert ? `⚠️ ${alert.message} (${alert.count}/${alert.threshold})` : '';
+        alertMsg.value = alert
+            ? t('slow_query_monitor_page.messages.alert', {
+                message: alert.message,
+                count: alert.count,
+                threshold: alert.threshold,
+            })
+            : '';
     } catch (e) { /* ignore */ }
 }
 
@@ -340,7 +391,7 @@ async function showDetail(row) {
         if (detail.value?.explain_result) {
             try { explainResult.value = JSON.parse(detail.value.explain_result); } catch { explainResult.value = detail.value.explain_result; }
         }
-    } catch (e) { ElMessage.error('加载详情失败'); }
+    } catch (e) { ElMessage.error(t('slow_query_monitor_page.messages.load_detail_failed')); }
 }
 
 async function runExplain() {
@@ -351,21 +402,24 @@ async function runExplain() {
         const d = res.data?.data || {};
         explainResult.value = d.explain_result;
         detail.value.suggestion = d.suggestion;
-        ElMessage.success('EXPLAIN 执行完成');
-    } catch (e) { ElMessage.error('EXPLAIN 执行失败'); }
+        ElMessage.success(t('slow_query_monitor_page.messages.explain_done'));
+    } catch (e) { ElMessage.error(t('slow_query_monitor_page.messages.explain_failed')); }
     finally { explainLoading.value = false; }
 }
 
 async function handleResolve(row) {
     try {
-        await ElMessageBox.confirm('确认标记该慢查询为已处理？', '确认处理');
+        await ElMessageBox.confirm(
+            t('slow_query_monitor_page.confirm.resolve_message'),
+            t('slow_query_monitor_page.confirm.resolve_title'),
+        );
         const id = row.id || row.sql_hash;
         await slowQueryMonitorApi.resolve(id);
-        ElMessage.success('已标记为处理');
+        ElMessage.success(t('slow_query_monitor_page.messages.marked_resolved'));
         loadTop();
         loadList();
         if (detailVisible.value && detail.value) detail.value.is_resolved = true;
-    } catch (e) { if (e !== 'cancel') ElMessage.error('操作失败'); }
+    } catch (e) { if (e !== 'cancel') ElMessage.error(t('messages.failed')); }
 }
 
 async function handleResolveFromDetail() {
@@ -374,7 +428,7 @@ async function handleResolveFromDetail() {
     try {
         await slowQueryMonitorApi.resolve(detail.value.id);
         detail.value.is_resolved = true;
-        ElMessage.success('已标记为处理');
+        ElMessage.success(t('slow_query_monitor_page.messages.marked_resolved'));
         loadTop();
         loadList();
     } finally { resolving.value = false; }
@@ -382,11 +436,14 @@ async function handleResolveFromDetail() {
 
 async function handlePrune() {
     try {
-        await ElMessageBox.confirm('确认清理过期慢查询日志？此操作不可撤销。', '确认清理');
+        await ElMessageBox.confirm(
+            t('slow_query_monitor_page.confirm.prune_message'),
+            t('apm_page.confirm.prune_title'),
+        );
         const res = await slowQueryMonitorApi.prune();
-        ElMessage.success(`已清理 ${res.data?.data?.deleted || 0} 条记录`);
+        ElMessage.success(t('slow_query_monitor_page.messages.prune_done', { count: res.data?.data?.deleted || 0 }));
         loadAll();
-    } catch (e) { if (e !== 'cancel') ElMessage.error('清理失败'); }
+    } catch (e) { if (e !== 'cancel') ElMessage.error(t('apm_page.messages.prune_failed')); }
 }
 
 function truncate(text, len) {
@@ -394,9 +451,15 @@ function truncate(text, len) {
     return text.length > len ? text.substring(0, len) + '...' : text;
 }
 
-function formatTime(t) {
-    if (!t) return '—';
-    return new Date(t).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+function formatTime(tVal) {
+    if (!tVal) return '—';
+    return new Date(tVal).toLocaleString(locale.value === 'zh_CN' ? 'zh-CN' : 'en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    });
 }
 </script>
 

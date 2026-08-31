@@ -3,21 +3,22 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ isset($article) ? $article->title . ' - ' : '' }}帮助中心 - 互物通| 企业级授权管理系统</title>
-    <meta name="description" content="互物通帮助中心——查找常见问题、集成指南、最佳实践和产品文档">
+    <title>{{ isset($article) ? $article->title . ' - ' : '' }}{{ __('app.help_page.title') }} - {{ site_setting('site_name', __('app.app_name')) }}</title>
+    <meta name="description" content="{{ __('app.help_page.meta_desc') }}">
     <link rel="canonical" href="{{ url('/help') }}">
     @include('public.partials.tracking')
+    <script>window.HELP_I18N = @json(__('app.help_page'));</script>
     @vite('resources/css/public.css')
     <style>
-        .kb-content h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; }
+        .kb-content h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0; }
         .kb-content h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; }
         .kb-content p { margin-bottom: 1rem; line-height: 1.75; }
-        .kb-content pre { background: #f3f4f6; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; font-size: 0.875rem; }
-        .kb-content code { background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.875rem; }
+        .kb-content pre { background: #f1f5f9; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; font-size: 0.875rem; }
+        .kb-content code { background: #f1f5f9; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.875rem; }
         .kb-content pre code { background: none; padding: 0; }
         .kb-content ul, .kb-content ol { margin-bottom: 1rem; padding-left: 1.5rem; }
         .kb-content li { margin-bottom: 0.25rem; }
-        .kb-content blockquote { border-left: 4px solid #3b82f6; padding-left: 1rem; color: #6b7280; margin-bottom: 1rem; font-style: italic; }
+        .kb-content blockquote { border-left: 4px solid var(--pg-primary); padding-left: 1rem; color: #64748b; margin-bottom: 1rem; font-style: italic; }
         .kb-content img { max-width: 100%; height: auto; border-radius: 0.5rem; }
         body.immersion-mode > footer { display: none !important; }
         body.immersion-mode #ai-chat-btn,
@@ -34,37 +35,34 @@
         @media (max-width: 640px) {
             body.immersion-mode #kb-article article { padding: 16px 12px !important; }
             body.immersion-mode .kb-content { font-size: 15px; }
-        }        /* 🔀搜索建议下拉框*/
+        }
         .kb-search-wrap { position: relative; max-width: 560px; margin: 0 auto; }
         #kb-suggestions {
             position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
-            background: #fff; border: 1px solid #e5e7eb; border-radius: 0 0 12px 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1); margin-top: 2px;
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 0 0 12px 12px;
+            box-shadow: 0 8px 24px rgba(var(--pg-primary-rgb), 0.1); margin-top: 2px;
             display: none; max-height: 320px; overflow-y: auto;
         }
         #kb-suggestions .s-item {
             display: block; width: 100%; padding: 10px 16px; text-align: left;
-            font-size: 13px; color: #374151; cursor: pointer; border: none;
-            background: none; border-bottom: 1px solid #f3f4f6; text-decoration: none;
+            font-size: 13px; color: #334155; cursor: pointer; border: none;
+            background: none; border-bottom: 1px solid #f1f5f9; text-decoration: none;
         }
         #kb-suggestions .s-item:last-child { border-bottom: none; border-radius: 0 0 12px 12px; }
         #kb-suggestions .s-item:hover,
-        #kb-suggestions .s-item.active { background: #eff6ff; color: #1d4ed8; }
-        #kb-suggestions .s-item .s-cat {
-            font-size: 11px; color: #9ca3af; margin-left: 6px;
-        }
-        #kb-suggestions .s-item .s-highlight { color: #2563eb; font-weight: 600; }
-        /* 🤖 AI 聊天样式 */
+        #kb-suggestions .s-item.active { background: #f1f5f9; color: var(--pg-primary); }
+        #kb-suggestions .s-item .s-cat { font-size: 11px; color: #94a3b8; margin-left: 6px; }
+        #kb-suggestions .s-item .s-highlight { color: var(--pg-primary); font-weight: 600; }
         #ai-chat-btn {
             position: fixed; bottom: 24px; right: 24px; z-index: 9999;
             width: 56px; height: 56px; border-radius: 50%;
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            background: var(--pg-primary);
             color: #fff; border: none; cursor: pointer;
-            box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+            box-shadow: 0 4px 16px rgba(var(--pg-primary-rgb), 0.35);
             font-size: 24px; transition: all .2s;
             display: flex; align-items: center; justify-content: center;
         }
-        #ai-chat-btn:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(37,99,235,0.5); }
+        #ai-chat-btn:hover { transform: scale(1.06); box-shadow: 0 6px 24px rgba(var(--pg-primary-rgb), 0.4); }
         #ai-chat-btn .badge {
             position: absolute; top: -4px; right: -4px;
             width: 18px; height: 18px; border-radius: 50%;
@@ -76,13 +74,13 @@
         #ai-chat-panel {
             position: fixed; bottom: 90px; right: 24px; z-index: 9998;
             width: 380px; max-width: calc(100vw - 48px); height: 560px; max-height: calc(100vh - 160px);
-            background: #fff; border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+            background: #fff; border-radius: 16px; box-shadow: 0 8px 40px rgba(var(--pg-primary-rgb), 0.15);
             display: none; flex-direction: column; overflow: hidden;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #e2e8f0;
         }
         #ai-chat-panel.open { display: flex; }
         #ai-chat-header {
-            padding: 14px 16px; background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+            padding: 14px 16px; background: var(--pg-primary);
             color: #fff; display: flex; align-items: center; justify-content: space-between;
             border-radius: 16px 16px 0 0; flex-shrink: 0;
         }
@@ -100,14 +98,14 @@
             width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center; font-size: 14px;
         }
-        .ai-msg.user .avatar { background: #1d4ed8; color: #fff; }
-        .ai-msg.bot .avatar { background: #e0e7ff; color: #4338ca; }
+        .ai-msg.user .avatar { background: var(--pg-primary); color: #fff; }
+        .ai-msg.bot .avatar { background: #e2e8f0; color: #334155; }
         .ai-msg .bubble {
             padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.6;
             word-break: break-word;
         }
-        .ai-msg.user .bubble { background: #1d4ed8; color: #fff; }
-        .ai-msg.bot .bubble { background: #fff; color: #374151; border: 1px solid #e5e7eb; }
+        .ai-msg.user .bubble { background: var(--pg-primary); color: #fff; }
+        .ai-msg.bot .bubble { background: #fff; color: #334155; border: 1px solid #e2e8f0; }
         /* AI 聊天输入区 */
         #ai-chat-footer {
             display: flex; gap: 8px; padding: 12px 16px;
@@ -120,15 +118,15 @@
             resize: none; outline: none; font-family: inherit;
             min-height: 40px; max-height: 100px;
         }
-        #ai-chat-footer textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+        #ai-chat-footer textarea:focus { border-color: var(--pg-primary); box-shadow: 0 0 0 2px rgba(var(--pg-primary-rgb), 0.12); }
         #ai-chat-send {
             width: 40px; border-radius: 10px;
-            background: #1d4ed8; color: #fff; border: none;
+            background: var(--pg-primary); color: #fff; border: none;
             cursor: pointer; display: flex; align-items: center;
             justify-content: center; flex-shrink: 0;
             transition: background .15s;
         }
-        #ai-chat-send:hover { background: #1e40af; }
+        #ai-chat-send:hover { background: #1e293b; }
         #ai-chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
         /* 欢迎语 */
         #ai-chat-welcome { text-align: center; padding: 16px; }
@@ -153,21 +151,6 @@
         .confidence { font-size: 11px; color: #9ca3af; margin-top: 4px; }
     </style>
     <style>
-        :root {
-            --pg-primary: {{ site_setting('page_primary_color', '#2563eb') }};
-            --pg-primary-50: color-mix(in srgb, var(--pg-primary) 10%, white);
-            --pg-primary-100: color-mix(in srgb, var(--pg-primary) 20%, white);
-            --pg-primary-200: color-mix(in srgb, var(--pg-primary) 35%, white);
-            --pg-primary-300: color-mix(in srgb, var(--pg-primary) 50%, white);
-            --pg-primary-400: color-mix(in srgb, var(--pg-primary) 70%, white);
-            --pg-primary-500: color-mix(in srgb, var(--pg-primary) 85%, white);
-            --pg-primary-700: color-mix(in srgb, var(--pg-primary) 85%, black);
-            --pg-primary-800: color-mix(in srgb, var(--pg-primary) 70%, black);
-            --pg-primary-900: color-mix(in srgb, var(--pg-primary) 55%, black);
-            --pg-bg: {{ site_setting('page_background', '#f9fafb') }};
-            --pg-content-bg: {{ site_setting('page_content_bg', '#ffffff') }};
-            --pg-font-size: {{ site_setting('page_font_size', '16px') }};
-        }
         body { background: var(--pg-bg) !important; }
         .kb-content { font-size: var(--pg-font-size); }
     </style>
@@ -179,24 +162,24 @@
         <div class="{{ site_setting('page_width', 'max-w-6xl') }} mx-auto px-4 sm:px-6 lg:px-8" id="kb-app">
             <!-- 加载 -->
             <div id="loading-state" class="text-center py-20">
-                <div class="animate-spin w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p class="text-gray-500">加载中...</p>
+                <div class="animate-spin w-8 h-8 border-4 border-slate-900 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p class="text-slate-500">...</p>
             </div>
 
             <!-- 搜索首页 -->
             <div id="kb-home" class="hidden">
                 <div class="text-center mb-12">
-                    <h1 class="text-4xl font-bold text-gray-900 mb-3">📚 帮助中心</h1>
-                    <p class="text-gray-500 text-lg mb-6">搜索常见问题、集成指南和产品文档</p>
+                    <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-3 tracking-tight">{{ __('app.help_page.title') }}</h1>
+                    <p class="text-slate-500 text-lg mb-6">{{ __('app.help_page.subtitle') }}</p>
                     <div class="max-w-2xl mx-auto">
                         <div class="kb-search-wrap">
-                            <svg class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                            <input type="text" id="kb-search-input" class="w-full px-4 py-3 pl-10 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 block" onkeydown="onSearchKeydown(event)" oninput="onSearchInput()" placeholder="搜索文章标题或内容..." autocomplete="off" />
+                            <svg class="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" id="kb-search-input" class="w-full px-4 py-3 pl-10 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 block" onkeydown="onSearchKeydown(event)" oninput="onSearchInput()" placeholder="{{ __('app.help_page.search_placeholder') }}" autocomplete="off" />
                             <div id="kb-suggestions"></div>
                         </div>
                     </div>
                     <div id="search-suggestions" class="max-w-2xl mx-auto mt-4 hidden">
-                        <p class="text-xs text-gray-400 mb-2">热门搜索：</p>
+                        <p class="text-xs text-gray-400 mb-2">{{ __('app.help_page.popular') }}</p>
                         <div id="popular-tags" class="flex flex-wrap gap-2 justify-center"></div>
                     </div>
                 </div>
@@ -212,9 +195,9 @@
 
             <!-- 搜索结果 -->
             <div id="kb-search-results" class="hidden max-w-4xl mx-auto">
-                <button onclick="showHome()" class="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 mb-6 mt-2">
+                <button type="button" onclick="showHome()" class="inline-flex items-center gap-1 text-sm text-slate-700 hover:text-slate-900 mb-6 mt-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                    返回首页
+                    {{ __('app.help_page.back') }}
                 </button>
                 <p id="search-result-count" class="text-sm text-gray-500 mb-6"></p>
                 <div id="search-results-list" class="space-y-3"></div>
@@ -223,43 +206,41 @@
             <!-- 文章详情 -->
             <div id="kb-article" class="hidden max-w-3xl mx-auto">
                 <div class="flex items-center justify-between mb-6 mt-2">
-                    <button onclick="showHome()" class="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700">
+                    <button type="button" onclick="showHome()" class="inline-flex items-center gap-1 text-sm text-slate-700 hover:text-slate-900">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                        返回帮助中心
+                        {{ __('app.help_page.back') }}
                     </button>
-                    <button id="immersion-btn" onclick="toggleImmersion()" class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition" title="沉浸式阅读">
-                        <span id="immersion-icon">📖</span>
-                        <span id="immersion-text">沉浸阅读</span>
+                    <button type="button" id="immersion-btn" onclick="toggleImmersion()" class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition" title="{{ __('app.help_page.immersion') }}">
+                        <span id="immersion-text">{{ __('app.help_page.immersion') }}</span>
                     </button>
                 </div>
-                <article class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                    <div class="flex items-center gap-2 text-xs text-gray-400 mb-4">
-                        <span id="article-category" class="bg-primary-50 text-primary-700 px-2.5 py-1 rounded-full font-medium"></span>
+                <article class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+                    <div class="flex items-center gap-2 text-xs text-slate-400 mb-4">
+                        <span id="article-category" class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-medium"></span>
                         <span id="article-date"></span>
                         <span id="article-views"></span>
                     </div>
-                    <h1 id="article-title" class="text-2xl md:text-3xl font-bold text-gray-900 mb-6"></h1>
-                    <!-- 📑 文章目录 -->
-                    <div id="article-toc" class="hidden mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                        <div class="text-sm font-semibold text-gray-700 mb-2">📑 目录</div>
+                    <h1 id="article-title" class="text-2xl md:text-3xl font-bold text-slate-900 mb-6"></h1>
+                    <div id="article-toc" class="hidden mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <div class="text-sm font-semibold text-slate-700 mb-2">{{ __('app.help_page.toc') }}</div>
                         <div id="toc-list" class="space-y-1"></div>
                     </div>
                     <div id="article-content" class="kb-content text-gray-700"></div>
                     <!-- 上一篇 / 下一篇 -->
                     <div id="article-prev-next" class="flex items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-100 hidden">
                         <div id="prev-article-wrap" class="flex-1 min-w-0">
-                            <a id="prev-article-link" href="javascript:void(0)" onclick="" class="group flex items-center gap-2 text-sm text-gray-500 hover:text-primary-600 transition">
+                            <a id="prev-article-link" href="javascript:void(0)" onclick="" class="group flex items-center gap-2 text-sm text-gray-500 hover:text-slate-900 transition">
                                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                                 <div class="min-w-0">
-                                    <div class="text-xs text-gray-400 mb-0.5">上一篇</div>
+                                    <div class="text-xs text-gray-400 mb-0.5">{{ __('app.help_page.prev') }}</div>
                                     <div id="prev-article-title" class="font-medium truncate"></div>
                                 </div>
                             </a>
                         </div>
                         <div id="next-article-wrap" class="flex-1 min-w-0 text-right">
-                            <a id="next-article-link" href="javascript:void(0)" onclick="" class="group flex items-center justify-end gap-2 text-sm text-gray-500 hover:text-primary-600 transition">
+                            <a id="next-article-link" href="javascript:void(0)" onclick="" class="group flex items-center justify-end gap-2 text-sm text-gray-500 hover:text-slate-900 transition">
                                 <div class="min-w-0">
-                                    <div class="text-xs text-gray-400 mb-0.5">下一篇</div>
+                                    <div class="text-xs text-gray-400 mb-0.5">{{ __('app.help_page.next') }}</div>
                                     <div id="next-article-title" class="font-medium truncate"></div>
                                 </div>
                                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -268,23 +249,23 @@
                     </div>
                     <!-- ⭐收藏 -->
                     <div class="border-t border-gray-100 mt-6 pt-6 text-center">
-                        <button id="kb-fav-btn" onclick="toggleKbFav()" class="inline-flex items-center gap-1.5 text-sm px-5 py-2 rounded-full border border-gray-200 bg-white hover:bg-amber-50 hover:border-amber-200 transition font-medium">
+                        <button id="kb-fav-btn" onclick="toggleKbFav()" class="inline-flex items-center gap-1.5 text-sm px-5 py-2 rounded-full border border-gray-200 bg-white hover:bg-slate-100 hover:border-amber-200 transition font-medium">
                             <span id="kb-fav-icon">⭐</span>
-                            <span id="kb-fav-text">收藏文章</span>
+                            <span id="kb-fav-text">{{ __('app.help_page.favorite') }}</span>
                         </button>
                     </div>
                     <!-- 反馈 -->
                     <div class="border-t border-gray-100 mt-8 pt-6 text-center">
-                        <p class="text-sm text-gray-500 mb-3">这篇文章有帮助吗？</p>
+                        <p class="text-sm text-gray-500 mb-3">{{ __('app.help_page.helpful_q') }}</p>
                         <div class="flex items-center justify-center gap-3">
-                            <button id="feedback-yes" onclick="sendFeedback(true)" class="px-5 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition border border-green-200">👍 有帮助</button>
-                            <button id="feedback-no" onclick="sendFeedback(false)" class="px-5 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 transition border border-red-200">👎 没帮助</button>
+                            <button id="feedback-yes" onclick="sendFeedback(true)" class="px-5 py-2 bg-slate-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition border border-green-200">👍 {{ __('app.help_page.helpful_yes') }}</button>
+                            <button id="feedback-no" onclick="sendFeedback(false)" class="px-5 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 transition border border-red-200">👎 {{ __('app.help_page.helpful_no') }}</button>
                         </div>
                         <p id="feedback-msg" class="text-sm text-gray-400 mt-3 hidden"></p>
                     </div>
                     <!-- 相关文章 -->
                     <div id="related-articles" class="border-t border-gray-100 mt-6 pt-6 hidden">
-                        <h3 class="text-sm font-semibold text-gray-900 mb-3">相关文章</h3>
+                        <h3 class="text-sm font-semibold text-gray-900 mb-3">{{ __('app.help_page.related') }}</h3>
                         <div id="related-list" class="space-y-2"></div>
                     </div>
                 </article>
@@ -295,25 +276,25 @@
     @include('public.partials.footer')
 
     <!-- 🤖 AI 智能问答 -->
-    <button id="ai-chat-btn" onclick="toggleAIChat()" title="AI 智能问答">
+    <button id="ai-chat-btn" onclick="toggleAIChat()" title="{{ __('app.help_page.ai_title') }}" style="display:none">
         🤖
         <span class="badge" id="ai-chat-badge"></span>
     </button>
     <div id="ai-chat-panel">
         <div id="ai-chat-header">
-            <h3>🤖 AI 智能问答</h3>
+            <h3>🤖 {{ __('app.help_page.ai_title') }}</h3>
             <button class="close-btn" onclick="toggleAIChat()">&times;</button>
         </div>
         <div id="ai-chat-messages">
             <div id="ai-chat-welcome">
                 <div class="icon">🤖</div>
-                <h4>有什么可以帮助您的？</h4>
-                <p>我可以回答关于产品使用、集成开发、<br>常见问题等各方面的问题。</p>
+                <h4>{{ __('app.help_page.ai_welcome_title') }}</h4>
+                <p>{{ __('app.help_page.ai_welcome_body') }}</p>
             </div>
         </div>
         <div id="ai-chat-footer">
-            <textarea class="ai-chat-input" rows="2" placeholder="输入您的问题..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIQuestion()}"></textarea>
-            <button id="ai-chat-send" onclick="sendAIQuestion()" title="发送">
+            <textarea class="ai-chat-input" rows="2" placeholder="{{ __('app.help_page.ai_placeholder') }}" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIQuestion()}"></textarea>
+            <button id="ai-chat-send" onclick="sendAIQuestion()" title="{{ __('app.help_page.ai_send') }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                     </button>
         </div>
@@ -321,8 +302,25 @@
 
     <script>
     const API = '/api';
+    var HELP_I18N = window.HELP_I18N || {};
     let _sessionId = 'kb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     let _currentArticleId = null;
+
+    function renderPopularTags() {
+        var tags = [HELP_I18N.tag_quickstart||'', HELP_I18N.tag_sdk||'', HELP_I18N.tag_activate||'', HELP_I18N.tag_api||'', HELP_I18N.tag_device||''];
+        var el = document.getElementById('popular-tags');
+        if (!el) return;
+        el.innerHTML = tags.map(function(tag) {
+            return '<button type="button" onclick="quickSearch(\'' + tag + '\')" class="px-3 py-1.5 text-sm rounded-full bg-white border border-gray-200 text-gray-600 hover:border-slate-300 hover:text-slate-900 transition">' + tag + '</button>';
+        }).join('');
+    }
+
+    function quickSearch(q) {
+        var input = document.getElementById('kb-search-input');
+        if (!input) return;
+        input.value = q;
+        searchArticles();
+    }
 
     // ─── 加载分类和文章───
     async function loadHome() {
@@ -330,6 +328,7 @@
             // 隐藏加载状态，显示首页
             document.getElementById('loading-state').classList.add('hidden');
             document.getElementById('kb-home').classList.remove('hidden');
+            renderPopularTags();
             const res = await fetch(API + '/kb/categories?locale=zh-CN');
             const data = await res.json();
             const categories = data.data || [];
@@ -337,7 +336,7 @@
             const nav = document.getElementById('category-nav');
 
             if (categories.length === 0) {
-                container.innerHTML = '<div class="text-center py-16 text-gray-400"><p class="text-5xl mb-4">📚</p><p>暂无文章分类</p></div>';
+                container.innerHTML = '<div class="text-center py-16 text-gray-400"><p class="text-5xl mb-4">📚</p><p>'+(HELP_I18N.no_categories||'')+'</p></div>';
                 return;
             }
 
@@ -345,7 +344,7 @@
             nav.innerHTML = categories.map(function(cat, idx) {
                 var count = (cat.articles || []).length;
                 return '<button onclick="document.getElementById(\'cat-section-\' + ' + cat.id + ').scrollIntoView({behavior:\'smooth\',block:\'start\'})" ' +
-                    'class="px-4 py-2 rounded-xl text-sm font-medium transition bg-white border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-700 hover:border-primary-200 shadow-sm">' +
+                    'class="px-4 py-2 rounded-xl text-sm font-medium transition bg-white border border-gray-200 text-gray-600 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-200 shadow-sm">' +
                     cat.name +
                     (count > 0 ? ' <span class="text-xs text-gray-400 ml-1">(' + count + ')</span>' : '') +
                     '</button>';
@@ -355,13 +354,13 @@
             container.innerHTML = categories.map(function(cat) {
                 var catArticles = cat.articles || [];
                 var articlesHtml = catArticles.map(function(a) {
-                    return '<a href="javascript:void(0)" onclick="loadArticle(' + a.id + ');return false" class="block p-4 rounded-xl border border-gray-100 hover:border-primary-100 hover:shadow-md transition-all">' +
+                    return '<a href="javascript:void(0)" onclick="loadArticle(' + a.id + ');return false" class="block p-4 rounded-xl border border-gray-100 hover:border-slate-200 hover:shadow-md transition-all">' +
                         '<h4 class="font-medium text-gray-900 flex items-center gap-2">' +
-                        '<span class="w-1.5 h-1.5 rounded-full bg-primary-400 flex-shrink-0"></span>' +
+                        '<span class="w-1.5 h-1.5 rounded-full bg-slate-400 flex-shrink-0"></span>' +
                         a.title + '</h4>' +
                         (a.excerpt ? '<p class="text-sm text-gray-500 mt-1 ml-4 line-clamp-2">' + a.excerpt + '</p>' : '') +
                         '<div class="flex items-center gap-3 mt-2 ml-4 text-xs text-gray-400">' +
-                        '<span>👁︀' + (a.view_count || 0) + ' 次阅读</span>' +
+                        '<span>👁︀' + (HELP_I18N.views_n||'').replace(':n', (a.view_count || 0)) + '</span>' +
                         '</div>' +
                         '</a>';
                 }).join('');
@@ -371,19 +370,19 @@
                 return '<div id="cat-section-' + cat.id + '" class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">' +
                     '<div class="flex items-center justify-between mb-4">' +
                     '<div class="flex items-center gap-3">' +
-                    '<span class="w-2 h-8 bg-primary-500 rounded-full"></span>' +
+                    '<span class="w-2 h-8 bg-slate-900 rounded-full"></span>' +
                     '<div>' +
                     '<h2 class="text-xl font-bold text-gray-900">' + cat.name + '</h2>' +
                     (cat.description ? '<p class="text-sm text-gray-400 mt-0.5">' + cat.description + '</p>' : '') +
                     '</div>' +
                     '</div>' +
-                    '<span class="text-xs bg-gray-100 text-gray-500 px-3 py-1 rounded-full font-medium">' + count + ' 篇</span>' +
+                    '<span class="text-xs bg-gray-100 text-gray-500 px-3 py-1 rounded-full font-medium">' + (HELP_I18N.articles_n||'').replace(':n', count) + '</span>' +
                     '</div>' +
-                    '<div class="space-y-2">' + (articlesHtml || '<p class="text-sm text-gray-400 py-4 text-center">暂无文章</p>') + '</div>' +
+                    '<div class="space-y-2">' + (articlesHtml || '<p class="text-sm text-gray-400 py-4 text-center">'+(HELP_I18N.no_articles||'')+'</p>') + '</div>' +
                     '</div>';
             }).join('');
         } catch(e) {
-            document.getElementById('category-sections').innerHTML = '<div class="text-center py-16 text-gray-400"><p>加载失败</p></div>';
+            document.getElementById('category-sections').innerHTML = '<div class="text-center py-16 text-gray-400"><p>'+(HELP_I18N.load_fail||'')+'</p></div>';
         }
     }
 
@@ -394,26 +393,26 @@
         document.getElementById('kb-home').classList.add('hidden');
         document.getElementById('kb-article').classList.add('hidden');
         document.getElementById('kb-search-results').classList.remove('hidden');
-        document.getElementById('search-result-count').textContent = '搜索："' + q + '"';
+        document.getElementById('search-result-count').textContent = (HELP_I18N.searching_q||'').replace(':q', q);
         try {
             var res = await fetch(API + '/kb/search?q=' + encodeURIComponent(q));
             var data = await res.json();
             var articles = data.data?.articles?.data || data.data || [];
             if (articles.length === 0) {
-                document.getElementById('search-results-list').innerHTML = '<div class="text-center py-16 text-gray-400"><p class="text-5xl mb-4">🔍</p><p>未找到相关文章，请尝试其他关键词</p></div>';
+                document.getElementById('search-results-list').innerHTML = '<div class="text-center py-16 text-gray-400"><p class="text-5xl mb-4">🔍</p><p>'+(HELP_I18N.no_search||'')+'</p></div>';
                 return;
             }
             document.getElementById('search-results-list').innerHTML = articles.map(function(a) {
-                return '<a href="javascript:void(0)" onclick="loadArticle(' + a.id + ');return false" class="block p-4 rounded-xl border border-gray-100 hover:border-primary-100 hover:shadow-md transition-all">' +
+                return '<a href="javascript:void(0)" onclick="loadArticle(' + a.id + ');return false" class="block p-4 rounded-xl border border-gray-100 hover:border-slate-200 hover:shadow-md transition-all">' +
                     '<div class="flex items-center gap-2 mb-1">' +
-                    (a.category ? '<span class="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full">' + a.category.name + '</span>' : '') +
+                    (a.category ? '<span class="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">' + a.category.name + '</span>' : '') +
                     '</div>' +
                     '<h3 class="font-semibold text-gray-900">' + a.title + '</h3>' +
                     (a.excerpt ? '<p class="text-sm text-gray-500 mt-1 line-clamp-2">' + a.excerpt + '</p>' : '') +
                     '</a>';
             }).join('');
         } catch(e) {
-            document.getElementById('search-results-list').innerHTML = '<div class="text-center py-16 text-gray-400"><p>搜索失败</p></div>';
+            document.getElementById('search-results-list').innerHTML = '<div class="text-center py-16 text-gray-400"><p>'+(HELP_I18N.search_fail||'')+'</p></div>';
         }
     }
 
@@ -433,13 +432,13 @@
 
             document.getElementById('article-category').textContent = article.category?.name || '';
             document.getElementById('article-category').className = article.category?.name
-                ? 'bg-primary-100 text-primary-700 px-2.5 py-1 rounded-full font-medium text-xs'
+                ? 'bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-medium text-xs'
                 : 'hidden';
             document.getElementById('article-date').textContent = article.published_at ? new Date(article.published_at).toLocaleDateString('zh-CN') : '';
-            document.getElementById('article-views').textContent = article.view_count + ' 次阅读';
+            document.getElementById('article-views').textContent = (HELP_I18N.views_n||'').replace(':n', article.view_count);
             document.getElementById('article-title').textContent = article.title;
             document.getElementById('article-content').innerHTML = article.content;
-            document.title = article.title + ' - 帮助中心 - 互物通';
+            document.title = (HELP_I18N.title_suffix||'').replace(':title', article.title).replace(':app', @json(site_setting('site_name', __('app.app_name'))));
             // 🎬 嵌入视频
             embedVideos();
             // 📑 生成目录
@@ -451,7 +450,7 @@
             if (related.length > 0) {
                 document.getElementById('related-articles').classList.remove('hidden');
                 document.getElementById('related-list').innerHTML = related.map(function(r) {
-                    return '<a href="javascript:void(0)" onclick="loadArticle(' + r.id + ');return false" class="block text-sm text-primary-600 hover:text-primary-700 font-medium">' + r.title + '</a>';
+                    return '<a href="javascript:void(0)" onclick="loadArticle(' + r.id + ');return false" class="block text-sm text-slate-800 hover:text-slate-900 font-medium">' + r.title + '</a>';
                 }).join('');
             } else {
                 document.getElementById('related-articles').classList.add('hidden');
@@ -485,7 +484,7 @@
 
             document.getElementById('feedback-msg').classList.add('hidden');
         } catch(e) {
-            document.getElementById('article-content').innerHTML = '<p class="text-center text-gray-400 py-10">文章加载失败</p>';
+            document.getElementById('article-content').innerHTML = '<p class="text-center text-gray-400 py-10">'+(HELP_I18N.article_fail||'')+'</p>';
         }
     }
 
@@ -501,8 +500,8 @@
             var data = await res.json();
             if (data.success) {
                 var msg = document.getElementById('feedback-msg');
-                msg.textContent = '感谢您的反馈！';
-                msg.className = 'text-sm text-green-600 mt-3';
+                msg.textContent = HELP_I18N.thanks||'';
+                msg.className = 'text-sm text-slate-700 mt-3';
                 msg.classList.remove('hidden');
                 document.getElementById('feedback-yes').disabled = true;
                 document.getElementById('feedback-no').disabled = true;
@@ -536,7 +535,7 @@
 
     async function toggleKbFav() {
         var token = localStorage.getItem('auth_token');
-        if (!token) { alert('请先登录'); window.location.href = '/build/login?redirect=' + encodeURIComponent(window.location.href); return; }
+        if (!token) { showToast(HELP_I18N.login_first||''); window.location.href = '/build/login?redirect=' + encodeURIComponent(window.location.href); return; }
         try {
             var res = await fetch('/api/user/interactions/kb/favorite', {
                 method: 'POST',
@@ -553,16 +552,18 @@
 
     function updateKbFavBtn() {
         document.getElementById('kb-fav-icon').textContent = kbFaved ? '❤️' : '⭐';
-        document.getElementById('kb-fav-text').textContent = kbFaved ? '已收藏' : '收藏文章';
+        document.getElementById('kb-fav-text').textContent = kbFaved ? (HELP_I18N.favorited||'') : (HELP_I18N.favorite||'');
     }
 
     // ─── 沉浸式阅读 ───
     var immersionMode = false;
+    var immersionOnLabel = @json(__('app.help_page.immersion'));
+    var immersionOffLabel = @json(__('app.help_page.immersion_exit'));
     function toggleImmersion() {
         immersionMode = !immersionMode;
         document.body.classList.toggle('immersion-mode', immersionMode);
-        document.getElementById('immersion-icon').textContent = immersionMode ? '📖' : '📖';
-        document.getElementById('immersion-text').textContent = immersionMode ? '退出沉浸' : '沉浸阅读';
+        var textEl = document.getElementById('immersion-text');
+        if (textEl) textEl.textContent = immersionMode ? immersionOffLabel : immersionOnLabel;
     }
 
     // ─── 🎬 嵌入视频 ───
@@ -577,7 +578,7 @@
                 var platform = href.includes('bilibili') ? 'bilibili' : 'youtube';
                 var div = document.createElement('div');
                 div.className = 'video-embed';
-                div.innerHTML = getVideoEmbedHtml(match[1], platform, a.textContent || '视频教程');
+                div.innerHTML = getVideoEmbedHtml(match[1], platform, a.textContent || (HELP_I18N.video_tutorial||''));
                 a.parentNode.replaceChild(div, a);
             }
         });
@@ -611,7 +612,7 @@
         headings.forEach(function(h) {
             var a = document.createElement('a');
             a.href = '#' + h.id;
-            a.className = 'block text-sm text-gray-500 hover:text-primary-600 py-1 transition' + (h.tagName === 'H3' ? ' pl-4 text-xs' : '');
+            a.className = 'block text-sm text-gray-500 hover:text-slate-900 py-1 transition' + (h.tagName === 'H3' ? ' pl-4 text-xs' : '');
             a.textContent = h.textContent;
             tocList.appendChild(a);
         });
@@ -734,18 +735,18 @@
                 var srcId = s.source_id || s.id;
                 var title = escapeHtml(s.title);
                 if (srcId) {
-                    return '<a href="javascript:void(0)" onclick="loadArticle(' + srcId + ');return false" class="text-primary-600 hover:text-primary-700 font-medium text-xs" style="margin-right:8px">' + title + '</a>';
+                    return '<a href="javascript:void(0)" onclick="loadArticle(' + srcId + ');return false" class="text-slate-800 hover:text-slate-900 font-medium text-xs" style="margin-right:8px">' + title + '</a>';
                 }
                 return '<span class="text-xs text-gray-500" style="margin-right:8px">' + title + '</span>';
             }).join('') + '</div>';
             if (confidence !== undefined) {
                 var pct = Math.round(confidence * 100);
-                bubble += '<div class="confidence">' + (pct >= 70 ? '🟢' : pct >= 40 ? '🟡' : '🔴') + ' 可信度 ' + pct + '%</div>';
+                bubble += '<div class="confidence">' + (pct >= 70 ? '🟢' : pct >= 40 ? '🟡' : '🔴') + ' '+(HELP_I18N.confidence||'').replace(':pct', pct)+'</div>';
             }
         }
 
         bubble += '</div>';
-        div.innerHTML = '<div class="avatar" style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;background:' + (role === 'bot' ? '#e0e7ff' : '#1d4ed8') + ';color:' + (role === 'bot' ? '#4338ca' : '#fff') + '">' + avatar + '</div>' + bubble;
+        div.innerHTML = '<div class="avatar" style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;background:' + (role === 'bot' ? '#e2e8f0' : 'var(--pg-primary)') + ';color:' + (role === 'bot' ? '#334155' : '#fff') + '">' + avatar + '</div>' + bubble;
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
     }
@@ -790,11 +791,11 @@
                 var confidence = data.data.confidence || 0;
                 addChatMessage('bot', answer, sources, confidence);
             } else {
-                addChatMessage('bot', '抱歉，暂时无法回答这个问题，请稍后重试');
+                addChatMessage('bot', HELP_I18N.ai_fail||'');
             }
         } catch(e) {
             removeTyping();
-            addChatMessage('bot', '网络连接失败，请检查网络后重试');
+            addChatMessage('bot', HELP_I18N.ai_network||'');
         }
         chatLoading = false;
         document.getElementById('ai-chat-send').disabled = false;
@@ -817,6 +818,18 @@
         // 确保 AI 聊天面板默认关闭
         document.getElementById('ai-chat-panel').classList.remove('open');
     });
+
+    // ─── Toast 提示 ───
+    function showToast(m) {
+        var e = document.getElementById('toast-msg');
+        if (e) e.remove();
+        var d = document.createElement('div');
+        d.id = 'toast-msg';
+        d.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] px-6 py-3 rounded-xl bg-gray-900 text-white text-sm shadow-xl max-w-sm text-center animate-fade-in';
+        d.textContent = m;
+        document.body.appendChild(d);
+        setTimeout(function() { d.style.opacity = '0'; d.style.transition = 'opacity 0.3s'; setTimeout(function() { d.remove(); }, 300); }, 2500);
+    }
 </script>
 </body>
 </html>

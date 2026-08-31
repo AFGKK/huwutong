@@ -2,13 +2,13 @@
   <div class="shop-page">
     <div class="shop-header">
       <div class="shop-header-content">
-        <h1>商品商店</h1>
-        <p class="text-muted">搜索、筛选、找到最适合您的产品方案</p>
+        <h1>{{ t('shop_page.title') }}</h1>
+        <p class="text-muted">{{ t('shop_page.subtitle') }}</p>
       </div>
       <div class="header-actions">
         <el-input
           v-model="searchQuery"
-          placeholder="搜索商品名称、描述…"
+          :placeholder="t('shop_page.search_ph')"
           clearable
           class="search-input"
           @input="onSearchInput"
@@ -29,7 +29,7 @@
 
     <!-- 热门搜索 -->
     <div v-if="!searchQuery && hotTerms.length" class="hot-search-bar">
-      <span class="hot-label">🔥 热门搜索：</span>
+      <span class="hot-label">{{ t('shop_page.hot_search') }}</span>
       <el-tag
         v-for="term in hotTerms" :key="term"
         size="small"
@@ -49,38 +49,30 @@
     <el-card shadow="hover" class="filter-bar">
       <el-row :gutter="12" align="middle">
         <el-col :xs="24" :sm="6">
-          <el-select v-model="filters.category_id" placeholder="全部分类" clearable style="width:100%" @change="loadProducts">
+          <el-select v-model="filters.category_id" :placeholder="t('shop_page.all_categories')" clearable style="width:100%" @change="loadProducts">
             <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
         </el-col>
         <el-col :xs="12" :sm="4">
-          <el-select v-model="filters.billing_cycle" placeholder="全部周期" clearable style="width:100%" @change="loadProducts">
-            <el-option label="月付" value="monthly" />
-            <el-option label="季付" value="quarterly" />
-            <el-option label="年付" value="yearly" />
-            <el-option label="终身" value="lifetime" />
-            <el-option label="一次性" value="one-time" />
+          <el-select v-model="filters.billing_cycle" :placeholder="t('shop_page.all_cycles')" clearable style="width:100%" @change="loadProducts">
+            <el-option v-for="opt in billingCycleOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-col>
         <el-col :xs="12" :sm="5">
-          <el-input v-model="filters.price_min" placeholder="最低价" type="number" min="0" style="width:100%" @change="loadProducts" />
+          <el-input v-model="filters.price_min" :placeholder="t('shop_page.price_min')" type="number" min="0" style="width:100%" @change="loadProducts" />
         </el-col>
         <el-col :xs="12" :sm="5">
-          <el-input v-model="filters.price_max" placeholder="最高价" type="number" min="0" style="width:100%" @change="loadProducts" />
+          <el-input v-model="filters.price_max" :placeholder="t('shop_page.price_max')" type="number" min="0" style="width:100%" @change="loadProducts" />
         </el-col>
         <el-col :xs="12" :sm="4">
           <el-select v-model="filters.sort" style="width:100%" @change="loadProducts">
-            <el-option label="销量 ↓" value="-sold_count" />
-            <el-option label="价格 ↑" value="price" />
-            <el-option label="价格 ↓" value="-price" />
-            <el-option label="最新 ↑" value="-created_at" />
-            <el-option label="名称 A-Z" value="name" />
+            <el-option v-for="opt in sortOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-col>
       </el-row>
       <!-- 标签筛选 -->
       <div v-if="filterTags.length" class="tag-filters">
-        <span class="tag-label">标签：</span>
+        <span class="tag-label">{{ t('shop_page.tags') }}</span>
         <el-tag
           v-for="tag in filterTags" :key="tag.id"
           :type="selectedTags.includes(tag.id) ? 'primary' : 'info'"
@@ -93,13 +85,13 @@
 
     <!-- 搜索状态 -->
     <div v-if="searchQuery" class="search-status">
-      搜索 "<strong>{{ searchQuery }}</strong>" 共找到 <strong>{{ pagination.total }}</strong> 个结果
-      <el-button text type="primary" @click="clearSearch">清除筛选</el-button>
+      {{ t('shop_page.search_result', { q: searchQuery, n: pagination.total }) }}
+      <el-button text type="primary" @click="clearSearch">{{ t('shop_page.clear_filters') }}</el-button>
     </div>
 
     <!-- 搜索历史 -->
     <div v-if="!searchQuery && searchHistory.length && isLoggedIn" class="search-history-bar">
-      <span class="history-label">🕐 搜索历史：</span>
+      <span class="history-label">{{ t('shop_page.search_history') }}</span>
       <el-tag
         v-for="term in searchHistory" :key="term"
         size="small"
@@ -108,7 +100,7 @@
         @click="searchQuery = term; doSearch()"
         @close="searchHistory = searchHistory.filter(t => t !== term)"
       >{{ term }}</el-tag>
-      <el-button text size="small" @click="clearAllHistory">清除</el-button>
+      <el-button text size="small" @click="clearAllHistory">{{ t('shop_page.clear') }}</el-button>
     </div>
 
     <!-- 商品列表 -->
@@ -157,9 +149,9 @@
           </div>
 
           <div class="sku-meta">
-            <span>已售 {{ sku.sold_count || 0 }}</span>
+            <span>{{ t('shop_page.sold', { n: sku.sold_count || 0 }) }}</span>
             <span v-if="sku.stock !== null && sku.stock !== undefined">
-              / 库存 {{ sku.stock === 0 ? '告罄' : sku.stock }}
+              / {{ sku.stock === 0 ? t('shop_page.sold_out') : t('shop_page.stock', { n: sku.stock }) }}
             </span>
             <span v-if="sku.product?.review_stats" class="review-stats" @click.stop="openReviewDrawer(sku)">
               <el-rate :model-value="sku.product.review_stats.avg_rating || 0" disabled size="small" show-score :score-template="''" />
@@ -167,7 +159,7 @@
             </span>
             <span v-else class="review-stats no-reviews" @click.stop="openReviewDrawer(sku)">
               <el-icon :size="12"><ChatDotRound /></el-icon>
-              <span class="review-count">写评价</span>
+              <span class="review-count">{{ t('shop_page.write_review') }}</span>
             </span>
           </div>
 
@@ -177,7 +169,7 @@
             <el-tag v-if="sku.compare_at_price && sku.compare_at_price > sku.price" size="small" type="danger" effect="dark">
               {{ discountPercent(sku.price, sku.compare_at_price) }}% OFF
             </el-tag>
-            <el-tag v-if="sku.sold_count > 50" size="small" color="#f56c6c" effect="dark" style="color:#fff">热卖</el-tag>
+            <el-tag v-if="sku.sold_count > 50" size="small" color="#f56c6c" effect="dark" style="color:#fff">{{ t('shop_page.hot') }}</el-tag>
           </div>
 
           <div class="sku-actions">
@@ -188,7 +180,7 @@
               class="btn-cart"
             >
               <el-icon><Plus /></el-icon>
-              {{ sku.stock === 0 ? '暂时缺货' : '加入购物车' }}
+              {{ sku.stock === 0 ? t('shop_page.out_of_stock') : t('shop_page.add_cart') }}
             </el-button>
             <el-button
               type="danger"
@@ -198,13 +190,13 @@
               :loading="buyingId === sku.id"
               class="btn-buy"
             >
-              立即购买
+              {{ t('shop_page.buy_now') }}
             </el-button>
           </div>
         </el-card>
       </div>
     </div>
-    <el-empty v-else-if="!loading" :description="searchQuery ? '未找到匹配的商品' : '暂无商品'" :image-size="80" />
+    <el-empty v-else-if="!loading" :description="searchQuery ? t('shop_page.empty_search') : t('shop_page.empty')" :image-size="80" />
 
     <el-pagination
       v-if="pagination.total > pagination.per_page"
@@ -222,7 +214,7 @@
   <el-drawer
     v-model="detailDrawer.visible"
     :title="detailDrawer.productName"
-    size="500px"
+    :size="isMobile ? '100%' : '500px'"
     direction="rtl"
   >
     <template v-if="detailDrawer.productId">
@@ -232,12 +224,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
+import { useResponsive } from '@/composables/useResponsive';
 import WishlistButton from '@/components/shop/WishlistButton.vue';
 import ProductReviews from '@/components/shop/ProductReviews.vue';
 import { Search, ShoppingCart, Plus, Picture, ChatDotRound } from '@element-plus/icons-vue';
 import shopApi from '@/api/shop';
+
+const { t } = useI18n();
+const { isMobile } = useResponsive();
 
 const loading = ref(false);
 const products = ref([]);
@@ -270,16 +267,38 @@ const detailDrawer = reactive({
   productName: '',
 });
 
+const billingCycleOptions = computed(() => [
+  { label: t('shop_page.cycle_monthly'), value: 'monthly' },
+  { label: t('shop_page.cycle_quarterly'), value: 'quarterly' },
+  { label: t('shop_page.cycle_yearly'), value: 'yearly' },
+  { label: t('shop_page.cycle_lifetime'), value: 'lifetime' },
+  { label: t('shop_page.cycle_onetime'), value: 'one-time' },
+]);
+
+const sortOptions = computed(() => [
+  { label: t('shop_page.sort_sold'), value: '-sold_count' },
+  { label: t('shop_page.sort_price_asc'), value: 'price' },
+  { label: t('shop_page.sort_price_desc'), value: '-price' },
+  { label: t('shop_page.sort_newest'), value: '-created_at' },
+  { label: t('shop_page.sort_name'), value: 'name' },
+]);
+
 function openReviewDrawer(sku) {
   detailDrawer.productId = sku.product_id;
-  detailDrawer.productName = sku.product?.name || sku.name || '商品详情';
+  detailDrawer.productName = sku.product?.name || sku.name || t('shop_page.product_detail');
   detailDrawer.visible = true;
 }
 
 let suggestTimer = null;
 
 function cycleLabel(cycle) {
-  const map = { monthly: '月付', quarterly: '季付', yearly: '年付', lifetime: '终身', 'one-time': '一次性' };
+  const map = {
+    monthly: t('shop_page.cycle_monthly'),
+    quarterly: t('shop_page.cycle_quarterly'),
+    yearly: t('shop_page.cycle_yearly'),
+    lifetime: t('shop_page.cycle_lifetime'),
+    'one-time': t('shop_page.cycle_onetime'),
+  };
   return map[cycle] || cycle || '—';
 }
 
@@ -391,17 +410,17 @@ async function clearAllHistory() {
   try {
     await shopApi.clearSearchHistory();
     searchHistory.value = [];
-    ElMessage.success('搜索历史已清除');
+    ElMessage.success(t('shop_page.history_cleared'));
   } catch { /* ignore */ }
 }
 
 async function addToCart(skuId) {
   try {
     await shopApi.addToCart({ sku_id: skuId, quantity: 1 });
-    ElMessage.success('已加入购物车');
+    ElMessage.success(t('shop_page.cart_ok'));
     cartItemCount.value++;
   } catch (e) {
-    ElMessage.error(e?.response?.data?.message || '添加失败');
+    ElMessage.error(e?.response?.data?.message || t('shop_page.cart_fail'));
   }
 }
 
@@ -412,16 +431,16 @@ async function quickBuy(skuId) {
     const res = await shopApi.quickBuy({ sku_id: skuId, quantity: 1 });
     const data = res.data?.data || res.data;
     const order = data?.order || data;
-    ElMessage.success('订单已创建');
+    ElMessage.success(t('shop_page.order_ok'));
 
     // 跳转到支付选择页
     if (order?.id) {
       window.location.href = `/portal/payment-result/${order.id}`;
     } else {
-      ElMessage.success('订单已创建');
+      ElMessage.success(t('shop_page.order_ok'));
     }
   } catch (e) {
-    ElMessage.error(e?.response?.data?.message || '下单失败');
+    ElMessage.error(e?.response?.data?.message || t('shop_page.order_fail'));
   } finally {
     buyingId.value = null;
   }
@@ -447,7 +466,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.shop-page { padding: 16px; }
+.shop-page { padding: 16px; min-width: 0; overflow-x: clip; max-width: 100%; }
 .shop-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; gap: 16px; flex-wrap: wrap; }
 .shop-header h1 { margin: 0 0 4px; font-size: 22px; }
 .shop-header .text-muted { margin: 0; color: #909399; font-size: 13px; }
@@ -467,7 +486,7 @@ onMounted(async () => {
 .search-history-bar { margin-bottom: 12px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .history-label { font-size: 13px; color: #909399; }
 .history-tag { cursor: pointer; }
-.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; }
 .product-card-inner { cursor: default; }
 .product-image-wrap { position: relative; width: 100%; height: 160px; border-radius: 8px; overflow: hidden; margin-bottom: 12px; background: #f5f7fa; }
 .product-image { width: 100%; height: 100%; object-fit: cover; }
@@ -475,17 +494,17 @@ onMounted(async () => {
 .wishlist-corner { position: absolute; top: 6px; right: 6px; }
 .sku-meta { font-size: 12px; color: #909399; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .review-stats { display: inline-flex; align-items: center; gap: 2px; cursor: pointer; }
-.review-stats:hover { color: #409eff; }
+.review-stats:hover { color: #0f172a; }
 .review-stats.no-reviews { color: #c0c4cc; font-size: 12px; }
-.review-stats.no-reviews:hover { color: #409eff; }
+.review-stats.no-reviews:hover { color: #0f172a; }
 .review-count { font-size: 11px; color: #c0c4cc; }
 .product-name { font-size: 16px; font-weight: 600; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .product-desc { font-size: 13px; color: #606266; margin-bottom: 8px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 39px; }
 .sku-code { font-size: 11px; color: #c0c4cc; font-family: monospace; margin-bottom: 8px; }
 .sku-price-section { display: flex; align-items: baseline; gap: 8px; margin: 10px 0 4px; }
-.price { font-size: 22px; font-weight: 700; color: #409eff; }
+.price { font-size: 22px; font-weight: 700; color: #0f172a; }
 .original-price { font-size: 14px; color: #c0c4cc; text-decoration: line-through; }
-.cycle-badge { font-size: 11px; background: #ecf5ff; color: #409eff; padding: 2px 8px; border-radius: 4px; }
+.cycle-badge { font-size: 11px; background: #f1f5f9; color: #0f172a; padding: 2px 8px; border-radius: 4px; }
 .sku-meta { font-size: 12px; color: #909399; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 22px; }
 .sku-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; min-height: 24px; }
 .sku-actions { display: flex; gap: 10px; margin-top: 12px; }

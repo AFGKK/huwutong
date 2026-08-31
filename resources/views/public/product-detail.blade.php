@@ -246,6 +246,8 @@
         .product-long-desc strong { font-weight:700; }
         .product-long-desc em { font-style:italic; }
         .commission-badge { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
 
     </style>
 
@@ -335,9 +337,9 @@
 
                     <div class="flex items-center gap-1 mt-4">
 
-                        <button onclick="scrollThumbs(-1)" class="shrink-0 w-7 h-16 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition" title="向左">&lsaquo;</button>
+                        <button id="thumb-arrow-left" onclick="scrollThumbs(-1)" class="shrink-0 w-7 h-16 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition" title="向左">&lsaquo;</button>
 
-                        <div id="thumb-scroll" class="flex gap-2 overflow-x-auto scroll-smooth pb-1 flex-1" style="scrollbar-width:thin">
+                        <div id="thumb-scroll" class="flex gap-2 overflow-x-auto scroll-smooth flex-1 no-scrollbar">
 
                             @if($product->image_url)
 
@@ -365,7 +367,7 @@
 
                         </div>
 
-                        <button onclick="scrollThumbs(1)" class="shrink-0 w-7 h-16 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition" title="向右">&rsaquo;</button>
+                        <button id="thumb-arrow-right" onclick="scrollThumbs(1)" class="shrink-0 w-7 h-16 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition" title="向右">&rsaquo;</button>
 
                     </div>
 
@@ -591,7 +593,7 @@
 
                             <button onclick="openSellerChat({{ $product->creator->id }},{{ $product->id }})" class="flex-1 py-2 rounded-lg border border-primary-600 text-primary-600 hover:bg-primary-50 transition text-sm font-medium text-center">
 
-                                联系客服
+                                联系卖家
 
                             </button>
 
@@ -2497,15 +2499,7 @@ function clearRecentlyViewed(){
 
 
 
-    <!-- 联系卖家（跳转 IM） -->
-    @if(($_siteSettings['service_chat_enabled'] ?? $_siteSettings['chat_widget_enabled'] ?? '1') === '1' && $product->creator)
-    <button onclick="openSellerChat({{ $product->creator->id }},{{ $product->id }})" class="fixed bottom-40 md:bottom-24 right-4 md:right-8 w-14 h-14 rounded-full bg-primary-600 text-white flex items-center justify-center z-50 shadow-lg hover:bg-primary-700 transition-all duration-300" aria-label="联系卖家" title="联系卖家">
-        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-    </button>
-    @endif
-
-    <!-- 页面加载状态区域 -->
-
+    <!-- 返回顶部 -->
     <button id="back-to-top" class="fixed bottom-28 md:bottom-4 right-4 md:right-8 w-12 h-12 rounded-full bg-white dark-bg-card shadow-lg border border-gray-200 dark-border flex items-center justify-center text-gray-500 dark-text-sec hover:text-primary-600 hover:border-primary-300 hover:shadow-primary-100 transition-all duration-300 z-[60] opacity-0 pointer-events-none" aria-label="回到顶部">
 
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
@@ -2776,15 +2770,15 @@ function clearRecentlyViewed(){
 
     }
 
-        // ═══════ 联系卖家（跳转 IM）═══════
+        // ═══════ 联系卖家（登录后进入私信，未登录先跳转登录）═══════
     function openSellerChat(sellerId, productId) {
-        var url = '/build/user-chat?seller_id=' + encodeURIComponent(sellerId);
-        if (productId) url += '&product_id=' + encodeURIComponent(productId);
-        if (!_token) {
-            window.location.href = '/build/login?redirect=' + encodeURIComponent(url);
+        var target = '/build/user-chat?seller_id=' + encodeURIComponent(sellerId) + '&product_id=' + encodeURIComponent(productId);
+        var token = (typeof _token !== 'undefined' && _token) ? _token : localStorage.getItem('auth_token');
+        if (!token) {
+            window.location.href = '/build/login?redirect=' + encodeURIComponent(target);
             return;
         }
-        window.location.href = url;
+        window.location.href = target;
     }
 
 </script>

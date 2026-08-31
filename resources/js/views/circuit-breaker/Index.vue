@@ -2,17 +2,17 @@
     <div class="circuit-breaker-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>断路器监控面板</h2>
-                <span class="header-subtitle">监控各服务熔断状态，手动重置已熔断服务</span>
+                <h2>{{ t('circuit_breaker_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('circuit_breaker_page.subtitle') }}</span>
             </div>
             <div class="header-right">
                 <el-button type="warning" @click="handleResetAll" :loading="resetting">
                     <el-icon><Refresh /></el-icon>
-                    重置全部
+                    {{ t('circuit_breaker_page.reset_all') }}
                 </el-button>
                 <el-button @click="fetchData" :loading="loading">
                     <el-icon><Refresh /></el-icon>
-                    刷新
+                    {{ t('circuit_breaker_page.refresh') }}
                 </el-button>
             </div>
         </div>
@@ -26,12 +26,12 @@
                 </div>
                 <div class="summary-text">
                     <div class="summary-value">{{ summary.total }}</div>
-                    <div class="summary-label">服务总数</div>
+                    <div class="summary-label">{{ t('circuit_breaker_page.summary.total_services') }}</div>
                 </div>
                 <div class="summary-badges">
-                    <el-tag type="success" size="large">{{ summary.closed }} 正常</el-tag>
-                    <el-tag v-if="summary.open > 0" type="danger" size="large">{{ summary.open }} 熔断</el-tag>
-                    <el-tag v-if="summary.half_open > 0" type="warning" size="large">{{ summary.half_open }} 半开</el-tag>
+                    <el-tag type="success" size="large">{{ summary.closed }} {{ t('circuit_breaker_page.summary.closed') }}</el-tag>
+                    <el-tag v-if="summary.open > 0" type="danger" size="large">{{ summary.open }} {{ t('circuit_breaker_page.summary.open') }}</el-tag>
+                    <el-tag v-if="summary.half_open > 0" type="warning" size="large">{{ summary.half_open }} {{ t('circuit_breaker_page.summary.half_open') }}</el-tag>
                 </div>
             </div>
         </div>
@@ -62,24 +62,24 @@
                 <div class="service-metrics">
                     <div class="metric">
                         <div class="metric-value">{{ svc.failures }}</div>
-                        <div class="metric-label">失败次数</div>
+                        <div class="metric-label">{{ t('circuit_breaker_page.metrics.failures') }}</div>
                     </div>
                     <div class="metric">
                         <div class="metric-value">{{ svc.threshold }}</div>
-                        <div class="metric-label">熔断阈值</div>
+                        <div class="metric-label">{{ t('circuit_breaker_page.metrics.threshold') }}</div>
                     </div>
                     <div class="metric">
                         <div class="metric-value">{{ svc.half_open_count }}</div>
-                        <div class="metric-label">半开试探</div>
+                        <div class="metric-label">{{ t('circuit_breaker_page.metrics.half_open_probes') }}</div>
                     </div>
                 </div>
 
                 <div class="service-footer">
                     <div v-if="svc.state_changed_at" class="state-time">
                         <el-icon><Timer /></el-icon>
-                        状态变更：{{ formatTime(svc.state_changed_at) }}
+                        {{ t('circuit_breaker_page.state_changed', { time: formatTime(svc.state_changed_at) }) }}
                     </div>
-                    <div v-else class="state-time text-muted">最近无变更</div>
+                    <div v-else class="state-time text-muted">{{ t('circuit_breaker_page.no_recent_change') }}</div>
                     <el-button
                         v-if="svc.state !== 'closed'"
                         text
@@ -87,7 +87,7 @@
                         size="small"
                         @click="handleResetService(svc.service)"
                     >
-                        重置此服务
+                        {{ t('circuit_breaker_page.reset_service') }}
                     </el-button>
                 </div>
 
@@ -102,34 +102,37 @@
         <el-card shadow="never" class="mt-4">
             <template #header>
                 <div class="card-header">
-                    <span>最近熔断事件</span>
-                    <el-tag size="small" type="info">{{ logs.length }} 条</el-tag>
+                    <span>{{ t('circuit_breaker_page.recent_events') }}</span>
+                    <el-tag size="small" type="info">{{ t('circuit_breaker_page.log_count', { count: logs.length }) }}</el-tag>
                 </div>
             </template>
             <el-table :data="logs" v-loading="logsLoading" stripe style="width: 100%" size="small">
-                <el-table-column prop="timestamp" label="时间" width="180">
+                <el-table-column prop="timestamp" :label="t('circuit_breaker_page.columns.time')" width="180">
                     <template #default="{ row }">
                         {{ row.timestamp || '-' }}
                     </template>
                 </el-table-column>
-                <el-table-column prop="level" label="级别" width="80">
+                <el-table-column prop="level" :label="t('circuit_breaker_page.columns.level')" width="80">
                     <template #default="{ row }">
                         <el-tag :type="row.level" size="small">
-                            {{ row.level === 'error' ? '错误' : row.level === 'warning' ? '警告' : '信息' }}
+                            {{ levelLabel(row.level) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="message" label="事件内容" min-width="300" />
+                <el-table-column prop="message" :label="t('circuit_breaker_page.columns.message')" min-width="300" />
             </el-table>
         </el-card>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh, CircleCheckFilled, WarningFilled, Timer } from '@element-plus/icons-vue';
 import { getCircuitBreakerStatus, resetCircuitBreaker, getCircuitBreakerLogs } from '@/api/circuit-breaker';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const resetting = ref(false);
@@ -137,6 +140,18 @@ const logsLoading = ref(false);
 const services = ref([]);
 const summary = reactive({ total: 0, closed: 0, open: 0, half_open: 0, all_healthy: true });
 const logs = ref([]);
+
+const stateLabels = computed(() => ({
+    closed: t('circuit_breaker_page.states.closed'),
+    open: t('circuit_breaker_page.states.open'),
+    half_open: t('circuit_breaker_page.states.half_open'),
+}));
+
+const levelLabels = computed(() => ({
+    error: t('circuit_breaker_page.levels.error'),
+    warning: t('circuit_breaker_page.levels.warning'),
+    info: t('circuit_breaker_page.levels.info'),
+}));
 
 let refreshTimer = null;
 
@@ -174,11 +189,15 @@ function fetchData() {
 
 async function handleResetAll() {
     try {
-        await ElMessageBox.confirm('确定要重置所有服务的熔断状态吗？', '确认', {
-            confirmButtonText: '重置全部',
-            cancelButtonText: '取消',
-            type: 'warning',
-        });
+        await ElMessageBox.confirm(
+            t('circuit_breaker_page.confirm_reset_all'),
+            t('actions.confirm'),
+            {
+                confirmButtonText: t('circuit_breaker_page.reset_all'),
+                cancelButtonText: t('actions.cancel'),
+                type: 'warning',
+            },
+        );
     } catch {
         return;
     }
@@ -186,10 +205,10 @@ async function handleResetAll() {
     resetting.value = true;
     try {
         await resetCircuitBreaker();
-        ElMessage.success('已重置所有熔断状态');
+        ElMessage.success(t('circuit_breaker_page.messages.reset_all_success'));
         await fetchStatus();
     } catch {
-        ElMessage.error('重置失败');
+        ElMessage.error(t('circuit_breaker_page.messages.reset_failed'));
     } finally {
         resetting.value = false;
     }
@@ -198,10 +217,10 @@ async function handleResetAll() {
 async function handleResetService(service) {
     try {
         await resetCircuitBreaker(service);
-        ElMessage.success(`已重置 ${service} 熔断状态`);
+        ElMessage.success(t('circuit_breaker_page.messages.reset_service_success', { service }));
         await fetchStatus();
     } catch {
-        ElMessage.error('重置失败');
+        ElMessage.error(t('circuit_breaker_page.messages.reset_failed'));
     }
 }
 
@@ -210,7 +229,11 @@ function stateTag(state) {
 }
 
 function stateLabel(state) {
-    return state === 'closed' ? '正常' : state === 'open' ? '熔断中' : '半开恢复';
+    return stateLabels.value[state] || state;
+}
+
+function levelLabel(level) {
+    return levelLabels.value[level] || levelLabels.value.info;
 }
 
 function statusClass(s) {
@@ -220,7 +243,7 @@ function statusClass(s) {
 function formatTime(ts) {
     if (!ts) return '-';
     const d = new Date(ts * 1000);
-    return d.toLocaleString('zh-CN', {
+    return d.toLocaleString(locale.value === 'zh_CN' ? 'zh-CN' : 'en-US', {
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',

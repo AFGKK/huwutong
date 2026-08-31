@@ -1,6 +1,5 @@
 <template>
   <div class="user-profile-page">
-    <!-- 头部 -->
     <div class="profile-header">
       <div class="max-w-4xl mx-auto px-4 py-8">
         <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6">
@@ -9,19 +8,24 @@
             <span v-else>{{ (user?.name || '?').charAt(0) }}</span>
           </div>
           <div class="flex-1 text-center sm:text-left">
-            <h1 class="text-2xl font-bold text-gray-900">{{ user?.name || '用户' }}</h1>
-            <p class="text-sm text-gray-500 mt-1">{{ user?.bio || '这个人很懒，什么都没写...' }}</p>
+            <h1 class="text-2xl font-bold text-gray-900">{{ user?.name || t('user_profile_page.user') }}</h1>
+            <p class="text-sm text-gray-500 mt-1">{{ user?.bio || t('user_profile_page.default_bio') }}</p>
             <div class="flex items-center justify-center sm:justify-start gap-6 mt-4 text-sm text-gray-500">
-              <span>📝 <strong>{{ stats.posts_count || 0 }}</strong> 帖子</span>
-              <span>❤️ <strong>{{ stats.likes_count || 0 }}</strong> 获赞</span>
-              <span>⭐ <strong>{{ stats.favorites_count || 0 }}</strong> 收藏</span>
+              <span><strong>{{ stats.posts_count || 0 }}</strong> {{ t('user_profile_page.posts') }}</span>
+              <span><strong>{{ stats.likes_count || 0 }}</strong> {{ t('user_profile_page.likes') }}</span>
+              <span><strong>{{ stats.favorites_count || 0 }}</strong> {{ t('user_profile_page.favorites') }}</span>
             </div>
-            <div class="mt-4">
+            <div class="mt-4 flex items-center justify-center sm:justify-start gap-3 flex-wrap">
               <button v-if="isLoggedIn && user?.id && user.id !== myId"
                 class="px-5 py-2 text-sm font-medium rounded-lg transition"
                 :class="isFollowing ? 'bg-gray-100 text-gray-500 hover:bg-gray-200' : 'bg-primary-600 text-white hover:bg-primary-700'"
                 @click="toggleFollow">
-                {{ isFollowing ? '已关注' : '+ 关注' }}
+                {{ isFollowing ? t('user_profile_page.following') : t('user_profile_page.follow') }}
+              </button>
+              <button v-if="user?.id && user.id !== myId"
+                class="px-5 py-2 text-sm font-medium rounded-lg border border-primary-200 text-primary-700 bg-white hover:bg-primary-50 transition"
+                @click="sendPrivateMessage">
+                {{ t('user_profile_page.send_message') }}
               </button>
             </div>
           </div>
@@ -29,7 +33,6 @@
       </div>
     </div>
 
-    <!-- 帖子列表 -->
     <div class="max-w-4xl mx-auto px-4 py-6">
       <div class="flex items-center gap-4 mb-6 border-b border-gray-100">
         <button v-for="tab in tabs" :key="tab.key"
@@ -47,26 +50,28 @@
             <img v-for="(img, i) in getImages(post).slice(0, 3)" :key="i" :src="img" class="w-20 h-20 rounded-lg object-cover border" />
           </div>
           <div class="flex items-center gap-4 text-xs text-gray-400 pt-2 border-t border-gray-50">
-            <span>❤️ {{ post.likes_count || 0 }}</span>
-            <span>💬 {{ post.replies_count || 0 }}</span>
+            <span>{{ t('user_profile_page.like_n', { n: post.likes_count || 0 }) }}</span>
+            <span>{{ t('user_profile_page.reply_n', { n: post.replies_count || 0 }) }}</span>
             <span class="ml-auto">{{ timeAgo(post.created_at) }}</span>
           </div>
         </div>
         <div v-if="hasMore && !loading" class="text-center py-4">
-          <el-button :loading="loadingMore" @click="loadMore">加载更多</el-button>
+          <el-button :loading="loadingMore" @click="loadMore">{{ t('user_profile_page.load_more') }}</el-button>
         </div>
-        <el-empty v-if="!loading && !posts.length" description="暂无内容" :image-size="60" />
+        <el-empty v-if="!loading && !posts.length" :description="t('user_profile_page.empty')" :image-size="60" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import apiClient from '@/api/client.js'
 
+const { t, locale } = useI18n()
 const route = useRoute()
 const userId = Number(route.params.id)
 const isLoggedIn = !!localStorage.getItem('auth_token')
@@ -81,25 +86,26 @@ const loadingMore = ref(false)
 const page = ref(1)
 const hasMore = ref(false)
 const activeTab = ref('posts')
-const tabs = [
-  { key: 'posts', label: '📝 帖子' },
-  { key: 'liked', label: '❤️ 赞过' },
-]
+const tabs = computed(() => [
+  { key: 'posts', label: t('user_profile_page.tab_posts') },
+  { key: 'liked', label: t('user_profile_page.tab_liked') },
+])
 
 function getImages(post) {
   if (!post.images) return []
   return typeof post.images === 'string' ? JSON.parse(post.images) : post.images
 }
 
-function timeAgo(t) {
-  if (!t) return ''
-  const d = new Date(t)
+function timeAgo(time) {
+  if (!time) return ''
+  const d = new Date(time)
   const diff = Math.floor((Date.now() - d.getTime()) / 1000)
-  if (diff < 60) return '刚刚'
-  if (diff < 3600) return Math.floor(diff / 60) + '分钟前'
-  if (diff < 86400) return Math.floor(diff / 3600) + '小时前'
-  if (diff < 2592000) return Math.floor(diff / 86400) + '天前'
-  return d.toLocaleDateString('zh-CN')
+  if (diff < 60) return t('user_profile_page.just_now')
+  if (diff < 3600) return t('user_profile_page.mins_ago', { n: Math.floor(diff / 60) })
+  if (diff < 86400) return t('user_profile_page.hours_ago', { n: Math.floor(diff / 3600) })
+  if (diff < 2592000) return t('user_profile_page.days_ago', { n: Math.floor(diff / 86400) })
+  const loc = locale.value === 'en' || locale.value?.startsWith('en') ? 'en-US' : 'zh-CN'
+  return d.toLocaleDateString(loc)
 }
 
 async function loadUser() {
@@ -160,11 +166,21 @@ async function toggleFollow() {
       })
       isFollowing.value = true
     }
-  } catch { ElMessage.error('操作失败') }
+  } catch { ElMessage.error(t('user_profile_page.messages.failed')) }
 }
 
 function openDetail(post) {
   window.open(`/build/plaza/${post.id}`, '_blank')
+}
+
+function sendPrivateMessage() {
+  if (!user.value?.id || user.value.id === myId) return
+  const target = `/user-chat?user_id=${user.value.id}`
+  if (!isLoggedIn) {
+    window.location.href = `/build/login?redirect=${encodeURIComponent(target)}`
+    return
+  }
+  window.location.href = `/build${target}`
 }
 
 onMounted(() => {

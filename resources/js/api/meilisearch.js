@@ -6,6 +6,7 @@ export default {
     setupIndex(index) { return client.post('/meilisearch/indexes/setup', { index }); },
     deleteIndex(uid) { return client.delete('/meilisearch/indexes', { params: { uid } }); },
     sync(type) { return client.post('/meilisearch/sync', { type: type || 'all' }); },
+    rebuild() { return client.post('/meilisearch/rebuild'); },
     search(params) { return client.get('/meilisearch/search', { params }); },
     clear(uid) { return client.post('/meilisearch/clear', { uid }); },
     stats() { return client.get('/meilisearch/stats'); },

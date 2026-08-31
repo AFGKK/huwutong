@@ -2,30 +2,30 @@
     <div class="postman-page">
         <div class="page-header">
             <div>
-                <h2>Postman Collection</h2>
-                <p class="text-muted">官方维护 Postman Collection · 所有 API · 预填示例参数 · 多环境变量 · 一键导入</p>
+                <h2>{{ t('postman_page.title') }}</h2>
+                <p class="text-muted">{{ t('postman_page.subtitle') }}</p>
             </div>
             <div class="header-actions">
-                <el-button @click="loadAll" :loading="loading" :icon="Refresh">刷新</el-button>
+                <el-button @click="loadAll" :loading="loading" :icon="Refresh">{{ t('postman_page.refresh') }}</el-button>
             </div>
         </div>
 
         <!-- 统计 -->
         <el-row :gutter="16" class="mb-4">
-            <el-col :xs="12" :sm="6"><el-card shadow="hover" class="metric-card"><div class="metric-label">总 API 端点</div><div class="metric-value">{{ stats.total_endpoints }}</div></el-card></el-col>
-            <el-col :xs="12" :sm="6"><el-card shadow="hover" class="metric-card"><div class="metric-label">包含的端点</div><div class="metric-value">{{ stats.filtered_endpoints }}</div></el-card></el-col>
-            <el-col :xs="12" :sm="6"><el-card shadow="hover" class="metric-card"><div class="metric-label">环境配置</div><div class="metric-value">{{ stats.environments }}</div></el-card></el-col>
-            <el-col :xs="12" :sm="6"><el-card shadow="hover" class="metric-card"><div class="metric-label">示例请求</div><div class="metric-value">{{ stats.examples }}</div></el-card></el-col>
+            <el-col :xs="12" :sm="6"><el-card shadow="hover" class="metric-card"><div class="metric-label">{{ t('postman_page.stats.total_endpoints') }}</div><div class="metric-value">{{ stats.total_endpoints }}</div></el-card></el-col>
+            <el-col :xs="12" :sm="6"><el-card shadow="hover" class="metric-card"><div class="metric-label">{{ t('postman_page.stats.filtered_endpoints') }}</div><div class="metric-value">{{ stats.filtered_endpoints }}</div></el-card></el-col>
+            <el-col :xs="12" :sm="6"><el-card shadow="hover" class="metric-card"><div class="metric-label">{{ t('postman_page.stats.environments') }}</div><div class="metric-value">{{ stats.environments }}</div></el-card></el-col>
+            <el-col :xs="12" :sm="6"><el-card shadow="hover" class="metric-card"><div class="metric-label">{{ t('postman_page.stats.examples') }}</div><div class="metric-value">{{ stats.examples }}</div></el-card></el-col>
         </el-row>
 
         <el-row :gutter="16" class="mb-4">
             <!-- 下载卡片 -->
             <el-col :xs="24" :md="8">
                 <el-card shadow="hover" class="action-card">
-                    <el-icon :size="40" color="#409eff"><Download /></el-icon>
-                    <h3>下载 Collection</h3>
-                    <p class="text-muted">获取完整的 Postman Collection JSON，包含所有 API 端点定义。</p>
-                    <el-button type="primary" @click="downloadCollection" :loading="dlLoading">📥 下载 Collection</el-button>
+                    <el-icon :size="40" color="#0f172a"><Download /></el-icon>
+                    <h3>{{ t('postman_page.cards.download_collection.title') }}</h3>
+                    <p class="text-muted">{{ t('postman_page.cards.download_collection.desc') }}</p>
+                    <el-button type="primary" @click="downloadCollection" :loading="dlLoading">{{ t('postman_page.cards.download_collection.btn') }}</el-button>
                 </el-card>
             </el-col>
 
@@ -33,9 +33,9 @@
             <el-col :xs="24" :md="8">
                 <el-card shadow="hover" class="action-card">
                     <el-icon :size="40" color="#ff6c37"><Connection /></el-icon>
-                    <h3>Run in Postman</h3>
-                    <p class="text-muted">一键导入到 Postman 桌面应用，立即开始测试 API。</p>
-                    <el-button type="warning" @click="runInPostman" :loading="ripLoading">🚀 Run in Postman</el-button>
+                    <h3>{{ t('postman_page.cards.run_in_postman.title') }}</h3>
+                    <p class="text-muted">{{ t('postman_page.cards.run_in_postman.desc') }}</p>
+                    <el-button type="warning" @click="runInPostman" :loading="ripLoading">{{ t('postman_page.cards.run_in_postman.btn') }}</el-button>
                 </el-card>
             </el-col>
 
@@ -43,8 +43,8 @@
             <el-col :xs="24" :md="8">
                 <el-card shadow="hover" class="action-card">
                     <el-icon :size="40" color="#67c23a"><Setting /></el-icon>
-                    <h3>环境配置</h3>
-                    <p class="text-muted">下载预配置环境变量（开发/预发布/生产）。</p>
+                    <h3>{{ t('postman_page.cards.environments.title') }}</h3>
+                    <p class="text-muted">{{ t('postman_page.cards.environments.desc') }}</p>
                     <div class="env-buttons">
                         <el-button v-for="env in environments" :key="env.key" size="small" @click="downloadEnv(env.key)" :loading="envLoading === env.key">
                             {{ env.name }}
@@ -56,23 +56,28 @@
 
         <!-- 使用说明 -->
         <el-card shadow="hover">
-            <template #header><span><el-icon><Reading /></el-icon> 使用说明</span></template>
+            <template #header><span><el-icon><Reading /></el-icon> {{ t('postman_page.guide.title') }}</span></template>
             <el-steps :active="3" align-center simple>
-                <el-step title="下载 Collection" description="点击上方按钮下载 JSON 文件" />
-                <el-step title="导入 Postman" description="File → Import → 选择下载的文件" />
-                <el-step title="选择环境" description="下载并选择对应的环境配置" />
-                <el-step title="开始测试" description="填入你的 API Key 开始调用" />
+                <el-step
+                    v-for="(step, i) in usageSteps"
+                    :key="i"
+                    :title="step.title"
+                    :description="step.description"
+                />
             </el-steps>
-            <el-alert title="提示：请先在 API 密钥管理页面生成你的 API Key，然后在 Postman 环境变量中填入 {{api_key}}" type="info" show-icon :closable="false" style="margin-top:16px" />
+            <el-alert :title="t('postman_page.guide.tip')" type="info" show-icon :closable="false" style="margin-top:16px" />
         </el-card>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Refresh, Download, Connection, Setting, Reading } from '@element-plus/icons-vue';
 import postmanApi from '@/api/postman';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const dlLoading = ref(false);
@@ -80,6 +85,13 @@ const ripLoading = ref(false);
 const envLoading = ref('');
 const stats = reactive({ total_endpoints: 0, filtered_endpoints: 0, environments: 0, examples: 0, include_groups: [] });
 const environments = ref([]);
+
+const usageSteps = computed(() => [
+    { title: t('postman_page.guide.steps.download.title'), description: t('postman_page.guide.steps.download.desc') },
+    { title: t('postman_page.guide.steps.import.title'), description: t('postman_page.guide.steps.import.desc') },
+    { title: t('postman_page.guide.steps.environment.title'), description: t('postman_page.guide.steps.environment.desc') },
+    { title: t('postman_page.guide.steps.test.title'), description: t('postman_page.guide.steps.test.desc') },
+]);
 
 onMounted(loadAll);
 
@@ -101,8 +113,8 @@ async function downloadCollection() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = 'huwutong-api.postman_collection.json'; a.click();
         URL.revokeObjectURL(url);
-        ElMessage.success('Collection 已下载');
-    } catch { ElMessage.error('下载失败'); }
+        ElMessage.success(t('postman_page.messages.collection_downloaded'));
+    } catch { ElMessage.error(t('messages.failed')); }
     finally { dlLoading.value = false; }
 }
 
@@ -111,15 +123,14 @@ async function runInPostman() {
     try {
         const res = await postmanApi.runInPostman();
         const data = res.data?.data;
-        if (!data) { ElMessage.error('获取数据失败'); return; }
-        // 创建并下载一个包含 collection + environment 的导入包
+        if (!data) { ElMessage.error(t('messages.load_failed')); return; }
         const json = JSON.stringify(data, null, 2);
         const blob = new Blob([json], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = 'huwutong-postman-import.json'; a.click();
         URL.revokeObjectURL(url);
-        ElMessage.success('导入包已下载，请在 Postman 中 Import');
-    } catch { ElMessage.error('获取 Run in Postman 数据失败'); }
+        ElMessage.success(t('postman_page.messages.import_pack_downloaded'));
+    } catch { ElMessage.error(t('postman_page.messages.run_in_postman_failed')); }
     finally { ripLoading.value = false; }
 }
 
@@ -132,8 +143,8 @@ async function downloadEnv(key) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = `huwutong-${key}.postman_environment.json`; a.click();
         URL.revokeObjectURL(url);
-        ElMessage.success(`环境「${key}」已下载`);
-    } catch { ElMessage.error('下载失败'); }
+        ElMessage.success(t('postman_page.messages.env_downloaded', { key }));
+    } catch { ElMessage.error(t('messages.failed')); }
     finally { envLoading.value = ''; }
 }
 </script>

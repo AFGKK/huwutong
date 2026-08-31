@@ -2,110 +2,113 @@
   <div class="mrr-waterfall-chart">
     <div class="chart-controls">
       <el-radio-group v-model="months" size="small" @change="$emit('refresh', months)">
-        <el-radio-button :value="6">近6月</el-radio-button>
-        <el-radio-button :value="12">近12月</el-radio-button>
-        <el-radio-button :value="24">近24月</el-radio-button>
+        <el-radio-button :value="6">{{ t('mrr.months_6') }}</el-radio-button>
+        <el-radio-button :value="12">{{ t('mrr.months_12') }}</el-radio-button>
+        <el-radio-button :value="24">{{ t('mrr.months_24') }}</el-radio-button>
       </el-radio-group>
     </div>
     <div ref="chartRef" class="chart-container" v-loading="loading"></div>
     <div v-if="!chartData.length && !loading" class="empty-data">
-      <el-empty description="暂无MRR数据" />
+      <el-empty :description="t('mrr.empty')" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
-import * as echarts from 'echarts';
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
+import * as echarts from 'echarts'
+
+const { t, locale } = useI18n()
 
 const props = defineProps({
   chartData: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   showControls: { type: Boolean, default: true },
-});
+})
 
-defineEmits(['refresh']);
+defineEmits(['refresh'])
 
-const chartRef = ref(null);
-const months = ref(6);
-let chartInstance = null;
+const chartRef = ref(null)
+const months = ref(6)
+let chartInstance = null
+
+function numberLocale() {
+  return locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US'
+}
+
+function fmt(v) {
+  return Number(v || 0).toLocaleString(numberLocale(), { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+}
+
+function compactAxis(v) {
+  if (locale.value?.startsWith('zh') && v >= 10000) {
+    return `${(v / 10000).toFixed(0)}${t('mrr.wan')}`
+  }
+  if (!locale.value?.startsWith('zh') && Math.abs(v) >= 1000) {
+    return new Intl.NumberFormat(numberLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(v)
+  }
+  return fmt(v)
+}
 
 function renderChart() {
-  if (!chartRef.value || !props.chartData.length) return;
+  if (!chartRef.value || !props.chartData.length) return
 
   nextTick(() => {
     if (!chartInstance) {
-      chartInstance = echarts.init(chartRef.value);
+      chartInstance = echarts.init(chartRef.value)
     }
 
-    const months = props.chartData.map(d => d.month_label || d.month);
-    const starting = props.chartData.map(d => d.starting_mrr);
-    const ending = props.chartData.map(d => d.ending_mrr);
-
-    // 瀑布图：每个月的 MRR 构成
-    // 需要 4 个系列: new(绿色), expansion(蓝色), contraction(橙色), churned(红色)
-    // plus 起始 MRR 和 结束 MRR
-
-    const newData = props.chartData.map(d => d.new || 0);
-    const expansionData = props.chartData.map(d => d.expansion || 0);
-    const contractionData = props.chartData.map(d => -(d.contraction || 0));
-    const churnedData = props.chartData.map(d => -(d.churned || 0));
-
-    // 起始 transparent bar + 净变化 bar
-    // 使用自定义瀑布效果
-    const baseData = [];
-    const changeData = [];
-    const positiveData = [];
-    const negativeData = [];
+    const monthLabels = props.chartData.map(d => d.month_label || d.month)
+    const baseData = []
+    const changeData = []
 
     props.chartData.forEach((d, idx) => {
-      const net = d.net_change || 0;
-      baseData.push(d.starting_mrr);
-      changeData.push(net);
-
+      const net = d.net_change || 0
+      baseData.push(d.starting_mrr)
+      changeData.push(net)
       if (idx === props.chartData.length - 1) {
-        // 最后一期只显示 ending
-        changeData[idx] = d.ending_mrr;
+        changeData[idx] = d.ending_mrr
       }
-    });
+    })
 
     const option = {
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
         formatter: function (params) {
-          const d = props.chartData[params[0]?.dataIndex];
-          if (!d) return '';
-          const lines = [`<b>${d.month_label}</b>`];
-          lines.push(`起始 MRR: ¥${fmt(d.starting_mrr)}`);
-          lines.push(`<span style="color:#67c23a">● 新增: +¥${fmt(d.new)}</span>`);
-          lines.push(`<span style="color:#409eff">● 扩展: +¥${fmt(d.expansion)}</span>`);
-          lines.push(`<span style="color:#e6a23c">● 收缩: -¥${fmt(d.contraction)}</span>`);
-          lines.push(`<span style="color:#f56c6c">● 流失: -¥${fmt(d.churned)}</span>`);
-          lines.push(`<hr style="margin:4px 0">`);
-          lines.push(`<b>结束 MRR: ¥${fmt(d.ending_mrr)}</b>`);
+          const d = props.chartData[params[0]?.dataIndex]
+          if (!d) return ''
+          const lines = [`<b>${d.month_label}</b>`]
+          lines.push(`${t('mrr.starting')}: ¥${fmt(d.starting_mrr)}`)
+          lines.push(`<span style="color:#67c23a">● ${t('mrr.new')}: +¥${fmt(d.new)}</span>`)
+          lines.push(`<span style="color:#0f172a">● ${t('mrr.expansion')}: +¥${fmt(d.expansion)}</span>`)
+          lines.push(`<span style="color:#e6a23c">● ${t('mrr.contraction')}: -¥${fmt(d.contraction)}</span>`)
+          lines.push(`<span style="color:#f56c6c">● ${t('mrr.churned')}: -¥${fmt(d.churned)}</span>`)
+          lines.push(`<hr style="margin:4px 0">`)
+          lines.push(`<b>${t('mrr.ending')}: ¥${fmt(d.ending_mrr)}</b>`)
           if (d.active_subscriptions) {
-            lines.push(`活跃订阅: ${d.active_subscriptions}`);
+            lines.push(`${t('mrr.active_subs')}: ${d.active_subscriptions}`)
           }
-          return lines.join('<br>');
+          return lines.join('<br>')
         },
       },
       grid: { left: '8%', right: '6%', top: 40, bottom: 30, containLabel: true },
       xAxis: {
         type: 'category',
-        data: months,
-        axisLabel: { interval: 0, rotate: months.length > 8 ? 45 : 0 },
+        data: monthLabels,
+        axisLabel: { interval: 0, rotate: monthLabels.length > 8 ? 45 : 0 },
       },
       yAxis: {
         type: 'value',
-        name: 'MRR (¥)',
+        name: t('mrr.y_axis'),
         axisLabel: {
-          formatter: (v) => v >= 10000 ? `${(v / 10000).toFixed(0)}万` : fmt(v),
+          formatter: (v) => compactAxis(v),
         },
       },
       series: [
         {
-          name: '起始 MRR',
+          name: t('mrr.starting'),
           type: 'bar',
           stack: 'waterfall',
           itemStyle: { color: 'transparent' },
@@ -113,7 +116,7 @@ function renderChart() {
           emphasis: { itemStyle: { color: 'transparent' } },
         },
         {
-          name: '新增',
+          name: t('mrr.new'),
           type: 'bar',
           stack: 'waterfall',
           data: props.chartData.map(d => d.net_change >= 0 ? d.net_change : 0),
@@ -130,7 +133,7 @@ function renderChart() {
           },
         },
         {
-          name: '流失',
+          name: t('mrr.churned'),
           type: 'bar',
           stack: 'waterfall',
           data: props.chartData.map(d => d.net_change < 0 ? d.net_change : 0),
@@ -147,36 +150,33 @@ function renderChart() {
           },
         },
       ],
-    };
+    }
 
-    chartInstance.setOption(option, true);
-    chartInstance.resize();
-  });
-}
-
-function fmt(v) {
-  return Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    chartInstance.setOption(option, true)
+    chartInstance.resize()
+  })
 }
 
 function handleResize() {
-  chartInstance?.resize();
+  chartInstance?.resize()
 }
 
-watch(() => props.chartData, () => renderChart(), { deep: true });
+watch(() => props.chartData, () => renderChart(), { deep: true })
 watch(() => props.loading, () => {
-  if (!props.loading) renderChart();
-});
+  if (!props.loading) renderChart()
+})
+watch(locale, () => renderChart())
 
 onMounted(() => {
-  window.addEventListener('resize', handleResize);
-  renderChart();
-});
+  window.addEventListener('resize', handleResize)
+  renderChart()
+})
 
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
-  chartInstance?.dispose();
-  chartInstance = null;
-});
+  window.removeEventListener('resize', handleResize)
+  chartInstance?.dispose()
+  chartInstance = null
+})
 </script>
 
 <style scoped>

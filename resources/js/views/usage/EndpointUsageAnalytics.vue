@@ -1,40 +1,37 @@
 <template>
   <div class="endpoint-usage">
-    <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <h2>API 用量统计</h2>
-        <span class="header-subtitle">按端点查看 API 调用量、延迟和错误率</span>
+        <h2>{{ t('endpoint_usage_page.title') }}</h2>
+        <span class="header-subtitle">{{ t('endpoint_usage_page.subtitle') }}</span>
       </div>
       <div class="header-right">
         <el-radio-group v-model="trendDays" size="small" @change="fetchTrend">
-          <el-radio-button :value="7">7天</el-radio-button>
-          <el-radio-button :value="14">14天</el-radio-button>
-          <el-radio-button :value="30">30天</el-radio-button>
+          <el-radio-button :value="7">{{ t('endpoint_usage_page.days_n', { n: 7 }) }}</el-radio-button>
+          <el-radio-button :value="14">{{ t('endpoint_usage_page.days_n', { n: 14 }) }}</el-radio-button>
+          <el-radio-button :value="30">{{ t('endpoint_usage_page.days_n', { n: 30 }) }}</el-radio-button>
         </el-radio-group>
         <el-button @click="refreshData" class="ml-2">
-          <el-icon><Refresh /></el-icon> 刷新
+          <el-icon><Refresh /></el-icon> {{ t('endpoint_usage_page.refresh') }}
         </el-button>
       </div>
     </div>
 
-    <!-- 预警横幅 -->
     <div v-if="alertsData.critical_count > 0" class="alert-banner critical">
       <el-icon><WarningFilled /></el-icon>
-      <span>检测到 {{ alertsData.critical_count }} 个端点用量激增，请关注详情</span>
+      <span>{{ t('endpoint_usage_page.banner_critical', { n: alertsData.critical_count }) }}</span>
     </div>
     <div v-else-if="alertsData.warning_count > 0" class="alert-banner warning">
       <el-icon><WarningFilled /></el-icon>
-      <span>{{ alertsData.warning_count }} 个端点用量增长明显</span>
+      <span>{{ t('endpoint_usage_page.banner_warning', { n: alertsData.warning_count }) }}</span>
     </div>
 
-    <!-- 统计卡片 -->
     <el-row :gutter="16" class="mb-4">
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-box">
             <div class="stat-value">{{ totalCallsToday }}</div>
-            <div class="stat-label">今日 API 调用</div>
+            <div class="stat-label">{{ t('endpoint_usage_page.stats.calls_today') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -42,7 +39,7 @@
         <el-card shadow="hover">
           <div class="stat-box">
             <div class="stat-value">{{ totalCallsMonth }}</div>
-            <div class="stat-label">本月 API 调用</div>
+            <div class="stat-label">{{ t('endpoint_usage_page.stats.calls_month') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -50,7 +47,7 @@
         <el-card shadow="hover">
           <div class="stat-box">
             <div class="stat-value">4</div>
-            <div class="stat-label">API 端点</div>
+            <div class="stat-label">{{ t('endpoint_usage_page.stats.endpoints') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -58,16 +55,15 @@
         <el-card shadow="hover">
           <div class="stat-box">
             <div class="stat-value" :class="overallErrorRate > 5 ? 'danger' : 'success'">{{ overallErrorRate }}%</div>
-            <div class="stat-label">总体错误率（近7天）</div>
+            <div class="stat-label">{{ t('endpoint_usage_page.stats.error_rate') }}</div>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 端点概览卡片 -->
     <el-row :gutter="16" class="mb-4">
       <el-col :span="6" v-for="ep in endpoints" :key="ep.metric_key" style="margin-bottom: 16px">
-        <el-card shadow="hover" class="endpoint-card" :style="{ borderTop: `3px solid ${ep.color || '#409eff'}` }">
+        <el-card shadow="hover" class="endpoint-card" :style="{ borderTop: `3px solid ${ep.color || '#0f172a'}` }">
           <div class="endpoint-header">
             <span class="endpoint-method" :style="{ color: ep.color }">{{ ep.method }}</span>
             <span class="endpoint-name">{{ ep.name }}</span>
@@ -76,15 +72,15 @@
           <el-divider />
           <div class="endpoint-metrics">
             <div class="metric-row">
-              <span class="metric-label">今日调用</span>
+              <span class="metric-label">{{ t('endpoint_usage_page.today_calls') }}</span>
               <span class="metric-value">{{ ep.today_quantity }}</span>
             </div>
             <div class="metric-row">
-              <span class="metric-label">本月调用</span>
+              <span class="metric-label">{{ t('endpoint_usage_page.month_calls') }}</span>
               <span class="metric-value">{{ ep.this_month_quantity }}</span>
             </div>
             <div class="metric-row" v-if="ep.monthly_change_percent !== 0">
-              <span class="metric-label">环比上月</span>
+              <span class="metric-label">{{ t('endpoint_usage_page.mom') }}</span>
               <span class="metric-value" :class="ep.monthly_change_percent > 0 ? 'up' : 'down'">
                 {{ ep.monthly_change_percent > 0 ? '+' : '' }}{{ ep.monthly_change_percent }}%
               </span>
@@ -94,26 +90,23 @@
       </el-col>
     </el-row>
 
-    <!-- 用量趋势图 -->
     <el-card shadow="never" class="mb-4">
       <template #header>
         <div class="card-header">
-          <span>用量趋势</span>
+          <span>{{ t('endpoint_usage_page.trend_title') }}</span>
         </div>
       </template>
       <div class="trend-container" ref="trendChartRef"></div>
     </el-card>
 
-    <!-- 延迟和错误率 -->
     <el-row :gutter="16" class="mb-4">
-      <!-- 延迟统计 -->
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>
-            <span>延迟统计（P50 / P99，近7天）</span>
+            <span>{{ t('endpoint_usage_page.latency_title') }}</span>
           </template>
           <el-table :data="latencyTableData" stripe size="small">
-            <el-table-column label="端点" min-width="120">
+            <el-table-column :label="t('endpoint_usage_page.cols.endpoint')" min-width="120">
               <template #default="{ row }">
                 <span :style="{ color: row.color }">{{ row.name }}</span>
               </template>
@@ -127,35 +120,34 @@
             <el-table-column label="P99" width="80" align="right">
               <template #default="{ row }">{{ row.p99 }}ms</template>
             </el-table-column>
-            <el-table-column label="平均" width="80" align="right">
+            <el-table-column :label="t('endpoint_usage_page.cols.avg')" width="80" align="right">
               <template #default="{ row }">{{ row.avg }}ms</template>
             </el-table-column>
-            <el-table-column label="样本" width="70" align="right">
+            <el-table-column :label="t('endpoint_usage_page.cols.samples')" width="70" align="right">
               <template #default="{ row }">{{ row.sample_count }}</template>
             </el-table-column>
           </el-table>
         </el-card>
       </el-col>
 
-      <!-- 错误率统计 -->
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>
-            <span>错误率统计（近7天）</span>
+            <span>{{ t('endpoint_usage_page.error_title') }}</span>
           </template>
           <el-table :data="errorTableData" stripe size="small">
-            <el-table-column label="端点" min-width="120">
+            <el-table-column :label="t('endpoint_usage_page.cols.endpoint')" min-width="120">
               <template #default="{ row }">
                 <span :style="{ color: row.color }">{{ row.name }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="请求数" width="80" align="right">
+            <el-table-column :label="t('endpoint_usage_page.cols.requests')" width="80" align="right">
               <template #default="{ row }">{{ row.total_requests }}</template>
             </el-table-column>
-            <el-table-column label="错误数" width="80" align="right">
+            <el-table-column :label="t('endpoint_usage_page.cols.errors')" width="80" align="right">
               <template #default="{ row }">{{ row.error_count }}</template>
             </el-table-column>
-            <el-table-column label="错误率" width="90" align="right">
+            <el-table-column :label="t('endpoint_usage_page.cols.error_rate')" width="90" align="right">
               <template #default="{ row }">
                 <el-tag :type="row.error_rate > 5 ? 'danger' : row.error_rate > 1 ? 'warning' : 'success'" size="small">
                   {{ row.error_rate }}%
@@ -164,48 +156,46 @@
             </el-table-column>
           </el-table>
 
-          <!-- 错误详情 -->
           <el-divider />
-          <div class="error-detail-title">错误码详情</div>
-          <div v-if="!hasErrorDetail" class="empty-state">近7天无错误记录</div>
+          <div class="error-detail-title">{{ t('endpoint_usage_page.error_codes') }}</div>
+          <div v-if="!hasErrorDetail" class="empty-state">{{ t('endpoint_usage_page.no_errors') }}</div>
           <div v-else v-for="(errors, metricKey) in errorDetailData" :key="metricKey">
             <div class="error-metric-label" v-if="errors.length">{{ getEndpointName(metricKey) }}</div>
             <div v-for="err in errors" :key="err.error_code" class="error-item">
               <el-tag size="small" type="danger">{{ err.error_code }}</el-tag>
               <span class="error-msg">{{ err.error_message }}</span>
-              <span class="error-count">{{ err.count }}次</span>
+              <span class="error-count">{{ t('endpoint_usage_page.times_n', { n: err.count }) }}</span>
             </div>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 超额预警 -->
     <el-card shadow="never">
       <template #header>
         <div class="card-header">
-          <span>用量预警</span>
+          <span>{{ t('endpoint_usage_page.alerts_title') }}</span>
           <div>
             <el-tag v-if="alertsData.critical_count" type="danger" size="small" class="mr-1">
-              严重 {{ alertsData.critical_count }}
+              {{ t('endpoint_usage_page.levels.critical') }} {{ alertsData.critical_count }}
             </el-tag>
             <el-tag v-if="alertsData.warning_count" type="warning" size="small">
-              警告 {{ alertsData.warning_count }}
+              {{ t('endpoint_usage_page.levels.warning') }} {{ alertsData.warning_count }}
             </el-tag>
           </div>
         </div>
       </template>
-      <div v-if="!alertsData.alerts?.length" class="empty-state">暂无预警</div>
+      <div v-if="!alertsData.alerts?.length" class="empty-state">{{ t('endpoint_usage_page.no_alerts') }}</div>
       <div v-else>
         <div v-for="alert in alertsData.alerts" :key="alert.metric_key" class="alert-item">
           <el-tag :type="alert.level === 'critical' ? 'danger' : alert.level === 'warning' ? 'warning' : 'info'" size="small" effect="plain">
-            {{ alert.level === 'critical' ? '严重' : alert.level === 'warning' ? '警告' : '正常' }}
+            {{ alertLevelLabel(alert.level) }}
           </el-tag>
           <div class="alert-content">
             <span class="alert-name">{{ alert.name }}</span>
             <span class="alert-change" v-if="alert.message">{{ alert.message }}</span>
             <span class="alert-numbers" v-else>
-              本月 {{ alert.this_month }} / 上月 {{ alert.last_month }}
+              {{ t('endpoint_usage_page.alert_compare', { this_month: alert.this_month, last_month: alert.last_month }) }}
             </span>
           </div>
         </div>
@@ -214,184 +204,164 @@
   </div>
 </template>
 
-<script>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue';
-import { ElMessage } from 'element-plus';
-import { Refresh, WarningFilled } from '@element-plus/icons-vue';
-import endpointUsageApi from '../../api/endpointUsage';
+<script setup>
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
+import { Refresh, WarningFilled } from '@element-plus/icons-vue'
+import endpointUsageApi from '../../api/endpointUsage'
 
-export default {
-  name: 'EndpointUsageAnalytics',
-  components: { Refresh, WarningFilled },
-  setup() {
-    const trendDays = ref(14);
-    const trendChartRef = ref(null);
-    const endpoints = ref([]);
-    const alertsData = reactive({ alerts: [], critical_count: 0, warning_count: 0 });
-    const latencyData = ref({});
-    const errorData = ref({});
-    const errorDetailData = ref({});
+const { t } = useI18n()
 
-    const totalCallsToday = computed(() => {
-      return endpoints.value.reduce((sum, ep) => sum + (ep.today_quantity || 0), 0);
-    });
+const trendDays = ref(14)
+const trendChartRef = ref(null)
+const endpoints = ref([])
+const alertsData = reactive({ alerts: [], critical_count: 0, warning_count: 0 })
+const latencyData = ref({})
+const errorData = ref({})
+const errorDetailData = ref({})
 
-    const totalCallsMonth = computed(() => {
-      return endpoints.value.reduce((sum, ep) => sum + (ep.this_month_quantity || 0), 0);
-    });
+const totalCallsToday = computed(() => {
+  return endpoints.value.reduce((sum, ep) => sum + (ep.today_quantity || 0), 0)
+})
 
-    const overallErrorRate = computed(() => {
-      const errors = Object.values(errorData.value);
-      if (!errors.length) return 0;
-      const total = errors.reduce((s, e) => s + (e.total_requests || 0), 0);
-      const errs = errors.reduce((s, e) => s + (e.error_count || 0), 0);
-      return total > 0 ? Number(((errs / total) * 100).toFixed(2)) : 0;
-    });
+const totalCallsMonth = computed(() => {
+  return endpoints.value.reduce((sum, ep) => sum + (ep.this_month_quantity || 0), 0)
+})
 
-    const hasErrorDetail = computed(() => {
-      return Object.values(errorDetailData.value).some(errors => errors.length > 0);
-    });
+const overallErrorRate = computed(() => {
+  const errors = Object.values(errorData.value)
+  if (!errors.length) return 0
+  const total = errors.reduce((s, e) => s + (e.total_requests || 0), 0)
+  const errs = errors.reduce((s, e) => s + (e.error_count || 0), 0)
+  return total > 0 ? Number(((errs / total) * 100).toFixed(2)) : 0
+})
 
-    const latencyTableData = computed(() => {
-      return endpoints.value.map(ep => {
-        const lat = latencyData.value[ep.metric_key] || {};
-        return {
-          name: ep.name,
-          color: ep.color,
-          p50: lat.p50 ?? '-',
-          p90: lat.p90 ?? '-',
-          p99: lat.p99 ?? '-',
-          avg: lat.avg ?? '-',
-          sample_count: lat.sample_count ?? 0,
-        };
-      });
-    });
+const hasErrorDetail = computed(() => {
+  return Object.values(errorDetailData.value).some(errors => errors.length > 0)
+})
 
-    const errorTableData = computed(() => {
-      return endpoints.value.map(ep => {
-        const err = errorData.value[ep.metric_key] || {};
-        return {
-          name: ep.name,
-          color: ep.color,
-          total_requests: err.total_requests ?? 0,
-          error_count: err.error_count ?? 0,
-          error_rate: err.error_rate ?? 0,
-        };
-      });
-    });
-
-    function getEndpointName(metricKey) {
-      const ep = endpoints.value.find(e => e.metric_key === metricKey);
-      return ep?.name || metricKey;
-    }
-
-    async function fetchDashboard() {
-      try {
-        const response = await endpointUsageApi.dashboard();
-        const data = response.data;
-        if (!data) return;
-
-        endpoints.value = Object.values(data.overview || {});
-        latencyData.value = data.latency || {};
-        errorData.value = data.errors || {};
-        errorDetailData.value = data.error_detail || {};
-        Object.assign(alertsData, data.alerts || { alerts: [], critical_count: 0, warning_count: 0 });
-
-        // 渲染趋势图
-        if (data.trend) {
-          await nextTick();
-          renderTrendChart(data.trend, data.endpoints);
-        }
-      } catch (err) {
-        console.error('Failed to fetch dashboard:', err);
-        ElMessage.error('获取用量数据失败');
-      }
-    }
-
-    async function fetchTrend() {
-      try {
-        const response = await endpointUsageApi.trend({ days: trendDays.value });
-        const data = response.data;
-        if (data?.trend) {
-          await nextTick();
-          renderTrendChart(data.trend, data.endpoints);
-        }
-      } catch (err) {
-        console.error('Failed to fetch trend:', err);
-      }
-    }
-
-    function renderTrendChart(trend, endpointDefs) {
-      if (!trendChartRef.value) return;
-
-      // 使用简单的 ASCII 趋势图（若需要更丰富的图表，可引入 ECharts/Chart.js）
-      const labels = trend.map(t => t.date.slice(5));
-      const datasets = endpointDefs ? Object.entries(endpointDefs).map(([key, info]) => ({
-        label: info.name,
-        data: trend.map(t => t[key] || 0),
-        color: info.color || '#409eff',
-      })) : [];
-
-      // 渲染为简易 HTML 表格/条形图
-      const container = trendChartRef.value;
-      if (datasets.length === 0) {
-        container.innerHTML = '<div class="empty-state">暂无趋势数据</div>';
-        return;
-      }
-
-      let html = '<div class="trend-table"><table><thead><tr><th>日期</th>';
-      datasets.forEach(d => {
-        html += `<th style="color:${d.color}">${d.label}</th>`;
-      });
-      html += '</tr></thead><tbody>';
-
-      // 显示最近 14 条（或全部）
-      const showCount = Math.min(labels.length, 14);
-      const startIdx = labels.length - showCount;
-
-      for (let i = startIdx; i < labels.length; i++) {
-        html += `<tr><td class="trend-date">${labels[i]}</td>`;
-        datasets.forEach(d => {
-          const val = d.data[i] || 0;
-          const maxVal = Math.max(...d.data, 1);
-          const barWidth = Math.max((val / maxVal) * 100, 1);
-          html += `<td><div class="trend-bar-wrapper"><div class="trend-bar" style="width:${barWidth}%;background:${d.color}"></div><span class="trend-val">${val}</span></div></td>`;
-        });
-        html += '</tr>';
-      }
-
-      html += '</tbody></table></div>';
-      container.innerHTML = html;
-    }
-
-    async function refreshData() {
-      await fetchDashboard();
-    }
-
-    onMounted(() => {
-      fetchDashboard();
-    });
-
+const latencyTableData = computed(() => {
+  return endpoints.value.map(ep => {
+    const lat = latencyData.value[ep.metric_key] || {}
     return {
-      trendDays,
-      trendChartRef,
-      endpoints,
-      alertsData,
-      latencyData,
-      errorData,
-      errorDetailData,
-      totalCallsToday,
-      totalCallsMonth,
-      overallErrorRate,
-      latencyTableData,
-      errorTableData,
-      hasErrorDetail,
-      getEndpointName,
-      fetchTrend,
-      refreshData,
-    };
-  },
-};
+      name: ep.name,
+      color: ep.color,
+      p50: lat.p50 ?? '-',
+      p90: lat.p90 ?? '-',
+      p99: lat.p99 ?? '-',
+      avg: lat.avg ?? '-',
+      sample_count: lat.sample_count ?? 0,
+    }
+  })
+})
+
+const errorTableData = computed(() => {
+  return endpoints.value.map(ep => {
+    const err = errorData.value[ep.metric_key] || {}
+    return {
+      name: ep.name,
+      color: ep.color,
+      total_requests: err.total_requests ?? 0,
+      error_count: err.error_count ?? 0,
+      error_rate: err.error_rate ?? 0,
+    }
+  })
+})
+
+function alertLevelLabel(level) {
+  if (level === 'critical') return t('endpoint_usage_page.levels.critical')
+  if (level === 'warning') return t('endpoint_usage_page.levels.warning')
+  return t('endpoint_usage_page.levels.normal')
+}
+
+function getEndpointName(metricKey) {
+  const ep = endpoints.value.find(e => e.metric_key === metricKey)
+  return ep?.name || metricKey
+}
+
+async function fetchDashboard() {
+  try {
+    const response = await endpointUsageApi.dashboard()
+    const data = response.data
+    if (!data) return
+
+    endpoints.value = Object.values(data.overview || {})
+    latencyData.value = data.latency || {}
+    errorData.value = data.errors || {}
+    errorDetailData.value = data.error_detail || {}
+    Object.assign(alertsData, data.alerts || { alerts: [], critical_count: 0, warning_count: 0 })
+
+    if (data.trend) {
+      await nextTick()
+      renderTrendChart(data.trend, data.endpoints)
+    }
+  } catch (err) {
+    console.error('Failed to fetch dashboard:', err)
+    ElMessage.error(t('endpoint_usage_page.messages.load_failed'))
+  }
+}
+
+async function fetchTrend() {
+  try {
+    const response = await endpointUsageApi.trend({ days: trendDays.value })
+    const data = response.data
+    if (data?.trend) {
+      await nextTick()
+      renderTrendChart(data.trend, data.endpoints)
+    }
+  } catch (err) {
+    console.error('Failed to fetch trend:', err)
+  }
+}
+
+function renderTrendChart(trend, endpointDefs) {
+  if (!trendChartRef.value) return
+
+  const labels = trend.map(row => row.date.slice(5))
+  const datasets = endpointDefs ? Object.entries(endpointDefs).map(([key, info]) => ({
+    label: info.name,
+    data: trend.map(row => row[key] || 0),
+    color: info.color || '#0f172a',
+  })) : []
+
+  const container = trendChartRef.value
+  if (datasets.length === 0) {
+    container.innerHTML = `<div class="empty-state">${t('endpoint_usage_page.no_trend')}</div>`
+    return
+  }
+
+  let html = `<div class="trend-table"><table><thead><tr><th>${t('endpoint_usage_page.cols.date')}</th>`
+  datasets.forEach(d => {
+    html += `<th style="color:${d.color}">${d.label}</th>`
+  })
+  html += '</tr></thead><tbody>'
+
+  const showCount = Math.min(labels.length, 14)
+  const startIdx = labels.length - showCount
+
+  for (let i = startIdx; i < labels.length; i++) {
+    html += `<tr><td class="trend-date">${labels[i]}</td>`
+    datasets.forEach(d => {
+      const val = d.data[i] || 0
+      const maxVal = Math.max(...d.data, 1)
+      const barWidth = Math.max((val / maxVal) * 100, 1)
+      html += `<td><div class="trend-bar-wrapper"><div class="trend-bar" style="width:${barWidth}%;background:${d.color}"></div><span class="trend-val">${val}</span></div></td>`
+    })
+    html += '</tr>'
+  }
+
+  html += '</tbody></table></div>'
+  container.innerHTML = html
+}
+
+async function refreshData() {
+  await fetchDashboard()
+}
+
+onMounted(() => {
+  fetchDashboard()
+})
 </script>
 
 <style scoped>
@@ -616,7 +586,6 @@ export default {
   color: #909399;
 }
 
-/* 趋势图表格 */
 .trend-table table {
   width: 100%;
   border-collapse: collapse;

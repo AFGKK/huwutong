@@ -1,36 +1,34 @@
 <template>
     <div class="portal-settings">
         <div class="page-header">
-            <h2>个人设置</h2>
+            <h2>{{ $t('portal.settings') }}</h2>
         </div>
 
         <el-row :gutter="16">
-            <!-- 个人信息 -->
             <el-col :span="12">
                 <el-card class="mb-4">
                     <template #header>
-                        <span>个人信息</span>
+                        <span>{{ $t('portal.profile_info') }}</span>
                     </template>
                     <el-form :model="profileForm" label-position="top">
-                        <el-form-item label="姓名">
+                        <el-form-item :label="$t('portal.full_name')">
                             <el-input v-model="profileForm.name" disabled />
                         </el-form-item>
-                        <el-form-item label="邮箱">
+                        <el-form-item :label="$t('portal.email')">
                             <el-input v-model="profileForm.email" disabled />
-                            <div class="form-hint">如需修改邮箱，请联系管理员。</div>
+                            <div class="form-hint">{{ $t('portal.email_hint') }}</div>
                         </el-form-item>
-                        <el-form-item label="注册时间">
+                        <el-form-item :label="$t('portal.registered_at')">
                             <el-input :model-value="profileForm.created_at" disabled />
                         </el-form-item>
                     </el-form>
                 </el-card>
             </el-col>
 
-            <!-- 修改密码 -->
             <el-col :span="12">
                 <el-card class="mb-4">
                     <template #header>
-                        <span>修改密码</span>
+                        <span>{{ $t('portal.change_password') }}</span>
                     </template>
                     <el-form
                         ref="passwordFormRef"
@@ -38,67 +36,65 @@
                         :rules="passwordRules"
                         label-position="top"
                     >
-                        <el-form-item label="当前密码" prop="current_password">
+                        <el-form-item :label="$t('portal.current_password')" prop="current_password">
                             <el-input
                                 v-model="passwordForm.current_password"
                                 type="password"
                                 show-password
-                                placeholder="请输入当前密码"
+                                :placeholder="$t('portal.current_password_ph')"
                             />
                         </el-form-item>
-                        <el-form-item label="新密码" prop="new_password">
+                        <el-form-item :label="$t('portal.new_password')" prop="new_password">
                             <el-input
                                 v-model="passwordForm.new_password"
                                 type="password"
                                 show-password
-                                placeholder="请输入新密码（至少8位）"
+                                :placeholder="$t('portal.new_password_ph')"
                             />
                         </el-form-item>
-                        <el-form-item label="确认新密码" prop="confirm_password">
+                        <el-form-item :label="$t('portal.confirm_password')" prop="confirm_password">
                             <el-input
                                 v-model="passwordForm.confirm_password"
                                 type="password"
                                 show-password
-                                placeholder="请再次输入新密码"
+                                :placeholder="$t('portal.confirm_password_ph')"
                             />
                         </el-form-item>
                         <el-form-item>
                             <el-button type="primary" @click="handleChangePassword" :loading="changingPassword">
-                                修改密码
+                                {{ $t('portal.change_password') }}
                             </el-button>
                         </el-form-item>
                     </el-form>
                 </el-card>
 
-                <!-- 账户操作 -->
                 <el-card>
                     <template #header>
-                        <span>账户操作</span>
+                        <span>{{ $t('portal.account_actions') }}</span>
                     </template>
                     <div class="account-actions">
                         <el-button type="info" plain @click="handleViewSessions" :icon="Monitor">
-                            查看登录会话
+                            {{ $t('portal.view_sessions') }}
                         </el-button>
                         <el-button type="danger" plain @click="handleLogout" :icon="SwitchButton">
-                            退出登录
+                            {{ $t('portal.logout') }}
                         </el-button>
                     </div>
                 </el-card>
 
-                <!-- 数据隐私 -->
                 <el-card class="mt-4">
                     <template #header>
                         <span>
                             <el-icon><Lock /></el-icon>
-                            数据与隐私
+                            {{ $t('portal.data_privacy') }}
                         </span>
                     </template>
                     <div class="account-actions">
                         <el-button type="warning" plain @click="handleRequestDataExport" :icon="Download">
-                            导出我的数据 (GDPR)
+                            {{ $t('portal.export_gdpr') }}
                         </el-button>
                         <el-button type="danger" plain @click="handleDeleteAccount" :icon="Delete">
-                            注销账号
+                            {{ $t('portal.delete_account') }}
                         </el-button>
                     </div>
                 </el-card>
@@ -108,7 +104,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import apiClient from '@/api/client';
@@ -116,6 +113,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Monitor, SwitchButton, Download, Delete, Lock } from '@element-plus/icons-vue';
 import deletionApi from '@/api/deletion';
 
+const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -134,20 +132,20 @@ const passwordForm = reactive({
     confirm_password: '',
 });
 
-const passwordRules = {
+const passwordRules = computed(() => ({
     current_password: [
-        { required: true, message: '请输入当前密码', trigger: 'blur' },
+        { required: true, message: t('portal.pwd_current_required'), trigger: 'blur' },
     ],
     new_password: [
-        { required: true, message: '请输入新密码', trigger: 'blur' },
-        { min: 8, message: '密码至少 8 位', trigger: 'blur' },
+        { required: true, message: t('portal.pwd_new_required'), trigger: 'blur' },
+        { min: 8, message: t('portal.pwd_min'), trigger: 'blur' },
     ],
     confirm_password: [
-        { required: true, message: '请确认新密码', trigger: 'blur' },
+        { required: true, message: t('portal.pwd_confirm_required'), trigger: 'blur' },
         {
             validator: (rule, value, callback) => {
                 if (value !== passwordForm.new_password) {
-                    callback(new Error('两次输入的密码不一致'));
+                    callback(new Error(t('portal.pwd_mismatch')));
                 } else {
                     callback();
                 }
@@ -155,7 +153,7 @@ const passwordRules = {
             trigger: 'blur',
         },
     ],
-};
+}));
 
 async function fetchProfile() {
     try {
@@ -165,7 +163,6 @@ async function fetchProfile() {
         profileForm.email = user.email || '';
         profileForm.created_at = user.created_at || '';
     } catch {
-        // use store as fallback
         profileForm.name = authStore.userName;
         profileForm.email = authStore.userEmail;
     }
@@ -177,26 +174,25 @@ async function handleChangePassword() {
 
     changingPassword.value = true;
     try {
-        // 使用 API 的 changePassword 端点
         await apiClient.post('/password/change', {
             current_password: passwordForm.current_password,
             new_password: passwordForm.new_password,
             new_password_confirmation: passwordForm.confirm_password,
         });
-        ElMessage.success('密码修改成功');
+        ElMessage.success(t('portal.pwd_changed'));
         passwordForm.current_password = '';
         passwordForm.new_password = '';
         passwordForm.confirm_password = '';
         passwordFormRef.value.resetFields();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '密码修改失败');
+        ElMessage.error(e.response?.data?.message || t('portal.pwd_change_failed'));
     } finally {
         changingPassword.value = false;
     }
 }
 
 function handleViewSessions() {
-    ElMessage.info('会话管理功能即将上线');
+    router.push('/portal/sessions');
 }
 
 async function handleLogout() {
@@ -205,77 +201,66 @@ async function handleLogout() {
 }
 
 async function handleRequestDataExport() {
-    ElMessage.info('正在准备数据导出，请稍候...');
+    ElMessage.info(t('portal.export_preparing'));
     try {
         const res = await apiClient.post('/gdpr/requests', {
             type: 'access',
-            reason: '用户自助导出',
+            reason: t('portal.export_reason'),
         });
         if (res.data?.success) {
-            ElMessage.success('数据导出请求已提交，导出完成后将可通过邮件下载');
+            ElMessage.success(t('portal.export_submitted'));
         }
     } catch (e) {
-        ElMessage.error('提交失败: ' + (e.response?.data?.message || e.message));
+        ElMessage.error(t('portal.export_submit_failed', { msg: e.response?.data?.message || e.message }));
     }
 }
 
 async function handleDeleteAccount() {
     try {
-        // 第一步：检查可注销性
         const checkRes = await deletionApi.checkDeletability();
         const check = checkRes.data?.data || { can_delete: false, reasons: [] };
 
         if (!check.can_delete) {
-            ElMessage.warning('账号当前无法注销：\n' + (check.reasons || []).join('\n'));
+            ElMessage.warning(t('portal.delete_blocked', { reasons: (check.reasons || []).join('\n') }));
             return;
         }
 
-        // 第二步：显示确认对话框
         const reasonsRes = await deletionApi.getCancellationReasons();
         const reasons = reasonsRes.data?.data || [];
 
         await ElMessageBox.confirm(
-            '确定要注销账号吗？此操作不可逆。\n\n' +
-            '注销后将：\n' +
-            '1. 您的个人数据将被匿名化处理\n' +
-            '2. 所有关联的 License 将被标记为已删除\n' +
-            '3. 您将无法再次登录此账号\n\n' +
-            '请选择注销原因：',
-            '确认注销账号',
+            t('portal.delete_confirm_body'),
+            t('portal.delete_confirm_title'),
             {
-                confirmButtonText: '确认注销',
-                cancelButtonText: '取消',
+                confirmButtonText: t('portal.delete_confirm_btn'),
+                cancelButtonText: t('actions.cancel'),
                 type: 'warning',
                 distinguishCancelAndClose: true,
                 inputType: 'select',
                 inputOptions: reasons.map(r => ({ value: r.value, label: r.label })),
                 inputValue: 'other',
-                inputPlaceholder: '请选择注销原因',
+                inputPlaceholder: t('portal.delete_reason_ph'),
                 inputValidator: (value) => !!value,
-                inputErrorMessage: '请选择注销原因',
+                inputErrorMessage: t('portal.delete_reason_required'),
             }
         ).then(async ({ value }) => {
-            // 第三步：执行注销
             const delRes = await deletionApi.requestDeletion({
                 reason: value,
                 confirm: true,
             });
 
             if (delRes.data?.success) {
-                ElMessage.success('账号已注销，数据已匿名化处理。感谢您的使用。');
-                // 延迟跳转到登录页
+                ElMessage.success(t('portal.delete_ok'));
                 setTimeout(() => {
                     authStore.logout();
                     router.push('/login');
                 }, 2000);
             } else {
-                ElMessage.error(delRes.data?.message || '注销失败');
+                ElMessage.error(delRes.data?.message || t('portal.delete_failed'));
             }
-        }).catch(() => {
-            // 用户取消
-        });
+        }).catch(() => {});
     } catch (e) {
-        ElMessage.error('操作失败: ' + (e.response?.data?.message || e.message));
+        ElMessage.error(t('portal.op_failed', { msg: e.response?.data?.message || e.message }));
     }
 }
 
@@ -290,6 +275,7 @@ onMounted(fetchProfile);
 .page-header h2 { margin: 0; }
 
 .mb-4 { margin-bottom: 16px; }
+.mt-4 { margin-top: 16px; }
 
 .form-hint {
     font-size: 12px;

@@ -1,32 +1,32 @@
 <template>
-  <el-dialog v-model="visible" :title="task?.name || '导入向导'" width="800px" destroy-on-close>
+  <el-dialog v-model="visible" :title="task?.name || t('import_wizard.title')" width="800px" destroy-on-close>
     <div v-loading="loading">
       <el-steps :active="step" finish-status="success" class="mb-6">
-        <el-step title="解析" :status="step > 0 ? 'success' : step === 0 ? 'process' : 'wait'" />
-        <el-step title="字段映射" :status="step > 1 ? 'success' : step === 1 ? 'process' : 'wait'" />
-        <el-step title="验证预览" :status="step > 2 ? 'success' : step === 2 ? 'process' : 'wait'" />
-        <el-step title="执行导入" :status="step > 3 ? 'success' : step === 3 ? 'process' : 'wait'" />
+        <el-step :title="t('import_wizard.steps.parse')" :status="step > 0 ? 'success' : step === 0 ? 'process' : 'wait'" />
+        <el-step :title="t('import_wizard.steps.mapping')" :status="step > 1 ? 'success' : step === 1 ? 'process' : 'wait'" />
+        <el-step :title="t('import_wizard.steps.validate')" :status="step > 2 ? 'success' : step === 2 ? 'process' : 'wait'" />
+        <el-step :title="t('import_wizard.steps.execute')" :status="step > 3 ? 'success' : step === 3 ? 'process' : 'wait'" />
       </el-steps>
 
       <!-- Step 0: 解析 -->
       <div v-if="step === 0 && task">
-        <el-alert title="文件已上传，点击「开始解析」读取文件内容" type="info" :closable="false" />
+        <el-alert :title="t('import_wizard.step0.alert')" type="info" :closable="false" />
         <div class="mt-4">
-          <p class="text-sm"><strong>文件：</strong>{{ task.original_filename }}</p>
-          <p class="text-sm"><strong>类型：</strong>{{ task.entity_type }}</p>
-          <p class="text-sm"><strong>大小：</strong>{{ (task.file_size / 1024).toFixed(1) }} KB</p>
+          <p class="text-sm"><strong>{{ t('import_wizard.file_label') }}</strong>{{ task.original_filename }}</p>
+          <p class="text-sm"><strong>{{ t('import_wizard.type_label') }}</strong>{{ task.entity_type }}</p>
+          <p class="text-sm"><strong>{{ t('import_wizard.size_label') }}</strong>{{ (task.file_size / 1024).toFixed(1) }} KB</p>
         </div>
         <div class="mt-4 text-center">
-          <el-button type="primary" @click="parseFile" :loading="parsing">开始解析</el-button>
+          <el-button type="primary" @click="parseFile" :loading="parsing">{{ t('import_wizard.parse_btn') }}</el-button>
         </div>
       </div>
 
       <!-- Step 1: 字段映射 -->
       <div v-if="step === 1 && task?.mappings">
-        <el-alert title="配置源字段到目标字段的映射关系" type="info" :closable="false" class="mb-4" />
+        <el-alert :title="t('import_wizard.step1.alert')" type="info" :closable="false" class="mb-4" />
         <el-table :data="task.mappings" size="small" max-height="360">
-          <el-table-column prop="source_field" label="源字段(文件列)" min-width="140" />
-          <el-table-column label="目标字段" min-width="180">
+          <el-table-column prop="source_field" :label="t('import_wizard.col_source')" min-width="140" />
+          <el-table-column :label="t('import_wizard.col_target')" min-width="180">
             <template #default="{ row, $index }">
               <el-select v-model="row.target_field" filterable clearable style="width:160px"
                 @change="mappingChanged">
@@ -34,18 +34,18 @@
                   <span>{{ f.label }}</span>
                   <span class="text-gray-400 ml-2 text-xs">{{ f.key }}</span>
                 </el-option>
-                <el-option label="— 不导入 —" value="" />
+                <el-option :label="t('import_wizard.skip_import')" value="" />
               </el-select>
             </template>
           </el-table-column>
-          <el-table-column label="必填" width="50" align="center">
+          <el-table-column :label="t('import_wizard.col_required')" width="50" align="center">
             <template #default="{ row }">
               <el-checkbox v-model="row.is_required" />
             </template>
           </el-table-column>
-          <el-table-column label="默认值" width="120">
+          <el-table-column :label="t('import_wizard.col_default')" width="120">
             <template #default="{ row }">
-              <el-input v-model="row.default_value" size="small" placeholder="默认值" />
+              <el-input v-model="row.default_value" size="small" :placeholder="t('import_wizard.col_default_ph')" />
             </template>
           </el-table-column>
         </el-table>
@@ -53,8 +53,8 @@
         <!-- 预设模板 -->
         <div class="mt-4">
           <el-space>
-            <span class="text-sm text-gray-500">应用预设模板：</span>
-            <el-select v-model="selectedTemplate" placeholder="选择模板" style="width:200px" @change="applyTemplate">
+            <span class="text-sm text-gray-500">{{ t('import_wizard.apply_template') }}</span>
+            <el-select v-model="selectedTemplate" :placeholder="t('import_wizard.select_template_ph')" style="width:200px" @change="applyTemplate">
               <el-option v-for="tpl in templates" :key="tpl.id" :label="tpl.name" :value="tpl.id" />
             </el-select>
           </el-space>
@@ -67,7 +67,7 @@
 
         <!-- 预览数据 -->
         <div v-if="task?.preview_data?.length">
-          <h4 class="font-medium mb-2">数据预览（前 {{ task.preview_data.length }} 行）</h4>
+          <h4 class="font-medium mb-2">{{ t('import_wizard.preview_title', { n: task.preview_data.length }) }}</h4>
           <el-table :data="task.preview_data" size="small" max-height="260" border stripe>
             <el-table-column v-for="col in previewColumns" :key="col" :prop="col" :label="col" min-width="100" show-overflow-tooltip />
           </el-table>
@@ -76,15 +76,15 @@
 
       <!-- Step 3: 执行导入 -->
       <div v-if="step === 3">
-        <el-alert title="确认数据无误后开始导入" type="warning" :closable="false" class="mb-4" />
+        <el-alert :title="t('import_wizard.step3.alert')" type="warning" :closable="false" class="mb-4" />
         <div v-if="task?.validation_errors">
-          <p class="text-sm"><strong>总行数：</strong>{{ task.validation_errors.total_rows }}</p>
-          <p class="text-sm"><strong>错误行：</strong>{{ task.validation_errors.error_rows }}</p>
-          <p class="text-sm"><strong>警告行：</strong>{{ task.validation_errors.warning_rows }}</p>
+          <p class="text-sm"><strong>{{ t('import_wizard.total_rows_label') }}</strong>{{ task.validation_errors.total_rows }}</p>
+          <p class="text-sm"><strong>{{ t('import_wizard.error_rows_label') }}</strong>{{ task.validation_errors.error_rows }}</p>
+          <p class="text-sm"><strong>{{ t('import_wizard.warning_rows_label') }}</strong>{{ task.validation_errors.warning_rows }}</p>
         </div>
         <div class="mt-4 text-center">
           <el-button type="primary" @click="startImport" :loading="importing" size="large">
-            {{ importing ? '导入中...' : '开始导入' }}
+            {{ importing ? t('import_wizard.importing_btn') : t('import_wizard.start_import_btn') }}
           </el-button>
         </div>
 
@@ -98,16 +98,20 @@
 
       <!-- 完成 -->
       <div v-if="step === 4" class="text-center py-8">
-        <el-result v-if="task?.status === 'completed'" icon="success" title="导入完成">
+        <el-result v-if="task?.status === 'completed'" icon="success" :title="t('import_wizard.completed_title')">
           <template #extra>
-            <p class="text-sm">成功 {{ task?.success_rows }} 行 / 失败 {{ task?.error_rows }} 行 / 总计 {{ task?.total_rows }} 行</p>
-            <el-button class="mt-4" type="primary" @click="viewLogs">查看详细日志</el-button>
+            <p class="text-sm">{{ t('import_wizard.completed_summary', {
+              success: task?.success_rows,
+              failed: task?.error_rows,
+              total: task?.total_rows,
+            }) }}</p>
+            <el-button class="mt-4" type="primary" @click="viewLogs">{{ t('import_wizard.view_detail_logs') }}</el-button>
           </template>
         </el-result>
-        <el-result v-else icon="error" title="导入失败">
+        <el-result v-else icon="error" :title="t('import_wizard.failed_title')">
           <template #extra>
-            <p class="text-sm text-red">{{ task?.import_result?.error || '导入过程中出现错误' }}</p>
-            <el-button class="mt-4" @click="viewLogs">查看错误日志</el-button>
+            <p class="text-sm text-red">{{ task?.import_result?.error || t('import_wizard.default_error') }}</p>
+            <el-button class="mt-4" @click="viewLogs">{{ t('import_wizard.view_error_logs') }}</el-button>
           </template>
         </el-result>
       </div>
@@ -115,12 +119,12 @@
 
     <template #footer>
       <el-space>
-        <el-button v-if="step > 0 && step < 4" @click="prevStep" :disabled="step === 3 && importing">上一步</el-button>
-        <el-button v-if="step === 1" type="primary" @click="nextStep('validate')">验证数据</el-button>
+        <el-button v-if="step > 0 && step < 4" @click="prevStep" :disabled="step === 3 && importing">{{ t('actions.prev') }}</el-button>
+        <el-button v-if="step === 1" type="primary" @click="nextStep('validate')">{{ t('import_wizard.validate_btn') }}</el-button>
         <el-button v-if="step === 2 && task?.validation_errors?.error_rows === 0" type="primary" @click="nextStep('execute')">
-          下一步：执行导入
+          {{ t('import_wizard.next_execute_btn') }}
         </el-button>
-        <el-button v-if="step === 4 || step === 0" @click="visible = false">关闭</el-button>
+        <el-button v-if="step === 4 || step === 0" @click="visible = false">{{ t('actions.close') }}</el-button>
       </el-space>
     </template>
 
@@ -131,9 +135,12 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { parseFile as apiParseFile, getImportTask, updateMappings, validateData, executeImport, getMappingTemplates, applyTemplate as apiApplyTemplate, getEntityFields } from '../../../api/dataImport'
 import LogDialog from './LogDialog.vue'
+
+const { t } = useI18n()
 
 const visible = ref(false)
 const loading = ref(false)
@@ -158,7 +165,11 @@ const validationResult = computed(() => task.value?.validation_errors)
 const validationMessage = computed(() => {
   if (!validationResult.value) return ''
   const v = validationResult.value
-  return `验证完成：共 ${v.total_rows} 行，${v.error_rows} 个错误，${v.warning_rows} 个警告`
+  return t('import_wizard.validation_result', {
+    total: v.total_rows,
+    errors: v.error_rows,
+    warnings: v.warning_rows,
+  })
 })
 const validationType = computed(() => {
   if (!validationResult.value) return 'info'
@@ -196,9 +207,9 @@ async function loadTask() {
   loading.value = true
   try {
     const { data } = await getImportTask(taskId.value)
-    task.value = data
+    task.value = data.data
   } catch (e) {
-    ElMessage.error('获取任务详情失败')
+    ElMessage.error(t('import_wizard.messages.fetch_fail'))
   } finally {
     loading.value = false
   }
@@ -208,14 +219,14 @@ async function loadFields() {
   if (!task.value?.entity_type) return
   try {
     const { data } = await getEntityFields(task.value.entity_type)
-    availableFields.value = data || []
+    availableFields.value = data.data || []
   } catch (e) { /* ignore */ }
 }
 
 async function loadTemplates() {
   try {
     const { data } = await getMappingTemplates({ entity_type: task.value?.entity_type })
-    templates.value = data || []
+    templates.value = data.data || []
   } catch (e) { /* ignore */ }
 }
 
@@ -223,13 +234,13 @@ async function parseFile() {
   parsing.value = true
   try {
     const { data } = await apiParseFile(taskId.value)
-    task.value = data
+    task.value = data.data
     step.value = 1
     await loadFields()
     await loadTemplates()
-    ElMessage.success('文件解析完成')
+    ElMessage.success(t('import_wizard.messages.parse_ok'))
   } catch (e) {
-    ElMessage.error('解析失败: ' + (e.response?.data?.message || ''))
+    ElMessage.error(t('import_wizard.messages.parse_fail', { msg: e.response?.data?.message || '' }))
   } finally {
     parsing.value = false
   }
@@ -243,10 +254,10 @@ async function applyTemplate() {
   if (!selectedTemplate.value) return
   try {
     const { data } = await apiApplyTemplate(taskId.value, selectedTemplate.value)
-    task.value = data
-    ElMessage.success('已应用映射模板')
+    task.value = data.data
+    ElMessage.success(t('import_wizard.messages.template_applied'))
   } catch (e) {
-    ElMessage.error('应用模板失败')
+    ElMessage.error(t('import_wizard.messages.template_fail'))
   }
 }
 
@@ -259,11 +270,11 @@ async function nextStep(target) {
         await updateMappings(taskId.value, task.value.mappings)
       }
       const { data } = await validateData(taskId.value)
-      task.value = data
+      task.value = data.data
       step.value = 2
-      ElMessage.success('验证完成')
+      ElMessage.success(t('import_wizard.messages.validate_ok'))
     } catch (e) {
-      ElMessage.error('验证失败')
+      ElMessage.error(t('import_wizard.messages.validate_fail'))
     } finally {
       loading.value = false
     }
@@ -280,15 +291,15 @@ async function startImport() {
   importing.value = true
   try {
     const { data } = await executeImport(taskId.value)
-    task.value = data
+    task.value = data.data
     step.value = 4
-    if (data.status === 'completed') {
-      ElMessage.success('导入完成')
+    if (data.data.status === 'completed') {
+      ElMessage.success(t('import_wizard.messages.import_ok'))
     } else {
-      ElMessage.error('导入失败')
+      ElMessage.error(t('import_wizard.messages.import_fail'))
     }
   } catch (e) {
-    ElMessage.error('导入执行失败')
+    ElMessage.error(t('import_wizard.messages.import_exec_fail'))
     step.value = 4
   } finally {
     importing.value = false

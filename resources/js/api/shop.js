@@ -3,10 +3,10 @@ import client from './client';
 export default {
     // 商品搜索 (M2-156 🛒)
     searchProducts(params = {}) {
-        return client.get('/products', { params });
+        return client.get('/shop/products', { params });
     },
     getSearchSuggestions(q) {
-        return client.get('/products/search-suggest', { params: { q } });
+        return client.get('/products/suggest', { params: { q } });
     },
     getHotSearchTerms() {
         return client.get('/products/hot-search-terms');
@@ -97,6 +97,13 @@ export default {
     },
     getPaymentStatus(orderId) {
         return client.get(`/orders/${orderId}/payment-status`);
+    },
+
+    requestRefund(data) {
+        return client.post('/refunds', data);
+    },
+    listMyRefunds(params = {}) {
+        return client.get('/refunds', { params });
     },
 
     // ─── 商品收藏 (Wishlist) ───

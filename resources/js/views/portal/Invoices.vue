@@ -2,8 +2,8 @@
     <div class="portal-invoices">
         <div class="page-header">
             <div>
-                <h2>自助发票</h2>
-                <p class="text-muted">管理发票抬头，为已支付订单申请开具增值税发票。</p>
+                <h2>{{ $t('portal.self_invoice_title') }}</h2>
+                <p class="text-muted">{{ $t('portal.self_invoice_subtitle') }}</p>
             </div>
         </div>
 
@@ -13,7 +13,7 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value">{{ stats.total_invoices }}</div>
-                        <div class="mini-label">总发票数</div>
+                        <div class="mini-label">{{ $t('portal.total_invoices') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -21,15 +21,15 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value" style="color:#67c23a">¥{{ stats.total_amount }}</div>
-                        <div class="mini-label">开票总金额</div>
+                        <div class="mini-label">{{ $t('portal.invoiced_amount') }}</div>
                     </div>
                 </el-card>
             </el-col>
             <el-col :span="8">
                 <el-card shadow="never">
                     <div class="mini-stat">
-                        <div class="mini-value" style="color:#409eff">{{ stats.billable_orders }}</div>
-                        <div class="mini-label">待开票订单</div>
+                        <div class="mini-value" style="color:#0f172a">{{ stats.billable_orders }}</div>
+                        <div class="mini-label">{{ $t('portal.billable_orders') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -39,12 +39,12 @@
         <el-card shadow="never" class="mb-4">
             <template #header>
                 <div class="card-header">
-                    <span>发票抬头</span>
-                    <el-button size="small" type="primary" @click="openTitleDialog()">+ 新增抬头</el-button>
+                    <span>{{ $t('portal.invoice_titles') }}</span>
+                    <el-button size="small" type="primary" @click="openTitleDialog()">+ {{ $t('portal.add_title') }}</el-button>
                 </div>
             </template>
             <div v-if="titles.length === 0 && !loadingTitles" class="empty-tip">
-                <el-empty :image-size="50" description="暂无发票抬头，请先添加" />
+                <el-empty :image-size="50" :description="$t('portal.no_titles')" />
             </div>
             <div v-loading="loadingTitles" class="title-list">
                 <el-card
@@ -57,18 +57,18 @@
                     <div class="title-main">
                         <div class="title-name">
                             {{ item.title }}
-                            <el-tag v-if="item.is_default" size="small" type="primary" style="margin-left:6px">默认</el-tag>
+                            <el-tag v-if="item.is_default" size="small" type="primary" style="margin-left:6px">{{ $t('portal.default_tag') }}</el-tag>
                         </div>
                         <div class="title-meta">
-                            <span v-if="item.tax_no">税号: {{ item.tax_no }}</span>
-                            <span v-if="item.address">地址: {{ item.address }}</span>
-                            <span v-if="item.phone">电话: {{ item.phone }}</span>
-                            <span v-if="item.bank_name && item.bank_account">开户行: {{ item.bank_name }} ({{ item.bank_account }})</span>
+                            <span v-if="item.tax_no">{{ $t('portal.tax_no_label', { v: item.tax_no }) }}</span>
+                            <span v-if="item.address">{{ $t('portal.address_label', { v: item.address }) }}</span>
+                            <span v-if="item.phone">{{ $t('portal.phone_label', { v: item.phone }) }}</span>
+                            <span v-if="item.bank_name && item.bank_account">{{ $t('portal.bank_label', { v: `${item.bank_name} (${item.bank_account})` }) }}</span>
                         </div>
                     </div>
                     <div class="title-actions">
-                        <el-button link size="small" type="primary" @click="openTitleDialog(item)">编辑</el-button>
-                        <el-button link size="small" type="danger" @click="handleDeleteTitle(item)">删除</el-button>
+                        <el-button link size="small" type="primary" @click="openTitleDialog(item)">{{ $t('portal.edit') }}</el-button>
+                        <el-button link size="small" type="danger" @click="handleDeleteTitle(item)">{{ $t('actions.delete') }}</el-button>
                     </div>
                 </el-card>
             </div>
@@ -78,79 +78,79 @@
         <el-card shadow="never" class="mb-4">
             <template #header>
                 <div class="card-header">
-                    <span>可开票订单</span>
+                    <span>{{ $t('portal.billable_orders_section') }}</span>
                 </div>
             </template>
             <el-table :data="billableOrders" v-loading="loadingOrders" stripe>
-                <el-table-column prop="order_no" label="订单号" min-width="140">
+                <el-table-column prop="order_no" :label="$t('portal.order_no')" min-width="140">
                     <template #default="{ row }">
                         <el-link type="primary" :underline="'never'" @click="$router.push(`/portal/orders/${row.id}`)">
                             {{ row.order_no || `#${row.id}` }}
                         </el-link>
                     </template>
                 </el-table-column>
-                <el-table-column label="商品" min-width="140">
+                <el-table-column :label="$t('portal.product_item')" min-width="140">
                     <template #default="{ row }">{{ row.product?.name || row.description || '-' }}</template>
                 </el-table-column>
-                <el-table-column label="金额" width="100">
+                <el-table-column :label="$t('portal.amount')" width="100">
                     <template #default="{ row }">¥{{ row.total_amount || row.amount || 0 }}</template>
                 </el-table-column>
-                <el-table-column label="支付时间" width="150">
+                <el-table-column :label="$t('portal.paid_at')" width="150">
                     <template #default="{ row }">{{ formatDate(row.paid_at) }}</template>
                 </el-table-column>
-                <el-table-column label="操作" width="120" fixed="right">
+                <el-table-column :label="$t('portal.actions')" width="120" fixed="right">
                     <template #default="{ row }">
                         <el-button
                             type="primary"
                             size="small"
                             :disabled="!titles.length"
-                            :title="!titles.length ? '请先添加发票抬头' : ''"
+                            :title="!titles.length ? $t('portal.add_title_first') : ''"
                             @click="openGenerateDialog(row)"
                         >
-                            申请开票
+                            {{ $t('portal.apply_invoice') }}
                         </el-button>
                     </template>
                 </el-table-column>
             </el-table>
-            <el-empty v-if="billableOrders.length === 0 && !loadingOrders" description="暂无待开票订单" :image-size="60" />
+            <el-empty v-if="billableOrders.length === 0 && !loadingOrders" :description="$t('portal.no_billable')" :image-size="60" />
         </el-card>
 
         <!-- 发票记录 -->
         <el-card shadow="never">
             <template #header>
                 <div class="card-header">
-                    <span>发票记录</span>
+                    <span>{{ $t('portal.invoice_records') }}</span>
                 </div>
             </template>
             <el-table :data="invoices" v-loading="loadingInvoices" stripe>
-                <el-table-column prop="invoice_no" label="发票号" min-width="140">
+                <el-table-column prop="invoice_no" :label="$t('portal.invoice_no')" min-width="140">
                     <template #default="{ row }">{{ row.invoice_no || `#${row.id}` }}</template>
                 </el-table-column>
-                <el-table-column label="金额" width="100">
+                <el-table-column :label="$t('portal.amount')" width="100">
                     <template #default="{ row }">¥{{ row.amount || 0 }}</template>
                 </el-table-column>
-                <el-table-column label="状态" width="90">
+                <el-table-column :label="$t('portal.status')" width="90">
                     <template #default="{ row }">
                         <el-tag :type="invoiceStatusType(row.status)" size="small">
                             {{ invoiceStatusLabel(row.status) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="开票日期" width="150">
+                <el-table-column :label="$t('portal.invoice_date')" width="150">
                     <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
                 </el-table-column>
-                <el-table-column label="操作" width="180" fixed="right">
+                <el-table-column :label="$t('portal.actions')" width="180" fixed="right">
                     <template #default="{ row }">
                         <el-button type="primary" link size="small" @click="handlePreview(row)">
-                            预览
+                            {{ $t('portal.preview') }}
                         </el-button>
                         <el-button link size="small" @click="handleResend(row)">
-                            重发
+                            {{ $t('portal.resend') }}
                         </el-button>
                     </template>
                 </el-table-column>
             </el-table>
-            <el-empty v-if="invoices.length === 0 && !loadingInvoices" description="暂无发票记录" :image-size="60" />
+            <el-empty v-if="invoices.length === 0 && !loadingInvoices" :description="$t('portal.no_invoice_records')" :image-size="60" />
 
             <div class="pagination-wrap" v-if="totalInvoices > 0">
                 <el-pagination
@@ -166,52 +166,52 @@
         </el-card>
 
         <!-- 发票抬头对话框 -->
-        <el-dialog v-model="titleDialog.visible" :title="titleDialog.isEdit ? '编辑发票抬头' : '新增发票抬头'" width="520px">
+        <el-dialog v-model="titleDialog.visible" :title="titleDialog.isEdit ? $t('portal.edit_title') : $t('portal.add_title_dialog')" width="520px">
             <el-form :model="titleDialog.form" label-width="100px">
-                <el-form-item label="抬头名称" required>
-                    <el-input v-model="titleDialog.form.title" placeholder="公司全称" />
+                <el-form-item :label="$t('portal.title_name')" required>
+                    <el-input v-model="titleDialog.form.title" :placeholder="$t('portal.company_name_ph')" />
                 </el-form-item>
-                <el-form-item label="税号">
-                    <el-input v-model="titleDialog.form.tax_no" placeholder="统一社会信用代码" />
+                <el-form-item :label="$t('portal.tax_no')">
+                    <el-input v-model="titleDialog.form.tax_no" :placeholder="$t('portal.tax_no_ph')" />
                 </el-form-item>
-                <el-form-item label="地址">
-                    <el-input v-model="titleDialog.form.address" placeholder="注册地址" />
+                <el-form-item :label="$t('portal.address')">
+                    <el-input v-model="titleDialog.form.address" :placeholder="$t('portal.address_ph')" />
                 </el-form-item>
-                <el-form-item label="电话">
-                    <el-input v-model="titleDialog.form.phone" placeholder="注册电话" />
+                <el-form-item :label="$t('portal.phone')">
+                    <el-input v-model="titleDialog.form.phone" :placeholder="$t('portal.phone_ph')" />
                 </el-form-item>
-                <el-form-item label="开户行">
-                    <el-input v-model="titleDialog.form.bank_name" placeholder="开户银行名称" />
+                <el-form-item :label="$t('portal.bank_name')">
+                    <el-input v-model="titleDialog.form.bank_name" :placeholder="$t('portal.bank_name_ph')" />
                 </el-form-item>
-                <el-form-item label="银行账号">
-                    <el-input v-model="titleDialog.form.bank_account" placeholder="银行账号" />
+                <el-form-item :label="$t('portal.bank_account')">
+                    <el-input v-model="titleDialog.form.bank_account" :placeholder="$t('portal.bank_account_ph')" />
                 </el-form-item>
                 <el-form-item>
-                    <el-checkbox v-model="titleDialog.form.is_default">设为默认抬头</el-checkbox>
+                    <el-checkbox v-model="titleDialog.form.is_default">{{ $t('portal.set_default_title') }}</el-checkbox>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="titleDialog.visible = false">取消</el-button>
+                <el-button @click="titleDialog.visible = false">{{ $t('actions.cancel') }}</el-button>
                 <el-button type="primary" :loading="titleDialog.loading" @click="confirmSaveTitle">
-                    {{ titleDialog.isEdit ? '保存' : '添加' }}
+                    {{ titleDialog.isEdit ? $t('actions.save') : $t('portal.add') }}
                 </el-button>
             </template>
         </el-dialog>
 
         <!-- 申请开票对话框 -->
-        <el-dialog v-model="generateDialog.visible" title="申请开票" width="480px">
+        <el-dialog v-model="generateDialog.visible" :title="$t('portal.apply_invoice')" width="480px">
             <el-form label-position="top">
-                <el-form-item label="选择发票抬头">
-                    <el-select v-model="generateDialog.titleId" placeholder="请选择发票抬头" style="width:100%">
+                <el-form-item :label="$t('portal.select_title')">
+                    <el-select v-model="generateDialog.titleId" :placeholder="$t('portal.select_title_ph')" style="width:100%">
                         <el-option
-                            v-for="t in titles"
-                            :key="t.id"
-                            :label="t.title + (t.tax_no ? ' (' + t.tax_no + ')' : '')"
-                            :value="t.id"
+                            v-for="titleItem in titles"
+                            :key="titleItem.id"
+                            :label="titleItem.title + (titleItem.tax_no ? ' (' + titleItem.tax_no + ')' : '')"
+                            :value="titleItem.id"
                         />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="订单信息">
+                <el-form-item :label="$t('portal.order_info')">
                     <el-tag type="info">
                         {{ generateDialog.order?.order_no || `#${generateDialog.order?.id}` }}
                         — ¥{{ generateDialog.order?.total_amount || generateDialog.order?.amount || 0 }}
@@ -219,20 +219,20 @@
                 </el-form-item>
                 <el-alert type="info" :closable="false" show-icon>
                     <template #title>
-                        开具发票后将发送到您的注册邮箱，并可在下方发票记录中查看和下载。
+                        {{ $t('portal.generate_hint') }}
                     </template>
                 </el-alert>
             </el-form>
             <template #footer>
-                <el-button @click="generateDialog.visible = false">取消</el-button>
+                <el-button @click="generateDialog.visible = false">{{ $t('actions.cancel') }}</el-button>
                 <el-button type="primary" :loading="generateDialog.loading" @click="confirmGenerate">
-                    确认开票
+                    {{ $t('portal.confirm_invoice') }}
                 </el-button>
             </template>
         </el-dialog>
 
         <!-- 发票预览对话框 -->
-        <el-dialog v-model="previewDialog.visible" title="发票预览" width="800px" top="5vh">
+        <el-dialog v-model="previewDialog.visible" :title="$t('portal.invoice_preview')" width="800px" top="5vh">
             <div v-loading="previewDialog.loading" style="min-height:300px">
                 <iframe
                     v-if="previewDialog.html"
@@ -241,7 +241,7 @@
                 />
             </div>
             <template #footer>
-                <el-button @click="previewDialog.visible = false">关闭</el-button>
+                <el-button @click="previewDialog.visible = false">{{ $t('actions.close') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -249,10 +249,13 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import invoiceApi from '@/api/portalInvoice';
 import shopApi from '@/api/shop';
 import orderApi from '@/api/order';
+
+const { t, locale } = useI18n();
 
 // ── 数据 ──
 const loadingTitles = ref(false);
@@ -314,22 +317,22 @@ function openTitleDialog(item) {
 
 async function confirmSaveTitle() {
     if (!titleDialog.form.title) {
-        ElMessage.warning('请输入抬头名称');
+        ElMessage.warning(t('portal.title_name_required'));
         return;
     }
     titleDialog.loading = true;
     try {
         if (titleDialog.isEdit) {
             await invoiceApi.updateTitle(titleDialog.editId, titleDialog.form);
-            ElMessage.success('发票抬头已更新');
+            ElMessage.success(t('portal.title_updated'));
         } else {
             await invoiceApi.createTitle(titleDialog.form);
-            ElMessage.success('发票抬头已创建');
+            ElMessage.success(t('portal.title_created'));
         }
         titleDialog.visible = false;
         fetchTitles();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '保存失败');
+        ElMessage.error(e.response?.data?.message || t('portal.save_failed'));
     } finally {
         titleDialog.loading = false;
     }
@@ -337,15 +340,17 @@ async function confirmSaveTitle() {
 
 async function handleDeleteTitle(item) {
     try {
-        await ElMessageBox.confirm(`确定要删除抬头「${item.title}」吗？`, '确认删除', {
-            confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning',
-        });
+        await ElMessageBox.confirm(
+            t('portal.delete_title_confirm', { title: item.title }),
+            t('portal.confirm_delete'),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning' },
+        );
         await invoiceApi.deleteTitle(item.id);
-        ElMessage.success('发票抬头已删除');
+        ElMessage.success(t('portal.title_deleted'));
         fetchTitles();
     } catch (e) {
         if (e !== 'cancel') {
-            ElMessage.error(e.response?.data?.message || '删除失败');
+            ElMessage.error(e.response?.data?.message || t('portal.delete_failed_msg'));
         }
     }
 }
@@ -360,27 +365,26 @@ const generateDialog = reactive({
 
 function openGenerateDialog(order) {
     generateDialog.order = order;
-    // 默认选择默认抬头
-    const defaultTitle = titles.value.find(t => t.is_default);
+    const defaultTitle = titles.value.find(item => item.is_default);
     generateDialog.titleId = defaultTitle?.id || (titles.value[0]?.id || null);
     generateDialog.visible = true;
 }
 
 async function confirmGenerate() {
     if (!generateDialog.titleId) {
-        ElMessage.warning('请选择发票抬头');
+        ElMessage.warning(t('portal.title_required'));
         return;
     }
     generateDialog.loading = true;
     try {
-        const { data: res } = await invoiceApi.generate(generateDialog.order.id, generateDialog.titleId);
-        ElMessage.success('发票开具成功');
+        await invoiceApi.generate(generateDialog.order.id, generateDialog.titleId);
+        ElMessage.success(t('portal.invoice_generated'));
         generateDialog.visible = false;
         fetchInvoices();
         fetchBillableOrders();
         fetchStats();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '开票失败');
+        ElMessage.error(e.response?.data?.message || t('portal.invoice_generate_failed'));
     } finally {
         generateDialog.loading = false;
     }
@@ -401,7 +405,7 @@ async function handlePreview(invoice) {
         const res = await invoiceApi.preview(invoice.id);
         previewDialog.html = res.data;
     } catch (e) {
-        previewDialog.html = '<p style="color:red;padding:20px">无法加载发票预览</p>';
+        previewDialog.html = `<p style="color:red;padding:20px">${t('portal.preview_failed')}</p>`;
     } finally {
         previewDialog.loading = false;
     }
@@ -411,9 +415,9 @@ async function handlePreview(invoice) {
 async function handleResend(invoice) {
     try {
         await invoiceApi.resend(invoice.id);
-        ElMessage.success('发票邮件已重新发送');
+        ElMessage.success(t('portal.resend_ok'));
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '重发失败');
+        ElMessage.error(e.response?.data?.message || t('portal.resend_failed'));
     }
 }
 
@@ -457,20 +461,32 @@ async function fetchStats() {
 }
 
 // ── 工具 ──
-const INVOICE_STATUS_MAP = {
-    pending: { type: 'warning', label: '待处理' },
-    processing: { type: 'info', label: '开票中' },
-    completed: { type: 'success', label: '已开票' },
-    failed: { type: 'danger', label: '开票失败' },
-    cancelled: { type: 'info', label: '已取消' },
-};
+function invoiceStatusType(status) {
+    const map = {
+        pending: 'warning',
+        processing: 'info',
+        completed: 'success',
+        failed: 'danger',
+        cancelled: 'info',
+    };
+    return map[status] || 'info';
+}
 
-function invoiceStatusType(status) { return INVOICE_STATUS_MAP[status]?.type || 'info'; }
-function invoiceStatusLabel(status) { return INVOICE_STATUS_MAP[status]?.label || status; }
+function invoiceStatusLabel(status) {
+    const map = {
+        pending: t('portal.ticket_open'),
+        processing: t('portal.inv_processing'),
+        completed: t('portal.inv_completed'),
+        failed: t('portal.inv_gen_failed'),
+        cancelled: t('portal.inv_cancelled'),
+    };
+    return map[status] || status;
+}
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    const dateLocale = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(dateStr).toLocaleString(dateLocale, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit',
     });
@@ -514,8 +530,8 @@ onMounted(() => {
     transition: border-color 0.2s;
 }
 .title-card.is-default {
-    border-color: #409eff;
-    background: #ecf5ff;
+    border-color: #0f172a;
+    background: #f1f5f9;
 }
 .title-card:hover { border-color: #c0c4cc; }
 .title-main { flex: 1; min-width: 0; }

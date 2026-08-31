@@ -2,28 +2,28 @@
   <div>
     <div class="mb-4">
       <el-space>
-        <el-checkbox v-model="showAll" @change="fetchSessions">显示全部会话</el-checkbox>
-        <el-button size="small" type="danger" plain @click="terminateAll">终止全部会话</el-button>
+        <el-checkbox v-model="showAll" @change="fetchSessions">{{ t('session_panel.show_all') }}</el-checkbox>
+        <el-button size="small" type="danger" plain @click="terminateAll">{{ t('session_panel.terminate_all') }}</el-button>
       </el-space>
     </div>
 
     <el-table :data="sessions" v-loading="loading" size="small" max-height="420">
-      <el-table-column label="用户" min-width="140">
+      <el-table-column :label="t('session_panel.cols.user')" min-width="140">
         <template #default="{ row }">{{ row.user?.name || row.user?.email || '—' }}</template>
       </el-table-column>
-      <el-table-column prop="ip_address" label="IP" width="140">
+      <el-table-column prop="ip_address" :label="t('session_panel.cols.ip')" width="140">
         <template #default="{ row }"><code>{{ row.ip_address }}</code></template>
       </el-table-column>
-      <el-table-column prop="device_type" label="设备" width="80">
+      <el-table-column prop="device_type" :label="t('session_panel.cols.device')" width="80">
         <template #default="{ row }">
           <el-tag size="small" effect="plain">{{ row.device_type }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="browser" label="浏览器" width="100" show-overflow-tooltip />
-      <el-table-column prop="os" label="系统" width="80" show-overflow-tooltip />
-      <el-table-column label="当前" width="60" align="center">
+      <el-table-column prop="browser" :label="t('session_panel.cols.browser')" width="100" show-overflow-tooltip />
+      <el-table-column prop="os" :label="t('session_panel.cols.os')" width="80" show-overflow-tooltip />
+      <el-table-column :label="t('session_panel.cols.current')" width="60" align="center">
         <template #default="{ row }">
-          <el-tag v-if="row.is_current" type="success" size="small">当前</el-tag>
+          <el-tag v-if="row.is_current" type="success" size="small">{{ t('session_panel.current') }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="MFA" width="60" align="center">
@@ -31,17 +31,17 @@
           <el-tag v-if="row.is_mfa_verified" type="success" size="small">✓</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="最后活动" width="160">
+      <el-table-column :label="t('session_panel.cols.last_activity')" width="160">
         <template #default="{ row }">{{ row.last_activity_at?.slice(0, 16) || '—' }}</template>
       </el-table-column>
-      <el-table-column label="过期" width="160">
+      <el-table-column :label="t('session_panel.cols.expires')" width="160">
         <template #default="{ row }">{{ row.expires_at?.slice(0, 16) || '—' }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="100" fixed="right">
+      <el-table-column :label="t('session_panel.cols.actions')" width="100" fixed="right">
         <template #default="{ row }">
-          <el-popconfirm title="终止此会话？" @confirm="terminate(row)">
+          <el-popconfirm :title="t('session_panel.confirm_terminate')" @confirm="terminate(row)">
             <template #reference>
-              <el-button size="small" type="danger" link :disabled="row.is_current && !showAll">终止</el-button>
+              <el-button size="small" type="danger" link :disabled="row.is_current && !showAll">{{ t('session_panel.terminate') }}</el-button>
             </template>
           </el-popconfirm>
         </template>
@@ -52,9 +52,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { getSessions, terminateSession, terminateAllSessions } from '../../../api/securityCenter'
 
+const { t } = useI18n()
 const loading = ref(false)
 const sessions = ref([])
 const showAll = ref(false)
@@ -64,27 +66,29 @@ async function fetchSessions() {
   try {
     const { data } = await getSessions({ all: showAll.value ? 'true' : undefined })
     sessions.value = data || []
-  } catch (e) { ElMessage.error('获取会话列表失败') }
+  } catch (e) { ElMessage.error(t('session_panel.messages.load_failed')) }
   finally { loading.value = false }
 }
 
 async function terminate(row) {
   try {
     await terminateSession(row.id)
-    ElMessage.success('会话已终止')
+    ElMessage.success(t('session_panel.messages.terminated'))
     fetchSessions()
-  } catch (e) { ElMessage.error('操作失败') }
+  } catch (e) { ElMessage.error(t('session_panel.messages.failed')) }
 }
 
 function terminateAll() {
-  ElMessageBox.confirm('确定终止全部活跃会话？所有用户需要重新登录。', '确认', {
-    confirmButtonText: '终止全部', cancelButtonText: '取消', type: 'warning',
+  ElMessageBox.confirm(t('session_panel.confirm_all_body'), t('session_panel.confirm_all_title'), {
+    confirmButtonText: t('session_panel.terminate_all'),
+    cancelButtonText: t('actions.cancel'),
+    type: 'warning',
   }).then(async () => {
     try {
       await terminateAllSessions()
-      ElMessage.success('已终止全部会话')
+      ElMessage.success(t('session_panel.messages.all_terminated'))
       fetchSessions()
-    } catch (e) { ElMessage.error('操作失败') }
+    } catch (e) { ElMessage.error(t('session_panel.messages.failed')) }
   }).catch(() => {})
 }
 

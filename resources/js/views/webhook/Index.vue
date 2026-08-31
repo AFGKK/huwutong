@@ -2,13 +2,13 @@
     <div class="webhook-replay-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>Webhook 事件回放面板</h2>
-                <span class="header-subtitle">管理失败的 Webhook 事件，手动或批量重放</span>
+                <h2>{{ t('webhook_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('webhook_page.subtitle') }}</span>
             </div>
             <div class="header-right">
                 <el-button type="primary" :disabled="!selectedIds.length" @click="handleBatchReplay">
                     <el-icon><Refresh /></el-icon>
-                    批量重放 ({{ selectedIds.length }})
+                    {{ t('webhook_page.batch_replay', { n: selectedIds.length }) }}
                 </el-button>
             </div>
         </div>
@@ -26,18 +26,18 @@
         <!-- 筛选 -->
         <el-card shadow="never" class="filter-card">
             <el-form :inline="true" :model="filters" size="small">
-                <el-form-item label="状态">
-                    <el-select v-model="filters.status" placeholder="可重放" clearable @change="loadEvents" style="width:140px;">
-                        <el-option label="可重放" value="" />
-                        <el-option label="待重试" value="retrying" />
-                        <el-option label="死信队列" value="dead_letter" />
-                        <el-option label="已投递" value="delivered" />
-                        <el-option label="暂停" value="paused" />
-                        <el-option label="待处理" value="pending" />
+                <el-form-item :label="t('webhook_page.filters.status')">
+                    <el-select v-model="filters.status" :placeholder="t('webhook_page.filters.status_replayable')" clearable @change="loadEvents" style="width:140px;">
+                        <el-option
+                            v-for="opt in statusFilterOptions"
+                            :key="opt.value"
+                            :label="opt.label"
+                            :value="opt.value"
+                        />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="事件类型">
-                    <el-input v-model="filters.event_type" placeholder="如: license.activated" clearable @input="loadEvents" style="width:180px;" />
+                <el-form-item :label="t('webhook_page.filters.event_type')">
+                    <el-input v-model="filters.event_type" :placeholder="t('webhook_page.filters.event_type_ph')" clearable @input="loadEvents" style="width:180px;" />
                 </el-form-item>
             </el-form>
         </el-card>
@@ -54,14 +54,14 @@
                 style="cursor: pointer;"
             >
                 <el-table-column type="selection" width="40" />
-                <el-table-column label="事件类型" width="180" prop="event_type">
+                <el-table-column :label="t('webhook_page.cols.event_type')" width="180" prop="event_type">
                     <template #default="{ row }">
                         <el-tag size="small" :type="eventTypeTag(row.event_type)">
                             {{ row.event_type }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="端点" min-width="200" prop="webhook_endpoint">
+                <el-table-column :label="t('webhook_page.cols.endpoint')" min-width="200" prop="webhook_endpoint">
                     <template #default="{ row }">
                         <div class="endpoint-cell">
                             <div class="endpoint-name">{{ row.webhook_endpoint?.name || '-' }}</div>
@@ -71,30 +71,30 @@
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column label="状态" width="100" prop="status">
+                <el-table-column :label="t('webhook_page.cols.status')" width="100" prop="status">
                     <template #default="{ row }">
                         <el-tag :type="statusType(row.status)" size="small" effect="dark">
                             {{ statusLabel(row.status) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="重试次数" width="80" prop="attempts" align="center">
+                <el-table-column :label="t('webhook_page.cols.attempts')" width="80" prop="attempts" align="center">
                     <template #default="{ row }">
                         <span>{{ row.attempts || 0 }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="下次重试" width="170" prop="next_retry_at">
+                <el-table-column :label="t('webhook_page.cols.next_retry')" width="170" prop="next_retry_at">
                     <template #default="{ row }">
                         <span v-if="row.next_retry_at">{{ formatDate(row.next_retry_at) }}</span>
                         <span v-else class="text-muted">-</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="创建时间" width="170" prop="created_at">
+                <el-table-column :label="t('webhook_page.cols.created_at')" width="170" prop="created_at">
                     <template #default="{ row }">
                         {{ formatDate(row.created_at) }}
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="140" fixed="right">
+                <el-table-column :label="t('webhook_page.cols.actions')" width="140" fixed="right">
                     <template #default="{ row }">
                         <el-button
                             text
@@ -103,10 +103,10 @@
                             :disabled="!isReplayable(row)"
                             @click.stop="handleReplay(row)"
                         >
-                            {{ row.status === 'delivered' ? '查看' : '重放' }}
+                            {{ row.status === 'delivered' ? t('actions.view') : t('webhook_page.replay') }}
                         </el-button>
                         <el-button text size="small" type="primary" @click.stop="openDetail(row)">
-                            详情
+                            {{ t('actions.view_details') }}
                         </el-button>
                     </template>
                 </el-table-column>
@@ -125,27 +125,27 @@
         </el-card>
 
         <!-- 事件详情 Dialog -->
-        <el-dialog v-model="detailVisible" title="Webhook 事件详情" width="800px" top="5vh" :close-on-click-modal="false">
+        <el-dialog v-model="detailVisible" :title="t('webhook_page.detail.title')" width="800px" top="5vh" :close-on-click-modal="false">
             <div v-loading="detailLoading">
                 <!-- 基本信息 -->
                 <el-descriptions :column="2" border size="small" class="detail-section">
-                    <el-descriptions-item label="事件 ID">{{ detailData?.event?.id }}</el-descriptions-item>
-                    <el-descriptions-item label="事件类型">
+                    <el-descriptions-item :label="t('webhook_page.detail.event_id')">{{ detailData?.event?.id }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('webhook_page.detail.event_type')">
                         <el-tag size="small" :type="eventTypeTag(detailData?.event?.event_type)">
                             {{ detailData?.event?.event_type }}
                         </el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="状态">
+                    <el-descriptions-item :label="t('webhook_page.detail.status')">
                         <el-tag :type="statusType(detailData?.event?.status)" size="small" effect="dark">
                             {{ statusLabel(detailData?.event?.status) }}
                         </el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="重试次数">{{ detailData?.event?.attempts || 0 }}</el-descriptions-item>
-                    <el-descriptions-item label="端点名称">{{ detailData?.event?.webhook_endpoint?.name || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="端点 URL" :span="1">
+                    <el-descriptions-item :label="t('webhook_page.detail.attempts')">{{ detailData?.event?.attempts || 0 }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('webhook_page.detail.endpoint_name')">{{ detailData?.event?.webhook_endpoint?.name || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('webhook_page.detail.endpoint_url')" :span="1">
                         <code class="url-code">{{ detailData?.event?.webhook_endpoint?.url || '-' }}</code>
                     </el-descriptions-item>
-                    <el-descriptions-item label="Payload" :span="2">
+                    <el-descriptions-item :label="t('webhook_page.detail.payload')" :span="2">
                         <pre class="payload-preview"><code>{{ formatJson(detailData?.event?.payload) }}</code></pre>
                     </el-descriptions-item>
                 </el-descriptions>
@@ -153,12 +153,12 @@
                 <!-- 重放按钮 -->
                 <div v-if="isReplayable(detailData?.event)" class="detail-actions">
                     <el-button type="primary" :loading="replaying" @click="handleReplay(detailData.event)">
-                        <el-icon><Refresh /></el-icon> 重放此事件
+                        <el-icon><Refresh /></el-icon> {{ t('webhook_page.detail.replay_event') }}
                     </el-button>
                 </div>
 
                 <!-- 交付历史 -->
-                <h4 class="section-title">交付历史</h4>
+                <h4 class="section-title">{{ t('webhook_page.detail.delivery_history') }}</h4>
                 <el-timeline v-if="detailData?.deliveries?.length">
                     <el-timeline-item
                         v-for="delivery in detailData.deliveries"
@@ -168,7 +168,7 @@
                     >
                         <div class="delivery-item">
                             <div class="delivery-header">
-                                <strong>第 {{ delivery.attempt }} 次尝试</strong>
+                                <strong>{{ t('webhook_page.detail.attempt_n', { n: delivery.attempt }) }}</strong>
                                 <el-tag
                                     :type="delivery.status === 'delivered' ? 'success' : 'danger'"
                                     size="small"
@@ -184,24 +184,27 @@
                             </div>
                             <div v-if="delivery.response_body" class="delivery-response">
                                 <div class="response-toggle" @click="toggleResponse(delivery.id)">
-                                    <el-icon><ArrowDown /></el-icon> 响应内容
+                                    <el-icon><ArrowDown /></el-icon> {{ t('webhook_page.detail.response_body') }}
                                 </div>
                                 <pre v-if="expandedResponses[delivery.id]" class="response-body"><code>{{ delivery.response_body }}</code></pre>
                             </div>
                         </div>
                     </el-timeline-item>
                 </el-timeline>
-                <el-empty v-else description="暂无交付记录" :image-size="60" />
+                <el-empty v-else :description="t('webhook_page.detail.no_deliveries')" :image-size="60" />
             </div>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh, ArrowDown } from '@element-plus/icons-vue';
 import webhookApi from '@/api/webhook';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const events = ref([]);
@@ -214,24 +217,44 @@ const detailLoading = ref(false);
 const detailData = ref(null);
 const replaying = ref(false);
 const expandedResponses = reactive({});
+const statsData = ref(null);
 
 const filters = reactive({
     status: '',
     event_type: '',
 });
 
-const statsList = ref([]);
+const statusFilterOptions = computed(() => [
+    { label: t('webhook_page.filters.status_replayable'), value: '' },
+    { label: t('webhook_page.filters.status_retrying'), value: 'retrying' },
+    { label: t('webhook_page.filters.status_dead_letter'), value: 'dead_letter' },
+    { label: t('webhook_page.filters.status_delivered'), value: 'delivered' },
+    { label: t('webhook_page.filters.status_paused'), value: 'paused' },
+    { label: t('webhook_page.filters.status_pending'), value: 'pending' },
+]);
 
-const statusMap = {
-    pending: '待处理',
-    retrying: '重试中',
-    dead_letter: '死信',
-    delivered: '已投递',
-    paused: '已暂停',
-};
+const statsList = computed(() => {
+    const s = statsData.value;
+    if (!s) return [];
+    return [
+        { label: t('webhook_page.stats.pending_replay'), value: s.pending_replay || 0, color: '#E6A23C' },
+        { label: t('webhook_page.stats.dead_letter'), value: s.dead_letter || 0, color: '#F56C6C' },
+        { label: t('webhook_page.stats.delivered_today'), value: s.delivered_today || 0, color: '#67C23A' },
+        { label: t('webhook_page.stats.failed_today'), value: s.failed_today || 0, color: '#F56C6C' },
+        { label: t('webhook_page.stats.active_endpoints'), value: s.total_endpoints || 0, color: '#0f172a' },
+        { label: t('webhook_page.stats.paused_endpoints'), value: s.paused_endpoints || 0, color: '#909399' },
+    ];
+});
 
 function statusLabel(status) {
-    return statusMap[status] || status;
+    const map = {
+        pending: t('webhook_page.status.pending'),
+        retrying: t('webhook_page.status.retrying'),
+        dead_letter: t('webhook_page.status.dead_letter'),
+        delivered: t('webhook_page.status.delivered'),
+        paused: t('webhook_page.status.paused'),
+    };
+    return map[status] || status;
 }
 
 function statusType(status) {
@@ -260,7 +283,8 @@ function isReplayable(event) {
 
 function formatDate(dateStr) {
     if (!dateStr) return null;
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    const loc = locale.value === 'zh_CN' ? 'zh-CN' : 'en-US';
+    return new Date(dateStr).toLocaleString(loc, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit',
     });
@@ -287,18 +311,10 @@ async function loadStats() {
     try {
         const { data: res } = await webhookApi.stats();
         if (res.success) {
-            const s = res.data;
-            statsList.value = [
-                { label: '待重放', value: s.pending_replay || 0, color: '#E6A23C' },
-                { label: '死信队列', value: s.dead_letter || 0, color: '#F56C6C' },
-                { label: '今日已投递', value: s.delivered_today || 0, color: '#67C23A' },
-                { label: '今日失败', value: s.failed_today || 0, color: '#F56C6C' },
-                { label: '活跃端点', value: s.total_endpoints || 0, color: '#409EFF' },
-                { label: '暂停端点', value: s.paused_endpoints || 0, color: '#909399' },
-            ];
+            statsData.value = res.data;
         }
     } catch {
-        statsList.value = [];
+        statsData.value = null;
     }
 }
 
@@ -335,7 +351,7 @@ async function openDetail(row) {
             detailData.value = res.data;
         }
     } catch {
-        ElMessage.error('加载事件详情失败');
+        ElMessage.error(t('webhook_page.messages.load_detail_fail'));
     } finally {
         detailLoading.value = false;
     }
@@ -347,19 +363,18 @@ async function handleReplay(event) {
         const { data: res } = await webhookApi.replay(event.id);
         if (res.success) {
             if (res.data?.delivered) {
-                ElMessage.success('重放成功！');
+                ElMessage.success(t('webhook_page.messages.replay_ok'));
             } else {
-                ElMessage.warning('重放失败，请检查端点配置');
+                ElMessage.warning(t('webhook_page.messages.replay_fail'));
             }
             loadEvents();
             loadStats();
-            // 刷新详情
             if (detailVisible.value && detailData.value) {
                 openDetail(event);
             }
         }
     } catch {
-        ElMessage.error('重放请求失败');
+        ElMessage.error(t('webhook_page.messages.replay_request_fail'));
     } finally {
         replaying.value = false;
     }
@@ -367,27 +382,31 @@ async function handleReplay(event) {
 
 async function handleBatchReplay() {
     if (!selectedIds.value.length) {
-        ElMessage.warning('请选择要重放的事件');
+        ElMessage.warning(t('webhook_page.messages.select_events'));
         return;
     }
 
     try {
         await ElMessageBox.confirm(
-            `确定要重放选中的 ${selectedIds.value.length} 个事件吗？`,
-            '批量重放',
-            { confirmButtonText: '确定重放', cancelButtonText: '取消', type: 'warning' }
+            t('webhook_page.messages.batch_confirm', { n: selectedIds.value.length }),
+            t('webhook_page.messages.batch_title'),
+            {
+                confirmButtonText: t('webhook_page.messages.batch_confirm_btn'),
+                cancelButtonText: t('actions.cancel'),
+                type: 'warning',
+            }
         );
 
         const { data: res } = await webhookApi.batchReplay(selectedIds.value);
         if (res.success) {
-            ElMessage.success(res.message || `重放完成`);
+            ElMessage.success(res.message || t('webhook_page.messages.batch_ok'));
             selectedIds.value = [];
             loadEvents();
             loadStats();
         }
     } catch (e) {
         if (e !== 'cancel') {
-            ElMessage.error('批量重放失败');
+            ElMessage.error(t('webhook_page.messages.batch_fail'));
         }
     }
 }

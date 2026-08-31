@@ -19,7 +19,7 @@
                     <el-form-item>
                         <el-input
                             v-model="filters.search"
-                            placeholder="搜索租户（名称/域名）"
+                            :placeholder="t('tenants_page.search_ph')"
                             clearable
                             @clear="fetchData"
                             @keyup.enter="fetchData"
@@ -29,22 +29,20 @@
                         </el-input>
                     </el-form-item>
                     <el-form-item>
-                        <el-select v-model="filters['filter.status']" placeholder="状态" clearable @change="fetchData" style="width: 120px">
-                            <el-option label="活跃" value="active" />
-                            <el-option label="停用" value="inactive" />
-                            <el-option label="暂停" value="suspended" />
+                        <el-select v-model="filters['filter.status']" :placeholder="t('tenants_page.status')" clearable @change="fetchData" style="width: 120px">
+                            <el-option v-for="opt in statusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                         </el-select>
                     </el-form-item>
                     <el-form-item>
-                        <el-button type="primary" @click="fetchData"><el-icon><Search /></el-icon> 查询</el-button>
+                        <el-button type="primary" @click="fetchData"><el-icon><Search /></el-icon> {{ t('actions.search') }}</el-button>
                     </el-form-item>
                 </el-form>
-                <el-button type="primary" @click="openCreate"><el-icon><Plus /></el-icon> 新建租户</el-button>
+                <el-button type="primary" @click="openCreate"><el-icon><Plus /></el-icon> {{ t('tenants_page.create_btn') }}</el-button>
             </div>
 
             <el-table :data="tenants" v-loading="loading" stripe>
                 <el-table-column prop="id" label="ID" width="60" />
-                <el-table-column label="租户名称" min-width="160">
+                <el-table-column :label="t('tenants_page.col_name')" min-width="160">
                     <template #default="{ row }">
                         <div class="tenant-name">
                             <span class="name-text">{{ row.name }}</span>
@@ -52,39 +50,39 @@
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column prop="domain" label="域名" width="180">
+                <el-table-column prop="domain" :label="t('tenants_page.col_domain')" width="180">
                     <template #default="{ row }">{{ row.domain || '-' }}</template>
                 </el-table-column>
-                <el-table-column prop="subscription_plan" label="订阅方案" width="120">
+                <el-table-column prop="subscription_plan" :label="t('tenants_page.col_plan')" width="120">
                     <template #default="{ row }">{{ row.subscription_plan || '-' }}</template>
                 </el-table-column>
-                <el-table-column label="统计" width="180">
+                <el-table-column :label="t('tenants_page.col_stats')" width="180">
                     <template #default="{ row }">
                         <span class="stat-badges">
-                            <el-tag size="small">{{ row.users_count || 0 }} 用户</el-tag>
-                            <el-tag size="small" type="success">{{ row.customers_count || 0 }} 客户</el-tag>
-                            <el-tag size="small" type="warning">{{ row.licenses_count || 0 }} License</el-tag>
+                            <el-tag size="small">{{ t('tenants_page.badge_users', { n: row.users_count || 0 }) }}</el-tag>
+                            <el-tag size="small" type="success">{{ t('tenants_page.badge_customers', { n: row.customers_count || 0 }) }}</el-tag>
+                            <el-tag size="small" type="warning">{{ t('tenants_page.badge_licenses', { n: row.licenses_count || 0 }) }}</el-tag>
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column label="状态" width="90">
+                <el-table-column :label="t('tenants_page.col_status')" width="90">
                     <template #default="{ row }">
                         <el-tag :type="row.status === 'active' ? 'success' : row.status === 'suspended' ? 'danger' : 'info'" size="small">
-                            {{ row.status === 'active' ? '活跃' : row.status === 'suspended' ? '暂停' : '停用' }}
+                            {{ statusLabel(row.status) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="created_at" label="创建时间" width="170" />
-                <el-table-column label="操作" width="220" fixed="right">
+                <el-table-column prop="created_at" :label="t('tenants_page.col_created')" width="170" />
+                <el-table-column :label="t('tenants_page.col_actions')" width="220" fixed="right">
                     <template #default="{ row }">
-                        <el-button text size="small" type="primary" @click="openDetail(row)">详情</el-button>
-                        <el-button text size="small" type="primary" @click="openEdit(row)">编辑</el-button>
+                        <el-button text size="small" type="primary" @click="openDetail(row)">{{ t('tenants_page.detail') }}</el-button>
+                        <el-button text size="small" type="primary" @click="openEdit(row)">{{ t('actions.edit') }}</el-button>
                         <el-button
                             text size="small"
                             :type="row.status === 'active' ? 'warning' : 'success'"
                             @click="handleToggleStatus(row)"
                         >
-                            {{ row.status === 'active' ? '停用' : '启用' }}
+                            {{ row.status === 'active' ? t('actions.disable') : t('actions.enable') }}
                         </el-button>
                     </template>
                 </el-table-column>
@@ -103,104 +101,100 @@
         </el-card>
 
         <!-- 创建/编辑对话框 -->
-        <el-dialog v-model="showDialog" :title="isEditing ? '编辑租户' : '新建租户'" width="600px">
+        <el-dialog v-model="showDialog" :title="isEditing ? t('tenants_page.edit_title') : t('tenants_page.create_title')" width="600px">
             <el-form ref="formRef" :model="form" :rules="formRules" label-width="120px">
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="名称" prop="name">
-                            <el-input v-model="form.name" placeholder="公司/组织名称" />
+                        <el-form-item :label="t('tenants_page.form_name')" prop="name">
+                            <el-input v-model="form.name" :placeholder="t('tenants_page.name_ph')" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="标识" prop="slug">
-                            <el-input v-model="form.slug" placeholder="唯一标识符" :disabled="isEditing" />
+                        <el-form-item :label="t('tenants_page.form_slug')" prop="slug">
+                            <el-input v-model="form.slug" :placeholder="t('tenants_page.slug_ph')" :disabled="isEditing" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-form-item label="域名" prop="domain">
-                    <el-input v-model="form.domain" placeholder="例如：tenant.example.com" />
+                <el-form-item :label="t('tenants_page.form_domain')" prop="domain">
+                    <el-input v-model="form.domain" :placeholder="t('tenants_page.domain_ph')" />
                 </el-form-item>
                 <el-row :gutter="16">
                     <el-col :span="8">
-                        <el-form-item label="状态" prop="status">
+                        <el-form-item :label="t('tenants_page.form_status')" prop="status">
                             <el-select v-model="form.status" style="width: 100%">
-                                <el-option label="活跃" value="active" />
-                                <el-option label="停用" value="inactive" />
-                                <el-option label="暂停" value="suspended" />
+                                <el-option v-for="opt in statusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="订阅方案" prop="subscription_plan">
-                            <el-input v-model="form.subscription_plan" placeholder="如：enterprise" />
+                        <el-form-item :label="t('tenants_page.form_plan')" prop="subscription_plan">
+                            <el-input v-model="form.subscription_plan" :placeholder="t('tenants_page.plan_ph')" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="数据区域" prop="data_region">
-                            <el-input v-model="form.data_region" placeholder="如：cn-north" />
+                        <el-form-item :label="t('tenants_page.form_region')" prop="data_region">
+                            <el-input v-model="form.data_region" :placeholder="t('tenants_page.region_ph')" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-form-item label="MFA 策略" prop="mfa_policy">
+                <el-form-item :label="t('tenants_page.form_mfa')" prop="mfa_policy">
                     <el-select v-model="form.mfa_policy" style="width: 200px">
-                        <el-option label="可选" value="optional" />
-                        <el-option label="强制" value="required" />
-                        <el-option label="禁用" value="disabled" />
+                        <el-option v-for="opt in mfaOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="品牌设置" prop="branding">
-                    <el-input v-model="form.branding" type="textarea" :rows="2" placeholder='JSON，如：{"primary_color":"#409eff"}' />
+                <el-form-item :label="t('tenants_page.form_branding')" prop="branding">
+                    <el-input v-model="form.branding" type="textarea" :rows="2" :placeholder="t('tenants_page.branding_ph')" />
                 </el-form-item>
-                <el-form-item label="IP 白名单" prop="allowed_ips" v-if="isEditing">
-                    <el-select v-model="form.allowed_ips" multiple filterable allow-create default-first-option placeholder="输入 IP 地址后回车" style="width: 100%">
+                <el-form-item :label="t('tenants_page.form_allowed_ips')" prop="allowed_ips" v-if="isEditing">
+                    <el-select v-model="form.allowed_ips" multiple filterable allow-create default-first-option :placeholder="t('tenants_page.allowed_ips_ph')" style="width: 100%">
                         <el-option v-for="ip in form.allowed_ips" :key="ip" :label="ip" :value="ip" />
                     </el-select>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showDialog = false">取消</el-button>
-                <el-button type="primary" :loading="submitting" @click="confirmSubmit">{{ isEditing ? '保存修改' : '创建租户' }}</el-button>
+                <el-button @click="showDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="submitting" @click="confirmSubmit">{{ isEditing ? t('tenants_page.save_changes') : t('tenants_page.create_tenant') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 详情对话框（含成员管理） -->
-        <el-dialog v-model="showDetail" title="租户详情" width="700px">
+        <el-dialog v-model="showDetail" :title="t('tenants_page.detail_title')" width="700px">
             <template v-if="detail">
                 <el-descriptions :column="2" border>
-                    <el-descriptions-item label="名称">{{ detail.name }}</el-descriptions-item>
-                    <el-descriptions-item label="标识">{{ detail.slug }}</el-descriptions-item>
-                    <el-descriptions-item label="域名">{{ detail.domain || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="状态">
-                        <el-tag :type="detail.status === 'active' ? 'success' : 'info'" size="small">
-                            {{ detail.status === 'active' ? '活跃' : '停用' }}
+                    <el-descriptions-item :label="t('tenants_page.form_name')">{{ detail.name }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('tenants_page.form_slug')">{{ detail.slug }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('tenants_page.form_domain')">{{ detail.domain || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('tenants_page.form_status')">
+                        <el-tag :type="detail.status === 'active' ? 'success' : detail.status === 'suspended' ? 'danger' : 'info'" size="small">
+                            {{ statusLabel(detail.status) }}
                         </el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="订阅方案">{{ detail.subscription_plan || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="数据区域">{{ detail.data_region || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="MFA 策略">{{ detail.mfa_policy || 'optional' }}</el-descriptions-item>
-                    <el-descriptions-item label="创建时间">{{ detail.created_at }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('tenants_page.form_plan')">{{ detail.subscription_plan || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('tenants_page.form_region')">{{ detail.data_region || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('tenants_page.form_mfa')">{{ mfaLabel(detail.mfa_policy) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('tenants_page.col_created')">{{ detail.created_at }}</el-descriptions-item>
                 </el-descriptions>
 
                 <el-divider />
 
                 <div class="section-header">
-                    <span>成员管理 ({{ detail.members?.length || 0 }})</span>
+                    <span>{{ t('tenants_page.members_title', { n: detail.members?.length || 0 }) }}</span>
                     <el-button size="small" type="primary" @click="showAddMember = true">
-                        <el-icon><Plus /></el-icon> 添加成员
+                        <el-icon><Plus /></el-icon> {{ t('tenants_page.add_member') }}
                     </el-button>
                 </div>
                 <el-table :data="detail.members || []" size="small" stripe>
-                    <el-table-column label="用户" min-width="140">
+                    <el-table-column :label="t('tenants_page.col_user')" min-width="140">
                         <template #default="{ row }">
                             {{ row.user?.name || '-' }}
                         </template>
                     </el-table-column>
-                    <el-table-column label="邮箱" width="180">
+                    <el-table-column :label="t('tenants_page.col_email')" width="180">
                         <template #default="{ row }">
                             {{ row.user?.email || '-' }}
                         </template>
                     </el-table-column>
-                    <el-table-column label="角色" width="120">
+                    <el-table-column :label="t('tenants_page.col_role')" width="120">
                         <template #default="{ row }">
                             <el-select
                                 :model-value="row.role"
@@ -208,22 +202,20 @@
                                 @change="(val) => handleUpdateMemberRole(detail, row, val)"
                                 style="width: 100px"
                             >
-                                <el-option label="管理员" value="admin" />
-                                <el-option label="成员" value="member" />
-                                <el-option label="观察者" value="viewer" />
+                                <el-option v-for="opt in roleOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                             </el-select>
                         </template>
                     </el-table-column>
-                    <el-table-column label="操作" width="80">
+                    <el-table-column :label="t('tenants_page.col_actions')" width="80">
                         <template #default="{ row }">
-                            <el-button text size="small" type="danger" @click="handleRemoveMember(detail, row)">移除</el-button>
+                            <el-button text size="small" type="danger" @click="handleRemoveMember(detail, row)">{{ t('tenants_page.remove_member') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
 
                 <!-- 统计数据 -->
                 <el-divider />
-                <div class="section-header"><span>统计数据</span></div>
+                <div class="section-header"><span>{{ t('tenants_page.stats_title') }}</span></div>
                 <el-row :gutter="16">
                     <el-col :span="6" v-for="s in detailStats" :key="s.label">
                         <el-statistic :title="s.label" :value="s.value" />
@@ -231,34 +223,32 @@
                 </el-row>
             </template>
             <template #footer>
-                <el-button @click="showDetail = false">关闭</el-button>
+                <el-button @click="showDetail = false">{{ t('actions.close') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 添加成员对话框 -->
-        <el-dialog v-model="showAddMember" title="添加成员" width="400px">
+        <el-dialog v-model="showAddMember" :title="t('tenants_page.add_member_title')" width="400px">
             <el-form label-width="80px">
-                <el-form-item label="用户">
+                <el-form-item :label="t('tenants_page.col_user')">
                     <el-select v-model="addMemberUserId" filterable remote
                         :remote-method="searchUsers"
                         :loading="searchingUsers"
-                        placeholder="搜索用户（姓名/邮箱）"
+                        :placeholder="t('tenants_page.search_user_ph')"
                         style="width: 100%"
                     >
                         <el-option v-for="u in searchUserResults" :key="u.id" :label="`${u.name} (${u.email})`" :value="u.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="角色">
+                <el-form-item :label="t('tenants_page.col_role')">
                     <el-select v-model="addMemberRole" style="width: 100%">
-                        <el-option label="管理员" value="admin" />
-                        <el-option label="成员" value="member" />
-                        <el-option label="观察者" value="viewer" />
+                        <el-option v-for="opt in roleOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showAddMember = false">取消</el-button>
-                <el-button type="primary" :loading="addingMember" @click="confirmAddMember">添加</el-button>
+                <el-button @click="showAddMember = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="addingMember" @click="confirmAddMember">{{ t('tenants_page.add_btn') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -266,10 +256,13 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus } from '@element-plus/icons-vue';
 import tenantApi from '@/api/tenant';
 import apiClient from '@/api/client';
+
+const { t } = useI18n();
 
 // ─── 统计 ───
 const stats = reactive({
@@ -278,12 +271,50 @@ const stats = reactive({
 });
 
 const statCards = computed(() => [
-    { label: '总租户', value: stats.total },
-    { label: '活跃', value: stats.active },
-    { label: '已停用', value: stats.inactive },
-    { label: '已暂停', value: stats.suspended },
-    { label: '总用户数', value: stats.total_users },
+    { label: t('tenants_page.stat_total'), value: stats.total },
+    { label: t('tenants_page.stat_active'), value: stats.active },
+    { label: t('tenants_page.stat_inactive'), value: stats.inactive },
+    { label: t('tenants_page.stat_suspended'), value: stats.suspended },
+    { label: t('tenants_page.stat_total_users'), value: stats.total_users },
 ]);
+
+const statusLabels = computed(() => ({
+    active: t('tenants_page.st_active'),
+    inactive: t('tenants_page.st_inactive'),
+    suspended: t('tenants_page.st_suspended'),
+}));
+
+const statusOptions = computed(() => [
+    { value: 'active', label: statusLabels.value.active },
+    { value: 'inactive', label: statusLabels.value.inactive },
+    { value: 'suspended', label: statusLabels.value.suspended },
+]);
+
+const mfaLabels = computed(() => ({
+    optional: t('tenants_page.mfa_optional'),
+    required: t('tenants_page.mfa_required'),
+    disabled: t('tenants_page.mfa_disabled'),
+}));
+
+const mfaOptions = computed(() => [
+    { value: 'optional', label: mfaLabels.value.optional },
+    { value: 'required', label: mfaLabels.value.required },
+    { value: 'disabled', label: mfaLabels.value.disabled },
+]);
+
+const roleOptions = computed(() => [
+    { value: 'admin', label: t('tenants_page.role_admin') },
+    { value: 'member', label: t('tenants_page.role_member') },
+    { value: 'viewer', label: t('tenants_page.role_viewer') },
+]);
+
+function statusLabel(status) {
+    return statusLabels.value[status] || status;
+}
+
+function mfaLabel(policy) {
+    return mfaLabels.value[policy || 'optional'] || policy;
+}
 
 // ─── 列表 ───
 const tenants = ref([]);
@@ -311,7 +342,7 @@ async function fetchData() {
         total.value = listRes.data?.meta?.total || 0;
         Object.assign(stats, statsRes.data?.data || {});
     } catch {
-        ElMessage.error('获取租户列表失败');
+        ElMessage.error(t('tenants_page.load_fail'));
     } finally {
         loading.value = false;
     }
@@ -330,9 +361,9 @@ const form = reactive({
     mfa_policy: 'optional', branding: '', allowed_ips: [],
 });
 
-const formRules = {
-    name: [{ required: true, message: '请输入租户名称', trigger: 'blur' }],
-};
+const formRules = computed(() => ({
+    name: [{ required: true, message: t('tenants_page.name_required'), trigger: 'blur' }],
+}));
 
 function openCreate() {
     isEditing.value = false;
@@ -379,15 +410,15 @@ async function confirmSubmit() {
 
         if (isEditing.value) {
             await tenantApi.adminUpdate(editingId.value, payload);
-            ElMessage.success('租户更新成功');
+            ElMessage.success(t('tenants_page.update_ok'));
         } else {
             await tenantApi.adminCreate(payload);
-            ElMessage.success('租户创建成功');
+            ElMessage.success(t('tenants_page.create_ok'));
         }
         showDialog.value = false;
         await fetchData();
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '操作失败');
+        ElMessage.error(err.response?.data?.message || t('messages.failed'));
     } finally {
         submitting.value = false;
     }
@@ -400,10 +431,10 @@ const detail = ref(null);
 const detailStats = computed(() => {
     if (!detail.value) return [];
     return [
-        { label: '用户数', value: detail.value.users_count || 0 },
-        { label: '客户数', value: detail.value.customers_count || 0 },
-        { label: 'License', value: detail.value.licenses_count || 0 },
-        { label: '设备', value: detail.value.devices_count || 0 },
+        { label: t('tenants_page.stat_users'), value: detail.value.users_count || 0 },
+        { label: t('tenants_page.stat_customers'), value: detail.value.customers_count || 0 },
+        { label: t('tenants_page.stat_licenses'), value: detail.value.licenses_count || 0 },
+        { label: t('tenants_page.stat_devices'), value: detail.value.devices_count || 0 },
     ];
 });
 
@@ -413,17 +444,22 @@ async function openDetail(row) {
         detail.value = res.data?.data;
         showDetail.value = true;
     } catch {
-        ElMessage.error('获取租户详情失败');
+        ElMessage.error(t('tenants_page.detail_load_fail'));
     }
 }
 
 // ─── 启用/停用 ───
 async function handleToggleStatus(row) {
-    const action = row.status === 'active' ? '停用' : '启用';
+    const isActive = row.status === 'active';
+    const action = t(isActive ? 'actions.disable' : 'actions.enable');
     try {
-        await ElMessageBox.confirm(`确定要${action}租户「${row.name}」吗？`, '确认', { type: 'warning' });
+        await ElMessageBox.confirm(
+            t('tenants_page.toggle_confirm', { action, name: row.name }),
+            t('actions.confirm'),
+            { type: 'warning' },
+        );
         await tenantApi.adminToggleStatus(row.id);
-        ElMessage.success(`租户已${action}`);
+        ElMessage.success(t(isActive ? 'tenants_page.deactivate_ok' : 'tenants_page.activate_ok'));
         await fetchData();
     } catch { /* cancelled */ }
 }
@@ -450,21 +486,20 @@ async function searchUsers(q) {
 }
 
 async function confirmAddMember() {
-    if (!addMemberUserId.value) { ElMessage.warning('请选择用户'); return; }
+    if (!addMemberUserId.value) { ElMessage.warning(t('tenants_page.select_user_first')); return; }
     addingMember.value = true;
     try {
         await tenantApi.adminAddMember(detail.value.id, {
             user_id: addMemberUserId.value,
             role: addMemberRole.value,
         });
-        ElMessage.success('成员已添加');
+        ElMessage.success(t('tenants_page.member_added'));
         showAddMember.value = false;
         addMemberUserId.value = null;
-        // Refresh detail
         const res = await tenantApi.adminShow(detail.value.id);
         detail.value = res.data?.data;
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '添加失败');
+        ElMessage.error(err.response?.data?.message || t('tenants_page.add_fail'));
     } finally {
         addingMember.value = false;
     }
@@ -473,19 +508,19 @@ async function confirmAddMember() {
 async function handleUpdateMemberRole(tenant, member, newRole) {
     try {
         await tenantApi.adminUpdateMemberRole(tenant.id, member.id, { role: newRole });
-        ElMessage.success('角色已更新');
+        ElMessage.success(t('tenants_page.role_updated'));
         const res = await tenantApi.adminShow(tenant.id);
         detail.value = res.data?.data;
     } catch {
-        ElMessage.error('更新角色失败');
+        ElMessage.error(t('tenants_page.role_update_fail'));
     }
 }
 
 async function handleRemoveMember(tenant, member) {
     try {
-        await ElMessageBox.confirm('确定要移除此成员吗？', '确认', { type: 'warning' });
+        await ElMessageBox.confirm(t('tenants_page.remove_confirm'), t('actions.confirm'), { type: 'warning' });
         await tenantApi.adminRemoveMember(tenant.id, member.id);
-        ElMessage.success('成员已移除');
+        ElMessage.success(t('tenants_page.member_removed'));
         const res = await tenantApi.adminShow(tenant.id);
         detail.value = res.data?.data;
     } catch { /* cancelled */ }

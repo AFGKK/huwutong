@@ -2,11 +2,11 @@
     <div class="text-to-sql-page">
         <div class="page-header">
             <div>
-                <h2>Text-to-SQL 安全护栏</h2>
-                <p class="text-muted">自然语言→SQL · 只读强制 · 危险关键词拦截 · 敏感字段脱敏 · 租户隔离 · 行数限制</p>
+                <h2>{{ t(`${P}.title`) }}</h2>
+                <p class="text-muted">{{ t(`${P}.subtitle`) }}</p>
             </div>
             <div class="header-actions">
-                <el-button @click="loadConfig" :loading="loading" :icon="Refresh">刷新配置</el-button>
+                <el-button @click="loadConfig" :loading="loading" :icon="Refresh">{{ t(`${P}.refresh_config`) }}</el-button>
             </div>
         </div>
 
@@ -14,23 +14,23 @@
             <!-- 配置面板 -->
             <el-col :span="8">
                 <el-card shadow="hover" class="mb-4">
-                    <template #header><span><el-icon><Setting /></el-icon> 安全配置</span></template>
+                    <template #header><span><el-icon><Setting /></el-icon> {{ t(`${P}.security_config`) }}</span></template>
                     <div v-if="cfg">
-                        <div class="cfg-item"><span class="cfg-label">只读模式</span><el-tag type="success" size="small">仅 SELECT / WITH</el-tag></div>
-                        <div class="cfg-item"><span class="cfg-label">最大行数</span><el-tag size="small">{{ cfg.max_rows }}</el-tag></div>
-                        <div class="cfg-item"><span class="cfg-label">查询超时</span><el-tag size="small">{{ cfg.query_timeout }}s</el-tag></div>
-                        <div class="cfg-item"><span class="cfg-label">禁止关键词</span></div>
+                        <div class="cfg-item"><span class="cfg-label">{{ t(`${P}.readonly_mode`) }}</span><el-tag type="success" size="small">{{ t(`${P}.readonly_tag`) }}</el-tag></div>
+                        <div class="cfg-item"><span class="cfg-label">{{ t(`${P}.max_rows`) }}</span><el-tag size="small">{{ cfg.max_rows }}</el-tag></div>
+                        <div class="cfg-item"><span class="cfg-label">{{ t(`${P}.query_timeout`) }}</span><el-tag size="small">{{ t(`${P}.timeout_seconds`, { n: cfg.query_timeout }) }}</el-tag></div>
+                        <div class="cfg-item"><span class="cfg-label">{{ t(`${P}.forbidden_keywords`) }}</span></div>
                         <div class="cfg-tags">
                             <el-tag v-for="kw in forbiddenKeywords" :key="kw" size="small" type="danger" style="margin:2px">{{ kw }}</el-tag>
                         </div>
-                        <div class="cfg-item" style="margin-top:8px"><span class="cfg-label">敏感字段</span></div>
+                        <div class="cfg-item" style="margin-top:8px"><span class="cfg-label">{{ t(`${P}.sensitive_fields`) }}</span></div>
                         <div class="cfg-tags">
                             <el-tag v-for="col in sensitiveColumns" :key="col" size="small" type="warning" style="margin:2px">{{ col }}</el-tag>
                         </div>
-                        <div class="cfg-item" style="margin-top:8px"><span class="cfg-label">允许的表</span></div>
+                        <div class="cfg-item" style="margin-top:8px"><span class="cfg-label">{{ t(`${P}.allowed_tables`) }}</span></div>
                         <div class="cfg-tags">
-                            <el-tag v-if="cfg.allowed_tables?.length" v-for="t in cfg.allowed_tables" :key="t" size="small" type="info" style="margin:2px">{{ t }}</el-tag>
-                            <span v-else class="text-muted">全部表允许</span>
+                            <el-tag v-if="cfg.allowed_tables?.length" v-for="tbl in cfg.allowed_tables" :key="tbl" size="small" type="info" style="margin:2px">{{ tbl }}</el-tag>
+                            <span v-else class="text-muted">{{ t(`${P}.all_tables_allowed`) }}</span>
                         </div>
                     </div>
                     <el-skeleton v-else :rows="6" animated />
@@ -38,16 +38,14 @@
 
                 <!-- 安全统计 -->
                 <el-card shadow="hover">
-                    <template #header><span><el-icon><DataBoard /></el-icon> 安全层</span></template>
-                    <el-steps direction="vertical" :active="8" space="36px">
-                        <el-step title="只读检查" description="仅允许 SELECT / WITH" />
-                        <el-step title="危险关键词" description="31 个关键词拦截" />
-                        <el-step title="敏感字段" description="20+ 字段自动脱敏" />
-                        <el-step title="表白名单" description="仅允许配置的表" />
-                        <el-step title="行数限制" description="自动追加 LIMIT" />
-                        <el-step title="租户隔离" description="自动注入 tenant_id" />
-                        <el-step title="最终格式化" description="去多余空格加分号" />
-                        <el-step title="结果脱敏" description="敏感列值替换为 ***" />
+                    <template #header><span><el-icon><DataBoard /></el-icon> {{ t(`${P}.security_layers`) }}</span></template>
+                    <el-steps direction="vertical" :active="securityLayers.length" space="36px">
+                        <el-step
+                            v-for="(layer, idx) in securityLayers"
+                            :key="idx"
+                            :title="layer.title"
+                            :description="layer.description"
+                        />
                     </el-steps>
                 </el-card>
             </el-col>
@@ -57,30 +55,30 @@
                 <el-card shadow="hover" class="mb-4">
                     <template #header>
                         <div class="card-header">
-                            <span><el-icon><EditPen /></el-icon> SQL 安全测试</span>
+                            <span><el-icon><EditPen /></el-icon> {{ t(`${P}.sql_test`) }}</span>
                             <div>
-                                <el-button @click="tab = 'sql'" :type="tab === 'sql' ? 'primary' : ''" size="small">SQL 模式</el-button>
-                                <el-button @click="tab = 'nl'" :type="tab === 'nl' ? 'primary' : ''" size="small">自然语言</el-button>
+                                <el-button @click="tab = 'sql'" :type="tab === 'sql' ? 'primary' : ''" size="small">{{ t(`${P}.tab_sql`) }}</el-button>
+                                <el-button @click="tab = 'nl'" :type="tab === 'nl' ? 'primary' : ''" size="small">{{ t(`${P}.tab_nl`) }}</el-button>
                             </div>
                         </div>
                     </template>
 
                     <!-- SQL 模式 -->
                     <div v-if="tab === 'sql'">
-                        <el-input v-model="sqlInput" type="textarea" :rows="5" placeholder="输入 SQL 语句…" />
+                        <el-input v-model="sqlInput" type="textarea" :rows="5" :placeholder="t(`${P}.sql_placeholder`)" />
                         <div style="margin-top:8px;display:flex;gap:8px">
-                            <el-button type="primary" @click="runValidate" :loading="valLoading">验证</el-button>
-                            <el-button type="success" @click="runExecute" :loading="execLoading">验证并执行</el-button>
-                            <el-button @click="sqlInput = exampleSql">加载示例</el-button>
+                            <el-button type="primary" @click="runValidate" :loading="valLoading">{{ t(`${P}.validate`) }}</el-button>
+                            <el-button type="success" @click="runExecute" :loading="execLoading">{{ t(`${P}.validate_and_execute`) }}</el-button>
+                            <el-button @click="sqlInput = exampleSql">{{ t(`${P}.load_example`) }}</el-button>
                         </div>
                     </div>
 
                     <!-- 自然语言模式 -->
                     <div v-if="tab === 'nl'">
-                        <el-input v-model="nlInput" type="textarea" :rows="5" placeholder="例如: 显示最近10个激活的License" />
+                        <el-input v-model="nlInput" type="textarea" :rows="5" :placeholder="t(`${P}.nl_placeholder`)" />
                         <div style="margin-top:8px">
-                            <el-button type="primary" @click="runQuery" :loading="qLoading">生成 SQL 并执行</el-button>
-                            <el-button @click="nlInput = exampleNl">加载示例</el-button>
+                            <el-button type="primary" @click="runQuery" :loading="qLoading">{{ t(`${P}.generate_and_execute`) }}</el-button>
+                            <el-button @click="loadExample">{{ t(`${P}.load_example`) }}</el-button>
                         </div>
                     </div>
                 </el-card>
@@ -88,14 +86,19 @@
                 <!-- 验证结果 -->
                 <el-card v-if="validateResult" shadow="hover" class="mb-4">
                     <template #header>
-                        <span><el-icon><CircleCheck /></el-icon> 验证结果</span>
+                        <span><el-icon><CircleCheck /></el-icon> {{ t(`${P}.validation_result`) }}</span>
                     </template>
-                    <el-alert :title="validateResult.valid ? '✅ 验证通过' : '❌ 验证失败'" :type="validateResult.valid ? 'success' : 'error'" show-icon :closable="false" />
+                    <el-alert
+                        :title="validateResult.valid ? t(`${P}.validation_pass`) : t(`${P}.validation_fail`)"
+                        :type="validateResult.valid ? 'success' : 'error'"
+                        show-icon
+                        :closable="false"
+                    />
                     <div v-if="validateResult.errors?.length" style="margin-top:8px">
                         <el-tag v-for="e in validateResult.errors" :key="e" type="danger" size="small" style="margin:2px">{{ e }}</el-tag>
                     </div>
                     <div v-if="validateResult.modified_sql" style="margin-top:8px">
-                        <div class="label-sm">处理后 SQL</div>
+                        <div class="label-sm">{{ t(`${P}.processed_sql`) }}</div>
                         <pre class="sql-block"><code>{{ validateResult.modified_sql }}</code></pre>
                     </div>
                 </el-card>
@@ -104,7 +107,7 @@
                 <el-card v-if="queryResult" shadow="hover">
                     <template #header>
                         <div class="card-header">
-                            <span><el-icon><DataBoard /></el-icon> 查询结果</span>
+                            <span><el-icon><DataBoard /></el-icon> {{ t(`${P}.query_result`) }}</span>
                             <el-tag size="small">{{ queryTime }}</el-tag>
                         </div>
                     </template>
@@ -113,9 +116,9 @@
                         <el-table-column v-for="col in queryResult.columns" :key="col" :prop="col" :label="col" min-width="120" show-overflow-tooltip />
                     </el-table>
                     <div v-if="queryResult.rows?.length" class="result-info">
-                        共 {{ queryResult.rows.length }} 行 · {{ queryResult.columns?.length }} 列
+                        {{ t(`${P}.result_summary`, { rows: queryResult.rows.length, cols: queryResult.columns?.length }) }}
                     </div>
-                    <el-empty v-if="queryResult.rows && !queryResult.rows.length && !queryResult.error" description="查询结果为空" />
+                    <el-empty v-if="queryResult.rows && !queryResult.rows.length && !queryResult.error" :description="t(`${P}.empty_result`)" />
                 </el-card>
             </el-col>
         </el-row>
@@ -124,9 +127,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Refresh, Setting, DataBoard, EditPen, CircleCheck } from '@element-plus/icons-vue';
 import textToSqlApi from '@/api/textToSql';
+
+const P = 'text_to_sql_page';
+const { t } = useI18n();
 
 const loading = ref(false);
 const valLoading = ref(false);
@@ -141,16 +148,30 @@ const queryTime = ref('');
 const cfg = ref(null);
 
 const exampleSql = 'SELECT l.license_key, l.status, c.name AS customer_name\nFROM licenses l\nJOIN customers c ON c.id = l.customer_id\nLIMIT 10';
-const exampleNl = '显示最近10个激活的License，包含客户名和激活时间';
+const exampleNl = computed(() => t(`${P}.example_nl`));
+function loadExample() {
+    nlInput.value = exampleNl.value;
+}
 
 const forbiddenKeywords = ['DROP', 'TRUNCATE', 'ALTER', 'INSERT', 'UPDATE', 'DELETE', 'EXEC', 'GRANT', 'REVOKE', 'BENCHMARK', 'PG_SLEEP', 'INTO OUTFILE', 'INTO DUMPFILE', 'LOAD_FILE', 'CREATE', 'RENAME', 'REPLACE', 'KILL', 'SHUTDOWN', 'SET', 'CREATE USER', 'DROP USER', 'ALTER USER', 'FLUSH', 'LOCK', 'UNLOCK', 'INSTALL', 'UNINSTALL', 'DO', 'HANDLER'];
 const sensitiveColumns = ['password', 'password_hash', 'api_key', 'api_secret', 'token', 'refresh_token', 'secret', 'credit_card', 'cvv', 'card_number', 'private_key', 'pem_private', 'seed_encrypted', 'totp_secret', 'recovery_codes', 'ssh_key'];
+
+const securityLayers = computed(() => [
+    { title: t(`${P}.layers.readonly.title`), description: t(`${P}.layers.readonly.desc`) },
+    { title: t(`${P}.layers.keywords.title`), description: t(`${P}.layers.keywords.desc`) },
+    { title: t(`${P}.layers.sensitive.title`), description: t(`${P}.layers.sensitive.desc`) },
+    { title: t(`${P}.layers.whitelist.title`), description: t(`${P}.layers.whitelist.desc`) },
+    { title: t(`${P}.layers.row_limit.title`), description: t(`${P}.layers.row_limit.desc`) },
+    { title: t(`${P}.layers.tenant.title`), description: t(`${P}.layers.tenant.desc`) },
+    { title: t(`${P}.layers.format.title`), description: t(`${P}.layers.format.desc`) },
+    { title: t(`${P}.layers.result_mask.title`), description: t(`${P}.layers.result_mask.desc`) },
+]);
 
 onMounted(loadConfig);
 
 async function loadConfig() {
     loading.value = true;
-    try { const r = await textToSqlApi.config(); cfg.value = r.data?.data; } catch { ElMessage.error('加载配置失败'); }
+    try { const r = await textToSqlApi.config(); cfg.value = r.data?.data; } catch { ElMessage.error(t('messages.load_failed')); }
     finally { loading.value = false; }
 }
 
@@ -160,7 +181,7 @@ async function runValidate() {
     try {
         const r = await textToSqlApi.validate({ sql: sqlInput.value });
         validateResult.value = r.data?.data;
-    } catch (e) { validateResult.value = { valid: false, errors: [e.response?.data?.message || '验证请求失败'] }; }
+    } catch (e) { validateResult.value = { valid: false, errors: [e.response?.data?.message || t(`${P}.messages.validate_request_failed`)] }; }
     finally { valLoading.value = false; }
 }
 
@@ -171,7 +192,7 @@ async function runExecute() {
         const r = await textToSqlApi.execute({ sql: sqlInput.value });
         queryResult.value = r.data?.data;
         queryTime.value = r.data?.data?.duration_ms ? `${r.data.data.duration_ms}ms` : '';
-    } catch (e) { queryResult.value = { error: e.response?.data?.message || '执行失败' }; }
+    } catch (e) { queryResult.value = { error: e.response?.data?.message || t(`${P}.messages.execute_failed`) }; }
     finally { execLoading.value = false; }
 }
 
@@ -185,7 +206,7 @@ async function runQuery() {
         sqlInput.value = d?.sql || '';
         validateResult.value = d?.validation || null;
         queryTime.value = d?.duration_ms ? `${d.duration_ms}ms` : '';
-    } catch (e) { queryResult.value = { error: e.response?.data?.message || '查询失败' }; }
+    } catch (e) { queryResult.value = { error: e.response?.data?.message || t(`${P}.messages.query_failed`) }; }
     finally { qLoading.value = false; }
 }
 </script>

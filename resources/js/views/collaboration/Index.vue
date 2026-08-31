@@ -2,30 +2,30 @@
     <div class="collaboration-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>团队协作中心</h2>
-                <span class="header-subtitle">活动流、内部笔记、快捷回复、关注管理</span>
+                <h2>{{ t('collaboration_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('collaboration_page.subtitle') }}</span>
             </div>
             <div class="header-right">
                 <el-button @click="refreshAll">
-                    <el-icon><Refresh /></el-icon> 刷新
+                    <el-icon><Refresh /></el-icon> {{ t('collaboration_page.refresh') }}
                 </el-button>
             </div>
         </div>
 
         <el-tabs v-model="activeTab" type="border-card">
             <!-- 活动流 -->
-            <el-tab-pane label="活动流" name="activity">
+            <el-tab-pane :label="t('collaboration_page.tabs.activity')" name="activity">
                 <div class="tab-toolbar">
                     <div class="toolbar-left">
-                        <el-select v-model="activityFilter.types" placeholder="活动类型" clearable multiple style="width: 240px" @change="fetchActivityFeed">
-                            <el-option v-for="t in activityTypes" :key="t.value" :label="t.label" :value="t.value" />
+                        <el-select v-model="activityFilter.types" :placeholder="t('collaboration_page.filters.activity_type')" clearable multiple style="width: 240px" @change="fetchActivityFeed">
+                            <el-option v-for="item in activityTypes" :key="item.value" :label="item.label" :value="item.value" />
                         </el-select>
                         <el-date-picker
                             v-model="activityDateRange"
                             type="daterange"
-                            range-separator="至"
-                            start-placeholder="开始日期"
-                            end-placeholder="结束日期"
+                            :range-separator="t('collaboration_page.filters.date_range_sep')"
+                            :start-placeholder="t('collaboration_page.filters.date_start')"
+                            :end-placeholder="t('collaboration_page.filters.date_end')"
                             value-format="YYYY-MM-DD"
                             style="width: 260px"
                             @change="fetchActivityFeed"
@@ -33,21 +33,21 @@
                     </div>
                     <div class="toolbar-right">
                         <el-radio-group v-model="activityScope" size="small" @change="fetchActivityFeed">
-                            <el-radio-button value="all">全部</el-radio-button>
-                            <el-radio-button value="mine">我的</el-radio-button>
+                            <el-radio-button value="all">{{ t('collaboration_page.scope.all') }}</el-radio-button>
+                            <el-radio-button value="mine">{{ t('collaboration_page.scope.mine') }}</el-radio-button>
                         </el-radio-group>
                     </div>
                 </div>
 
                 <div v-loading="loadingActivity" class="activity-list">
-                    <div v-if="!activities.length" class="empty-state">暂无活动记录</div>
+                    <div v-if="!activities.length" class="empty-state">{{ t('collaboration_page.empty.activity') }}</div>
                     <div v-for="item in activities" :key="item.id" class="activity-item">
                         <div class="activity-avatar">
                             <el-avatar :size="36">{{ item.user?.name?.charAt(0) || '?' }}</el-avatar>
                         </div>
                         <div class="activity-body">
                             <div class="activity-header">
-                                <span class="activity-user">{{ item.user?.name || '系统' }}</span>
+                                <span class="activity-user">{{ item.user?.name || t('collaboration_page.system') }}</span>
                                 <el-tag size="small" effect="plain" :type="activityTypeTag(item.type)">
                                     {{ activityTypeLabel(item.type) }}
                                 </el-tag>
@@ -77,49 +77,46 @@
             </el-tab-pane>
 
             <!-- 快捷回复 -->
-            <el-tab-pane label="快捷回复" name="canned">
+            <el-tab-pane :label="t('collaboration_page.tabs.canned')" name="canned">
                 <div class="tab-toolbar">
                     <div class="toolbar-left">
-                        <el-select v-model="cannedCategory" placeholder="分类" clearable style="width: 140px" @change="fetchCannedReplies">
-                            <el-option label="通用" value="general" />
-                            <el-option label="License" value="license" />
-                            <el-option label="工单" value="ticket" />
-                            <el-option label="客户" value="customer" />
+                        <el-select v-model="cannedCategory" :placeholder="t('collaboration_page.filters.category')" clearable style="width: 140px" @change="fetchCannedReplies">
+                            <el-option v-for="opt in cannedCategoryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                         </el-select>
                     </div>
                     <div class="toolbar-right">
                         <el-button type="primary" @click="openCannedDialog()">
-                            <el-icon><Plus /></el-icon> 新建回复
+                            <el-icon><Plus /></el-icon> {{ t('collaboration_page.btn.new_canned') }}
                         </el-button>
                     </div>
                 </div>
 
                 <el-table :data="cannedReplies" v-loading="loadingCanned" stripe size="small">
-                    <el-table-column label="标题" min-width="180" prop="title" />
-                    <el-table-column label="内容" min-width="300">
+                    <el-table-column :label="t('collaboration_page.cols.title')" min-width="180" prop="title" />
+                    <el-table-column :label="t('collaboration_page.cols.content')" min-width="300">
                         <template #default="{ row }">
                             <div class="canned-content">{{ row.content }}</div>
                         </template>
                     </el-table-column>
-                    <el-table-column label="分类" width="100" align="center">
+                    <el-table-column :label="t('collaboration_page.cols.category')" width="100" align="center">
                         <template #default="{ row }">
-                            <el-tag size="small" effect="plain">{{ row.category || 'general' }}</el-tag>
+                            <el-tag size="small" effect="plain">{{ categoryLabel(row.category) }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="共享" width="80" align="center">
+                    <el-table-column :label="t('collaboration_page.cols.shared')" width="80" align="center">
                         <template #default="{ row }">
                             <el-tag :type="row.is_shared ? 'success' : 'info'" size="small">
-                                {{ row.is_shared ? '是' : '否' }}
+                                {{ row.is_shared ? t('collaboration_page.common.yes') : t('collaboration_page.common.no') }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="创建人" width="120" prop="user?.name" />
-                    <el-table-column label="操作" width="150" fixed="right">
+                    <el-table-column :label="t('collaboration_page.cols.creator')" width="120" prop="user?.name" />
+                    <el-table-column :label="t('collaboration_page.cols.actions')" width="150" fixed="right">
                         <template #default="{ row }">
-                            <el-button text size="small" type="primary" @click="openCannedDialog(row)">编辑</el-button>
-                            <el-popconfirm title="确定删除?" @confirm="handleDeleteCanned(row)">
+                            <el-button text size="small" type="primary" @click="openCannedDialog(row)">{{ t('actions.edit') }}</el-button>
+                            <el-popconfirm :title="t('collaboration_page.prompts.delete_canned')" @confirm="handleDeleteCanned(row)">
                                 <template #reference>
-                                    <el-button text size="small" type="danger">删除</el-button>
+                                    <el-button text size="small" type="danger">{{ t('actions.delete') }}</el-button>
                                 </template>
                             </el-popconfirm>
                         </template>
@@ -128,41 +125,41 @@
             </el-tab-pane>
 
             <!-- 关注列表 -->
-            <el-tab-pane label="我的关注" name="watchlist">
+            <el-tab-pane :label="t('collaboration_page.tabs.watchlist')" name="watchlist">
                 <div class="tab-toolbar">
                     <div class="toolbar-left">
-                        <el-select v-model="watchType" placeholder="实体类型" clearable style="width: 160px" @change="fetchWatchlist">
-                            <el-option v-for="t in watchableTypes" :key="t.value" :label="t.label" :value="t.value" />
+                        <el-select v-model="watchType" :placeholder="t('collaboration_page.filters.entity_type')" clearable style="width: 160px" @change="fetchWatchlist">
+                            <el-option v-for="item in watchableTypes" :key="item.value" :label="item.label" :value="item.value" />
                         </el-select>
                     </div>
                 </div>
 
                 <el-table :data="watchlist" v-loading="loadingWatchlist" stripe size="small">
-                    <el-table-column label="实体类型" width="140">
+                    <el-table-column :label="t('collaboration_page.cols.entity_type')" width="140">
                         <template #default="{ row }">
                             <el-tag size="small" effect="plain">{{ watchableLabel(row.watchable_type) }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="实体" min-width="250">
+                    <el-table-column :label="t('collaboration_page.cols.entity')" min-width="250">
                         <template #default="{ row }">
                             <span>{{ watchableSummary(row.watchable) }}</span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="关注原因" width="120">
+                    <el-table-column :label="t('collaboration_page.cols.watch_reason')" width="120">
                         <template #default="{ row }">
                             <el-tag size="small" :type="row.reason === 'manual' ? 'primary' : 'warning'" effect="plain">
-                                {{ row.reason === 'manual' ? '手动' : row.reason === 'mentioned' ? '@提及' : row.reason }}
+                                {{ watchReasonLabel(row.reason) }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="关注时间" width="170">
+                    <el-table-column :label="t('collaboration_page.cols.watched_at')" width="170">
                         <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
                     </el-table-column>
-                    <el-table-column label="操作" width="120" fixed="right">
+                    <el-table-column :label="t('collaboration_page.cols.actions')" width="120" fixed="right">
                         <template #default="{ row }">
-                            <el-popconfirm title="取消关注?" @confirm="handleUnwatch(row)">
+                            <el-popconfirm :title="t('collaboration_page.prompts.unwatch')" @confirm="handleUnwatch(row)">
                                 <template #reference>
-                                    <el-button text size="small" type="danger">取消关注</el-button>
+                                    <el-button text size="small" type="danger">{{ t('collaboration_page.btn.unwatch') }}</el-button>
                                 </template>
                             </el-popconfirm>
                         </template>
@@ -171,26 +168,26 @@
             </el-tab-pane>
 
             <!-- 协作偏好设置 -->
-            <el-tab-pane label="协作偏好" name="preferences">
+            <el-tab-pane :label="t('collaboration_page.tabs.preferences')" name="preferences">
                 <el-card shadow="never" style="max-width: 600px">
                     <template #header>
-                        <span>通知偏好设置</span>
+                        <span>{{ t('collaboration_page.prefs.title') }}</span>
                     </template>
                     <el-form :model="prefsForm" label-width="160px" size="default">
-                        <el-form-item label="被@提及时通知">
+                        <el-form-item :label="t('collaboration_page.prefs.notify_on_mention')">
                             <el-switch v-model="prefsForm.notify_on_mention" />
                         </el-form-item>
-                        <el-form-item label="笔记回复时通知">
+                        <el-form-item :label="t('collaboration_page.prefs.notify_on_note_reply')">
                             <el-switch v-model="prefsForm.notify_on_note_reply" />
                         </el-form-item>
-                        <el-form-item label="状态变更时通知">
+                        <el-form-item :label="t('collaboration_page.prefs.notify_on_status_change')">
                             <el-switch v-model="prefsForm.notify_on_status_change" />
                         </el-form-item>
                         <el-divider />
-                        <el-form-item label="每日摘要">
+                        <el-form-item :label="t('collaboration_page.prefs.daily_digest')">
                             <el-switch v-model="prefsForm.daily_digest" />
                         </el-form-item>
-                        <el-form-item v-if="prefsForm.daily_digest" label="摘要发送时间">
+                        <el-form-item v-if="prefsForm.daily_digest" :label="t('collaboration_page.prefs.digest_time')">
                             <el-time-picker
                                 v-model="prefsDigestTime"
                                 format="HH:mm"
@@ -200,7 +197,7 @@
                         </el-form-item>
                         <el-form-item>
                             <el-button type="primary" :loading="savingPrefs" @click="handleSavePreferences">
-                                保存偏好
+                                {{ t('collaboration_page.btn.save_prefs') }}
                             </el-button>
                         </el-form-item>
                     </el-form>
@@ -209,42 +206,90 @@
         </el-tabs>
 
         <!-- 快捷回复编辑对话框 -->
-        <el-dialog v-model="showCannedDialog" :title="editingCannedId ? '编辑快捷回复' : '新建快捷回复'" width="600px">
+        <el-dialog v-model="showCannedDialog" :title="cannedDialogTitle" width="600px">
             <el-form ref="cannedFormRef" :model="cannedForm" :rules="cannedRules" label-width="80px">
-                <el-form-item label="标题" prop="title">
+                <el-form-item :label="t('collaboration_page.cols.title')" prop="title">
                     <el-input v-model="cannedForm.title" maxlength="200" />
                 </el-form-item>
-                <el-form-item label="内容" prop="content">
+                <el-form-item :label="t('collaboration_page.cols.content')" prop="content">
                     <el-input v-model="cannedForm.content" type="textarea" :rows="6" maxlength="5000" show-word-limit />
                 </el-form-item>
-                <el-form-item label="分类">
+                <el-form-item :label="t('collaboration_page.cols.category')">
                     <el-select v-model="cannedForm.category" style="width: 100%">
-                        <el-option label="通用" value="general" />
-                        <el-option label="License" value="license" />
-                        <el-option label="工单" value="ticket" />
-                        <el-option label="客户" value="customer" />
+                        <el-option v-for="opt in cannedCategoryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="团队共享">
-                    <el-switch v-model="cannedForm.is_shared" active-text="是" inactive-text="否" />
+                <el-form-item :label="t('collaboration_page.canned_dialog.team_share')">
+                    <el-switch
+                        v-model="cannedForm.is_shared"
+                        :active-text="t('collaboration_page.common.yes')"
+                        :inactive-text="t('collaboration_page.common.no')"
+                    />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showCannedDialog = false">取消</el-button>
-                <el-button type="primary" :loading="savingCanned" @click="handleSaveCanned">保存</el-button>
+                <el-button @click="showCannedDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="savingCanned" @click="handleSaveCanned">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Refresh, Plus } from '@element-plus/icons-vue';
 import collabApi from '@/api/collaboration';
 
+const { t, locale } = useI18n();
+
 // ─── 标签 ───
 const activeTab = ref('activity');
+
+const activityTypeKeys = ['note_created', 'note_updated', 'note_deleted', 'status_changed'];
+const cannedCategoryKeys = ['general', 'license', 'ticket', 'customer'];
+const watchableTypeMap = {
+    'App\\Models\\License': 'license',
+    'App\\Models\\Customer': 'customer',
+    'App\\Models\\Ticket': 'ticket',
+    'App\\Models\\Product': 'product',
+    'App\\Models\\Subscription': 'subscription',
+    'App\\Models\\Invoice': 'invoice',
+    'App\\Models\\Device': 'device',
+};
+
+const activityTypes = computed(() =>
+    activityTypeKeys.map((value) => ({
+        value,
+        label: t(`collaboration_page.activity_types.${value}`),
+    }))
+);
+
+const cannedCategoryOptions = computed(() =>
+    cannedCategoryKeys.map((value) => ({
+        value,
+        label: t(`collaboration_page.categories.${value}`),
+    }))
+);
+
+const watchableTypes = computed(() =>
+    Object.entries(watchableTypeMap).map(([value, key]) => ({
+        value,
+        label: t(`collaboration_page.watchable_types.${key}`),
+    }))
+);
+
+const cannedDialogTitle = computed(() =>
+    editingCannedId.value
+        ? t('collaboration_page.canned_dialog.edit_title')
+        : t('collaboration_page.canned_dialog.create_title')
+);
+
+const cannedRules = computed(() => ({
+    title: [{ required: true, message: t('collaboration_page.validation.title_required'), trigger: 'blur' }],
+    content: [{ required: true, message: t('collaboration_page.validation.content_required'), trigger: 'blur' }],
+}));
 
 // ─── 活动流 ───
 const activities = ref([]);
@@ -255,21 +300,19 @@ const activityScope = ref('all');
 const activityDateRange = ref(null);
 const activityFilter = reactive({ types: [] });
 
-const activityTypes = [
-    { value: 'note_created', label: '创建笔记' },
-    { value: 'note_updated', label: '更新笔记' },
-    { value: 'note_deleted', label: '删除笔记' },
-    { value: 'status_changed', label: '状态变更' },
-];
-
 function activityTypeTag(type) {
     const map = { note_created: 'success', note_updated: 'warning', note_deleted: 'danger', status_changed: 'primary' };
     return map[type] || 'info';
 }
 
 function activityTypeLabel(type) {
-    const map = { note_created: '创建笔记', note_updated: '更新笔记', note_deleted: '删除笔记', status_changed: '状态变更' };
-    return map[type] || type;
+    const key = `collaboration_page.activity_types.${type}`;
+    return t(key) !== key ? t(key) : type;
+}
+
+function categoryLabel(category) {
+    const key = `collaboration_page.categories.${category || 'general'}`;
+    return t(key) !== key ? t(key) : category;
 }
 
 async function fetchActivityFeed() {
@@ -292,7 +335,7 @@ async function fetchActivityFeed() {
             Object.assign(activityMeta, res.meta || {});
         }
     } catch {
-        ElMessage.error('加载活动流失败');
+        ElMessage.error(t('collaboration_page.messages.load_activity_failed'));
     } finally {
         loadingActivity.value = false;
     }
@@ -312,10 +355,6 @@ const cannedForm = reactive({
     category: 'general',
     is_shared: false,
 });
-const cannedRules = {
-    title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
-    content: [{ required: true, message: '请输入内容', trigger: 'blur' }],
-};
 
 async function fetchCannedReplies() {
     loadingCanned.value = true;
@@ -325,7 +364,7 @@ async function fetchCannedReplies() {
         const res = await collabApi.getCannedReplies(params);
         if (res.success) cannedReplies.value = res.data || [];
     } catch {
-        ElMessage.error('加载快捷回复失败');
+        ElMessage.error(t('collaboration_page.messages.load_canned_failed'));
     } finally {
         loadingCanned.value = false;
     }
@@ -357,15 +396,15 @@ async function handleSaveCanned() {
     try {
         if (editingCannedId.value) {
             await collabApi.updateCannedReply(editingCannedId.value, cannedForm);
-            ElMessage.success('快捷回复已更新');
+            ElMessage.success(t('collaboration_page.messages.canned_updated'));
         } else {
             await collabApi.createCannedReply(cannedForm);
-            ElMessage.success('快捷回复已创建');
+            ElMessage.success(t('collaboration_page.messages.canned_created'));
         }
         showCannedDialog.value = false;
         await fetchCannedReplies();
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '操作失败');
+        ElMessage.error(err.response?.data?.message || t('messages.failed'));
     } finally {
         savingCanned.value = false;
     }
@@ -374,10 +413,10 @@ async function handleSaveCanned() {
 async function handleDeleteCanned(row) {
     try {
         await collabApi.deleteCannedReply(row.id);
-        ElMessage.success('已删除');
+        ElMessage.success(t('collaboration_page.messages.deleted'));
         await fetchCannedReplies();
     } catch {
-        ElMessage.error('删除失败');
+        ElMessage.error(t('collaboration_page.messages.delete_failed'));
     }
 }
 
@@ -386,25 +425,15 @@ const watchlist = ref([]);
 const loadingWatchlist = ref(false);
 const watchType = ref('');
 
-const watchableTypes = [
-    { value: 'App\\Models\\License', label: 'License' },
-    { value: 'App\\Models\\Customer', label: '客户' },
-    { value: 'App\\Models\\Ticket', label: '工单' },
-    { value: 'App\\Models\\Product', label: '产品' },
-    { value: 'App\\Models\\Subscription', label: '订阅' },
-];
-
 function watchableLabel(type) {
-    const map = {
-        'App\\Models\\License': 'License',
-        'App\\Models\\Customer': '客户',
-        'App\\Models\\Ticket': '工单',
-        'App\\Models\\Product': '产品',
-        'App\\Models\\Subscription': '订阅',
-        'App\\Models\\Invoice': '发票',
-        'App\\Models\\Device': '设备',
-    };
-    return map[type] || type?.split('\\').pop() || type;
+    const key = watchableTypeMap[type];
+    if (key) return t(`collaboration_page.watchable_types.${key}`);
+    return type?.split('\\').pop() || type;
+}
+
+function watchReasonLabel(reason) {
+    const key = `collaboration_page.watch_reasons.${reason}`;
+    return t(key) !== key ? t(key) : reason;
 }
 
 function watchableSummary(watchable) {
@@ -424,7 +453,7 @@ async function fetchWatchlist() {
         const res = await collabApi.getWatchlist(params);
         if (res.success) watchlist.value = res.data || [];
     } catch {
-        ElMessage.error('加载关注列表失败');
+        ElMessage.error(t('collaboration_page.messages.load_watchlist_failed'));
     } finally {
         loadingWatchlist.value = false;
     }
@@ -444,11 +473,11 @@ async function handleUnwatch(row) {
         const entityType = typeMap[row.watchable_type] || 'licenses';
         const res = await collabApi.toggleWatch(entityType, row.watchable_id);
         if (res.success) {
-            ElMessage.success('已取消关注');
+            ElMessage.success(t('collaboration_page.messages.unwatched'));
             await fetchWatchlist();
         }
     } catch {
-        ElMessage.error('操作失败');
+        ElMessage.error(t('messages.failed'));
     }
 }
 
@@ -480,9 +509,9 @@ async function handleSavePreferences() {
     try {
         const data = { ...prefsForm, digest_time: prefsDigestTime.value || '09:00' };
         const res = await collabApi.updatePreferences(data);
-        if (res.success) ElMessage.success('偏好已保存');
+        if (res.success) ElMessage.success(t('collaboration_page.messages.prefs_saved'));
     } catch {
-        ElMessage.error('保存失败');
+        ElMessage.error(t('collaboration_page.messages.save_failed'));
     } finally {
         savingPrefs.value = false;
     }
@@ -491,7 +520,7 @@ async function handleSavePreferences() {
 // ─── 工具函数 ───
 function formatTime(time) {
     if (!time) return '—';
-    return new Date(time).toLocaleString('zh-CN');
+    return new Date(time).toLocaleString(locale.value === 'zh_CN' ? 'zh-CN' : 'en-US');
 }
 
 async function refreshAll() {

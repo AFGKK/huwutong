@@ -18,7 +18,7 @@
                         clearable
                         size="small"
                         style="width: 320px"
-                        aria-label="全局搜索"
+                        :aria-label="t('global_search.aria_label')"
                         aria-autocomplete="list"
                         role="combobox"
                         aria-expanded="showResults"
@@ -35,8 +35,17 @@
 
             <!-- 搜索建议 -->
             <div class="search-results" id="global-search-results" v-loading="searching" element-loading-background="rgba(0,0,0,0.02)" role="listbox">
+                <div v-if="searchDegraded" class="search-degraded-notice">
+                    <el-alert
+                        :title="degradedMessage"
+                        type="warning"
+                        :closable="false"
+                        show-icon
+                    />
+                </div>
+
                 <div v-if="suggestions.length > 0 && query.length >= 1 && results.length === 0 && !searching" class="suggestions-section">
-                    <div class="result-group-title"><el-icon size="14"><Search /></el-icon> 搜索建议</div>
+                    <div class="result-group-title"><el-icon size="14"><Search /></el-icon> {{ t('global_search.suggestions') }}</div>
                     <div
                         v-for="(s, idx) in suggestions"
                         :key="'sug-' + idx"
@@ -51,7 +60,7 @@
                 </div>
 
                 <div v-if="results.length === 0 && query.length >= 2 && !searching && suggestions.length === 0" class="no-results">
-                    <el-empty :description="$t('未找到结果')" :image-size="60" />
+                    <el-empty :description="t('global_search.no_results')" :image-size="60" />
                 </div>
 
                 <div v-for="(group, gIdx) in groupedResults" :key="gIdx" class="result-group">
@@ -77,7 +86,7 @@
                 </div>
 
                 <div v-if="results.length > 0 && totalResults > results.length" class="show-more">
-                    <el-text type="info" size="small">共 {{ totalResults }} 条结果，显示前 {{ results.length }} 条</el-text>
+                    <el-text type="info" size="small">{{ t('global_search.show_more', { total: totalResults, shown: results.length }) }}</el-text>
                 </div>
             </div>
         </el-popover>
@@ -87,10 +96,12 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { Search, Key, User, Goods, Tickets, Document, Coin } from '@element-plus/icons-vue';
 import searchApi from '@/api/globalSearch';
 
 const router = useRouter();
+const { t } = useI18n();
 const inputRef = ref(null);
 const popoverRef = ref(null);
 
@@ -101,10 +112,12 @@ const totalResults = ref(0);
 const searching = ref(false);
 const showResults = ref(false);
 const activeIndex = ref(-1);
+const searchDegraded = ref(false);
+const degradedMessage = ref('');
 
 let searchTimer = null;
 
-const placeholderText = '搜索 License/客户/产品/工单/发票/订阅...';
+const placeholderText = computed(() => t('global_search.placeholder'));
 
 const groupedResults = computed(() => {
     const groups = {};
@@ -136,7 +149,14 @@ function groupIcon(type) {
 }
 
 function groupLabel(type) {
-    const labels = { license: 'License', customer: '客户', product: '产品', ticket: '工单', invoice: '发票', subscription: '订阅' };
+    const labels = {
+        license: t('global_search.type_license'),
+        customer: t('global_search.type_customer'),
+        product: t('global_search.type_product'),
+        ticket: t('global_search.type_ticket'),
+        invoice: t('global_search.type_invoice'),
+        subscription: t('global_search.type_subscription'),
+    };
     return labels[type] || type;
 }
 
@@ -227,12 +247,30 @@ async function doSearch(q) {
             results.value = data.data.items || [];
             totalResults.value = data.data.total || 0;
             suggestions.value = [];
+            applyEngineStatus(data.data.engine);
         }
     } catch {
         results.value = [];
         totalResults.value = 0;
     } finally {
         searching.value = false;
+    }
+}
+
+function applyEngineStatus(engine) {
+    if (!engine) return;
+    searchDegraded.value = !!engine.degraded;
+    degradedMessage.value = engine.message || t('global_search.degraded');
+}
+
+async function loadEngineStatus() {
+    try {
+        const { data } = await searchApi.getEngineStatus();
+        if (data.success) {
+            applyEngineStatus(data.data);
+        }
+    } catch {
+        searchDegraded.value = false;
     }
 }
 
@@ -256,8 +294,8 @@ function handleGlobalSearchEvent() {
 
 onMounted(() => {
     document.addEventListener('keydown', handleGlobalKeydown);
-    // WCAG: Support custom event from App.vue global shortcut
     window.addEventListener('a11y:global-search', handleGlobalSearchEvent);
+    loadEngineStatus();
 });
 
 onUnmounted(() => {
@@ -294,6 +332,9 @@ onUnmounted(() => {
     max-height: 480px;
     overflow-y: auto;
     padding: 4px 0;
+}
+.global-search-popper .search-degraded-notice {
+    padding: 8px 12px 4px;
 }
 .global-search-popper .no-results {
     padding: 24px 0;

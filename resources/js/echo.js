@@ -14,6 +14,9 @@ function buildEchoAuthHeaders() {
     return headers;
 }
 
+let echoInstance = null;
+let echoInitialized = false;
+
 function createEcho() {
     const scheme = import.meta.env.VITE_REVERB_SCHEME ?? 'http';
     const port = Number(import.meta.env.VITE_REVERB_PORT ?? (scheme === 'https' ? 443 : 80));
@@ -41,39 +44,100 @@ function bindEchoConnectionEvents(echo) {
     if (!connection) return;
 
     connection.bind('connecting', () => {
-        console.log('[Echo] WebSocket 连接中...');
+        console.log('[Echo] WebSocket connecting…');
+        document.dispatchEvent(new CustomEvent('echo:connecting'));
     });
 
     connection.bind('connected', () => {
-        console.log('[Echo] WebSocket 已连接');
+        console.log('[Echo] WebSocket connected');
         document.dispatchEvent(new CustomEvent('echo:connected'));
     });
 
     connection.bind('disconnected', () => {
-        console.warn('[Echo] WebSocket 已断开，将自动重连');
+        console.warn('[Echo] WebSocket disconnected; will reconnect');
         document.dispatchEvent(new CustomEvent('echo:disconnected'));
     });
 
     connection.bind('error', (err) => {
-        console.warn('[Echo] WebSocket 连接错误:', err);
+        console.warn('[Echo] WebSocket error:', err);
+        document.dispatchEvent(new CustomEvent('echo:error', { detail: err }));
     });
 }
 
 /** 登录/刷新 Token 后更新 Echo 鉴权头（供 auth store 调用） */
 export function refreshEchoAuthHeaders() {
-    if (!window.Echo?.connector?.pusher?.config?.auth) return;
-    window.Echo.connector.pusher.config.auth.headers = buildEchoAuthHeaders();
+    if (!echoInstance?.connector?.pusher?.config?.auth) return;
+    echoInstance.connector.pusher.config.auth.headers = buildEchoAuthHeaders();
+}
+
+/**
+ * 手动重连 Echo — 在 Token 刷新或网络恢复后调用
+ */
+export function reconnectEcho() {
+    if (!echoInstance) return;
+    try {
+        echoInstance.disconnect();
+        setTimeout(() => {
+            echoInstance.connect();
+        }, 500);
+    } catch (e) {
+        console.warn('[Echo] Reconnect failed:', e.message);
+    }
+}
+
+/**
+ * 获取当前 Echo 状态
+ */
+export function getEchoStatus() {
+    if (!echoInstance) return 'disabled';
+    const state = echoInstance?.connector?.pusher?.connection?.state;
+    if (state === 'connected') return 'connected';
+    if (state === 'connecting') return 'connecting';
+    return 'disconnected';
+}
+
+/**
+ * 监听页面可见性变化，后台标签页恢复时检查并重连 WebSocket
+ */
+function setupVisibilityHandler() {
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && echoInstance) {
+            const state = echoInstance?.connector?.pusher?.connection?.state;
+            if (state !== 'connected' && state !== 'connecting') {
+                console.log('[Echo] Page visible again; reconnecting WebSocket');
+                reconnectEcho();
+            }
+        }
+    });
+}
+
+/**
+ * 监听在线状态变化，网络恢复时重连
+ */
+function setupOnlineHandler() {
+    window.addEventListener('online', () => {
+        console.log('[Echo] Network online; reconnecting WebSocket');
+        if (echoInstance) {
+            reconnectEcho();
+        }
+    });
 }
 
 if (!reverbKey) {
-    console.info('[Echo] 未配置 VITE_REVERB_APP_KEY，实时推送已禁用（使用轮询降级）');
+    console.info('[Echo] VITE_REVERB_APP_KEY not set; realtime disabled (polling fallback)');
     window.Echo = null;
+    echoInstance = null;
 } else {
     try {
-        window.Echo = createEcho();
-        bindEchoConnectionEvents(window.Echo);
+        echoInstance = createEcho();
+        window.Echo = echoInstance;
+        bindEchoConnectionEvents(echoInstance);
+        setupVisibilityHandler();
+        setupOnlineHandler();
+        echoInitialized = true;
     } catch (e) {
-        console.warn('[Echo] 初始化失败, 将使用轮询降级:', e.message);
+        console.warn('[Echo] Init failed; using polling fallback:', e.message);
         window.Echo = null;
+        echoInstance = null;
     }
 }

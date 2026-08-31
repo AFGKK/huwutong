@@ -1,65 +1,63 @@
 <template>
     <div class="bot-manager-page">
         <div class="page-header">
-            <h2>🤖 Bot 机器人管理</h2>
+            <h2>{{ t('bot_manager_page.title') }}</h2>
             <el-button type="primary" @click="showRegisterDialog = true">
-                <el-icon><Plus /></el-icon> 注册新 Bot
+                <el-icon><Plus /></el-icon> {{ t('bot_manager_page.register') }}
             </el-button>
         </div>
 
         <el-tabs v-model="activeTab" type="border-card">
-            <!-- 我的 Bot -->
-            <el-tab-pane label="🤖 我的 Bot" name="my">
+            <el-tab-pane :label="t('bot_manager_page.tabs.my')" name="my">
                 <div class="tab-content">
                     <el-table :data="myBots" v-loading="loadingMy" stripe size="small" style="width:100%">
                         <el-table-column prop="id" label="ID" width="60" />
-                        <el-table-column prop="name" label="名称" min-width="120" />
-                        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-                        <el-table-column label="状态" width="90">
+                        <el-table-column prop="name" :label="t('bot_manager_page.cols.name')" min-width="120" />
+                        <el-table-column prop="description" :label="t('bot_manager_page.cols.desc')" min-width="200" show-overflow-tooltip />
+                        <el-table-column :label="t('bot_manager_page.cols.status')" width="90">
                             <template #default="{row}">
                                 <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
-                                    {{ row.is_active ? '活跃' : '已停用' }}
+                                    {{ row.is_active ? t('bot_manager_page.active') : t('bot_manager_page.inactive') }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="公开" width="70">
+                        <el-table-column :label="t('bot_manager_page.cols.public')" width="70">
                             <template #default="{row}">
-                                <el-tag :type="row.is_public ? 'success' : 'info'" size="small">{{ row.is_public ? '是' : '否' }}</el-tag>
+                                <el-tag :type="row.is_public ? 'success' : 'info'" size="small">{{ row.is_public ? t('bot_manager_page.yes') : t('bot_manager_page.no') }}</el-tag>
                             </template>
                         </el-table-column>
                         <el-table-column label="Token" min-width="200">
                             <template #default="{row}">
                                 <div class="token-display">
                                     <code>{{ maskToken(row.token) }}</code>
-                                    <el-button text size="small" @click="copyToken(row.token)" title="复制">
+                                    <el-button text size="small" @click="copyToken(row.token)" :title="t('actions.copy')">
                                         <el-icon><CopyDocument /></el-icon>
                                     </el-button>
                                 </div>
                             </template>
                         </el-table-column>
-                        <el-table-column label="创建时间" width="150">
+                        <el-table-column :label="t('bot_manager_page.cols.created')" width="150">
                             <template #default="{row}">{{ row.created_at }}</template>
                         </el-table-column>
-                        <el-table-column label="操作" width="180" fixed="right">
+                        <el-table-column :label="t('bot_manager_page.cols.actions')" width="180" fixed="right">
                             <template #default="{row}">
-                                <el-button size="small" text @click="refreshBotToken(row)">刷新Token</el-button>
-                                <el-button size="small" text @click="showCommands(row)">命令</el-button>
+                                <el-button size="small" text @click="refreshBotToken(row)">{{ t('bot_manager_page.refresh_token') }}</el-button>
+                                <el-button size="small" text @click="showCommands(row)">{{ t('bot_manager_page.commands') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
                     <div v-if="!myBots.length && !loadingMy" class="empty-state">
-                        <el-empty description="暂无 Bot，点击右上角注册一个" :image-size="60" />
+                        <el-empty :description="t('bot_manager_page.empty_my')" :image-size="60" />
                     </div>
                 </div>
             </el-tab-pane>
 
-            <!-- Bot 市场 -->
-            <el-tab-pane label="🛒 Bot 市场" name="market">
+            <el-tab-pane :label="t('bot_manager_page.tabs.market')" name="market">
                 <div class="tab-content">
                     <div class="toolbar">
-                        <el-input v-model="marketQuery" placeholder="搜索公开 Bot..." size="small" clearable
+                        <el-input v-model="marketQuery" :placeholder="t('bot_manager_page.search_ph')" size="small" clearable
                             style="width:300px" @keydown.enter="loadMarketplace" />
-                        <el-button size="small" type="primary" @click="loadMarketplace">搜索</el-button>
+                        <el-button size="small" type="primary" @click="loadMarketplace">{{ t('actions.search') }}</el-button>
                     </div>
                     <el-row :gutter="16">
                         <el-col v-for="bot in marketBots" :key="bot.id" :span="8" style="margin-bottom:16px">
@@ -68,10 +66,10 @@
                                     <div class="market-avatar">{{ bot.name.charAt(0) }}</div>
                                     <div class="market-info">
                                         <div class="market-name">{{ bot.name }}</div>
-                                        <div class="market-author">by {{ bot.user?.name || '匿名' }}</div>
+                                        <div class="market-author">{{ t('bot_manager_page.by_author', { name: bot.user?.name || t('bot_manager_page.anonymous') }) }}</div>
                                     </div>
                                 </div>
-                                <div class="market-desc">{{ bot.description || '暂无描述' }}</div>
+                                <div class="market-desc">{{ bot.description || t('bot_manager_page.no_desc') }}</div>
                                 <div v-if="bot.commands?.length" class="market-commands">
                                     <el-tag v-for="cmd in bot.commands.slice(0, 3)" :key="cmd.command" size="small" style="margin:2px">
                                         /{{ cmd.command }}
@@ -82,62 +80,63 @@
                         </el-col>
                     </el-row>
                     <div v-if="!marketBots.length && !loadingMarket" class="empty-state">
-                        <el-empty description="市场中暂无公开 Bot" :image-size="60" />
+                        <el-empty :description="t('bot_manager_page.empty_market')" :image-size="60" />
                     </div>
                 </div>
             </el-tab-pane>
         </el-tabs>
 
-        <!-- 注册对话框 -->
-        <el-dialog v-model="showRegisterDialog" title="注册新 Bot" width="520px">
+        <el-dialog v-model="showRegisterDialog" :title="t('bot_manager_page.register_title')" width="520px">
             <el-form :model="form" label-width="100px" :rules="rules" ref="formRef">
-                <el-form-item label="名称" prop="name">
-                    <el-input v-model="form.name" placeholder="唯一名称，如 my-bot" maxlength="100" />
+                <el-form-item :label="t('bot_manager_page.cols.name')" prop="name">
+                    <el-input v-model="form.name" :placeholder="t('bot_manager_page.name_ph')" maxlength="100" />
                 </el-form-item>
-                <el-form-item label="描述" prop="description">
-                    <el-input v-model="form.description" type="textarea" :rows="2" placeholder="简单描述 Bot 功能" maxlength="500" />
+                <el-form-item :label="t('bot_manager_page.cols.desc')" prop="description">
+                    <el-input v-model="form.description" type="textarea" :rows="2" :placeholder="t('bot_manager_page.desc_ph')" maxlength="500" />
                 </el-form-item>
-                <el-form-item label="Webhook URL" prop="webhook_url">
+                <el-form-item :label="t('bot_manager_page.webhook')" prop="webhook_url">
                     <el-input v-model="form.webhook_url" placeholder="https://example.com/bot-webhook" />
-                    <div class="form-hint">Bot 收到消息时，会将消息 POST 到此 URL</div>
+                    <div class="form-hint">{{ t('bot_manager_page.webhook_hint') }}</div>
                 </el-form-item>
-                <el-form-item label="命令列表">
+                <el-form-item :label="t('bot_manager_page.commands')">
                     <div v-for="(cmd, i) in form.commands" :key="i" class="cmd-row">
-                        <el-input v-model="cmd.command" placeholder="命令名" size="small" style="width:140px" />
-                        <el-input v-model="cmd.description" placeholder="描述" size="small" style="width:200px" />
+                        <el-input v-model="cmd.command" :placeholder="t('bot_manager_page.cmd_name')" size="small" style="width:140px" />
+                        <el-input v-model="cmd.description" :placeholder="t('bot_manager_page.cols.desc')" size="small" style="width:200px" />
                         <el-button text size="small" type="danger" @click="form.commands.splice(i, 1)">
                             <el-icon><Delete /></el-icon>
                         </el-button>
                     </div>
                     <el-button size="small" text @click="form.commands.push({ command: '', description: '' })">
-                        <el-icon><Plus /></el-icon> 添加命令
+                        <el-icon><Plus /></el-icon> {{ t('bot_manager_page.add_command') }}
                     </el-button>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showRegisterDialog = false">取消</el-button>
-                <el-button type="primary" :loading="saving" @click="registerBot">注册</el-button>
+                <el-button @click="showRegisterDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="saving" @click="registerBot">{{ t('bot_manager_page.register_btn') }}</el-button>
             </template>
         </el-dialog>
 
-        <!-- 命令查看对话框 -->
-        <el-dialog v-model="showCommandsDialog" title="Bot 命令列表" width="420px">
+        <el-dialog v-model="showCommandsDialog" :title="t('bot_manager_page.commands_title')" width="420px">
             <div v-if="selectedBot?.commands?.length">
                 <div v-for="cmd in selectedBot.commands" :key="cmd.command" class="cmd-display-row">
                     <el-tag type="primary">/{{ cmd.command }}</el-tag>
                     <span>{{ cmd.description }}</span>
                 </div>
             </div>
-            <div v-else style="text-align:center;padding:20px;color:#909399">无自定义命令</div>
+            <div v-else style="text-align:center;padding:20px;color:#909399">{{ t('bot_manager_page.no_commands') }}</div>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, CopyDocument, Delete } from '@element-plus/icons-vue'
 import apiClient from '@/utils/request'
+
+const { t } = useI18n()
 
 const activeTab = ref('my')
 const loadingMy = ref(false)
@@ -158,9 +157,9 @@ const form = reactive({
     commands: [],
 })
 
-const rules = {
-    name: [{ required: true, message: '请输入 Bot 名称', trigger: 'blur' }],
-}
+const rules = computed(() => ({
+    name: [{ required: true, message: t('bot_manager_page.validation.name'), trigger: 'blur' }],
+}))
 
 async function loadMyBots() {
     loadingMy.value = true
@@ -198,27 +197,32 @@ async function registerBot() {
         const res = await apiClient.post('/bots/register', payload)
         const bot = res.data?.data
         if (bot) {
-            ElMessage.success(`Bot「${bot.name}」注册成功！Token: ${bot.token}`)
+            ElMessage.success(t('bot_manager_page.messages.registered', { name: bot.name, token: bot.token }))
             myBots.value.unshift(bot)
             showRegisterDialog.value = false
             resetForm()
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '注册失败')
+        ElMessage.error(e.response?.data?.message || t('bot_manager_page.messages.register_failed'))
     } finally { saving.value = false }
 }
 
 async function refreshBotToken(bot) {
     try {
-        await ElMessageBox.confirm(`确定刷新「${bot.name}」的 Token？旧的 Token 将立即失效。`, '确认刷新')
+        await ElMessageBox.confirm(
+            t('bot_manager_page.refresh_confirm', { name: bot.name }),
+            t('bot_manager_page.refresh_title')
+        )
         const res = await apiClient.post(`/bots/${bot.id}/refresh-token`)
         bot.token = res.data?.data?.token || bot.token
-        ElMessage.success('Token 已刷新')
-    } catch { /* 取消 */ }
+        ElMessage.success(t('bot_manager_page.messages.token_refreshed'))
+    } catch { /* cancelled */ }
 }
 
 function copyToken(token) {
-    navigator.clipboard.writeText(token).then(() => ElMessage.success('已复制')).catch(() => ElMessage.warning('复制失败'))
+    navigator.clipboard.writeText(token)
+        .then(() => ElMessage.success(t('bot_manager_page.messages.copied')))
+        .catch(() => ElMessage.warning(t('bot_manager_page.messages.copy_failed')))
 }
 
 function maskToken(token) {
@@ -259,7 +263,7 @@ onMounted(() => {
 .cmd-display-row:last-child { border-bottom: none; }
 .market-card { cursor: default; }
 .market-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.market-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #409eff, #66b1ff); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+.market-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, #66b1ff); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; flex-shrink: 0; }
 .market-info { flex: 1; min-width: 0; }
 .market-name { font-size: 15px; font-weight: 600; }
 .market-author { font-size: 12px; color: #909399; }

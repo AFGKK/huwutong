@@ -1,34 +1,36 @@
 <template>
     <div class="portal-container" :style="portalStyle">
         <!-- 顶部导航 (WCAG: role=banner) -->
-        <header class="portal-header" role="banner" aria-label="客户门户顶部导航">
+        <header class="portal-header" role="banner" :aria-label="$t('portal.header_aria')">
             <div class="header-left">
                 <el-button
                     text
                     @click="sidebarCollapsed = !sidebarCollapsed"
                     class="collapse-btn"
-                    :aria-label="sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'"
+                    :aria-label="sidebarCollapsed ? $t('portal.expand_sidebar') : $t('portal.collapse_sidebar')"
                     :aria-expanded="!sidebarCollapsed"
                 >
                     <el-icon :size="20" aria-hidden="true"><Fold v-if="!sidebarCollapsed" /><Expand v-else /></el-icon>
                 </el-button>
                 <div class="brand">
                     <img v-if="branding.logo_url" :src="branding.logo_url" alt="Logo" class="brand-logo-img" />
-                    <el-icon v-else :size="28" :color="branding.primary_color || '#409eff'" aria-hidden="true"><Key /></el-icon>
+                    <el-icon v-else :size="28" :color="branding.primary_color || '#0f172a'" aria-hidden="true"><Key /></el-icon>
                     <div v-if="!sidebarCollapsed" class="brand-text-wrap">
-                        <span class="brand-text">{{ branding.brand_name || '互物通 客户门户' }}</span>
+                        <span class="brand-text">{{ branding.brand_name || $t('portal.brand_fallback') }}</span>
                         <span v-if="branding.brand_slogan" class="brand-slogan">{{ branding.brand_slogan }}</span>
                     </div>
                 </div>
             </div>
             <div class="header-right">
+                <!-- D-22: 语言切换 -->
+                <LanguageSwitcher class="mr-2" />
                 <!-- 通知铃铛 -->
                 <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notification-badge">
-                    <el-button text size="small" @click="router.push('/portal/notifications')" aria-label="通知">
+                    <el-button text size="small" @click="router.push('/portal/notifications')" :aria-label="$t('portal.notifications')">
                         <el-icon :size="20"><Bell /></el-icon>
                     </el-button>
                 </el-badge>
-                <el-dropdown @command="handleCommand" trigger="click" aria-label="用户菜单">
+                <el-dropdown @command="handleCommand" trigger="click" :aria-label="$t('portal.user_menu')">
                     <span class="user-info" aria-haspopup="menu">
                         <el-avatar :size="32" :src="authStore.avatarUrl" class="user-avatar">
                             <span class="avatar-initial">{{ (authStore.userName || '?').charAt(0).toUpperCase() }}</span>
@@ -36,16 +38,16 @@
                                 <span class="avatar-initial">{{ (authStore.userName || '?').charAt(0).toUpperCase() }}</span>
                             </template>
                         </el-avatar>
-                        <span class="user-name">{{ authStore.userName || '客户用户' }}</span>
+                        <span class="user-name">{{ authStore.userName || $t('portal.customer_user') }}</span>
                         <el-icon aria-hidden="true"><ArrowDown /></el-icon>
                     </span>
                     <template #dropdown>
                         <el-dropdown-menu role="menu">
                             <el-dropdown-item command="settings" role="menuitem">
-                                <el-icon aria-hidden="true"><Setting /></el-icon> 个人设置
+                                <el-icon aria-hidden="true"><Setting /></el-icon> {{ $t('portal.settings') }}
                             </el-dropdown-item>
                             <el-dropdown-item command="logout" role="menuitem">
-                                <el-icon aria-hidden="true"><SwitchButton /></el-icon> 退出登录
+                                <el-icon aria-hidden="true"><SwitchButton /></el-icon> {{ $t('portal.logout') }}
                             </el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
@@ -59,7 +61,7 @@
                 class="portal-sidebar"
                 :class="{ collapsed: sidebarCollapsed }"
                 role="navigation"
-                aria-label="客户门户导航"
+                :aria-label="$t('portal.nav_aria')"
                 :style="{ background: branding.sidebar_bg_color || '#304156' }"
             >
                 <el-menu
@@ -67,121 +69,120 @@
                     :collapse="sidebarCollapsed"
                     background-color="transparent"
                     :text-color="branding.sidebar_text_color || '#bfcbd9'"
-                    :active-text-color="branding.primary_color || '#409eff'"
+                    :active-text-color="branding.primary_color || '#0f172a'"
                     router
                 >
                     <el-menu-item index="/portal/dashboard">
                         <el-icon><DataAnalysis /></el-icon>
-                        <template #title>仪表盘</template>
+                        <template #title>{{ $t('portal.nav_dashboard') }}</template>
                     </el-menu-item>
-                    <!-- 🛒 商品商店 (M1.4-61) -->
                     <el-menu-item index="/portal/shop">
                         <el-icon><ShoppingCart /></el-icon>
-                        <template #title>商品商店</template>
+                        <template #title>{{ $t('portal.nav_shop') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/cart">
                         <el-icon><ShoppingCart /></el-icon>
-                        <template #title>购物车</template>
+                        <template #title>{{ $t('portal.nav_cart') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/checkout">
                         <el-icon><Coin /></el-icon>
-                        <template #title>订单结算</template>
+                        <template #title>{{ $t('portal.nav_checkout') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/orders">
                         <el-icon><List /></el-icon>
-                        <template #title>我的订单</template>
+                        <template #title>{{ $t('portal.nav_orders') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/promotions">
                         <el-icon><Present /></el-icon>
-                        <template #title>优惠促销</template>
+                        <template #title>{{ $t('portal.nav_promotions') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/tickets">
                         <el-icon><Tickets /></el-icon>
-                        <template #title>工单</template>
+                        <template #title>{{ $t('portal.nav_tickets') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/licenses">
                         <el-icon><Key /></el-icon>
-                        <template #title>我的 License</template>
+                        <template #title>{{ $t('portal.nav_licenses') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/transfers">
                         <el-icon><Switch /></el-icon>
-                        <template #title>License 转移</template>
+                        <template #title>{{ $t('portal.nav_transfers') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/devices">
                         <el-icon><Monitor /></el-icon>
-                        <template #title>设备管理</template>
+                        <template #title>{{ $t('portal.nav_devices') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/usage">
                         <el-icon><TrendCharts /></el-icon>
-                        <template #title>用量统计</template>
+                        <template #title>{{ $t('portal.nav_usage') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/analytics">
                         <el-icon><DataAnalysis /></el-icon>
-                        <template #title>分析仪表盘</template>
+                        <template #title>{{ $t('portal.nav_analytics') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/license-health">
                         <el-icon><CircleCheck /></el-icon>
-                        <template #title>健康评分</template>
+                        <template #title>{{ $t('portal.nav_health') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/billing">
                         <el-icon><Money /></el-icon>
-                        <template #title>账单</template>
+                        <template #title>{{ $t('portal.nav_billing') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/invoices">
                         <el-icon><Document /></el-icon>
-                        <template #title>发票</template>
+                        <template #title>{{ $t('portal.nav_invoices') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/payment-methods">
                         <el-icon><CreditCard /></el-icon>
-                        <template #title>支付方式</template>
+                        <template #title>{{ $t('portal.nav_payment') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/earnings">
                         <el-icon><Coin /></el-icon>
-                        <template #title>收益</template>
+                        <template #title>{{ $t('portal.nav_earnings') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/partner">
                         <el-icon><Connection /></el-icon>
-                        <template #title>合作伙伴</template>
+                        <template #title>{{ $t('portal.nav_partner') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/affiliate">
                         <el-icon><Share /></el-icon>
-                        <template #title>联盟推广</template>
+                        <template #title>{{ $t('portal.nav_affiliate') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/audit-log">
                         <el-icon><Document /></el-icon>
-                        <template #title>操作日志</template>
+                        <template #title>{{ $t('portal.nav_audit') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/notifications">
                         <el-icon><Bell /></el-icon>
-                        <template #title>通知</template>
+                        <template #title>{{ $t('portal.nav_notifications') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/notification-preferences">
                         <el-icon><Setting /></el-icon>
-                        <template #title>通知偏好</template>
+                        <template #title>{{ $t('portal.nav_notif_prefs') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/feedback">
                         <el-icon><ChatLineSquare /></el-icon>
-                        <template #title>意见反馈</template>
+                        <template #title>{{ $t('portal.nav_feedback') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/knowledge-base">
                         <el-icon><QuestionFilled /></el-icon>
-                        <template #title>帮助</template>
+                        <template #title>{{ $t('portal.nav_help') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/settings">
                         <el-icon><Setting /></el-icon>
-                        <template #title>设置</template>
+                        <template #title>{{ $t('portal.nav_settings') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/data-exports">
                         <el-icon><Download /></el-icon>
-                        <template #title>数据导出</template>
+                        <template #title>{{ $t('portal.nav_exports') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/team">
                         <el-icon><UserFilled /></el-icon>
-                        <template #title>团队协作</template>
+                        <template #title>{{ $t('portal.nav_team') }}</template>
                     </el-menu-item>
                     <el-menu-item index="/portal/api-keys">
                         <el-icon><Key /></el-icon>
-                        <template #title>API Keys</template>
+                        <template #title>{{ $t('portal.nav_api_keys') }}</template>
                     </el-menu-item>
                 </el-menu>
                 <div v-if="branding.links.length" class="sidebar-links">
@@ -193,11 +194,11 @@
             <div v-if="!sidebarCollapsed && isMobile" class="sidebar-overlay" @click="sidebarCollapsed = true"></div>
 
             <!-- 主内容区域 (WCAG: role=main) -->
-            <main class="portal-main" id="main-content" role="main" aria-label="客户门户主内容" tabindex="-1">
-                <div class="breadcrumb-bar" role="navigation" aria-label="当前位置">
+            <main class="portal-main" id="main-content" role="main" :aria-label="$t('portal.main_aria')" tabindex="-1">
+                <div class="breadcrumb-bar" role="navigation" :aria-label="$t('portal.breadcrumb_aria')">
                     <el-breadcrumb>
-                        <el-breadcrumb-item :to="'/portal/dashboard'">首页</el-breadcrumb-item>
-                        <el-breadcrumb-item v-if="route.meta?.title">{{ route.meta.title }}</el-breadcrumb-item>
+                        <el-breadcrumb-item :to="'/portal/dashboard'">{{ $t('portal.home') }}</el-breadcrumb-item>
+                        <el-breadcrumb-item v-if="breadcrumbTitle">{{ breadcrumbTitle }}</el-breadcrumb-item>
                     </el-breadcrumb>
                 </div>
                 <div class="portal-content">
@@ -226,6 +227,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useResponsive } from '@/composables/useResponsive';
 import apiClient from '@/api/client';
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import { refreshDocumentTitle, resolveDocumentTitle } from '@/utils/resolveDocumentTitle';
 import {
     Fold, Expand, Key, ArrowDown, Setting, SwitchButton,
     DataAnalysis, Tickets, Monitor, TrendCharts, Money,
@@ -237,6 +240,8 @@ import {
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+
+const breadcrumbTitle = computed(() => resolveDocumentTitle(route, { brandOnly: true }) || '');
 
 const sidebarCollapsed = ref(false);
 const { isMobile } = useResponsive();
@@ -251,16 +256,17 @@ function syncSidebarForViewport() {
 
 watch(isMobile, syncSidebarForViewport);
 
-// 路由切换时在移动端自动收起侧栏
-watch(() => route.path, () => {
+// 路由切换时在移动端自动收起侧栏；同步双语标题
+watch(() => route.fullPath, () => {
     if (isMobile.value) {
         sidebarCollapsed.value = true;
     }
+    refreshDocumentTitle(route);
 });
 
 const branding = reactive({
-    brand_name: '互物通 客户门户',
-    primary_color: '#409eff',
+    brand_name: '',
+    primary_color: '#0f172a',
     secondary_color: '#67c23a',
     sidebar_bg_color: '#304156',
     sidebar_text_color: '#bfcbd9',
@@ -272,7 +278,7 @@ const branding = reactive({
 });
 
 const portalStyle = computed(() => ({
-    '--brand-primary': branding.primary_color || '#409eff',
+    '--brand-primary': branding.primary_color || '#0f172a',
     '--brand-sidebar-bg': branding.sidebar_bg_color || '#304156',
     '--brand-sidebar-text': branding.sidebar_text_color || '#bfcbd9',
 }));
@@ -311,8 +317,8 @@ async function loadBranding() {
         });
         const config = data?.data?.config;
         if (config) {
-            branding.brand_name = config.brand_name || '互物通 客户门户';
-            branding.primary_color = config.primary_color || '#409eff';
+            branding.brand_name = config.brand_name || '';
+            branding.primary_color = config.primary_color || '#0f172a';
             branding.secondary_color = config.secondary_color || '#67c23a';
             branding.sidebar_bg_color = config.sidebar_bg_color || '#304156';
             branding.sidebar_text_color = config.sidebar_text_color || '#bfcbd9';
@@ -322,8 +328,8 @@ async function loadBranding() {
             branding.links = config.links || [];
             branding.social_links = config.social_links || [];
 
-            // 更新页面标题
-            if (config.brand_name) {
+            // 更新页面标题（优先路由双语标题，否则用品牌名）
+            if (!refreshDocumentTitle(route) && config.brand_name) {
                 document.title = config.brand_name;
             }
 
@@ -366,6 +372,8 @@ function handleCommand(command) {
     flex-direction: column;
     height: 100vh;
     background: var(--brand-background, #f5f7fa);
+    overflow-x: clip;
+    max-width: 100%;
 }
 
 .portal-header {
@@ -412,13 +420,13 @@ function handleCommand(command) {
 
 .sidebar-links { padding: 8px 12px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 8px; }
 .sidebar-link { display: block; padding: 4px 8px; font-size: 12px; color: var(--brand-sidebar-text, #bfcbd9); text-decoration: none; border-radius: 4px; transition: all 0.2s; }
-.sidebar-link:hover { color: var(--brand-primary, #409eff); background: rgba(255,255,255,0.05); }
+.sidebar-link:hover { color: var(--brand-primary, #0f172a); background: rgba(255,255,255,0.05); }
 
 .portal-footer { border-top: 1px solid #e4e7ed; padding: 16px 24px; }
 .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .footer-social { display: flex; align-items: center; gap: 12px; }
 .social-link { color: #909399; text-decoration: none; font-size: 13px; transition: color 0.2s; }
-.social-link:hover { color: var(--brand-primary, #409eff); }
+.social-link:hover { color: var(--brand-primary, #0f172a); }
 .social-icon { width: 20px; height: 20px; }
 .footer-text { font-size: 12px; color: #c0c4cc; }
 
@@ -476,6 +484,7 @@ function handleCommand(command) {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-width: 0;
 }
 
 .breadcrumb-bar {
@@ -483,12 +492,17 @@ function handleCommand(command) {
     background: #fff;
     border-bottom: 1px solid #ebeef5;
     flex-shrink: 0;
+    overflow-x: auto;
+    max-width: 100%;
 }
 
 .portal-content {
     flex: 1;
     padding: 20px 24px;
     overflow-y: auto;
+    overflow-x: clip;
+    min-width: 0;
+    max-width: 100%;
 }
 
 /* 通知铃铛 */
@@ -569,10 +583,25 @@ function handleCommand(command) {
         flex-direction: column;
         align-items: flex-start;
     }
-    /* Element Plus 表格在移动端可横向滚动 */
+    /* Element Plus 表格在移动端容器内滚动 */
     .portal-content :deep(.el-table) {
+        max-width: 100%;
+    }
+    .portal-content :deep(.el-table__body-wrapper) {
         overflow-x: auto;
-        display: block;
+    }
+    .portal-content :deep(.table-scroll-wrap) {
+        overflow-x: auto;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+    }
+    .portal-content :deep(.el-dialog) {
+        width: calc(100vw - 24px) !important;
+        max-width: 100%;
+        margin: 12px auto !important;
+    }
+    .portal-content :deep(.el-drawer) {
+        width: 100% !important;
     }
     /* 卡片内边距缩减 */
     .portal-content :deep(.el-card__body) {

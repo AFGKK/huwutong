@@ -1,13 +1,13 @@
 <template>
     <div class="local-proxy-page">
         <div class="page-header">
-            <h2>本地 License 代理</h2>
+            <h2>{{ t(`${P}.title`) }}</h2>
             <div class="header-actions">
                 <el-button @click="loadAll" :loading="loading">
-                    <el-icon><Refresh /></el-icon> 刷新
+                    <el-icon><Refresh /></el-icon> {{ t(`${P}.refresh`) }}
                 </el-button>
                 <el-button type="primary" @click="showRegisterDialog = true">
-                    <el-icon><Plus /></el-icon> 注册代理
+                    <el-icon><Plus /></el-icon> {{ t(`${P}.register_proxy`) }}
                 </el-button>
             </div>
         </div>
@@ -16,38 +16,38 @@
         <el-row :gutter="16" class="mb-4">
             <el-col :span="4">
                 <el-card shadow="hover">
-                    <div class="stat-label">总节点</div>
+                    <div class="stat-label">{{ t(`${P}.stats.total_nodes`) }}</div>
                     <div class="stat-value">{{ stats.total_nodes }}</div>
                 </el-card>
             </el-col>
             <el-col :span="5">
                 <el-card shadow="hover" class="stat-active">
-                    <div class="stat-label">活跃节点</div>
+                    <div class="stat-label">{{ t(`${P}.stats.active_nodes`) }}</div>
                     <div class="stat-value">{{ stats.active_nodes }}</div>
                 </el-card>
             </el-col>
             <el-col :span="5">
                 <el-card shadow="hover" class="stat-success">
-                    <div class="stat-label">健康节点</div>
+                    <div class="stat-label">{{ t(`${P}.stats.healthy_nodes`) }}</div>
                     <div class="stat-value">{{ stats.healthy_nodes }}</div>
                     <div class="stat-change" v-if="stats.offline_nodes > 0" style="color:#e6a23c">
-                        {{ stats.offline_nodes }} 个离线
+                        {{ t(`${P}.stats.offline_count`, { n: stats.offline_nodes }) }}
                     </div>
-                    <div class="stat-change" v-else style="color:#67c23a">全部在线</div>
+                    <div class="stat-change" v-else style="color:#67c23a">{{ t(`${P}.stats.all_online`) }}</div>
                 </el-card>
             </el-col>
             <el-col :span="5">
                 <el-card shadow="hover" class="stat-info">
-                    <div class="stat-label">缓存License数</div>
+                    <div class="stat-label">{{ t(`${P}.stats.cached_licenses`) }}</div>
                     <div class="stat-value">{{ stats.cached_licenses }}</div>
                 </el-card>
             </el-col>
             <el-col :span="5">
                 <el-card shadow="hover" class="stat-warning">
-                    <div class="stat-label">近7天验证</div>
+                    <div class="stat-label">{{ t(`${P}.stats.recent_verifications_7d`) }}</div>
                     <div class="stat-value">{{ stats.recent_activations_7d }}</div>
                     <div class="stat-change" v-if="stats.denied_activations_7d > 0" style="color:#f56c6c">
-                        {{ stats.denied_activations_7d }} 次拒绝
+                        {{ t(`${P}.stats.denied_count`, { n: stats.denied_activations_7d }) }}
                     </div>
                 </el-card>
             </el-col>
@@ -56,22 +56,22 @@
         <!-- 节点列表 -->
         <el-card>
             <template #header>
-                <span>代理节点</span>
+                <span>{{ t(`${P}.sections.proxy_nodes`) }}</span>
             </template>
 
             <el-table :data="nodes" stripe v-loading="loadingTable">
-                <el-table-column prop="name" label="节点名称" min-width="140" />
-                <el-table-column label="状态" width="100">
+                <el-table-column prop="name" :label="t(`${P}.columns.name`)" min-width="140" />
+                <el-table-column :label="t(`${P}.columns.status`)" width="100">
                     <template #default="{ row }">
                         <el-tag :type="row.status === 'active' ? 'success' : row.status === 'paused' ? 'warning' : 'info'"
                             size="small">
-                            {{ row.status === 'active' ? '活跃' : row.status === 'paused' ? '暂停' : row.status === 'pending' ? '待激活' : '已退役' }}
+                            {{ nodeStatusLabel(row.status) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="健康" width="80" align="center">
+                <el-table-column :label="t(`${P}.columns.health`)" width="80" align="center">
                     <template #default="{ row }">
-                        <el-tooltip :content="row.is_healthy ? '最近10分钟内有心跳' : '超过10分钟无心跳'" placement="top">
+                        <el-tooltip :content="row.is_healthy ? t(`${P}.health.healthy_tip`) : t(`${P}.health.unhealthy_tip`)" placement="top">
                             <el-tag :type="row.is_healthy ? 'success' : 'danger'" size="small" effect="plain">
                                 <el-icon style="vertical-align: -2px">
                                     <component :is="row.is_healthy ? 'CircleCheck' : 'CircleClose'" />
@@ -80,41 +80,41 @@
                         </el-tooltip>
                     </template>
                 </el-table-column>
-                <el-table-column prop="base_url" label="内网地址" min-width="160" />
-                <el-table-column prop="version" label="版本" width="80" />
-                <el-table-column prop="os" label="操作系统" width="100" />
-                <el-table-column label="缓存" width="80" align="center">
+                <el-table-column prop="base_url" :label="t(`${P}.columns.base_url`)" min-width="160" />
+                <el-table-column prop="version" :label="t(`${P}.columns.version`)" width="80" />
+                <el-table-column prop="os" :label="t(`${P}.columns.os`)" width="100" />
+                <el-table-column :label="t(`${P}.columns.cache`)" width="80" align="center">
                     <template #default="{ row }">{{ row.cached_licenses_count }}</template>
                 </el-table-column>
-                <el-table-column label="最近心跳" width="160">
+                <el-table-column :label="t(`${P}.columns.last_heartbeat`)" width="160">
                     <template #default="{ row }">
                         <span v-if="row.last_heartbeat_at" style="font-size:12px;color:#909399">
                             {{ formatTime(row.last_heartbeat_at) }}
                         </span>
-                        <span v-else style="color:#c0c4cc">无</span>
+                        <span v-else style="color:#c0c4cc">{{ t(`${P}.none`) }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="220" fixed="right">
+                <el-table-column :label="t(`${P}.columns.actions`)" width="220" fixed="right">
                     <template #default="{ row }">
-                        <el-button size="small" @click="viewNode(row)">详情</el-button>
+                        <el-button size="small" @click="viewNode(row)">{{ t(`${P}.detail`) }}</el-button>
                         <el-dropdown v-if="row.status !== 'decommissioned'" trigger="click">
                             <el-button size="small">
-                                更多<el-icon><ArrowDown /></el-icon>
+                                {{ t('actions.more') }}<el-icon><ArrowDown /></el-icon>
                             </el-button>
                             <template #dropdown>
                                 <el-dropdown-menu>
                                     <el-dropdown-item v-if="row.status === 'pending'" @click="showActivateDialog(row)">
-                                        激活
+                                        {{ t(`${P}.activate`) }}
                                     </el-dropdown-item>
                                     <el-dropdown-item v-if="row.status === 'active'" @click="toggleNodeStatus(row, 'paused')">
-                                        暂停
+                                        {{ t(`${P}.pause`) }}
                                     </el-dropdown-item>
                                     <el-dropdown-item v-if="row.status === 'paused'" @click="toggleNodeStatus(row, 'active')">
-                                        恢复
+                                        {{ t(`${P}.resume`) }}
                                     </el-dropdown-item>
-                                    <el-dropdown-item @click="configureNode(row)">配置</el-dropdown-item>
+                                    <el-dropdown-item @click="configureNode(row)">{{ t(`${P}.configure`) }}</el-dropdown-item>
                                     <el-dropdown-item divided @click="toggleNodeStatus(row, 'decommissioned')" style="color:#f56c6c">
-                                        退役
+                                        {{ t(`${P}.decommission`) }}
                                     </el-dropdown-item>
                                 </el-dropdown-menu>
                             </template>
@@ -125,47 +125,47 @@
         </el-card>
 
         <!-- 注册弹窗 -->
-        <el-dialog v-model="showRegisterDialog" title="注册代理节点" width="500px">
-            <el-form :model="registerForm" ref="registerFormRef" label-position="top">
-                <el-form-item label="节点名称" prop="name" :rules="[{ required: true, message: '请输入节点名称' }]">
-                    <el-input v-model="registerForm.name" placeholder="例如: 华为内网-北京机房" />
+        <el-dialog v-model="showRegisterDialog" :title="t(`${P}.register_dialog.title`)" width="500px">
+            <el-form :model="registerForm" ref="registerFormRef" label-position="top" :rules="registerRules">
+                <el-form-item :label="t(`${P}.register_dialog.name`)" prop="name">
+                    <el-input v-model="registerForm.name" :placeholder="t(`${P}.register_dialog.name_ph`)" />
                 </el-form-item>
-                <el-form-item label="内网地址" prop="base_url">
-                    <el-input v-model="registerForm.base_url" placeholder="例如: http://192.168.1.100:8080" />
+                <el-form-item :label="t(`${P}.register_dialog.base_url`)" prop="base_url">
+                    <el-input v-model="registerForm.base_url" :placeholder="t(`${P}.register_dialog.base_url_ph`)" />
                 </el-form-item>
-                <el-form-item label="能力" prop="capabilities">
+                <el-form-item :label="t(`${P}.register_dialog.capabilities`)" prop="capabilities">
                     <el-checkbox-group v-model="registerForm.capabilities">
-                        <el-checkbox label="offline_auth" value="offline_auth">离线验证</el-checkbox>
-                        <el-checkbox label="heartbeat" value="heartbeat">心跳上报</el-checkbox>
-                        <el-checkbox label="crl_sync" value="crl_sync">CRL同步</el-checkbox>
-                        <el-checkbox label="cache" value="cache">缓存</el-checkbox>
+                        <el-checkbox label="offline_auth" value="offline_auth">{{ t(`${P}.register_dialog.offline_auth`) }}</el-checkbox>
+                        <el-checkbox label="heartbeat" value="heartbeat">{{ t(`${P}.register_dialog.heartbeat`) }}</el-checkbox>
+                        <el-checkbox label="crl_sync" value="crl_sync">{{ t(`${P}.register_dialog.crl_sync`) }}</el-checkbox>
+                        <el-checkbox label="cache" value="cache">{{ t(`${P}.register_dialog.cache`) }}</el-checkbox>
                     </el-checkbox-group>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showRegisterDialog = false">取消</el-button>
-                <el-button type="primary" @click="doRegister" :loading="registering">注册</el-button>
+                <el-button @click="showRegisterDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="doRegister" :loading="registering">{{ t(`${P}.register_dialog.register`) }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 注册结果弹窗 -->
-        <el-dialog v-model="showRegisterResult" title="注册成功" width="520px">
+        <el-dialog v-model="showRegisterResult" :title="t(`${P}.register_result.title`)" width="520px">
             <div class="result-info">
-                <el-alert type="warning" title="请立即保存以下信息！注册令牌只显示一次。" show-icon :closable="false" class="mb-4" />
+                <el-alert type="warning" :title="t(`${P}.register_result.alert`)" show-icon :closable="false" class="mb-4" />
                 <el-descriptions :column="1" border>
-                    <el-descriptions-item label="节点ID">
+                    <el-descriptions-item :label="t(`${P}.register_result.node_id`)">
                         <code class="copy-text">{{ registerResult.node_id }}</code>
                         <el-button text @click="copyToClipboard(registerResult.node_id)" size="small">
                             <el-icon><CopyDocument /></el-icon>
                         </el-button>
                     </el-descriptions-item>
-                    <el-descriptions-item label="注册令牌">
+                    <el-descriptions-item :label="t(`${P}.register_result.register_token`)">
                         <code class="copy-text">{{ registerResult.register_token }}</code>
                         <el-button text @click="copyToClipboard(registerResult.register_token)" size="small">
                             <el-icon><CopyDocument /></el-icon>
                         </el-button>
                     </el-descriptions-item>
-                    <el-descriptions-item label="API密钥">
+                    <el-descriptions-item :label="t(`${P}.register_result.api_key`)">
                         <code class="copy-text">{{ registerResult.api_key }}</code>
                         <el-button text @click="copyToClipboard(registerResult.api_key)" size="small">
                             <el-icon><CopyDocument /></el-icon>
@@ -174,93 +174,95 @@
                 </el-descriptions>
             </div>
             <template #footer>
-                <el-button type="primary" @click="showRegisterResult = false">已保存</el-button>
+                <el-button type="primary" @click="showRegisterResult = false">{{ t(`${P}.register_result.saved`) }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 激活弹窗 -->
-        <el-dialog v-model="showActivateDialogVisible" title="激活代理节点" width="450px">
-            <p>节点 <strong>{{ activateNodeData?.name }}</strong> 需要输入注册令牌以完成激活。</p>
+        <el-dialog v-model="showActivateDialogVisible" :title="t(`${P}.activate_dialog.title`)" width="450px">
+            <p>{{ t(`${P}.activate_dialog.hint`, { name: activateNodeData?.name }) }}</p>
             <el-form>
-                <el-form-item label="注册令牌">
-                    <el-input v-model="activateToken" placeholder="输入注册令牌" />
+                <el-form-item :label="t(`${P}.activate_dialog.register_token`)">
+                    <el-input v-model="activateToken" :placeholder="t(`${P}.activate_dialog.register_token_ph`)" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showActivateDialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="doActivate" :loading="activating">激活</el-button>
+                <el-button @click="showActivateDialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="doActivate" :loading="activating">{{ t(`${P}.activate`) }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 详情弹窗 -->
-        <el-dialog v-model="showDetailDialog" title="节点详情" width="800px">
+        <el-dialog v-model="showDetailDialog" :title="t(`${P}.detail_dialog.title`)" width="800px">
             <div v-loading="loadingDetail">
                 <template v-if="detailData">
                     <el-descriptions :column="2" border class="mb-4">
-                        <el-descriptions-item label="名称">{{ detailData.node.name }}</el-descriptions-item>
-                        <el-descriptions-item label="节点ID">
+                        <el-descriptions-item :label="t(`${P}.detail_dialog.name`)">{{ detailData.node.name }}</el-descriptions-item>
+                        <el-descriptions-item :label="t(`${P}.detail_dialog.node_id`)">
                             <code>{{ detailData.node.node_id }}</code>
                         </el-descriptions-item>
-                        <el-descriptions-item label="状态">
+                        <el-descriptions-item :label="t(`${P}.detail_dialog.status`)">
                             <el-tag :type="detailData.node.status === 'active' ? 'success' : 'warning'" size="small">
-                                {{ detailData.node.status }}
+                                {{ nodeStatusLabel(detailData.node.status) }}
                             </el-tag>
                         </el-descriptions-item>
-                        <el-descriptions-item label="最近心跳">
-                            {{ detailData.node.last_heartbeat_at ? formatTime(detailData.node.last_heartbeat_at) : '无' }}
+                        <el-descriptions-item :label="t(`${P}.detail_dialog.last_heartbeat`)">
+                            {{ detailData.node.last_heartbeat_at ? formatTime(detailData.node.last_heartbeat_at) : t(`${P}.none`) }}
                         </el-descriptions-item>
                     </el-descriptions>
 
                     <el-tabs>
-                        <el-tab-pane label="配置">
+                        <el-tab-pane :label="t(`${P}.detail_dialog.tabs.config`)">
                             <el-descriptions :column="2" border size="small" v-if="detailData.config">
-                                <el-descriptions-item label="同步模式">{{ detailData.config.sync_mode }}</el-descriptions-item>
-                                <el-descriptions-item label="轮询间隔">{{ detailData.config.sync_interval_seconds }}s</el-descriptions-item>
-                                <el-descriptions-item label="心跳间隔">{{ detailData.config.heartbeat_interval_seconds }}s</el-descriptions-item>
-                                <el-descriptions-item label="缓存有效期">{{ detailData.config.cache_ttl_seconds }}s</el-descriptions-item>
-                                <el-descriptions-item label="最大缓存">{{ detailData.config.max_cached_licenses }} 个</el-descriptions-item>
-                                <el-descriptions-item label="离线激活">
+                                <el-descriptions-item :label="t(`${P}.detail_dialog.config.sync_mode`)">{{ detailData.config.sync_mode }}</el-descriptions-item>
+                                <el-descriptions-item :label="t(`${P}.detail_dialog.config.sync_interval`)">{{ detailData.config.sync_interval_seconds }}s</el-descriptions-item>
+                                <el-descriptions-item :label="t(`${P}.detail_dialog.config.heartbeat_interval`)">{{ detailData.config.heartbeat_interval_seconds }}s</el-descriptions-item>
+                                <el-descriptions-item :label="t(`${P}.detail_dialog.config.cache_ttl`)">{{ detailData.config.cache_ttl_seconds }}s</el-descriptions-item>
+                                <el-descriptions-item :label="t(`${P}.detail_dialog.config.max_cached`)">
+                                    {{ t(`${P}.detail_dialog.config.max_cached_unit`, { n: detailData.config.max_cached_licenses }) }}
+                                </el-descriptions-item>
+                                <el-descriptions-item :label="t(`${P}.detail_dialog.config.offline_activation`)">
                                     <el-tag :type="detailData.config.allow_offline_activation ? 'success' : 'info'" size="small">
-                                        {{ detailData.config.allow_offline_activation ? '允许' : '禁止' }}
+                                        {{ detailData.config.allow_offline_activation ? t(`${P}.detail_dialog.config.allowed`) : t(`${P}.detail_dialog.config.denied`) }}
                                     </el-tag>
                                 </el-descriptions-item>
                             </el-descriptions>
                         </el-tab-pane>
-                        <el-tab-pane label="缓存License">
+                        <el-tab-pane :label="t(`${P}.detail_dialog.tabs.cached_licenses`)">
                             <el-table :data="detailData.cached_licenses" size="small" stripe v-if="detailData.cached_licenses?.length">
-                                <el-table-column prop="license_key" label="License Key" min-width="200" />
-                                <el-table-column label="状态" width="80">
+                                <el-table-column prop="license_key" :label="t(`${P}.detail_dialog.cached_cols.license_key`)" min-width="200" />
+                                <el-table-column :label="t(`${P}.detail_dialog.cached_cols.status`)" width="80">
                                     <template #default="{ row }">{{ row.license_status }}</template>
                                 </el-table-column>
-                                <el-table-column label="过期时间" width="160">
+                                <el-table-column :label="t(`${P}.detail_dialog.cached_cols.expires_at`)" width="160">
                                     <template #default="{ row }">{{ row.expires_at ? formatTime(row.expires_at) : '-' }}</template>
                                 </el-table-column>
-                                <el-table-column label="验证次数" width="80" align="center" prop="verify_count" />
-                                <el-table-column label="已过期" width="80" align="center">
+                                <el-table-column :label="t(`${P}.detail_dialog.cached_cols.verify_count`)" width="80" align="center" prop="verify_count" />
+                                <el-table-column :label="t(`${P}.detail_dialog.cached_cols.expired`)" width="80" align="center">
                                     <template #default="{ row }">
                                         <el-tag :type="row.is_expired ? 'danger' : 'success'" size="small">
-                                            {{ row.is_expired ? '是' : '否' }}
+                                            {{ row.is_expired ? t(`${P}.common.yes`) : t(`${P}.common.no`) }}
                                         </el-tag>
                                     </template>
                                 </el-table-column>
                             </el-table>
-                            <el-empty v-else description="暂无缓存License" />
+                            <el-empty v-else :description="t(`${P}.detail_dialog.empty_cached`)" />
                         </el-tab-pane>
-                        <el-tab-pane label="最近心跳">
+                        <el-tab-pane :label="t(`${P}.detail_dialog.tabs.heartbeats`)">
                             <el-table :data="detailData.heartbeats" size="small" stripe v-if="detailData.heartbeats?.length">
-                                <el-table-column label="时间" width="160">
+                                <el-table-column :label="t(`${P}.detail_dialog.heartbeat_cols.time`)" width="160">
                                     <template #default="{ row }">{{ formatTime(row.heartbeat_at) }}</template>
                                 </el-table-column>
-                                <el-table-column label="状态" width="80">
+                                <el-table-column :label="t(`${P}.detail_dialog.heartbeat_cols.status`)" width="80">
                                     <template #default="{ row }">
                                         <el-tag :type="row.status === 'healthy' ? 'success' : 'warning'" size="small">
                                             {{ row.status }}
                                         </el-tag>
                                     </template>
                                 </el-table-column>
-                                <el-table-column label="错误" min-width="200" prop="error_message" />
+                                <el-table-column :label="t(`${P}.detail_dialog.heartbeat_cols.error`)" min-width="200" prop="error_message" />
                             </el-table>
-                            <el-empty v-else description="暂无心跳数据" />
+                            <el-empty v-else :description="t(`${P}.detail_dialog.empty_heartbeats`)" />
                         </el-tab-pane>
                     </el-tabs>
                 </template>
@@ -268,64 +270,66 @@
         </el-dialog>
 
         <!-- 配置编辑弹窗 -->
-        <el-dialog v-model="showConfigDialog" title="编辑代理配置" width="550px">
+        <el-dialog v-model="showConfigDialog" :title="t(`${P}.config_dialog.title`)" width="550px">
             <el-form :model="configForm" label-position="top" size="small">
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="同步模式">
+                        <el-form-item :label="t(`${P}.config_dialog.sync_mode`)">
                             <el-select v-model="configForm.sync_mode">
-                                <el-option label="轮询" value="poll" />
-                                <el-option label="推送" value="push" />
-                                <el-option label="混合" value="hybrid" />
+                                <el-option v-for="opt in syncModeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="轮询间隔(秒)">
+                        <el-form-item :label="t(`${P}.config_dialog.sync_interval`)">
                             <el-input-number v-model="configForm.sync_interval_seconds" :min="30" :max="86400" />
                         </el-form-item>
                     </el-col>
                 </el-row>
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="心跳间隔(秒)">
+                        <el-form-item :label="t(`${P}.config_dialog.heartbeat_interval`)">
                             <el-input-number v-model="configForm.heartbeat_interval_seconds" :min="10" :max="3600" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="缓存有效期(秒)">
+                        <el-form-item :label="t(`${P}.config_dialog.cache_ttl`)">
                             <el-input-number v-model="configForm.cache_ttl_seconds" :min="300" :max="604800" />
                         </el-form-item>
                     </el-col>
                 </el-row>
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="最大缓存License数">
+                        <el-form-item :label="t(`${P}.config_dialog.max_cached`)">
                             <el-input-number v-model="configForm.max_cached_licenses" :min="10" :max="100000" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="强制云端验证">
+                        <el-form-item :label="t(`${P}.config_dialog.require_cloud_validation`)">
                             <el-switch v-model="configForm.require_cloud_validation" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-form-item label="允许离线激活">
+                <el-form-item :label="t(`${P}.config_dialog.allow_offline_activation`)">
                     <el-switch v-model="configForm.allow_offline_activation" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showConfigDialog = false">取消</el-button>
-                <el-button type="primary" @click="doUpdateConfig" :loading="savingConfig">保存</el-button>
+                <el-button @click="showConfigDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="doUpdateConfig" :loading="savingConfig">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import localProxyApi from '@/api/localProxy';
+
+const P = 'local_proxy_page';
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const loadingTable = ref(false);
@@ -339,6 +343,7 @@ const nodes = ref([]);
 
 // 注册
 const showRegisterDialog = ref(false);
+const registerFormRef = ref(null);
 const registerForm = reactive({
     name: '',
     base_url: '',
@@ -372,15 +377,47 @@ const configForm = reactive({
 });
 const savingConfig = ref(false);
 
+const registerRules = computed(() => ({
+    name: [{ required: true, message: t(`${P}.register_dialog.name_required`), trigger: 'blur' }],
+}));
+
+const statusActionLabels = computed(() => ({
+    active: t(`${P}.status_actions.resume`),
+    paused: t(`${P}.status_actions.pause`),
+    decommissioned: t(`${P}.status_actions.decommission`),
+}));
+
+const statusMessageKeys = {
+    active: 'resumed',
+    paused: 'paused',
+    decommissioned: 'decommissioned',
+};
+
+const syncModeOptions = computed(() => [
+    { label: t(`${P}.sync_modes.poll`), value: 'poll' },
+    { label: t(`${P}.sync_modes.push`), value: 'push' },
+    { label: t(`${P}.sync_modes.hybrid`), value: 'hybrid' },
+]);
+
+function nodeStatusLabel(status) {
+    const labels = {
+        active: t(`${P}.status.active`),
+        paused: t(`${P}.status.paused`),
+        pending: t(`${P}.status.pending`),
+        decommissioned: t(`${P}.status.decommissioned`),
+    };
+    return labels[status] || status;
+}
+
 function formatTime(dateStr) {
     if (!dateStr) return '';
     const d = new Date(dateStr);
-    return d.toLocaleString('zh-CN');
+    return d.toLocaleString(locale.value === 'zh_CN' ? 'zh-CN' : 'en-US');
 }
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        ElMessage.success('已复制到剪贴板');
+        ElMessage.success(t('marketplace_uploader.copied'));
     });
 }
 
@@ -403,6 +440,8 @@ async function loadAll() {
 }
 
 async function doRegister() {
+    const valid = await registerFormRef.value?.validate().catch(() => false);
+    if (!valid) return;
     registering.value = true;
     try {
         const res = await localProxyApi.registerNode({
@@ -434,7 +473,7 @@ function showActivateDialog(node) {
 
 async function doActivate() {
     if (!activateToken.value) {
-        ElMessage.warning('请输入注册令牌');
+        ElMessage.warning(t(`${P}.messages.token_required`));
         return;
     }
     activating.value = true;
@@ -443,7 +482,7 @@ async function doActivate() {
             node_id: activateNodeData.value.node_id,
             register_token: activateToken.value,
         });
-        ElMessage.success('节点已激活');
+        ElMessage.success(t(`${P}.messages.node_activated`));
         showActivateDialogVisible.value = false;
         await loadAll();
     } catch (err) {
@@ -454,15 +493,15 @@ async function doActivate() {
 }
 
 async function toggleNodeStatus(node, status) {
-    const labels = { active: '恢复', paused: '暂停', decommissioned: '退役' };
+    const action = statusActionLabels.value[status];
     try {
         await ElMessageBox.confirm(
-            `确定${labels[status]}节点「${node.name}」吗？`,
-            '确认操作',
+            t(`${P}.confirm.toggle`, { action, name: node.name }),
+            t('actions.confirm'),
             { type: 'warning' }
         );
         await localProxyApi.updateNodeStatus(node.id, status);
-        ElMessage.success(`节点已${labels[status]}`);
+        ElMessage.success(t(`${P}.messages.${statusMessageKeys[status]}`));
         await loadAll();
     } catch (err) {
         // cancelled
@@ -485,7 +524,6 @@ async function viewNode(node) {
 
 async function configureNode(node) {
     configNodeId.value = node.id;
-    // Populate form from node config
     const cfg = node.config || {};
     configForm.sync_mode = cfg.sync_mode || 'poll';
     configForm.sync_interval_seconds = cfg.sync_interval_seconds || 300;
@@ -502,7 +540,7 @@ async function doUpdateConfig() {
     savingConfig.value = true;
     try {
         await localProxyApi.updateNodeConfig(configNodeId.value, { ...configForm });
-        ElMessage.success('配置已更新');
+        ElMessage.success(t(`${P}.messages.config_updated`));
         showConfigDialog.value = false;
         await loadAll();
     } catch (err) {
@@ -527,7 +565,7 @@ onMounted(loadAll);
 .stat-change { font-size: 12px; margin-top: 4px; }
 .stat-active .stat-value { color: #67c23a; }
 .stat-success .stat-value { color: #67c23a; }
-.stat-info .stat-value { color: #409eff; }
+.stat-info .stat-value { color: #0f172a; }
 .stat-warning .stat-value { color: #e6a23c; }
 
 .copy-text { font-size: 13px; user-select: all; word-break: break-all; }

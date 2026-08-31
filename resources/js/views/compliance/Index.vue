@@ -1,9 +1,9 @@
 <template>
   <div class="compliance-page">
     <div class="page-header">
-      <h2>SOC 2 / ISO 27001 合规包</h2>
+      <h2>{{ t('compliance_page.title') }}</h2>
       <div class="header-actions">
-        <el-button @click="refreshDashboard" :loading="loading.dashboard" plain>刷新</el-button>
+        <el-button @click="refreshDashboard" :loading="loading.dashboard" plain>{{ t('compliance_page.buttons.refresh') }}</el-button>
       </div>
     </div>
 
@@ -23,13 +23,13 @@
             <div class="fw-meta">
               <template v-if="fw.latest_report">
                 <el-tag :type="riskTag(fw.latest_report.risk_level)" size="small" effect="dark">{{ riskLabel(fw.latest_report.risk_level) }}</el-tag>
-                <div class="fw-pass-rate">通过率 {{ fw.latest_report.passed_count }}/{{ fw.latest_report.passed_count + fw.latest_report.failed_count }}</div>
+                <div class="fw-pass-rate">{{ t('compliance_page.cards.pass_rate', { passed: fw.latest_report.passed_count, total: fw.latest_report.passed_count + fw.latest_report.failed_count }) }}</div>
               </template>
               <template v-else>
-                <el-tag type="info" size="small">未生成报告</el-tag>
+                <el-tag type="info" size="small">{{ t('compliance_page.cards.no_report') }}</el-tag>
               </template>
             </div>
-            <div class="fw-report-count">{{ fw.report_count }} 份报告</div>
+            <div class="fw-report-count">{{ t('compliance_page.cards.report_count', { n: fw.report_count }) }}</div>
           </el-card>
         </el-col>
       </el-row>
@@ -39,23 +39,21 @@
         <el-col :span="12">
           <el-card shadow="never">
             <template #header>
-              <div class="card-header"><span>生成合规报告</span></div>
+              <div class="card-header"><span>{{ t('compliance_page.cards.generate_report') }}</span></div>
             </template>
             <el-form :model="reportForm" inline>
-              <el-form-item label="框架" required>
-                <el-select v-model="reportForm.framework_id" placeholder="选择合规框架" style="width:200px;">
+              <el-form-item :label="t('compliance_page.form.framework')" required>
+                <el-select v-model="reportForm.framework_id" :placeholder="t('compliance_page.form.select_framework')" style="width:200px;">
                   <el-option v-for="fw in frameworks" :key="fw.id" :label="fw.name" :value="fw.id" />
                 </el-select>
               </el-form-item>
-              <el-form-item label="类型">
+              <el-form-item :label="t('compliance_page.form.type')">
                 <el-select v-model="reportForm.type" style="width:140px;">
-                  <el-option label="按需生成" value="on_demand" />
-                  <el-option label="定期生成" value="scheduled" />
-                  <el-option label="持续监控" value="continuous" />
+                  <el-option v-for="opt in reportTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" @click="generateReport" :loading="loading.generate" plain>生成报告</el-button>
+                <el-button type="primary" @click="generateReport" :loading="loading.generate" plain>{{ t('compliance_page.buttons.generate_report') }}</el-button>
               </el-form-item>
             </el-form>
           </el-card>
@@ -63,13 +61,13 @@
         <el-col :span="6">
           <el-card shadow="hover" class="stat-card">
             <div class="stat-value">{{ stats.total_reports }}</div>
-            <div class="stat-label">总报告数</div>
+            <div class="stat-label">{{ t('compliance_page.stats.total_reports') }}</div>
           </el-card>
         </el-col>
         <el-col :span="6">
           <el-card shadow="hover" class="stat-card info">
             <div class="stat-value">{{ stats.total_exports }}</div>
-            <div class="stat-label">导出记录</div>
+            <div class="stat-label">{{ t('compliance_page.stats.export_records') }}</div>
           </el-card>
         </el-col>
       </el-row>
@@ -79,7 +77,7 @@
         <el-col :span="12">
           <el-card shadow="never">
             <template #header>
-              <div class="card-header"><span>SOC 2 控制域</span></div>
+              <div class="card-header"><span>{{ t('compliance_page.standards.soc2_domains') }}</span></div>
             </template>
             <div class="standard-domains">
               <div class="domain-item" v-for="(d, i) in soc2Domains" :key="i">
@@ -92,7 +90,7 @@
         <el-col :span="12">
           <el-card shadow="never">
             <template #header>
-              <div class="card-header"><span>ISO 27001 控制域</span></div>
+              <div class="card-header"><span>{{ t('compliance_page.standards.iso_domains') }}</span></div>
             </template>
             <div class="standard-domains">
               <div class="domain-item" v-for="(d, i) in isoDomains" :key="i">
@@ -108,54 +106,52 @@
       <el-card shadow="never" class="report-section">
         <template #header>
           <div class="card-header">
-            <span>合规报告历史</span>
+            <span>{{ t('compliance_page.cards.report_history') }}</span>
             <div class="header-actions">
-              <el-select v-model="filters.framework_id" placeholder="框架筛选" clearable @change="loadReports" style="width:150px;margin-right:8px;">
+              <el-select v-model="filters.framework_id" :placeholder="t('compliance_page.filters.framework')" clearable @change="loadReports" style="width:150px;margin-right:8px;">
                 <el-option v-for="fw in frameworks" :key="fw.id" :label="fw.name" :value="fw.id" />
               </el-select>
-              <el-select v-model="filters.status" placeholder="状态" clearable @change="loadReports" style="width:120px;">
-                <el-option label="草稿" value="draft" />
-                <el-option label="已生成" value="generated" />
-                <el-option label="失败" value="failed" />
+              <el-select v-model="filters.status" :placeholder="t('compliance_page.filters.status')" clearable @change="loadReports" style="width:120px;">
+                <el-option v-for="opt in statusFilterOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </div>
           </div>
         </template>
         <el-table :data="reports" v-loading="loading.reports" stripe>
-          <el-table-column prop="id" label="ID" width="60" />
-          <el-table-column label="框架" width="140">
+          <el-table-column prop="id" :label="t('compliance_page.cols.id')" width="60" />
+          <el-table-column :label="t('compliance_page.cols.framework')" width="140">
             <template #default="{ row }">
               <el-tag v-if="row.framework" :type="fwTag(row.framework.code)" size="small">{{ row.framework.code }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="title" label="标题" min-width="180" show-overflow-tooltip />
-          <el-table-column label="风险等级" width="120">
+          <el-table-column prop="title" :label="t('compliance_page.cols.title')" min-width="180" show-overflow-tooltip />
+          <el-table-column :label="t('compliance_page.cols.risk_level')" width="120">
             <template #default="{ row }">
               <el-tag :type="riskTag(row.risk_level)" effect="dark" size="small">{{ riskLabel(row.risk_level) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="通过/失败" width="140">
+          <el-table-column :label="t('compliance_page.cols.pass_fail')" width="140">
             <template #default="{ row }">
               <span class="pass-count">{{ row.passed_count }}</span><span class="sep">/</span>
               <span class="fail-count">{{ row.failed_count }}</span><span class="sep">/</span>
-              <span class="na-count">N/A {{ row.na_count }}</span>
+              <span class="na-count">{{ t('compliance_page.cols.na') }} {{ row.na_count }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="状态" width="100">
+          <el-table-column :label="t('compliance_page.cols.status')" width="100">
             <template #default="{ row }">
               <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="生成时间" width="170">
+          <el-table-column :label="t('compliance_page.cols.generated_at')" width="170">
             <template #default="{ row }">{{ formatDate(row.generated_at || row.created_at) }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
+          <el-table-column :label="t('compliance_page.cols.actions')" width="200" fixed="right">
             <template #default="{ row }">
-              <el-button text type="primary" size="small" @click="viewReport(row)">查看</el-button>
-              <el-button text type="warning" size="small" @click="promptExport(row)">导出</el-button>
-              <el-popconfirm title="确认删除此报告？" @confirm="deleteReport(row)">
+              <el-button text type="primary" size="small" @click="viewReport(row)">{{ t('actions.view') }}</el-button>
+              <el-button text type="warning" size="small" @click="promptExport(row)">{{ t('actions.export') }}</el-button>
+              <el-popconfirm :title="t('compliance_page.delete_confirm')" @confirm="deleteReport(row)">
                 <template #reference>
-                  <el-button text type="danger" size="small">删除</el-button>
+                  <el-button text type="danger" size="small">{{ t('actions.delete') }}</el-button>
                 </template>
               </el-popconfirm>
             </template>
@@ -177,7 +173,7 @@
     <el-card shadow="hover" class="mt-4">
       <el-tabs v-model="packTab">
         <!-- Tab 1: 准备就绪评分 -->
-        <el-tab-pane label="准备就绪" name="readiness">
+        <el-tab-pane :label="t('compliance_page.tabs.readiness')" name="readiness">
           <el-row :gutter="16">
             <el-col :span="12" v-for="(fw, code) in packDashboard.frameworks" :key="code">
               <el-card shadow="never" class="mb-3">
@@ -186,114 +182,110 @@
                   <el-progress :percentage="fw.readiness_score" :status="fw.readiness_score >= 80 ? 'success' : fw.readiness_score >= 50 ? 'warning' : 'exception'" style="width:200px;display:inline-block;float:right" />
                 </template>
                 <el-descriptions :column="2" size="small" border>
-                  <el-descriptions-item label="证据总数">{{ fw.evidence_total }}</el-descriptions-item>
-                  <el-descriptions-item label="已验证">{{ fw.evidence_validated }} ({{ fw.evidence_validation_rate }}%)</el-descriptions-item>
-                  <el-descriptions-item label="差距分析">{{ fw.gaps_resolved }}/{{ fw.gaps_total }} 已解决</el-descriptions-item>
-                  <el-descriptions-item label="未关闭差距">{{ fw.gaps_open }}</el-descriptions-item>
-                  <el-descriptions-item label="策略文档">{{ fw.policy_count }} 份</el-descriptions-item>
-                  <el-descriptions-item label="问卷进度">{{ fw.questionnaire_answered }}/{{ fw.questionnaire_total }} ({{ fw.questionnaire_progress }}%)</el-descriptions-item>
+                  <el-descriptions-item :label="t('compliance_page.readiness.evidence_total')">{{ fw.evidence_total }}</el-descriptions-item>
+                  <el-descriptions-item :label="t('compliance_page.readiness.evidence_validated')">{{ fw.evidence_validated }} ({{ fw.evidence_validation_rate }}%)</el-descriptions-item>
+                  <el-descriptions-item :label="t('compliance_page.readiness.gap_analysis')">{{ t('compliance_page.readiness.gaps_resolved', { resolved: fw.gaps_resolved, total: fw.gaps_total }) }}</el-descriptions-item>
+                  <el-descriptions-item :label="t('compliance_page.readiness.gaps_open')">{{ fw.gaps_open }}</el-descriptions-item>
+                  <el-descriptions-item :label="t('compliance_page.readiness.policy_count')">{{ t('compliance_page.readiness.policy_count_fmt', { n: fw.policy_count }) }}</el-descriptions-item>
+                  <el-descriptions-item :label="t('compliance_page.readiness.questionnaire_progress')">{{ fw.questionnaire_answered }}/{{ fw.questionnaire_total }} ({{ fw.questionnaire_progress }}%)</el-descriptions-item>
                 </el-descriptions>
               </el-card>
             </el-col>
           </el-row>
-          <el-alert title="整体准备就绪度" :description="'评分: ' + packDashboard.overall_readiness + '%'" :type="packDashboard.overall_readiness >= 80 ? 'success' : packDashboard.overall_readiness >= 50 ? 'warning' : 'error'" show-icon />
+          <el-alert :title="t('compliance_page.readiness.overall')" :description="t('compliance_page.readiness.score', { score: packDashboard.overall_readiness })" :type="packDashboard.overall_readiness >= 80 ? 'success' : packDashboard.overall_readiness >= 50 ? 'warning' : 'error'" show-icon />
         </el-tab-pane>
 
         <!-- Tab 2: 审计问卷 -->
-        <el-tab-pane label="审计问卷" name="questionnaire">
+        <el-tab-pane :label="t('compliance_page.tabs.questionnaire')" name="questionnaire">
           <div class="tab-toolbar">
-            <el-select v-model="qFramework" placeholder="选择框架" style="width:150px">
-              <el-option label="SOC 2" value="SOC2" />
-              <el-option label="ISO 27001" value="ISO27001" />
+            <el-select v-model="qFramework" :placeholder="t('compliance_page.placeholders.select_framework')" style="width:150px">
+              <el-option v-for="opt in packFrameworkOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
-            <el-button @click="loadQuestions" :loading="qLoading" type="primary" size="small">加载问卷</el-button>
+            <el-button @click="loadQuestions" :loading="qLoading" type="primary" size="small">{{ t('compliance_page.buttons.load_questions') }}</el-button>
           </div>
           <el-card v-if="questions.length" shadow="never">
             <div v-for="(q, i) in questions" :key="q.id" class="question-item">
               <div class="q-header">
-                <el-tag size="small" :type="q.severity === 'critical' ? 'danger' : q.severity === 'high' ? 'warning' : 'info'">{{ q.severity }}</el-tag>
+                <el-tag size="small" :type="q.severity === 'critical' ? 'danger' : q.severity === 'high' ? 'warning' : 'info'">{{ severityLabel(q.severity) }}</el-tag>
                 <strong>{{ q.control_ref }}</strong>
                 <span class="q-text">{{ q.question }}</span>
               </div>
               <div class="q-guidance text-gray">{{ q.guidance }}</div>
-              <el-input v-model="qAnswers[q.id]" type="textarea" :rows="2" placeholder="输入回答..." class="q-input" />
+              <el-input v-model="qAnswers[q.id]" type="textarea" :rows="2" :placeholder="t('compliance_page.placeholders.answer')" class="q-input" />
             </div>
-            <el-button type="primary" @click="submitAnswers" :loading="qSubmitting" class="mt-2">提交回答</el-button>
+            <el-button type="primary" @click="submitAnswers" :loading="qSubmitting" class="mt-2">{{ t('compliance_page.buttons.submit_answers') }}</el-button>
           </el-card>
         </el-tab-pane>
 
         <!-- Tab 3: 证据收集清单 -->
-        <el-tab-pane label="证据收集" name="evidence">
+        <el-tab-pane :label="t('compliance_page.tabs.evidence')" name="evidence">
           <div class="tab-toolbar">
-            <el-select v-model="eFramework" placeholder="选择框架" style="width:150px">
-              <el-option label="SOC 2" value="SOC2" />
-              <el-option label="ISO 27001" value="ISO27001" />
+            <el-select v-model="eFramework" :placeholder="t('compliance_page.placeholders.select_framework')" style="width:150px">
+              <el-option v-for="opt in packFrameworkOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
-            <el-button @click="loadEvidenceChecklist" :loading="eLoading" type="primary" size="small">加载清单</el-button>
+            <el-button @click="loadEvidenceChecklist" :loading="eLoading" type="primary" size="small">{{ t('compliance_page.buttons.load_checklist') }}</el-button>
           </div>
           <el-table :data="evidenceChecklist" stripe size="small" v-if="evidenceChecklist.length">
-            <el-table-column prop="control_ref" label="控制域" width="100" />
-            <el-table-column prop="title" label="证据项" min-width="200" />
-            <el-table-column prop="evidence_type" label="类型" width="140" />
-            <el-table-column prop="suggested_source" label="来源" width="140" />
-            <el-table-column label="状态" width="120">
+            <el-table-column prop="control_ref" :label="t('compliance_page.cols.control_domain')" width="100" />
+            <el-table-column prop="title" :label="t('compliance_page.cols.evidence_item')" min-width="200" />
+            <el-table-column prop="evidence_type" :label="t('compliance_page.cols.type')" width="140" />
+            <el-table-column prop="suggested_source" :label="t('compliance_page.cols.source')" width="140" />
+            <el-table-column :label="t('compliance_page.cols.status')" width="120">
               <template #default="{ row }">
-                <el-tag :type="statusTag2(row.collection_status)" size="small">{{ row.collection_status }}</el-tag>
+                <el-tag :type="statusTag2(row.collection_status)" size="small">{{ collectionStatusLabel(row.collection_status) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="160">
+            <el-table-column :label="t('compliance_page.cols.actions')" width="160">
               <template #default="{ row }">
-                <el-button size="small" type="primary" @click="autoCollectEvidence(eFramework, row)" :loading="eCollecting">自动收集</el-button>
+                <el-button size="small" type="primary" @click="autoCollectEvidence(eFramework, row)" :loading="eCollecting">{{ t('compliance_page.buttons.auto_collect') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
 
         <!-- Tab 4: 差距分析 -->
-        <el-tab-pane label="差距分析" name="gaps">
+        <el-tab-pane :label="t('compliance_page.tabs.gaps')" name="gaps">
           <div class="tab-toolbar">
-            <el-select v-model="gFramework" placeholder="选择框架" style="width:150px">
-              <el-option label="SOC 2" value="SOC2" />
-              <el-option label="ISO 27001" value="ISO27001" />
+            <el-select v-model="gFramework" :placeholder="t('compliance_page.placeholders.select_framework')" style="width:150px">
+              <el-option v-for="opt in packFrameworkOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
-            <el-select v-model="gReportId" placeholder="选择报告" style="width:200px">
+            <el-select v-model="gReportId" :placeholder="t('compliance_page.placeholders.select_report')" style="width:200px">
               <el-option v-for="r in reports" :key="r.id" :label="'#' + r.id + ' ' + (r.title || '')" :value="r.id" />
             </el-select>
-            <el-button @click="runGapAnalysis2" :loading="gRunning" type="primary" size="small">运行分析</el-button>
+            <el-button @click="runGapAnalysis2" :loading="gRunning" type="primary" size="small">{{ t('compliance_page.buttons.run_analysis') }}</el-button>
           </div>
           <el-table :data="gapList" stripe size="small" v-if="gapList.length">
-            <el-table-column prop="control_ref" label="控制域" width="90" />
-            <el-table-column prop="control_title" label="控制名称" min-width="160" />
-            <el-table-column label="风险" width="80">
-              <template #default="{ row }"><el-tag :type="riskTag(row.risk_level)" size="small">{{ row.risk_level }}</el-tag></template>
+            <el-table-column prop="control_ref" :label="t('compliance_page.cols.control_domain')" width="90" />
+            <el-table-column prop="control_title" :label="t('compliance_page.cols.control_name')" min-width="160" />
+            <el-table-column :label="t('compliance_page.cols.risk')" width="80">
+              <template #default="{ row }"><el-tag :type="riskTag(row.risk_level)" size="small">{{ riskLabel(row.risk_level) }}</el-tag></template>
             </el-table-column>
-            <el-table-column prop="current_state" label="当前状态" width="120" />
-            <el-table-column label="整改状态" width="120">
+            <el-table-column prop="current_state" :label="t('compliance_page.cols.current_state')" width="120" />
+            <el-table-column :label="t('compliance_page.cols.remediation_status')" width="120">
               <template #default="{ row }">
-                <el-tag :type="remTag(row.remediation_status)" size="small">{{ row.remediation_status }}</el-tag>
+                <el-tag :type="remTag(row.remediation_status)" size="small">{{ remediationStatusLabel(row.remediation_status) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="remediation_plan" label="整改计划" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="remediation_plan" :label="t('compliance_page.cols.remediation_plan')" min-width="200" show-overflow-tooltip />
           </el-table>
         </el-tab-pane>
 
         <!-- Tab 5: 策略文档模板 -->
-        <el-tab-pane label="策略文档" name="policies">
+        <el-tab-pane :label="t('compliance_page.tabs.policies')" name="policies">
           <div class="tab-toolbar">
-            <el-select v-model="pFramework" placeholder="选择框架" style="width:150px">
-              <el-option label="SOC 2" value="SOC2" />
-              <el-option label="ISO 27001" value="ISO27001" />
+            <el-select v-model="pFramework" :placeholder="t('compliance_page.placeholders.select_framework')" style="width:150px">
+              <el-option v-for="opt in packFrameworkOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
-            <el-button @click="loadPolicies" :loading="pLoading" type="primary" size="small">加载模板</el-button>
+            <el-button @click="loadPolicies" :loading="pLoading" type="primary" size="small">{{ t('compliance_page.buttons.load_templates') }}</el-button>
           </div>
           <el-table :data="policyDocs" stripe size="small" v-if="policyDocs.length">
-            <el-table-column prop="title" label="文档名称" min-width="220" />
-            <el-table-column prop="category" label="分类" width="120" />
-            <el-table-column prop="description" label="说明" min-width="250" show-overflow-tooltip />
-            <el-table-column prop="version" label="版本" width="80" />
-            <el-table-column label="操作" width="100">
+            <el-table-column prop="title" :label="t('compliance_page.cols.doc_name')" min-width="220" />
+            <el-table-column prop="category" :label="t('compliance_page.cols.category')" width="120" />
+            <el-table-column prop="description" :label="t('compliance_page.cols.description')" min-width="250" show-overflow-tooltip />
+            <el-table-column prop="version" :label="t('compliance_page.cols.version')" width="80" />
+            <el-table-column :label="t('compliance_page.cols.actions')" width="100">
               <template #default="{ row }">
-                <el-button size="small" type="primary" @click="generateDoc(row)">生成文档</el-button>
+                <el-button size="small" type="primary" @click="generateDoc(row)">{{ t('compliance_page.buttons.generate_doc') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -301,6 +293,36 @@
       </el-tabs>
     </el-card>
   </div>
+
+    <!-- 策略文档生成弹窗 -->
+    <el-dialog v-model="docDialog.visible" :title="t('compliance_page.dialogs.generate_doc', { title: docDialog.doc?.title || '' })" width="640px">
+      <el-alert type="info" :closable="false" class="mb-3" :title="t('compliance_page.dialogs.doc_hint')" />
+      <el-form label-width="140px" v-loading="docDialog.submitting">
+        <el-form-item
+          v-for="field in docDialog.fields"
+          :key="field"
+          :label="fieldLabel(field)"
+          :required="true"
+        >
+          <el-input
+            v-if="['purpose','scope','policy_statements','roles_responsibilities','compliance'].includes(field) || field.length > 18"
+            v-model="docDialog.values[field]"
+            type="textarea"
+            :rows="3"
+            :placeholder="t('compliance_page.placeholders.enter_field', { field: fieldLabel(field) })"
+          />
+          <el-input
+            v-else
+            v-model="docDialog.values[field]"
+            :placeholder="t('compliance_page.placeholders.enter_field', { field: fieldLabel(field) })"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="docDialog.visible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="docDialog.submitting" @click="submitGenerateDoc">{{ t('compliance_page.buttons.generate') }}</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 报告详情弹窗 -->
     <el-dialog v-model="reportDialog.visible" :title="reportDialog.title" width="720px" top="5vh">
@@ -310,77 +332,80 @@
       <div v-show="!reportDialog.loading && reportDialog.report">
         <div class="report-detail">
           <el-descriptions :column="2" border>
-            <el-descriptions-item label="框架" :span="1">
+            <el-descriptions-item :label="t('compliance_page.cols.framework')" :span="1">
               <el-tag v-if="reportDialog.report.framework" :type="fwTag(reportDialog.report.framework.code)" size="small">
                 {{ reportDialog.report.framework.code }} - {{ reportDialog.report.framework.name }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="风险等级" :span="1">
+            <el-descriptions-item :label="t('compliance_page.cols.risk_level')" :span="1">
               <el-tag :type="riskTag(reportDialog.report.risk_level)" effect="dark">{{ riskLabel(reportDialog.report.risk_level) }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="通过" :span="1"><span class="pass-count">{{ reportDialog.report.passed_count }}</span></el-descriptions-item>
-            <el-descriptions-item label="失败" :span="1"><span class="fail-count">{{ reportDialog.report.failed_count }}</span></el-descriptions-item>
-            <el-descriptions-item label="N/A" :span="1"><span class="na-count">{{ reportDialog.report.na_count }}</span></el-descriptions-item>
-            <el-descriptions-item label="状态" :span="1">
+            <el-descriptions-item :label="t('compliance_page.cols.pass')" :span="1"><span class="pass-count">{{ reportDialog.report.passed_count }}</span></el-descriptions-item>
+            <el-descriptions-item :label="t('compliance_page.cols.fail')" :span="1"><span class="fail-count">{{ reportDialog.report.failed_count }}</span></el-descriptions-item>
+            <el-descriptions-item :label="t('compliance_page.cols.na')" :span="1"><span class="na-count">{{ reportDialog.report.na_count }}</span></el-descriptions-item>
+            <el-descriptions-item :label="t('compliance_page.cols.status')" :span="1">
               <el-tag :type="statusTag(reportDialog.report.status)" size="small">{{ statusLabel(reportDialog.report.status) }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="生成时间" :span="2">{{ formatDate(reportDialog.report.generated_at) }}</el-descriptions-item>
+            <el-descriptions-item :label="t('compliance_page.cols.generated_at')" :span="2">{{ formatDate(reportDialog.report.generated_at) }}</el-descriptions-item>
           </el-descriptions>
           <div class="detail-section" v-if="reportDialog.report.summary">
-            <h4>报告摘要</h4>
+            <h4>{{ t('compliance_page.detail.summary') }}</h4>
             <p>{{ reportDialog.report.summary }}</p>
           </div>
           <div class="detail-section" v-if="reportDialog.report.controls_assessed && reportDialog.report.controls_assessed.length">
-            <h4>控制域评估</h4>
+            <h4>{{ t('compliance_page.detail.controls_assessed') }}</h4>
             <el-table :data="reportDialog.report.controls_assessed" stripe>
-              <el-table-column prop="domain" label="控制域" min-width="160" />
-              <el-table-column label="结果" width="100">
+              <el-table-column prop="domain" :label="t('compliance_page.cols.control_domain')" min-width="160" />
+              <el-table-column :label="t('compliance_page.cols.result')" width="100">
                 <template #default="{ row }">
                   <el-tag :type="domainResultTag(row.status)" size="small">{{ domainResultLabel(row.status) }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="finding" label="发现" min-width="200" show-overflow-tooltip />
+              <el-table-column prop="finding" :label="t('compliance_page.cols.finding')" min-width="200" show-overflow-tooltip />
             </el-table>
           </div>
           <div class="detail-section" v-if="reportDialog.report.evidence_refs && reportDialog.report.evidence_refs.length">
-            <h4>证据引用</h4>
+            <h4>{{ t('compliance_page.detail.evidence_refs') }}</h4>
             <el-table :data="reportDialog.report.evidence_refs" stripe>
-              <el-table-column prop="type" label="证据类型" width="140" />
-              <el-table-column prop="count" label="数量" width="80" />
-              <el-table-column prop="description" label="描述" min-width="200" />
+              <el-table-column prop="type" :label="t('compliance_page.cols.evidence_type')" width="140" />
+              <el-table-column prop="count" :label="t('compliance_page.cols.count')" width="80" />
+              <el-table-column prop="description" :label="t('compliance_page.cols.description')" min-width="200" />
             </el-table>
           </div>
         </div>
       </div>
       <template #footer>
-        <el-button @click="reportDialog.visible = false">关闭</el-button>
-        <el-button type="primary" @click="promptExportFromDetail" v-show="!reportDialog.loading && reportDialog.report">导出报告</el-button>
+        <el-button @click="reportDialog.visible = false">{{ t('actions.close') }}</el-button>
+        <el-button type="primary" @click="promptExportFromDetail" v-show="!reportDialog.loading && reportDialog.report">{{ t('compliance_page.buttons.export_report') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 导出确认弹窗 -->
-    <el-dialog v-model="exportDialog.visible" title="导出合规报告" width="400px">
+    <el-dialog v-model="exportDialog.visible" :title="t('compliance_page.dialogs.export_title')" width="400px">
       <el-form>
-        <el-form-item label="导出格式">
+        <el-form-item :label="t('compliance_page.dialogs.export_format')">
           <el-radio-group v-model="exportDialog.format">
             <el-radio value="json">JSON</el-radio>
             <el-radio value="csv">CSV</el-radio>
           </el-radio-group>
         </el-form-item>
-        <p class="export-hint">报告ID: #{{ exportDialog.reportId }}，将生成{{ exportFormatLabel }}文件。</p>
+        <p class="export-hint">{{ t('compliance_page.dialogs.export_hint', { id: exportDialog.reportId, format: exportFormatLabel }) }}</p>
       </el-form>
       <template #footer>
-        <el-button @click="exportDialog.visible = false">取消</el-button>
-        <el-button type="primary" @click="doExport" :loading="loading.export">确认导出</el-button>
+        <el-button @click="exportDialog.visible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="doExport" :loading="loading.export">{{ t('compliance_page.buttons.confirm_export') }}</el-button>
       </template>
     </el-dialog>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import api from '@/api/compliance';
 import packApi from '@/api/compliancePack';
+
+const { t, locale } = useI18n();
 
 const pageLoading = ref(true);
 const loading = reactive({
@@ -422,23 +447,81 @@ const exportDialog = reactive({
 });
 const exportFormatLabel = computed(() => exportDialog.format === 'json' ? 'JSON' : 'CSV');
 
-const soc2Domains = [
-  { code: 'SEC', name: '安全 - 保护系统资源' },
-  { code: 'AVA', name: '可用性 - 确保系统可用' },
-  { code: 'PID', name: '处理完整性 - 确保数据处理完整' },
-  { code: 'CON', name: '保密性 - 保护保密信息' },
-  { code: 'PRI', name: '隐私 - 收集与使用个人信息' },
-];
+const reportTypeOptions = computed(() => [
+  { value: 'on_demand', label: t('compliance_page.report_types.on_demand') },
+  { value: 'scheduled', label: t('compliance_page.report_types.scheduled') },
+  { value: 'continuous', label: t('compliance_page.report_types.continuous') },
+]);
 
-const isoDomains = [
-  { code: 'A.5', name: '信息安全策略' },
-  { code: 'A.8', name: '资产管理' },
-  { code: 'A.9', name: '访问控制' },
-  { code: 'A.10', name: '加密' },
-  { code: 'A.11', name: '物理安全' },
-  { code: 'A.12', name: '操作安全' },
-  { code: 'A.13', name: '通信安全' },
-];
+const statusFilterOptions = computed(() => [
+  { value: 'draft', label: t('compliance_page.status.draft') },
+  { value: 'generated', label: t('compliance_page.status.generated') },
+  { value: 'failed', label: t('compliance_page.status.failed') },
+]);
+
+const packFrameworkOptions = computed(() => [
+  { value: 'SOC2', label: t('compliance_page.frameworks.SOC2') },
+  { value: 'ISO27001', label: t('compliance_page.frameworks.ISO27001') },
+]);
+
+const soc2Domains = computed(() => [
+  { code: 'SEC', name: t('compliance_page.domains.soc2.SEC') },
+  { code: 'AVA', name: t('compliance_page.domains.soc2.AVA') },
+  { code: 'PID', name: t('compliance_page.domains.soc2.PID') },
+  { code: 'CON', name: t('compliance_page.domains.soc2.CON') },
+  { code: 'PRI', name: t('compliance_page.domains.soc2.PRI') },
+]);
+
+const isoDomains = computed(() => [
+  { code: 'A.5', name: t('compliance_page.domains.iso.A5') },
+  { code: 'A.8', name: t('compliance_page.domains.iso.A8') },
+  { code: 'A.9', name: t('compliance_page.domains.iso.A9') },
+  { code: 'A.10', name: t('compliance_page.domains.iso.A10') },
+  { code: 'A.11', name: t('compliance_page.domains.iso.A11') },
+  { code: 'A.12', name: t('compliance_page.domains.iso.A12') },
+  { code: 'A.13', name: t('compliance_page.domains.iso.A13') },
+]);
+
+const riskLabels = computed(() => ({
+  low: t('compliance_page.risk.low'),
+  medium: t('compliance_page.risk.medium'),
+  high: t('compliance_page.risk.high'),
+  critical: t('compliance_page.risk.critical'),
+}));
+
+const domainResultLabels = computed(() => ({
+  pass: t('compliance_page.domain_result.pass'),
+  warn: t('compliance_page.domain_result.warn'),
+  fail: t('compliance_page.domain_result.fail'),
+}));
+
+const statusLabels = computed(() => ({
+  draft: t('compliance_page.status.draft'),
+  generated: t('compliance_page.status.generated'),
+  failed: t('compliance_page.status.failed'),
+  archived: t('compliance_page.status.archived'),
+}));
+
+const severityLabels = computed(() => ({
+  critical: t('compliance_page.severity.critical'),
+  high: t('compliance_page.severity.high'),
+  medium: t('compliance_page.severity.medium'),
+  low: t('compliance_page.severity.low'),
+}));
+
+const collectionStatusLabels = computed(() => ({
+  collected: t('compliance_page.collection_status.collected'),
+  validated: t('compliance_page.collection_status.validated'),
+  not_collected: t('compliance_page.collection_status.not_collected'),
+  rejected: t('compliance_page.collection_status.rejected'),
+}));
+
+const remediationStatusLabels = computed(() => ({
+  identified: t('compliance_page.remediation_status.identified'),
+  in_progress: t('compliance_page.remediation_status.in_progress'),
+  completed: t('compliance_page.remediation_status.completed'),
+  waived: t('compliance_page.remediation_status.waived'),
+}));
 
 function fwClass(code) {
   const map = { SOC2: 'card-soc2', ISO27001: 'card-iso', GDPR: 'card-gdpr', HIPAA: 'card-hipaa', PCI_DSS: 'card-pci' };
@@ -451,8 +534,7 @@ function riskTag(level) {
 }
 
 function riskLabel(level) {
-  const map = { low: '低风险', medium: '中风险', high: '高风险', critical: '严重' };
-  return map[level] || level;
+  return riskLabels.value[level] || level;
 }
 
 function domainResultTag(status) {
@@ -462,9 +544,7 @@ function domainResultTag(status) {
 }
 
 function domainResultLabel(status) {
-  if (status === 'pass') return '通过';
-  if (status === 'warn') return '警告';
-  return '失败';
+  return domainResultLabels.value[status] || status;
 }
 
 function statusTag(status) {
@@ -473,8 +553,19 @@ function statusTag(status) {
 }
 
 function statusLabel(status) {
-  const map = { draft: '草稿', generated: '已生成', failed: '失败', archived: '已归档' };
-  return map[status] || status;
+  return statusLabels.value[status] || status;
+}
+
+function severityLabel(severity) {
+  return severityLabels.value[severity] || severity;
+}
+
+function collectionStatusLabel(status) {
+  return collectionStatusLabels.value[status] || status;
+}
+
+function remediationStatusLabel(status) {
+  return remediationStatusLabels.value[status] || status;
 }
 
 function fwTag(code) {
@@ -485,7 +576,14 @@ function fwTag(code) {
 function formatDate(val) {
   if (!val) return '-';
   const d = new Date(val);
-  return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+  return d.toLocaleString(loc, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function fieldLabel(field) {
+  const key = `compliance_page.field_labels.${field}`;
+  const translated = t(key);
+  return translated !== key ? translated : field;
 }
 
 async function refreshDashboard() {
@@ -494,7 +592,7 @@ async function refreshDashboard() {
     await loadFrameworks();
     await loadReports();
   } catch (e) {
-    ElMessage.error('加载仪表盘失败');
+    ElMessage.error(t('compliance_page.messages.dashboard_load_failed'));
   } finally {
     loading.dashboard = false;
   }
@@ -509,7 +607,7 @@ async function loadFrameworks() {
     const dash = dashRes.data || {};
     stats.total_exports = dash.total_exports || 0;
   } catch (e) {
-    console.error('加载框架失败', e);
+    console.error('loadFrameworks failed', e);
     frameworks.value = [];
   }
 }
@@ -527,7 +625,7 @@ async function loadReports() {
     pagination.current = page.current_page || 1;
     stats.total_reports = page.total || 0;
   } catch (e) {
-    console.error('加载报告失败', e);
+    console.error('loadReports failed', e);
     reports.value = [];
   } finally {
     loading.reports = false;
@@ -536,21 +634,22 @@ async function loadReports() {
 
 async function generateReport() {
   if (!reportForm.framework_id) {
-    ElMessage.warning('请选择合规框架');
+    ElMessage.warning(t('compliance_page.messages.select_framework'));
     return;
   }
   loading.generate = true;
   try {
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
     await api.generateReport({
       framework_id: reportForm.framework_id,
       type: reportForm.type,
-      title: '合规报告 - ' + new Date().toLocaleDateString('zh-CN'),
+      title: t('compliance_page.messages.report_title', { date: new Date().toLocaleDateString(loc) }),
     });
-    ElMessage.success('合规报告已生成');
+    ElMessage.success(t('compliance_page.messages.report_generated'));
     await loadReports();
     await loadFrameworks();
   } catch (e) {
-    ElMessage.error('生成报告失败');
+    ElMessage.error(t('compliance_page.messages.generate_failed'));
   } finally {
     loading.generate = false;
   }
@@ -559,7 +658,7 @@ async function generateReport() {
 async function viewReport(row) {
   reportDialog.visible = true;
   reportDialog.loading = true;
-  reportDialog.title = '报告详情 #' + row.id;
+  reportDialog.title = t('compliance_page.dialogs.report_detail', { id: row.id });
   try {
     const res = await api.showReport(row.id);
     const report = res.data || {};
@@ -574,7 +673,7 @@ async function viewReport(row) {
     }
     reportDialog.report = report;
   } catch (e) {
-    ElMessage.error('加载报告详情失败');
+    ElMessage.error(t('compliance_page.messages.report_detail_failed'));
     reportDialog.report = null;
   } finally {
     reportDialog.loading = false;
@@ -584,11 +683,11 @@ async function viewReport(row) {
 async function deleteReport(row) {
   try {
     await api.deleteReport(row.id);
-    ElMessage.success('报告已删除');
+    ElMessage.success(t('compliance_page.messages.report_deleted'));
     await loadReports();
     await loadFrameworks();
   } catch (e) {
-    ElMessage.error('删除失败');
+    ElMessage.error(t('compliance_page.messages.delete_failed'));
   }
 }
 
@@ -608,10 +707,10 @@ async function doExport() {
   loading.export = true;
   try {
     await api.exportReport(exportDialog.reportId, exportDialog.format);
-    ElMessage.success('导出任务已提交');
+    ElMessage.success(t('compliance_page.messages.export_submitted'));
     exportDialog.visible = false;
   } catch (e) {
-    ElMessage.error('导出失败');
+    ElMessage.error(t('compliance_page.messages.export_failed'));
   } finally {
     loading.export = false;
   }
@@ -644,6 +743,26 @@ const gapList = ref([]);
 const pFramework = ref('SOC2');
 const pLoading = ref(false);
 const policyDocs = ref([]);
+const docDialog = reactive({
+  visible: false,
+  doc: null,
+  fields: [],
+  values: {},
+  submitting: false,
+});
+
+function parsePlaceholderFields(row) {
+  let fields = row.placeholder_fields;
+  if (typeof fields === 'string') {
+    try { fields = JSON.parse(fields); } catch { fields = []; }
+  }
+  if (!Array.isArray(fields) || !fields.length) {
+    const tpl = row.content_template || '';
+    const matches = [...tpl.matchAll(/\{\{(\w+)\}\}/g)].map(m => m[1]);
+    fields = [...new Set(matches)];
+  }
+  return fields;
+}
 
 function statusTag2(st) {
   const map = { collected: 'success', validated: 'success', not_collected: 'info', rejected: 'danger' };
@@ -679,7 +798,7 @@ async function submitAnswers() {
   qSubmitting.value = true;
   try {
     const report = reports.value[0];
-    if (!report) { ElMessage.warning('请先生成一份合规报告'); return; }
+    if (!report) { ElMessage.warning(t('compliance_page.messages.generate_report_first')); return; }
     const answers = questions.value.map(q => ({
       question_id: q.id,
       response: qAnswers.value[q.id] || '',
@@ -706,7 +825,7 @@ async function autoCollectEvidence(framework, row) {
   try {
     const { data } = await packApi.collectEvidence(framework, row.control_ref, row.evidence_type);
     if (data.success) {
-      ElMessage.success('证据已自动收集');
+      ElMessage.success(t('compliance_page.messages.evidence_collected'));
       await loadEvidenceChecklist();
     }
   } finally {
@@ -715,7 +834,7 @@ async function autoCollectEvidence(framework, row) {
 }
 
 async function runGapAnalysis2() {
-  if (!gReportId.value) { ElMessage.warning('请选择报告'); return; }
+  if (!gReportId.value) { ElMessage.warning(t('compliance_page.messages.select_report')); return; }
   gRunning.value = true;
   try {
     const { data } = await packApi.runGapAnalysis(gFramework.value, gReportId.value);
@@ -746,8 +865,43 @@ async function loadPolicies() {
 }
 
 function generateDoc(row) {
-  ElMessage.info('生成策略文档: ' + row.title);
-  // 占位 - 实际可弹出表单填写占位字段
+  const fields = parsePlaceholderFields(row);
+  const values = {};
+  fields.forEach((f) => {
+    values[f] = f === 'version'
+      ? (row.version || '1.0')
+      : (f === 'effective_date' ? new Date().toISOString().slice(0, 10) : '');
+  });
+  Object.assign(docDialog, {
+    visible: true,
+    doc: row,
+    fields,
+    values,
+    submitting: false,
+  });
+}
+
+async function submitGenerateDoc() {
+  const missing = docDialog.fields.filter((f) => !String(docDialog.values[f] || '').trim());
+  if (missing.length) {
+    ElMessage.warning(t('compliance_page.messages.fill_fields', { fields: missing.map(fieldLabel).join(locale.value === 'en' ? ', ' : '、') }));
+    return;
+  }
+  docDialog.submitting = true;
+  try {
+    const res = await packApi.generatePolicyDocument(docDialog.doc.id, docDialog.values);
+    if (res.success !== false) {
+      ElMessage.success(res.message || t('compliance_page.messages.doc_generated', { file: res.data?.file || '' }));
+      docDialog.visible = false;
+      loadPolicies();
+    } else {
+      ElMessage.error(res.message || t('compliance_page.messages.generate_doc_failed'));
+    }
+  } catch (e) {
+    ElMessage.error(e.response?.data?.message || t('compliance_page.messages.generate_doc_failed'));
+  } finally {
+    docDialog.submitting = false;
+  }
 }
 
 // 覆盖原 refreshDashboard 添加合规包数据
@@ -768,10 +922,10 @@ onMounted(async () => {
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .page-header h2 { font-size: 22px; font-weight: 600; margin: 0; }
 .stats-row { margin-bottom: 16px; }
-.fw-card { cursor: default; transition: transform 0.2s, box-shadow 0.2s; text-align: center; border-top: 3px solid #409eff; }
+.fw-card { cursor: default; transition: transform 0.2s, box-shadow 0.2s; text-align: center; border-top: 3px solid #0f172a; }
 .fw-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
 .fw-card.card-soc2 { border-top-color: #67c23a; }
-.fw-card.card-iso { border-top-color: #409eff; }
+.fw-card.card-iso { border-top-color: #0f172a; }
 .fw-card.card-gdpr { border-top-color: #e6a23c; }
 .fw-card.card-hipaa { border-top-color: #f56c6c; }
 .fw-card.card-pci { border-top-color: #909399; }
@@ -782,7 +936,7 @@ onMounted(async () => {
 .stat-card { text-align: center; }
 .stat-card .stat-value { font-size: 28px; font-weight: 700; color: #303133; }
 .stat-card .stat-label { font-size: 13px; color: #909399; margin-top: 4px; }
-.stat-card.info .stat-value { color: #409eff; }
+.stat-card.info .stat-value { color: #0f172a; }
 .standards-row { margin-bottom: 16px; }
 .standard-domains { display: flex; flex-wrap: wrap; gap: 8px; }
 .domain-item { display: flex; align-items: center; gap: 6px; width: calc(50% - 4px); font-size: 13px; color: #606266; }

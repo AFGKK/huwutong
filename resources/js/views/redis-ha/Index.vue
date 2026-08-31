@@ -3,15 +3,15 @@
     <!-- 顶部操作栏 -->
     <el-row :gutter="16" class="mb-4">
       <el-col :span="12">
-        <h2 class="page-title">Redis 高可用监控</h2>
-        <p class="page-desc text-secondary">监控 Redis Sentinel / Cluster 运行状态，管理故障转移与缓存</p>
+        <h2 class="page-title">{{ t('redis_ha_page.title') }}</h2>
+        <p class="page-desc text-secondary">{{ t('redis_ha_page.subtitle') }}</p>
       </el-col>
       <el-col :span="12" class="text-right">
         <el-button type="primary" @click="refreshAll" :loading="loading">
-          <el-icon class="mr-1"><Refresh /></el-icon>刷新
+          <el-icon class="mr-1"><Refresh /></el-icon>{{ t('redis_ha_page.refresh') }}
         </el-button>
         <el-button type="danger" plain @click="handleFlush" :loading="flushing">
-          <el-icon class="mr-1"><Delete /></el-icon>清除缓存
+          <el-icon class="mr-1"><Delete /></el-icon>{{ t('redis_ha_page.flush_cache') }}
         </el-button>
       </el-col>
     </el-row>
@@ -20,7 +20,7 @@
     <el-row :gutter="16" class="mb-4">
       <el-col :span="6">
         <el-card shadow="never" class="stat-card" :class="statusClass">
-          <div class="stat-label">运行状态</div>
+          <div class="stat-label">{{ t('redis_ha_page.stats.status') }}</div>
           <div class="stat-value">
             <el-icon v-if="overallStatus === 'ok'" class="status-icon success"><CircleCheckFilled /></el-icon>
             <el-icon v-else-if="overallStatus === 'warning'" class="status-icon warning"><WarningFilled /></el-icon>
@@ -31,7 +31,7 @@
       </el-col>
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
-          <div class="stat-label">运行模式</div>
+          <div class="stat-label">{{ t('redis_ha_page.stats.mode') }}</div>
           <div class="stat-value">
             <el-tag :type="modeTagType" effect="dark" size="large">{{ redisMode }}</el-tag>
           </div>
@@ -39,13 +39,13 @@
       </el-col>
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
-          <div class="stat-label">延迟</div>
+          <div class="stat-label">{{ t('redis_ha_page.stats.latency') }}</div>
           <div class="stat-value" :class="latencyClass">{{ latency }} <small>ms</small></div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
-          <div class="stat-label">命中率</div>
+          <div class="stat-label">{{ t('redis_ha_page.stats.hit_ratio') }}</div>
           <div class="stat-value" :class="hitRatioClass">{{ hitRatio }}<small>%</small></div>
         </el-card>
       </el-col>
@@ -55,7 +55,7 @@
     <el-row :gutter="16" class="mb-4">
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
-          <div class="stat-label">角色</div>
+          <div class="stat-label">{{ t('redis_ha_page.stats.role') }}</div>
           <div class="stat-value">
             <el-tag :type="role === 'master' ? 'success' : 'warning'" size="large">{{ roleText }}</el-tag>
           </div>
@@ -63,23 +63,23 @@
       </el-col>
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
-          <div class="stat-label">从库数量</div>
+          <div class="stat-label">{{ t('redis_ha_page.stats.slave_count') }}</div>
           <div class="stat-value">{{ connectedSlaves }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
-          <div class="stat-label">故障转移</div>
+          <div class="stat-label">{{ t('redis_ha_page.stats.failover') }}</div>
           <div class="stat-value">
             <el-tag :type="failoverAvailable ? 'success' : 'danger'" size="large">
-              {{ failoverAvailable ? '可用' : '不可用' }}
+              {{ failoverAvailable ? t('redis_ha_page.availability.yes') : t('redis_ha_page.availability.no') }}
             </el-tag>
           </div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
-          <div class="stat-label">运行时间</div>
+          <div class="stat-label">{{ t('redis_ha_page.stats.uptime') }}</div>
           <div class="stat-value">{{ uptimeFormatted }}</div>
         </el-card>
       </el-col>
@@ -88,7 +88,7 @@
     <!-- 内存使用 -->
     <el-card shadow="never" class="mb-4">
       <template #header>
-        <span><el-icon class="mr-1"><DataAnalysis /></el-icon> 内存使用</span>
+        <span><el-icon class="mr-1"><DataAnalysis /></el-icon> {{ t('redis_ha_page.memory.title') }}</span>
       </template>
       <el-row :gutter="16" align="middle">
         <el-col :span="16">
@@ -101,8 +101,8 @@
           />
         </el-col>
         <el-col :span="8" class="text-secondary">
-          已用: {{ memoryUsed }} / 总计: {{ memoryMax }}
-          <el-tag size="small" class="ml-2">峰值: {{ memoryPeak }}</el-tag>
+          {{ t('redis_ha_page.memory.used_total', { used: memoryUsed, max: memoryMax }) }}
+          <el-tag size="small" class="ml-2">{{ t('redis_ha_page.memory.peak', { peak: memoryPeak }) }}</el-tag>
         </el-col>
       </el-row>
     </el-card>
@@ -111,13 +111,13 @@
     <el-card shadow="never">
       <el-tabs v-model="activeTab">
         <!-- Tab 1: Sentinel 状态 -->
-        <el-tab-pane label="哨兵状态" name="sentinel">
+        <el-tab-pane :label="t('redis_ha_page.tabs.sentinel')" name="sentinel">
           <div v-if="loadingSentinel" class="text-center py-4">
             <el-icon class="is-loading" :size="32"><Loading /></el-icon>
-            <p class="mt-2">正在获取哨兵状态...</p>
+            <p class="mt-2">{{ t('redis_ha_page.sentinel.loading') }}</p>
           </div>
           <div v-else-if="sentinelError" class="text-center py-4">
-            <el-empty description="哨兵状态不可用">
+            <el-empty :description="t('redis_ha_page.sentinel.unavailable')">
               <template #image>
                 <el-icon :size="48" color="#e6a23c"><WarningFilled /></el-icon>
               </template>
@@ -126,49 +126,59 @@
           </div>
           <div v-else>
             <!-- Master 信息 -->
-            <h4 class="mb-2">主库 (Master)</h4>
+            <h4 class="mb-2">{{ t('redis_ha_page.sentinel.master_title') }}</h4>
             <el-descriptions :column="3" border size="small" class="mb-4">
-              <el-descriptions-item label="地址">{{ sentinelMaster?.host }}:{{ sentinelMaster?.port }}</el-descriptions-item>
-              <el-descriptions-item label="状态">
+              <el-descriptions-item :label="t('redis_ha_page.cols.address')">{{ sentinelMaster?.host }}:{{ sentinelMaster?.port }}</el-descriptions-item>
+              <el-descriptions-item :label="t('redis_ha_page.cols.status')">
                 <el-tag :type="sentinelMaster?.status === 'ok' ? 'success' : 'danger'" size="small">
                   {{ sentinelMaster?.status }}
                 </el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="角色">{{ sentinelMaster?.role }}</el-descriptions-item>
+              <el-descriptions-item :label="t('redis_ha_page.cols.role')">{{ sentinelMaster?.role }}</el-descriptions-item>
             </el-descriptions>
 
             <!-- 从库列表 -->
-            <h4 class="mb-2">从库 (Slaves) <el-tag size="small">{{ sentinelSlaves?.length || 0 }}</el-tag></h4>
+            <h4 class="mb-2">
+              {{ t('redis_ha_page.sentinel.slaves_title') }}
+              <el-tag size="small">{{ sentinelSlaves?.length || 0 }}</el-tag>
+            </h4>
             <el-table :data="sentinelSlaves" border stripe size="small" class="mb-4">
-              <el-table-column prop="host" label="地址" min-width="160" />
-              <el-table-column prop="port" label="端口" width="80" />
-              <el-table-column label="状态" width="100">
+              <el-table-column prop="host" :label="t('redis_ha_page.cols.address')" min-width="160" />
+              <el-table-column prop="port" :label="t('redis_ha_page.cols.port')" width="80" />
+              <el-table-column :label="t('redis_ha_page.cols.status')" width="100">
                 <template #default="{ row }">
                   <el-tag :type="row.status === 'ok' ? 'success' : 'danger'" size="small">{{ row.status }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="last_hello" label="最后通信" min-width="160" />
+              <el-table-column prop="last_hello" :label="t('redis_ha_page.cols.last_hello')" min-width="160" />
             </el-table>
 
             <!-- 哨兵列表 -->
-            <h4 class="mb-2">哨兵节点 (Sentinels) <el-tag size="small">{{ sentinelNodes?.length || 0 }}</el-tag></h4>
+            <h4 class="mb-2">
+              {{ t('redis_ha_page.sentinel.sentinels_title') }}
+              <el-tag size="small">{{ sentinelNodes?.length || 0 }}</el-tag>
+            </h4>
             <el-table :data="sentinelNodes" border stripe size="small">
-              <el-table-column prop="host" label="地址" min-width="160" />
-              <el-table-column prop="port" label="端口" width="80" />
-              <el-table-column label="状态" width="100">
+              <el-table-column prop="host" :label="t('redis_ha_page.cols.address')" min-width="160" />
+              <el-table-column prop="port" :label="t('redis_ha_page.cols.port')" width="80" />
+              <el-table-column :label="t('redis_ha_page.cols.status')" width="100">
                 <template #default="{ row }">
                   <el-tag :type="row.status === 'ok' ? 'success' : 'danger'" size="small">{{ row.status }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="last_hello" label="最后通信" min-width="160" />
+              <el-table-column prop="last_hello" :label="t('redis_ha_page.cols.last_hello')" min-width="160" />
             </el-table>
           </div>
         </el-tab-pane>
 
         <!-- Tab 2: 告警信息 -->
-        <el-tab-pane label="告警信息" name="alerts">
+        <el-tab-pane :label="t('redis_ha_page.tabs.alerts')" name="alerts">
           <div v-if="issues.length === 0" class="text-center py-4">
-            <el-result icon="success" title="一切正常" sub-title="暂无告警信息" />
+            <el-result
+              icon="success"
+              :title="t('redis_ha_page.alerts.all_ok_title')"
+              :sub-title="t('redis_ha_page.alerts.all_ok_sub')"
+            />
           </div>
           <div v-else>
             <el-timeline>
@@ -181,7 +191,7 @@
                 <span class="font-500">{{ issue.component }}</span>
                 <p class="text-secondary mt-1">{{ issue.message }}</p>
                 <el-tag :type="issue.severity === 'critical' ? 'danger' : 'warning'" size="small">
-                  {{ issue.severity === 'critical' ? '严重' : '警告' }}
+                  {{ issue.severity === 'critical' ? t('redis_ha_page.alerts.severity_critical') : t('redis_ha_page.alerts.severity_warning') }}
                 </el-tag>
               </el-timeline-item>
             </el-timeline>
@@ -189,53 +199,57 @@
         </el-tab-pane>
 
         <!-- Tab 3: 详细统计 -->
-        <el-tab-pane label="详细统计" name="stats">
+        <el-tab-pane :label="t('redis_ha_page.tabs.stats')" name="stats">
           <el-descriptions :column="2" border size="small">
-            <el-descriptions-item label="Ping">{{ statsData?.ping ? '✓ 正常' : '✗ 失败' }}</el-descriptions-item>
-            <el-descriptions-item label="延迟">{{ statsData?.latency_ms }} ms</el-descriptions-item>
-            <el-descriptions-item label="角色">{{ statsData?.role }}</el-descriptions-item>
-            <el-descriptions-item label="从库数量">{{ statsData?.connected_slaves }}</el-descriptions-item>
-            <el-descriptions-item label="连接数">{{ statsData?.connections }}</el-descriptions-item>
-            <el-descriptions-item label="命令处理">{{ statsData?.commands }}</el-descriptions-item>
-            <el-descriptions-item label="命中率">{{ statsData?.hit_ratio }}%</el-descriptions-item>
-            <el-descriptions-item label="运行时间">{{ uptimeFormatted }}</el-descriptions-item>
+            <el-descriptions-item :label="t('redis_ha_page.detail.ping')">
+              {{ statsData?.ping ? t('redis_ha_page.detail.ping_ok') : t('redis_ha_page.detail.ping_fail') }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="t('redis_ha_page.detail.latency')">{{ statsData?.latency_ms }} ms</el-descriptions-item>
+            <el-descriptions-item :label="t('redis_ha_page.detail.role')">{{ statsData?.role }}</el-descriptions-item>
+            <el-descriptions-item :label="t('redis_ha_page.detail.slave_count')">{{ statsData?.connected_slaves }}</el-descriptions-item>
+            <el-descriptions-item :label="t('redis_ha_page.detail.connections')">{{ statsData?.connections }}</el-descriptions-item>
+            <el-descriptions-item :label="t('redis_ha_page.detail.commands')">{{ statsData?.commands }}</el-descriptions-item>
+            <el-descriptions-item :label="t('redis_ha_page.detail.hit_ratio')">{{ statsData?.hit_ratio }}%</el-descriptions-item>
+            <el-descriptions-item :label="t('redis_ha_page.detail.uptime')">{{ uptimeFormatted }}</el-descriptions-item>
           </el-descriptions>
 
           <!-- 熔断器状态 -->
-          <h4 class="mt-4 mb-2">熔断器状态</h4>
+          <h4 class="mt-4 mb-2">{{ t('redis_ha_page.circuit_breaker.title') }}</h4>
           <el-descriptions :column="3" border size="small">
-            <el-descriptions-item label="状态">
+            <el-descriptions-item :label="t('redis_ha_page.circuit_breaker.status')">
               <el-tag :type="circuitBreakerOpen ? 'danger' : 'success'" size="small">
-                {{ circuitBreakerOpen ? '已打开' : '正常' }}
+                {{ circuitBreakerOpen ? t('redis_ha_page.circuit_breaker.open') : t('redis_ha_page.circuit_breaker.closed') }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="失败次数">{{ circuitBreaker?.failure_count || 0 }}</el-descriptions-item>
-            <el-descriptions-item label="最后失败">{{ circuitBreaker?.last_failure_at || '无' }}</el-descriptions-item>
+            <el-descriptions-item :label="t('redis_ha_page.circuit_breaker.failure_count')">{{ circuitBreaker?.failure_count || 0 }}</el-descriptions-item>
+            <el-descriptions-item :label="t('redis_ha_page.circuit_breaker.last_failure')">
+              {{ circuitBreaker?.last_failure_at || t('redis_ha_page.circuit_breaker.none') }}
+            </el-descriptions-item>
           </el-descriptions>
         </el-tab-pane>
 
         <!-- Tab 4: 操作 -->
-        <el-tab-pane label="运维操作" name="actions">
+        <el-tab-pane :label="t('redis_ha_page.tabs.actions')" name="actions">
           <el-row :gutter="16">
             <el-col :span="8">
               <el-card shadow="never" class="action-card" @click="handleFailover">
                 <el-icon :size="32" color="#e6a23c"><SwitchButton /></el-icon>
-                <h4>故障转移</h4>
-                <p class="text-secondary text-sm">手动触发 Redis Sentinel 主从切换</p>
+                <h4>{{ t('redis_ha_page.ops.failover_title') }}</h4>
+                <p class="text-secondary text-sm">{{ t('redis_ha_page.ops.failover_desc') }}</p>
               </el-card>
             </el-col>
             <el-col :span="8">
               <el-card shadow="never" class="action-card" @click="handleFlush">
                 <el-icon :size="32" color="#f56c6c"><Delete /></el-icon>
-                <h4>清除缓存</h4>
-                <p class="text-secondary text-sm">清空当前 Redis 数据库（谨慎操作）</p>
+                <h4>{{ t('redis_ha_page.ops.flush_title') }}</h4>
+                <p class="text-secondary text-sm">{{ t('redis_ha_page.ops.flush_desc') }}</p>
               </el-card>
             </el-col>
             <el-col :span="8">
               <el-card shadow="never" class="action-card" @click="handleResetBreaker">
-                <el-icon :size="32" color="#409eff"><RefreshRight /></el-icon>
-                <h4>重置熔断器</h4>
-                <p class="text-secondary text-sm">手动恢复 Redis 熔断器至正常状态</p>
+                <el-icon :size="32" color="#0f172a"><RefreshRight /></el-icon>
+                <h4>{{ t('redis_ha_page.ops.reset_breaker_title') }}</h4>
+                <p class="text-secondary text-sm">{{ t('redis_ha_page.ops.reset_breaker_desc') }}</p>
               </el-card>
             </el-col>
           </el-row>
@@ -247,6 +261,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   Refresh, Delete, CircleCheckFilled, WarningFilled, CircleCloseFilled,
@@ -261,6 +276,8 @@ import {
   resetRedisCircuitBreaker,
 } from '../../api/redisHa';
 
+const { t } = useI18n();
+
 // ─── 状态 ───
 const loading = ref(false);
 const flushing = ref(false);
@@ -273,10 +290,16 @@ const statsData = ref(null);
 
 // ─── 计算属性 ───
 const overallStatus = computed(() => statusData.value?.overall_status || 'unknown');
-const statusText = computed(() => {
-  const map = { ok: '运行正常', warning: '存在警告', critical: '严重故障', unknown: '未知' };
-  return map[overallStatus.value] || '未知';
-});
+
+const statusMap = computed(() => ({
+  ok: t('redis_ha_page.status.ok'),
+  warning: t('redis_ha_page.status.warning'),
+  critical: t('redis_ha_page.status.critical'),
+  unknown: t('redis_ha_page.status.unknown'),
+}));
+
+const statusText = computed(() => statusMap.value[overallStatus.value] || statusMap.value.unknown);
+
 const statusClass = computed(() => {
   if (overallStatus.value === 'ok') return 'status-ok';
   if (overallStatus.value === 'warning') return 'status-warning';
@@ -306,10 +329,15 @@ const hitRatioClass = computed(() => {
 });
 
 const role = computed(() => statusData.value?.health?.role || 'unknown');
-const roleText = computed(() => {
-  const map = { master: '主库', slave: '从库', unknown: '未知' };
-  return map[role.value] || role.value;
-});
+
+const roleMap = computed(() => ({
+  master: t('redis_ha_page.role.master'),
+  slave: t('redis_ha_page.role.slave'),
+  unknown: t('redis_ha_page.role.unknown'),
+}));
+
+const roleText = computed(() => roleMap.value[role.value] || role.value);
+
 const connectedSlaves = computed(() => statusData.value?.health?.connected_slaves ?? 0);
 const failoverAvailable = computed(() => statusData.value?.failover_available ?? false);
 
@@ -319,14 +347,16 @@ const uptimeFormatted = computed(() => {
   const d = Math.floor(secs / 86400);
   const h = Math.floor((secs % 86400) / 3600);
   const m = Math.floor((secs % 3600) / 60);
-  return d > 0 ? `${d}天 ${h}小时 ${m}分钟` : `${h}小时 ${m}分钟`;
+  return d > 0
+    ? t('redis_ha_page.uptime.with_days', { d, h, m })
+    : t('redis_ha_page.uptime.without_days', { h, m });
 });
 
 const memoryPercent = computed(() => statusData.value?.health?.memory_usage?.percent ?? 0);
 const memoryUsed = computed(() => statusData.value?.health?.memory_usage?.used ?? '-');
 const memoryMax = computed(() => statusData.value?.health?.memory_usage?.max ?? '-');
 const memoryPeak = computed(() => statusData.value?.health?.memory_usage?.peak ?? '-');
-const memoryFormat = (pct) => `内存使用 ${pct}%`;
+const memoryFormat = (pct) => t('redis_ha_page.memory.format', { pct });
 
 const issues = computed(() => statusData.value?.issues || []);
 
@@ -337,6 +367,10 @@ const sentinelError = computed(() => sentinelData.value?.error || '');
 
 const circuitBreaker = computed(() => statsData.value?.circuit_breaker || {});
 const circuitBreakerOpen = computed(() => circuitBreaker.value?.open ?? false);
+
+function errorMessage(e) {
+  return e?.message || t('redis_ha_page.status.unknown');
+}
 
 // ─── 方法 ───
 async function refreshAll() {
@@ -350,9 +384,9 @@ async function refreshAll() {
     statusData.value = statusRes.data;
     sentinelData.value = sentinelRes.data;
     statsData.value = statsRes.data;
-    ElMessage.success('已刷新');
+    ElMessage.success(t('redis_ha_page.messages.refreshed'));
   } catch (e) {
-    ElMessage.error('获取 Redis HA 状态失败: ' + (e.message || '未知错误'));
+    ElMessage.error(t('redis_ha_page.messages.fetch_failed', { error: errorMessage(e) }));
   } finally {
     loading.value = false;
   }
@@ -361,16 +395,20 @@ async function refreshAll() {
 async function handleFailover() {
   try {
     await ElMessageBox.confirm(
-      '确定要手动触发 Redis 故障转移吗？这将导致主从切换，可能影响正在进行的操作。',
-      '确认故障转移',
-      { confirmButtonText: '确认执行', cancelButtonText: '取消', type: 'warning' }
+      t('redis_ha_page.confirm.failover_message'),
+      t('redis_ha_page.confirm.failover_title'),
+      {
+        confirmButtonText: t('redis_ha_page.confirm.failover_confirm'),
+        cancelButtonText: t('actions.cancel'),
+        type: 'warning',
+      }
     );
     const res = await triggerRedisFailover();
-    ElMessage.success(res?.message || '故障转移已触发');
+    ElMessage.success(res?.message || t('redis_ha_page.messages.failover_triggered'));
     await refreshAll();
   } catch (e) {
     if (e !== 'cancel') {
-      ElMessage.error('故障转移失败: ' + (e.message || '未知错误'));
+      ElMessage.error(t('redis_ha_page.messages.failover_failed', { error: errorMessage(e) }));
     }
   }
 }
@@ -378,17 +416,21 @@ async function handleFailover() {
 async function handleFlush() {
   try {
     await ElMessageBox.confirm(
-      '确定要清除 Redis 缓存吗？此操作不可撤销！',
-      '确认清除缓存',
-      { confirmButtonText: '确认清除', cancelButtonText: '取消', type: 'error' }
+      t('redis_ha_page.confirm.flush_message'),
+      t('redis_ha_page.confirm.flush_title'),
+      {
+        confirmButtonText: t('redis_ha_page.confirm.flush_confirm'),
+        cancelButtonText: t('actions.cancel'),
+        type: 'error',
+      }
     );
     flushing.value = true;
     const res = await flushRedisCache();
-    ElMessage.success(res?.message || '缓存已清除');
+    ElMessage.success(res?.message || t('redis_ha_page.messages.cache_cleared'));
     await refreshAll();
   } catch (e) {
     if (e !== 'cancel') {
-      ElMessage.error('清除缓存失败: ' + (e.message || '未知错误'));
+      ElMessage.error(t('redis_ha_page.messages.flush_failed', { error: errorMessage(e) }));
     }
   } finally {
     flushing.value = false;
@@ -398,16 +440,20 @@ async function handleFlush() {
 async function handleResetBreaker() {
   try {
     await ElMessageBox.confirm(
-      '确定要重置 Redis 熔断器吗？',
-      '确认重置',
-      { confirmButtonText: '确认', cancelButtonText: '取消', type: 'info' }
+      t('redis_ha_page.confirm.reset_message'),
+      t('redis_ha_page.confirm.reset_title'),
+      {
+        confirmButtonText: t('actions.confirm'),
+        cancelButtonText: t('actions.cancel'),
+        type: 'info',
+      }
     );
     await resetRedisCircuitBreaker();
-    ElMessage.success('熔断器已重置');
+    ElMessage.success(t('redis_ha_page.messages.breaker_reset'));
     await refreshAll();
   } catch (e) {
     if (e !== 'cancel') {
-      ElMessage.error('重置失败: ' + (e.message || '未知错误'));
+      ElMessage.error(t('redis_ha_page.messages.reset_failed', { error: errorMessage(e) }));
     }
   }
 }
@@ -503,8 +549,8 @@ onMounted(() => {
 }
 
 .action-card:hover {
-  border-color: #409eff;
-  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.15);
+  border-color: #0f172a;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.15);
   transform: translateY(-2px);
 }
 

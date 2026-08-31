@@ -1,81 +1,77 @@
 <template>
     <div class="points-management">
-        <!-- 页头 -->
         <div class="page-header">
             <div>
-                <h2>🪙 积分管理</h2>
-                <p class="text-muted">管理全平台用户积分余额、发放积分、查看交易流水</p>
+                <h2>{{ t(`${P}.title`) }}</h2>
+                <p class="text-muted">{{ t(`${P}.subtitle`) }}</p>
             </div>
             <div class="page-header-actions">
                 <el-button type="warning" @click="showGrantDialog = true">
-                    <el-icon><Plus /></el-icon> 发放积分
+                    <el-icon><Plus /></el-icon> {{ t(`${P}.grant`) }}
                 </el-button>
             </div>
         </div>
 
-        <!-- 统计卡片 -->
         <div class="stats-row">
             <div class="stat-card">
                 <div class="stat-value">{{ stats.total_users || 0 }}</div>
-                <div class="stat-label">持有积分用户</div>
+                <div class="stat-label">{{ t(`${P}.stats.users`) }}</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" style="color:#e6a23c">🪙 {{ formatNum(stats.total_balance) }}</div>
-                <div class="stat-label">流通总积分</div>
+                <div class="stat-value" style="color:#e6a23c">{{ formatNum(stats.total_balance) }}</div>
+                <div class="stat-label">{{ t(`${P}.stats.balance`) }}</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" style="color:#67c23a">+{{ formatNum(stats.total_earned) }}</div>
-                <div class="stat-label">累计发放</div>
+                <div class="stat-label">{{ t(`${P}.stats.earned`) }}</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" style="color:#f56c6c">-{{ formatNum(stats.total_spent) }}</div>
-                <div class="stat-label">累计消费</div>
+                <div class="stat-label">{{ t(`${P}.stats.spent`) }}</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" style="color:#409eff">📈 {{ formatNum(stats.today_earned) }}</div>
-                <div class="stat-label">今日发放</div>
+                <div class="stat-value" style="color:#0f172a">{{ formatNum(stats.today_earned) }}</div>
+                <div class="stat-label">{{ t(`${P}.stats.today_earned`) }}</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" style="color:#e6a23c">📉 {{ formatNum(stats.today_spent) }}</div>
-                <div class="stat-label">今日消费</div>
+                <div class="stat-value" style="color:#e6a23c">{{ formatNum(stats.today_spent) }}</div>
+                <div class="stat-label">{{ t(`${P}.stats.today_spent`) }}</div>
             </div>
         </div>
 
-        <!-- Tabs: 用户列表 / 交易流水 -->
         <el-tabs v-model="activeTab" style="margin-top:16px">
-            <!-- 用户列表 -->
-            <el-tab-pane label="👥 用户积分" name="users">
+            <el-tab-pane :label="t(`${P}.tabs.users`)" name="users">
                 <div style="display:flex;gap:8px;margin-bottom:12px">
-                    <el-input v-model="searchKeyword" placeholder="搜索用户名称/邮箱..." size="small" clearable style="width:300px" @clear="loadUsers" @keyup.enter="loadUsers">
+                    <el-input v-model="searchKeyword" :placeholder="t(`${P}.search_ph`)" size="small" clearable style="width:300px" @clear="loadUsers" @keyup.enter="loadUsers">
                         <template #prefix><el-icon><Search /></el-icon></template>
                     </el-input>
-                    <el-button size="small" @click="loadUsers">搜索</el-button>
+                    <el-button size="small" @click="loadUsers">{{ t('actions.search') }}</el-button>
                 </div>
                 <el-table :data="users" v-loading="loadingUsers" stripe style="width:100%">
-                    <el-table-column label="用户" min-width="180">
+                    <el-table-column :label="t(`${P}.cols.user`)" min-width="180">
                         <template #default="{ row }">
                             <div style="display:flex;align-items:center;gap:8px">
                                 <el-avatar :size="28" :src="row.user?.avatar">{{ row.user?.name?.charAt(0) || '?' }}</el-avatar>
                                 <div>
-                                    <div style="font-weight:500;font-size:13px">{{ row.user?.name || '未知' }}</div>
+                                    <div style="font-weight:500;font-size:13px">{{ row.user?.name || t(`${P}.unknown`) }}</div>
                                     <div style="font-size:11px;color:#909399">{{ row.user?.email || '' }}</div>
                                 </div>
                             </div>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="balance" label="🪙 余额" width="120" align="center">
+                    <el-table-column prop="balance" :label="t(`${P}.cols.balance`)" width="120" align="center">
                         <template #default="{ row }"><strong>{{ formatNum(row.balance) }}</strong></template>
                     </el-table-column>
-                    <el-table-column prop="total_earned" label="累计获得" width="120" align="center">
+                    <el-table-column prop="total_earned" :label="t(`${P}.cols.total_earned`)" width="120" align="center">
                         <template #default="{ row }"><span style="color:#67c23a">+{{ formatNum(row.total_earned) }}</span></template>
                     </el-table-column>
-                    <el-table-column prop="total_spent" label="累计消费" width="120" align="center">
+                    <el-table-column prop="total_spent" :label="t(`${P}.cols.total_spent`)" width="120" align="center">
                         <template #default="{ row }"><span style="color:#f56c6c">-{{ formatNum(row.total_spent) }}</span></template>
                     </el-table-column>
-                    <el-table-column label="操作" width="160" align="center">
+                    <el-table-column :label="t(`${P}.cols.actions`)" width="160" align="center">
                         <template #default="{ row }">
-                            <el-button size="small" text type="primary" @click="viewUserTxns(row)">流水</el-button>
-                            <el-button size="small" text type="warning" @click="openGrantForUser(row)">发积分</el-button>
+                            <el-button size="small" text type="primary" @click="viewUserTxns(row)">{{ t(`${P}.txns`) }}</el-button>
+                            <el-button size="small" text type="warning" @click="openGrantForUser(row)">{{ t(`${P}.grant_short`) }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -84,49 +80,48 @@
                 </div>
             </el-tab-pane>
 
-            <!-- 交易流水 -->
-            <el-tab-pane label="📋 交易流水" name="transactions">
+            <el-tab-pane :label="t(`${P}.tabs.transactions`)" name="transactions">
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-                    <el-select v-model="txFilter.type" placeholder="类型" size="small" style="width:100px" clearable @change="loadTxns">
-                        <el-option label="全部" value="" />
-                        <el-option label="获得" value="earn" />
-                        <el-option label="消费" value="spend" />
-                        <el-option label="退款" value="refund" />
-                        <el-option label="奖励" value="bonus" />
+                    <el-select v-model="txFilter.type" :placeholder="t(`${P}.cols.type`)" size="small" style="width:100px" clearable @change="loadTxns">
+                        <el-option :label="t(`${P}.all`)" value="" />
+                        <el-option :label="t(`${P}.types.earn`)" value="earn" />
+                        <el-option :label="t(`${P}.types.spend`)" value="spend" />
+                        <el-option :label="t(`${P}.types.refund`)" value="refund" />
+                        <el-option :label="t(`${P}.types.bonus`)" value="bonus" />
                     </el-select>
-                    <el-input v-model="txFilter.user_id" placeholder="用户ID" size="small" style="width:100px" clearable @clear="loadTxns" @keyup.enter="loadTxns" />
-                    <el-date-picker v-model="txFilter.from" type="date" placeholder="开始日期" size="small" style="width:130px" value-format="YYYY-MM-DD" @change="loadTxns" />
-                    <el-date-picker v-model="txFilter.to" type="date" placeholder="结束日期" size="small" style="width:130px" value-format="YYYY-MM-DD" @change="loadTxns" />
-                    <el-button size="small" @click="loadTxns">查询</el-button>
+                    <el-input v-model="txFilter.user_id" :placeholder="t(`${P}.user_id`)" size="small" style="width:100px" clearable @clear="loadTxns" @keyup.enter="loadTxns" />
+                    <el-date-picker v-model="txFilter.from" type="date" :placeholder="t(`${P}.from`)" size="small" style="width:130px" value-format="YYYY-MM-DD" @change="loadTxns" />
+                    <el-date-picker v-model="txFilter.to" type="date" :placeholder="t(`${P}.to`)" size="small" style="width:130px" value-format="YYYY-MM-DD" @change="loadTxns" />
+                    <el-button size="small" @click="loadTxns">{{ t('actions.search') }}</el-button>
                 </div>
                 <el-table :data="transactions" v-loading="loadingTxns" stripe style="width:100%">
-                    <el-table-column label="用户" min-width="140">
+                    <el-table-column :label="t(`${P}.cols.user`)" min-width="140">
                         <template #default="{ row }">
                             <span style="font-size:13px">{{ row.user?.name || 'ID:' + row.user_id }}</span>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="type" label="类型" width="80" align="center">
+                    <el-table-column prop="type" :label="t(`${P}.cols.type`)" width="80" align="center">
                         <template #default="{ row }">
                             <el-tag :type="row.type === 'earn' ? 'success' : row.type === 'spend' ? 'danger' : 'warning'" size="small">
-                                {{ row.type === 'earn' ? '获得' : row.type === 'spend' ? '消费' : row.type }}
+                                {{ typeLabel(row.type) }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="amount" label="金额" width="100" align="center">
+                    <el-table-column prop="amount" :label="t(`${P}.cols.amount`)" width="100" align="center">
                         <template #default="{ row }">
                             <span :style="{ color: row.type === 'earn' ? '#67c23a' : '#f56c6c', fontWeight:600 }">
                                 {{ row.type === 'earn' ? '+' : '-' }}{{ formatNum(row.amount) }}
                             </span>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="description" label="说明" min-width="200" />
-                    <el-table-column prop="balance_before" label="变动前" width="80" align="center">
+                    <el-table-column prop="description" :label="t(`${P}.cols.description`)" min-width="200" />
+                    <el-table-column prop="balance_before" :label="t(`${P}.cols.before`)" width="80" align="center">
                         <template #default="{ row }">{{ formatNum(row.balance_before) }}</template>
                     </el-table-column>
-                    <el-table-column prop="balance_after" label="变动后" width="80" align="center">
+                    <el-table-column prop="balance_after" :label="t(`${P}.cols.after`)" width="80" align="center">
                         <template #default="{ row }">{{ formatNum(row.balance_after) }}</template>
                     </el-table-column>
-                    <el-table-column prop="created_at" label="时间" width="150" align="center">
+                    <el-table-column prop="created_at" :label="t(`${P}.cols.time`)" width="150" align="center">
                         <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
                     </el-table-column>
                 </el-table>
@@ -136,36 +131,39 @@
             </el-tab-pane>
         </el-tabs>
 
-        <!-- 发放积分对话框 -->
-        <el-dialog v-model="showGrantDialog" title="🎁 发放积分" width="420px" :close-on-click-modal="false">
+        <el-dialog v-model="showGrantDialog" :title="t(`${P}.grant`)" width="420px" :close-on-click-modal="false">
             <el-form :model="grantForm" label-width="80px">
-                <el-form-item label="用户">
-                    <el-select v-model="grantForm.user_id" filterable remote :remote-method="searchUsers" :loading="searchingUsers" placeholder="搜索用户..." style="width:100%">
+                <el-form-item :label="t(`${P}.cols.user`)">
+                    <el-select v-model="grantForm.user_id" filterable remote :remote-method="searchUsers" :loading="searchingUsers" :placeholder="t(`${P}.search_user`)" style="width:100%">
                         <el-option v-for="u in userSearchResults" :key="u.id" :label="u.name + ' (' + u.email + ')'" :value="u.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="积分数量">
+                <el-form-item :label="t(`${P}.amount`)">
                     <el-input-number v-model="grantForm.amount" :min="1" :max="999999" style="width:100%" />
                 </el-form-item>
-                <el-form-item label="备注说明">
-                    <el-input v-model="grantForm.description" type="textarea" :rows="2" maxlength="500" placeholder="如：活动奖励、内容激励..." />
+                <el-form-item :label="t(`${P}.note`)">
+                    <el-input v-model="grantForm.description" type="textarea" :rows="2" maxlength="500" :placeholder="t(`${P}.note_ph`)" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showGrantDialog = false">取消</el-button>
-                <el-button type="warning" :loading="granting" @click="submitGrant">确认发放</el-button>
+                <el-button @click="showGrantDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="warning" :loading="granting" @click="submitGrant">{{ t(`${P}.confirm_grant`) }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Search, Plus } from '@element-plus/icons-vue'
-import apiClient from '@/api/client'
+import pointsApi from '@/api/points'
 
-// ── 状态 ──
+const { t, locale } = useI18n()
+const P = 'points_page'
+const dateLocale = computed(() => (locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US'))
+
 const activeTab = ref('users')
 const stats = ref({})
 const loadingUsers = ref(false)
@@ -191,10 +189,15 @@ const granting = ref(false)
 const userSearchResults = ref([])
 const searchingUsers = ref(false)
 
-// ── 加载 ──
+function typeLabel(type) {
+    const key = `${P}.types.${type}`
+    const translated = t(key)
+    return translated === key ? type : translated
+}
+
 async function loadStats() {
     try {
-        const r = await apiClient.get('/points/admin/stats')
+        const r = await pointsApi.getAdminStats()
         stats.value = r.data?.data || {}
     } catch { /* ignore */ }
 }
@@ -202,13 +205,13 @@ async function loadStats() {
 async function loadUsers() {
     loadingUsers.value = true
     try {
-        const r = await apiClient.get('/points/admin/users', {
-            params: { keyword: searchKeyword.value, page: userPage.value, per_page: 20 }
+        const r = await pointsApi.getAdminUsers({
+            keyword: searchKeyword.value, page: userPage.value, per_page: 20
         })
         const d = r.data?.data || {}
-        users.value = d.data || []
-        userTotal.value = d.total || 0
-    } catch { ElMessage.error('加载失败') }
+        users.value = Array.isArray(d) ? d : (d.data || [])
+        userTotal.value = r.data?.meta?.total || d.total || 0
+    } catch { ElMessage.error(t('messages.load_failed')) }
     finally { loadingUsers.value = false }
 }
 
@@ -220,11 +223,11 @@ async function loadTxns() {
         if (txFilter.user_id) params.user_id = txFilter.user_id
         if (txFilter.from) params.from = txFilter.from
         if (txFilter.to) params.to = txFilter.to
-        const r = await apiClient.get('/points/admin/transactions', { params })
+        const r = await pointsApi.getAdminTransactions(params)
         const d = r.data?.data || {}
-        transactions.value = d.data || []
-        txTotal.value = d.total || 0
-    } catch { ElMessage.error('加载失败') }
+        transactions.value = Array.isArray(d) ? d : (d.data || [])
+        txTotal.value = r.data?.meta?.total || d.total || 0
+    } catch { ElMessage.error(t('messages.load_failed')) }
     finally { loadingTxns.value = false }
 }
 
@@ -232,30 +235,30 @@ async function searchUsers(query) {
     if (!query) { userSearchResults.value = []; return }
     searchingUsers.value = true
     try {
-        const r = await apiClient.get('/points/admin/users', { params: { keyword: query, per_page: 10 } })
-        userSearchResults.value = r.data?.data?.data || []
+        const r = await pointsApi.getAdminUsers({ keyword: query, per_page: 10 })
+        userSearchResults.value = Array.isArray(r.data?.data) ? r.data.data : (r.data?.data?.data || [])
     } catch { /* ignore */ }
     finally { searchingUsers.value = false }
 }
 
 async function submitGrant() {
-    if (!grantForm.user_id) { ElMessage.warning('请选择用户'); return }
-    if (!grantForm.amount || grantForm.amount < 1) { ElMessage.warning('请输入有效积分数量'); return }
+    if (!grantForm.user_id) { ElMessage.warning(t(`${P}.messages.select_user`)); return }
+    if (!grantForm.amount || grantForm.amount < 1) { ElMessage.warning(t(`${P}.messages.invalid_amount`)); return }
     granting.value = true
     try {
-        const r = await apiClient.post('/points/grant', {
+        const r = await pointsApi.grantPoints({
             user_id: grantForm.user_id,
             amount: grantForm.amount,
-            description: grantForm.description || '管理员发放',
+            description: grantForm.description || t(`${P}.default_desc`),
         })
-        ElMessage.success(`🎉 已发放 ${grantForm.amount} 积分，当前余额 ${r.data?.data?.balance}`)
+        ElMessage.success(t(`${P}.messages.granted`, { n: grantForm.amount, balance: r.data?.data?.balance }))
         showGrantDialog.value = false
         grantForm.user_id = null
         grantForm.amount = 10
         grantForm.description = ''
         loadUsers()
         loadStats()
-    } catch (e) { ElMessage.error(e.response?.data?.message || '发放失败') }
+    } catch (e) { ElMessage.error(e.response?.data?.message || t(`${P}.messages.grant_failed`)) }
     finally { granting.value = false }
 }
 
@@ -279,13 +282,17 @@ function openGrantForUser(row) {
 
 function formatNum(n) {
     if (n === null || n === undefined) return '0'
-    return Number(n).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+    return Number(n).toLocaleString(dateLocale.value, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
-function formatTime(t) {
-    if (!t) return ''
-    return new Date(t).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+function formatTime(time) {
+    if (!time) return ''
+    return new Date(time).toLocaleString(dateLocale.value, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
+
+watch(activeTab, (val) => {
+    if (val === 'transactions') loadTxns()
+})
 
 onMounted(() => {
     loadStats()

@@ -31,3 +31,7 @@ export function getCurrentConsent(type = 'privacy_policy') {
 export function submitConsent(legalConsentId) {
   return apiClient.post('/legal-consent', { legal_consent_id: legalConsentId })
 }
+
+export function deleteLegalConsent(id) {
+  return apiClient.delete(`/legal-consents/${id}`)
+}

@@ -3,15 +3,15 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <h2>团队管理</h2>
+        <h2>{{ t('team_page.title') }}</h2>
         <span class="header-subtitle" v-if="tenant">{{ tenant.name }}</span>
       </div>
       <div class="header-right">
         <el-button type="primary" @click="showInviteDialog = true" :disabled="!canInvite">
-          <el-icon><Plus /></el-icon> 邀请成员
+          <el-icon><Plus /></el-icon> {{ t('team_page.invite_member') }}
         </el-button>
         <el-button @click="showSettings = !showSettings">
-          <el-icon><Setting /></el-icon> 团队设置
+          <el-icon><Setting /></el-icon> {{ t('team_page.team_settings') }}
         </el-button>
       </div>
     </div>
@@ -22,7 +22,7 @@
         <el-card shadow="hover">
           <div class="stat-box">
             <div class="stat-value">{{ memberCount }}</div>
-            <div class="stat-label">团队成员</div>
+            <div class="stat-label">{{ t('team_page.stats.members') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -30,7 +30,7 @@
         <el-card shadow="hover">
           <div class="stat-box">
             <div class="stat-value role-admin">{{ adminCount }}</div>
-            <div class="stat-label">管理员</div>
+            <div class="stat-label">{{ t('team_page.stats.admins') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -38,7 +38,7 @@
         <el-card shadow="hover">
           <div class="stat-box">
             <div class="stat-value role-developer">{{ developerCount }}</div>
-            <div class="stat-label">开发者</div>
+            <div class="stat-label">{{ t('team_page.stats.developers') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -46,7 +46,7 @@
         <el-card shadow="hover">
           <div class="stat-box">
             <div class="stat-value warning" :class="{ 'has-pending': pendingCount > 0 }">{{ pendingCount }}</div>
-            <div class="stat-label">待处理邀请</div>
+            <div class="stat-label">{{ t('team_page.stats.pending_invitations') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -56,25 +56,27 @@
     <el-card shadow="never">
       <el-tabs v-model="activeTab">
         <!-- 成员列表 -->
-        <el-tab-pane label="所有成员" name="members">
+        <el-tab-pane :label="t('team_page.tabs.all_members')" name="members">
           <div class="member-list">
             <div v-for="member in members" :key="member.id" class="member-card">
               <el-avatar :size="40">{{ member.user?.name?.charAt(0) || '?' }}</el-avatar>
               <div class="member-info">
                 <div class="member-name">
-                  {{ member.user?.name || '未知用户' }}
-                  <el-tag v-if="member.user_id === currentUserId" size="small" type="info">我</el-tag>
+                  {{ member.user?.name || t('team_page.member.unknown_user') }}
+                  <el-tag v-if="member.user_id === currentUserId" size="small" type="info">{{ t('team_page.member.me') }}</el-tag>
                 </div>
                 <div class="member-email">{{ member.user?.email }}</div>
                 <div class="member-meta">
-                  加入于 {{ formatDate(member.joined_at) }}
+                  {{ t('team_page.member.joined_at', { date: formatDate(member.joined_at) }) }}
                   <span class="meta-sep">·</span>
-                  通过 {{ member.invited_via_label || '直接添加' }}
+                  {{ t('team_page.member.via', { via: member.invited_via_label || t('team_page.member.direct_add') }) }}
                   <span class="meta-sep">·</span>
-                  最后活跃 {{ member.user?.last_login_at ? formatDate(member.user.last_login_at) : '未知' }}
+                  {{ member.user?.last_login_at
+                    ? t('team_page.member.last_active', { date: formatDate(member.user.last_login_at) })
+                    : t('team_page.member.last_active_unknown') }}
                 </div>
                 <div class="member-inviter" v-if="member.inviter">
-                  邀请人: {{ member.inviter.name }}
+                  {{ t('team_page.member.inviter', { name: member.inviter.name }) }}
                 </div>
               </div>
               <div class="member-role" :class="'role-' + member.role">
@@ -101,42 +103,42 @@
                 </el-tag>
               </div>
               <div class="member-actions" v-if="canManage && !isCurrentUser(member)">
-                <el-button text type="primary" size="small" @click="handleTransferAdmin(member)">转让</el-button>
-                <el-button text type="danger" size="small" @click="handleRemove(member)">移除</el-button>
+                <el-button text type="primary" size="small" @click="handleTransferAdmin(member)">{{ t('team_page.actions.transfer') }}</el-button>
+                <el-button text type="danger" size="small" @click="handleRemove(member)">{{ t('team_page.actions.remove') }}</el-button>
               </div>
             </div>
 
             <div v-if="members.length === 0" class="empty-state">
-              <el-empty description="暂无团队成员" />
+              <el-empty :description="t('team_page.empty.no_members')" />
             </div>
           </div>
         </el-tab-pane>
 
         <!-- 待处理邀请 -->
-        <el-tab-pane :label="`待处理邀请 (${pendingInvitations.length})`" name="invitations">
+        <el-tab-pane :label="t('team_page.tabs.pending_invitations', { n: pendingInvitations.length })" name="invitations">
           <div v-if="pendingInvitations.length === 0" class="empty-state">
-            <el-empty description="暂无待处理邀请" />
+            <el-empty :description="t('team_page.empty.no_pending')" />
           </div>
           <div v-else class="invitation-list">
             <div v-for="inv in pendingInvitations" :key="inv.id" class="invitation-card">
               <el-icon class="inv-icon" :size="28"><Message /></el-icon>
               <div class="inv-info">
                 <div class="inv-email">{{ inv.email }}</div>
-                <div class="inv-role">角色: {{ roleLabels[inv.role] || inv.role }}</div>
+                <div class="inv-role">{{ t('team_page.invitation.role', { role: roleLabels[inv.role] || inv.role }) }}</div>
                 <div class="inv-meta">
-                  邀请于 {{ formatDate(inv.created_at) }}
-                  <span v-if="inv.expires_at"> · 过期于 {{ formatDate(inv.expires_at) }}</span>
+                  {{ t('team_page.invitation.invited_at', { date: formatDate(inv.created_at) }) }}
+                  <span v-if="inv.expires_at">{{ t('team_page.invitation.expires_at', { date: formatDate(inv.expires_at) }) }}</span>
                 </div>
                 <div class="inv-inviter" v-if="inv.inviter">
-                  邀请人: {{ inv.inviter.name }}
+                  {{ t('team_page.invitation.inviter', { name: inv.inviter.name }) }}
                 </div>
               </div>
               <div class="inv-status">
-                <el-tag size="small" type="warning">等待接受</el-tag>
+                <el-tag size="small" type="warning">{{ t('team_page.invitation.status_pending') }}</el-tag>
               </div>
               <div class="inv-actions">
-                <el-button text size="small" type="primary" @click="handleResend(inv)">重发</el-button>
-                <el-button text size="small" type="danger" @click="handleCancelInvite(inv)">取消</el-button>
+                <el-button text size="small" type="primary" @click="handleResend(inv)">{{ t('team_page.actions.resend') }}</el-button>
+                <el-button text size="small" type="danger" @click="handleCancelInvite(inv)">{{ t('actions.cancel') }}</el-button>
               </div>
             </div>
           </div>
@@ -145,31 +147,31 @@
     </el-card>
 
     <!-- 邀请成员对话框 -->
-    <el-dialog v-model="showInviteDialog" title="邀请成员" width="520px">
+    <el-dialog v-model="showInviteDialog" :title="t('team_page.invite_dialog.title')" width="520px">
       <el-form ref="inviteFormRef" :model="inviteForm" :rules="inviteRules" label-width="80px">
         <!-- 单条邀请模式 -->
         <template v-if="!batchMode">
-          <el-form-item label="邮箱" prop="email">
-            <el-input v-model="inviteForm.email" placeholder="输入成员邮箱" />
+          <el-form-item :label="t('team_page.invite_dialog.email')" prop="email">
+            <el-input v-model="inviteForm.email" :placeholder="t('team_page.invite_dialog.email_ph')" />
           </el-form-item>
-          <el-form-item label="角色" prop="role">
+          <el-form-item :label="t('team_page.invite_dialog.role')" prop="role">
             <el-select v-model="inviteForm.role" style="width: 100%">
               <el-option v-for="(label, key) in roleLabels" :key="key" :label="label" :value="key" />
             </el-select>
           </el-form-item>
-          <el-form-item label="附言">
-            <el-input v-model="inviteForm.message" type="textarea" :rows="2" placeholder="可选：给被邀请人的留言" maxlength="500" show-word-limit />
+          <el-form-item :label="t('team_page.invite_dialog.message')">
+            <el-input v-model="inviteForm.message" type="textarea" :rows="2" :placeholder="t('team_page.invite_dialog.message_ph')" maxlength="500" show-word-limit />
           </el-form-item>
         </template>
         <!-- 批量邀请模式 -->
         <template v-else>
-          <el-alert title="批量邀请" description="每行一个邮箱，格式: email,角色(可选)。例如: user@example.com,developer" type="info" show-icon :closable="false" class="mb-3" />
-          <el-form-item label="邀请列表">
+          <el-alert :title="t('team_page.invite_dialog.batch_title')" :description="t('team_page.invite_dialog.batch_desc')" type="info" show-icon :closable="false" class="mb-3" />
+          <el-form-item :label="t('team_page.invite_dialog.batch_list')">
             <el-input
               v-model="inviteForm.batchText"
               type="textarea"
               :rows="6"
-              placeholder="user1@example.com,developer&#10;user2@example.com,finance&#10;user3@example.com"
+              :placeholder="t('team_page.invite_dialog.batch_ph')"
             />
           </el-form-item>
         </template>
@@ -177,33 +179,33 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="batchMode = !batchMode" text>
-            {{ batchMode ? '切换为单个邀请' : '批量邀请' }}
+            {{ batchMode ? t('team_page.invite_dialog.switch_single') : t('team_page.invite_dialog.batch_mode') }}
           </el-button>
-          <el-button @click="showInviteDialog = false">取消</el-button>
+          <el-button @click="showInviteDialog = false">{{ t('actions.cancel') }}</el-button>
           <el-button type="primary" @click="handleInvite" :loading="inviting">
-            {{ batchMode ? '批量发送' : '发送邀请' }}
+            {{ batchMode ? t('team_page.invite_dialog.batch_send') : t('team_page.invite_dialog.send') }}
           </el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 团队设置面板 -->
-    <el-drawer v-model="showSettings" title="团队设置" size="400px">
+    <el-drawer v-model="showSettings" :title="t('team_page.settings.title')" size="400px">
       <div class="settings-panel">
-        <el-divider content-position="left">角色说明</el-divider>
+        <el-divider content-position="left">{{ t('team_page.settings.role_descriptions') }}</el-divider>
         <div v-for="(desc, role) in roleDescriptions" :key="role" class="role-desc-item">
           <el-tag :type="roleTagType(role)" size="small" class="role-badge">{{ roleLabels[role] }}</el-tag>
           <span class="role-desc-text">{{ desc }}</span>
         </div>
 
-        <el-divider content-position="left">危险操作</el-divider>
+        <el-divider content-position="left">{{ t('team_page.settings.danger_zone') }}</el-divider>
         <div class="danger-zone">
           <div class="danger-item">
             <div class="danger-info">
-              <div class="danger-title">退出团队</div>
-              <div class="danger-desc">退出后将失去对租户资源的访问权限</div>
+              <div class="danger-title">{{ t('team_page.settings.leave_team') }}</div>
+              <div class="danger-desc">{{ t('team_page.settings.leave_desc') }}</div>
             </div>
-            <el-button type="danger" plain @click="handleLeave">退出团队</el-button>
+            <el-button type="danger" plain @click="handleLeave">{{ t('team_page.settings.leave_team') }}</el-button>
           </div>
         </div>
       </div>
@@ -213,9 +215,12 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Setting, ArrowDown, Message } from '@element-plus/icons-vue';
 import teamApi from '@/api/team';
+
+const { t, locale } = useI18n();
 
 const activeTab = ref('members');
 const showInviteDialog = ref(false);
@@ -233,18 +238,18 @@ const currentUserId = ref(null);
 
 // 角色配置
 const allRoles = ['admin', 'finance', 'developer', 'readonly'];
-const roleLabels = {
-  admin: '管理员',
-  finance: '财务',
-  developer: '开发者',
-  readonly: '只读',
-};
-const roleDescriptions = {
-  admin: '完全控制：管理团队、设置、账单和所有资源',
-  finance: '财务管理：查看发票、账单和支付信息',
-  developer: '开发权限：管理 License、API Key、SDK 配置',
-  readonly: '仅查看：访问仪表盘和报表，不能做任何变更',
-};
+const roleLabels = computed(() => ({
+  admin: t('team_page.roles.admin'),
+  finance: t('team_page.roles.finance'),
+  developer: t('team_page.roles.developer'),
+  readonly: t('team_page.roles.readonly'),
+}));
+const roleDescriptions = computed(() => ({
+  admin: t('team_page.role_desc.admin'),
+  finance: t('team_page.role_desc.finance'),
+  developer: t('team_page.role_desc.developer'),
+  readonly: t('team_page.role_desc.readonly'),
+}));
 function roleTagType(role) {
   const map = { admin: 'danger', finance: 'warning', developer: 'primary', readonly: 'info' };
   return map[role] || 'info';
@@ -266,13 +271,13 @@ const inviteForm = reactive({
   message: '',
   batchText: '',
 });
-const inviteRules = {
+const inviteRules = computed(() => ({
   email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入有效的邮箱', trigger: 'blur' },
+    { required: true, message: t('team_page.validation.email_required'), trigger: 'blur' },
+    { type: 'email', message: t('team_page.validation.email_invalid'), trigger: 'blur' },
   ],
-  role: [{ required: true, message: '请选择角色', trigger: 'change' }],
-};
+  role: [{ required: true, message: t('team_page.validation.role_required'), trigger: 'change' }],
+}));
 
 function isCurrentUser(member) {
   return member.user_id === currentUserId.value;
@@ -280,7 +285,8 @@ function isCurrentUser(member) {
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleString('zh-CN', {
+  const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+  return new Date(dateStr).toLocaleString(loc, {
     year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit',
   });
@@ -298,7 +304,7 @@ async function loadTeam() {
     members.value = d.members || [];
     pendingInvitations.value = d.pending_invitations || [];
   } catch {
-    ElMessage.error('加载团队信息失败');
+    ElMessage.error(t('team_page.messages.load_failed'));
   } finally {
     loading.value = false;
   }
@@ -309,7 +315,6 @@ async function handleInvite() {
   inviting.value = true;
   try {
     if (batchMode.value) {
-      // 批量邀请
       const lines = inviteForm.batchText.trim().split('\n').filter(Boolean);
       const invites = lines.map(line => {
         const parts = line.split(',').map(s => s.trim());
@@ -320,16 +325,15 @@ async function handleInvite() {
         };
       });
       await teamApi.invite({ invites });
-      ElMessage.success(`已发送 ${invites.length} 份邀请`);
+      ElMessage.success(t('team_page.messages.batch_sent', { n: invites.length }));
     } else {
-      // 单条邀请
       await inviteFormRef.value.validate();
       await teamApi.invite({
         email: inviteForm.email,
         role: inviteForm.role,
         message: inviteForm.message || null,
       });
-      ElMessage.success(`邀请已发送至 ${inviteForm.email}`);
+      ElMessage.success(t('team_page.messages.invite_sent', { email: inviteForm.email }));
     }
     showInviteDialog.value = false;
     inviteForm.email = '';
@@ -337,7 +341,7 @@ async function handleInvite() {
     inviteForm.batchText = '';
     loadTeam();
   } catch (e) {
-    const msg = e.response?.data?.message || '邀请发送失败';
+    const msg = e.response?.data?.message || t('team_page.messages.invite_failed');
     ElMessage.error(msg);
   } finally {
     inviting.value = false;
@@ -348,12 +352,16 @@ async function handleInvite() {
 async function handleRoleChange(member, newRole) {
   try {
     await ElMessageBox.confirm(
-      `确定将 ${member.user?.name} 的角色从「${roleLabels[member.role]}」变更为「${roleLabels[newRole]}」？`,
-      '变更角色',
-      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+      t('team_page.confirm.role_change', {
+        name: member.user?.name,
+        from: roleLabels.value[member.role],
+        to: roleLabels.value[newRole],
+      }),
+      t('team_page.confirm.role_change_title'),
+      { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning' }
     );
     await teamApi.updateMemberRole(member.id, newRole);
-    ElMessage.success('角色已更新');
+    ElMessage.success(t('team_page.messages.role_updated'));
     loadTeam();
   } catch { /* cancelled */ }
 }
@@ -362,12 +370,12 @@ async function handleRoleChange(member, newRole) {
 async function handleRemove(member) {
   try {
     await ElMessageBox.confirm(
-      `确定移除 ${member.user?.name}（${member.user?.email}）？该成员将失去对本租户资源的访问权限。`,
-      '移除成员',
-      { confirmButtonText: '确定移除', cancelButtonText: '取消', type: 'warning' }
+      t('team_page.confirm.remove_member', { name: member.user?.name, email: member.user?.email }),
+      t('team_page.confirm.remove_title'),
+      { confirmButtonText: t('team_page.confirm.remove_btn'), cancelButtonText: t('actions.cancel'), type: 'warning' }
     );
     await teamApi.removeMember(member.id);
-    ElMessage.success('成员已移除');
+    ElMessage.success(t('team_page.messages.member_removed'));
     loadTeam();
   } catch { /* cancelled */ }
 }
@@ -376,12 +384,12 @@ async function handleRemove(member) {
 async function handleTransferAdmin(member) {
   try {
     await ElMessageBox.confirm(
-      `确定将管理员权限转让给 ${member.user?.name}（${member.user?.email}）？转让后您仍保留管理员角色。`,
-      '转让管理员',
-      { confirmButtonText: '确定转让', cancelButtonText: '取消', type: 'warning' }
+      t('team_page.confirm.transfer_admin', { name: member.user?.name, email: member.user?.email }),
+      t('team_page.confirm.transfer_title'),
+      { confirmButtonText: t('team_page.confirm.transfer_btn'), cancelButtonText: t('actions.cancel'), type: 'warning' }
     );
     await teamApi.transferAdmin(member.id);
-    ElMessage.success('管理员权限已转让');
+    ElMessage.success(t('team_page.messages.admin_transferred'));
     loadTeam();
   } catch { /* cancelled */ }
 }
@@ -390,17 +398,19 @@ async function handleTransferAdmin(member) {
 async function handleResend(inv) {
   try {
     await teamApi.resendInvitation(inv.id);
-    ElMessage.success('邀请已重新发送');
+    ElMessage.success(t('team_page.messages.invite_resent'));
   } catch { /* ignore */ }
 }
 
 async function handleCancelInvite(inv) {
   try {
-    await ElMessageBox.confirm(`确定取消对 ${inv.email} 的邀请？`, '取消邀请', {
-      confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning',
-    });
+    await ElMessageBox.confirm(
+      t('team_page.confirm.cancel_invite', { email: inv.email }),
+      t('team_page.confirm.cancel_invite_title'),
+      { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning' },
+    );
     await teamApi.cancelInvitation(inv.id);
-    ElMessage.success('邀请已取消');
+    ElMessage.success(t('team_page.messages.invite_cancelled'));
     loadTeam();
   } catch { /* cancelled */ }
 }
@@ -409,13 +419,12 @@ async function handleCancelInvite(inv) {
 async function handleLeave() {
   try {
     await ElMessageBox.confirm(
-      '确定要退出当前团队？退出后将失去对租户内所有资源的访问权限。',
-      '退出团队',
-      { confirmButtonText: '确定退出', cancelButtonText: '取消', type: 'warning' }
+      t('team_page.confirm.leave_team'),
+      t('team_page.confirm.leave_title'),
+      { confirmButtonText: t('team_page.confirm.leave_btn'), cancelButtonText: t('actions.cancel'), type: 'warning' }
     );
     await teamApi.leave();
-    ElMessage.success('已退出团队');
-    // 重定向到租户选择页
+    ElMessage.success(t('team_page.messages.left_team'));
     window.location.href = '/tenants';
   } catch { /* cancelled */ }
 }

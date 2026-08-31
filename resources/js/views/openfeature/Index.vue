@@ -2,24 +2,24 @@
     <div class="openfeature-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>OpenFeature 标志管理</h2>
-                <span class="header-subtitle">遵循 OpenFeature 标准的统一 Feature Flag 评估和监控</span>
+                <h2>{{ t('openfeature_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('openfeature_page.subtitle') }}</span>
             </div>
             <div class="header-right">
                 <el-button @click="loadFlags">
                     <el-icon><Refresh /></el-icon>
-                    刷新评估
+                    {{ t('openfeature_page.refresh_btn') }}
                 </el-button>
             </div>
         </div>
 
         <el-alert
-            title="OpenFeature 标准"
+            :title="t('openfeature_page.alert_title')"
             type="info"
             :closable="false"
             show-icon
             class="mb-4"
-            description="OpenFeature 是一个开放标准，提供统一的功能标志评估 API。兼容 flagd、LaunchDarkly、Split 等主流 Provider。客户端可通过标准 SDK 进行功能开关评估。"
+            :description="t('openfeature_page.alert_desc')"
         />
 
         <!-- 运行状态 -->
@@ -27,7 +27,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">已注册标志</div>
+                        <div class="stat-label">{{ t('openfeature_page.stats.registered') }}</div>
                         <div class="stat-value">{{ flags.length }}</div>
                     </div>
                 </el-card>
@@ -35,7 +35,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">激活中</div>
+                        <div class="stat-label">{{ t('openfeature_page.stats.active') }}</div>
                         <div class="stat-value text-success">{{ activeCount }}</div>
                     </div>
                 </el-card>
@@ -43,7 +43,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">已禁用</div>
+                        <div class="stat-label">{{ t('openfeature_page.stats.inactive') }}</div>
                         <div class="stat-value text-danger">{{ inactiveCount }}</div>
                     </div>
                 </el-card>
@@ -51,7 +51,7 @@
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-label">API 健康状态</div>
+                        <div class="stat-label">{{ t('openfeature_page.stats.api_health') }}</div>
                         <div class="stat-value" :class="healthStatusClass">
                             <el-icon><component :is="healthIcon" /></el-icon>
                         </div>
@@ -64,88 +64,88 @@
         <el-card shadow="never">
             <template #header>
                 <div class="card-header">
-                    <span>所有 Feature Flag</span>
+                    <span>{{ t('openfeature_page.flags_card_title') }}</span>
                     <div class="header-right">
-                        <el-tag type="info" size="small">flagd 兼容</el-tag>
+                        <el-tag type="info" size="small">{{ t('openfeature_page.flagd_tag') }}</el-tag>
                     </div>
                 </div>
             </template>
 
             <el-table :data="flags" v-loading="loading" stripe style="width: 100%">
                 <el-table-column type="index" label="#" width="50" />
-                <el-table-column prop="key" label="Flag Key" min-width="200">
+                <el-table-column prop="key" :label="t('openfeature_page.cols.key')" min-width="200">
                     <template #default="{ row }">
                         <div class="key-cell">
                             <code class="flag-key">{{ row.key }}</code>
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column prop="name" label="名称" min-width="150" />
-                <el-table-column prop="description" label="描述" min-width="200">
+                <el-table-column prop="name" :label="t('openfeature_page.cols.name')" min-width="150" />
+                <el-table-column prop="description" :label="t('openfeature_page.cols.description')" min-width="200">
                     <template #default="{ row }">
                         <span class="desc-text">{{ row.description || '-' }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="is_active" label="启用状态" width="100">
+                <el-table-column prop="is_active" :label="t('openfeature_page.cols.status')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-                            {{ row.is_active ? '启用' : '禁用' }}
+                            {{ statusLabel(row.is_active) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="评估结果" width="180">
+                <el-table-column :label="t('openfeature_page.cols.evaluation')" width="180">
                     <template #default="{ row }">
                         <div v-if="row.evaluated" class="evaluation-cell">
                             <el-tag :type="row.evaluated.value ? 'success' : 'danger'" size="small" effect="dark">
-                                {{ row.evaluated.value !== undefined ? (row.evaluated.value ? 'TRUE' : 'FALSE') : 'N/A' }}
+                                {{ evalValueLabel(row.evaluated.value) }}
                             </el-tag>
-                            <span class="eval-reason">{{ row.evaluated.reason || 'DEFAULT' }}</span>
+                            <span class="eval-reason">{{ row.evaluated.reason || t('openfeature_page.eval.default_reason') }}</span>
                             <span v-if="row.evaluated.variant" class="eval-variant">
                                 [{{ row.evaluated.variant }}]
                             </span>
                         </div>
-                        <span v-else class="no-eval">未评估</span>
+                        <span v-else class="no-eval">{{ t('openfeature_page.eval.not_evaluated') }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="100" fixed="right">
+                <el-table-column :label="t('openfeature_page.cols.actions')" width="100" fixed="right">
                     <template #default="{ row }">
                         <el-button text type="primary" size="small" @click="openTestDialog(row)">
-                            测试评估
+                            {{ t('openfeature_page.test_eval_btn') }}
                         </el-button>
                     </template>
                 </el-table-column>
             </el-table>
 
-            <el-empty v-if="flags.length === 0 && !loading" :image-size="80" description="暂无 Feature Flag" />
+            <el-empty v-if="flags.length === 0 && !loading" :image-size="80" :description="t('openfeature_page.empty')" />
         </el-card>
 
         <!-- 测试评估 Dialog -->
-        <el-dialog v-model="showTestDialog" title="测试 Flag 评估" width="480px">
-            <p class="dialog-subtitle">测试 Flag <strong>{{ testFlag?.key }}</strong> 在当前上下文中的评估结果</p>
+        <el-dialog v-model="showTestDialog" :title="t('openfeature_page.test_dialog_title')" width="480px">
+            <p class="dialog-subtitle">{{ t('openfeature_page.test_dialog_subtitle', { key: testFlag?.key }) }}</p>
             <el-form label-position="top">
-                <el-form-item label="上下文属性（JSON）">
+                <el-form-item :label="t('openfeature_page.context_label')">
                     <el-input
                         v-model="testContextJson"
                         type="textarea"
                         :rows="6"
-                        placeholder='{"targetingKey": "user-123", "email": "user@example.com"}'
+                        :placeholder="t('openfeature_page.context_ph')"
                     />
                 </el-form-item>
-                <el-form-item label="评估结果">
+                <el-form-item :label="t('openfeature_page.result_label')">
                     <div v-if="testResult !== null" class="test-result">
                         <el-tag :type="testResult ? 'success' : 'danger'" size="large">
-                            {{ testResult ? 'TRUE' : 'FALSE' }}
+                            {{ evalValueLabel(testResult) }}
                         </el-tag>
-                        <span v-if="testReason" class="test-reason">Reason: {{ testReason }}</span>
-                        <span v-if="testVariant" class="test-variant">Variant: {{ testVariant }}</span>
+                        <span v-if="testReason" class="test-reason">{{ t('openfeature_page.reason_label') }}: {{ testReason }}</span>
+                        <span v-if="testVariant" class="test-variant">{{ t('openfeature_page.variant_label') }}: {{ testVariant }}</span>
                     </div>
-                    <span v-else class="no-result">点击「测试评估」查看结果</span>
+                    <span v-else class="no-result">{{ t('openfeature_page.no_result_hint') }}</span>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showTestDialog = false">关闭</el-button>
+                <el-button @click="showTestDialog = false">{{ t('actions.close') }}</el-button>
                 <el-button type="primary" @click="handleTestEval" :loading="testing">
-                    测试评估
+                    {{ t('openfeature_page.test_eval_btn') }}
                 </el-button>
             </template>
         </el-dialog>
@@ -154,9 +154,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Refresh, CircleCheck, CircleClose } from '@element-plus/icons-vue';
-import apiClient from '@/api/client';
+import openFeatureApi from '@/api/openFeature';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const testing = ref(false);
@@ -174,10 +177,30 @@ const inactiveCount = computed(() => flags.value.filter(f => !f.is_active).lengt
 const healthStatusClass = computed(() => flags.value.length > 0 ? 'text-success' : 'text-warning');
 const healthIcon = computed(() => flags.value.length > 0 ? CircleCheck : CircleClose);
 
+const statusLabels = computed(() => ({
+    true: t('openfeature_page.status.enabled'),
+    false: t('openfeature_page.status.disabled'),
+}));
+
+const evalValueLabels = computed(() => ({
+    true: t('openfeature_page.eval.true'),
+    false: t('openfeature_page.eval.false'),
+    na: t('openfeature_page.eval.na'),
+}));
+
+function statusLabel(isActive) {
+    return statusLabels.value[isActive ? 'true' : 'false'];
+}
+
+function evalValueLabel(value) {
+    if (value === undefined) return evalValueLabels.value.na;
+    return evalValueLabels.value[value ? 'true' : 'false'];
+}
+
 async function loadFlags() {
     loading.value = true;
     try {
-        const { data: res } = await apiClient.get('/openfeature/manage/flags');
+        const { data: res } = await openFeatureApi.manageAllFlags();
         flags.value = res.data || [];
     } catch {
         flags.value = [];
@@ -188,7 +211,7 @@ async function loadFlags() {
 
 async function checkHealth() {
     try {
-        const { data: res } = await apiClient.get('/openfeature/health');
+        const { data: res } = await openFeatureApi.health();
         return res.data?.healthy ?? false;
     } catch {
         return false;
@@ -218,7 +241,7 @@ async function handleTestEval() {
         }
 
         const flagKey = testFlag.value.key;
-        const { data: res } = await apiClient.post('/openfeature/evaluate', {
+        const { data: res } = await openFeatureApi.evaluate({
             flagKey,
             type: 'boolean',
             defaultValue: false,
@@ -229,7 +252,7 @@ async function handleTestEval() {
         testReason.value = res.data?.reason ?? '';
         testVariant.value = res.data?.variant ?? '';
     } catch (err) {
-        ElMessage.error('评估请求失败');
+        ElMessage.error(t('openfeature_page.messages.eval_request_failed'));
     } finally {
         testing.value = false;
     }

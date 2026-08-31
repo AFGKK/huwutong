@@ -7,12 +7,15 @@
         @blur="visible = false"
         :class="{ 'skip-visible': visible }"
     >
-        <slot>跳转到主内容</slot>
+        <slot>{{ t('a11y.skip_to_content') }}</slot>
     </a>
 </template>
 
 <script setup>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
     target: {
@@ -40,7 +43,7 @@ function handleSkip() {
     left: 8px;
     z-index: 10000;
     padding: 8px 16px;
-    background: #409eff;
+    background: #0f172a;
     color: #fff;
     border-radius: 0 0 4px 4px;
     font-size: 14px;

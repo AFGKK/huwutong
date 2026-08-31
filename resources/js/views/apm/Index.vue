@@ -1,25 +1,25 @@
 <template>
     <div class="apm-page">
         <el-tabs v-model="activeTab">
-            <!-- ═══════════════ 性能总览 ═══════════════ -->
-            <el-tab-pane label="性能总览" name="overview">
+            <!-- 性能总览 -->
+            <el-tab-pane :label="t('apm_page.tabs.overview')" name="overview">
                 <div class="tab-actions">
                     <el-select v-model="period" @change="fetchAll" style="width: 150px">
-                        <el-option :value="1" label="最近 1 小时" />
-                        <el-option :value="6" label="最近 6 小时" />
-                        <el-option :value="24" label="最近 24 小时" />
-                        <el-option :value="72" label="最近 3 天" />
-                        <el-option :value="168" label="最近 7 天" />
+                        <el-option
+                            v-for="opt in periodOptions"
+                            :key="opt.value"
+                            :value="opt.value"
+                            :label="opt.label"
+                        />
                     </el-select>
                     <el-button @click="fetchAll" :icon="Refresh" circle />
                 </div>
 
-                <!-- 总览指标 -->
                 <el-row :gutter="16" class="mb-4">
                     <el-col :span="6">
                         <el-card shadow="never">
                             <div class="stat-item">
-                                <div class="stat-label">总请求数</div>
+                                <div class="stat-label">{{ t('apm_page.stats.total_requests') }}</div>
                                 <div class="stat-value">{{ stats.total_requests ?? '-' }}</div>
                             </div>
                         </el-card>
@@ -27,7 +27,7 @@
                     <el-col :span="6">
                         <el-card shadow="never">
                             <div class="stat-item">
-                                <div class="stat-label">慢请求</div>
+                                <div class="stat-label">{{ t('apm_page.stats.slow_requests') }}</div>
                                 <div class="stat-value slow">{{ stats.slow_requests ?? '-' }}</div>
                             </div>
                         </el-card>
@@ -35,7 +35,7 @@
                     <el-col :span="6">
                         <el-card shadow="never">
                             <div class="stat-item">
-                                <div class="stat-label">平均耗时</div>
+                                <div class="stat-label">{{ t('apm_page.stats.avg_duration') }}</div>
                                 <div class="stat-value">{{ stats.avg_duration_ms ?? '-' }} <small>ms</small></div>
                             </div>
                         </el-card>
@@ -43,7 +43,7 @@
                     <el-col :span="6">
                         <el-card shadow="never">
                             <div class="stat-item">
-                                <div class="stat-label">平均内存</div>
+                                <div class="stat-label">{{ t('apm_page.stats.avg_memory') }}</div>
                                 <div class="stat-value">{{ stats.avg_memory_mb ?? '-' }} <small>MB</small></div>
                             </div>
                         </el-card>
@@ -51,10 +51,9 @@
                 </el-row>
 
                 <el-row :gutter="16" style="margin-bottom: 16px;">
-                    <!-- 耗时分布 -->
                     <el-col :span="12">
                         <el-card shadow="never">
-                            <template #header><span>请求耗时分布</span></template>
+                            <template #header><span>{{ t('apm_page.charts.duration_distribution') }}</span></template>
                             <div v-loading="loading" class="chart-area">
                                 <div v-for="item in distribution" :key="item.label" class="bar-row">
                                     <span class="bar-label">{{ item.label }}</span>
@@ -67,10 +66,9 @@
                         </el-card>
                     </el-col>
 
-                    <!-- 慢请求原因 -->
                     <el-col :span="12">
                         <el-card shadow="never">
-                            <template #header><span>慢请求原因分布</span></template>
+                            <template #header><span>{{ t('apm_page.charts.slow_reason_distribution') }}</span></template>
                             <div v-loading="loading" class="chart-area">
                                 <div v-for="item in slowReasons" :key="item.slow_reason" class="bar-row">
                                     <span class="bar-label reason-label">{{ item.slow_reason }}</span>
@@ -79,100 +77,100 @@
                                     </div>
                                     <span class="bar-count">{{ item.count }}</span>
                                 </div>
-                                <el-empty v-if="!slowReasons.length" description="暂无慢请求" />
+                                <el-empty v-if="!slowReasons.length" :description="t('apm_page.empty.no_slow_requests')" />
                             </div>
                         </el-card>
                     </el-col>
                 </el-row>
 
-                <!-- 最慢路由 Top -->
                 <el-card shadow="never" style="margin-bottom: 16px;">
-                    <template #header><span>最慢路由 Top 10 (24h)</span></template>
+                    <template #header><span>{{ t('apm_page.charts.slowest_routes') }}</span></template>
                     <el-table :data="slowestRoutes" v-loading="loading" stripe>
-                        <el-table-column label="方法" width="80">
+                        <el-table-column :label="t('apm_page.columns.method')" width="80">
                             <template #default="{ row }">
                                 <el-tag size="small">{{ row.method }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="path" label="路径" min-width="250" />
-                        <el-table-column label="平均耗时" width="120">
+                        <el-table-column prop="path" :label="t('apm_page.columns.path')" min-width="250" />
+                        <el-table-column :label="t('apm_page.columns.avg_duration')" width="120">
                             <template #default="{ row }">
                                 <span :class="{ 'text-danger': row.avg_duration_ms > 500 }">
                                     {{ Math.round(row.avg_duration_ms) }} ms
                                 </span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="最大耗时" width="120">
+                        <el-table-column :label="t('apm_page.columns.max_duration')" width="120">
                             <template #default="{ row }">
                                 {{ Math.round(row.max_duration_ms) }} ms
                             </template>
                         </el-table-column>
-                        <el-table-column label="请求数" width="80" prop="request_count" />
-                        <el-table-column label="慢请求" width="80" prop="slow_count" />
+                        <el-table-column :label="t('apm_page.columns.request_count')" width="80" prop="request_count" />
+                        <el-table-column :label="t('apm_page.columns.slow_count')" width="80" prop="slow_count" />
                     </el-table>
                 </el-card>
 
-                <!-- 最近慢请求 -->
                 <el-card shadow="never">
                     <template #header>
                         <div class="card-header">
-                            <span>最近慢请求</span>
-                            <el-button @click="handlePrune" type="danger" plain size="small">清理过期数据</el-button>
+                            <span>{{ t('apm_page.charts.recent_slow_requests') }}</span>
+                            <el-button @click="handlePrune" type="danger" plain size="small">
+                                {{ t('apm_page.actions.prune_expired') }}
+                            </el-button>
                         </div>
                     </template>
                     <el-table :data="slowRequestsList" v-loading="loading" stripe>
-                        <el-table-column label="方法" width="70">
+                        <el-table-column :label="t('apm_page.columns.method')" width="70">
                             <template #default="{ row }">
                                 <el-tag size="small">{{ row.method }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="path" label="路径" min-width="200" />
-                        <el-table-column prop="status_code" label="状态码" width="80" />
-                        <el-table-column label="耗时" width="90">
+                        <el-table-column prop="path" :label="t('apm_page.columns.path')" min-width="200" />
+                        <el-table-column prop="status_code" :label="t('apm_page.columns.status_code')" width="80" />
+                        <el-table-column :label="t('apm_page.columns.duration')" width="90">
                             <template #default="{ row }">
                                 <span class="text-danger">{{ Math.round(row.duration_ms) }} ms</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="DB" width="80">
+                        <el-table-column :label="t('apm_page.columns.db')" width="80">
                             <template #default="{ row }">
-                                {{ row.db_queries }}q / {{ Math.round(row.db_duration_ms) }}ms
+                                {{ formatDbQueries(row) }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="内存" width="80">
+                        <el-table-column :label="t('apm_page.columns.memory')" width="80">
                             <template #default="{ row }">
                                 {{ row.memory_mb }} MB
                             </template>
                         </el-table-column>
-                        <el-table-column prop="slow_reason" label="原因" min-width="200" show-overflow-tooltip />
-                        <el-table-column prop="created_at" label="时间" width="160" />
+                        <el-table-column prop="slow_reason" :label="t('apm_page.columns.reason')" min-width="200" show-overflow-tooltip />
+                        <el-table-column prop="created_at" :label="t('apm_page.columns.time')" width="160" />
                     </el-table>
-                    <el-empty v-if="!slowRequestsList.length" description="暂无慢请求" />
+                    <el-empty v-if="!slowRequestsList.length" :description="t('apm_page.empty.no_slow_requests')" />
                 </el-card>
             </el-tab-pane>
 
-            <!-- ═══════════════ 统一监控仪表盘 ═══════════════ -->
-            <el-tab-pane label="统一监控" name="dashboard">
+            <!-- 统一监控仪表盘 -->
+            <el-tab-pane :label="t('apm_page.tabs.dashboard')" name="dashboard">
                 <div class="tab-actions">
                     <el-select v-model="dashPeriod" @change="fetchDashboard" style="width: 150px">
-                        <el-option :value="1" label="最近 1 小时" />
-                        <el-option :value="6" label="最近 6 小时" />
-                        <el-option :value="24" label="最近 24 小时" />
-                        <el-option :value="72" label="最近 3 天" />
-                        <el-option :value="168" label="最近 7 天" />
+                        <el-option
+                            v-for="opt in periodOptions"
+                            :key="opt.value"
+                            :value="opt.value"
+                            :label="opt.label"
+                        />
                     </el-select>
                     <el-button @click="fetchDashboard" :icon="Refresh" circle />
                     <span style="font-size:12px;color:#909399;margin-left:8px;">
-                        更新于: {{ dashGeneratedAt || '-' }}
+                        {{ t('apm_page.dashboard.updated_at') }} {{ dashGeneratedAt || '-' }}
                     </span>
                 </div>
 
-                <!-- 服务健康状态 -->
                 <el-card shadow="never" style="margin-bottom:16px;">
                     <template #header>
                         <div class="card-header">
-                            <span>服务健康状态</span>
+                            <span>{{ t('apm_page.dashboard.service_health') }}</span>
                             <el-tag :type="healthOverall ? 'success' : 'danger'" size="small">
-                                {{ healthOverall ? '健康' : '异常' }}
+                                {{ healthOverall ? t('apm_page.health.healthy') : t('apm_page.health.unhealthy') }}
                             </el-tag>
                         </div>
                     </template>
@@ -186,12 +184,11 @@
                     </el-row>
                 </el-card>
 
-                <!-- Telescope 聚合指标 -->
                 <el-row :gutter="16" style="margin-bottom:16px;">
                     <el-col :span="8">
                         <el-card shadow="never">
                             <div class="stat-item">
-                                <div class="stat-label">Telescope 异常</div>
+                                <div class="stat-label">{{ t('apm_page.dashboard.telescope_exceptions') }}</div>
                                 <div class="stat-value danger">{{ telescopeStats.exceptions ?? '-' }}</div>
                             </div>
                         </el-card>
@@ -199,7 +196,7 @@
                     <el-col :span="8">
                         <el-card shadow="never">
                             <div class="stat-item">
-                                <div class="stat-label">失败任务</div>
+                                <div class="stat-label">{{ t('apm_page.dashboard.failed_jobs') }}</div>
                                 <div class="stat-value warning">{{ telescopeStats.failed_jobs ?? '-' }}</div>
                             </div>
                         </el-card>
@@ -207,53 +204,57 @@
                     <el-col :span="8">
                         <el-card shadow="never">
                             <div class="stat-item">
-                                <div class="stat-label">慢查询</div>
+                                <div class="stat-label">{{ t('apm_page.dashboard.slow_queries') }}</div>
                                 <div class="stat-value">{{ telescopeStats.queries ?? '-' }}</div>
                             </div>
                         </el-card>
                     </el-col>
                 </el-row>
 
-                <!-- 请求趋势（按小时） -->
                 <el-card shadow="never" style="margin-bottom:16px;">
-                    <template #header><span>请求趋势（近 24 小时）</span></template>
+                    <template #header><span>{{ t('apm_page.charts.request_trend') }}</span></template>
                     <div v-loading="dashLoading" class="trend-chart">
-                        <div v-for="(point, idx) in hourlyTrend" :key="idx" class="trend-col" :style="{ height: trendHeight(point) }" :title="`${point.hour}\n请求: ${point.total}\n平均: ${Math.round(point.avg_duration)}ms\n慢请求: ${point.slow_count}`">
+                        <div
+                            v-for="(point, idx) in hourlyTrend"
+                            :key="idx"
+                            class="trend-col"
+                            :style="{ height: trendHeight(point) }"
+                            :title="trendTooltip(point)"
+                        >
                             <div class="trend-fill" :class="{ 'trend-slow': point.slow_count > 0 }" />
                         </div>
-                        <el-empty v-if="!hourlyTrend.length" description="暂无趋势数据" />
+                        <el-empty v-if="!hourlyTrend.length" :description="t('apm_page.empty.no_trend_data')" />
                     </div>
                 </el-card>
 
-                <!-- Telescope 最近异常 -->
                 <el-card shadow="never">
-                    <template #header><span>最近异常</span></template>
+                    <template #header><span>{{ t('apm_page.dashboard.recent_exceptions') }}</span></template>
                     <el-table :data="recentExceptions" v-loading="dashLoading" stripe size="small">
-                        <el-table-column label="异常消息" min-width="350" show-overflow-tooltip>
+                        <el-table-column :label="t('apm_page.columns.exception_message')" min-width="350" show-overflow-tooltip>
                             <template #default="{ row }">
                                 <span class="text-danger">{{ row.message }}</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="类名" min-width="250" show-overflow-tooltip prop="class" />
-                        <el-table-column label="位置" width="80">
+                        <el-table-column :label="t('apm_page.columns.class_name')" min-width="250" show-overflow-tooltip prop="class" />
+                        <el-table-column :label="t('apm_page.columns.location')" width="80">
                             <template #default="{ row }">{{ row.line }}</template>
                         </el-table-column>
-                        <el-table-column label="时间" width="160" prop="created_at" />
+                        <el-table-column :label="t('apm_page.columns.time')" width="160" prop="created_at" />
                     </el-table>
-                    <el-empty v-if="!recentExceptions.length" description="暂无异常记录" />
+                    <el-empty v-if="!recentExceptions.length" :description="t('apm_page.empty.no_exceptions')" />
                 </el-card>
             </el-tab-pane>
 
-            <!-- ═══════════════ 追踪集成 ═══════════════ -->
-            <el-tab-pane label="追踪集成" name="otel">
+            <!-- 追踪集成 -->
+            <el-tab-pane :label="t('apm_page.tabs.otel')" name="otel">
                 <el-row :gutter="16">
                     <el-col :span="24">
                         <el-card shadow="never">
                             <template #header>
                                 <div class="card-header">
-                                    <span>OpenTelemetry 集成状态</span>
+                                    <span>{{ t('apm_page.otel.integration_status') }}</span>
                                     <el-tag :type="otelStatus.enabled ? 'success' : 'info'" size="small">
-                                        {{ otelStatus.enabled ? '已启用' : '未启用' }}
+                                        {{ otelStatus.enabled ? t('apm_page.status.enabled') : t('apm_page.status.disabled') }}
                                     </el-tag>
                                 </div>
                             </template>
@@ -263,36 +264,36 @@
                             <template v-else>
                                 <el-alert
                                     v-if="!otelStatus.enabled"
-                                    title="OpenTelemetry 未启用"
+                                    :title="t('apm_page.otel.disabled_title')"
                                     type="info"
-                                    :description="otelStatus.message || '请设置 OTEL_ENABLED=true 环境变量并配置 OTLP 端点'"
+                                    :description="otelStatus.message || t('apm_page.otel.disabled_hint')"
                                     show-icon
                                     :closable="false"
                                 />
 
                                 <el-descriptions v-if="otelStatus.enabled" :column="2" border size="small">
-                                    <el-descriptions-item label="服务名称">
+                                    <el-descriptions-item :label="t('apm_page.otel.service_name')">
                                         <el-tag size="small">{{ otelStatus.service_name }}</el-tag>
                                     </el-descriptions-item>
-                                    <el-descriptions-item label="OTLP 端点">
+                                    <el-descriptions-item :label="t('apm_page.otel.otlp_endpoint')">
                                         <code>{{ otelStatus.endpoint }}</code>
                                     </el-descriptions-item>
-                                    <el-descriptions-item label="采样率">
+                                    <el-descriptions-item :label="t('apm_page.otel.sampling_ratio')">
                                         {{ (otelStatus.sampling_ratio * 100).toFixed(1) }}%
                                     </el-descriptions-item>
-                                    <el-descriptions-item label="连接状态">
+                                    <el-descriptions-item :label="t('apm_page.otel.connection_status')">
                                         <el-tag :type="otelStatus.connected ? 'success' : 'danger'" size="small">
-                                            {{ otelStatus.connected ? '已连接' : '未连接' }}
+                                            {{ otelStatus.connected ? t('apm_page.status.connected') : t('apm_page.status.disconnected') }}
                                         </el-tag>
                                     </el-descriptions-item>
                                 </el-descriptions>
 
                                 <el-divider />
-                                <h4>环境变量配置</h4>
+                                <h4>{{ t('apm_page.otel.env_config') }}</h4>
                                 <el-table :data="envConfigItems" stripe size="small" border>
-                                    <el-table-column prop="key" label="变量名" width="280" />
-                                    <el-table-column prop="default" label="默认值" width="280" />
-                                    <el-table-column prop="desc" label="说明" min-width="200" />
+                                    <el-table-column prop="key" :label="t('apm_page.columns.var_name')" width="280" />
+                                    <el-table-column prop="default" :label="t('apm_page.columns.default_value')" width="280" />
+                                    <el-table-column prop="desc" :label="t('apm_page.columns.description')" min-width="200" />
                                 </el-table>
                             </template>
                         </el-card>
@@ -304,28 +305,28 @@
                         <el-card shadow="never">
                             <template #header>
                                 <div class="card-header">
-                                    <span>系统配置</span>
+                                    <span>{{ t('apm_page.otel.system_config') }}</span>
                                 </div>
                             </template>
 
                             <el-descriptions v-if="apmConfig" :column="2" border size="small">
-                                <el-descriptions-item label="慢请求阈值">
+                                <el-descriptions-item :label="t('apm_page.otel.slow_threshold')">
                                     {{ apmConfig.slow_threshold_ms }} ms
                                 </el-descriptions-item>
-                                <el-descriptions-item label="DB 慢查询阈值">
+                                <el-descriptions-item :label="t('apm_page.otel.db_slow_threshold')">
                                     {{ apmConfig.db_slow_threshold_ms }} ms
                                 </el-descriptions-item>
-                                <el-descriptions-item label="采样率">
-                                    1/{{ apmConfig.sample_rate }}
+                                <el-descriptions-item :label="t('apm_page.otel.sample_rate')">
+                                    {{ t('apm_page.units.sample_ratio', { rate: apmConfig.sample_rate }) }}
                                 </el-descriptions-item>
-                                <el-descriptions-item label="数据保留期">
-                                    {{ apmConfig.retention_days }} 天
+                                <el-descriptions-item :label="t('apm_page.otel.retention')">
+                                    {{ t('apm_page.units.days', { n: apmConfig.retention_days }) }}
                                 </el-descriptions-item>
-                                <el-descriptions-item label="追踪后端">
+                                <el-descriptions-item :label="t('apm_page.otel.trace_backend')">
                                     <el-tag v-if="apmConfig.otel?.enabled" type="success" size="small">
-                                        Jaeger/Tempo ({{ apmConfig.otel.endpoint }})
+                                        {{ t('apm_page.otel.trace_backend_remote', { endpoint: apmConfig.otel.endpoint }) }}
                                     </el-tag>
-                                    <el-tag v-else type="info" size="small">本地数据库</el-tag>
+                                    <el-tag v-else type="info" size="small">{{ t('apm_page.otel.trace_backend_local') }}</el-tag>
                                 </el-descriptions-item>
                             </el-descriptions>
                         </el-card>
@@ -338,6 +339,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Refresh } from '@element-plus/icons-vue';
 import {
     getApmOverview,
@@ -350,10 +352,10 @@ import {
 } from '@/api/apm';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
-// ─── Tab ───
+const { t } = useI18n();
+
 const activeTab = ref('overview');
 
-// ─── 性能总览 ───
 const loading = ref(false);
 const period = ref(24);
 const stats = ref({});
@@ -364,30 +366,60 @@ const slowestRoutes = ref([]);
 const maxDistCount = ref(1);
 const maxReasonCount = ref(1);
 
-// ─── 统一监控 ───
 const dashLoading = ref(false);
 const dashPeriod = ref(24);
 const dashGeneratedAt = ref(null);
 const healthOverall = ref(false);
-const healthServices = ref([]);
+const healthRaw = ref({});
 const telescopeStats = ref({});
 const hourlyTrend = ref([]);
 const recentExceptions = ref([]);
 const maxTrendCount = ref(1);
 
-// ─── OTEL ───
 const loadingOtel = ref(false);
 const otelStatus = ref({});
 const apmConfig = ref(null);
 
-const envConfigItems = [
-    { key: 'OTEL_ENABLED', default: 'false', desc: '启用/禁用 OpenTelemetry 追踪' },
-    { key: 'OTEL_SERVICE_NAME', default: 'huwutong-api', desc: '在 Jaeger/Tempo 中显示的服务名称' },
-    { key: 'OTEL_EXPORTER_OTLP_ENDPOINT', default: 'http://localhost:4318', desc: 'OTLP HTTP 导出端点' },
-    { key: 'OTEL_TRACES_SAMPLER_RATIO', default: '0.1', desc: '采样率（0.0~1.0，生产建议 0.1）' },
+const periodSpec = [
+    { value: 1, key: 'h1' },
+    { value: 6, key: 'h6' },
+    { value: 24, key: 'h24' },
+    { value: 72, key: 'd3' },
+    { value: 168, key: 'd7' },
 ];
 
-// ─── 方法: 性能总览 ───
+const periodOptions = computed(() =>
+    periodSpec.map(({ value, key }) => ({
+        value,
+        label: t(`apm_page.periods.${key}`),
+    }))
+);
+
+const healthServiceKeys = ['database', 'cache', 'redis', 'queue', 'storage'];
+
+const healthServices = computed(() =>
+    healthServiceKeys.map((key) => ({
+        key,
+        label: t(`apm_page.health_services.${key}`),
+        status: !!healthRaw.value[key],
+    }))
+);
+
+const envConfigSpec = [
+    { key: 'OTEL_ENABLED', default: 'false', descKey: 'otel_enabled' },
+    { key: 'OTEL_SERVICE_NAME', default: 'huwutong-api', descKey: 'otel_service_name' },
+    { key: 'OTEL_EXPORTER_OTLP_ENDPOINT', default: 'http://localhost:4318', descKey: 'otel_endpoint' },
+    { key: 'OTEL_TRACES_SAMPLER_RATIO', default: '0.1', descKey: 'otel_sampler' },
+];
+
+const envConfigItems = computed(() =>
+    envConfigSpec.map((item) => ({
+        key: item.key,
+        default: item.default,
+        desc: t(`apm_page.env.${item.descKey}`),
+    }))
+);
+
 async function fetchAll() {
     loading.value = true;
     try {
@@ -408,13 +440,12 @@ async function fetchAll() {
         slowRequestsList.value = slowRes.data || [];
         slowestRoutes.value = routesRes.data || [];
     } catch (e) {
-        ElMessage.error('获取 APM 数据失败');
+        ElMessage.error(t('apm_page.messages.fetch_overview_failed'));
     } finally {
         loading.value = false;
     }
 }
 
-// ─── 方法: 统一监控 ───
 async function fetchDashboard() {
     dashLoading.value = true;
     try {
@@ -423,33 +454,29 @@ async function fetchDashboard() {
 
         dashGeneratedAt.value = data.generated_at || null;
 
-        // 服务健康
         const sh = data.service_health || {};
         healthOverall.value = sh.overall || false;
-        healthServices.value = [
-            { key: 'database', label: '数据库', status: !!sh.database },
-            { key: 'cache', label: '缓存', status: !!sh.cache },
-            { key: 'redis', label: 'Redis', status: !!sh.redis },
-            { key: 'queue', label: '队列', status: !!sh.queue },
-            { key: 'storage', label: '存储', status: !!sh.storage },
-        ];
+        healthRaw.value = {
+            database: !!sh.database,
+            cache: !!sh.cache,
+            redis: !!sh.redis,
+            queue: !!sh.queue,
+            storage: !!sh.storage,
+        };
 
-        // Telescope
         const tel = data.telescope || {};
         telescopeStats.value = tel.stats || {};
         recentExceptions.value = tel.recent_exceptions || [];
 
-        // 趋势
         hourlyTrend.value = (data.apm?.hourly_trend || []).slice(-48);
-        maxTrendCount.value = Math.max(1, ...hourlyTrend.value.map(t => t.total));
+        maxTrendCount.value = Math.max(1, ...hourlyTrend.value.map(p => p.total));
     } catch (e) {
-        ElMessage.error('获取监控仪表盘数据失败');
+        ElMessage.error(t('apm_page.messages.fetch_dashboard_failed'));
     } finally {
         dashLoading.value = false;
     }
 }
 
-// ─── 方法: OTEL ───
 async function fetchOtelStatus() {
     loadingOtel.value = true;
     try {
@@ -467,7 +494,6 @@ async function fetchOtelStatus() {
     }
 }
 
-// ─── 辅助 ───
 function barWidth(count) {
     return Math.max(2, (count / maxDistCount.value) * 100);
 }
@@ -481,11 +507,27 @@ function trendHeight(point) {
     return Math.max(4, pct) + '%';
 }
 
+function trendTooltip(point) {
+    return t('apm_page.trend_tooltip', {
+        hour: point.hour,
+        total: point.total,
+        avg: Math.round(point.avg_duration),
+        slow: point.slow_count,
+    });
+}
+
+function formatDbQueries(row) {
+    return t('apm_page.units.db_queries', {
+        queries: row.db_queries,
+        ms: Math.round(row.db_duration_ms),
+    });
+}
+
 async function handlePrune() {
     try {
-        await ElMessageBox.confirm('确定清理 7 天前的 APM 数据？', '确认清理', {
-            confirmButtonText: '清理',
-            cancelButtonText: '取消',
+        await ElMessageBox.confirm(t('apm_page.confirm.prune_message'), t('apm_page.confirm.prune_title'), {
+            confirmButtonText: t('apm_page.actions.prune'),
+            cancelButtonText: t('actions.cancel'),
             type: 'warning',
         });
     } catch {
@@ -494,10 +536,10 @@ async function handlePrune() {
 
     try {
         const res = await pruneApmData();
-        ElMessage.success(res.message || '清理完成');
+        ElMessage.success(res.message || t('apm_page.messages.prune_done'));
         await fetchAll();
     } catch (e) {
-        ElMessage.error('清理失败');
+        ElMessage.error(t('apm_page.messages.prune_failed'));
     }
 }
 
@@ -598,7 +640,7 @@ onMounted(() => {
 
 .bar-fill {
     height: 100%;
-    background: #409EFF;
+    background: #0f172a;
     border-radius: 3px;
     min-width: 2px;
     transition: width 0.3s;
@@ -643,7 +685,6 @@ h4 {
     font-size: 14px;
 }
 
-/* 趋势图 */
 .trend-chart {
     display: flex;
     align-items: flex-end;
@@ -663,7 +704,7 @@ h4 {
 
 .trend-fill {
     width: 100%;
-    background: #409EFF;
+    background: #0f172a;
     border-radius: 2px 2px 0 0;
     min-height: 3px;
     transition: height 0.3s;
@@ -677,7 +718,6 @@ h4 {
     opacity: 0.8;
 }
 
-/* 健康状态 */
 .health-item {
     display: flex;
     align-items: center;

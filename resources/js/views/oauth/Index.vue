@@ -2,22 +2,26 @@
   <div class="oauth-settings">
     <div class="page-header">
       <div>
-        <h2>OAuth 登录配置</h2>
-        <p class="text-muted">配置各社交平台的 OAuth App 凭据，开启后登录页将显示对应按钮</p>
+        <h2>{{ t('oauth_page.title') }}</h2>
+        <p class="text-muted">{{ t('oauth_page.subtitle') }}</p>
       </div>
-      <el-button type="primary" :loading="saving" @click="handleSave">保存配置</el-button>
+      <el-button type="primary" :loading="saving" @click="handleSave">{{ t('actions.save') }}</el-button>
     </div>
 
-    <el-alert title="需先在对应平台注册 OAuth App 获取凭据，填入下方并开启开关后，登录页即显示该社交登录按钮。" type="info" show-icon :closable="false" class="mb-4" />
+    <el-alert :title="t('oauth_page.alert')" type="info" show-icon :closable="false" class="mb-4" />
 
     <el-card v-for="p in providers" :key="p.provider" shadow="never" class="mb-4">
       <template #header>
         <div class="card-header">
           <div class="card-title">
             <span class="provider-badge" :style="{ background: p.color, color: '#fff' }">{{ p.displayIcon }}</span>
-            <span>{{ p.name }}（{{ p.provider }}）</span>
+            <span>{{ t('oauth_page.provider_title', { name: p.name, provider: p.provider }) }}</span>
           </div>
-          <el-switch v-model="p.enabled" active-text="启用" inactive-text="关闭" />
+          <el-switch
+            v-model="p.enabled"
+            :active-text="t('actions.enable')"
+            :inactive-text="t('oauth_page.switch_off')"
+          />
         </div>
       </template>
 
@@ -31,7 +35,7 @@
             clearable
           />
         </el-form-item>
-        <el-form-item label="配置参考">
+        <el-form-item :label="t('oauth_page.config_ref')">
           <span class="guide-text">{{ p.guide }}</span>
         </el-form-item>
       </el-form>
@@ -40,56 +44,98 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import apiClient from '@/api/client';
+
+const { t } = useI18n();
 
 const saving = ref(false);
 const providers = ref([]);
 
-const providerDefs = {
+const providerDefs = computed(() => ({
   wechat: {
-    name: '微信', displayIcon: '微', color: '#07c160',
+    name: t('oauth_page.providers.wechat.name'),
+    displayIcon: t('oauth_page.providers.wechat.icon'),
+    color: '#07c160',
     fields: [
-      { key: 'oauth_wechat_app_id', label: 'AppID', placeholder: 'wx1234567890abcdef', sensitive: false },
-      { key: 'oauth_wechat_app_secret', label: 'AppSecret', placeholder: '请填写微信 AppSecret', sensitive: true },
+      {
+        key: 'oauth_wechat_app_id',
+        label: t('oauth_page.providers.wechat.fields.app_id.label'),
+        placeholder: t('oauth_page.providers.wechat.fields.app_id.placeholder'),
+        sensitive: false,
+      },
+      {
+        key: 'oauth_wechat_app_secret',
+        label: t('oauth_page.providers.wechat.fields.app_secret.label'),
+        placeholder: t('oauth_page.providers.wechat.fields.app_secret.placeholder'),
+        sensitive: true,
+      },
     ],
-    guide: '微信开放平台 → 网站应用 → 查看 AppID / AppSecret',
+    guide: t('oauth_page.providers.wechat.guide'),
   },
   qq: {
-    name: 'QQ', displayIcon: 'QQ', color: '#12b7f5',
+    name: t('oauth_page.providers.qq.name'),
+    displayIcon: 'QQ',
+    color: '#12b7f5',
     fields: [
-      { key: 'oauth_qq_app_id', label: 'AppID', placeholder: '101234567', sensitive: false },
-      { key: 'oauth_qq_app_key', label: 'AppKey', placeholder: '请填写 QQ AppKey', sensitive: true },
+      {
+        key: 'oauth_qq_app_id',
+        label: t('oauth_page.providers.qq.fields.app_id.label'),
+        placeholder: t('oauth_page.providers.qq.fields.app_id.placeholder'),
+        sensitive: false,
+      },
+      {
+        key: 'oauth_qq_app_key',
+        label: t('oauth_page.providers.qq.fields.app_key.label'),
+        placeholder: t('oauth_page.providers.qq.fields.app_key.placeholder'),
+        sensitive: true,
+      },
     ],
-    guide: 'QQ互联 → 应用管理 → 查看 AppID / AppKey',
-  },
-  apple: {
-    name: 'Apple', displayIcon: '🍎', color: '#000',
-    fields: [
-      { key: 'oauth_apple_service_id', label: 'Service ID', placeholder: 'com.example.service', sensitive: false },
-      { key: 'oauth_apple_key_id', label: 'Key ID', placeholder: 'ABC123DEFG', sensitive: false },
-      { key: 'oauth_apple_team_id', label: 'Team ID', placeholder: 'TEAM123456', sensitive: false },
-    ],
-    guide: 'Apple Developer → Certificates, Identifiers & Profiles → 配置 Sign in with Apple',
+    guide: t('oauth_page.providers.qq.guide'),
   },
   google: {
-    name: 'Google', displayIcon: 'G', color: '#4285f4',
+    name: t('oauth_page.providers.google.name'),
+    displayIcon: 'G',
+    color: '#4285f4',
     fields: [
-      { key: 'oauth_google_client_id', label: 'Client ID', placeholder: '123456-xxx.apps.googleusercontent.com', sensitive: false },
-      { key: 'oauth_google_client_secret', label: 'Client Secret', placeholder: 'GOCSPX-xxxxxxxxxxxx', sensitive: true },
+      {
+        key: 'oauth_google_client_id',
+        label: t('oauth_page.providers.google.fields.client_id.label'),
+        placeholder: t('oauth_page.providers.google.fields.client_id.placeholder'),
+        sensitive: false,
+      },
+      {
+        key: 'oauth_google_client_secret',
+        label: t('oauth_page.providers.google.fields.client_secret.label'),
+        placeholder: t('oauth_page.providers.google.fields.client_secret.placeholder'),
+        sensitive: true,
+      },
     ],
-    guide: 'Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client ID',
+    guide: t('oauth_page.providers.google.guide'),
   },
   github: {
-    name: 'GitHub', displayIcon: 'GH', color: '#333',
+    name: t('oauth_page.providers.github.name'),
+    displayIcon: 'GH',
+    color: '#333',
     fields: [
-      { key: 'oauth_github_client_id', label: 'Client ID', placeholder: 'Iv1.xxxxxxxxxxxx', sensitive: false },
-      { key: 'oauth_github_client_secret', label: 'Client Secret', placeholder: 'ghp_xxxxxxxxxxxxxxxxxxxx', sensitive: true },
+      {
+        key: 'oauth_github_client_id',
+        label: t('oauth_page.providers.github.fields.client_id.label'),
+        placeholder: t('oauth_page.providers.github.fields.client_id.placeholder'),
+        sensitive: false,
+      },
+      {
+        key: 'oauth_github_client_secret',
+        label: t('oauth_page.providers.github.fields.client_secret.label'),
+        placeholder: t('oauth_page.providers.github.fields.client_secret.placeholder'),
+        sensitive: true,
+      },
     ],
-    guide: 'GitHub Settings → Developer settings → OAuth Apps → 查看 Client ID / Secret',
+    guide: t('oauth_page.providers.github.guide'),
   },
-};
+}));
 
 async function loadSettings() {
   try {
@@ -99,14 +145,16 @@ async function loadSettings() {
     if (!oauthGroup) return;
     const settingMap = {};
     oauthGroup.settings.forEach(s => { settingMap[s.key] = s; });
-    providers.value = Object.entries(providerDefs).map(([provider, def]) => ({
-      provider, ...def,
+    providers.value = Object.entries(providerDefs.value).map(([provider, def]) => ({
+      provider,
+      ...def,
       enabled: (settingMap[`oauth_${provider}_enabled`]?.value) === '1',
       enabledKey: `oauth_${provider}_enabled`,
       fields: (def.fields || []).map(f => ({ ...f, value: settingMap[f.key]?.value || '' })),
     }));
-    console.log('OAuth providers loaded:', providers.value.length);
-  } catch { ElMessage.error('加载配置失败'); }
+  } catch {
+    ElMessage.error(t('messages.load_failed'));
+  }
 }
 
 async function handleSave() {
@@ -118,9 +166,12 @@ async function handleSave() {
       p.fields.forEach(f => settings.push({ key: f.key, value: f.value }));
     });
     await apiClient.post('/settings', { settings });
-    ElMessage.success('OAuth 配置已保存');
-  } catch { ElMessage.error('保存失败'); }
-  finally { saving.value = false; }
+    ElMessage.success(t('oauth_page.messages.saved'));
+  } catch {
+    ElMessage.error(t('messages.failed'));
+  } finally {
+    saving.value = false;
+  }
 }
 
 onMounted(loadSettings);

@@ -2,11 +2,11 @@
     <div class="portal-tickets">
         <div class="page-header">
             <div>
-                <h2>我的工单</h2>
-                <p class="text-muted">提交问题工单，查看回复和处理进度。</p>
+                <h2>{{ $t('portal.tickets_title') }}</h2>
+                <p class="text-muted">{{ $t('portal.tickets_subtitle') }}</p>
             </div>
             <el-button type="primary" @click="showCreateDialog = true" :icon="Plus">
-                创建工单
+                {{ $t('portal.create_ticket') }}
             </el-button>
         </div>
 
@@ -16,15 +16,15 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value">{{ stats.open || 0 }}</div>
-                        <div class="mini-label">待处理</div>
+                        <div class="mini-label">{{ $t('portal.ticket_open') }}</div>
                     </div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="mini-stat">
-                        <div class="mini-value" style="color: #409eff">{{ stats.in_progress || 0 }}</div>
-                        <div class="mini-label">处理中</div>
+                        <div class="mini-value" style="color: #0f172a">{{ stats.in_progress || 0 }}</div>
+                        <div class="mini-label">{{ $t('portal.ticket_progress') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -32,7 +32,7 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value" style="color: #67c23a">{{ stats.resolved || 0 }}</div>
-                        <div class="mini-label">已解决</div>
+                        <div class="mini-label">{{ $t('portal.ticket_resolved') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -40,7 +40,7 @@
                 <el-card shadow="never">
                     <div class="mini-stat">
                         <div class="mini-value" style="color: #909399">{{ stats.closed || 0 }}</div>
-                        <div class="mini-label">已关闭</div>
+                        <div class="mini-label">{{ $t('portal.ticket_closed') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -49,21 +49,21 @@
         <!-- 筛选 -->
         <el-card shadow="never" class="mb-4">
             <el-form :model="filters" inline>
-                <el-form-item label="状态">
-                    <el-select v-model="filters.status" clearable placeholder="全部状态" style="width: 130px" @change="fetchTickets">
-                        <el-option label="待处理" value="open" />
-                        <el-option label="处理中" value="in_progress" />
-                        <el-option label="已解决" value="resolved" />
-                        <el-option label="已关闭" value="closed" />
+                <el-form-item :label="$t('portal.status')">
+                    <el-select v-model="filters.status" clearable :placeholder="$t('portal.all_statuses')" style="width: 130px" @change="fetchTickets">
+                        <el-option :label="$t('portal.ticket_open')" value="open" />
+                        <el-option :label="$t('portal.ticket_progress')" value="in_progress" />
+                        <el-option :label="$t('portal.ticket_resolved')" value="resolved" />
+                        <el-option :label="$t('portal.ticket_closed')" value="closed" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="分类">
-                    <el-select v-model="filters.category_id" clearable placeholder="全部分类" style="width: 150px" @change="fetchTickets">
+                <el-form-item :label="$t('portal.category')">
+                    <el-select v-model="filters.category_id" clearable :placeholder="$t('portal.all_categories')" style="width: 150px" @change="fetchTickets">
                         <el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" />
                     </el-select>
                 </el-form-item>
                 <el-form-item>
-                    <el-button @click="fetchTickets" :icon="Search">搜索</el-button>
+                    <el-button @click="fetchTickets" :icon="Search">{{ $t('actions.search') }}</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -72,37 +72,37 @@
         <el-card shadow="never">
             <el-table :data="tickets" v-loading="loading" stripe @row-click="row => $router.push(`/portal/tickets/${row.id}`)" style="cursor: pointer">
                 <el-table-column prop="id" label="#" width="60" />
-                <el-table-column label="分类" width="100">
+                <el-table-column :label="$t('portal.category')" width="100">
                     <template #default="{ row }">
                         <el-tag size="small" effect="plain">{{ row.category?.name || '-' }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="subject" label="标题" min-width="200">
+                <el-table-column prop="subject" :label="$t('portal.subject')" min-width="200">
                     <template #default="{ row }">
                         <span class="ticket-title">{{ row.subject || row.title }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="状态" width="100">
+                <el-table-column :label="$t('portal.status')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="statusType(row.status)" size="small" effect="dark">
                             {{ statusLabel(row.status) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="priority" label="优先级" width="80">
+                <el-table-column prop="priority" :label="$t('portal.priority')" width="80">
                     <template #default="{ row }">
                         <el-tag :type="priorityType(row.priority)" size="small">
                             {{ priorityLabel(row.priority) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="回复数" width="70" align="center">
+                <el-table-column :label="$t('portal.replies')" width="70" align="center">
                     <template #default="{ row }">
                         <el-tag round size="small">{{ row.replies_count || 0 }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="created_at" label="创建时间" width="160" />
-                <el-table-column prop="updated_at" label="最后更新" width="160" />
+                <el-table-column prop="created_at" :label="$t('portal.created_at')" width="160" />
+                <el-table-column prop="updated_at" :label="$t('portal.updated_at')" width="160" />
             </el-table>
 
             <div class="pagination-wrap">
@@ -119,46 +119,49 @@
         </el-card>
 
         <!-- 创建工单对话框 -->
-        <el-dialog v-model="showCreateDialog" title="创建工单" width="600px">
+        <el-dialog v-model="showCreateDialog" :title="$t('portal.create_ticket')" width="600px">
             <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-position="top">
-                <el-form-item label="分类" prop="category_id">
-                    <el-select v-model="createForm.category_id" placeholder="选择问题分类" style="width: 100%">
+                <el-form-item :label="$t('portal.category')" prop="category_id">
+                    <el-select v-model="createForm.category_id" :placeholder="$t('portal.select_category')" style="width: 100%">
                         <el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="标题" prop="title">
-                    <el-input v-model="createForm.title" placeholder="简要描述您的问题" maxlength="200" show-word-limit />
+                <el-form-item :label="$t('portal.subject')" prop="title">
+                    <el-input v-model="createForm.title" :placeholder="$t('portal.ticket_subject_ph')" maxlength="200" show-word-limit />
                 </el-form-item>
-                <el-form-item label="描述" prop="description">
+                <el-form-item :label="$t('portal.ticket_desc')" prop="description">
                     <el-input
                         v-model="createForm.description"
                         type="textarea"
                         :rows="6"
-                        placeholder="详细描述您遇到的问题，包括：&#10;1. 发生了什么问题&#10;2. 预期应该是什么&#10;3. 相关的 License Key 或设备信息"
+                        :placeholder="$t('portal.ticket_desc_ph')"
                     />
                 </el-form-item>
-                <el-form-item label="优先级" prop="priority">
+                <el-form-item :label="$t('portal.priority')" prop="priority">
                     <el-radio-group v-model="createForm.priority">
-                        <el-radio value="low">低</el-radio>
-                        <el-radio value="medium">普通</el-radio>
-                        <el-radio value="high">高</el-radio>
-                        <el-radio value="urgent">紧急</el-radio>
+                        <el-radio value="low">{{ $t('portal.priority_low') }}</el-radio>
+                        <el-radio value="medium">{{ $t('portal.priority_medium') }}</el-radio>
+                        <el-radio value="high">{{ $t('portal.priority_high') }}</el-radio>
+                        <el-radio value="urgent">{{ $t('portal.priority_urgent') }}</el-radio>
                     </el-radio-group>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showCreateDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleCreate" :loading="creating">提交工单</el-button>
+                <el-button @click="showCreateDialog = false">{{ $t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleCreate" :loading="creating">{{ $t('portal.submit_ticket') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import ticketApi from '@/api/ticket';
 import { ElMessage } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const creating = ref(false);
@@ -189,37 +192,45 @@ const createForm = reactive({
     priority: 'medium',
 });
 
-const createRules = {
-    category_id: [{ required: true, message: '请选择分类', trigger: 'change' }],
+const createRules = computed(() => ({
+    category_id: [{ required: true, message: t('portal.rule_category'), trigger: 'change' }],
     title: [
-        { required: true, message: '请输入标题', trigger: 'blur' },
-        { min: 4, message: '标题至少 4 个字符', trigger: 'blur' },
+        { required: true, message: t('portal.rule_title'), trigger: 'blur' },
+        { min: 4, message: t('portal.rule_title_min'), trigger: 'blur' },
     ],
     description: [
-        { required: true, message: '请描述您的问题', trigger: 'blur' },
-        { min: 20, message: '描述至少 20 个字符', trigger: 'blur' },
+        { required: true, message: t('portal.rule_desc'), trigger: 'blur' },
+        { min: 20, message: t('portal.rule_desc_min'), trigger: 'blur' },
     ],
-    priority: [{ required: true, message: '请选择优先级', trigger: 'change' }],
-};
+    priority: [{ required: true, message: t('portal.rule_priority'), trigger: 'change' }],
+}));
 
-const STATUS_MAP = {
-    open: { type: 'danger', label: '待处理' },
-    in_progress: { type: 'primary', label: '处理中' },
-    resolved: { type: 'success', label: '已解决' },
-    closed: { type: 'info', label: '已关闭' },
-};
-
-const PRIORITY_MAP = {
-    low: { type: 'info', label: '低' },
-    medium: { type: '', label: '普通' },
-    high: { type: 'warning', label: '高' },
-    urgent: { type: 'danger', label: '紧急' },
-};
-
-function statusType(s) { return STATUS_MAP[s]?.type || 'info'; }
-function statusLabel(s) { return STATUS_MAP[s]?.label || s; }
-function priorityType(p) { return PRIORITY_MAP[p]?.type || 'info'; }
-function priorityLabel(p) { return PRIORITY_MAP[p]?.label || p; }
+function statusType(s) {
+    const map = { open: 'danger', in_progress: 'primary', resolved: 'success', closed: 'info' };
+    return map[s] || 'info';
+}
+function statusLabel(s) {
+    const map = {
+        open: t('portal.ticket_open'),
+        in_progress: t('portal.ticket_progress'),
+        resolved: t('portal.ticket_resolved'),
+        closed: t('portal.ticket_closed'),
+    };
+    return map[s] || s;
+}
+function priorityType(p) {
+    const map = { low: 'info', medium: '', high: 'warning', urgent: 'danger' };
+    return map[p] || 'info';
+}
+function priorityLabel(p) {
+    const map = {
+        low: t('portal.priority_low'),
+        medium: t('portal.priority_medium'),
+        high: t('portal.priority_high'),
+        urgent: t('portal.priority_urgent'),
+    };
+    return map[p] || p;
+}
 
 async function fetchCategories() {
     try {
@@ -254,7 +265,7 @@ async function fetchTickets() {
         stats.resolved = s.resolved || 0;
         stats.closed = s.closed || 0;
     } catch {
-        ElMessage.error('获取工单列表失败');
+        ElMessage.error(t('portal.ticket_list_failed'));
     } finally {
         loading.value = false;
     }
@@ -272,7 +283,7 @@ async function handleCreate() {
             description: createForm.description,
             priority: createForm.priority,
         });
-        ElMessage.success('工单创建成功，我们会尽快处理');
+        ElMessage.success(t('portal.ticket_created'));
         showCreateDialog.value = false;
         createForm.category_id = '';
         createForm.title = '';
@@ -280,7 +291,7 @@ async function handleCreate() {
         createForm.priority = 'medium';
         await fetchTickets();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '创建工单失败');
+        ElMessage.error(e.response?.data?.message || t('portal.ticket_create_failed'));
     } finally {
         creating.value = false;
     }

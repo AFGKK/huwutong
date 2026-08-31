@@ -1,36 +1,35 @@
 <template>
     <div class="token-meter-page">
         <div class="page-header">
-            <h2>AI Token 用量计费追踪 <small class="text-muted">M2-77</small></h2>
+            <h2>{{ t('token_meter_page.title') }} <small class="text-muted">M2-77</small></h2>
             <div class="header-actions">
                 <el-button @click="loadData">
-                    <el-icon><Refresh /></el-icon> 刷新
+                    <el-icon><Refresh /></el-icon> {{ t('token_meter_page.refresh') }}
                 </el-button>
             </div>
         </div>
 
         <el-tabs v-model="activeTab">
-            <!-- ═══════════ 概览 ═══════════ -->
-            <el-tab-pane label="概览" name="dashboard">
+            <el-tab-pane :label="tabLabels.dashboard" name="dashboard">
                 <el-row :gutter="16" class="mb-4">
                     <el-col :span="6">
                         <el-card shadow="never">
-                            <div class="stat-item"><div class="stat-value text-danger">${{ formatNum(dash.totalMonthlyCost) }}</div><div class="stat-label">本月总费用</div></div>
+                            <div class="stat-item"><div class="stat-value text-danger">${{ formatNum(dash.totalMonthlyCost) }}</div><div class="stat-label">{{ t('token_meter_page.stats.monthly_cost') }}</div></div>
                         </el-card>
                     </el-col>
                     <el-col :span="6">
                         <el-card shadow="never">
-                            <div class="stat-item"><div class="stat-value text-primary">{{ formatNum(dash.totalMonthlyTokens) }}</div><div class="stat-label">本月 Token 数</div></div>
+                            <div class="stat-item"><div class="stat-value text-primary">{{ formatNum(dash.totalMonthlyTokens) }}</div><div class="stat-label">{{ t('token_meter_page.stats.monthly_tokens') }}</div></div>
                         </el-card>
                     </el-col>
                     <el-col :span="6">
                         <el-card shadow="never">
-                            <div class="stat-item"><div class="stat-value">{{ dash.totalRequests || 0 }}</div><div class="stat-label">请求次数</div></div>
+                            <div class="stat-item"><div class="stat-value">{{ dash.totalRequests || 0 }}</div><div class="stat-label">{{ t('token_meter_page.stats.request_count') }}</div></div>
                         </el-card>
                     </el-col>
                     <el-col :span="6">
                         <el-card shadow="never">
-                            <div class="stat-item"><div class="stat-value text-success">{{ dash.activeTenants || 0 }}</div><div class="stat-label">活跃租户</div></div>
+                            <div class="stat-item"><div class="stat-value text-success">{{ dash.activeTenants || 0 }}</div><div class="stat-label">{{ t('token_meter_page.stats.active_tenants') }}</div></div>
                         </el-card>
                     </el-col>
                 </el-row>
@@ -38,13 +37,13 @@
                 <el-row :gutter="16">
                     <el-col :span="8">
                         <el-card shadow="never" class="mb-4">
-                            <template #header><span>按模型统计</span></template>
+                            <template #header><span>{{ t('token_meter_page.sections.by_model') }}</span></template>
                             <el-table :data="dash.byModel || []" size="small" stripe>
-                                <el-table-column prop="model" label="模型" />
-                                <el-table-column prop="tokens" label="Token" align="right" width="100">
+                                <el-table-column prop="model" :label="colLabels.model" />
+                                <el-table-column prop="tokens" :label="colLabels.tokens" align="right" width="100">
                                     <template #default="{ row }">{{ formatNum(row.tokens) }}</template>
                                 </el-table-column>
-                                <el-table-column prop="cost" label="费用" align="right" width="80">
+                                <el-table-column prop="cost" :label="colLabels.cost" align="right" width="80">
                                     <template #default="{ row }">${{ formatNum(row.cost) }}</template>
                                 </el-table-column>
                             </el-table>
@@ -52,13 +51,13 @@
                     </el-col>
                     <el-col :span="8">
                         <el-card shadow="never" class="mb-4">
-                            <template #header><span>按功能统计</span></template>
+                            <template #header><span>{{ t('token_meter_page.sections.by_feature') }}</span></template>
                             <el-table :data="dash.byFeature || []" size="small" stripe>
-                                <el-table-column prop="feature" label="功能" />
-                                <el-table-column prop="tokens" label="Token" align="right" width="100">
+                                <el-table-column prop="feature" :label="colLabels.feature" />
+                                <el-table-column prop="tokens" :label="colLabels.tokens" align="right" width="100">
                                     <template #default="{ row }">{{ formatNum(row.tokens) }}</template>
                                 </el-table-column>
-                                <el-table-column prop="cost" label="费用" align="right" width="80">
+                                <el-table-column prop="cost" :label="colLabels.cost" align="right" width="80">
                                     <template #default="{ row }">${{ formatNum(row.cost) }}</template>
                                 </el-table-column>
                             </el-table>
@@ -66,13 +65,13 @@
                     </el-col>
                     <el-col :span="8">
                         <el-card shadow="never" class="mb-4">
-                            <template #header><span>按提供商统计</span></template>
+                            <template #header><span>{{ t('token_meter_page.sections.by_provider') }}</span></template>
                             <el-table :data="dash.byProvider || []" size="small" stripe>
-                                <el-table-column prop="provider" label="提供商" />
-                                <el-table-column prop="tokens" label="Token" align="right" width="100">
+                                <el-table-column prop="provider" :label="colLabels.provider" />
+                                <el-table-column prop="tokens" :label="colLabels.tokens" align="right" width="100">
                                     <template #default="{ row }">{{ formatNum(row.tokens) }}</template>
                                 </el-table-column>
-                                <el-table-column prop="cost" label="费用" align="right" width="80">
+                                <el-table-column prop="cost" :label="colLabels.cost" align="right" width="80">
                                     <template #default="{ row }">${{ formatNum(row.cost) }}</template>
                                 </el-table-column>
                             </el-table>
@@ -81,35 +80,34 @@
                 </el-row>
             </el-tab-pane>
 
-            <!-- ═══════════ 消耗记录 ═══════════ -->
-            <el-tab-pane label="消耗记录" name="records">
+            <el-tab-pane :label="tabLabels.records" name="records">
                 <el-card shadow="never">
                     <div class="toolbar">
-                        <el-select v-model="filters.model" placeholder="模型" clearable style="width:140px" @change="loadRecords">
+                        <el-select v-model="filters.model" :placeholder="t('token_meter_page.filters.model_ph')" clearable style="width:140px" @change="loadRecords">
                             <el-option v-for="(p, m) in models" :key="m" :label="m" :value="m" />
                         </el-select>
-                        <el-select v-model="filters.feature" placeholder="功能" clearable style="width:140px" @change="loadRecords">
+                        <el-select v-model="filters.feature" :placeholder="t('token_meter_page.filters.feature_ph')" clearable style="width:140px" @change="loadRecords">
                             <el-option v-for="(label, key) in features" :key="key" :label="label" :value="key" />
                         </el-select>
-                        <el-date-picker v-model="dateRange" type="daterange" range-separator="至" value-format="YYYY-MM-DD" @change="onDateChange" />
-                        <el-button type="primary" @click="showCreateRecord = true"><el-icon><Plus /></el-icon> 手动录入</el-button>
+                        <el-date-picker v-model="dateRange" type="daterange" :range-separator="t('licenses_page.date_range_sep')" value-format="YYYY-MM-DD" @change="onDateChange" />
+                        <el-button type="primary" @click="showCreateRecord = true"><el-icon><Plus /></el-icon> {{ t('token_meter_page.buttons.manual_entry') }}</el-button>
                     </div>
                     <el-table :data="records" v-loading="loading" stripe border style="width:100%">
-                        <el-table-column prop="created_at" label="时间" width="160">
+                        <el-table-column prop="created_at" :label="colLabels.time" width="160">
                             <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
                         </el-table-column>
-                        <el-table-column prop="model" label="模型" width="130" />
-                        <el-table-column prop="provider" label="提供商" width="90" />
-                        <el-table-column prop="feature" label="功能" width="100" />
-                        <el-table-column prop="input_tokens" label="输入" width="80" align="right" />
-                        <el-table-column prop="output_tokens" label="输出" width="80" align="right" />
-                        <el-table-column prop="total_tokens" label="总计" width="80" align="right" />
-                        <el-table-column prop="cost" label="费用" width="80" align="right">
+                        <el-table-column prop="model" :label="colLabels.model" width="130" />
+                        <el-table-column prop="provider" :label="colLabels.provider" width="90" />
+                        <el-table-column prop="feature" :label="colLabels.feature" width="100" />
+                        <el-table-column prop="input_tokens" :label="colLabels.input" width="80" align="right" />
+                        <el-table-column prop="output_tokens" :label="colLabels.output" width="80" align="right" />
+                        <el-table-column prop="total_tokens" :label="colLabels.total" width="80" align="right" />
+                        <el-table-column prop="cost" :label="colLabels.cost" width="80" align="right">
                             <template #default="{ row }">${{ row.cost }}</template>
                         </el-table-column>
-                        <el-table-column prop="tenant_id" label="租户" width="60" />
-                        <el-table-column prop="cached" label="缓存" width="60">
-                            <template #default="{ row }"><el-tag :type="row.cached ? 'success' : 'info'" size="small">{{ row.cached ? '是' : '否' }}</el-tag></template>
+                        <el-table-column prop="tenant_id" :label="colLabels.tenant" width="60" />
+                        <el-table-column prop="cached" :label="colLabels.cache" width="60">
+                            <template #default="{ row }"><el-tag :type="row.cached ? 'success' : 'info'" size="small">{{ row.cached ? statusLabels.yes : statusLabels.no }}</el-tag></template>
                         </el-table-column>
                     </el-table>
                     <div class="pagination-wrap">
@@ -118,90 +116,89 @@
                 </el-card>
             </el-tab-pane>
 
-            <!-- ═══════════ 预算管理 ═══════════ -->
-            <el-tab-pane label="预算管理" name="budgets">
+            <el-tab-pane :label="tabLabels.budgets" name="budgets">
                 <div class="toolbar mb-4">
-                    <el-button type="primary" @click="showBudgetDialog = true"><el-icon><Plus /></el-icon> 新建预算</el-button>
-                    <el-button @click="handleCheckAlerts"><el-icon><Refresh /></el-icon> 检查告警</el-button>
+                    <el-button type="primary" @click="showBudgetDialog = true"><el-icon><Plus /></el-icon> {{ t('actions.create') }}</el-button>
+                    <el-button @click="handleCheckAlerts"><el-icon><Refresh /></el-icon> {{ t('token_meter_page.buttons.check_alerts') }}</el-button>
                 </div>
                 <el-table :data="budgets" stripe border>
-                    <el-table-column prop="tenant_id" label="租户" width="80">
-                        <template #default="{ row }">{{ row.tenant?.name || '全局' }}</template>
+                    <el-table-column prop="tenant_id" :label="colLabels.tenant" width="80">
+                        <template #default="{ row }">{{ row.tenant?.name || statusLabels.global }}</template>
                     </el-table-column>
-                    <el-table-column prop="period" label="周期" width="100" />
-                    <el-table-column prop="budget_limit" label="预算限额" width="120" align="right">
+                    <el-table-column prop="period" :label="colLabels.period" width="100">
+                        <template #default="{ row }">{{ formatPeriod(row.period) }}</template>
+                    </el-table-column>
+                    <el-table-column prop="budget_limit" :label="colLabels.budget_limit" width="120" align="right">
                         <template #default="{ row }">${{ row.budget_limit }}</template>
                     </el-table-column>
-                    <el-table-column label="告警阈值" width="200">
+                    <el-table-column :label="colLabels.alert_thresholds" width="200">
                         <template #default="{ row }">{{ row.alert_threshold_1 }}% / {{ row.alert_threshold_2 }}% / {{ row.alert_threshold_3 }}%</template>
                     </el-table-column>
-                    <el-table-column prop="hard_cap" label="硬上限" width="80">
-                        <template #default="{ row }"><el-tag :type="row.hard_cap ? 'danger' : 'info'" size="small">{{ row.hard_cap ? '是' : '否' }}</el-tag></template>
+                    <el-table-column prop="hard_cap" :label="colLabels.hard_cap" width="80">
+                        <template #default="{ row }"><el-tag :type="row.hard_cap ? 'danger' : 'info'" size="small">{{ row.hard_cap ? statusLabels.yes : statusLabels.no }}</el-tag></template>
                     </el-table-column>
-                    <el-table-column prop="is_active" label="状态" width="70">
-                        <template #default="{ row }"><el-tag :type="row.is_active ? 'success' : 'danger'" size="small">{{ row.is_active ? '启用' : '禁用' }}</el-tag></template>
+                    <el-table-column prop="is_active" :label="colLabels.status" width="70">
+                        <template #default="{ row }"><el-tag :type="row.is_active ? 'success' : 'danger'" size="small">{{ row.is_active ? statusLabels.enabled : statusLabels.disabled }}</el-tag></template>
                     </el-table-column>
                 </el-table>
             </el-tab-pane>
 
-            <!-- ═══════════ 告警 ═══════════ -->
-            <el-tab-pane label="告警" name="alerts">
+            <el-tab-pane :label="tabLabels.alerts" name="alerts">
                 <el-table :data="alerts" stripe border>
-                    <el-table-column prop="created_at" label="时间" width="160">
+                    <el-table-column prop="created_at" :label="colLabels.time" width="160">
                         <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
                     </el-table-column>
-                    <el-table-column prop="type" label="类型" width="150">
+                    <el-table-column prop="type" :label="colLabels.type" width="150">
                         <template #default="{ row }">
                             <el-tag :type="row.type === 'hard_cap_reached' ? 'danger' : 'warning'" size="small">{{ row.type }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="threshold_pct" label="阈值" width="80" align="right">{{ row => row.threshold_pct }}%</el-table-column>
-                    <el-table-column prop="current_spend" label="当前花费" width="120" align="right">
+                    <el-table-column prop="threshold_pct" :label="colLabels.threshold" width="80" align="right">{{ row => row.threshold_pct }}%</el-table-column>
+                    <el-table-column prop="current_spend" :label="colLabels.current_spend" width="120" align="right">
                         <template #default="{ row }">${{ row.current_spend }}</template>
                     </el-table-column>
-                    <el-table-column prop="budget_limit" label="预算限额" width="120" align="right">
+                    <el-table-column prop="budget_limit" :label="colLabels.budget_limit" width="120" align="right">
                         <template #default="{ row }">${{ row.budget_limit }}</template>
                     </el-table-column>
-                    <el-table-column label="状态" width="80">
+                    <el-table-column :label="colLabels.status" width="80">
                         <template #default="{ row }">
-                            <el-tag :type="row.resolved_at ? 'success' : 'danger'" size="small">{{ row.resolved_at ? '已解决' : '未解决' }}</el-tag>
+                            <el-tag :type="row.resolved_at ? 'success' : 'danger'" size="small">{{ row.resolved_at ? statusLabels.resolved : statusLabels.unresolved }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="操作" width="100">
+                    <el-table-column :label="colLabels.actions" width="100">
                         <template #default="{ row }">
-                            <el-button v-if="!row.resolved_at" size="small" type="primary" @click="handleResolveAlert(row.id)">解决</el-button>
+                            <el-button v-if="!row.resolved_at" size="small" type="primary" @click="handleResolveAlert(row.id)">{{ t('token_meter_page.buttons.resolve') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
             </el-tab-pane>
 
-            <!-- ═══════════ 成本分摊 ═══════════ -->
-            <el-tab-pane label="成本分摊" name="allocation">
+            <el-tab-pane :label="tabLabels.allocation" name="allocation">
                 <div class="toolbar mb-4">
-                    <el-date-picker v-model="allocationMonth" type="month" placeholder="选择月份" value-format="YYYY-MM" @change="loadAllocation" />
-                    <el-button @click="loadAllocation"><el-icon><Refresh /></el-icon> 刷新</el-button>
-                    <el-button type="primary" @click="handleExportAllocation">导出 CSV</el-button>
+                    <el-date-picker v-model="allocationMonth" type="month" :placeholder="t('token_meter_page.filters.select_month_ph')" value-format="YYYY-MM" @change="loadAllocation" />
+                    <el-button @click="loadAllocation"><el-icon><Refresh /></el-icon> {{ t('token_meter_page.refresh') }}</el-button>
+                    <el-button type="primary" @click="handleExportAllocation">{{ t('actions.export') }} CSV</el-button>
                 </div>
 
                 <el-row :gutter="16" class="mb-4">
                     <el-col :span="6">
                         <el-card shadow="never">
-                            <div class="stat-item"><div class="stat-value text-danger">${{ formatNum(allocation.totalCost) }}</div><div class="stat-label">分摊总额</div></div>
+                            <div class="stat-item"><div class="stat-value text-danger">${{ formatNum(allocation.totalCost) }}</div><div class="stat-label">{{ t('token_meter_page.stats.allocation_total') }}</div></div>
                         </el-card>
                     </el-col>
                     <el-col :span="6">
                         <el-card shadow="never">
-                            <div class="stat-item"><div class="stat-value text-primary">{{ formatNum(allocation.totalTokens) }}</div><div class="stat-label">总 Token</div></div>
+                            <div class="stat-item"><div class="stat-value text-primary">{{ formatNum(allocation.totalTokens) }}</div><div class="stat-label">{{ t('token_meter_page.stats.total_tokens') }}</div></div>
                         </el-card>
                     </el-col>
                     <el-col :span="6">
                         <el-card shadow="never">
-                            <div class="stat-item"><div class="stat-value">{{ allocation.totalRequests || 0 }}</div><div class="stat-label">总请求</div></div>
+                            <div class="stat-item"><div class="stat-value">{{ allocation.totalRequests || 0 }}</div><div class="stat-label">{{ t('token_meter_page.stats.total_requests') }}</div></div>
                         </el-card>
                     </el-col>
                     <el-col :span="6">
                         <el-card shadow="never">
-                            <div class="stat-item"><div class="stat-value text-warning">{{ summary.top3TenantPct || 0 }}%</div><div class="stat-label">Top 3 租户占比</div></div>
+                            <div class="stat-item"><div class="stat-value text-warning">{{ summary.top3TenantPct || 0 }}%</div><div class="stat-label">{{ t('token_meter_page.stats.top3_tenant_pct') }}</div></div>
                         </el-card>
                     </el-col>
                 </el-row>
@@ -209,28 +206,28 @@
                 <el-row :gutter="16">
                     <el-col :span="8">
                         <el-card shadow="never" class="mb-4">
-                            <template #header><span>按租户分摊 <small>($)</small></span></template>
+                            <template #header><span>{{ t('token_meter_page.sections.allocation_by_tenant') }} <small>($)</small></span></template>
                             <el-table :data="allocation.byTenant || []" size="small" stripe>
-                                <el-table-column prop="tenant_id" label="租户 ID" width="80" />
-                                <el-table-column prop="cost" label="费用" width="90" align="right">
+                                <el-table-column prop="tenant_id" :label="colLabels.tenant_id" width="80" />
+                                <el-table-column prop="cost" :label="colLabels.cost" width="90" align="right">
                                     <template #default="{ row }">${{ row.cost }}</template>
                                 </el-table-column>
-                                <el-table-column prop="pct" label="占比" width="70" align="right">
+                                <el-table-column prop="pct" :label="colLabels.pct" width="70" align="right">
                                     <template #default="{ row }">{{ row.pct }}%</template>
                                 </el-table-column>
-                                <el-table-column prop="requests" label="请求" width="60" align="right" />
+                                <el-table-column prop="requests" :label="colLabels.requests" width="60" align="right" />
                             </el-table>
                         </el-card>
                     </el-col>
                     <el-col :span="8">
                         <el-card shadow="never" class="mb-4">
-                            <template #header><span>按功能分摊 <small>($)</small></span></template>
+                            <template #header><span>{{ t('token_meter_page.sections.allocation_by_feature') }} <small>($)</small></span></template>
                             <el-table :data="allocation.byFeature || []" size="small" stripe>
-                                <el-table-column prop="feature_label" label="功能" min-width="100" />
-                                <el-table-column prop="cost" label="费用" width="90" align="right">
+                                <el-table-column prop="feature_label" :label="colLabels.feature" min-width="100" />
+                                <el-table-column prop="cost" :label="colLabels.cost" width="90" align="right">
                                     <template #default="{ row }">${{ row.cost }}</template>
                                 </el-table-column>
-                                <el-table-column prop="pct" label="占比" width="70" align="right">
+                                <el-table-column prop="pct" :label="colLabels.pct" width="70" align="right">
                                     <template #default="{ row }">{{ row.pct }}%</template>
                                 </el-table-column>
                             </el-table>
@@ -238,13 +235,13 @@
                     </el-col>
                     <el-col :span="8">
                         <el-card shadow="never" class="mb-4">
-                            <template #header><span>按模型分摊 <small>($)</small></span></template>
+                            <template #header><span>{{ t('token_meter_page.sections.allocation_by_model') }} <small>($)</small></span></template>
                             <el-table :data="allocation.byModel || []" size="small" stripe>
-                                <el-table-column prop="model" label="模型" width="120" />
-                                <el-table-column prop="cost" label="费用" width="80" align="right">
+                                <el-table-column prop="model" :label="colLabels.model" width="120" />
+                                <el-table-column prop="cost" :label="colLabels.cost" width="80" align="right">
                                     <template #default="{ row }">${{ row.cost }}</template>
                                 </el-table-column>
-                                <el-table-column prop="pct" label="占比" width="60" align="right">
+                                <el-table-column prop="pct" :label="colLabels.pct" width="60" align="right">
                                     <template #default="{ row }">{{ row.pct }}%</template>
                                 </el-table-column>
                             </el-table>
@@ -254,74 +251,73 @@
             </el-tab-pane>
         </el-tabs>
 
-        <!-- 创建记录对话框 -->
-        <el-dialog v-model="showCreateRecord" title="手动录入 Token 消耗" width="480px">
+        <el-dialog v-model="showCreateRecord" :title="t('token_meter_page.dialogs.manual_entry_title')" width="480px">
             <el-form label-position="top">
-                <el-form-item label="模型">
+                <el-form-item :label="t('token_meter_page.form.model')">
                     <el-select v-model="recordForm.model" style="width:100%">
                         <el-option v-for="(p, m) in models" :key="m" :label="m" :value="m" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="功能">
+                <el-form-item :label="t('token_meter_page.form.feature')">
                     <el-select v-model="recordForm.feature" clearable style="width:100%">
                         <el-option v-for="(label, key) in features" :key="key" :label="label" :value="key" />
                     </el-select>
                 </el-form-item>
                 <el-row :gutter="12">
                     <el-col :span="12">
-                        <el-form-item label="输入 Token">
+                        <el-form-item :label="t('token_meter_page.form.input_tokens')">
                             <el-input-number v-model="recordForm.input_tokens" :min="0" style="width:100%" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="输出 Token">
+                        <el-form-item :label="t('token_meter_page.form.output_tokens')">
                             <el-input-number v-model="recordForm.output_tokens" :min="0" style="width:100%" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-form-item label="租户 ID（可选）">
+                <el-form-item :label="t('token_meter_page.form.tenant_id_optional')">
                     <el-input-number v-model="recordForm.tenant_id" :min="0" style="width:100%" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showCreateRecord = false">取消</el-button>
-                <el-button type="primary" @click="handleRecord">记录</el-button>
+                <el-button @click="showCreateRecord = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleRecord">{{ t('token_meter_page.buttons.record') }}</el-button>
             </template>
         </el-dialog>
 
-        <!-- 新建预算对话框 -->
-        <el-dialog v-model="showBudgetDialog" title="新建预算" width="480px">
+        <el-dialog v-model="showBudgetDialog" :title="t('token_meter_page.dialogs.new_budget_title')" width="480px">
             <el-form label-position="top">
-                <el-form-item label="租户（留空为全局预算）">
+                <el-form-item :label="t('token_meter_page.form.tenant_global_hint')">
                     <el-input-number v-model="budgetForm.tenant_id" :min="0" style="width:100%" />
                 </el-form-item>
-                <el-form-item label="周期">
+                <el-form-item :label="t('token_meter_page.form.period')">
                     <el-select v-model="budgetForm.period" style="width:100%">
-                        <el-option label="月度" value="monthly" />
-                        <el-option label="季度" value="quarterly" />
-                        <el-option label="年度" value="yearly" />
+                        <el-option v-for="opt in periodOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="预算限额 (USD)">
+                <el-form-item :label="t('token_meter_page.form.budget_limit_usd')">
                     <el-input-number v-model="budgetForm.budget_limit" :min="0" :precision="2" style="width:100%" />
                 </el-form-item>
-                <el-form-item label="硬上限">
+                <el-form-item :label="t('token_meter_page.form.hard_cap')">
                     <el-switch v-model="budgetForm.hard_cap" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showBudgetDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleCreateBudget">保存</el-button>
+                <el-button @click="showBudgetDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleCreateBudget">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Plus, Refresh } from '@element-plus/icons-vue';
 import { getTokenDashboard, getTokenRecords, recordTokenConsumption, getTokenModels, getTokenFeatures, getTokenBudgets, upsertTokenBudget, getTokenAlerts, resolveTokenAlert, checkTokenAlerts, getCostAllocation, getAllocationSummary, exportAllocationCsv } from '@/api/tokenMeter';
+
+const { t, locale } = useI18n();
 
 const activeTab = ref('dashboard');
 const loading = ref(false);
@@ -344,10 +340,69 @@ const showBudgetDialog = ref(false);
 const recordForm = reactive({ model: '', feature: '', input_tokens: 0, output_tokens: 0, tenant_id: null });
 const budgetForm = reactive({ tenant_id: null, period: 'monthly', budget_limit: 100, hard_cap: false });
 
-// ── 成本分摊 ──
 const allocationMonth = ref(null);
 const allocation = ref({});
 const summary = ref({});
+
+const tabLabels = computed(() => ({
+    dashboard: t('token_meter_page.tabs.dashboard'),
+    records: t('token_meter_page.tabs.records'),
+    budgets: t('token_meter_page.tabs.budgets'),
+    alerts: t('token_meter_page.tabs.alerts'),
+    allocation: t('token_meter_page.tabs.allocation'),
+}));
+
+const colLabels = computed(() => ({
+    model: t('token_meter_page.cols.model'),
+    tokens: t('token_meter_page.cols.tokens'),
+    cost: t('token_meter_page.cols.cost'),
+    feature: t('token_meter_page.cols.feature'),
+    provider: t('token_meter_page.cols.provider'),
+    time: t('token_meter_page.cols.time'),
+    input: t('token_meter_page.cols.input'),
+    output: t('token_meter_page.cols.output'),
+    total: t('token_meter_page.cols.total'),
+    tenant: t('token_meter_page.cols.tenant'),
+    tenant_id: t('token_meter_page.cols.tenant_id'),
+    cache: t('token_meter_page.cols.cache'),
+    period: t('token_meter_page.cols.period'),
+    budget_limit: t('token_meter_page.cols.budget_limit'),
+    alert_thresholds: t('token_meter_page.cols.alert_thresholds'),
+    hard_cap: t('token_meter_page.cols.hard_cap'),
+    status: t('token_meter_page.cols.status'),
+    type: t('token_meter_page.cols.type'),
+    threshold: t('token_meter_page.cols.threshold'),
+    current_spend: t('token_meter_page.cols.current_spend'),
+    pct: t('token_meter_page.cols.pct'),
+    requests: t('token_meter_page.cols.requests'),
+    actions: t('token_meter_page.cols.actions'),
+}));
+
+const statusLabels = computed(() => ({
+    yes: t('token_meter_page.status.yes'),
+    no: t('token_meter_page.status.no'),
+    enabled: t('token_meter_page.status.enabled'),
+    disabled: t('token_meter_page.status.disabled'),
+    resolved: t('token_meter_page.status.resolved'),
+    unresolved: t('token_meter_page.status.unresolved'),
+    global: t('token_meter_page.status.global'),
+}));
+
+const periodLabels = computed(() => ({
+    monthly: t('token_meter_page.period.monthly'),
+    quarterly: t('token_meter_page.period.quarterly'),
+    yearly: t('token_meter_page.period.yearly'),
+}));
+
+const periodOptions = computed(() => [
+    { label: periodLabels.value.monthly, value: 'monthly' },
+    { label: periodLabels.value.quarterly, value: 'quarterly' },
+    { label: periodLabels.value.yearly, value: 'yearly' },
+]);
+
+function formatPeriod(period) {
+    return periodLabels.value[period] || period;
+}
 
 async function loadData() {
     loadDashboard();
@@ -418,10 +473,10 @@ function onDateChange(range) {
 }
 
 async function handleRecord() {
-    if (!recordForm.model) { ElMessage.warning('请选择模型'); return; }
+    if (!recordForm.model) { ElMessage.warning(t('token_meter_page.messages.select_model')); return; }
     try {
         await recordTokenConsumption(recordForm);
-        ElMessage.success('记录成功');
+        ElMessage.success(t('token_meter_page.messages.record_success'));
         showCreateRecord.value = false;
         recordForm.model = '';
         recordForm.feature = '';
@@ -436,7 +491,7 @@ async function handleRecord() {
 async function handleCreateBudget() {
     try {
         await upsertTokenBudget(budgetForm);
-        ElMessage.success('保存成功');
+        ElMessage.success(t('token_meter_page.messages.save_success'));
         showBudgetDialog.value = false;
         loadBudgets();
     } catch { /* */ }
@@ -445,7 +500,7 @@ async function handleCreateBudget() {
 async function handleResolveAlert(id) {
     try {
         await resolveTokenAlert(id);
-        ElMessage.success('已解决');
+        ElMessage.success(t('token_meter_page.messages.resolved'));
         loadAlerts();
     } catch { /* */ }
 }
@@ -453,12 +508,10 @@ async function handleResolveAlert(id) {
 async function handleCheckAlerts() {
     try {
         const { data: res } = await checkTokenAlerts();
-        ElMessage.success(`检查完成，产生 ${(res.data || []).length} 条新告警`);
+        ElMessage.success(t('token_meter_page.messages.check_complete', { count: (res.data || []).length }));
         loadAlerts();
     } catch { /* */ }
 }
-
-// ── 成本分摊 ──
 
 async function loadAllocation() {
     const params = {};
@@ -492,7 +545,8 @@ function formatNum(n) {
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const loc = locale.value === 'zh_CN' ? 'zh-CN' : 'en-US';
+    return new Date(dateStr).toLocaleString(loc, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 onMounted(loadData);

@@ -1,16 +1,16 @@
 <template>
     <div class="license-health-page">
         <div class="page-header">
-            <h2>License 健康评分</h2>
-            <p class="text-muted">综合评估您所有 License 的健康状况，及时发现问题并获取改进建议。</p>
+            <h2>{{ $t('portal.health_title') }}</h2>
+            <p class="text-muted">{{ $t('portal.health_subtitle') }}</p>
         </div>
 
         <el-row :gutter="16" class="mb-4">
             <el-col :span="6">
                 <el-card shadow="never">
                     <div class="stat-item">
-                        <div class="stat-value" style="color: #409eff;">{{ dashboard.total_licenses }}</div>
-                        <div class="stat-label">License 总数</div>
+                        <div class="stat-value" style="color: #0f172a;">{{ dashboard.total_licenses }}</div>
+                        <div class="stat-label">{{ $t('portal.total_licenses') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -18,7 +18,7 @@
                 <el-card shadow="never">
                     <div class="stat-item">
                         <div class="stat-value" :style="{ color: avgScoreColor }">{{ dashboard.average_score }}</div>
-                        <div class="stat-label">平均健康评分</div>
+                        <div class="stat-label">{{ $t('portal.avg_health') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -26,7 +26,7 @@
                 <el-card shadow="never">
                     <div class="stat-item">
                         <div class="stat-value" style="color: #67c23a;">{{ dashboard.healthy_count }}</div>
-                        <div class="stat-label">健康 (≥80)</div>
+                        <div class="stat-label">{{ $t('portal.healthy_ge80') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -34,7 +34,7 @@
                 <el-card shadow="never">
                     <div class="stat-item">
                         <div class="stat-value" style="color: #f56c6c;">{{ dashboard.critical_count }}</div>
-                        <div class="stat-label">需关注 (&lt;60)</div>
+                        <div class="stat-label">{{ $t('portal.need_attention') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -42,13 +42,13 @@
 
         <!-- 改进建议 -->
         <el-card v-if="dashboard.top_suggestions?.length" class="mb-4">
-            <template #header><span>⚠️ 综合改进建议</span></template>
+            <template #header><span>{{ $t('portal.top_suggestions') }}</span></template>
             <el-timeline>
                 <el-timeline-item
                     v-for="(s, i) in dashboard.top_suggestions"
                     :key="i"
                     :type="s.type === 'critical' ? 'danger' : s.type === 'warning' ? 'warning' : 'primary'"
-                    :timestamp="s.type === 'critical' ? '紧急' : s.type === 'warning' ? '提醒' : '建议'"
+                    :timestamp="suggestionTypeLabel(s.type)"
                 >
                     {{ s.message }}
                 </el-timeline-item>
@@ -58,9 +58,9 @@
         <!-- License 健康评分列表 -->
         <el-card>
             <template #header>
-                <span>License 健康详情</span>
+                <span>{{ $t('portal.health_details') }}</span>
                 <div class="card-extra">
-                    <el-button size="small" @click="refresh" :icon="Refresh" :loading="loading">刷新</el-button>
+                    <el-button size="small" @click="refresh" :icon="Refresh" :loading="loading">{{ $t('portal.refresh') }}</el-button>
                 </div>
             </template>
 
@@ -72,57 +72,57 @@
                         </el-link>
                     </template>
                 </el-table-column>
-                <el-table-column prop="product_name" label="产品" width="120" />
-                <el-table-column prop="status" label="状态" width="90">
+                <el-table-column prop="product_name" :label="$t('portal.product')" width="120" />
+                <el-table-column prop="status" :label="$t('portal.status')" width="90">
                     <template #default="{ row }">
                         <el-tag :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="健康评分" width="100">
+                <el-table-column :label="$t('portal.health_score_col')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="scoreType(row.score)" size="large">{{ row.score }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="等级" width="80">
+                <el-table-column :label="$t('portal.level')" width="80">
                     <template #default="{ row }">
                         <el-tag :type="levelType(row.level)" size="small" effect="plain">
                             {{ levelLabel(row.level) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="子评分" min-width="240">
+                <el-table-column :label="$t('portal.sub_scores')" min-width="240">
                     <template #default="{ row }">
                         <div class="sub-scores">
-                            <el-tooltip content="到期时间评分" placement="top">
+                            <el-tooltip :content="$t('portal.tip_expiry_score')" placement="top">
                                 <span class="sub-score" :class="subScoreClass(row.details.expiry_score)">
-                                    到期: {{ row.details.expiry_score }}
+                                    {{ $t('portal.score_expiry', { n: row.details.expiry_score }) }}
                                 </span>
                             </el-tooltip>
-                            <el-tooltip content="设备占比评分" placement="top">
+                            <el-tooltip :content="$t('portal.tip_device_score')" placement="top">
                                 <span class="sub-score" :class="subScoreClass(row.details.device_score)">
-                                    设备: {{ row.details.device_score }}
+                                    {{ $t('portal.score_device', { n: row.details.device_score }) }}
                                 </span>
                             </el-tooltip>
-                            <el-tooltip content="安全评分" placement="top">
+                            <el-tooltip :content="$t('portal.tip_security_score')" placement="top">
                                 <span class="sub-score" :class="subScoreClass(row.details.security_score)">
-                                    安全: {{ row.details.security_score }}
+                                    {{ $t('portal.score_security', { n: row.details.security_score }) }}
                                 </span>
                             </el-tooltip>
-                            <el-tooltip content="活跃度评分" placement="top">
+                            <el-tooltip :content="$t('portal.tip_activity_score')" placement="top">
                                 <span class="sub-score" :class="subScoreClass(row.details.activity_score)">
-                                    活跃: {{ row.details.activity_score }}
+                                    {{ $t('portal.score_activity', { n: row.details.activity_score }) }}
                                 </span>
                             </el-tooltip>
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column label="设备" width="100">
+                <el-table-column :label="$t('portal.device')" width="100">
                     <template #default="{ row }">
                         {{ row.device_count }} / {{ row.max_devices || '∞' }}
                     </template>
                 </el-table-column>
-                <el-table-column prop="expires_at" label="到期时间" width="140" />
-                <el-table-column label="改进建议" min-width="240">
+                <el-table-column prop="expires_at" :label="$t('portal.expires_at')" width="140" />
+                <el-table-column :label="$t('portal.suggestions_col')" min-width="240">
                     <template #default="{ row }">
                         <div v-if="row.suggestions?.length">
                             <div v-for="(s, i) in row.suggestions.slice(0, 2)" :key="i" class="suggestion-item">
@@ -135,16 +135,16 @@
                                 </el-tag>
                             </div>
                             <el-tag v-if="row.suggestions.length > 2" size="small" type="info">
-                                +{{ row.suggestions.length - 2 }} 条建议
+                                {{ $t('portal.more_suggestions', { n: row.suggestions.length - 2 }) }}
                             </el-tag>
                         </div>
-                        <span v-else class="no-issues">✅ 暂无改进建议</span>
+                        <span v-else class="no-issues">{{ $t('portal.no_suggestions') }}</span>
                     </template>
                 </el-table-column>
             </el-table>
 
             <!-- 空状态 -->
-            <el-empty v-if="!loading && !list.length" description="暂无 License 数据" :image-size="80" />
+            <el-empty v-if="!loading && !list.length" :description="$t('portal.no_license_data')" :image-size="80" />
         </el-card>
     </div>
 </template>
@@ -152,10 +152,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { Refresh } from '@element-plus/icons-vue';
 import licenseHealth from '@/api/licenseHealth';
 
 const router = useRouter();
+const { t } = useI18n();
+
 const loading = ref(false);
 const list = ref([]);
 const dashboard = reactive({
@@ -187,9 +190,15 @@ function levelType(level) {
 }
 
 function levelLabel(level) {
-    if (level === 'healthy') return '健康';
-    if (level === 'warning') return '警告';
-    return '危险';
+    if (level === 'healthy') return t('portal.health_ok');
+    if (level === 'warning') return t('portal.health_warn');
+    return t('portal.health_danger');
+}
+
+function suggestionTypeLabel(type) {
+    if (type === 'critical') return t('portal.sug_critical');
+    if (type === 'warning') return t('portal.sug_warning');
+    return t('portal.sug_info');
 }
 
 function subScoreClass(score) {
@@ -204,7 +213,14 @@ function statusType(status) {
 }
 
 function statusLabel(status) {
-    const map = { active: '活跃', expired: '已过期', suspended: '已挂起', revoked: '已撤销', trial: '试用', inactive: '未激活' };
+    const map = {
+        active: t('portal.st_active'),
+        expired: t('portal.st_expired'),
+        suspended: t('portal.st_suspended_alt'),
+        revoked: t('portal.st_revoked_alt'),
+        trial: t('portal.type_trial'),
+        inactive: t('portal.st_inactive'),
+    };
     return map[status] || status;
 }
 

@@ -11,6 +11,10 @@ export default {
     return apiClient.get('/admin/search/suggestions', { params: { q, limit } });
   },
 
+  getEngineStatus() {
+    return apiClient.get('/admin/search/engine-status');
+  },
+
   // 索引管理
   rebuildIndex(type = 'all') {
     return apiClient.post('/admin/search/rebuild', { type });

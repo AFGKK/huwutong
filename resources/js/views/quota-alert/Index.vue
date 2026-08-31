@@ -1,9 +1,9 @@
 <template>
     <div class="quota-alert-container">
-        <el-page-header :content="'License 用量配额预警'" @back="$router.push('/admin/dashboard')" />
+        <el-page-header :content="t('quota_alert_page.title')" @back="$router.push('/admin/dashboard')" />
 
         <el-alert
-            title="监控设备数/API调用次数等用量配额，80%/90%/100% 三级阈值预警，支持站内信+邮件+IM多渠道通知和一键扩容。"
+            :title="t('quota_alert_page.alert')"
             type="info"
             show-icon
             :closable="false"
@@ -12,77 +12,76 @@
 
         <el-card class="filter-card">
             <el-form :inline="true" :model="filters" size="default">
-                <el-form-item label="开始日期">
-                    <el-date-picker v-model="filters.start_date" type="date" placeholder="开始日期" format="YYYY-MM-DD" value-format="YYYY-MM-DD" />
+                <el-form-item :label="t('quota_alert_page.start_date')">
+                    <el-date-picker v-model="filters.start_date" type="date" :placeholder="t('quota_alert_page.start_date')" format="YYYY-MM-DD" value-format="YYYY-MM-DD" />
                 </el-form-item>
-                <el-form-item label="结束日期">
-                    <el-date-picker v-model="filters.end_date" type="date" placeholder="结束日期" format="YYYY-MM-DD" value-format="YYYY-MM-DD" />
+                <el-form-item :label="t('quota_alert_page.end_date')">
+                    <el-date-picker v-model="filters.end_date" type="date" :placeholder="t('quota_alert_page.end_date')" format="YYYY-MM-DD" value-format="YYYY-MM-DD" />
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="loadData">查询</el-button>
-                    <el-button @click="handleCheckAll">批量检查</el-button>
+                    <el-button type="primary" @click="loadData">{{ t('quota_alert_page.query') }}</el-button>
+                    <el-button @click="handleCheckAll">{{ t('quota_alert_page.check_all') }}</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
 
-        <!-- 概览卡片 -->
         <el-row :gutter="20" class="stat-cards">
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-value">{{ dashboard.stats.total }}</div>
-                    <div class="stat-label">总配额数</div>
+                    <div class="stat-label">{{ t('quota_alert_page.stats.total') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-value text-success">{{ dashboard.stats.normal }}</div>
-                    <div class="stat-label">正常</div>
+                    <div class="stat-label">{{ t('quota_alert_page.levels.normal') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-value text-warning">{{ dashboard.stats.warning }}</div>
-                    <div class="stat-label">警告 ({{ cfg.thresholds?.warning || 80 }}%)</div>
+                    <div class="stat-label">{{ t('quota_alert_page.stats.warning_pct', { pct: cfg.thresholds?.warning || 80 }) }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover">
                     <div class="stat-value text-danger">{{ dashboard.stats.critical + dashboard.stats.exceeded }}</div>
-                    <div class="stat-label">严重+超限</div>
+                    <div class="stat-label">{{ t('quota_alert_page.stats.critical_plus') }}</div>
                 </el-card>
             </el-col>
         </el-row>
 
         <el-tabs v-model="activeTab">
-            <el-tab-pane label="配额列表" name="list">
+            <el-tab-pane :label="t('quota_alert_page.tabs.list')" name="list">
                 <el-card>
                     <template #header>
                         <el-space>
-                            <span>配额预警列表</span>
-                            <el-select v-model="levelFilter" placeholder="级别" clearable size="small" style="width:120px" @change="loadList">
-                                <el-option label="全部" value="" />
-                                <el-option label="正常" value="normal" />
-                                <el-option label="警告" value="warning" />
-                                <el-option label="严重" value="critical" />
-                                <el-option label="超限" value="exceeded" />
+                            <span>{{ t('quota_alert_page.list_title') }}</span>
+                            <el-select v-model="levelFilter" :placeholder="t('quota_alert_page.level')" clearable size="small" style="width:120px" @change="loadList">
+                                <el-option :label="t('quota_alert_page.all')" value="" />
+                                <el-option :label="t('quota_alert_page.levels.normal')" value="normal" />
+                                <el-option :label="t('quota_alert_page.levels.warning')" value="warning" />
+                                <el-option :label="t('quota_alert_page.levels.critical')" value="critical" />
+                                <el-option :label="t('quota_alert_page.levels.exceeded')" value="exceeded" />
                             </el-select>
-                            <el-select v-model="typeFilter" placeholder="类型" clearable size="small" style="width:140px" @change="loadList">
-                                <el-option label="全部" value="" />
+                            <el-select v-model="typeFilter" :placeholder="t('quota_alert_page.type')" clearable size="small" style="width:140px" @change="loadList">
+                                <el-option :label="t('quota_alert_page.all')" value="" />
                                 <el-option v-for="(name, key) in cfg.types" :key="key" :label="name" :value="key" />
                             </el-select>
                         </el-space>
                     </template>
                     <el-table :data="alerts" stripe v-loading="loading">
                         <el-table-column prop="id" label="ID" width="60" />
-                        <el-table-column label="类型" width="120">
+                        <el-table-column :label="t('quota_alert_page.cols.type')" width="120">
                             <template #default="{ row }">{{ cfg.types[row.quota_type] || row.quota_type }}</template>
                         </el-table-column>
-                        <el-table-column label="级别" width="80">
+                        <el-table-column :label="t('quota_alert_page.cols.level')" width="80">
                             <template #default="{ row }">
                                 <el-tag :type="levelType(row.level)" size="small">{{ levelLabel(row.level) }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="用量" min-width="200">
+                        <el-table-column :label="t('quota_alert_page.cols.usage')" min-width="200">
                             <template #default="{ row }">
                                 <div class="usage-bar">
                                     <el-progress :percentage="row.usage_percent" :color="progressColor(row.usage_percent)" :stroke-width="16">
@@ -91,18 +90,18 @@
                                 </div>
                             </template>
                         </el-table-column>
-                        <el-table-column label="通知" width="80" align="center">
+                        <el-table-column :label="t('quota_alert_page.cols.notify')" width="80" align="center">
                             <template #default="{ row }">
                                 <el-switch :model-value="row.notifications_enabled" @change="toggleNotifications(row)" />
                             </template>
                         </el-table-column>
-                        <el-table-column label="最近检查" width="160">
+                        <el-table-column :label="t('quota_alert_page.cols.last_checked')" width="160">
                             <template #default="{ row }">{{ row.last_checked_at || '-' }}</template>
                         </el-table-column>
-                        <el-table-column label="操作" width="200" fixed="right">
+                        <el-table-column :label="t('quota_alert_page.cols.actions')" width="200" fixed="right">
                             <template #default="{ row }">
-                                <el-button size="small" @click="showDetail(row)">详情</el-button>
-                                <el-button size="small" @click="openEditLimit(row)">调整上限</el-button>
+                                <el-button size="small" @click="showDetail(row)">{{ t('actions.view_details') }}</el-button>
+                                <el-button size="small" @click="openEditLimit(row)">{{ t('quota_alert_page.edit_limit') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -110,80 +109,78 @@
                 </el-card>
             </el-tab-pane>
 
-            <el-tab-pane label="预警日志" name="logs">
+            <el-tab-pane :label="t('quota_alert_page.tabs.logs')" name="logs">
                 <el-card>
                     <template #header>
                         <el-space>
-                            <span>预警通知日志</span>
-                            <el-select v-model="logLevelFilter" placeholder="级别" clearable size="small" style="width:120px" @change="loadLogs">
-                                <el-option label="全部" value="" />
-                                <el-option label="警告" value="warning" />
-                                <el-option label="严重" value="critical" />
-                                <el-option label="超限" value="exceeded" />
+                            <span>{{ t('quota_alert_page.logs_title') }}</span>
+                            <el-select v-model="logLevelFilter" :placeholder="t('quota_alert_page.level')" clearable size="small" style="width:120px" @change="loadLogs">
+                                <el-option :label="t('quota_alert_page.all')" value="" />
+                                <el-option :label="t('quota_alert_page.levels.warning')" value="warning" />
+                                <el-option :label="t('quota_alert_page.levels.critical')" value="critical" />
+                                <el-option :label="t('quota_alert_page.levels.exceeded')" value="exceeded" />
                             </el-select>
                         </el-space>
                     </template>
                     <el-table :data="logs" stripe v-loading="logsLoading">
-                        <el-table-column prop="created_at" label="时间" width="160" />
-                        <el-table-column label="类型" width="120">
+                        <el-table-column prop="created_at" :label="t('quota_alert_page.cols.time')" width="160" />
+                        <el-table-column :label="t('quota_alert_page.cols.type')" width="120">
                             <template #default="{ row }">{{ cfg.types[row.quota_type] || row.quota_type }}</template>
                         </el-table-column>
-                        <el-table-column label="级别" width="80">
+                        <el-table-column :label="t('quota_alert_page.cols.level')" width="80">
                             <template #default="{ row }">
                                 <el-tag :type="levelType(row.level)" size="small">{{ levelLabel(row.level) }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="用量" width="160">
+                        <el-table-column :label="t('quota_alert_page.cols.usage')" width="160">
                             <template #default="{ row }">{{ row.current_usage }} / {{ row.quota_limit }} ({{ row.usage_percent }}%)</template>
                         </el-table-column>
-                        <el-table-column label="渠道" width="80">
+                        <el-table-column :label="t('quota_alert_page.cols.channel')" width="80">
                             <template #default="{ row }">{{ cfg.channels[row.channel] || row.channel }}</template>
                         </el-table-column>
-                        <el-table-column label="状态" width="80">
+                        <el-table-column :label="t('quota_alert_page.cols.status')" width="80">
                             <template #default="{ row }">
-                                <el-tag :type="row.status === 'sent' ? 'success' : 'danger'" size="small">{{ row.status === 'sent' ? '已发送' : '失败' }}</el-tag>
+                                <el-tag :type="row.status === 'sent' ? 'success' : 'danger'" size="small">{{ row.status === 'sent' ? t('quota_alert_page.sent') : t('quota_alert_page.failed') }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="message" label="消息" min-width="300" show-overflow-tooltip />
+                        <el-table-column prop="message" :label="t('quota_alert_page.cols.message')" min-width="300" show-overflow-tooltip />
                     </el-table>
                     <el-pagination v-if="logTotal > logPerPage" v-model:current-page="logPage" :page-size="logPerPage" :total="logTotal" layout="prev, pager, next" @current-change="loadLogs" class="pagination" />
                 </el-card>
             </el-tab-pane>
         </el-tabs>
 
-        <!-- 详情对话框 -->
-        <el-dialog v-model="detailVisible" :title="'配额详情'" width="600px">
+        <el-dialog v-model="detailVisible" :title="t('quota_alert_page.detail_title')" width="600px">
             <template v-if="detailData">
                 <el-descriptions :column="2" border>
-                    <el-descriptions-item label="类型">{{ cfg.types[detailData.quota_type] }}</el-descriptions-item>
-                    <el-descriptions-item label="级别">
+                    <el-descriptions-item :label="t('quota_alert_page.cols.type')">{{ cfg.types[detailData.quota_type] }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('quota_alert_page.cols.level')">
                         <el-tag :type="levelType(detailData.level)" size="small">{{ levelLabel(detailData.level) }}</el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="当前用量">{{ detailData.current_usage }}</el-descriptions-item>
-                    <el-descriptions-item label="配额上限">{{ detailData.quota_limit }}</el-descriptions-item>
-                    <el-descriptions-item label="使用率">{{ detailData.usage_percent }}%</el-descriptions-item>
-                    <el-descriptions-item label="通知">
+                    <el-descriptions-item :label="t('quota_alert_page.current_usage')">{{ detailData.current_usage }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('quota_alert_page.quota_limit')">{{ detailData.quota_limit }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('quota_alert_page.usage_pct')">{{ detailData.usage_percent }}%</el-descriptions-item>
+                    <el-descriptions-item :label="t('quota_alert_page.cols.notify')">
                         <el-switch :model-value="detailData.notifications_enabled" disabled />
                     </el-descriptions-item>
-                    <el-descriptions-item label="最近检查">{{ detailData.last_checked_at || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="最近通知">{{ detailData.last_notified_at || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('quota_alert_page.cols.last_checked')">{{ detailData.last_checked_at || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('quota_alert_page.last_notified')">{{ detailData.last_notified_at || '-' }}</el-descriptions-item>
                 </el-descriptions>
             </template>
         </el-dialog>
 
-        <!-- 调整上限对话框 -->
-        <el-dialog v-model="limitDialogVisible" title="调整配额上限" width="400px">
+        <el-dialog v-model="limitDialogVisible" :title="t('quota_alert_page.limit_dialog_title')" width="400px">
             <el-form label-position="top">
-                <el-form-item label="当前上限">
+                <el-form-item :label="t('quota_alert_page.current_limit')">
                     <el-input :model-value="editingAlert?.quota_limit" disabled />
                 </el-form-item>
-                <el-form-item label="新上限" required>
+                <el-form-item :label="t('quota_alert_page.new_limit')" required>
                     <el-input-number v-model="newLimit" :min="1" style="width:100%" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="limitDialogVisible = false">取消</el-button>
-                <el-button type="primary" :loading="saving" @click="saveLimit">保存</el-button>
+                <el-button @click="limitDialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="saving" @click="saveLimit">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -191,8 +188,11 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import quotaAlert from '@/api/quotaAlert';
+
+const { t } = useI18n();
 
 const activeTab = ref('list');
 const loading = ref(false);
@@ -229,7 +229,8 @@ function levelType(l) {
     return { normal: 'success', warning: 'warning', critical: 'danger', exceeded: 'danger' }[l] || 'info';
 }
 function levelLabel(l) {
-    return { normal: '正常', warning: '警告', critical: '严重', exceeded: '超限' }[l] || l;
+    const key = { normal: 'normal', warning: 'warning', critical: 'critical', exceeded: 'exceeded' }[l];
+    return key ? t(`quota_alert_page.levels.${key}`) : l;
 }
 function progressColor(p) {
     if (p >= 100) return '#f56c6c';
@@ -289,11 +290,11 @@ function openEditLimit(row) {
 }
 
 async function saveLimit() {
-    if (!newLimit.value || newLimit.value < 1) { ElMessage.warning('请输入有效上限值'); return; }
+    if (!newLimit.value || newLimit.value < 1) { ElMessage.warning(t('quota_alert_page.messages.invalid_limit')); return; }
     saving.value = true;
     try {
         await quotaAlert.updateLimit(editingAlert.value.id, { quota_limit: newLimit.value });
-        ElMessage.success('配额上限已更新');
+        ElMessage.success(t('quota_alert_page.messages.limit_updated'));
         limitDialogVisible.value = false;
         loadList();
     } catch (e) { console.error(e); } finally { saving.value = false; }
@@ -302,7 +303,7 @@ async function saveLimit() {
 async function toggleNotifications(row) {
     try {
         await quotaAlert.toggleNotifications(row.id);
-        ElMessage.success(row.notifications_enabled ? '通知已关闭' : '通知已开启');
+        ElMessage.success(row.notifications_enabled ? t('quota_alert_page.messages.notify_off') : t('quota_alert_page.messages.notify_on'));
         loadList();
     } catch (e) { console.error(e); }
 }
@@ -310,7 +311,7 @@ async function toggleNotifications(row) {
 async function handleCheckAll() {
     try {
         const res = await quotaAlert.checkAll();
-        ElMessage.success(`检查完成，处理 ${res.data.data.checked} 个配额`);
+        ElMessage.success(t('quota_alert_page.messages.check_done', { n: res.data.data.checked }));
         loadData();
     } catch (e) { console.error(e); }
 }

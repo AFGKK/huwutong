@@ -105,4 +105,18 @@ export default {
     myAgent() {
         return client.get('/store-affiliate/my-agent');
     },
+
+    // ─── AI 佣金推荐 ───
+    aiRecommendRate(data) {
+        return client.post('/store-affiliate/ai/recommend-rate', data);
+    },
+    aiBatchRecommend(data) {
+        return client.post('/store-affiliate/ai/batch-recommend', data);
+    },
+    aiCampaignPresets() {
+        return client.get('/store-affiliate/ai/campaign-presets');
+    },
+    aiEfficiencyAnalysis(params = {}) {
+        return client.get('/store-affiliate/ai/efficiency-analysis', { params });
+    },
 };

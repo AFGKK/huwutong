@@ -3,7 +3,7 @@
         <div class="status-container">
             <!-- Header -->
             <div class="status-header">
-                <h1 class="brand">{{ siteName }} 系统状态</h1>
+                <h1 class="brand">{{ siteName }} {{ $t('status_page.title_suffix') }}</h1>
                 <div class="overall-status" :class="overallStatus">
                     <el-icon :size="48">
                         <CircleCheck v-if="overallStatus === 'operational'" />
@@ -18,7 +18,7 @@
             </div>
 
             <div v-if="loading" class="loading-state" v-loading="loading">
-                <span>加载系统状态...</span>
+                <span>{{ $t('status_page.loading') }}</span>
             </div>
 
             <template v-else>
@@ -26,13 +26,13 @@
                 <el-card class="checks-card" shadow="never">
                     <template #header>
                         <div class="card-header">
-                            <span>服务状态</span>
+                            <span>{{ $t('status_page.services') }}</span>
                             <div class="header-right">
                                 <el-tag :type="uptimeTag" size="small" class="uptime-tag">
                                     {{ uptime }}
                                 </el-tag>
                                 <el-button text size="small" @click="fetchStatus" :loading="refreshing">
-                                    刷新
+                                    {{ $t('status_page.refresh') }}
                                 </el-button>
                             </div>
                         </div>
@@ -59,9 +59,9 @@
                     </div>
 
                     <div class="uptime-info">
-                        <span>所有系统正常运行</span>
+                        <span>{{ $t('status_page.all_ok') }}</span>
                         <span class="uptime-badge" v-if="uptimePercent !== null">
-                            {{ uptimeDays }}天 Uptime: <strong>{{ uptimePercent }}%</strong>
+                            {{ $t('status_page.uptime_days', { n: uptimeDays }) }}: <strong>{{ uptimePercent }}%</strong>
                         </span>
                     </div>
                 </el-card>
@@ -69,7 +69,7 @@
                 <!-- Incidents -->
                 <el-card class="incidents-card" shadow="never" v-if="incidents.length > 0">
                     <template #header>
-                        <span>近期事件</span>
+                        <span>{{ $t('status_page.incidents') }}</span>
                     </template>
 
                     <div v-for="inc in incidents" :key="inc.id" class="incident-item">
@@ -84,7 +84,7 @@
                         </div>
                         <h4 class="incident-title">{{ inc.title }}</h4>
                         <div class="incident-components" v-if="inc.components?.length">
-                            影响: <span v-for="(c, ci) in inc.components" :key="c.id">
+                            {{ $t('status_page.impact') }}: <span v-for="(c, ci) in inc.components" :key="c.id">
                                 {{ c.name }}{{ ci < inc.components.length - 1 ? ', ' : '' }}
                             </span>
                         </div>
@@ -108,21 +108,21 @@
                 <el-card class="incidents-card empty" shadow="never" v-else>
                     <div class="no-incidents">
                         <el-icon :size="40" color="#67c23a"><CircleCheck /></el-icon>
-                        <p>最近 7 天无事件报告</p>
+                        <p>{{ $t('status_page.no_incidents') }}</p>
                     </div>
                 </el-card>
 
                 <!-- Subscribe -->
                 <el-card class="subscribe-card" shadow="never">
                     <div class="subscribe-form">
-                        <h3>获取状态更新通知</h3>
-                        <p>当系统出现事件时，通过邮件通知您</p>
+                        <h3>{{ $t('status_page.subscribe_title') }}</h3>
+                        <p>{{ $t('status_page.subscribe_desc') }}</p>
                         <div class="subscribe-input">
-                            <el-input v-model="subscribeEmail" placeholder="输入您的邮箱地址"
+                            <el-input v-model="subscribeEmail" :placeholder="$t('status_page.email_ph')"
                                 :disabled="subscribed" />
                             <el-button type="primary" @click="handleSubscribe" :loading="subscribing"
                                 :disabled="subscribed || !subscribeEmail.trim()">
-                                {{ subscribed ? '已订阅' : '订阅' }}
+                                {{ subscribed ? $t('status_page.subscribed') : $t('status_page.subscribe') }}
                             </el-button>
                         </div>
                         <p v-if="subscribeMessage" class="subscribe-message">{{ subscribeMessage }}</p>
@@ -131,7 +131,7 @@
 
                 <!-- Footer -->
                 <div class="status-footer">
-                    <p>{{ siteName }} — 互物通授权管理系统</p>
+                    <p>{{ $t('status_page.footer', { name: siteName }) }}</p>
                 </div>
             </template>
         </div>
@@ -140,10 +140,12 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { CircleCheck, WarningFilled, CloseBold } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import statusPageApi from '@/api/statusPage';
 
+const { t, locale } = useI18n();
 const loading = ref(true);
 const refreshing = ref(false);
 const siteName = ref('HWT');
@@ -163,20 +165,20 @@ const subscribeMessage = ref('');
 
 const statusTitle = computed(() => {
     const map = {
-        'operational': '所有系统正常运行',
-        'degraded_performance': '部分系统性能下降',
-        'partial_outage': '部分系统中断',
-        'major_outage': '重大系统中断',
+        'operational': t('status_page.operational'),
+        'degraded_performance': t('status_page.degraded'),
+        'partial_outage': t('status_page.partial'),
+        'major_outage': t('status_page.major'),
     };
-    return map[overallStatus.value] || '系统状态未知';
+    return map[overallStatus.value] || t('status_page.unknown');
 });
 
 const statusDescription = computed(() => {
     const map = {
-        'operational': '所有服务均正常运行',
-        'degraded_performance': '部分服务响应时间变长',
-        'partial_outage': '部分客户可能无法访问某些功能',
-        'major_outage': '主要服务不可用',
+        'operational': t('status_page.operational_desc'),
+        'degraded_performance': t('status_page.degraded_desc'),
+        'partial_outage': t('status_page.partial_desc'),
+        'major_outage': t('status_page.major_desc'),
     };
     return map[overallStatus.value] || '';
 });
@@ -199,33 +201,34 @@ const groupedComponents = computed(() => {
 
 function groupLabel(key) {
     const map = {
-        'core': '核心服务',
-        'services': '业务服务',
-        'infrastructure': '基础设施',
-        'third_party': '第三方服务',
+        'core': t('status_page.group_core'),
+        'services': t('status_page.group_services'),
+        'infrastructure': t('status_page.group_infra'),
+        'third_party': t('status_page.group_third'),
     };
     return map[key] || key;
 }
 
 function statusLabel(status) {
     const map = {
-        'operational': '正常',
-        'degraded_performance': '性能下降',
-        'partial_outage': '部分中断',
-        'major_outage': '重大中断',
-        'unknown': '未知',
-        'investigating': '调查中',
-        'identified': '已确认',
-        'monitoring': '监控中',
-        'resolved': '已解决',
-        'postmortem': '事后分析',
+        'operational': t('status_page.label_operational'),
+        'degraded_performance': t('status_page.label_degraded'),
+        'partial_outage': t('status_page.label_partial'),
+        'major_outage': t('status_page.label_major'),
+        'unknown': t('status_page.label_unknown'),
+        'investigating': t('status_page.label_investigating'),
+        'identified': t('status_page.label_identified'),
+        'monitoring': t('status_page.label_monitoring'),
+        'resolved': t('status_page.label_resolved'),
+        'postmortem': t('status_page.label_postmortem'),
     };
     return map[status] || status;
 }
 
-function formatTime(t) {
-    if (!t) return '';
-    return new Date(t).toLocaleDateString('zh-CN', {
+function formatTime(dt) {
+    if (!dt) return '';
+    const loc = locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US';
+    return new Date(dt).toLocaleDateString(loc, {
         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
 }
@@ -242,7 +245,7 @@ async function fetchStatus() {
             uptime.value = d.uptime || '';
         }
     } catch {
-        ElMessage.error('获取状态失败');
+        ElMessage.error(t('status_page.fetch_fail'));
     } finally {
         loading.value = false;
         refreshing.value = false;
@@ -265,10 +268,10 @@ async function handleSubscribe() {
         const { data: res } = await statusPageApi.subscribe(subscribeEmail.value.trim());
         if (res.success) {
             subscribed.value = true;
-            subscribeMessage.value = '✅ 订阅成功！当系统状态变化时会收到通知。';
+            subscribeMessage.value = t('status_page.subscribe_ok');
         }
     } catch {
-        subscribeMessage.value = '❌ 订阅失败，请稍后重试。';
+        subscribeMessage.value = t('status_page.subscribe_fail');
     } finally {
         subscribing.value = false;
     }
@@ -378,7 +381,7 @@ onMounted(() => {
     flex-shrink: 0;
 }
 .dot-investigating { background: #e6a23c; }
-.dot-identified { background: #409eff; }
+.dot-identified { background: #0f172a; }
 .dot-monitoring { background: #909399; }
 .dot-resolved { background: #67c23a; }
 

@@ -1,12 +1,12 @@
 <template>
     <div class="license-detail" v-loading="loading">
-        <el-page-header @back="$router.push('/portal/licenses')" :content="`License 详情`" />
+        <el-page-header @back="$router.push('/portal/licenses')" :content="$t('portal.license_detail')" />
 
         <!-- 状态信息卡 -->
         <el-card class="mt-4" shadow="never">
             <div class="status-bar">
                 <div class="status-section">
-                    <div class="status-label">当前状态</div>
+                    <div class="status-label">{{ $t('portal.current_status') }}</div>
                     <el-tag :type="statusType(license.status)" size="large" effect="dark">
                         {{ statusLabel(license.status) }}
                     </el-tag>
@@ -14,17 +14,17 @@
                 <div class="status-section">
                     <div class="status-label">License Key</div>
                     <code class="license-key">{{ license.license_key }}</code>
-                    <el-button text size="small" @click="copyKey">复制</el-button>
+                    <el-button text size="small" @click="copyKey">{{ $t('portal.copy') }}</el-button>
                     <el-button text size="small" type="primary" @click="showQrCode">
-                        📱 扫码激活
+                        {{ $t('portal.scan_activate') }}
                     </el-button>
                 </div>
                 <div class="status-section">
-                    <div class="status-label">类型</div>
-                    <el-tag v-if="license.type === 'trial'" type="warning" size="small">试用</el-tag>
-                    <el-tag v-else-if="license.type === 'enterprise'" type="success" size="small">企业版</el-tag>
-                    <el-tag v-else-if="license.type === 'development'" size="small">开发版</el-tag>
-                    <span v-else>标准</span>
+                    <div class="status-label">{{ $t('portal.type') }}</div>
+                    <el-tag v-if="license.type === 'trial'" type="warning" size="small">{{ $t('portal.type_trial') }}</el-tag>
+                    <el-tag v-else-if="license.type === 'enterprise'" type="success" size="small">{{ $t('portal.type_enterprise') }}</el-tag>
+                    <el-tag v-else-if="license.type === 'development'" size="small">{{ $t('portal.type_development') }}</el-tag>
+                    <span v-else>{{ $t('portal.type_standard') }}</span>
                 </div>
             </div>
         </el-card>
@@ -34,34 +34,34 @@
             <el-col :span="16">
                 <el-card>
                     <template #header>
-                        <span>基本信息</span>
+                        <span>{{ $t('portal.basic_info') }}</span>
                     </template>
                     <el-descriptions :column="2" border>
-                        <el-descriptions-item label="产品" :span="1">{{ license.product?.name || '-' }}</el-descriptions-item>
-                        <el-descriptions-item label="座位数" :span="1">{{ license.seats || 1 }}</el-descriptions-item>
-                        <el-descriptions-item label="设备限制" :span="1">{{ license.max_devices }}</el-descriptions-item>
-                        <el-descriptions-item label="已激活设备" :span="1">{{ deviceCount }}</el-descriptions-item>
-                        <el-descriptions-item label="创建时间" :span="1">{{ license.created_at }}</el-descriptions-item>
-                        <el-descriptions-item label="激活时间" :span="1">{{ license.activated_at || '从未激活' }}</el-descriptions-item>
-                        <el-descriptions-item label="到期时间" :span="2">
+                        <el-descriptions-item :label="$t('portal.product')" :span="1">{{ license.product?.name || '-' }}</el-descriptions-item>
+                        <el-descriptions-item :label="$t('portal.seats')" :span="1">{{ license.seats || 1 }}</el-descriptions-item>
+                        <el-descriptions-item :label="$t('portal.device_limit')" :span="1">{{ license.max_devices }}</el-descriptions-item>
+                        <el-descriptions-item :label="$t('portal.activated_devices')" :span="1">{{ deviceCount }}</el-descriptions-item>
+                        <el-descriptions-item :label="$t('portal.created_at')" :span="1">{{ license.created_at }}</el-descriptions-item>
+                        <el-descriptions-item :label="$t('portal.activated_at')" :span="1">{{ license.activated_at || $t('portal.never_activated') }}</el-descriptions-item>
+                        <el-descriptions-item :label="$t('portal.expires_at')" :span="2">
                             <span v-if="license.expires_at" :class="{ 'expiring-text': isExpiring(license.expires_at) }">
                                 {{ license.expires_at }}
                             </span>
-                            <span v-else>永久</span>
+                            <span v-else>{{ $t('portal.lifetime') }}</span>
                         </el-descriptions-item>
                     </el-descriptions>
 
                     <!-- 元数据 -->
                     <div v-if="license.metadata" class="mt-4">
                         <el-divider />
-                        <h4 class="section-title">自定义元数据</h4>
+                        <h4 class="section-title">{{ $t('portal.custom_metadata') }}</h4>
                         <pre class="metadata-json">{{ formatJson(license.metadata) }}</pre>
                     </div>
 
                     <!-- 交付物 -->
                     <div v-if="deliverables.length > 0" class="mt-4">
                         <el-divider />
-                        <h4 class="section-title">📦 交付物</h4>
+                        <h4 class="section-title">{{ $t('portal.deliverables_title') }}</h4>
                         <div class="deliverables-grid">
                             <div v-for="(d, idx) in deliverables" :key="idx" class="portal-deliverable-card">
                                 <div class="dlv-header">
@@ -73,18 +73,18 @@
 
                                 <div v-if="d.type === 'file' && d.file_url" class="dlv-action">
                                     <el-button size="small" type="primary" @click="openUrl(d.file_url)">
-                                        <el-icon><Download /></el-icon> 下载
+                                        <el-icon><Download /></el-icon> {{ $t('portal.download') }}
                                     </el-button>
                                     <span v-if="d.file_size" class="dlv-size">{{ formatFileSize(d.file_size) }}</span>
                                 </div>
                                 <div v-else-if="d.type === 'link' && d.file_url" class="dlv-action">
                                     <el-button size="small" type="primary" link @click="openUrl(d.file_url)">
-                                        <el-icon><Link /></el-icon> 打开链接
+                                        <el-icon><Link /></el-icon> {{ $t('portal.open_link') }}
                                     </el-button>
                                 </div>
                                 <div v-else-if="d.type === 'text' && d.content" class="dlv-action">
                                     <el-button size="small" type="primary" link @click="copyPortalText(d.content)">
-                                        <el-icon><CopyDocument /></el-icon> 复制内容
+                                        <el-icon><CopyDocument /></el-icon> {{ $t('portal.copy_content') }}
                                     </el-button>
                                 </div>
                             </div>
@@ -99,8 +99,8 @@
                 <el-card class="mb-4">
                     <template #header>
                         <div class="card-header">
-                            <span>设备使用情况</span>
-                            <el-link type="primary" :underline="'never'" @click="$router.push('/portal/devices')">管理</el-link>
+                            <span>{{ $t('portal.device_usage') }}</span>
+                            <el-link type="primary" :underline="'never'" @click="$router.push('/portal/devices')">{{ $t('portal.manage') }}</el-link>
                         </div>
                     </template>
                     <div class="device-usage">
@@ -114,10 +114,10 @@
                         </el-progress>
                         <p class="usage-hint">
                             <template v-if="devicePercent >= 80">
-                                设备数量接近上限，建议解除不活跃设备的绑定。
+                                {{ $t('portal.device_near_limit') }}
                             </template>
                             <template v-else>
-                                还有 {{ license.max_devices - deviceCount }} 个设备名额可用。
+                                {{ $t('portal.device_slots_left', { n: license.max_devices - deviceCount }) }}
                             </template>
                         </p>
                     </div>
@@ -126,14 +126,14 @@
                 <!-- 关联的设备 -->
                 <el-card>
                     <template #header>
-                        <span>已绑定的设备</span>
+                        <span>{{ $t('portal.bound_devices') }}</span>
                     </template>
                     <div v-if="devices.length">
                         <div v-for="dev in devices" :key="dev.id" class="device-item">
                             <div class="device-info">
                                 <el-icon><Monitor /></el-icon>
                                 <div>
-                                    <div class="device-name">{{ dev.name || dev.hostname || '未知设备' }}</div>
+                                    <div class="device-name">{{ dev.name || dev.hostname || $t('portal.unknown_device') }}</div>
                                     <div class="device-fingerprint">
                                         <code>{{ dev.fingerprint?.substring(0, 16) }}...</code>
                                     </div>
@@ -146,17 +146,17 @@
                                 @click="handleDeactivate(dev)"
                                 :loading="deactivatingId === dev.id"
                             >
-                                解绑
+                                {{ $t('portal.unbind') }}
                             </el-button>
                         </div>
                     </div>
-                    <el-empty v-else description="暂无绑定的设备" :image-size="60" />
+                    <el-empty v-else :description="$t('portal.no_bound_devices')" :image-size="60" />
                 </el-card>
 
                 <!-- 自助操作 -->
                 <el-card class="mt-4">
                     <template #header>
-                        <span>自助操作</span>
+                        <span>{{ $t('portal.self_service') }}</span>
                     </template>
                     <div class="self-service-actions">
                         <el-button
@@ -166,7 +166,7 @@
                             @click="handleRenew"
                             :icon="Refresh"
                         >
-                            续期 License
+                            {{ $t('portal.renew_license') }}
                         </el-button>
                         <el-button
                             v-if="canUpgrade"
@@ -175,7 +175,7 @@
                             @click="handleUpgrade"
                             :icon="ArrowUp"
                         >
-                            升级套餐
+                            {{ $t('portal.upgrade_plan') }}
                         </el-button>
                         <el-button
                             v-if="canRefund"
@@ -185,29 +185,29 @@
                             @click="handleRequestRefund"
                             :icon="Money"
                         >
-                            申请退款
+                            {{ $t('portal.request_refund') }}
                         </el-button>
                         <p class="action-hint" v-if="!canRenew && !canUpgrade && !canRefund">
-                            当前 License 状态不支持自助操作。
+                            {{ $t('portal.self_service_unavailable') }}
                         </p>
                     </div>
                 </el-card>
             </el-col>
         </el-row>
 
-        <!-- 📱 扫码激活对话框 -->
-        <el-dialog v-model="qrVisible" title="📱 扫码激活 License" width="380px" top="15vh" :close-on-click-modal="true" @closed="qrDataUrl = ''">
+        <!-- 扫码激活对话框 -->
+        <el-dialog v-model="qrVisible" :title="$t('portal.scan_activate_title')" width="380px" top="15vh" :close-on-click-modal="true" @closed="qrDataUrl = ''">
             <div v-loading="qrLoading" style="text-align:center;padding:16px 0;">
                 <div v-if="qrDataUrl" style="background:#fff;display:inline-block;padding:16px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
-                    <img :src="qrDataUrl" style="width:260px;height:260px;display:block" alt="License 二维码" />
+                    <img :src="qrDataUrl" style="width:260px;height:260px;display:block" :alt="$t('portal.scan_activate_title')" />
                 </div>
                 <div v-if="qrDataUrl" style="margin-top:12px;font-size:13px;color:#606266;">
-                    <p>请使用手机扫码激活此 License</p>
+                    <p>{{ $t('portal.scan_activate_hint') }}</p>
                     <p style="font-size:11px;color:#909399;margin-top:4px;">License: {{ license.license_key }}</p>
                 </div>
                 <div v-if="qrDataUrl" style="margin-top:16px;display:flex;gap:8px;justify-content:center;">
-                    <el-button size="small" @click="downloadQrCode">⬇️ 下载二维码</el-button>
-                    <el-button size="small" text @click="copyKey">📋 复制 License Key</el-button>
+                    <el-button size="small" @click="downloadQrCode">{{ $t('portal.download_qr') }}</el-button>
+                    <el-button size="small" text @click="copyKey">{{ $t('portal.copy_license_key') }}</el-button>
                 </div>
             </div>
         </el-dialog>
@@ -217,9 +217,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import licenseApi from '@/api/license';
 import deviceApi from '@/api/device';
-import billingApi from '@/api/billing';
 import shopApi from '@/api/shop';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Monitor, Refresh, ArrowUp, Money, Download, Link, CopyDocument } from '@element-plus/icons-vue';
@@ -227,13 +227,14 @@ import QRCode from 'qrcode';
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
+
 const loading = ref(false);
 const deactivatingId = ref(null);
 const license = ref({});
 const devices = ref([]);
 const deliverables = ref([]);
 
-// QR 码扫码激活
 const qrVisible = ref(false);
 const qrLoading = ref(false);
 const qrDataUrl = ref('');
@@ -243,7 +244,6 @@ async function showQrCode() {
     qrLoading.value = true;
     qrDataUrl.value = '';
     try {
-        // 生成包含 License Key 的激活 URL
         const activationUrl = `${window.location.origin}/activate?key=${encodeURIComponent(license.value.license_key)}`;
         qrDataUrl.value = await QRCode.toDataURL(activationUrl, {
             width: 260,
@@ -251,7 +251,7 @@ async function showQrCode() {
             color: { dark: '#1a1a2e', light: '#ffffff' },
         });
     } catch (e) {
-        ElMessage.error('二维码生成失败');
+        ElMessage.error(t('portal.qr_failed'));
     } finally {
         qrLoading.value = false;
     }
@@ -273,19 +273,28 @@ const devicePercent = computed(() => {
     return Math.min(Math.round((deviceCount.value / max) * 100), 100);
 });
 
-const STATUS_MAP = {
-    pending: { type: 'info', label: '待激活' },
-    active: { type: 'success', label: '活跃' },
-    suspended: { type: 'warning', label: '已暂停' },
-    frozen: { type: 'warning', label: '已冻结' },
-    expired: { type: 'info', label: '已过期' },
-    revoked: { type: 'danger', label: '已吊销' },
-    refunded: { type: 'danger', label: '已退款' },
-    blacklisted: { type: 'danger', label: '黑名单' },
-};
+function statusType(status) {
+    const map = {
+        pending: 'info', active: 'success', suspended: 'warning', frozen: 'warning',
+        expired: 'info', revoked: 'danger', refunded: 'danger', blacklisted: 'danger',
+    };
+    return map[status] || 'info';
+}
 
-function statusType(status) { return STATUS_MAP[status]?.type || 'info'; }
-function statusLabel(status) { return STATUS_MAP[status]?.label || status; }
+function statusLabel(status) {
+    const map = {
+        pending: t('portal.st_pending'),
+        active: t('portal.st_active'),
+        suspended: t('portal.st_suspended'),
+        frozen: t('portal.st_frozen'),
+        expired: t('portal.st_expired'),
+        revoked: t('portal.st_revoked'),
+        refunded: t('portal.st_refunded'),
+        blacklisted: t('portal.st_blacklisted'),
+    };
+    return map[status] || status;
+}
+
 function isExpiring(dateStr) {
     if (!dateStr) return false;
     const diff = new Date(dateStr) - new Date();
@@ -300,22 +309,22 @@ function formatJson(data) {
     }
 }
 
-// ─── 交付物辅助 ───
 function typeIcon(type) {
-    const icons = { file: '📦', link: '🔗', text: '📝' };
-    return icons[type] || '📄';
+    const icons = { file: 'F', link: 'L', text: 'T' };
+    return icons[type] || 'D';
 }
+
 function categoryLabel(cat) {
     const labels = {
-        software: '💻 软件',
-        document: '📄 文档',
-        template: '🔧 模板',
-        api: '🌐 API',
-        tutorial: '🎓 教程',
-        other: '其他',
+        software: t('portal.cat_software'),
+        document: t('portal.cat_document'),
+        template: t('portal.cat_template'),
+        tutorial: t('portal.cat_tutorial'),
+        other: t('portal.cat_other'),
     };
-    return labels[cat] || cat || '其他';
+    return labels[cat] || cat || t('portal.cat_other');
 }
+
 function formatFileSize(bytes) {
     if (!bytes) return '';
     const units = ['B', 'KB', 'MB', 'GB'];
@@ -324,13 +333,15 @@ function formatFileSize(bytes) {
     while (size >= 1024 && uid < units.length - 1) { size /= 1024; uid++; }
     return size.toFixed(1) + ' ' + units[uid];
 }
+
 function openUrl(url) {
     if (url) window.open(url, '_blank');
 }
+
 async function copyPortalText(text) {
     try {
         await navigator.clipboard.writeText(text);
-        ElMessage.success('已复制到剪贴板');
+        ElMessage.success(t('portal.copied_clipboard'));
     } catch {
         const ta = document.createElement('textarea');
         ta.value = text;
@@ -338,11 +349,9 @@ async function copyPortalText(text) {
         ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
-        ElMessage.success('已复制到剪贴板');
+        ElMessage.success(t('portal.copied_clipboard'));
     }
 }
-
-// ── 自助操作 (M1.4-09) ──
 
 const canRenew = computed(() => {
     return ['active', 'expired', 'suspended'].includes(license.value.status);
@@ -359,11 +368,10 @@ const canRefund = computed(() => {
 async function handleRenew() {
     try {
         await ElMessageBox.confirm(
-            `确认续期此 License（${license.value.license_key}）？将为您创建续费订单并跳转支付。`,
-            '续费确认',
-            { confirmButtonText: '去支付', cancelButtonText: '取消', type: 'info' }
+            t('portal.renew_confirm_body', { key: license.value.license_key }),
+            t('portal.renew_confirm_title'),
+            { confirmButtonText: t('portal.go_pay'), cancelButtonText: t('actions.cancel'), type: 'info' }
         );
-        // 通过 quick-buy 创建续费订单
         const payload = {
             license_id: license.value.id,
             product_id: license.value.product_id,
@@ -374,7 +382,7 @@ async function handleRenew() {
         const order = res.data?.data || res.data;
         const orderId = order?.id || order?.order?.id;
         if (orderId) {
-            ElMessage.success('续费订单已创建，正在跳转支付…');
+            ElMessage.success(t('portal.renew_order_created'));
             try {
                 const payRes = await shopApi.initiatePayment(orderId, 'alipay');
                 const payData = payRes.data?.data || payRes.data;
@@ -385,11 +393,11 @@ async function handleRenew() {
             } catch {}
             window.location.href = `/portal/payment-result/${orderId}`;
         } else {
-            ElMessage.error('创建续费订单失败');
+            ElMessage.error(t('portal.renew_order_failed'));
         }
     } catch (e) {
         if (e !== 'cancel') {
-            ElMessage.error(e.response?.data?.message || '续费失败，请重试');
+            ElMessage.error(e.response?.data?.message || t('portal.renew_failed'));
         }
     }
 }
@@ -397,16 +405,16 @@ async function handleRenew() {
 async function handleUpgrade() {
     try {
         await ElMessageBox.confirm(
-            `确认将 License 升级为企业版？升级后将获得更多功能和企业级支持。`,
-            '升级确认',
-            { confirmButtonText: '确认升级', cancelButtonText: '取消', type: 'info' }
+            t('portal.upgrade_confirm_body'),
+            t('portal.upgrade_confirm_title'),
+            { confirmButtonText: t('portal.confirm_upgrade'), cancelButtonText: t('actions.cancel'), type: 'info' }
         );
         await licenseApi.update(license.value.id, { type: 'enterprise' });
-        ElMessage.success('升级成功');
+        ElMessage.success(t('portal.upgrade_ok'));
         await fetchDetail();
     } catch (e) {
         if (e !== 'cancel') {
-            ElMessage.error(e.response?.data?.message || '升级失败');
+            ElMessage.error(e.response?.data?.message || t('portal.upgrade_failed'));
         }
     }
 }
@@ -414,30 +422,30 @@ async function handleUpgrade() {
 async function handleRequestRefund() {
     try {
         await ElMessageBox.confirm(
-            '确定要申请退款？退款后此 License 将被标记为已退款状态，所有关联设备将无法使用。此操作不可撤销。',
-            '申请退款',
+            t('portal.refund_license_confirm'),
+            t('portal.request_refund'),
             {
-                confirmButtonText: '申请退款',
-                cancelButtonText: '取消',
+                confirmButtonText: t('portal.request_refund'),
+                cancelButtonText: t('actions.cancel'),
                 type: 'warning',
                 confirmButtonClass: 'el-button--danger',
             }
         );
         await licenseApi.refund(license.value.id);
-        ElMessage.success('退款申请已提交');
+        ElMessage.success(t('portal.refund_submitted'));
         await fetchDetail();
     } catch (e) {
         if (e !== 'cancel') {
-            ElMessage.error(e.response?.data?.message || '退款申请失败');
+            ElMessage.error(e.response?.data?.message || t('portal.refund_failed'));
         }
     }
 }
 
 function copyKey() {
     navigator.clipboard.writeText(license.value.license_key).then(() => {
-        ElMessage.success('License Key 已复制到剪贴板');
+        ElMessage.success(t('portal.key_copied'));
     }).catch(() => {
-        ElMessage.warning('复制失败，请手动复制');
+        ElMessage.warning(t('portal.copy_failed'));
     });
 }
 
@@ -450,11 +458,10 @@ async function fetchDetail() {
         license.value = res.data || {};
         deliverables.value = res.data?.deliverables || [];
 
-        // 获取关联的设备
         const { data: devRes } = await deviceApi.list({ license_id: id, per_page: 50 });
         devices.value = devRes.data?.data || [];
     } catch {
-        ElMessage.error('获取 License 详情失败');
+        ElMessage.error(t('portal.license_detail_failed'));
     } finally {
         loading.value = false;
     }
@@ -462,14 +469,15 @@ async function fetchDetail() {
 
 async function handleDeactivate(dev) {
     try {
+        const name = dev.name || dev.hostname || dev.fingerprint;
         await ElMessageBox.confirm(
-            `确定要解绑设备 "${dev.name || dev.hostname || dev.fingerprint}"？解绑后该设备将无法使用此 License。`,
-            '确认解绑',
-            { confirmButtonText: '确定解绑', cancelButtonText: '取消', type: 'warning' }
+            t('portal.unbind_device_confirm', { name }),
+            t('portal.unbind_title'),
+            { confirmButtonText: t('portal.confirm_unbind'), cancelButtonText: t('actions.cancel'), type: 'warning' }
         );
         deactivatingId.value = dev.id;
         await deviceApi.deactivate(dev.id);
-        ElMessage.success('设备解绑成功');
+        ElMessage.success(t('portal.unbind_ok'));
         devices.value = devices.value.filter(d => d.id !== dev.id);
     } catch {
         // cancelled or error
@@ -506,7 +514,7 @@ onMounted(fetchDetail);
 .license-key {
     font-size: 14px;
     font-weight: 600;
-    color: #409eff;
+    color: #0f172a;
     user-select: all;
 }
 
@@ -605,8 +613,8 @@ onMounted(fetchDetail);
     transition: all 0.2s;
 }
 .portal-deliverable-card:hover {
-    border-color: #409eff;
-    box-shadow: 0 2px 8px rgba(64,158,255,0.1);
+    border-color: #0f172a;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.1);
 }
 .portal-deliverable-card .dlv-header {
     display: flex;

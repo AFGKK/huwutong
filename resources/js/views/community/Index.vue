@@ -5,14 +5,14 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                     <div>
-                        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">🌐 社区</h1>
-                        <p class="text-sm text-gray-500 mt-1">发现热门讨论，分享你的经验</p>
+                        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">{{ t('community_page.title') }}</h1>
+                        <p class="text-sm text-gray-500 mt-1">{{ t('community_page.subtitle') }}</p>
                     </div>
                     <button v-if="isLoggedIn" class="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm font-medium rounded-xl hover:from-primary-600 hover:to-primary-700 transition-all shadow-md hover:shadow-lg" @click="showNewPost = true">
-                        📝 发帖
+                        {{ t('community_page.new_post') }}
                     </button>
                     <a v-else href="/build/login" class="w-full sm:w-auto text-center px-5 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm font-medium rounded-xl hover:from-primary-600 hover:to-primary-700 transition-all shadow-md hover:shadow-lg">
-                        登录发帖 →
+                        {{ t('community_page.login_to_post') }} →
                     </a>
                 </div>
 
@@ -32,12 +32,12 @@
                     </button>
                     <el-dropdown v-if="allTags.length" trigger="click" class="ml-auto">
                         <button class="px-3 py-2 text-xs text-gray-400 hover:text-gray-600 transition whitespace-nowrap">
-                            🏷️ 标签 <el-icon><ArrowDown /></el-icon>
+                            {{ t('community_page.tags') }} <el-icon><ArrowDown /></el-icon>
                         </button>
                         <template #dropdown>
                             <el-dropdown-menu>
-                                <el-dropdown-item @click="tagFilter = ''; page = 1; loadPosts()">全部标签</el-dropdown-item>
-                                <el-dropdown-item v-for="t in allTags" :key="t" @click="tagFilter = t; page = 1; loadPosts()">{{ t }}</el-dropdown-item>
+                                <el-dropdown-item @click="tagFilter = ''; page = 1; loadPosts()">{{ t('community_page.all_tags') }}</el-dropdown-item>
+                                <el-dropdown-item v-for="tagName in allTags" :key="tagName" @click="tagFilter = tagName; page = 1; loadPosts()">{{ tagName }}</el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
                     </el-dropdown>
@@ -46,7 +46,7 @@
         </div>
 
         <!-- 发帖对话框 -->
-        <el-dialog v-model="showNewPost" :title="editingPost ? '✏️ 编辑帖子' : '📝 发布动态'" width="860px" top="5vh">
+        <el-dialog v-model="showNewPost" :title="editingPost ? t('community_page.edit_post') : t('community_page.publish_post')" width="860px" top="5vh">
             <div class="flex gap-5">
                 <!-- 左侧：编辑器 -->
                 <div class="flex-1 min-w-0 space-y-4">
@@ -56,41 +56,41 @@
                             class="px-3 py-1.5 text-xs rounded-lg border transition"
                             :class="postTemplate === tpl.key ? 'border-primary-500 bg-primary-50 text-primary-600' : 'border-gray-200 text-gray-500 hover:border-gray-300'"
                             @click="postTemplate = tpl.key; if(tpl.key!=='discuss') newPostContent = tpl.template">
-                            {{ tpl.icon }} {{ tpl.label }}
+                            {{ tpl.label }}
                         </button>
                     </div>
-                    <el-input v-model="newPostContent" type="textarea" :rows="6" placeholder="分享你的想法..." maxlength="5000" show-word-limit />
+                    <el-input v-model="newPostContent" type="textarea" :rows="6" :placeholder="t('community_page.content_ph')" maxlength="5000" show-word-limit />
                     <div class="flex gap-2 flex-wrap">
                         <el-upload :auto-upload="false" :on-change="onFileSelect" accept="image/*" :show-file-list="false">
-                            <el-button size="small"><el-icon><Picture /></el-icon> 图片</el-button>
+                            <el-button size="small"><el-icon><Picture /></el-icon> {{ t('community_page.image') }}</el-button>
                         </el-upload>
                         <el-upload :auto-upload="false" :on-change="onVideoSelect" accept="video/*" :show-file-list="false">
-                            <el-button size="small"><el-icon><VideoCamera /></el-icon> 视频</el-button>
+                            <el-button size="small"><el-icon><VideoCamera /></el-icon> {{ t('community_page.video') }}</el-button>
                         </el-upload>
-                        <el-button size="small" @click="toggleVoiceInput" :type="voiceListening ? 'danger' : 'default'" :icon="voiceListening ? null : null" title="语音转文字">
-                            <template v-if="voiceListening">🔴 录音中... {{ voiceDuration }}s</template>
-                            <template v-else>🎤 语音</template>
+                        <el-button size="small" @click="toggleVoiceInput" :type="voiceListening ? 'danger' : 'default'" :title="t('community_page.voice_title')">
+                            <template v-if="voiceListening">{{ t('community_page.voice_recording') }} {{ voiceDuration }}s</template>
+                            <template v-else>{{ t('community_page.voice') }}</template>
                         </el-button>
-                        <el-button size="small" @click="formatContent" title="清理多余空行、统一标点、规范化链接">
-                            ✨ 排版
+                        <el-button size="small" @click="formatContent" :title="t('community_page.format_title')">
+                            {{ t('community_page.format') }}
                         </el-button>
-                        <el-select v-model="postTags" multiple filterable allow-create default-first-option placeholder="添加标签" size="small" class="flex-1" clearable>
-                            <el-option v-for="t in allTags" :key="t" :label="t" :value="t" />
+                        <el-select v-model="postTags" multiple filterable allow-create default-first-option :placeholder="t('community_page.add_tags_ph')" size="small" class="flex-1" clearable>
+                            <el-option v-for="tagName in allTags" :key="tagName" :label="tagName" :value="tagName" />
                         </el-select>
                     </div>
                     <!-- 投票选项 -->
                     <div v-if="postTemplate === 'poll'" class="space-y-2 pl-2">
                         <div v-for="(opt, i) in pollOptions" :key="i" class="flex items-center gap-2">
                             <span class="text-xs text-gray-400 w-5">{{ 'ABCDEFGHIJ'[i] }}.</span>
-                            <el-input v-model="pollOptions[i]" :placeholder="'选项 ' + (i+1)" size="small" maxlength="100" />
+                            <el-input v-model="pollOptions[i]" :placeholder="t('community_page.poll_option_ph', { n: i + 1 })" size="small" maxlength="100" />
                             <el-button v-if="pollOptions.length > 2" size="small" text type="danger" @click="pollOptions.splice(i, 1)">✕</el-button>
                         </div>
-                        <el-button v-if="pollOptions.length < 10" size="small" text @click="pollOptions.push('')">+ 添加选项</el-button>
+                        <el-button v-if="pollOptions.length < 10" size="small" text @click="pollOptions.push('')">+ {{ t('community_page.add_poll_option') }}</el-button>
                     </div>
                     <!-- 图片预览（支持拖拽排序） -->
                     <div v-if="combinedImages.length" class="flex items-center gap-1 mb-1">
-                        <span class="text-xs text-gray-400">🖼 {{ combinedImages.length }} 张</span>
-                        <span class="text-[10px] text-gray-300">（拖拽调整顺序）</span>
+                        <span class="text-xs text-gray-400">{{ t('community_page.image_count', { n: combinedImages.length }) }}</span>
+                        <span class="text-[10px] text-gray-300">{{ t('community_page.drag_reorder_hint') }}</span>
                     </div>
                     <draggable v-model="combinedImages" item-key="uid" class="flex gap-2 flex-wrap" @end="onImageDragEnd">
                         <template #item="{ element, index }">
@@ -106,34 +106,34 @@
                     </draggable>
                     <!-- 定时发布 -->
                     <div class="flex items-center gap-3">
-                        <el-checkbox v-model="enableSchedule">定时发布</el-checkbox>
-                        <el-date-picker v-if="enableSchedule" v-model="scheduledAt" type="datetime" placeholder="选择发布时间" size="small" :disabled-date="d => d < new Date()" />
+                        <el-checkbox v-model="enableSchedule">{{ t('community_page.schedule_publish') }}</el-checkbox>
+                        <el-date-picker v-if="enableSchedule" v-model="scheduledAt" type="datetime" :placeholder="t('community_page.select_schedule_time')" size="small" :disabled-date="d => d < new Date()" />
                     </div>
                     <!-- 付费设置 -->
                     <div class="flex items-center gap-3 pt-1">
-                        <el-checkbox v-model="postIsPaid">付费内容</el-checkbox>
+                        <el-checkbox v-model="postIsPaid">{{ t('community_page.paid_content') }}</el-checkbox>
                         <template v-if="postIsPaid">
                             <el-input-number v-model="postPrice" :min="1" :max="99999" size="small" style="width:100px" />
                             <el-select v-model="postPriceType" size="small" style="width:90px">
-                                <el-option value="points"><span style="display:inline-flex;align-items:center;gap:4px"><PointsIcon :size="16" /> 积分</span></el-option>
-                                <el-option label="💰 金额" value="money" />
+                                <el-option value="points"><span style="display:inline-flex;align-items:center;gap:4px"><PointsIcon :size="16" /> {{ t('community_page.points') }}</span></el-option>
+                                <el-option :label="t('community_page.money')" value="money" />
                             </el-select>
-                            <el-input v-model="postContentPreview" placeholder="付费预览摘要（选填）" size="small" style="width:200px" maxlength="300" />
+                            <el-input v-model="postContentPreview" :placeholder="t('community_page.paid_preview_ph')" size="small" style="width:200px" maxlength="300" />
                         </template>
                     </div>
                 </div>
 
                 <!-- 右侧：实时卡片预览 -->
                 <div class="w-72 flex-shrink-0 hidden sm:block">
-                    <div class="text-xs text-gray-400 font-medium mb-2">📱 预览效果</div>
+                    <div class="text-xs text-gray-400 font-medium mb-2">{{ t('community_page.preview_title') }}</div>
                     <div class="preview-card">
                         <div class="flex items-center gap-2 mb-3">
                             <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-xs overflow-hidden flex-shrink-0">
                                 <span>{{ currentUser?.name?.charAt(0) || '?' }}</span>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <div class="text-sm font-semibold text-gray-900 truncate">{{ currentUser?.name || '匿名' }}</div>
-                                <div class="text-xs text-gray-400">刚刚</div>
+                                <div class="text-sm font-semibold text-gray-900 truncate">{{ currentUser?.name || t('community_page.anonymous') }}</div>
+                                <div class="text-xs text-gray-400">{{ t('time.just_now') }}</div>
                             </div>
                         </div>
                         <div class="preview-body line-clamp-4" v-html="previewContent"></div>
@@ -152,12 +152,12 @@
             <template #footer>
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-2">
-                        <el-button v-if="!editingPost" size="small" @click="saveDraft">💾 存草稿</el-button>
-                        <span v-if="autoSaveStatus === 'saved'" class="text-[11px] text-green-500 transition">✅ 已自动保存</span>
+                        <el-button v-if="!editingPost" size="small" @click="saveDraft">{{ t('community_page.save_draft') }}</el-button>
+                        <span v-if="autoSaveStatus === 'saved'" class="text-[11px] text-green-500 transition">{{ t('community_page.auto_saved') }}</span>
                     </div>
                     <div>
-                        <el-button size="small" @click="showNewPost = false">取消</el-button>
-                        <el-button type="primary" size="small" :loading="submitting" @click="submitPost">{{ editingPost ? '保存修改' : '发布' }}</el-button>
+                        <el-button size="small" @click="showNewPost = false">{{ t('actions.cancel') }}</el-button>
+                        <el-button type="primary" size="small" :loading="submitting" @click="submitPost">{{ editingPost ? t('community_page.save_changes') : t('community_page.publish') }}</el-button>
                     </div>
                 </div>
             </template>
@@ -172,19 +172,16 @@
                 <div class="community-main">
                     <!-- 搜索栏 -->
                     <div class="flex items-center gap-2 mb-4">
-                        <el-input v-model="searchQuery" placeholder="搜索帖子标题、内容、评论..." size="default"
+                        <el-input v-model="searchQuery" :placeholder="t('community_page.search_ph')" size="default"
                             clearable prefix-icon="Search" class="!w-72 sm:!w-80"
                             @input="onSearchInput" @clear="onSearchClear" />
                         <template v-if="activeTab === 'my'">
                             <el-select v-model="myPostStatus" size="small" style="width:110px" @change="page=1; loadPosts()">
-                                <el-option label="全部" value="" />
-                                <el-option label="已发布" value="published" />
-                                <el-option label="草稿" value="draft" />
-                                <el-option label="定时发布" value="scheduled" />
+                                <el-option v-for="opt in myPostStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                             </el-select>
                         </template>
                         <span v-if="searchQuery && !loading" class="text-xs text-gray-400">
-                            找到 {{ posts.length }} 条结果
+                            {{ t('community_page.search_results', { n: posts.length }) }}
                         </span>
                     </div>
                     <!-- 骨架屏 -->
@@ -217,34 +214,34 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <div class="text-sm font-semibold text-gray-900 truncate">
-                                        {{ post.user?.name || '匿名' }}
+                                        {{ post.user?.name || t('community_page.anonymous') }}
                                         <span v-if="post.user?.level" class="text-[11px]" :title="'Lv.' + post.user.level + ' ' + getLevelName(post.user.level)">{{ getLevelBadge(post.user.level) }}</span>
                                     </div>
                                     <div class="text-xs text-gray-400 flex items-center gap-1">
                                         <span>{{ timeAgo(post.created_at) }}</span>
-                                        <span v-if="post.template && post.template !== 'discuss'" class="px-1.5 py-0.5 bg-gray-50 rounded text-[10px] text-gray-400">{{ post.template }}</span>
-                                        <span v-if="post.status === 'draft'" class="px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-medium">草稿</span>
-                                        <span v-else-if="post.status === 'scheduled'" class="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-medium">定时</span>
-                                        <span v-if="post.is_pinned" class="px-1.5 py-0.5 bg-orange-50 text-orange-500 rounded text-[10px] font-medium">📌 置顶</span>
+                                        <span v-if="post.template && post.template !== 'discuss'" class="px-1.5 py-0.5 bg-gray-50 rounded text-[10px] text-gray-400">{{ getTemplateLabel(post.template) }}</span>
+                                        <span v-if="post.status === 'draft'" class="px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-medium">{{ t('community_page.status.draft') }}</span>
+                                        <span v-else-if="post.status === 'scheduled'" class="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-medium">{{ t('community_page.status.scheduled_short') }}</span>
+                                        <span v-if="post.is_pinned" class="px-1.5 py-0.5 bg-orange-50 text-orange-500 rounded text-[10px] font-medium">{{ t('community_page.pinned') }}</span>
                                     </div>
                                 </div>
                                 <button v-if="isLoggedIn && post.user_id !== myId" class="follow-btn-sm" :class="{ following: post.user?.is_following }" @click.stop="toggleFollow(post.user)">
-                                    {{ post.user?.is_following ? '已关注' : '+ 关注' }}
+                                    {{ post.user?.is_following ? t('community_page.following') : '+ ' + t('community_page.follow') }}
                                 </button>
                                 <!-- 操作菜单 -->
                                 <el-dropdown v-if="isLoggedIn" trigger="click" @click.stop>
                                     <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition">⋯</button>
                                     <template #dropdown>
                                         <el-dropdown-menu>
-                                            <el-dropdown-item v-if="post.user_id === myId" @click.stop="editPost(post)">✏️ 编辑</el-dropdown-item>
-                                            <el-dropdown-item v-if="post.user_id === myId" @click.stop="deletePost(post)">🗑️ 删除</el-dropdown-item>
-                                            <el-dropdown-item v-if="isAdmin" divided @click.stop="togglePin(post)">{{ post.is_pinned ? '📌 取消置顶' : '📌 置顶' }}</el-dropdown-item>
+                                            <el-dropdown-item v-if="post.user_id === myId" @click.stop="editPost(post)">{{ t('actions.edit') }}</el-dropdown-item>
+                                            <el-dropdown-item v-if="post.user_id === myId" @click.stop="deletePost(post)">{{ t('actions.delete') }}</el-dropdown-item>
+                                            <el-dropdown-item v-if="isAdmin" divided @click.stop="togglePin(post)">{{ post.is_pinned ? t('community_page.unpin') : t('community_page.pinned') }}</el-dropdown-item>
                                             <el-dropdown-item @click.stop="sharePost(post)">
                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width:14px;height:14px;vertical-align:middle;margin-right:5px;fill:currentColor">
                                                     <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
-                                                </svg> 分享
+                                                </svg> {{ t('actions.share') }}
                                             </el-dropdown-item>
-                                            <el-dropdown-item @click.stop="reportPost(post)">🚫 举报</el-dropdown-item>
+                                            <el-dropdown-item @click.stop="reportPost(post)">{{ t('community_page.report') }}</el-dropdown-item>
                                         </el-dropdown-menu>
                                     </template>
                                 </el-dropdown>
@@ -287,30 +284,30 @@
                     <!-- 无限滚动：底部哨兵 -->
                     <div ref="sentinelRef" class="text-center py-6">
                         <span v-if="loadingMore" class="inline-block w-5 h-5 border-2 border-primary-400 border-t-transparent rounded-full animate-spin"></span>
-                        <span v-else-if="!hasMore && posts.length" class="text-xs text-gray-300">— 没有更多了 —</span>
+                        <span v-else-if="!hasMore && posts.length" class="text-xs text-gray-300">{{ t('community_page.no_more') }}</span>
                     </div>
-                    <el-empty v-if="!loading && !posts.length" description="暂无内容" :image-size="80" />
+                    <el-empty v-if="!loading && !posts.length" :description="t('community_page.empty')" :image-size="80" />
                 </div>
 
                 <!-- 侧边栏 -->
                 <aside class="community-sidebar">
                     <!-- 热门话题 -->
                     <div class="sidebar-card">
-                        <h3 class="sidebar-title">🔥 热门话题</h3>
+                        <h3 class="sidebar-title">{{ t('community_page.trending_topics') }}</h3>
                         <div class="sidebar-divider"></div>
                         <div v-if="trendingTags.length" class="space-y-2">
                             <div v-for="(tag, i) in trendingTags.slice(0, 8)" :key="tag.id" class="sidebar-tag-item" @click="tagFilter = tag.name; page = 1; loadPosts()">
                                 <span class="sidebar-tag-rank" :class="'rank-' + (i + 1)">{{ i + 1 }}</span>
                                 <span class="flex-1 text-sm truncate">#{{ tag.name }}</span>
-                                <span class="text-xs text-gray-400">{{ tag.posts_count }} 帖</span>
+                                <span class="text-xs text-gray-400">{{ t('community_page.posts_count', { n: tag.posts_count }) }}</span>
                             </div>
                         </div>
-                        <div v-else class="text-xs text-gray-400 py-2 text-center">暂无数据</div>
+                        <div v-else class="text-xs text-gray-400 py-2 text-center">{{ t('community_page.no_data') }}</div>
                     </div>
 
                     <!-- 贡献榜 -->
                     <div class="sidebar-card">
-                        <h3 class="sidebar-title">👑 贡献榜</h3>
+                        <h3 class="sidebar-title">{{ t('community_page.contributors') }}</h3>
                         <div class="sidebar-divider"></div>
                         <div v-if="topContributors.length" class="space-y-2">
                             <div v-for="(user, i) in topContributors" :key="user.id" class="sidebar-user-item" @click="viewUser(user)">
@@ -321,36 +318,36 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <div class="text-sm font-medium text-gray-800 truncate">{{ user.name }}</div>
-                                    <div class="text-[10px] text-gray-400">❤️ {{ user.likes_count }} 获赞</div>
+                                    <div class="text-[10px] text-gray-400">❤️ {{ t('community_page.likes_received', { n: user.likes_count }) }}</div>
                                 </div>
                                 <button v-if="isLoggedIn" class="follow-btn" :class="{ following: user.is_following }" @click.stop="toggleFollow(user)">
-                                    {{ user.is_following ? '已关注' : '+ 关注' }}
+                                    {{ user.is_following ? t('community_page.following') : '+ ' + t('community_page.follow') }}
                                 </button>
                             </div>
                         </div>
-                        <div v-else class="text-xs text-gray-400 py-2 text-center">暂无数据</div>
+                        <div v-else class="text-xs text-gray-400 py-2 text-center">{{ t('community_page.no_data') }}</div>
                     </div>
 
                     <!-- 为你推荐 -->
                     <div class="sidebar-card" v-if="isLoggedIn">
-                        <h3 class="sidebar-title"><el-icon style="font-size:15px;vertical-align:middle"><Document /></el-icon> <span style="vertical-align:middle">为你推荐</span></h3>
+                        <h3 class="sidebar-title"><el-icon style="font-size:15px;vertical-align:middle"><Document /></el-icon> <span style="vertical-align:middle">{{ t('community_page.for_you') }}</span></h3>
                         <div class="sidebar-divider"></div>
                         <div v-if="recommendedPosts.length" class="space-y-2">
                             <div v-for="rp in recommendedPosts" :key="rp.id" class="sidebar-post-item" @click="openDetail(rp)">
                                 <div class="text-sm text-gray-800 line-clamp-2 leading-relaxed">{{ rp.content?.replace(/<[^>]*>/g, '').substring(0, 80) }}</div>
                                 <div class="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
-                                    <span>{{ rp.user?.name || '匿名' }}</span>
+                                    <span>{{ rp.user?.name || t('community_page.anonymous') }}</span>
                                     <span>❤️ {{ rp.likes_count || 0 }}</span>
                                     <span>💬 {{ rp.replies_count || 0 }}</span>
                                 </div>
                             </div>
                         </div>
-                        <div v-else class="text-xs text-gray-400 py-2 text-center">暂无推荐</div>
+                        <div v-else class="text-xs text-gray-400 py-2 text-center">{{ t('community_page.no_recommendations') }}</div>
                     </div>
 
                     <!-- 推荐关注 -->
                     <div class="sidebar-card">
-                        <h3 class="sidebar-title"><svg t="1783225465916" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="46732" width="15" height="15" style="vertical-align:middle;display:inline"><path d="M512 85.333333c129.6 0 234.666667 105.066667 234.666667 234.666667 0 84.256-44.394667 158.133333-111.072 199.52a425.28 425.28 0 0 1 152.853333 83.466667 32 32 0 1 1-41.493333 48.736A361.045333 361.045333 0 0 0 512 565.333333c-188.672 0-345.429333 144.672-361.344 331.413334a32 32 0 0 1-63.765333-5.429334c15.114667-177.322667 138.048-322.346667 301.546666-371.786666C321.76 478.165333 277.333333 404.266667 277.333333 320c0-129.6 105.066667-234.666667 234.666667-234.666667z m415.946667 627.381334l1.066666 1.013333a29.824 29.824 0 0 1 0 43.413333l-162.261333 152.96a31.925333 31.925333 0 0 1-22.762667 8.704 31.925333 31.925333 0 0 1-22.773333-8.704l-93.184-87.84a29.824 29.824 0 0 1 0-43.413333l1.077333-1.013333a32 32 0 0 1 43.904 0l70.976 66.901333 140.053334-132.021333a32 32 0 0 1 43.904 0zM512 149.333333c-94.261333 0-170.666667 76.405333-170.666667 170.666667s76.405333 170.666667 170.666667 170.666667 170.666667-76.405333 170.666667-170.666667-76.405333-170.666667-170.666667-170.666667z" fill="#2c2c2c" p-id="46733"></path></svg><span style="vertical-align:middle">推荐关注</span></h3>
+                        <h3 class="sidebar-title"><svg t="1783225465916" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="46732" width="15" height="15" style="vertical-align:middle;display:inline"><path d="M512 85.333333c129.6 0 234.666667 105.066667 234.666667 234.666667 0 84.256-44.394667 158.133333-111.072 199.52a425.28 425.28 0 0 1 152.853333 83.466667 32 32 0 1 1-41.493333 48.736A361.045333 361.045333 0 0 0 512 565.333333c-188.672 0-345.429333 144.672-361.344 331.413334a32 32 0 0 1-63.765333-5.429334c15.114667-177.322667 138.048-322.346667 301.546666-371.786666C321.76 478.165333 277.333333 404.266667 277.333333 320c0-129.6 105.066667-234.666667 234.666667-234.666667z m415.946667 627.381334l1.066666 1.013333a29.824 29.824 0 0 1 0 43.413333l-162.261333 152.96a31.925333 31.925333 0 0 1-22.762667 8.704 31.925333 31.925333 0 0 1-22.773333-8.704l-93.184-87.84a29.824 29.824 0 0 1 0-43.413333l1.077333-1.013333a32 32 0 0 1 43.904 0l70.976 66.901333 140.053334-132.021333a32 32 0 0 1 43.904 0zM512 149.333333c-94.261333 0-170.666667 76.405333-170.666667 170.666667s76.405333 170.666667 170.666667 170.666667 170.666667-76.405333 170.666667-170.666667-76.405333-170.666667-170.666667-170.666667z" fill="#2c2c2c" p-id="46733"></path></svg><span style="vertical-align:middle">{{ t('community_page.suggested_follows') }}</span></h3>
                         <div class="sidebar-divider"></div>
                         <div v-if="suggestedUsers.length" class="space-y-2">
                             <div v-for="user in suggestedUsers" :key="user.id" class="sidebar-user-item" @click="viewUser(user)">
@@ -360,47 +357,47 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <div class="text-sm font-medium text-gray-800 truncate">{{ user.name }}</div>
-                                    <div class="text-[10px] text-gray-400">📝 {{ user.posts_count }} 帖</div>
+                                    <div class="text-[10px] text-gray-400">{{ t('community_page.posts_count', { n: user.posts_count }) }}</div>
                                 </div>
                                 <button v-if="isLoggedIn" class="follow-btn" :class="{ following: user.is_following }" @click.stop="toggleFollow(user)">
-                                    {{ user.is_following ? '已关注' : '+ 关注' }}
+                                    {{ user.is_following ? t('community_page.following') : '+ ' + t('community_page.follow') }}
                                 </button>
                             </div>
                         </div>
-                        <div v-else class="text-xs text-gray-400 py-2 text-center">暂无推荐</div>
+                        <div v-else class="text-xs text-gray-400 py-2 text-center">{{ t('community_page.no_recommendations') }}</div>
                     </div>
                 </aside>
             </div>
         </div>
 
         <!-- 分享对话框 -->
-        <el-dialog v-model="showShareDialog" title="分享" width="400px">
+        <el-dialog v-model="showShareDialog" :title="t('actions.share')" width="400px">
             <div class="space-y-3">
                 <el-input v-model="shareLink" readonly>
-                    <template #append><el-button @click="copyShareLink">复制链接</el-button></template>
+                    <template #append><el-button @click="copyShareLink">{{ t('community_page.copy_link') }}</el-button></template>
                 </el-input>
             </div>
             <template #footer>
-                <el-button @click="showShareDialog = false">关闭</el-button>
+                <el-button @click="showShareDialog = false">{{ t('actions.close') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 收藏夹选择对话框 -->
-        <el-dialog v-model="showCollectionDialog" title="⭐ 收藏到" width="400px">
+        <el-dialog v-model="showCollectionDialog" :title="t('community_page.favorite_to')" width="400px">
             <div class="space-y-2">
                 <div v-for="col in collections" :key="col.id"
                     class="px-4 py-3 rounded-lg border border-gray-100 cursor-pointer hover:bg-primary-50 hover:border-primary-200 transition"
                     @click="addToCollection(col)">
-                    <span class="text-sm font-medium">{{ col.name || '默认收藏夹' }}</span>
+                    <span class="text-sm font-medium">{{ col.name || t('community_page.default_collection') }}</span>
                     <span class="text-xs text-gray-400 ml-2">({{ col.count || 0 }})</span>
                 </div>
                 <div class="flex gap-2 mt-3">
-                    <el-input v-model="newCollectionName" placeholder="新建收藏夹" size="small" />
-                    <el-button size="small" @click="createCollection" :disabled="!newCollectionName.trim()">新建</el-button>
+                    <el-input v-model="newCollectionName" :placeholder="t('community_page.new_collection_ph')" size="small" />
+                    <el-button size="small" @click="createCollection" :disabled="!newCollectionName.trim()">{{ t('actions.create') }}</el-button>
                 </div>
             </div>
             <template #footer>
-                <el-button @click="showCollectionDialog = false">取消</el-button>
+                <el-button @click="showCollectionDialog = false">{{ t('actions.cancel') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -409,12 +406,14 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Picture, VideoCamera, ArrowDown, Search, Female, Document } from '@element-plus/icons-vue'
 import PointsIcon from '@/components/PointsIcon.vue';
 import draggable from 'vuedraggable'
 import apiClient from '@/api/client.js'
 
+const { t, locale } = useI18n()
 const route = useRoute()
 const isLoggedIn = !!localStorage.getItem('auth_token')
 const myId = isLoggedIn ? (JSON.parse(localStorage.getItem('user') || '{}')?.id || 0) : 0
@@ -445,17 +444,17 @@ async function loadRecommendations() {
 }
 
 // ── Tabs ──
-const allTabs = [
-    { key: 'all', label: '全部' },
-    { key: 'pinned', label: '精华' },
-    { key: 'smart', label: '智能推荐' },
-    { key: 'recommended', label: '协同推荐' },
-    { key: 'hot', label: '热门' },
-    { key: 'weekly_hot', label: '本周热门' },
-    { key: 'following', label: '关注' },
-    { key: 'my', label: '我的' },
-]
-const tabs = computed(() => isLoggedIn ? allTabs : allTabs.filter(t => t.key !== 'following' && t.key !== 'my'))
+const tabKeys = ['all', 'pinned', 'smart', 'recommended', 'hot', 'weekly_hot', 'following', 'my']
+const tabs = computed(() => {
+    const keys = isLoggedIn ? tabKeys : tabKeys.filter(k => k !== 'following' && k !== 'my')
+    return keys.map(key => ({ key, label: t(`community_page.tabs.${key}`) }))
+})
+const myPostStatusOptions = computed(() => [
+    { value: '', label: t('community_page.status.all') },
+    { value: 'published', label: t('community_page.status.published') },
+    { value: 'draft', label: t('community_page.status.draft') },
+    { value: 'scheduled', label: t('community_page.status.scheduled') },
+])
 const activeTab = ref('all')
 const tagFilter = ref('')
 const allTags = ref([])
@@ -512,7 +511,7 @@ const currentUser = computed(() => {
     try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return null }
 })
 const previewContent = computed(() => {
-    return newPostContent.value || '<span style="color:#ccc">输入内容后这里实时预览...</span>'
+    return newPostContent.value || `<span style="color:#ccc">${t('community_page.preview_empty')}</span>`
 })
 const previewImages = computed(() => combinedImages.value.map(i => i.url))
 const previewTags = computed(() => postTags.value)
@@ -653,7 +652,7 @@ function restoreAutoDraft(draft) {
     postTags.value = draft.tags || []
     postTemplate.value = draft.template || 'discuss'
     clearAutoDraft()
-    ElMessage.success('草稿已恢复')
+    ElMessage.success(t('community_page.draft_restored'))
 }
 
 function clearAutoDraft() {
@@ -671,8 +670,8 @@ watch(showNewPost, (val) => {
     if (val && !editingPost.value) {
         const draft = checkAutoDraft()
         if (draft) {
-            ElMessageBox.confirm('检测到未发布的草稿，是否恢复？', '恢复草稿', {
-                confirmButtonText: '恢复', cancelButtonText: '忽略', type: 'info',
+            ElMessageBox.confirm(t('community_page.draft_restore_confirm'), t('community_page.draft_restore_title'), {
+                confirmButtonText: t('community_page.restore'), cancelButtonText: t('community_page.ignore'), type: 'info',
             }).then(() => restoreAutoDraft(draft)).catch(() => clearAutoDraft())
         }
     }
@@ -680,30 +679,33 @@ watch(showNewPost, (val) => {
 
 // ── 等级徽章 ──
 const levelBadges = ['', '🌱', '🌿', '🌳', '⭐', '🌟', '🏆', '👑', '💎', '🔥', '⚡']
-const levelNames = ['', '新手', '入门', '进阶', '达人', '精英', '大师', '王者', '传奇', '炽热', '超凡']
 function getLevelBadge(level) { return levelBadges[level] || '🌱' }
-function getLevelName(level) { return levelNames[level] || '新手' }
+function getLevelName(level) { return t(`community_page.levels.${level}`) || t('community_page.levels.1') }
 
 // ── 模板 ──
-const templates = [
-    { key: 'discuss', icon: '💬', label: '讨论', template: '' },
-    { key: 'poll', icon: '📊', label: '投票', template: '📊 投票：\nA. \nB. \nC.' },
-    { key: 'qa', icon: '❓', label: '问答', template: '❓ 提问：\n\n' },
-    { key: 'checkin', icon: '✅', label: '打卡', template: '✅ 打卡第 1 天！\n' },
-    { key: 'announce', icon: '📢', label: '公告', template: '📢 公告：\n\n' },
-]
+const templateKeys = ['discuss', 'poll', 'qa', 'checkin', 'announce']
+const templates = computed(() => templateKeys.map(key => ({
+    key,
+    label: t(`community_page.templates.${key}`),
+    template: key === 'discuss' ? '' : t(`community_page.template_content.${key}`),
+})))
+function getTemplateLabel(key) {
+    if (!key || key === 'discuss') return ''
+    return t(`community_page.template_labels.${key}`)
+}
 
 // ── Helpers ──
-function timeAgo(t) {
-    if (!t) return ''
-    const d = new Date(t)
+function timeAgo(ts) {
+    if (!ts) return ''
+    const d = new Date(ts)
     const now = Date.now()
     const diff = Math.floor((now - d.getTime()) / 1000)
-    if (diff < 60) return '刚刚'
-    if (diff < 3600) return Math.floor(diff / 60) + '分钟前'
-    if (diff < 86400) return Math.floor(diff / 3600) + '小时前'
-    if (diff < 2592000) return Math.floor(diff / 86400) + '天前'
-    return d.toLocaleDateString('zh-CN')
+    if (diff < 60) return t('time.just_now')
+    if (diff < 3600) return t('time.minutes_ago', { minutes: Math.floor(diff / 60) })
+    if (diff < 86400) return t('time.hours_ago', { hours: Math.floor(diff / 3600) })
+    if (diff < 2592000) return t('time.days_ago', { days: Math.floor(diff / 86400) })
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN'
+    return d.toLocaleDateString(loc)
 }
 
 function getImages(post) {
@@ -785,7 +787,7 @@ function removeFile(i) {
 
 // ── 发布/编辑 ──
 async function submitPost() {
-    if (!newPostContent.value.trim()) { ElMessage.warning('请输入内容'); return }
+    if (!newPostContent.value.trim()) { ElMessage.warning(t('community_page.content_required')); return }
     submitting.value = true
     try {
         const fd = new FormData()
@@ -829,23 +831,23 @@ async function submitPost() {
             await apiClient.post(`/moments/${editingPost.value.id}`, fd, {
                 headers: { 'Content-Type': 'multipart/form-data', Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
             })
-            ElMessage.success('修改已保存')
+            ElMessage.success(t('community_page.update_ok'))
         } else {
             await apiClient.post('/moments', fd, {
                 headers: { 'Content-Type': 'multipart/form-data', Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
             })
             clearAutoDraft() // 发布成功清除自动草稿
-            ElMessage.success('发布成功')
+            ElMessage.success(t('community_page.publish_ok'))
         }
 
         resetPostForm()
         await loadPosts()
-    } catch (e) { ElMessage.error(e.response?.data?.message || '操作失败') }
+    } catch (e) { ElMessage.error(e.response?.data?.message || t('community_page.operation_failed')) }
     finally { submitting.value = false }
 }
 
 function saveDraft() {
-    if (!newPostContent.value.trim()) { ElMessage.warning('请输入内容'); return }
+    if (!newPostContent.value.trim()) { ElMessage.warning(t('community_page.content_required')); return }
     try {
         const drafts = JSON.parse(localStorage.getItem('community_drafts') || '[]')
         drafts.unshift({
@@ -856,8 +858,8 @@ function saveDraft() {
             saved_at: new Date().toISOString(),
         })
         localStorage.setItem('community_drafts', JSON.stringify(drafts.slice(0, 20)))
-        ElMessage.success('草稿已保存')
-    } catch { ElMessage.error('保存失败') }
+        ElMessage.success(t('community_page.draft_saved'))
+    } catch { ElMessage.error(t('community_page.save_failed')) }
 }
 
 function resetPostForm() {
@@ -889,7 +891,7 @@ let voiceTimer = null
 function toggleVoiceInput() {
     if (voiceListening.value) { stopVoiceInput(); return }
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SpeechRecognition) { ElMessage.warning('当前浏览器不支持语音识别（推荐 Chrome）'); return }
+    if (!SpeechRecognition) { ElMessage.warning(t('community_page.voice_not_supported')); return }
     voiceRecognition = new SpeechRecognition()
     voiceRecognition.lang = 'zh-CN'
     voiceRecognition.continuous = true
@@ -904,7 +906,7 @@ function toggleVoiceInput() {
         }
         if (text) newPostContent.value = (newPostContent.value ? newPostContent.value + ' ' : '') + text
     }
-    voiceRecognition.onerror = () => { stopVoiceInput(); ElMessage.error('语音识别出错') }
+    voiceRecognition.onerror = () => { stopVoiceInput(); ElMessage.error(t('community_page.voice_error')) }
     voiceRecognition.onend = () => { if (voiceListening.value) voiceRecognition.start() }
     voiceRecognition.start()
 }
@@ -912,12 +914,12 @@ function stopVoiceInput() {
     if (voiceRecognition) { voiceRecognition.onend = null; voiceRecognition.stop(); voiceRecognition = null }
     clearInterval(voiceTimer)
     voiceListening.value = false
-    if (voiceDuration.value >= 2) ElMessage.success('语音已转文字')
+    if (voiceDuration.value >= 2) ElMessage.success(t('community_page.voice_done'))
 }
 
 function formatContent() {
     let text = newPostContent.value
-    if (!text.trim()) { ElMessage.info('没有内容需要排版'); return }
+    if (!text.trim()) { ElMessage.info(t('community_page.format_no_content')); return }
 
     const original = text
     // 1. 多余空行：连续 3 个以上换行缩为 2 个
@@ -940,9 +942,9 @@ function formatContent() {
 
     newPostContent.value = text
     if (text !== original) {
-        ElMessage.success('✅ 排版完成')
+        ElMessage.success(t('community_page.format_done'))
     } else {
-        ElMessage.info('内容已经很整洁了')
+        ElMessage.info(t('community_page.format_already_clean'))
     }
 }
 
@@ -966,11 +968,11 @@ function removeExistingImage(i) {
 // ── 删除帖子 ──
 async function deletePost(post) {
     try {
-        await ElMessageBox.confirm('确定删除此帖子？', '删除确认', { type: 'warning' })
+        await ElMessageBox.confirm(t('community_page.delete_confirm'), t('community_page.delete_title'), { type: 'warning' })
         await apiClient.delete(`/moments/${post.id}`, {
             headers: { Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
         })
-        ElMessage.success('已删除')
+        ElMessage.success(t('community_page.deleted'))
         posts.value = posts.value.filter(p => p.id !== post.id)
     } catch { /* ignore */ }
 }
@@ -985,7 +987,7 @@ async function toggleFavorite(post) {
                 headers: { Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
             })
             post.is_favorited = false
-            ElMessage.success('已取消收藏')
+            ElMessage.success(t('community_page.unfavorited'))
         } catch { /* ignore */ }
     } else {
         favoriteTargetId.value = post.id
@@ -1008,11 +1010,11 @@ async function addToCollection(col) {
         await apiClient.post(`/moments/${favoriteTargetId.value}/favorite`, { collection_id: col.id }, {
             headers: { Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
         })
-        ElMessage.success('已收藏')
+        ElMessage.success(t('community_page.favorited'))
         showCollectionDialog.value = false
         const post = posts.value.find(p => p.id === favoriteTargetId.value)
         if (post) post.is_favorited = true
-    } catch { ElMessage.error('收藏失败') }
+    } catch { ElMessage.error(t('community_page.favorite_failed')) }
 }
 
 async function createCollection() {
@@ -1021,10 +1023,10 @@ async function createCollection() {
         await apiClient.post('/moments/favorites/collections', { name: newCollectionName.value }, {
             headers: { Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
         })
-        ElMessage.success('收藏夹已创建')
+        ElMessage.success(t('community_page.collection_created'))
         newCollectionName.value = ''
         await loadCollections()
-    } catch { ElMessage.error('创建失败') }
+    } catch { ElMessage.error(t('community_page.create_failed')) }
 }
 
 // ── 点赞 ──
@@ -1046,8 +1048,8 @@ async function togglePin(post) {
             headers: { Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
         })
         post.is_pinned = res.data?.data?.is_pinned ?? !post.is_pinned
-        ElMessage.success(post.is_pinned ? '已置顶' : '已取消置顶')
-    } catch { ElMessage.error('操作失败') }
+        ElMessage.success(post.is_pinned ? t('community_page.pinned_ok') : t('community_page.unpinned_ok'))
+    } catch { ElMessage.error(t('community_page.operation_failed')) }
 }
 
 // ── 分享 ──
@@ -1059,9 +1061,9 @@ function sharePost(post) {
 
 function copyShareLink() {
     navigator.clipboard.writeText(shareLink.value).then(() => {
-        ElMessage.success('链接已复制')
+        ElMessage.success(t('community_page.link_copied'))
     }).catch(() => {
-        ElMessage.info('请手动复制链接')
+        ElMessage.info(t('community_page.copy_manually'))
     })
 }
 
@@ -1087,8 +1089,8 @@ async function toggleFollow(user) {
 async function reportPost(post) {
     if (!isLoggedIn) { window.location.href = '/build/login'; return }
     try {
-        const reason = await ElMessageBox.prompt('请描述举报原因', '举报帖子', {
-            inputType: 'textarea', confirmButtonText: '提交举报', cancelButtonText: '取消'
+        const reason = await ElMessageBox.prompt(t('community_page.report_prompt'), t('community_page.report_title'), {
+            inputType: 'textarea', confirmButtonText: t('community_page.report_submit'), cancelButtonText: t('actions.cancel')
         }).then(r => r.value)
         if (!reason) return
         await apiClient.post('/user-chat/reports', {
@@ -1096,7 +1098,7 @@ async function reportPost(post) {
             reportable_id: post.id,
             reason,
         }, { headers: { Authorization: 'Bearer ' + localStorage.getItem('auth_token') } })
-        ElMessage.success('举报已提交，感谢您的反馈')
+        ElMessage.success(t('community_page.report_ok'))
     } catch { /* ignore */ }
 }
 
@@ -1184,7 +1186,7 @@ onUnmounted(() => {
 .preview-images.img-count-2, .preview-images.img-count-4 { grid-template-columns: 1fr 1fr; }
 .preview-images.img-count-3 { grid-template-columns: 1fr 1fr 1fr; }
 .preview-images img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; }
-.preview-tag { display: inline-flex; padding: 1px 6px; background: #ecf5ff; color: #409eff; border-radius: 8px; font-size: 10px; }
+.preview-tag { display: inline-flex; padding: 1px 6px; background: #f1f5f9; color: #0f172a; border-radius: 8px; font-size: 10px; }
 .preview-card .line-clamp-4 { -webkit-line-clamp: 4; }
 .post-body {
     font-size: 14px;
@@ -1224,15 +1226,15 @@ onUnmounted(() => {
 .tag-pill {
     display: inline-flex;
     padding: 1px 8px;
-    background: #ecf5ff;
-    color: #409eff;
+    background: #f1f5f9;
+    color: #0f172a;
     border-radius: 10px;
     font-size: 11px;
     transition: all 0.15s ease;
     cursor: pointer;
 }
 .tag-pill:hover {
-    background: #409eff;
+    background: #0f172a;
     color: #fff;
 }
 
@@ -1397,12 +1399,12 @@ onUnmounted(() => {
 }
 
 /* ── 关注按钮 ── */
-.follow-btn { padding: 2px 10px; border-radius: 14px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s ease; white-space: nowrap; border: 1px solid #409eff; color: #409eff; background: #fff; flex-shrink: 0; }
-.follow-btn:hover { background: #409eff; color: #fff; }
+.follow-btn { padding: 2px 10px; border-radius: 14px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s ease; white-space: nowrap; border: 1px solid #0f172a; color: #0f172a; background: #fff; flex-shrink: 0; }
+.follow-btn:hover { background: #0f172a; color: #fff; }
 .follow-btn.following { border-color: #ddd; color: #999; background: #f5f5f5; }
 .follow-btn.following:hover { border-color: #ef4444; color: #ef4444; background: #fef2f2; }
-.follow-btn-sm { padding: 1px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; cursor: pointer; transition: all .15s ease; white-space: nowrap; border: 1px solid #409eff; color: #409eff; background: #fff; flex-shrink: 0; line-height: 1.6; }
-.follow-btn-sm:hover { background: #409eff; color: #fff; }
+.follow-btn-sm { padding: 1px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; cursor: pointer; transition: all .15s ease; white-space: nowrap; border: 1px solid #0f172a; color: #0f172a; background: #fff; flex-shrink: 0; line-height: 1.6; }
+.follow-btn-sm:hover { background: #0f172a; color: #fff; }
 .follow-btn-sm.following { border-color: #ddd; color: #999; background: #f5f5f5; }
 .follow-btn-sm.following:hover { border-color: #ef4444; color: #ef4444; background: #fef2f2; }
 

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
     getMyNotificationPreferences,
@@ -7,6 +8,8 @@ import {
     initializeNotificationPreferences,
     updateGeneralSettings,
 } from '../../api/notificationPreference.js'
+
+const { t } = useI18n()
 
 const preferences = ref([])
 const channels = ref([])
@@ -22,36 +25,34 @@ const general = reactive({
     in_quiet_hours: false,
 })
 
-// 时区选项
-const timezoneOptions = [
-    { value: 'Asia/Shanghai', label: '中国标准时间 (UTC+8)' },
-    { value: 'Asia/Hong_Kong', label: '香港时间 (UTC+8)' },
-    { value: 'Asia/Tokyo', label: '日本时间 (UTC+9)' },
-    { value: 'America/New_York', label: '美东时间 (UTC-5)' },
-    { value: 'America/Los_Angeles', label: '美西时间 (UTC-8)' },
-    { value: 'Europe/London', label: '伦敦时间 (UTC+0)' },
-    { value: 'Europe/Berlin', label: '柏林时间 (UTC+1)' },
-    { value: 'Australia/Sydney', label: '悉尼时间 (UTC+10)' },
-    { value: 'Pacific/Auckland', label: '奥克兰时间 (UTC+12)' },
-]
+const timezoneOptions = computed(() => [
+    { value: 'Asia/Shanghai', label: t('portal.tz_shanghai') },
+    { value: 'Asia/Hong_Kong', label: t('portal.tz_hongkong') },
+    { value: 'Asia/Tokyo', label: t('portal.tz_tokyo') },
+    { value: 'America/New_York', label: t('portal.tz_newyork') },
+    { value: 'America/Los_Angeles', label: t('portal.tz_losangeles') },
+    { value: 'Europe/London', label: t('portal.tz_london') },
+    { value: 'Europe/Berlin', label: t('portal.tz_berlin') },
+    { value: 'Australia/Sydney', label: t('portal.tz_sydney') },
+    { value: 'Pacific/Auckland', label: t('portal.tz_auckland') },
+])
 
-const digestLabels = {
-    none: '不发送摘要',
-    daily: '每日摘要',
-    weekly: '每周摘要',
-    monthly: '每月摘要',
-}
+const digestLabels = computed(() => ({
+    none: t('portal.digest_none'),
+    daily: t('portal.digest_daily'),
+    weekly: t('portal.digest_weekly'),
+    monthly: t('portal.digest_monthly'),
+}))
 
-// 所有分类名称映射
-const categoryLabels = {
-    license_expiry: 'License 到期提醒',
-    invoice: '发票/账单通知',
-    payment: '支付通知',
-    security: '安全提醒',
-    system: '系统公告',
-    promotion: '营销推广',
-    commission: '佣金通知',
-}
+const categoryLabels = computed(() => ({
+    license_expiry: t('portal.cat_license_expiry'),
+    invoice: t('portal.cat_invoice'),
+    payment: t('portal.cat_payment'),
+    security: t('portal.cat_security'),
+    system: t('portal.cat_system'),
+    promotion: t('portal.cat_promotion'),
+    commission: t('portal.cat_commission'),
+}))
 
 const categoryIcons = {
     license_expiry: 'Key',
@@ -63,11 +64,11 @@ const categoryIcons = {
     commission: 'Coin',
 }
 
-const channelLabels = {
-    mail: '📧 邮件',
-    sms: '📱 短信',
-    database: '🔔 站内信',
-}
+const channelLabels = computed(() => ({
+    mail: t('portal.mail'),
+    sms: t('portal.sms'),
+    database: t('portal.inapp'),
+}))
 
 // 按分类组织偏好
 const groupedByCategory = computed(() => {
@@ -76,7 +77,7 @@ const groupedByCategory = computed(() => {
         if (!groups[pref.category]) {
             groups[pref.category] = {
                 category: pref.category,
-                label: categoryLabels[pref.category] || pref.category,
+                label: categoryLabels.value[pref.category] || pref.category,
                 icon: categoryIcons[pref.category] || 'Bell',
                 items: [],
             }
@@ -130,9 +131,9 @@ async function savePreferences() {
                 enabled: p.enabled,
             })),
         })
-        ElMessage.success('通知偏好已保存')
+        ElMessage.success(t('portal.notif_saved'))
     } catch (e) {
-        ElMessage.error('保存失败')
+        ElMessage.error(t('portal.save_failed'))
     } finally {
         saving.value = false
     }
@@ -147,9 +148,9 @@ async function saveGeneralSettings() {
             timezone: general.timezone,
             digest_frequency: general.digest_frequency,
         })
-        ElMessage.success('通用设置已保存')
+        ElMessage.success(t('portal.general_saved'))
     } catch (e) {
-        ElMessage.error('保存通用设置失败')
+        ElMessage.error(t('portal.general_save_failed'))
     } finally {
         saving.value = false
     }
@@ -169,12 +170,12 @@ function toggleCategory(category, enabled) {
 
 async function handleInitialize() {
     try {
-        await ElMessageBox.confirm('将重置所有通知偏好为默认值，确定继续？', '确认')
+        await ElMessageBox.confirm(t('portal.reset_notif_confirm'), t('actions.confirm'))
         await initializeNotificationPreferences()
-        ElMessage.success('已重置为默认设置')
+        ElMessage.success(t('portal.reset_ok'))
         loadPreferences()
     } catch (e) {
-        if (e !== 'cancel') ElMessage.error('重置失败')
+        if (e !== 'cancel') ElMessage.error(t('portal.reset_failed'))
     }
 }
 
@@ -202,20 +203,20 @@ onMounted(loadPreferences)
 <template>
     <div>
         <div class="mb-4">
-            <h1 class="text-xl font-semibold">通知偏好设置</h1>
-            <p class="text-gray-500 text-sm mt-1">管理您希望接收哪些类型的通知，以及通过什么渠道接收。</p>
+            <h1 class="text-xl font-semibold">{{ $t('portal.notif_title') }}</h1>
+            <p class="text-gray-500 text-sm mt-1">{{ $t('portal.notif_subtitle') }}</p>
         </div>
 
         <!-- 可用渠道概览 -->
         <el-card class="mb-5" shadow="never">
-            <template #header><span class="font-semibold">可用通知渠道</span></template>
+            <template #header><span class="font-semibold">{{ $t('portal.available_channels') }}</span></template>
             <el-row :gutter="12">
                 <el-col :span="8" v-for="ch in channels" :key="ch.channel">
                     <div class="channel-card p-3 rounded-lg" :class="ch.verified ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border border-gray-200'">
                         <div class="font-semibold">{{ channelLabels[ch.channel] || ch.channel }}</div>
                         <div class="text-sm text-gray-500 mt-1">{{ ch.description }}</div>
-                        <el-tag v-if="ch.verified" type="success" size="small" class="mt-1">已验证</el-tag>
-                        <el-tag v-else type="warning" size="small" class="mt-1">未验证</el-tag>
+                        <el-tag v-if="ch.verified" type="success" size="small" class="mt-1">{{ $t('portal.verified') }}</el-tag>
+                        <el-tag v-else type="warning" size="small" class="mt-1">{{ $t('portal.unverified') }}</el-tag>
                     </div>
                 </el-col>
             </el-row>
@@ -223,29 +224,29 @@ onMounted(loadPreferences)
 
         <!-- 免打扰 & 摘要设置 (M3-29) -->
         <el-card class="mb-5" shadow="never">
-            <template #header><span class="font-semibold">⏰ 免打扰与时区设置</span></template>
+            <template #header><span class="font-semibold">{{ $t('portal.quiet_hours') }}</span></template>
             <el-row :gutter="24" class="items-end">
                 <el-col :span="6">
-                    <el-form-item label="免打扰开始时间">
+                    <el-form-item :label="$t('portal.quiet_start')">
                         <el-time-picker v-model="general.quiet_hours_start" format="HH:mm" value-format="HH:mm"
-                            placeholder="不限制" style="width:100%" is-range />
+                            :placeholder="$t('portal.no_limit')" style="width:100%" is-range />
                     </el-form-item>
                 </el-col>
                 <el-col :span="6">
-                    <el-form-item label="免打扰结束时间">
+                    <el-form-item :label="$t('portal.quiet_end')">
                         <el-time-picker v-model="general.quiet_hours_end" format="HH:mm" value-format="HH:mm"
-                            placeholder="不限制" style="width:100%" is-range />
+                            :placeholder="$t('portal.no_limit')" style="width:100%" is-range />
                     </el-form-item>
                 </el-col>
                 <el-col :span="6">
-                    <el-form-item label="时区">
+                    <el-form-item :label="$t('portal.timezone')">
                         <el-select v-model="general.timezone" style="width:100%">
                             <el-option v-for="tz in timezoneOptions" :key="tz.value" :label="tz.label" :value="tz.value" />
                         </el-select>
                     </el-form-item>
                 </el-col>
                 <el-col :span="6">
-                    <el-form-item label="摘要频率">
+                    <el-form-item :label="$t('portal.digest_freq')">
                         <el-select v-model="general.digest_frequency" style="width:100%">
                             <el-option v-for="(label, val) in digestLabels" :key="val" :label="label" :value="val" />
                         </el-select>
@@ -253,23 +254,23 @@ onMounted(loadPreferences)
                 </el-col>
             </el-row>
             <div class="mt-2 flex items-center gap-4">
-                <el-tag v-if="general.in_quiet_hours" type="warning" size="small">🔕 当前在免打扰时段</el-tag>
-                <el-tag v-else type="success" size="small">🔔 通知正常发送</el-tag>
-                <el-button size="small" type="primary" plain @click="saveGeneralSettings" :loading="saving">保存通用设置</el-button>
+                <el-tag v-if="general.in_quiet_hours" type="warning" size="small">{{ $t('portal.in_quiet_now') }}</el-tag>
+                <el-tag v-else type="success" size="small">{{ $t('portal.notif_normal') }}</el-tag>
+                <el-button size="small" type="primary" plain @click="saveGeneralSettings" :loading="saving">{{ $t('portal.save_general') }}</el-button>
             </div>
         </el-card>
 
         <!-- 操作栏 -->
         <div class="flex items-center justify-between mb-4">
             <el-radio-group v-model="activeTab" size="small">
-                <el-radio-button value="all">全部</el-radio-button>
+                <el-radio-button value="all">{{ $t('portal.all') }}</el-radio-button>
                 <el-radio-button v-for="g in groupedByCategory" :key="g.category" :value="g.category">
                     {{ g.label }}
                 </el-radio-button>
             </el-radio-group>
             <div class="flex gap-2">
-                <el-button size="small" @click="handleInitialize">恢复默认</el-button>
-                <el-button type="primary" size="small" @click="savePreferences" :loading="saving">保存设置</el-button>
+                <el-button size="small" @click="handleInitialize">{{ $t('portal.restore_default') }}</el-button>
+                <el-button type="primary" size="small" @click="savePreferences" :loading="saving">{{ $t('portal.save_settings') }}</el-button>
             </div>
         </div>
 
@@ -280,7 +281,7 @@ onMounted(loadPreferences)
                     <div class="flex items-center justify-between">
                         <span class="font-semibold">{{ group.label }}</span>
                         <div class="flex gap-2 items-center">
-                            <span class="text-sm text-gray-400">全选:</span>
+                            <span class="text-sm text-gray-400">{{ $t('portal.select_all') }}</span>
                             <el-switch
                                 :model-value="categoryAllEnabled(group.items)"
                                 size="small"
@@ -292,56 +293,56 @@ onMounted(loadPreferences)
                 </template>
 
                 <el-table :data="group.items" stripe>
-                    <el-table-column label="通知渠道" width="180">
+                    <el-table-column :label="$t('portal.notif_channel')" width="180">
                         <template #default="{ row }">
                             <div class="flex items-center gap-2">
                                 <span>{{ channelLabels[row.channel] || row.channel }}</span>
                             </div>
                         </template>
                     </el-table-column>
-                    <el-table-column label="通知类型" min-width="200">
+                    <el-table-column :label="$t('portal.notif_type')" min-width="200">
                         <template #default="{ row }">
                             <span>{{ row.label || categoryLabels[row.category] || row.category }}</span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="启用" width="120" align="center">
+                    <el-table-column :label="$t('portal.enable')" width="120" align="center">
                         <template #default="{ row }">
                             <el-switch v-model="row.enabled" @click.stop />
                         </template>
                     </el-table-column>
-                    <el-table-column label="说明" min-width="200">
+                    <el-table-column :label="$t('portal.description')" min-width="200">
                         <template #default="{ row }">
                             <span class="text-gray-400 text-sm">
-                                <template v-if="row.channel === 'mail'">发送到注册邮箱</template>
-                                <template v-else-if="row.channel === 'sms'">发送到注册手机</template>
-                                <template v-else>平台消息中心可查看</template>
+                                <template v-if="row.channel === 'mail'">{{ $t('portal.mail_hint') }}</template>
+                                <template v-else-if="row.channel === 'sms'">{{ $t('portal.sms_hint') }}</template>
+                                <template v-else>{{ $t('portal.inapp_hint') }}</template>
                             </span>
                         </template>
                     </el-table-column>
                 </el-table>
             </el-card>
 
-            <el-empty v-if="!loading && groupedByCategory.length === 0" description="暂无通知分类" />
+            <el-empty v-if="!loading && groupedByCategory.length === 0" :description="$t('portal.no_notif_cats')" />
         </div>
 
         <!-- 简略概览表 -->
         <el-card class="mb-4" shadow="never" v-if="categorySummaries.length">
-            <template #header><span class="font-semibold">概览</span></template>
+            <template #header><span class="font-semibold">{{ $t('portal.overview') }}</span></template>
             <el-table :data="categorySummaries" stripe>
-                <el-table-column prop="label" label="通知类型" min-width="160" />
-                <el-table-column label="邮件" width="100" align="center">
+                <el-table-column prop="label" :label="$t('portal.notif_type')" min-width="160" />
+                <el-table-column :label="$t('portal.mail')" width="100" align="center">
                     <template #default="{ row }">
                         <el-tag v-if="row.email" type="success" size="small">✓</el-tag>
                         <el-tag v-else type="info" size="small">✗</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="短信" width="100" align="center">
+                <el-table-column :label="$t('portal.sms')" width="100" align="center">
                     <template #default="{ row }">
                         <el-tag v-if="row.sms" type="success" size="small">✓</el-tag>
                         <el-tag v-else type="info" size="small">✗</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="站内信" width="100" align="center">
+                <el-table-column :label="$t('portal.inapp')" width="100" align="center">
                     <template #default="{ row }">
                         <el-tag v-if="row.inapp" type="success" size="small">✓</el-tag>
                         <el-tag v-else type="info" size="small">✗</el-tag>

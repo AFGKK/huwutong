@@ -1,15 +1,13 @@
 <template>
     <div class="usage-meter-page">
-        <!-- 本用量总览 -->
         <div class="page-header">
-            <h2>用量计量总览</h2>
+            <h2>{{ t('usage_meter_page.title') }}</h2>
             <div class="header-meta">
                 <el-tag type="info" size="small">{{ periodLabel }}</el-tag>
                 <el-button @click="fetchOverview" :icon="Refresh" circle size="small" class="ml-2" />
             </div>
         </div>
 
-        <!-- 用量指标卡片 -->
         <el-row :gutter="16" class="mb-6">
             <el-col :span="6" v-for="metric in overviewMetrics" :key="metric.metric_key">
                 <el-card shadow="never" class="metric-card" :class="{ 'card-warning': metric.usage_rate > 80, 'card-danger': metric.usage_rate >= 100 }">
@@ -19,9 +17,9 @@
                     <div class="metric-value">{{ formatNumber(metric.total) }}</div>
                     <div class="metric-footer">
                         <span v-if="metric.quota_limit !== null" class="metric-limit">
-                            配额 {{ formatNumber(metric.quota_limit) }}
+                            {{ t('usage_meter_page.quota_n', { n: formatNumber(metric.quota_limit) }) }}
                         </span>
-                        <span v-else class="metric-limit text-muted">无限额</span>
+                        <span v-else class="metric-limit text-muted">{{ t('usage_meter_page.unlimited') }}</span>
                         <span v-if="metric.usage_rate !== null" class="metric-rate" :class="rateColor(metric.usage_rate)">
                             {{ metric.usage_rate }}%
                         </span>
@@ -37,54 +35,53 @@
             </el-col>
         </el-row>
 
-        <!-- 上部分：配额管理 -->
         <el-card shadow="never" class="section-card">
             <template #header>
                 <div class="section-header">
-                    <span>配额规则</span>
-                    <el-button type="primary" size="small" @click="showQuotaForm = true; editingQuota = null">
-                        <el-icon><Plus /></el-icon> 添加规则
+                    <span>{{ t('usage_meter_page.quota_rules') }}</span>
+                    <el-button type="primary" size="small" @click="showQuotaForm = true; editingQuota = null; quotaForm = defaultForm()">
+                        <el-icon><Plus /></el-icon> {{ t('usage_meter_page.add_rule') }}
                     </el-button>
                 </div>
             </template>
 
             <el-table :data="quotas" v-loading="loading.quotas" stripe>
-                <el-table-column prop="metric_key" label="指标" width="160">
+                <el-table-column prop="metric_key" :label="t('usage_meter_page.cols.metric')" width="160">
                     <template #default="{ row }">
                         <el-tag size="small">{{ row.metric_key }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="window_type" label="时间窗" width="100">
+                <el-table-column prop="window_type" :label="t('usage_meter_page.cols.window')" width="100">
                     <template #default="{ row }">
                         {{ windowTypeLabel(row.window_type) }}
                     </template>
                 </el-table-column>
-                <el-table-column prop="quota_limit" label="上限" width="120" align="right" />
-                <el-table-column label="作用范围" min-width="180">
+                <el-table-column prop="quota_limit" :label="t('usage_meter_page.cols.limit')" width="120" align="right" />
+                <el-table-column :label="t('usage_meter_page.cols.scope')" min-width="180">
                     <template #default="{ row }">
-                        <span v-if="row.license">License: {{ row.license.license_key }}</span>
-                        <span v-else-if="row.product">产品: {{ row.product.name }}</span>
-                        <span v-else class="text-muted">全局</span>
+                        <span v-if="row.license">{{ t('usage_meter_page.scope_license', { key: row.license.license_key }) }}</span>
+                        <span v-else-if="row.product">{{ t('usage_meter_page.scope_product', { name: row.product.name }) }}</span>
+                        <span v-else class="text-muted">{{ t('usage_meter_page.scope_global') }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="action_on_exceed" label="超额策略" width="120">
+                <el-table-column prop="action_on_exceed" :label="t('usage_meter_page.cols.exceed')" width="120">
                     <template #default="{ row }">
                         <el-tag :type="row.action_on_exceed === 'block' ? 'danger' : row.action_on_exceed === 'warn' ? 'warning' : 'info'" size="small">
-                            {{ row.action_on_exceed === 'block' ? '拦截' : row.action_on_exceed === 'warn' ? '告警' : '仅记录' }}
+                            {{ exceedLabel(row.action_on_exceed) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="is_active" label="状态" width="80">
+                <el-table-column prop="is_active" :label="t('usage_meter_page.cols.status')" width="80">
                     <template #default="{ row }">
                         <el-switch :model-value="row.is_active" disabled size="small" />
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="140" fixed="right">
+                <el-table-column :label="t('usage_meter_page.cols.actions')" width="140" fixed="right">
                     <template #default="{ row }">
-                        <el-button size="small" text @click="editQuota(row)">编辑</el-button>
-                        <el-popconfirm title="确定删除此配额规则？" @confirm="deleteQuota(row)">
+                        <el-button size="small" text @click="editQuota(row)">{{ t('actions.edit') }}</el-button>
+                        <el-popconfirm :title="t('usage_meter_page.delete_confirm')" @confirm="deleteQuota(row)">
                             <template #reference>
-                                <el-button size="small" text type="danger">删除</el-button>
+                                <el-button size="small" text type="danger">{{ t('actions.delete') }}</el-button>
                             </template>
                         </el-popconfirm>
                     </template>
@@ -92,119 +89,121 @@
             </el-table>
 
             <div v-if="quotas.length === 0 && !loading.quotas" class="empty-state">
-                <el-empty description="暂无配额规则" />
+                <el-empty :description="t('usage_meter_page.empty_quotas')" />
             </div>
         </el-card>
 
-        <!-- 下部分：历史用量趋势 -->
         <el-card shadow="never" class="section-card mt-4">
             <template #header>
                 <div class="section-header">
-                    <span>用量趋势</span>
+                    <span>{{ t('usage_meter_page.trend_title') }}</span>
                     <div class="section-actions">
                         <el-select v-model="trendMetric" @change="fetchTrend" style="width: 200px">
                             <el-option v-for="m in metrics" :key="m.key" :label="m.name" :value="m.key" />
                         </el-select>
                         <el-select v-model="trendPeriod" @change="fetchTrend" style="width: 120px" class="ml-2">
-                            <el-option value="monthly" label="按月" />
-                            <el-option value="daily" label="按日" />
+                            <el-option value="monthly" :label="t('usage_meter_page.by_month')" />
+                            <el-option value="daily" :label="t('usage_meter_page.by_day')" />
                         </el-select>
                     </div>
                 </div>
             </template>
 
             <div v-loading="loading.trend">
-                <!-- 简单趋势表格 -->
                 <el-table :data="trendData" v-if="trendData.length > 0" stripe>
-                    <el-table-column prop="period_start" label="起始日期" width="140" />
-                    <el-table-column prop="period_end" label="结束日期" width="140" />
-                    <el-table-column prop="total" label="总量" align="right">
+                    <el-table-column prop="period_start" :label="t('usage_meter_page.cols.period_start')" width="140" />
+                    <el-table-column prop="period_end" :label="t('usage_meter_page.cols.period_end')" width="140" />
+                    <el-table-column prop="total" :label="t('usage_meter_page.cols.total')" align="right">
                         <template #default="{ row }">{{ formatNumber(row.total) }}</template>
                     </el-table-column>
-                    <el-table-column prop="records" label="记录数" align="right" />
+                    <el-table-column prop="records" :label="t('usage_meter_page.cols.records')" align="right" />
                 </el-table>
-                <el-empty v-else description="暂无用量数据" />
+                <el-empty v-else :description="t('usage_meter_page.empty_trend')" />
             </div>
         </el-card>
 
-        <!-- 配额表单对话框 -->
-        <el-dialog v-model="showQuotaForm" :title="editingQuota ? '编辑配额规则' : '添加配额规则'" width="500px">
+        <el-dialog v-model="showQuotaForm" :title="editingQuota ? t('usage_meter_page.edit_rule') : t('usage_meter_page.add_rule_title')" width="500px">
             <el-form :model="quotaForm" :rules="quotaRules" ref="quotaFormRef" label-width="120px">
-                <el-form-item label="指标键" prop="metric_key">
+                <el-form-item :label="t('usage_meter_page.form.metric_key')" prop="metric_key">
                     <el-select v-model="quotaForm.metric_key" filterable style="width: 100%">
                         <el-option v-for="m in metrics" :key="m.key" :label="`${m.name} (${m.key})`" :value="m.key" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="时间窗" prop="window_type">
+                <el-form-item :label="t('usage_meter_page.form.window_type')" prop="window_type">
                     <el-radio-group v-model="quotaForm.window_type">
-                        <el-radio value="monthly">月度</el-radio>
-                        <el-radio value="daily">每日</el-radio>
-                        <el-radio value="total">总计</el-radio>
+                        <el-radio value="monthly">{{ t('usage_meter_page.windows.monthly') }}</el-radio>
+                        <el-radio value="daily">{{ t('usage_meter_page.windows.daily') }}</el-radio>
+                        <el-radio value="total">{{ t('usage_meter_page.windows.total') }}</el-radio>
                     </el-radio-group>
                 </el-form-item>
-                <el-form-item label="配额上限" prop="quota_limit">
+                <el-form-item :label="t('usage_meter_page.form.quota_limit')" prop="quota_limit">
                     <el-input-number v-model="quotaForm.quota_limit" :min="1" :max="999999999" style="width: 100%" />
                 </el-form-item>
-                <el-form-item label="作用范围">
+                <el-form-item :label="t('usage_meter_page.form.scope')">
                     <el-radio-group v-model="quotaForm.scope_type">
-                        <el-radio value="global">全局</el-radio>
-                        <el-radio value="product">按产品</el-radio>
-                        <el-radio value="license">按 License</el-radio>
+                        <el-radio value="global">{{ t('usage_meter_page.scope_global') }}</el-radio>
+                        <el-radio value="product">{{ t('usage_meter_page.by_product') }}</el-radio>
+                        <el-radio value="license">{{ t('usage_meter_page.by_license') }}</el-radio>
                     </el-radio-group>
                 </el-form-item>
-                <el-form-item label="产品" v-if="quotaForm.scope_type === 'product'" prop="product_id">
-                    <el-select v-model="quotaForm.product_id" filterable style="width: 100%" placeholder="选择产品">
+                <el-form-item :label="t('usage_meter_page.form.product')" v-if="quotaForm.scope_type === 'product'" prop="product_id">
+                    <el-select v-model="quotaForm.product_id" filterable style="width: 100%" :placeholder="t('usage_meter_page.select_product')">
                         <el-option v-for="p in products" :key="p.id" :label="p.name" :value="p.id" />
                     </el-select>
                 </el-form-item>
                 <el-form-item label="License" v-if="quotaForm.scope_type === 'license'" prop="license_id">
-                    <el-select v-model="quotaForm.license_id" filterable style="width: 100%" placeholder="选择 License">
+                    <el-select v-model="quotaForm.license_id" filterable style="width: 100%" :placeholder="t('usage_meter_page.select_license')">
                         <el-option v-for="l in licenses" :key="l.id" :label="`${l.license_key} (${l.name ?? ''})`" :value="l.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="超额策略" prop="action_on_exceed">
+                <el-form-item :label="t('usage_meter_page.form.exceed')" prop="action_on_exceed">
                     <el-radio-group v-model="quotaForm.action_on_exceed">
-                        <el-radio value="block">拦截</el-radio>
-                        <el-radio value="warn">告警</el-radio>
-                        <el-radio value="log">仅记录</el-radio>
+                        <el-radio value="block">{{ t('usage_meter_page.exceed.block') }}</el-radio>
+                        <el-radio value="warn">{{ t('usage_meter_page.exceed.warn') }}</el-radio>
+                        <el-radio value="log">{{ t('usage_meter_page.exceed.log') }}</el-radio>
                     </el-radio-group>
                 </el-form-item>
-                <el-form-item label="启用">
+                <el-form-item :label="t('actions.enable')">
                     <el-switch v-model="quotaForm.is_active" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showQuotaForm = false">取消</el-button>
-                <el-button type="primary" @click="submitQuota" :loading="saving">保存</el-button>
+                <el-button @click="showQuotaForm = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="submitQuota" :loading="saving">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive } from 'vue';
-import { ElMessage } from 'element-plus';
-import { Plus, Refresh } from '@element-plus/icons-vue';
-import usageMeterApi from '@/api/usageMeter';
+import { ref, computed, onMounted, reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
+import { Plus, Refresh } from '@element-plus/icons-vue'
+import usageMeterApi from '@/api/usageMeter'
 
-const loading = reactive({ quotas: false, trend: false });
-const overviewMetrics = ref([]);
-const metrics = ref([]);
-const quotas = ref([]);
-const products = ref([]);
-const licenses = ref([]);
-const periodLabel = computed(() => `当前统计周期: ${new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}`);
+const { t, locale } = useI18n()
 
-// 趋势
-const trendMetric = ref('api_call.activate');
-const trendPeriod = ref('monthly');
-const trendData = ref([]);
+const loading = reactive({ quotas: false, trend: false })
+const overviewMetrics = ref([])
+const metrics = ref([])
+const quotas = ref([])
+const products = ref([])
+const licenses = ref([])
+const periodLabel = computed(() => {
+    const loc = locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US'
+    const month = new Date().toLocaleDateString(loc, { year: 'numeric', month: 'long' })
+    return t('usage_meter_page.period', { month })
+})
 
-// 配额表单
-const showQuotaForm = ref(false);
-const editingQuota = ref(null);
-const saving = ref(false);
-const quotaFormRef = ref(null);
+const trendMetric = ref('api_call.activate')
+const trendPeriod = ref('monthly')
+const trendData = ref([])
+
+const showQuotaForm = ref(false)
+const editingQuota = ref(null)
+const saving = ref(false)
+const quotaFormRef = ref(null)
 
 const defaultForm = () => ({
     metric_key: '',
@@ -215,86 +214,91 @@ const defaultForm = () => ({
     license_id: null,
     action_on_exceed: 'block',
     is_active: true,
-});
+})
 
-const quotaForm = ref(defaultForm());
+const quotaForm = ref(defaultForm())
 
-const quotaRules = {
-    metric_key: [{ required: true, message: '请选择指标', trigger: 'change' }],
-    window_type: [{ required: true, message: '请选择时间窗', trigger: 'change' }],
-    quota_limit: [{ required: true, message: '请输入配额上限', trigger: 'blur' }],
-};
+const quotaRules = computed(() => ({
+    metric_key: [{ required: true, message: t('usage_meter_page.validation.metric'), trigger: 'change' }],
+    window_type: [{ required: true, message: t('usage_meter_page.validation.window'), trigger: 'change' }],
+    quota_limit: [{ required: true, message: t('usage_meter_page.validation.limit'), trigger: 'blur' }],
+}))
 
 function formatNumber(num) {
-    if (num === null || num === undefined) return '-';
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toLocaleString();
+    if (num === null || num === undefined) return '-'
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
+    return num.toLocaleString()
 }
 
 function windowTypeLabel(type) {
-    const map = { total: '总计', daily: '每日', monthly: '月度', custom: '自定义' };
-    return map[type] || type;
+    const key = { total: 'total', daily: 'daily', monthly: 'monthly', custom: 'custom' }[type]
+    return key ? t(`usage_meter_page.windows.${key}`) : type
+}
+
+function exceedLabel(action) {
+    const key = { block: 'block', warn: 'warn', log: 'log' }[action]
+    return key ? t(`usage_meter_page.exceed.${key}`) : action
 }
 
 function rateColor(rate) {
-    if (rate >= 100) return 'text-danger';
-    if (rate > 80) return 'text-warning';
-    return 'text-success';
+    if (rate >= 100) return 'text-danger'
+    if (rate > 80) return 'text-warning'
+    return 'text-success'
 }
 
 function progressColor(rate) {
-    if (rate >= 100) return '#f56c6c';
-    if (rate > 80) return '#e6a23c';
-    return '#409eff';
+    if (rate >= 100) return '#f56c6c'
+    if (rate > 80) return '#e6a23c'
+    return '#0f172a'
 }
 
 async function fetchOverview() {
     try {
-        const { data: res } = await usageMeterApi.getOverview();
+        const { data: res } = await usageMeterApi.getOverview()
         if (res.success) {
-            overviewMetrics.value = res.data.metrics || [];
+            overviewMetrics.value = res.data.metrics || []
         }
     } catch { /* handled by interceptor */ }
 }
 
 async function fetchMetrics() {
     try {
-        const { data: res } = await usageMeterApi.getMetrics();
+        const { data: res } = await usageMeterApi.getMetrics()
         if (res.success) {
-            metrics.value = res.data || [];
+            metrics.value = res.data || []
         }
     } catch { /* empty */ }
 }
 
 async function fetchQuotas() {
-    loading.quotas = true;
+    loading.quotas = true
     try {
-        const { data: res } = await usageMeterApi.getQuotas();
+        const { data: res } = await usageMeterApi.getQuotas()
         if (res.success) {
-            quotas.value = res.data?.data || [];
+            quotas.value = res.data?.data || []
         }
     } catch { /* empty */ }
-    finally { loading.quotas = false; }
+    finally { loading.quotas = false }
 }
 
 async function fetchTrend() {
-    loading.trend = true;
+    loading.trend = true
     try {
         const { data: res } = await usageMeterApi.getStats({
             metric_key: trendMetric.value,
             period: trendPeriod.value,
             limit: 12,
-        });
+        })
         if (res.success) {
-            trendData.value = res.data?.data || [];
+            trendData.value = res.data?.data || []
         }
     } catch { /* empty */ }
-    finally { loading.trend = false; }
+    finally { loading.trend = false }
 }
 
 function editQuota(row) {
-    editingQuota.value = row;
+    editingQuota.value = row
     quotaForm.value = {
         metric_key: row.metric_key,
         window_type: row.window_type,
@@ -304,15 +308,15 @@ function editQuota(row) {
         license_id: row.license_id,
         action_on_exceed: row.action_on_exceed,
         is_active: row.is_active,
-    };
-    showQuotaForm.value = true;
+    }
+    showQuotaForm.value = true
 }
 
 async function submitQuota() {
-    const valid = await quotaFormRef.value?.validate().catch(() => false);
-    if (!valid) return;
+    const valid = await quotaFormRef.value?.validate().catch(() => false)
+    if (!valid) return
 
-    saving.value = true;
+    saving.value = true
     try {
         const payload = {
             metric_key: quotaForm.value.metric_key,
@@ -320,34 +324,34 @@ async function submitQuota() {
             quota_limit: quotaForm.value.quota_limit,
             action_on_exceed: quotaForm.value.action_on_exceed,
             is_active: quotaForm.value.is_active,
-        };
+        }
         if (quotaForm.value.scope_type === 'product' && quotaForm.value.product_id) {
-            payload.product_id = quotaForm.value.product_id;
+            payload.product_id = quotaForm.value.product_id
         }
         if (quotaForm.value.scope_type === 'license' && quotaForm.value.license_id) {
-            payload.license_id = quotaForm.value.license_id;
+            payload.license_id = quotaForm.value.license_id
         }
 
-        const { data: res } = await usageMeterApi.upsertQuota(payload);
+        const { data: res } = await usageMeterApi.upsertQuota(payload)
         if (res.success) {
-            ElMessage.success('配额规则已保存');
-            showQuotaForm.value = false;
-            quotaForm.value = defaultForm();
-            editingQuota.value = null;
-            await fetchQuotas();
-            await fetchOverview();
+            ElMessage.success(t('usage_meter_page.messages.saved'))
+            showQuotaForm.value = false
+            quotaForm.value = defaultForm()
+            editingQuota.value = null
+            await fetchQuotas()
+            await fetchOverview()
         }
     } catch { /* empty */ }
-    finally { saving.value = false; }
+    finally { saving.value = false }
 }
 
 async function deleteQuota(row) {
     try {
-        const { data: res } = await usageMeterApi.deleteQuota(row.id);
+        const { data: res } = await usageMeterApi.deleteQuota(row.id)
         if (res.success) {
-            ElMessage.success('配额规则已删除');
-            await fetchQuotas();
-            await fetchOverview();
+            ElMessage.success(t('usage_meter_page.messages.deleted'))
+            await fetchQuotas()
+            await fetchOverview()
         }
     } catch { /* empty */ }
 }
@@ -358,8 +362,8 @@ onMounted(async () => {
         fetchMetrics(),
         fetchQuotas(),
         fetchTrend(),
-    ]);
-});
+    ])
+})
 </script>
 
 <style scoped>

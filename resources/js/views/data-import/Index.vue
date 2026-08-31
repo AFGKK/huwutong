@@ -3,75 +3,75 @@
     <el-card shadow="never" class="mb-4">
       <el-row :gutter="16" justify="space-between" align="middle">
         <el-col :span="12">
-          <span class="text-lg font-medium">批量数据导入</span>
-          <span class="text-gray-400 text-sm ml-4">支持 CSV 和 Excel 文件，最大 50MB</span>
+          <span class="text-lg font-medium">{{ t('data_import_page.title') }}</span>
+          <span class="text-gray-400 text-sm ml-4">{{ t('data_import_page.subtitle') }}</span>
         </el-col>
         <el-col :span="12" class="text-right">
           <el-button type="primary" @click="openUploadDialog">
-            <el-icon><Upload /></el-icon> 上传新文件
+            <el-icon><Upload /></el-icon> {{ t('data_import_page.upload_btn') }}
           </el-button>
         </el-col>
       </el-row>
     </el-card>
 
-    <!-- 状态过滤 -->
+    <!-- Status filters -->
     <el-card shadow="never" class="mb-4">
       <el-row :gutter="12">
         <el-col :span="6">
-          <el-select v-model="filterEntity" clearable placeholder="实体类型" style="width:100%" @change="fetchTasks">
+          <el-select v-model="filterEntity" clearable :placeholder="t('data_import_page.filter_entity_ph')" style="width:100%" @change="fetchTasks">
             <el-option v-for="(lb, key) in entityTypes" :key="key" :label="lb" :value="key" />
           </el-select>
         </el-col>
         <el-col :span="6">
-          <el-select v-model="filterStatus" clearable placeholder="状态" style="width:100%" @change="fetchTasks">
-            <el-option label="已上传" value="uploaded" />
-            <el-option label="预览中" value="preview" />
-            <el-option label="已验证" value="validated" />
-            <el-option label="导入中" value="importing" />
-            <el-option label="已完成" value="completed" />
-            <el-option label="失败" value="failed" />
-            <el-option label="已取消" value="cancelled" />
+          <el-select v-model="filterStatus" clearable :placeholder="t('data_import_page.filter_status_ph')" style="width:100%" @change="fetchTasks">
+            <el-option v-for="opt in statusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-col>
         <el-col :span="12" class="text-right text-sm text-gray-400">
-          共 {{ tasks.length }} 条导入记录
+          {{ t('data_import_page.record_count', { n: tasks.length }) }}
         </el-col>
       </el-row>
     </el-card>
 
-    <!-- 任务列表 -->
+    <!-- Task list -->
     <el-card shadow="never" v-loading="loading">
       <el-table :data="tasks" style="width:100%" @row-click="openTaskDetail">
         <el-table-column type="expand">
           <template #default="{ row }">
             <div class="px-4 py-2 text-sm">
               <div v-if="row.import_result">
-                <span class="font-medium">结果：</span>
-                成功 {{ row.import_result.success || row.success_rows }} / 失败 {{ row.import_result.errors || row.error_rows }}
+                <span class="font-medium">{{ t('data_import_page.result_label') }}</span>
+                {{ t('data_import_page.result_summary', {
+                  success: row.import_result.success || row.success_rows,
+                  failed: row.import_result.errors || row.error_rows,
+                }) }}
               </div>
               <div v-if="row.validation_errors?.details" class="mt-1">
-                <span class="font-medium">验证：</span>
-                错误 {{ row.validation_errors.error_rows }} / 警告 {{ row.validation_errors.warning_rows }}
+                <span class="font-medium">{{ t('data_import_page.validation_label') }}</span>
+                {{ t('data_import_page.validation_summary', {
+                  errors: row.validation_errors.error_rows,
+                  warnings: row.validation_errors.warning_rows,
+                }) }}
               </div>
               <div v-if="row.validation_errors?.details?.length" class="mt-1">
                 <el-tag v-for="e in row.validation_errors.details.slice(0, 5)" :key="e.row" size="small" class="mr-1">
-                  行 {{ e.row }}: {{ e.errors?.join(', ') || '' }}{{ e.warnings?.join(', ') || '' }}
+                  {{ t('data_import_page.row_prefix', { row: e.row }) }}{{ e.errors?.join(', ') || '' }}{{ e.warnings?.join(', ') || '' }}
                 </el-tag>
               </div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="名称" min-width="160" />
-        <el-table-column prop="entity_type" label="实体类型" width="100">
+        <el-table-column prop="name" :label="t('data_import_page.col_name')" min-width="160" />
+        <el-table-column prop="entity_type" :label="t('data_import_page.col_entity_type')" width="100">
           <template #default="{ row }">{{ entityTypes[row.entity_type] || row.entity_type }}</template>
         </el-table-column>
-        <el-table-column prop="file_type" label="格式" width="60">
+        <el-table-column prop="file_type" :label="t('data_import_page.col_format')" width="60">
           <template #default="{ row }">
             <el-tag size="small" effect="plain">{{ row.file_type?.toUpperCase() }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="total_rows" label="总行数" width="80" align="center" />
-        <el-table-column label="进度" width="180">
+        <el-table-column prop="total_rows" :label="t('data_import_page.col_total_rows')" width="80" align="center" />
+        <el-table-column :label="t('data_import_page.col_progress')" width="180">
           <template #default="{ row }">
             <div v-if="row.status === 'completed' || row.status === 'failed'">
               <el-progress :percentage="row.total_rows ? Math.round((row.processed_rows / row.total_rows) * 100) : 0"
@@ -85,46 +85,47 @@
                 <span class="text-xs">{{ row.processed_rows }}/{{ row.total_rows }}</span>
               </el-progress>
             </div>
-            <div v-else class="text-gray-400 text-xs">等待处理</div>
+            <div v-else class="text-gray-400 text-xs">{{ t('data_import_page.waiting') }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="90">
+        <el-table-column :label="t('data_import_page.col_status')" width="90">
           <template #default="{ row }">
             <el-tag :type="statusType(row.status)" size="small" effect="dark">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="时间" width="160">
+        <el-table-column prop="created_at" :label="t('data_import_page.col_time')" width="160">
           <template #default="{ row }">{{ row.created_at?.slice(0, 16) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column :label="t('data_import_page.col_actions')" width="200" fixed="right">
           <template #default="{ row }">
             <el-space>
-              <el-button size="small" link type="primary" @click.stop="resumeProcess(row)">继续</el-button>
+              <el-button size="small" link type="primary" @click.stop="resumeProcess(row)">{{ t('data_import_page.resume') }}</el-button>
               <el-button v-if="row.status === 'uploaded' || row.status === 'preview' || row.status === 'validated'"
-                size="small" link type="warning" @click.stop="cancelTask(row)">取消</el-button>
-              <el-button size="small" link type="danger" @click.stop="deleteTask(row)">删除</el-button>
+                size="small" link type="warning" @click.stop="cancelTask(row)">{{ t('actions.cancel') }}</el-button>
+              <el-button size="small" link type="danger" @click.stop="deleteTask(row)">{{ t('actions.delete') }}</el-button>
             </el-space>
           </template>
         </el-table-column>
       </el-table>
-      <el-empty v-if="!tasks.length && !loading" description="暂无导入记录" />
+      <el-empty v-if="!tasks.length && !loading" :description="t('data_import_page.empty')" />
     </el-card>
 
-    <!-- 上传对话框 -->
     <UploadDialog ref="uploadDialogRef" :entity-types="entityTypes" @uploaded="handleUploaded" />
 
-    <!-- 导入工作流对话框 -->
     <ImportWizard ref="wizardRef" @completed="handleCompleted" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Upload } from '@element-plus/icons-vue'
 import { getEntityTypes, getImportTasks, cancelImport, deleteImportTask } from '../../api/dataImport'
 import UploadDialog from './components/UploadDialog.vue'
 import ImportWizard from './components/ImportWizard.vue'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const tasks = ref([])
@@ -135,14 +136,29 @@ const uploadDialogRef = ref(null)
 const wizardRef = ref(null)
 
 const statusMap = { uploaded: 'info', preview: '', validated: 'success', importing: 'warning', completed: 'success', failed: 'danger', cancelled: 'info' }
-const statusLabels = { uploaded: '已上传', preview: '预览中', validated: '已验证', importing: '导入中', completed: '已完成', failed: '失败', cancelled: '已取消' }
+const statusKeys = ['uploaded', 'preview', 'validated', 'importing', 'completed', 'failed', 'cancelled']
+
+const statusLabels = computed(() => ({
+  uploaded: t('data_import_page.status.uploaded'),
+  preview: t('data_import_page.status.preview'),
+  validated: t('data_import_page.status.validated'),
+  importing: t('data_import_page.status.importing'),
+  completed: t('data_import_page.status.completed'),
+  failed: t('data_import_page.status.failed'),
+  cancelled: t('data_import_page.status.cancelled'),
+}))
+
+const statusOptions = computed(() =>
+  statusKeys.map((value) => ({ value, label: statusLabels.value[value] }))
+)
+
 function statusType(s) { return statusMap[s] || 'info' }
-function statusLabel(s) { return statusLabels[s] || s }
+function statusLabel(s) { return statusLabels.value[s] || s }
 
 async function fetchEntityTypes() {
   try {
     const { data } = await getEntityTypes()
-    entityTypes.value = data || {}
+    entityTypes.value = data.data || {}
   } catch (e) { /* ignore */ }
 }
 
@@ -153,9 +169,9 @@ async function fetchTasks() {
     if (filterEntity.value) params.entity_type = filterEntity.value
     if (filterStatus.value) params.status = filterStatus.value
     const { data } = await getImportTasks(params)
-    tasks.value = data || []
+    tasks.value = data.data || []
   } catch (e) {
-    ElMessage.error('获取任务列表失败')
+    ElMessage.error(t('data_import_page.messages.fetch_fail'))
   } finally {
     loading.value = false
   }
@@ -165,7 +181,6 @@ function openUploadDialog() { uploadDialogRef.value?.open() }
 
 function handleUploaded(task) {
   fetchTasks()
-  // 自动打开导入向导
   wizardRef.value?.open(task.id)
 }
 
@@ -173,7 +188,7 @@ function resumeProcess(row) {
   if (['uploaded', 'preview', 'validated'].includes(row.status)) {
     wizardRef.value?.open(row.id)
   } else {
-    ElMessage.info('此任务无法继续')
+    ElMessage.info(t('data_import_page.messages.cannot_resume'))
   }
 }
 
@@ -186,20 +201,26 @@ function openTaskDetail(row) {
 async function cancelTask(row) {
   try {
     await cancelImport(row.id)
-    ElMessage.success('已取消')
+    ElMessage.success(t('data_import_page.messages.cancelled_ok'))
     fetchTasks()
-  } catch (e) { ElMessage.error('取消失败') }
+  } catch (e) { ElMessage.error(t('data_import_page.messages.cancel_fail')) }
 }
 
 function deleteTask(row) {
-  ElMessageBox.confirm(`删除导入任务「${row.name}」？`, '确认', {
-    confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning',
-  }).then(async () => {
+  ElMessageBox.confirm(
+    t('data_import_page.messages.delete_confirm', { name: row.name }),
+    t('actions.confirm'),
+    {
+      confirmButtonText: t('actions.delete'),
+      cancelButtonText: t('actions.cancel'),
+      type: 'warning',
+    },
+  ).then(async () => {
     try {
       await deleteImportTask(row.id)
-      ElMessage.success('已删除')
+      ElMessage.success(t('data_import_page.messages.deleted_ok'))
       fetchTasks()
-    } catch (e) { ElMessage.error('删除失败') }
+    } catch (e) { ElMessage.error(t('data_import_page.messages.delete_fail')) }
   }).catch(() => {})
 }
 

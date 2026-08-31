@@ -1,45 +1,21 @@
 <template>
   <div class="rag-admin">
     <div class="page-header">
-      <h2>RAG 知识库管理</h2>
+      <h2>{{ t('rag_page.title') }}</h2>
       <div class="header-actions">
         <el-button type="primary" :loading="rebuilding" @click="handleRebuildIndex">
-          <el-icon><Refresh /></el-icon> 重建索引
+          <el-icon><Refresh /></el-icon> {{ t('rag_page.rebuild_index') }}
         </el-button>
       </div>
     </div>
 
-    <!-- Stats -->
+    <!-- 统计卡片 -->
     <el-row :gutter="16" class="mb-4">
-      <el-col :span="6">
+      <el-col v-for="stat in statsList" :key="stat.key" :span="6">
         <el-card shadow="never">
           <div class="stat-card">
-            <div class="stat-value">{{ stats.total_documents }}</div>
-            <div class="stat-label">已索引文档</div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="never">
-          <div class="stat-card">
-            <div class="stat-value" style="color: #67c23a">{{ stats.total_chunks }}</div>
-            <div class="stat-label">文本片段</div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="never">
-          <div class="stat-card">
-            <div class="stat-value" style="color: #409eff">{{ stats.total_conversations }}</div>
-            <div class="stat-label">总对话数</div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="never">
-          <div class="stat-card">
-            <div class="stat-value" style="color: #e6a23c">{{ stats.total_messages }}</div>
-            <div class="stat-label">总消息数</div>
+            <div class="stat-value" :style="{ color: stat.color }">{{ stat.value }}</div>
+            <div class="stat-label">{{ stat.label }}</div>
           </div>
         </el-card>
       </el-col>
@@ -48,27 +24,27 @@
     <!-- 索引状态 -->
     <el-card class="mb-4" shadow="never">
       <template #header>
-        <span>索引概览</span>
+        <span>{{ t('rag_page.overview.title') }}</span>
       </template>
       <el-row :gutter="24">
         <el-col :span="8">
           <div class="index-stat">
-            <div class="index-label">最后索引时间</div>
-            <div class="index-value">{{ stats.last_indexed_at || '尚未索引' }}</div>
+            <div class="index-label">{{ t('rag_page.overview.last_indexed_at') }}</div>
+            <div class="index-value">{{ lastIndexedLabel }}</div>
           </div>
         </el-col>
         <el-col :span="8">
           <div class="index-stat">
-            <div class="index-label">索引状态</div>
+            <div class="index-label">{{ t('rag_page.overview.index_status') }}</div>
             <el-tag :type="stats.index_status === 'ready' ? 'success' : 'warning'" size="small">
-              {{ stats.index_status === 'ready' ? '就绪' : '待更新' }}
+              {{ indexStatusLabel(stats.index_status) }}
             </el-tag>
           </div>
         </el-col>
         <el-col :span="8">
           <div class="index-stat">
-            <div class="index-label">嵌入模型</div>
-            <div class="index-value">{{ stats.embedding_model || 'default' }}</div>
+            <div class="index-label">{{ t('rag_page.overview.embedding_model') }}</div>
+            <div class="index-value">{{ embeddingModelLabel }}</div>
           </div>
         </el-col>
       </el-row>
@@ -78,49 +54,52 @@
     <el-card shadow="never">
       <template #header>
         <div class="card-header">
-          <span>已索引文章</span>
-          <el-button size="small" @click="fetchDocuments">刷新</el-button>
+          <span>{{ t('rag_page.documents.title') }}</span>
+          <el-button size="small" @click="fetchDocuments">{{ t('rag_page.refresh') }}</el-button>
         </div>
       </template>
       <el-table :data="documents" v-loading="loading" stripe>
-        <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column label="文章标题" min-width="200">
+        <el-table-column prop="id" :label="t('rag_page.cols.id')" width="60" />
+        <el-table-column :label="t('rag_page.cols.title')" min-width="200">
           <template #default="{ row }">
             <el-link type="primary" :underline="'never'" @click="$router.push(`/knowledge-base`)">
-              {{ row.article?.title || `文章 #${row.article_id}` }}
+              {{ articleTitle(row) }}
             </el-link>
           </template>
         </el-table-column>
-        <el-table-column prop="chunk_count" label="片段数" width="80" align="center" />
-        <el-table-column prop="char_count" label="字符数" width="90" align="center">
+        <el-table-column prop="chunk_count" :label="t('rag_page.cols.chunk_count')" width="80" align="center" />
+        <el-table-column prop="char_count" :label="t('rag_page.cols.char_count')" width="90" align="center">
           <template #default="{ row }">{{ (row.char_count || 0).toLocaleString() }}</template>
         </el-table-column>
-        <el-table-column prop="status" label="索引状态" width="100">
+        <el-table-column prop="status" :label="t('rag_page.cols.status')" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 'indexed' ? 'success' : 'warning'" size="small">
-              {{ row.status === 'indexed' ? '已索引' : row.status }}
+              {{ docStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="indexed_at" label="索引时间" width="170" />
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column prop="indexed_at" :label="t('rag_page.cols.indexed_at')" width="170" />
+        <el-table-column :label="t('rag_page.cols.actions')" width="100" fixed="right">
           <template #default="{ row }">
             <el-button size="small" text type="primary" @click="handleReindex(row)">
-              重新索引
+              {{ t('rag_page.reindex') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
-      <el-empty v-if="!loading && documents.length === 0" description="暂无已索引的文章" />
+      <el-empty v-if="!loading && documents.length === 0" :description="t('rag_page.documents.empty')" />
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ragApi from '@/api/rag';
 import { Refresh } from '@element-plus/icons-vue';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const rebuilding = ref(false);
@@ -134,6 +113,36 @@ const stats = reactive({
   index_status: 'pending',
   embedding_model: null,
 });
+
+const statsList = computed(() => [
+  { key: 'documents', label: t('rag_page.stats.indexed_documents'), value: stats.total_documents, color: '#303133' },
+  { key: 'chunks', label: t('rag_page.stats.text_chunks'), value: stats.total_chunks, color: '#67c23a' },
+  { key: 'conversations', label: t('rag_page.stats.total_conversations'), value: stats.total_conversations, color: '#0f172a' },
+  { key: 'messages', label: t('rag_page.stats.total_messages'), value: stats.total_messages, color: '#e6a23c' },
+]);
+
+const lastIndexedLabel = computed(() => stats.last_indexed_at || t('rag_page.overview.not_indexed_yet'));
+
+const embeddingModelLabel = computed(() => stats.embedding_model || t('rag_page.overview.default_model'));
+
+function indexStatusLabel(status) {
+  const map = {
+    ready: t('rag_page.index_status.ready'),
+    pending: t('rag_page.index_status.pending'),
+  };
+  return map[status] || status;
+}
+
+function docStatusLabel(status) {
+  const map = {
+    indexed: t('rag_page.doc_status.indexed'),
+  };
+  return map[status] || status;
+}
+
+function articleTitle(row) {
+  return row.article?.title || t('rag_page.documents.article_fallback', { id: row.article_id });
+}
 
 async function fetchStats() {
   try {
@@ -163,9 +172,9 @@ async function fetchDocuments() {
 async function handleRebuildIndex() {
   try {
     await ElMessageBox.confirm(
-      '确定要重建所有 RAG 索引吗？这将重新处理所有已发布的帮助中心文章。',
-      '确认重建',
-      { confirmButtonText: '确认重建', cancelButtonText: '取消', type: 'warning' },
+      t('rag_page.confirm.rebuild_message'),
+      t('rag_page.confirm.rebuild_title'),
+      { confirmButtonText: t('rag_page.confirm.rebuild_btn'), cancelButtonText: t('actions.cancel'), type: 'warning' },
     );
   } catch {
     return;
@@ -175,12 +184,12 @@ async function handleRebuildIndex() {
   try {
     const { data: res } = await ragApi.rebuildIndex();
     if (res.success) {
-      ElMessage.success(res.message || '索引重建完成');
+      ElMessage.success(res.message || t('rag_page.messages.rebuild_done'));
       fetchStats();
       fetchDocuments();
     }
   } catch {
-    ElMessage.error('索引重建失败');
+    ElMessage.error(t('rag_page.messages.rebuild_failed'));
   } finally {
     rebuilding.value = false;
   }
@@ -190,11 +199,11 @@ async function handleReindex(row) {
   try {
     const { data: res } = await ragApi.indexArticle(row.article_id);
     if (res.success) {
-      ElMessage.success('文章已重新索引');
+      ElMessage.success(t('rag_page.messages.reindex_done'));
       fetchDocuments();
     }
   } catch {
-    ElMessage.error('重新索引失败');
+    ElMessage.error(t('rag_page.messages.reindex_failed'));
   }
 }
 

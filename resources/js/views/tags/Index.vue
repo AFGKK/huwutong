@@ -2,13 +2,13 @@
     <div class="tag-manager-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>标签管理</h2>
-                <span class="header-subtitle">管理系统中的标签，用于分类和筛选 License/工单/客户</span>
+                <h2>{{ t('tags_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('tags_page.subtitle') }}</span>
             </div>
             <div class="header-right">
                 <el-button type="primary" @click="openCreateDialog">
                     <el-icon><Plus /></el-icon>
-                    新建标签
+                    {{ t('tags_page.create_btn') }}
                 </el-button>
             </div>
         </div>
@@ -16,8 +16,8 @@
         <el-card shadow="never">
             <div class="tag-group-section" v-for="group in groupedTags" :key="group.key">
                 <div class="group-header">
-                    <h3 class="group-title">{{ groupLabels[group.key] || group.key || '未分组' }}</h3>
-                    <span class="group-count">{{ group.items.length }} 个标签</span>
+                    <h3 class="group-title">{{ groupLabels[group.key] || group.key || t('tags_page.ungrouped') }}</h3>
+                    <span class="group-count">{{ t('tags_page.group_count', { n: group.items.length }) }}</span>
                 </div>
                 <div class="tag-grid">
                     <div
@@ -30,16 +30,16 @@
                             <el-tag :color="tag.color" effect="dark" size="small">
                                 {{ tag.name }}
                             </el-tag>
-                            <el-tag v-if="tag.is_system" size="small" type="warning" effect="plain">系统</el-tag>
+                            <el-tag v-if="tag.is_system" size="small" type="warning" effect="plain">{{ t('tags_page.system_badge') }}</el-tag>
                         </div>
                         <div class="tag-card-slug" v-if="tag.slug">/ {{ tag.slug }}</div>
                         <div class="tag-card-desc" v-if="tag.description">{{ tag.description }}</div>
                         <div class="tag-card-usage">
-                            使用次数: <strong>{{ tag.usage_count || 0 }}</strong>
+                            {{ t('tags_page.usage_count') }}: <strong>{{ tag.usage_count || 0 }}</strong>
                         </div>
                         <div class="tag-card-actions">
                             <el-button text size="small" type="primary" @click="openEditDialog(tag)">
-                                编辑
+                                {{ t('actions.edit') }}
                             </el-button>
                             <el-button
                                 text
@@ -48,7 +48,7 @@
                                 :disabled="tag.is_system"
                                 @click="handleDelete(tag)"
                             >
-                                删除
+                                {{ t('actions.delete') }}
                             </el-button>
                         </div>
                     </div>
@@ -56,43 +56,43 @@
                 <el-divider v-if="group.key !== lastGroupKey" />
             </div>
 
-            <el-empty v-if="allTags.length === 0" description="暂无标签" />
+            <el-empty v-if="allTags.length === 0" :description="t('tags.empty')" />
         </el-card>
 
         <!-- Dialogs -->
         <el-dialog
             v-model="dialogVisible"
-            :title="isEditing ? '编辑标签' : '新建标签'"
+            :title="isEditing ? t('tags_page.dialog_edit') : t('tags_page.dialog_create')"
             width="480px"
             :close-on-click-modal="false"
         >
             <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-                <el-form-item label="标签名称" prop="name">
-                    <el-input v-model="form.name" placeholder="输入标签名称" maxlength="100" />
+                <el-form-item :label="t('tags_page.name_label')" prop="name">
+                    <el-input v-model="form.name" :placeholder="t('tags_page.name_ph')" maxlength="100" />
                 </el-form-item>
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="分组" prop="group">
-                            <el-select v-model="form.group" placeholder="选择分组" clearable filterable allow-create style="width:100%">
+                        <el-form-item :label="t('tags_page.group_label')" prop="group">
+                            <el-select v-model="form.group" :placeholder="t('tags_page.group_ph')" clearable filterable allow-create style="width:100%">
                                 <el-option
                                     v-for="g in groupOptions"
                                     :key="g"
-                                    :label="g"
+                                    :label="groupLabels[g] || g"
                                     :value="g"
                                 />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="颜色" prop="color">
+                        <el-form-item :label="t('tags_page.color_label')" prop="color">
                             <el-color-picker v-model="form.color" :predefine="presetColors" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-form-item label="描述" prop="description">
+                <el-form-item :label="t('tags_page.desc_label')" prop="description">
                     <el-input
                         v-model="form.description"
-                        placeholder="简要描述标签用途"
+                        :placeholder="t('tags_page.desc_ph')"
                         type="textarea"
                         :rows="2"
                         maxlength="500"
@@ -101,9 +101,9 @@
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="dialogVisible = false">取消</el-button>
+                <el-button @click="dialogVisible = false">{{ t('actions.cancel') }}</el-button>
                 <el-button type="primary" :loading="saving" @click="handleSave">
-                    {{ isEditing ? '保存' : '创建' }}
+                    {{ isEditing ? t('actions.save') : t('actions.create') }}
                 </el-button>
             </template>
         </el-dialog>
@@ -112,9 +112,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import tagApi from '@/api/tag';
+
+const { t } = useI18n();
 
 const allTags = ref([]);
 const loading = ref(false);
@@ -123,18 +126,20 @@ const dialogVisible = ref(false);
 const isEditing = ref(false);
 const formRef = ref(null);
 
-const groupLabels = {
-    priority: '优先级',
-    status: '状态',
-    type: '类型',
-    tier: '客户等级',
-    alert: '预警',
-};
+const groupLabels = computed(() => ({
+    priority: t('tags.g_priority'),
+    status: t('tags.g_status'),
+    type: t('tags.g_type'),
+    tier: t('tags.g_tier'),
+    alert: t('tags.g_alert'),
+    custom: t('tags_page.g_custom'),
+    _ungrouped: t('tags_page.ungrouped'),
+}));
 
-const groupOptions = ['priority', 'status', 'type', 'tier', 'alert', 'custom'];
+const groupOptions = computed(() => ['priority', 'status', 'type', 'tier', 'alert', 'custom']);
 
 const presetColors = [
-    '#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399',
+    '#0f172a', '#67C23A', '#E6A23C', '#F56C6C', '#909399',
     '#E040FB', '#00BCD4', '#FF9800', '#795548', '#607D8B',
     '#9C27B0', '#2196F3', '#4CAF50', '#FF5722', '#3F51B5',
 ];
@@ -143,14 +148,14 @@ const form = ref({
     id: null,
     name: '',
     group: '',
-    color: '#409EFF',
+    color: '#0f172a',
     description: '',
 });
 
-const rules = {
-    name: [{ required: true, message: '请输入标签名称', trigger: 'blur' }],
-    color: [{ required: true, message: '请选择颜色', trigger: 'change' }],
-};
+const rules = computed(() => ({
+    name: [{ required: true, message: t('tags_page.rule_name_required'), trigger: 'blur' }],
+    color: [{ required: true, message: t('tags_page.rule_color_required'), trigger: 'change' }],
+}));
 
 const groupedTags = computed(() => {
     const groups = {};
@@ -194,7 +199,7 @@ async function fetchTags() {
 
 function openCreateDialog() {
     isEditing.value = false;
-    form.value = { id: null, name: '', group: '', color: '#409EFF', description: '' };
+    form.value = { id: null, name: '', group: '', color: '#0f172a', description: '' };
     dialogVisible.value = true;
 }
 
@@ -204,7 +209,7 @@ function openEditDialog(tag) {
         id: tag.id,
         name: tag.name,
         group: tag.group || '',
-        color: tag.color || '#409EFF',
+        color: tag.color || '#0f172a',
         description: tag.description || '',
     };
     dialogVisible.value = true;
@@ -234,12 +239,12 @@ async function handleSave() {
         }
 
         if (res.data.success) {
-            ElMessage.success(isEditing.value ? '标签已更新' : '标签已创建');
+            ElMessage.success(isEditing.value ? t('tags_page.update_ok') : t('tags_page.create_ok'));
             dialogVisible.value = false;
             await fetchTags();
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.error?.message || '操作失败');
+        ElMessage.error(e.response?.data?.error?.message || t('messages.failed'));
     } finally {
         saving.value = false;
     }
@@ -248,14 +253,14 @@ async function handleSave() {
 async function handleDelete(tag) {
     try {
         await ElMessageBox.confirm(
-            `确定要删除标签「${tag.name}」吗？该操作将从所有关联对象中移除。`,
-            '确认删除',
-            { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
+            t('tags_page.delete_confirm', { name: tag.name }),
+            t('tags_page.delete_title'),
+            { confirmButtonText: t('actions.delete'), cancelButtonText: t('actions.cancel'), type: 'warning' }
         );
 
         const { data: res } = await tagApi.destroy(tag.id);
         if (res.success) {
-            ElMessage.success('标签已删除');
+            ElMessage.success(t('tags_page.delete_ok'));
             await fetchTags();
         }
     } catch {
@@ -307,7 +312,7 @@ onMounted(() => {
 }
 .tag-card {
     border: 1px solid var(--el-border-color-lighter);
-    border-left: 4px solid #409eff;
+    border-left: 4px solid #0f172a;
     border-radius: 6px;
     padding: 12px;
     transition: box-shadow 0.2s;

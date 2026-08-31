@@ -1,11 +1,10 @@
 <template>
   <div class="personalized-section">
-    <!-- 个性化推荐 -->
     <el-card v-if="recommendations.length" class="mb-4" shadow="hover">
       <template #header>
         <div class="card-header">
-          <span>推荐</span>
-          <el-button text size="small" @click="homepageData.recommendations = []">关闭</el-button>
+          <span>{{ $t('portal.recommendations') }}</span>
+          <el-button text size="small" @click="homepageData.recommendations = []">{{ $t('portal.close') }}</el-button>
         </div>
       </template>
       <el-row :gutter="16">
@@ -17,16 +16,15 @@
               </el-tag>
             </div>
             <div class="rec-reason">{{ rec.reason }}</div>
-            <div class="rec-source">{{ sourceLabel(rec.source) }} · 评分 {{ rec.score }}</div>
+            <div class="rec-source">{{ sourceLabel(rec.source) }} · {{ $t('portal.score_label', { n: rec.score }) }}</div>
           </el-card>
         </el-col>
       </el-row>
     </el-card>
 
-    <!-- 快捷操作 -->
     <el-card class="mb-4" shadow="hover">
       <template #header>
-        <span>快捷操作</span>
+        <span>{{ $t('portal.shortcuts') }}</span>
       </template>
       <el-row :gutter="16">
         <el-col :span="6" v-for="action in quickActions" :key="action.key">
@@ -38,16 +36,15 @@
       </el-row>
     </el-card>
 
-    <!-- 热门功能 -->
     <el-card v-if="popularFeatures.length" shadow="hover">
       <template #header>
-        <span>热门功能</span>
+        <span>{{ $t('portal.popular_features') }}</span>
       </template>
       <el-row :gutter="12">
         <el-col :span="6" v-for="(feat, i) in popularFeatures" :key="i">
           <div class="feature-item">
             <div class="feature-action">{{ feat.event_action }}</div>
-            <div class="feature-count">{{ feat.cnt }} 次使用</div>
+            <div class="feature-count">{{ $t('portal.used_n', { n: feat.cnt }) }}</div>
           </div>
         </el-col>
       </el-row>
@@ -57,9 +54,10 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
-import { getPersonalizedHomepage, clickRecommendation, dismissRecommendation } from '../../api/personalization'
+import { useI18n } from 'vue-i18n'
+import { getPersonalizedHomepage, clickRecommendation } from '../../api/personalization'
 
+const { t } = useI18n()
 const emit = defineEmits(['loaded'])
 const homepageData = ref({ recommendations: [], quick_actions: [], popular_features: [], stats: {} })
 
@@ -67,16 +65,27 @@ const recommendations = computed(() => homepageData.value.recommendations || [])
 const quickActions = computed(() => homepageData.value.quick_actions || [])
 const popularFeatures = computed(() => homepageData.value.popular_features || [])
 
-function recTypeTag(t) {
+function recTypeTag(type) {
   const map = { license: 'success', feature: 'primary', addon: 'warning', article: 'info', product: 'danger' }
-  return map[t] || ''
+  return map[type] || ''
 }
-function recTypeLabel(t) {
-  const map = { license: '套餐', feature: '功能', addon: '增值', article: '文章', product: '产品' }
-  return map[t] || t
+function recTypeLabel(type) {
+  const map = {
+    license: t('portal.rec_license'),
+    feature: t('portal.rec_feature'),
+    addon: t('portal.rec_addon'),
+    article: t('portal.rec_article'),
+    product: t('portal.product'),
+  }
+  return map[type] || type
 }
 function sourceLabel(s) {
-  const map = { rule: '规则', rfm: 'RFM', behavior: '行为', llm: 'AI' }
+  const map = {
+    rule: t('portal.src_rule'),
+    rfm: 'RFM',
+    behavior: t('portal.src_behavior'),
+    llm: 'AI',
+  }
   return map[s] || s
 }
 
@@ -90,7 +99,7 @@ async function loadPersonalization() {
     homepageData.value = data || {}
     emit('loaded', data)
   } catch (e) {
-    // 静默失败，个性化功能不影响主页面
+    // silent
   }
 }
 
@@ -110,7 +119,7 @@ onMounted(loadPersonalization)
   width: 100%; height: 80px; border: 1px solid #ebeef5; border-radius: 8px;
   transition: all 0.2s;
 }
-.quick-action-btn:hover { border-color: #409eff; background: #ecf5ff; }
+.quick-action-btn:hover { border-color: #0f172a; background: #f1f5f9; }
 .feature-item {
   padding: 12px; background: #f5f7fa; border-radius: 6px; margin-bottom: 8px;
   text-align: center;

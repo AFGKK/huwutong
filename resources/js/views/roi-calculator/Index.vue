@@ -2,12 +2,12 @@
     <div class="roi-calculator-page">
         <el-card class="header-card">
             <div class="header-content">
-                <h1>ROI 计算器</h1>
-                <p class="subtitle">对比自建方案与 {{ platformName }} 平台方案的成本差异，了解您的投资回报率</p>
+                <h1>{{ t('roi_calculator_page.title') }}</h1>
+                <p class="subtitle">{{ t('roi_calculator_page.subtitle', { platform: platformName }) }}</p>
                 <div class="currency-toggle">
                     <el-radio-group v-model="currency" @change="recalculate">
-                        <el-radio-button value="CNY">¥ 人民币</el-radio-button>
-                        <el-radio-button value="USD">$ 美元</el-radio-button>
+                        <el-radio-button value="CNY">{{ t('roi_calculator_page.currency.cny') }}</el-radio-button>
+                        <el-radio-button value="USD">{{ t('roi_calculator_page.currency.usd') }}</el-radio-button>
                     </el-radio-group>
                 </div>
             </div>
@@ -19,55 +19,55 @@
                 <el-card class="input-card">
                     <template #header>
                         <div class="card-header">
-                            <span>自建方案成本</span>
-                            <el-tag type="danger">方案A</el-tag>
+                            <span>{{ t('roi_calculator_page.build.title') }}</span>
+                            <el-tag type="danger">{{ t('roi_calculator_page.plan_a') }}</el-tag>
                         </div>
                     </template>
 
                     <el-form label-position="top" size="small">
-                        <el-form-item label="开发人员年薪">
+                        <el-form-item :label="t('roi_calculator_page.build.developer_salary')">
                             <div class="input-with-suffix">
                                 <el-slider v-model="params.developer_salary" :min="50000" :max="500000" :step="10000" show-input />
-                                <span class="suffix">{{ currencySymbol }}/年</span>
+                                <span class="suffix">{{ t('roi_calculator_page.units.per_year', { symbol: currencySymbol }) }}</span>
                             </div>
                         </el-form-item>
-                        <el-form-item label="所需开发人数">
+                        <el-form-item :label="t('roi_calculator_page.build.developer_count')">
                             <el-slider v-model="params.developer_count" :min="1" :max="20" show-input />
                         </el-form-item>
-                        <el-form-item label="开发周期">
+                        <el-form-item :label="t('roi_calculator_page.build.development_months')">
                             <div class="input-with-suffix">
                                 <el-slider v-model="params.development_months" :min="1" :max="36" show-input />
-                                <span class="suffix">个月</span>
+                                <span class="suffix">{{ t('roi_calculator_page.units.months') }}</span>
                             </div>
                         </el-form-item>
-                        <el-form-item label="运维/DevOps 年成本">
+                        <el-form-item :label="t('roi_calculator_page.build.devops_cost')">
                             <div class="input-with-suffix">
                                 <el-slider v-model="params.devops_cost" :min="0" :max="200000" :step="5000" show-input />
-                                <span class="suffix">{{ currencySymbol }}/年</span>
+                                <span class="suffix">{{ t('roi_calculator_page.units.per_year', { symbol: currencySymbol }) }}</span>
                             </div>
                         </el-form-item>
-                        <el-form-item label="基础设施年费用（云服务器/数据库/带宽等）">
+                        <el-form-item :label="t('roi_calculator_page.build.infrastructure_cost')">
                             <div class="input-with-suffix">
                                 <el-slider v-model="params.infrastructure_cost" :min="0" :max="500000" :step="10000" show-input />
-                                <span class="suffix">{{ currencySymbol }}/年</span>
+                                <span class="suffix">{{ t('roi_calculator_page.units.per_year', { symbol: currencySymbol }) }}</span>
                             </div>
                         </el-form-item>
-                        <el-form-item label="年维护成本">
+                        <el-form-item :label="t('roi_calculator_page.build.maintenance_yearly')">
                             <div class="input-with-suffix">
                                 <el-slider v-model="params.maintenance_yearly" :min="5" :max="50" show-input />
-                                <span class="suffix">%</span>
+                                <span class="suffix">{{ t('roi_calculator_page.units.percent') }}</span>
                             </div>
                         </el-form-item>
-                        <el-form-item label="合规/安全年费用">
+                        <el-form-item :label="t('roi_calculator_page.build.compliance_cost')">
                             <div class="input-with-suffix">
                                 <el-slider v-model="params.compliance_cost" :min="0" :max="200000" :step="5000" show-input />
-                                <span class="suffix">{{ currencySymbol }}/年</span>
+                                <span class="suffix">{{ t('roi_calculator_page.units.per_year', { symbol: currencySymbol }) }}</span>
                             </div>
                         </el-form-item>
-                        <el-form-item label="机会成本（开发延迟月损失）">
+                        <el-form-item :label="t('roi_calculator_page.build.opportunity_cost')">
                             <div class="input-with-suffix">
                                 <el-slider v-model="params.opportunity_cost" :min="0" :max="500000" :step="10000" show-input />
-                                <span class="suffix">{{ currencySymbol }}/月</span>
+                                <span class="suffix">{{ t('roi_calculator_page.units.per_month', { symbol: currencySymbol }) }}</span>
                             </div>
                         </el-form-item>
                     </el-form>
@@ -77,31 +77,31 @@
                 <el-card class="input-card" style="margin-top: 16px;">
                     <template #header>
                         <div class="card-header">
-                            <span>{{ platformName }} 方案成本</span>
-                            <el-tag type="success">方案B</el-tag>
+                            <span>{{ t('roi_calculator_page.platform.title', { platform: platformName }) }}</span>
+                            <el-tag type="success">{{ t('roi_calculator_page.plan_b') }}</el-tag>
                         </div>
                     </template>
 
                     <el-form label-position="top" size="small">
-                        <el-form-item label="License 年费（每 Seat）">
+                        <el-form-item :label="t('roi_calculator_page.platform.license_fee')">
                             <div class="input-with-suffix">
                                 <el-slider v-model="params.license_fee" :min="0" :max="5000" :step="50" show-input />
-                                <span class="suffix">{{ currencySymbol }}/seat</span>
+                                <span class="suffix">{{ t('roi_calculator_page.units.per_seat', { symbol: currencySymbol }) }}</span>
                             </div>
                         </el-form-item>
-                        <el-form-item label="Seat 数量">
+                        <el-form-item :label="t('roi_calculator_page.platform.seat_count')">
                             <el-slider v-model="params.seat_count" :min="1" :max="10000" :step="10" show-input />
                         </el-form-item>
-                        <el-form-item label="技术支持年费">
+                        <el-form-item :label="t('roi_calculator_page.platform.support_fee')">
                             <div class="input-with-suffix">
                                 <el-slider v-model="params.support_fee" :min="0" :max="100000" :step="5000" show-input />
-                                <span class="suffix">{{ currencySymbol }}/年</span>
+                                <span class="suffix">{{ t('roi_calculator_page.units.per_year', { symbol: currencySymbol }) }}</span>
                             </div>
                         </el-form-item>
-                        <el-form-item label="一次性部署费用">
+                        <el-form-item :label="t('roi_calculator_page.platform.setup_fee')">
                             <div class="input-with-suffix">
                                 <el-slider v-model="params.setup_fee" :min="0" :max="50000" :step="1000" show-input />
-                                <span class="suffix">{{ currencySymbol }}</span>
+                                <span class="suffix">{{ t('roi_calculator_page.units.plain', { symbol: currencySymbol }) }}</span>
                             </div>
                         </el-form-item>
                     </el-form>
@@ -114,19 +114,19 @@
                 <el-row :gutter="16">
                     <el-col :span="8">
                         <el-card shadow="hover" class="result-card highlight" :class="{ positive: savingsYear1 > 0 }">
-                            <div class="result-label">第一年节省</div>
+                            <div class="result-label">{{ t('roi_calculator_page.results.savings_year1') }}</div>
                             <div class="result-value">{{ formatMoney(result.savings?.year1) }}</div>
                         </el-card>
                     </el-col>
                     <el-col :span="8">
                         <el-card shadow="hover" class="result-card highlight" :class="{ positive: savingsYearly > 0 }">
-                            <div class="result-label">每年节省</div>
+                            <div class="result-label">{{ t('roi_calculator_page.results.savings_yearly') }}</div>
                             <div class="result-value">{{ formatMoney(result.savings?.yearly) }}</div>
                         </el-card>
                     </el-col>
                     <el-col :span="8">
                         <el-card shadow="hover" class="result-card highlight">
-                            <div class="result-label">回本周期</div>
+                            <div class="result-label">{{ t('roi_calculator_page.results.break_even') }}</div>
                             <div class="result-value break-even">{{ result.savings?.break_even_label }}</div>
                         </el-card>
                     </el-col>
@@ -135,31 +135,33 @@
                 <el-row :gutter="16" style="margin-top: 16px">
                     <el-col :span="8">
                         <el-card shadow="hover" class="result-card">
-                            <div class="result-label">首年 ROI</div>
+                            <div class="result-label">{{ t('roi_calculator_page.results.roi_year1') }}</div>
                             <div class="result-value">{{ result.roi?.year1 }}%</div>
                         </el-card>
                     </el-col>
                     <el-col :span="8">
                         <el-card shadow="hover" class="result-card">
-                            <div class="result-label">每年 ROI</div>
+                            <div class="result-label">{{ t('roi_calculator_page.results.roi_yearly') }}</div>
                             <div class="result-value">{{ result.roi?.yearly }}%</div>
                         </el-card>
                     </el-col>
                     <el-col :span="8">
                         <el-card shadow="hover" class="result-card">
-                            <div class="result-label">5年 ROI</div>
+                            <div class="result-label">{{ t('roi_calculator_page.results.roi_five_year') }}</div>
                             <div class="result-value five-year">{{ result.roi?.five_year }}%</div>
                         </el-card>
                     </el-col>
                 </el-row>
 
-                <!-- 5年节省标语 -->
+                <!-- 5年节省摘要 -->
                 <el-card class="savings-banner" shadow="hover">
                     <div class="banner-content">
-                        <span class="banner-icon">💡</span>
                         <span class="banner-text">
-                            使用 <strong>{{ platformName }}</strong>，5年可节省 <strong class="highlight-text">{{ formatMoney(result.savings?.five_year) }}</strong>，
-                            相比自建方案节省 <strong class="highlight-text">{{ fiveYearPct }}%</strong>
+                            {{ t('roi_calculator_page.banner', {
+                                platform: platformName,
+                                amount: formatMoney(result.savings?.five_year),
+                                pct: fiveYearPct,
+                            }) }}
                         </span>
                     </div>
                 </el-card>
@@ -167,28 +169,28 @@
                 <!-- 成本对比图 -->
                 <el-card class="chart-card">
                     <template #header>
-                        <span>5年成本对比</span>
+                        <span>{{ t('roi_calculator_page.chart.title') }}</span>
                     </template>
                     <div class="chart-wrapper" ref="chartRef"></div>
                     <el-table :data="result.yearly_comparison || []" border size="small" style="margin-top: 16px">
-                        <el-table-column prop="year" label="年份" width="60" />
-                        <el-table-column label="自建成本" width="150">
+                        <el-table-column prop="year" :label="t('roi_calculator_page.table.year')" width="60" />
+                        <el-table-column :label="t('roi_calculator_page.table.build_cost')" width="150">
                             <template #default="{ row }">{{ formatMoney(row.build_cost) }}</template>
                         </el-table-column>
-                        <el-table-column label="本平台成本" width="150">
+                        <el-table-column :label="t('roi_calculator_page.table.platform_cost')" width="150">
                             <template #default="{ row }">{{ formatMoney(row.platform_cost) }}</template>
                         </el-table-column>
-                        <el-table-column label="节省" width="150">
+                        <el-table-column :label="t('roi_calculator_page.table.savings')" width="150">
                             <template #default="{ row }">
                                 <span :class="row.savings >= 0 ? 'text-success' : 'text-danger'">
                                     {{ formatMoney(row.savings) }}
                                 </span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="累计自建" width="150">
+                        <el-table-column :label="t('roi_calculator_page.table.cumulative_build')" width="150">
                             <template #default="{ row }">{{ formatMoney(row.cumulative_build) }}</template>
                         </el-table-column>
-                        <el-table-column label="累计本平台" width="150">
+                        <el-table-column :label="t('roi_calculator_page.table.cumulative_platform')" width="150">
                             <template #default="{ row }">{{ formatMoney(row.cumulative_platform) }}</template>
                         </el-table-column>
                     </el-table>
@@ -199,19 +201,19 @@
                     <el-col :span="12">
                         <el-card class="cost-breakdown">
                             <template #header>
-                                <span class="text-danger">自建方案年成本明细</span>
+                                <span class="text-danger">{{ t('roi_calculator_page.build.breakdown_title') }}</span>
                             </template>
                             <div v-for="(val, key) in result.build?.breakdown" :key="key" class="breakdown-row">
-                                <span class="breakdown-label">{{ buildBreakdownLabel(key) }}</span>
+                                <span class="breakdown-label">{{ breakdownLabel(key) }}</span>
                                 <span class="breakdown-value">{{ formatMoney(val) }}</span>
                             </div>
                             <el-divider />
                             <div class="breakdown-row total">
-                                <span class="breakdown-label">第一年总计</span>
+                                <span class="breakdown-label">{{ t('roi_calculator_page.breakdown.year1_total') }}</span>
                                 <span class="breakdown-value">{{ formatMoney(result.build?.year1) }}</span>
                             </div>
                             <div class="breakdown-row total">
-                                <span class="breakdown-label">之后每年</span>
+                                <span class="breakdown-label">{{ t('roi_calculator_page.breakdown.yearly_after') }}</span>
                                 <span class="breakdown-value">{{ formatMoney(result.build?.yearly) }}</span>
                             </div>
                         </el-card>
@@ -219,19 +221,19 @@
                     <el-col :span="12">
                         <el-card class="cost-breakdown">
                             <template #header>
-                                <span class="text-success">本平台方案年成本明细</span>
+                                <span class="text-success">{{ t('roi_calculator_page.platform.breakdown_title') }}</span>
                             </template>
                             <div v-for="(val, key) in result.platform?.breakdown" :key="key" class="breakdown-row">
-                                <span class="breakdown-label">{{ platformBreakdownLabel(key) }}</span>
+                                <span class="breakdown-label">{{ breakdownLabel(key) }}</span>
                                 <span class="breakdown-value">{{ formatMoney(val) }}</span>
                             </div>
                             <el-divider />
                             <div class="breakdown-row total">
-                                <span class="breakdown-label">第一年总计</span>
+                                <span class="breakdown-label">{{ t('roi_calculator_page.breakdown.year1_total') }}</span>
                                 <span class="breakdown-value">{{ formatMoney(result.platform?.year1) }}</span>
                             </div>
                             <div class="breakdown-row total">
-                                <span class="breakdown-label">之后每年</span>
+                                <span class="breakdown-label">{{ t('roi_calculator_page.breakdown.yearly_after') }}</span>
                                 <span class="breakdown-value">{{ formatMoney(result.platform?.yearly) }}</span>
                             </div>
                         </el-card>
@@ -243,22 +245,24 @@
         <!-- 嵌入代码 -->
         <el-card class="embed-card" style="margin-top: 24px">
             <template #header>
-                <span>嵌入官网</span>
+                <span>{{ t('roi_calculator_page.embed.title') }}</span>
             </template>
-            <p class="embed-desc">将此代码复制到您的网站，即可嵌入ROI计算器</p>
+            <p class="embed-desc">{{ t('roi_calculator_page.embed.desc') }}</p>
             <el-input v-model="embedCode" type="textarea" :rows="4" readonly />
-            <el-button size="small" style="margin-top: 8px" @click="copyEmbedCode">复制代码</el-button>
+            <el-button size="small" style="margin-top: 8px" @click="copyEmbedCode">{{ t('actions.copy') }}</el-button>
         </el-card>
     </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { calculateRoi, getRoiDefaults } from '@/api/roiCalculator'
 
-const platformName = '互物通'
+const { t, locale } = useI18n()
+
 const currency = ref('CNY')
 const chartRef = ref(null)
 let chartInstance = null
@@ -280,7 +284,22 @@ const params = ref({
 
 const result = ref({})
 
+const platformName = computed(() => t('app_name'))
 const currencySymbol = computed(() => currency.value === 'CNY' ? '¥' : '$')
+const numLocale = computed(() => (locale.value === 'zh_CN' ? 'zh-CN' : 'en-US'))
+
+const breakdownKeys = [
+    'development', 'infrastructure', 'devops', 'compliance',
+    'maintenance', 'opportunity_cost', 'license_fee', 'support_fee', 'setup_fee',
+]
+
+const breakdownLabels = computed(() => {
+    const map = {}
+    breakdownKeys.forEach((key) => {
+        map[key] = t(`roi_calculator_page.breakdown.${key}`)
+    })
+    return map
+})
 
 const savingsYear1 = computed(() => result.value.savings?.year1 || 0)
 const savingsYearly = computed(() => result.value.savings?.yearly || 0)
@@ -297,24 +316,15 @@ const embedCode = computed(() => {
 function formatMoney(val) {
     if (val === undefined || val === null) return '-'
     const sym = currencySymbol.value
-    const num = typeof val === 'number' ? val.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : val
+    const num = typeof val === 'number'
+        ? val.toLocaleString(numLocale.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : val
     return `${sym}${num}`
 }
 
-const breakdownLabels = {
-    development: '开发成本',
-    infrastructure: '基础设施',
-    devops: '运维成本',
-    compliance: '合规安全',
-    maintenance: '维护成本',
-    opportunity_cost: '机会成本',
-    license_fee: 'License费用',
-    support_fee: '技术支持',
-    setup_fee: '部署费用',
+function breakdownLabel(key) {
+    return breakdownLabels.value[key] || key
 }
-
-function buildBreakdownLabel(key) { return breakdownLabels[key] || key }
-function platformBreakdownLabel(key) { return breakdownLabels[key] || key }
 
 async function calculate() {
     try {
@@ -322,7 +332,9 @@ async function calculate() {
         result.value = res.data || res
         await nextTick()
         renderChart()
-    } catch { ElMessage.error('计算失败') }
+    } catch {
+        ElMessage.error(t('roi_calculator_page.messages.calculate_failed'))
+    }
 }
 
 function recalculate() {
@@ -361,45 +373,53 @@ function renderChart() {
     }
 
     const comparison = result.value.yearly_comparison || []
-    const years = comparison.map(r => `第${r.year}年`)
+    const years = comparison.map((r) => t('roi_calculator_page.units.year_n', { n: r.year }))
+    const chartBuild = t('roi_calculator_page.chart.build')
+    const chartPlatform = t('roi_calculator_page.chart.platform')
+    const chartSavings = t('roi_calculator_page.chart.savings')
 
     chartInstance.setOption({
         tooltip: {
             trigger: 'axis',
-            formatter: function(params) {
+            formatter(params) {
                 let html = `<strong>${params[0].axisValue}</strong><br/>`
-                params.forEach(p => {
+                params.forEach((p) => {
                     html += `${p.marker} ${p.seriesName}: ${formatMoney(p.value)}<br/>`
                 })
                 return html
-            }
+            },
         },
-        legend: { data: ['自建方案', '本平台方案', '节省'], top: 0 },
+        legend: { data: [chartBuild, chartPlatform, chartSavings], top: 0 },
         grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
         xAxis: { type: 'category', data: years },
         yAxis: {
             type: 'value',
-            axisLabel: { formatter: v => currencySymbol.value + (v / 10000).toFixed(0) + '万' }
+            axisLabel: {
+                formatter: (v) => t('roi_calculator_page.units.chart_axis', {
+                    symbol: currencySymbol.value,
+                    n: (v / 10000).toFixed(0),
+                }),
+            },
         },
         series: [
             {
-                name: '自建方案',
+                name: chartBuild,
                 type: 'bar',
-                data: comparison.map(r => r.build_cost),
+                data: comparison.map((r) => r.build_cost),
                 itemStyle: { color: '#f56c6c' },
                 barGap: '10%',
             },
             {
-                name: '本平台方案',
+                name: chartPlatform,
                 type: 'bar',
-                data: comparison.map(r => r.platform_cost),
+                data: comparison.map((r) => r.platform_cost),
                 itemStyle: { color: '#67c23a' },
             },
             {
-                name: '节省',
+                name: chartSavings,
                 type: 'line',
-                data: comparison.map(r => r.savings),
-                itemStyle: { color: '#409eff' },
+                data: comparison.map((r) => r.savings),
+                itemStyle: { color: '#0f172a' },
                 lineStyle: { type: 'dashed' },
                 symbol: 'diamond',
             },
@@ -409,17 +429,16 @@ function renderChart() {
 
 function copyEmbedCode() {
     navigator.clipboard.writeText(embedCode.value)
-    ElMessage.success('已复制嵌入代码')
+    ElMessage.success(t('roi_calculator_page.messages.embed_copied'))
 }
 
-// 监听参数变化自动重算
 watch(() => params.value, () => calculate(), { deep: true })
+watch(locale, () => nextTick(() => renderChart()))
 
 onMounted(() => {
     loadDefaults()
 })
 
-// 窗口大小变化时重新渲染
 window.addEventListener('resize', () => {
     chartInstance?.resize()
 })
@@ -489,7 +508,7 @@ window.addEventListener('resize', () => {
     color: #67c23a;
 }
 .result-value.break-even {
-    color: #409eff;
+    color: #0f172a;
     font-size: 18px;
 }
 .result-value.five-year {
@@ -497,7 +516,7 @@ window.addEventListener('resize', () => {
 }
 .savings-banner {
     margin-top: 16px;
-    background: linear-gradient(135deg, #ecf5ff 0%, #f0f9eb 100%);
+    background: linear-gradient(135deg, #f1f5f9 0%, #f0f9eb 100%);
 }
 .banner-content {
     display: flex;
@@ -505,11 +524,8 @@ window.addEventListener('resize', () => {
     gap: 12px;
     font-size: 15px;
 }
-.banner-icon {
-    font-size: 28px;
-}
 .highlight-text {
-    color: #409eff;
+    color: #0f172a;
     font-size: 18px;
 }
 .chart-card {

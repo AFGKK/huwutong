@@ -2,272 +2,269 @@
     <div class="ai-compliance-page">
         <div class="page-header">
             <div>
-                <h2>ISO 42001 AI 合规管理</h2>
-                <p class="text-muted">AI 系统清单 · 风险影响评估 · 偏见检测 · 透明度披露 · 人工申诉 · 合规差距分析</p>
+                <h2>{{ t('ai_compliance_page.title') }}</h2>
+                <p class="text-muted">{{ t('ai_compliance_page.subtitle') }}</p>
             </div>
             <div class="header-actions">
-                <el-button @click="loadAll" :loading="loading" :icon="Refresh">刷新</el-button>
-                <el-button type="primary" @click="activeTab = 'report'" :icon="DataBoard">合规报告</el-button>
+                <el-button @click="loadAll" :loading="loading" :icon="Refresh">{{ t('ai_compliance_page.buttons.refresh') }}</el-button>
+                <el-button type="primary" @click="activeTab = 'report'" :icon="DataBoard">{{ t('ai_compliance_page.buttons.compliance_report') }}</el-button>
             </div>
         </div>
 
         <!-- 合规评分 -->
-        <el-alert v-if="complianceScore" :title="'ISO 42001 合规评分: ' + complianceScore.score + '分 — ' + complianceScore.label"
+        <el-alert v-if="complianceScore" :title="t('ai_compliance_page.score_alert', { score: complianceScore.score, label: complianceScore.label })"
             :type="complianceScore.level === 'compliant' ? 'success' : (complianceScore.level === 'partial' ? 'warning' : 'error')"
             show-icon :closable="false" class="mb-4" />
 
         <!-- Tab 导航 -->
         <el-tabs v-model="activeTab" type="border-card" class="mb-4">
             <!-- 看板总览 -->
-            <el-tab-pane label="📊 看板总览" name="dashboard">
+            <el-tab-pane :label="t('ai_compliance_page.tabs.dashboard')" name="dashboard">
                 <el-row :gutter="16" class="mb-4">
                     <el-col :xs="12" :sm="8" :md="6" :lg="3">
-                        <el-card shadow="hover" class="metric-card"><div class="metric-label">AI 系统总数</div><div class="metric-value">{{ dash.system_count }}</div></el-card>
+                        <el-card shadow="hover" class="metric-card"><div class="metric-label">{{ t('ai_compliance_page.dashboard.system_count') }}</div><div class="metric-value">{{ dash.system_count }}</div></el-card>
                     </el-col>
                     <el-col :xs="12" :sm="8" :md="6" :lg="3">
-                        <el-card shadow="hover" class="metric-card"><div class="metric-label">活跃系统</div><div class="metric-value success">{{ dash.active_systems }}</div></el-card>
+                        <el-card shadow="hover" class="metric-card"><div class="metric-label">{{ t('ai_compliance_page.dashboard.active_systems') }}</div><div class="metric-value success">{{ dash.active_systems }}</div></el-card>
                     </el-col>
                     <el-col :xs="12" :sm="8" :md="6" :lg="3">
-                        <el-card shadow="hover" class="metric-card"><div class="metric-label">高风险系统</div><div class="metric-value danger">{{ dash.high_risk_systems }}</div></el-card>
+                        <el-card shadow="hover" class="metric-card"><div class="metric-label">{{ t('ai_compliance_page.dashboard.high_risk_systems') }}</div><div class="metric-value danger">{{ dash.high_risk_systems }}</div></el-card>
                     </el-col>
                     <el-col :xs="12" :sm="8" :md="6" :lg="3">
-                        <el-card shadow="hover" class="metric-card"><div class="metric-label">待评审</div><div class="metric-value warning">{{ dash.pending_reviews }}</div></el-card>
+                        <el-card shadow="hover" class="metric-card"><div class="metric-label">{{ t('ai_compliance_page.dashboard.pending_reviews') }}</div><div class="metric-value warning">{{ dash.pending_reviews }}</div></el-card>
                     </el-col>
                     <el-col :xs="12" :sm="8" :md="6" :lg="3">
-                        <el-card shadow="hover" class="metric-card"><div class="metric-label">偏见标记</div><div class="metric-value danger">{{ dash.open_bias_flags }}</div></el-card>
+                        <el-card shadow="hover" class="metric-card"><div class="metric-label">{{ t('ai_compliance_page.dashboard.open_bias_flags') }}</div><div class="metric-value danger">{{ dash.open_bias_flags }}</div></el-card>
                     </el-col>
                     <el-col :xs="12" :sm="8" :md="6" :lg="3">
-                        <el-card shadow="hover" class="metric-card"><div class="metric-label">待处理申诉</div><div class="metric-value warning">{{ dash.pending_overrides }}</div></el-card>
+                        <el-card shadow="hover" class="metric-card"><div class="metric-label">{{ t('ai_compliance_page.dashboard.pending_overrides') }}</div><div class="metric-value warning">{{ dash.pending_overrides }}</div></el-card>
                     </el-col>
                     <el-col :xs="12" :sm="8" :md="6" :lg="3">
-                        <el-card shadow="hover" class="metric-card"><div class="metric-label">AI 决策总数</div><div class="metric-value">{{ dash.total_decisions }}</div></el-card>
+                        <el-card shadow="hover" class="metric-card"><div class="metric-label">{{ t('ai_compliance_page.dashboard.total_decisions') }}</div><div class="metric-value">{{ dash.total_decisions }}</div></el-card>
                     </el-col>
                     <el-col :xs="12" :sm="8" :md="6" :lg="3">
-                        <el-card shadow="hover" class="metric-card"><div class="metric-label">近期评估</div><div class="metric-value">{{ dash.recent_assessments }}</div></el-card>
+                        <el-card shadow="hover" class="metric-card"><div class="metric-label">{{ t('ai_compliance_page.dashboard.recent_assessments') }}</div><div class="metric-value">{{ dash.recent_assessments }}</div></el-card>
                     </el-col>
                 </el-row>
-                <div class="text-center text-muted" style="padding:40px 0">上方卡片展示所有 AI 合规关键指标。切换到各标签页进行详细管理。</div>
+                <div class="text-center text-muted" style="padding:40px 0">{{ t('ai_compliance_page.dashboard.hint') }}</div>
             </el-tab-pane>
 
             <!-- AI 系统清单 -->
-            <el-tab-pane label="🤖 AI 系统清单" name="systems">
-                <div class="section-header"><span>{{ systemsInfo }}</span><el-button type="primary" size="small" @click="showSystemForm = true">+ 新增系统</el-button></div>
+            <el-tab-pane :label="t('ai_compliance_page.tabs.systems')" name="systems">
+                <div class="section-header"><span>{{ systemsInfo }}</span><el-button type="primary" size="small" @click="showSystemForm = true">{{ t('ai_compliance_page.buttons.add_system') }}</el-button></div>
                 <el-table :data="systems" stripe v-loading="sysLoading" size="small">
-                    <el-table-column prop="name" label="名称" min-width="140" />
-                    <el-table-column prop="version" label="版本" width="80" />
-                    <el-table-column prop="purpose" label="用途" min-width="180" show-overflow-tooltip />
-                    <el-table-column prop="provider" label="供应商" width="120" />
-                    <el-table-column label="状态" width="80">
+                    <el-table-column prop="name" :label="t('ai_compliance_page.cols.name')" min-width="140" />
+                    <el-table-column prop="version" :label="t('ai_compliance_page.cols.version')" width="80" />
+                    <el-table-column prop="purpose" :label="t('ai_compliance_page.cols.purpose')" min-width="180" show-overflow-tooltip />
+                    <el-table-column prop="provider" :label="t('ai_compliance_page.cols.provider')" width="120" />
+                    <el-table-column :label="t('ai_compliance_page.cols.status')" width="80">
                         <template #default="{row}"><el-tag :type="row.deployment_status === 'production' ? 'success' : 'info'" size="small">{{ row.deployment_status }}</el-tag></template>
                     </el-table-column>
-                    <el-table-column label="风险" width="70">
+                    <el-table-column :label="t('ai_compliance_page.cols.risk')" width="70">
                         <template #default="{row}"><el-tag :type="riskTag(row.risk_level)" size="small">{{ row.risk_level }}</el-tag></template>
                     </el-table-column>
-                    <el-table-column label="活跃" width="60">
+                    <el-table-column :label="t('ai_compliance_page.cols.active')" width="60">
                         <template #default="{row}"><el-icon :color="row.is_active ? '#67c23a' : '#c0c4cc'"><CircleCheck /></el-icon></template>
                     </el-table-column>
-                    <el-table-column label="下次评审" width="120">
+                    <el-table-column :label="t('ai_compliance_page.cols.next_review')" width="120">
                         <template #default="{row}">{{ row.next_review_at ? fmtDate(row.next_review_at) : '—' }}</template>
                     </el-table-column>
-                    <el-table-column label="操作" width="160" fixed="right">
+                    <el-table-column :label="t('ai_compliance_page.cols.actions')" width="160" fixed="right">
                         <template #default="{row}">
-                            <el-button size="small" @click="viewSystem(row)">详情</el-button>
-                            <el-button size="small" @click="editSystem(row)">编辑</el-button>
-                            <el-popconfirm title="确认删除?" @confirm="deleteSystem(row)">
-                                <template #reference><el-button size="small" type="danger">删除</el-button></template>
+                            <el-button size="small" @click="viewSystem(row)">{{ t('ai_compliance_page.buttons.detail') }}</el-button>
+                            <el-button size="small" @click="editSystem(row)">{{ t('actions.edit') }}</el-button>
+                            <el-popconfirm :title="t('messages.confirm_delete')" @confirm="deleteSystem(row)">
+                                <template #reference><el-button size="small" type="danger">{{ t('actions.delete') }}</el-button></template>
                             </el-popconfirm>
                         </template>
                     </el-table-column>
                 </el-table>
                 <!-- 系统表单对话框 -->
-                <el-dialog v-model="showSystemForm" :title="editingSystem ? '编辑AI系统' : '新增AI系统'" width="600px">
+                <el-dialog v-model="showSystemForm" :title="editingSystem ? t('ai_compliance_page.systems.edit_title') : t('ai_compliance_page.systems.create_title')" width="600px">
                     <el-form :model="sysForm" label-width="120px" ref="sysFormRef">
-                        <el-form-item label="名称" prop="name" :rules="[{required:true}]"><el-input v-model="sysForm.name" /></el-form-item>
-                        <el-form-item label="版本" prop="version" :rules="[{required:true}]"><el-input v-model="sysForm.version" /></el-form-item>
-                        <el-form-item label="用途" prop="purpose" :rules="[{required:true}]"><el-input v-model="sysForm.purpose" type="textarea" :rows="2" /></el-form-item>
+                        <el-form-item :label="t('ai_compliance_page.cols.name')" prop="name" :rules="[{required:true}]"><el-input v-model="sysForm.name" /></el-form-item>
+                        <el-form-item :label="t('ai_compliance_page.cols.version')" prop="version" :rules="[{required:true}]"><el-input v-model="sysForm.version" /></el-form-item>
+                        <el-form-item :label="t('ai_compliance_page.cols.purpose')" prop="purpose" :rules="[{required:true}]"><el-input v-model="sysForm.purpose" type="textarea" :rows="2" /></el-form-item>
                         <el-row :gutter="12">
-                            <el-col :span="12"><el-form-item label="供应商"><el-input v-model="sysForm.provider" /></el-form-item></el-col>
-                            <el-col :span="12"><el-form-item label="部署状态" prop="deployment_status" :rules="[{required:true}]">
+                            <el-col :span="12"><el-form-item :label="t('ai_compliance_page.cols.provider')"><el-input v-model="sysForm.provider" /></el-form-item></el-col>
+                            <el-col :span="12"><el-form-item :label="t('ai_compliance_page.cols.deployment_status')" prop="deployment_status" :rules="[{required:true}]">
                                 <el-select v-model="sysForm.deployment_status" style="width:100%">
-                                    <el-option label="开发" value="development" /><el-option label="预发布" value="staging" /><el-option label="生产" value="production" /><el-option label="已退役" value="retired" />
+                                    <el-option v-for="opt in deploymentStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                 </el-select>
                             </el-form-item></el-col>
                         </el-row>
                         <el-row :gutter="12">
-                            <el-col :span="12"><el-form-item label="风险等级" prop="risk_level" :rules="[{required:true}]">
+                            <el-col :span="12"><el-form-item :label="t('ai_compliance_page.cols.risk_level')" prop="risk_level" :rules="[{required:true}]">
                                 <el-select v-model="sysForm.risk_level" style="width:100%">
-                                    <el-option label="低风险" value="low" /><el-option label="中风险" value="medium" /><el-option label="高风险" value="high" /><el-option label="极高风险" value="critical" />
+                                    <el-option v-for="opt in riskLevelOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                 </el-select>
                             </el-form-item></el-col>
-                            <el-col :span="12"><el-form-item label="负责部门"><el-input v-model="sysForm.owner_department" /></el-form-item></el-col>
+                            <el-col :span="12"><el-form-item :label="t('ai_compliance_page.cols.owner_department')"><el-input v-model="sysForm.owner_department" /></el-form-item></el-col>
                         </el-row>
-                        <el-form-item label="负责人邮箱"><el-input v-model="sysForm.owner_email" /></el-form-item>
+                        <el-form-item :label="t('ai_compliance_page.cols.owner_email')"><el-input v-model="sysForm.owner_email" /></el-form-item>
                     </el-form>
                     <template #footer>
-                        <el-button @click="showSystemForm = false">取消</el-button>
-                        <el-button type="primary" @click="saveSystem" :loading="saving">保存</el-button>
+                        <el-button @click="showSystemForm = false">{{ t('actions.cancel') }}</el-button>
+                        <el-button type="primary" @click="saveSystem" :loading="saving">{{ t('actions.save') }}</el-button>
                     </template>
                 </el-dialog>
                 <!-- 系统详情对话框 -->
-                <el-dialog v-model="showSysDetail" :title="'系统详情: ' + (sysDetail?.name || '')" width="700px">
+                <el-dialog v-model="showSysDetail" :title="t('ai_compliance_page.systems.detail_title', { name: sysDetail?.name || '' })" width="700px">
                     <el-descriptions :column="2" border size="small" v-if="sysDetail">
-                        <el-descriptions-item label="名称">{{ sysDetail.name }}</el-descriptions-item>
-                        <el-descriptions-item label="版本">{{ sysDetail.version }}</el-descriptions-item>
-                        <el-descriptions-item label="供应商">{{ sysDetail.provider || '—' }}</el-descriptions-item>
-                        <el-descriptions-item label="风险等级"><el-tag :type="riskTag(sysDetail.risk_level)" size="small">{{ sysDetail.risk_level }}</el-tag></el-descriptions-item>
-                        <el-descriptions-item label="部署状态">{{ sysDetail.deployment_status }}</el-descriptions-item>
-                        <el-descriptions-item label="活跃"><el-tag :type="sysDetail.is_active ? 'success' : 'info'" size="small">{{ sysDetail.is_active ? '是' : '否' }}</el-tag></el-descriptions-item>
-                        <el-descriptions-item label="负责部门">{{ sysDetail.owner_department || '—' }}</el-descriptions-item>
-                        <el-descriptions-item label="负责人">{{ sysDetail.owner_email || '—' }}</el-descriptions-item>
-                        <el-descriptions-item label="下次评审">{{ sysDetail.next_review_at ? fmtDate(sysDetail.next_review_at) : '—' }}</el-descriptions-item>
-                        <el-descriptions-item label="评估/偏见/日志" :span="2">{{ sysDetail.risk_assessments_count || 0 }}次评估 · {{ sysDetail.bias_detections_count || 0 }}偏见 · {{ sysDetail.decision_logs_count || 0 }}决策</el-descriptions-item>
-                        <el-descriptions-item label="用途" :span="2">{{ sysDetail.purpose }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('ai_compliance_page.cols.name')">{{ sysDetail.name }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('ai_compliance_page.cols.version')">{{ sysDetail.version }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('ai_compliance_page.cols.provider')">{{ sysDetail.provider || '—' }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('ai_compliance_page.cols.risk_level')"><el-tag :type="riskTag(sysDetail.risk_level)" size="small">{{ sysDetail.risk_level }}</el-tag></el-descriptions-item>
+                        <el-descriptions-item :label="t('ai_compliance_page.cols.deployment_status')">{{ sysDetail.deployment_status }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('ai_compliance_page.cols.active')"><el-tag :type="sysDetail.is_active ? 'success' : 'info'" size="small">{{ sysDetail.is_active ? t('ai_compliance_page.yes') : t('ai_compliance_page.no') }}</el-tag></el-descriptions-item>
+                        <el-descriptions-item :label="t('ai_compliance_page.cols.owner_department')">{{ sysDetail.owner_department || '—' }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('ai_compliance_page.cols.owner')">{{ sysDetail.owner_email || '—' }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('ai_compliance_page.cols.next_review')">{{ sysDetail.next_review_at ? fmtDate(sysDetail.next_review_at) : '—' }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('ai_compliance_page.cols.assessments') + '/' + t('ai_compliance_page.cols.bias') + '/' + t('ai_compliance_page.cols.decisions')" :span="2">{{ t('ai_compliance_page.systems.detail_stats', { assessments: sysDetail.risk_assessments_count || 0, bias: sysDetail.bias_detections_count || 0, decisions: sysDetail.decision_logs_count || 0 }) }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('ai_compliance_page.cols.purpose')" :span="2">{{ sysDetail.purpose }}</el-descriptions-item>
                     </el-descriptions>
                 </el-dialog>
             </el-tab-pane>
 
             <!-- 偏见检测 -->
-            <el-tab-pane label="⚖️ 偏见检测" name="bias">
-                <div class="section-header"><span>偏见检测记录</span><el-button size="small" type="primary" @click="showBiasForm = true">+ 记录偏见</el-button></div>
+            <el-tab-pane :label="t('ai_compliance_page.tabs.bias')" name="bias">
+                <div class="section-header"><span>{{ t('ai_compliance_page.bias_section_title') }}</span><el-button size="small" type="primary" @click="showBiasForm = true">{{ t('ai_compliance_page.buttons.record_bias') }}</el-button></div>
                 <el-table :data="biasList" stripe v-loading="biasLoading" size="small">
-                    <el-table-column prop="system.name" label="AI 系统" min-width="140" />
-                    <el-table-column prop="metric" label="指标" width="120" />
-                    <el-table-column label="得分" width="80"><template #default="{row}">{{ row.score }}</template></el-table-column>
-                    <el-table-column label="标记" width="70"><template #default="{row}"><el-tag :type="row.flagged ? 'danger' : 'success'" size="small">{{ row.flagged ? '是' : '否' }}</el-tag></template></el-table-column>
-                    <el-table-column label="严重程度" width="90"><template #default="{row}"><el-tag :type="row.severity === 'critical' ? 'danger' : 'warning'" size="small">{{ row.severity }}</el-tag></template></el-table-column>
-                    <el-table-column label="状态" width="80"><template #default="{row}">{{ row.status }}</template></el-table-column>
-                    <el-table-column label="检测时间" width="150"><template #default="{row}">{{ fmtDate(row.detected_at) }}</template></el-table-column>
-                    <el-table-column label="操作" width="180" fixed="right">
+                    <el-table-column prop="system.name" :label="t('ai_compliance_page.cols.ai_system')" min-width="140" />
+                    <el-table-column prop="metric" :label="t('ai_compliance_page.cols.metric')" width="120" />
+                    <el-table-column :label="t('ai_compliance_page.cols.score')" width="80"><template #default="{row}">{{ row.score }}</template></el-table-column>
+                    <el-table-column :label="t('ai_compliance_page.cols.flagged')" width="70"><template #default="{row}"><el-tag :type="row.flagged ? 'danger' : 'success'" size="small">{{ row.flagged ? t('ai_compliance_page.yes') : t('ai_compliance_page.no') }}</el-tag></template></el-table-column>
+                    <el-table-column :label="t('ai_compliance_page.cols.severity')" width="90"><template #default="{row}"><el-tag :type="row.severity === 'critical' ? 'danger' : 'warning'" size="small">{{ row.severity }}</el-tag></template></el-table-column>
+                    <el-table-column :label="t('ai_compliance_page.cols.status')" width="80"><template #default="{row}">{{ row.status }}</template></el-table-column>
+                    <el-table-column :label="t('ai_compliance_page.cols.detected_at')" width="150"><template #default="{row}">{{ fmtDate(row.detected_at) }}</template></el-table-column>
+                    <el-table-column :label="t('ai_compliance_page.cols.actions')" width="180" fixed="right">
                         <template #default="{row}">
-                            <el-button size="small" @click="mitigateBias(row)" v-if="row.status === 'open'">缓解</el-button>
-                            <el-button size="small" type="success" @click="resolveBias(row)" v-if="row.status === 'mitigated'">解决</el-button>
+                            <el-button size="small" @click="mitigateBias(row)" v-if="row.status === 'open'">{{ t('ai_compliance_page.buttons.mitigate') }}</el-button>
+                            <el-button size="small" type="success" @click="resolveBias(row)" v-if="row.status === 'mitigated'">{{ t('ai_compliance_page.buttons.resolve') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
-                <el-dialog v-model="showBiasForm" title="记录偏见检测" width="500px">
+                <el-dialog v-model="showBiasForm" :title="t('ai_compliance_page.dialogs.record_bias')" width="500px">
                     <el-form :model="biasForm" label-width="120px">
-                        <el-form-item label="AI 系统" :rules="[{required:true}]"><el-select v-model="biasForm.ai_system_id" style="width:100%">
+                        <el-form-item :label="t('ai_compliance_page.cols.ai_system')" :rules="[{required:true}]"><el-select v-model="biasForm.ai_system_id" style="width:100%">
                             <el-option v-for="s in systems" :key="s.id" :label="s.name" :value="s.id" />
                         </el-select></el-form-item>
-                        <el-form-item label="指标" :rules="[{required:true}]"><el-select v-model="biasForm.metric" style="width:100%">
-                            <el-option label="人口统计平等" value="demographic_parity" /><el-option label="均等机会" value="equal_opportunity" />
-                            <el-option label="预测平等" value="predictive_parity" /><el-option label="差异化影响" value="disparate_impact" />
+                        <el-form-item :label="t('ai_compliance_page.cols.metric')" :rules="[{required:true}]"><el-select v-model="biasForm.metric" style="width:100%">
+                            <el-option v-for="opt in biasMetricOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                         </el-select></el-form-item>
-                        <el-form-item label="得分 0-1" :rules="[{required:true}]"><el-input-number v-model="biasForm.score" :min="0" :max="1" :step="0.01" style="width:100%" /></el-form-item>
-                        <el-form-item label="描述"><el-input v-model="biasForm.description" type="textarea" :rows="2" /></el-form-item>
+                        <el-form-item :label="t('ai_compliance_page.forms.score_range')" :rules="[{required:true}]"><el-input-number v-model="biasForm.score" :min="0" :max="1" :step="0.01" style="width:100%" /></el-form-item>
+                        <el-form-item :label="t('ai_compliance_page.forms.description')"><el-input v-model="biasForm.description" type="textarea" :rows="2" /></el-form-item>
                     </el-form>
-                    <template #footer><el-button @click="showBiasForm = false">取消</el-button><el-button type="primary" @click="saveBias" :loading="saving">保存</el-button></template>
+                    <template #footer><el-button @click="showBiasForm = false">{{ t('actions.cancel') }}</el-button><el-button type="primary" @click="saveBias" :loading="saving">{{ t('actions.save') }}</el-button></template>
                 </el-dialog>
             </el-tab-pane>
 
             <!-- 决策审计日志 -->
-            <el-tab-pane label="📝 AI 决策日志" name="decisions">
+            <el-tab-pane :label="t('ai_compliance_page.tabs.decisions')" name="decisions">
                 <el-table :data="decisionLogs" stripe v-loading="decLoading" size="small">
-                    <el-table-column prop="decision_id" label="决策ID" width="180" />
-                    <el-table-column prop="system.name" label="AI 系统" width="120" />
-                    <el-table-column prop="decision_type" label="类型" width="100" />
-                    <el-table-column prop="input_summary" label="输入摘要" min-width="140" show-overflow-tooltip />
-                    <el-table-column prop="output_summary" label="输出摘要" min-width="140" show-overflow-tooltip />
-                    <el-table-column label="结果" width="70"><template #default="{row}"><el-tag :type="row.result === 'approved' ? 'success' : (row.result === 'rejected' ? 'danger' : 'warning')" size="small">{{ row.result }}</el-tag></template></el-table-column>
-                    <el-table-column prop="confidence_score" label="置信度" width="70" />
-                    <el-table-column label="Override" width="70"><template #default="{row}"><el-tag :type="row.was_overridden ? 'warning' : 'info'" size="small">{{ row.was_overridden ? '是' : '否' }}</el-tag></template></el-table-column>
-                    <el-table-column label="时间" width="150"><template #default="{row}">{{ fmtDate(row.occurred_at) }}</template></el-table-column>
+                    <el-table-column prop="decision_id" :label="t('ai_compliance_page.cols.decision_id')" width="180" />
+                    <el-table-column prop="system.name" :label="t('ai_compliance_page.cols.ai_system')" width="120" />
+                    <el-table-column prop="decision_type" :label="t('ai_compliance_page.cols.type')" width="100" />
+                    <el-table-column prop="input_summary" :label="t('ai_compliance_page.cols.input_summary')" min-width="140" show-overflow-tooltip />
+                    <el-table-column prop="output_summary" :label="t('ai_compliance_page.cols.output_summary')" min-width="140" show-overflow-tooltip />
+                    <el-table-column :label="t('ai_compliance_page.cols.result')" width="70"><template #default="{row}"><el-tag :type="row.result === 'approved' ? 'success' : (row.result === 'rejected' ? 'danger' : 'warning')" size="small">{{ row.result }}</el-tag></template></el-table-column>
+                    <el-table-column prop="confidence_score" :label="t('ai_compliance_page.cols.confidence')" width="70" />
+                    <el-table-column :label="t('ai_compliance_page.cols.overridden')" width="70"><template #default="{row}"><el-tag :type="row.was_overridden ? 'warning' : 'info'" size="small">{{ row.was_overridden ? t('ai_compliance_page.yes') : t('ai_compliance_page.no') }}</el-tag></template></el-table-column>
+                    <el-table-column :label="t('ai_compliance_page.cols.time')" width="150"><template #default="{row}">{{ fmtDate(row.occurred_at) }}</template></el-table-column>
                 </el-table>
             </el-tab-pane>
 
             <!-- 人工申诉 -->
-            <el-tab-pane label="🛡️ 人工申诉" name="overrides">
-                <div class="section-header"><span>申诉列表</span><el-button size="small" type="primary" @click="showOverrideForm = true">+ 新建申诉</el-button></div>
+            <el-tab-pane :label="t('ai_compliance_page.tabs.overrides')" name="overrides">
+                <div class="section-header"><span>{{ t('ai_compliance_page.override_section_title') }}</span><el-button size="small" type="primary" @click="showOverrideForm = true">{{ t('ai_compliance_page.buttons.new_override') }}</el-button></div>
                 <el-table :data="overrideList" stripe v-loading="ovrLoading" size="small">
-                    <el-table-column prop="request_id" label="编号" width="130" />
-                    <el-table-column prop="customer_identifier" label="客户" width="120" />
-                    <el-table-column prop="reason" label="理由" min-width="180" show-overflow-tooltip />
-                    <el-table-column label="状态" width="90"><template #default="{row}"><el-tag :type="overrideStatusTag(row.status)" size="small">{{ row.status }}</el-tag></template></el-table-column>
-                    <el-table-column prop="escalation_level" label="级别" width="80" />
-                    <el-table-column prop="assigned_to" label="处理人" width="100" />
-                    <el-table-column label="时间" width="150"><template #default="{row}">{{ fmtDate(row.submitted_at) }}</template></el-table-column>
-                    <el-table-column label="操作" width="160" fixed="right">
+                    <el-table-column prop="request_id" :label="t('ai_compliance_page.cols.request_id')" width="130" />
+                    <el-table-column prop="customer_identifier" :label="t('ai_compliance_page.cols.customer')" width="120" />
+                    <el-table-column prop="reason" :label="t('ai_compliance_page.cols.reason')" min-width="180" show-overflow-tooltip />
+                    <el-table-column :label="t('ai_compliance_page.cols.status')" width="90"><template #default="{row}"><el-tag :type="overrideStatusTag(row.status)" size="small">{{ row.status }}</el-tag></template></el-table-column>
+                    <el-table-column prop="escalation_level" :label="t('ai_compliance_page.cols.level')" width="80" />
+                    <el-table-column prop="assigned_to" :label="t('ai_compliance_page.cols.assignee')" width="100" />
+                    <el-table-column :label="t('ai_compliance_page.cols.time')" width="150"><template #default="{row}">{{ fmtDate(row.submitted_at) }}</template></el-table-column>
+                    <el-table-column :label="t('ai_compliance_page.cols.actions')" width="160" fixed="right">
                         <template #default="{row}">
-                            <el-button size="small" @click="processOverrideDialog(row)" v-if="row.status === 'pending'">处理</el-button>
+                            <el-button size="small" @click="processOverrideDialog(row)" v-if="row.status === 'pending'">{{ t('ai_compliance_page.buttons.process') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
-                <el-dialog v-model="showOverrideForm" title="新建人工申诉" width="500px">
+                <el-dialog v-model="showOverrideForm" :title="t('ai_compliance_page.dialogs.new_override')" width="500px">
                     <el-form :model="overrideForm" label-width="120px">
-                        <el-form-item label="客户标识" :rules="[{required:true}]"><el-input v-model="overrideForm.customer_identifier" /></el-form-item>
-                        <el-form-item label="客户邮箱"><el-input v-model="overrideForm.customer_email" /></el-form-item>
-                        <el-form-item label="申诉理由" :rules="[{required:true}]"><el-input v-model="overrideForm.reason" type="textarea" :rows="3" /></el-form-item>
+                        <el-form-item :label="t('ai_compliance_page.forms.customer_identifier')" :rules="[{required:true}]"><el-input v-model="overrideForm.customer_identifier" /></el-form-item>
+                        <el-form-item :label="t('ai_compliance_page.forms.customer_email')"><el-input v-model="overrideForm.customer_email" /></el-form-item>
+                        <el-form-item :label="t('ai_compliance_page.forms.override_reason')" :rules="[{required:true}]"><el-input v-model="overrideForm.reason" type="textarea" :rows="3" /></el-form-item>
                     </el-form>
-                    <template #footer><el-button @click="showOverrideForm = false">取消</el-button><el-button type="primary" @click="saveOverride" :loading="saving">提交</el-button></template>
+                    <template #footer><el-button @click="showOverrideForm = false">{{ t('actions.cancel') }}</el-button><el-button type="primary" @click="saveOverride" :loading="saving">{{ t('actions.submit') }}</el-button></template>
                 </el-dialog>
-                <el-dialog v-model="showProcessForm" title="处理申诉" width="500px">
+                <el-dialog v-model="showProcessForm" :title="t('ai_compliance_page.dialogs.process_override')" width="500px">
                     <el-form :model="processForm" label-width="100px">
-                        <el-form-item label="处理结果"><el-select v-model="processForm.final_decision" style="width:100%">
-                            <el-option label="覆盖 AI 决策 (Override)" value="override" />
-                            <el-option label="维持 AI 决策 (Uphold)" value="uphold" />
-                            <el-option label="部分采纳" value="partially" />
+                        <el-form-item :label="t('ai_compliance_page.forms.process_result')"><el-select v-model="processForm.final_decision" style="width:100%">
+                            <el-option v-for="opt in overrideDecisionOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                         </el-select></el-form-item>
-                        <el-form-item label="处理人"><el-input v-model="processForm.assigned_to" /></el-form-item>
-                        <el-form-item label="处理备注"><el-input v-model="processForm.resolution_notes" type="textarea" :rows="3" /></el-form-item>
+                        <el-form-item :label="t('ai_compliance_page.cols.assignee')"><el-input v-model="processForm.assigned_to" /></el-form-item>
+                        <el-form-item :label="t('ai_compliance_page.forms.process_notes')"><el-input v-model="processForm.resolution_notes" type="textarea" :rows="3" /></el-form-item>
                     </el-form>
-                    <template #footer><el-button @click="showProcessForm = false">取消</el-button><el-button type="primary" @click="submitProcess" :loading="saving">确认处理</el-button></template>
+                    <template #footer><el-button @click="showProcessForm = false">{{ t('actions.cancel') }}</el-button><el-button type="primary" @click="submitProcess" :loading="saving">{{ t('ai_compliance_page.buttons.confirm_process') }}</el-button></template>
                 </el-dialog>
             </el-tab-pane>
 
             <!-- 合规差距分析 -->
-            <el-tab-pane label="📋 差距分析" name="gaps">
+            <el-tab-pane :label="t('ai_compliance_page.tabs.gaps')" name="gaps">
                 <el-row :gutter="16" class="mb-4">
                     <el-col :span="12">
                         <el-card shadow="hover">
-                            <template #header><span>系统级差距</span></template>
+                            <template #header><span>{{ t('ai_compliance_page.gaps.system_gaps') }}</span></template>
                             <div v-if="gapData.system_gaps?.length">
                                 <el-table :data="gapData.system_gaps" stripe size="small">
-                                    <el-table-column prop="system_name" label="系统" min-width="140" />
-                                    <el-table-column label="风险" width="70"><template #default="{row}"><el-tag :type="riskTag(row.risk_level)" size="small">{{ row.risk_level }}</el-tag></template></el-table-column>
-                                    <el-table-column label="差距数" width="70" prop="gap_count" />
-                                    <el-table-column label="详情" min-width="200">
+                                    <el-table-column prop="system_name" :label="t('ai_compliance_page.cols.system')" min-width="140" />
+                                    <el-table-column :label="t('ai_compliance_page.cols.risk')" width="70"><template #default="{row}"><el-tag :type="riskTag(row.risk_level)" size="small">{{ row.risk_level }}</el-tag></template></el-table-column>
+                                    <el-table-column :label="t('ai_compliance_page.cols.gap_count')" width="70" prop="gap_count" />
+                                    <el-table-column :label="t('ai_compliance_page.cols.details')" min-width="200">
                                         <template #default="{row}"><span v-for="(g, i) in row.gaps" :key="i"><el-tag size="small" type="danger" style="margin:2px">{{ g }}</el-tag> </span></template>
                                     </el-table-column>
                                 </el-table>
                             </div>
-                            <el-empty v-else description="所有系统均无差距" />
+                            <el-empty v-else :description="t('ai_compliance_page.gaps.no_system_gaps')" />
                         </el-card>
                     </el-col>
                     <el-col :span="12">
                         <el-card shadow="hover">
-                            <template #header><span>全局差距</span></template>
+                            <template #header><span>{{ t('ai_compliance_page.gaps.global_gaps') }}</span></template>
                             <div v-if="gapData.global_gaps?.length">
                                 <el-alert v-for="(g, i) in gapData.global_gaps" :key="i" :title="g" type="warning" show-icon :closable="false" style="margin-bottom:8px" />
                             </div>
-                            <el-empty v-else description="无全局差距" />
+                            <el-empty v-else :description="t('ai_compliance_page.gaps.no_global_gaps')" />
                         </el-card>
                     </el-col>
                 </el-row>
             </el-tab-pane>
 
             <!-- 合规报告 -->
-            <el-tab-pane label="📄 合规报告" name="report">
-                <el-button type="primary" @click="loadReport" :loading="reportLoading" class="mb-4">生成合规报告</el-button>
+            <el-tab-pane :label="t('ai_compliance_page.tabs.report')" name="report">
+                <el-button type="primary" @click="loadReport" :loading="reportLoading" class="mb-4">{{ t('ai_compliance_page.buttons.generate_report') }}</el-button>
                 <div v-if="reportData">
                     <el-card shadow="hover" class="mb-4">
-                        <template #header>合规报告 — {{ reportData.generated_at }}</template>
+                        <template #header>{{ t('ai_compliance_page.report.header', { generated_at: reportData.generated_at }) }}</template>
                         <el-descriptions :column="4" border size="small">
-                            <el-descriptions-item label="系统数">{{ reportData.summary?.system_count }}</el-descriptions-item>
-                            <el-descriptions-item label="高风险">{{ reportData.summary?.high_risk_systems }}</el-descriptions-item>
-                            <el-descriptions-item label="待评审">{{ reportData.summary?.pending_reviews }}</el-descriptions-item>
-                            <el-descriptions-item label="合规分">{{ reportData.gap_analysis?.compliance_score?.score }}</el-descriptions-item>
-                            <el-descriptions-item label="偏见标记">{{ reportData.summary?.open_bias_flags }}</el-descriptions-item>
-                            <el-descriptions-item label="待处理申诉">{{ reportData.summary?.pending_overrides }}</el-descriptions-item>
-                            <el-descriptions-item label="总决策数">{{ reportData.summary?.total_decisions }}</el-descriptions-item>
-                            <el-descriptions-item label="近期评估">{{ reportData.summary?.recent_assessments }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('ai_compliance_page.report.system_count')">{{ reportData.summary?.system_count }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('ai_compliance_page.report.high_risk')">{{ reportData.summary?.high_risk_systems }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('ai_compliance_page.report.pending_reviews')">{{ reportData.summary?.pending_reviews }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('ai_compliance_page.report.compliance_score')">{{ reportData.gap_analysis?.compliance_score?.score }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('ai_compliance_page.report.open_bias_flags')">{{ reportData.summary?.open_bias_flags }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('ai_compliance_page.report.pending_overrides')">{{ reportData.summary?.pending_overrides }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('ai_compliance_page.report.total_decisions')">{{ reportData.summary?.total_decisions }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('ai_compliance_page.report.recent_assessments')">{{ reportData.summary?.recent_assessments }}</el-descriptions-item>
                         </el-descriptions>
                     </el-card>
                     <el-table :data="reportData.systems" stripe size="small" v-if="reportData.systems?.length">
-                        <el-table-column prop="name" label="系统" min-width="140" />
-                        <el-table-column prop="risk_level" label="风险" width="70"><template #default="{row}"><el-tag :type="riskTag(row.risk_level)" size="small">{{ row.risk_level }}</el-tag></template></el-table-column>
-                        <el-table-column label="评估" width="60" prop="risk_assessments_count" />
-                        <el-table-column label="偏见" width="60" prop="bias_detections_count" />
-                        <el-table-column label="决策" width="60" prop="decision_logs_count" />
+                        <el-table-column prop="name" :label="t('ai_compliance_page.cols.system')" min-width="140" />
+                        <el-table-column prop="risk_level" :label="t('ai_compliance_page.cols.risk')" width="70"><template #default="{row}"><el-tag :type="riskTag(row.risk_level)" size="small">{{ row.risk_level }}</el-tag></template></el-table-column>
+                        <el-table-column :label="t('ai_compliance_page.cols.assessments')" width="60" prop="risk_assessments_count" />
+                        <el-table-column :label="t('ai_compliance_page.cols.bias')" width="60" prop="bias_detections_count" />
+                        <el-table-column :label="t('ai_compliance_page.cols.decisions')" width="60" prop="decision_logs_count" />
                     </el-table>
                 </div>
             </el-tab-pane>
@@ -276,10 +273,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh, DataBoard, CircleCheck } from '@element-plus/icons-vue';
 import aiComplianceApi from '@/api/aiCompliance';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const saving = ref(false);
@@ -287,10 +287,38 @@ const activeTab = ref('dashboard');
 const dash = reactive({ system_count: 0, active_systems: 0, high_risk_systems: 0, pending_reviews: 0, open_bias_flags: 0, pending_overrides: 0, total_decisions: 0, recent_assessments: 0 });
 const complianceScore = ref(null);
 
+const deploymentStatusOptions = computed(() => [
+    { label: t('ai_compliance_page.deployment_status.development'), value: 'development' },
+    { label: t('ai_compliance_page.deployment_status.staging'), value: 'staging' },
+    { label: t('ai_compliance_page.deployment_status.production'), value: 'production' },
+    { label: t('ai_compliance_page.deployment_status.retired'), value: 'retired' },
+]);
+
+const riskLevelOptions = computed(() => [
+    { label: t('ai_compliance_page.risk_level.low'), value: 'low' },
+    { label: t('ai_compliance_page.risk_level.medium'), value: 'medium' },
+    { label: t('ai_compliance_page.risk_level.high'), value: 'high' },
+    { label: t('ai_compliance_page.risk_level.critical'), value: 'critical' },
+]);
+
+const biasMetricOptions = computed(() => [
+    { label: t('ai_compliance_page.bias_metric.demographic_parity'), value: 'demographic_parity' },
+    { label: t('ai_compliance_page.bias_metric.equal_opportunity'), value: 'equal_opportunity' },
+    { label: t('ai_compliance_page.bias_metric.predictive_parity'), value: 'predictive_parity' },
+    { label: t('ai_compliance_page.bias_metric.disparate_impact'), value: 'disparate_impact' },
+]);
+
+const overrideDecisionOptions = computed(() => [
+    { label: t('ai_compliance_page.override_decision.override'), value: 'override' },
+    { label: t('ai_compliance_page.override_decision.uphold'), value: 'uphold' },
+    { label: t('ai_compliance_page.override_decision.partially'), value: 'partially' },
+]);
+
 // Systems
 const sysLoading = ref(false);
 const systems = ref([]);
-const systemsInfo = ref('');
+const systemsTotal = ref(0);
+const systemsInfo = computed(() => t('ai_compliance_page.systems.count', { n: systemsTotal.value }));
 const showSystemForm = ref(false);
 const showSysDetail = ref(false);
 const editingSystem = ref(null);
@@ -341,7 +369,7 @@ async function loadSystems() {
         const r = await aiComplianceApi.listSystems({ per_page: 100 });
         const d = r.data?.data || {};
         systems.value = d.items || [];
-        systemsInfo.value = `共 ${d.total || 0} 个 AI 系统`;
+        systemsTotal.value = d.total || 0;
     } finally { sysLoading.value = false; }
 }
 async function loadBias() {
@@ -379,32 +407,32 @@ function editSystem(row) {
 async function saveSystem() {
     saving.value = true;
     try {
-        if (editingSystem.value) { await aiComplianceApi.updateSystem(editingSystem.value.id, sysForm); ElMessage.success('已更新'); } 
-        else { await aiComplianceApi.storeSystem(sysForm); ElMessage.success('已创建'); }
+        if (editingSystem.value) { await aiComplianceApi.updateSystem(editingSystem.value.id, sysForm); ElMessage.success(t('ai_compliance_page.messages.system_updated')); }
+        else { await aiComplianceApi.storeSystem(sysForm); ElMessage.success(t('ai_compliance_page.messages.system_created')); }
         showSystemForm.value = false; editingSystem.value = null; loadSystems(); loadDashboard();
-    } catch { ElMessage.error('操作失败'); } finally { saving.value = false; }
+    } catch { ElMessage.error(t('messages.failed')); } finally { saving.value = false; }
 }
 async function deleteSystem(row) {
-    await aiComplianceApi.destroySystem(row.id); ElMessage.success('已删除'); loadSystems(); loadDashboard();
+    await aiComplianceApi.destroySystem(row.id); ElMessage.success(t('ai_compliance_page.messages.system_deleted')); loadSystems(); loadDashboard();
 }
 
 // Bias
 async function saveBias() {
     saving.value = true;
-    try { await aiComplianceApi.storeBiasDetection(biasForm); ElMessage.success('已记录'); showBiasForm.value = false; loadBias(); loadDashboard(); } catch { ElMessage.error('失败'); } finally { saving.value = false; }
+    try { await aiComplianceApi.storeBiasDetection(biasForm); ElMessage.success(t('ai_compliance_page.messages.bias_recorded')); showBiasForm.value = false; loadBias(); loadDashboard(); } catch { ElMessage.error(t('ai_compliance_page.messages.failed')); } finally { saving.value = false; }
 }
 async function mitigateBias(row) {
-    const { value } = await ElMessageBox.prompt('输入缓解措施', '缓解偏见');
-    if (value) { await aiComplianceApi.mitigateBias(row.id, { mitigation_action: value }); ElMessage.success('已缓解'); loadBias(); }
+    const { value } = await ElMessageBox.prompt(t('ai_compliance_page.dialogs.mitigate_prompt_placeholder'), t('ai_compliance_page.dialogs.mitigate_prompt_title'));
+    if (value) { await aiComplianceApi.mitigateBias(row.id, { mitigation_action: value }); ElMessage.success(t('ai_compliance_page.messages.bias_mitigated')); loadBias(); }
 }
 async function resolveBias(row) {
-    await aiComplianceApi.resolveBias(row.id); ElMessage.success('已解决'); loadBias();
+    await aiComplianceApi.resolveBias(row.id); ElMessage.success(t('ai_compliance_page.messages.bias_resolved')); loadBias();
 }
 
 // Override
 async function saveOverride() {
     saving.value = true;
-    try { await aiComplianceApi.storeOverride(overrideForm); ElMessage.success('申诉已提交'); showOverrideForm.value = false; loadOverrides(); } catch { ElMessage.error('失败'); } finally { saving.value = false; }
+    try { await aiComplianceApi.storeOverride(overrideForm); ElMessage.success(t('ai_compliance_page.messages.override_submitted')); showOverrideForm.value = false; loadOverrides(); } catch { ElMessage.error(t('ai_compliance_page.messages.failed')); } finally { saving.value = false; }
 }
 function processOverrideDialog(row) {
     processingId.value = row.id;
@@ -416,13 +444,17 @@ async function submitProcess() {
     try {
         const data = { ...processForm, status: 'resolved' };
         await aiComplianceApi.processOverride(processingId.value, data);
-        ElMessage.success('已处理'); showProcessForm.value = false; loadOverrides(); loadDashboard();
-    } catch { ElMessage.error('处理失败'); } finally { saving.value = false; }
+        ElMessage.success(t('ai_compliance_page.messages.override_processed')); showProcessForm.value = false; loadOverrides(); loadDashboard();
+    } catch { ElMessage.error(t('ai_compliance_page.messages.process_failed')); } finally { saving.value = false; }
 }
 
 function riskTag(level) { return { low: 'success', medium: 'warning', high: 'danger', critical: 'danger' }[level] || 'info'; }
 function overrideStatusTag(s) { return { pending: 'warning', in_review: 'primary', resolved: 'success', rejected: 'danger' }[s] || 'info'; }
-function fmtDate(t) { if (!t) return '—'; return new Date(t).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+function fmtDate(time) {
+    if (!time) return '—';
+    const loc = locale.value === 'zh_CN' ? 'zh-CN' : 'en-US';
+    return new Date(time).toLocaleString(loc, { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
 </script>
 
 <style scoped>

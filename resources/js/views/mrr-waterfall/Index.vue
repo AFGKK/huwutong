@@ -2,55 +2,55 @@
     <div class="mrr-waterfall-page">
         <div class="page-header">
             <div>
-                <h2>MRR 瀑布图</h2>
-                <p class="text-muted">月经常性收入变动分析：新增 / 扩展 / 收缩 / 流失</p>
+                <h2>{{ t('mrr_waterfall_page.title') }}</h2>
+                <p class="text-muted">{{ t('mrr_waterfall_page.subtitle') }}</p>
             </div>
             <div class="header-actions">
-                <el-date-picker v-model="selectedMonth" type="month" placeholder="选择月份" value-format="YYYY-MM" style="width:150px;margin-right:8px" @change="onMonthChange" />
-                <el-button @click="refreshAll" :loading="loading" :icon="Refresh">刷新</el-button>
+                <el-date-picker v-model="selectedMonth" type="month" :placeholder="t('mrr_waterfall_page.select_month')" value-format="YYYY-MM" style="width:150px;margin-right:8px" @change="onMonthChange" />
+                <el-button @click="refreshAll" :loading="loading" :icon="Refresh">{{ t('mrr_waterfall_page.refresh') }}</el-button>
             </div>
         </div>
 
         <el-row :gutter="16" class="mb-4" v-if="summary">
             <el-col :xs="12" :sm="8" :md="4">
-                <el-card shadow="hover"><div class="stat-label">当前 MRR</div><div class="stat-value">¥{{ fmt(summary.mrr) }}</div></el-card>
+                <el-card shadow="hover"><div class="stat-label">{{ t('mrr_waterfall_page.stats.current_mrr') }}</div><div class="stat-value">¥{{ fmt(summary.mrr) }}</div></el-card>
             </el-col>
             <el-col :xs="12" :sm="8" :md="4">
-                <el-card shadow="hover"><div class="stat-label">ARR</div><div class="stat-value primary">¥{{ fmt(summary.arr) }}</div></el-card>
+                <el-card shadow="hover"><div class="stat-label">{{ t('mrr_waterfall_page.stats.arr') }}</div><div class="stat-value primary">¥{{ fmt(summary.arr) }}</div></el-card>
             </el-col>
             <el-col :xs="12" :sm="8" :md="4">
-                <el-card shadow="hover"><div class="stat-label">净增 MRR</div><div class="stat-value" :class="summary.net_mrr_change >= 0 ? 'success' : 'danger'">{{ summary.net_mrr_change >= 0 ? '+' : '' }}¥{{ fmt(summary.net_mrr_change) }}</div></el-card>
+                <el-card shadow="hover"><div class="stat-label">{{ t('mrr_waterfall_page.stats.net_mrr_change') }}</div><div class="stat-value" :class="summary.net_mrr_change >= 0 ? 'success' : 'danger'">{{ summary.net_mrr_change >= 0 ? '+' : '' }}¥{{ fmt(summary.net_mrr_change) }}</div></el-card>
             </el-col>
             <el-col :xs="12" :sm="8" :md="4">
-                <el-card shadow="hover"><div class="stat-label">新增 MRR</div><div class="stat-value success">+¥{{ fmt(summary.new_mrr) }}</div></el-card>
+                <el-card shadow="hover"><div class="stat-label">{{ t('mrr_waterfall_page.stats.new_mrr') }}</div><div class="stat-value success">+¥{{ fmt(summary.new_mrr) }}</div></el-card>
             </el-col>
             <el-col :xs="12" :sm="8" :md="4">
-                <el-card shadow="hover"><div class="stat-label">流失 MRR</div><div class="stat-value danger">-¥{{ fmt(summary.churned_mrr) }}</div></el-card>
+                <el-card shadow="hover"><div class="stat-label">{{ t('mrr_waterfall_page.stats.churned_mrr') }}</div><div class="stat-value danger">-¥{{ fmt(summary.churned_mrr) }}</div></el-card>
             </el-col>
             <el-col :xs="12" :sm="8" :md="4">
-                <el-card shadow="hover"><div class="stat-label">活跃订阅</div><div class="stat-value">{{ summary.total_subscriptions || 0 }}</div></el-card>
+                <el-card shadow="hover"><div class="stat-label">{{ t('mrr_waterfall_page.stats.active_subscriptions') }}</div><div class="stat-value">{{ summary.total_subscriptions || 0 }}</div></el-card>
             </el-col>
         </el-row>
 
         <el-card shadow="hover" class="mb-4">
-            <template #header><span>MRR 瀑布图趋势</span></template>
+            <template #header><span>{{ t('mrr_waterfall_page.sections.trend') }}</span></template>
             <MrrWaterfallChart :chartData="waterfallData" :loading="chartLoading" @refresh="loadWaterfall" />
         </el-card>
 
         <el-row :gutter="16" class="mb-4" v-if="summary">
             <el-col :span="12">
                 <el-card shadow="hover">
-                    <template #header><span>{{ selectedMonth }} MRR 构成</span></template>
+                    <template #header><span>{{ t('mrr_waterfall_page.sections.composition', { month: selectedMonth }) }}</span></template>
                     <div class="mrr-composition">
-                        <div class="mrr-comp-item" v-if="summary.new_mrr"><span class="dot green"></span><span>新增</span><span class="val success">+¥{{ fmt(summary.new_mrr) }}</span></div>
-                        <div class="mrr-comp-item" v-if="summary.expansion_mrr"><span class="dot blue"></span><span>扩展</span><span class="val success">+¥{{ fmt(summary.expansion_mrr) }}</span></div>
-                        <div class="mrr-comp-item" v-if="summary.contraction_mrr"><span class="dot orange"></span><span>收缩</span><span class="val warning">-¥{{ fmt(summary.contraction_mrr) }}</span></div>
-                        <div class="mrr-comp-item" v-if="summary.churned_mrr"><span class="dot red"></span><span>流失</span><span class="val danger">-¥{{ fmt(summary.churned_mrr) }}</span></div>
-                        <div class="mrr-comp-item" v-if="summary.reactivation_mrr"><span class="dot gray"></span><span>重新激活</span><span class="val success">+¥{{ fmt(summary.reactivation_mrr) }}</span></div>
+                        <div class="mrr-comp-item" v-if="summary.new_mrr"><span class="dot green"></span><span>{{ t('mrr.new') }}</span><span class="val success">+¥{{ fmt(summary.new_mrr) }}</span></div>
+                        <div class="mrr-comp-item" v-if="summary.expansion_mrr"><span class="dot blue"></span><span>{{ t('mrr.expansion') }}</span><span class="val success">+¥{{ fmt(summary.expansion_mrr) }}</span></div>
+                        <div class="mrr-comp-item" v-if="summary.contraction_mrr"><span class="dot orange"></span><span>{{ t('mrr.contraction') }}</span><span class="val warning">-¥{{ fmt(summary.contraction_mrr) }}</span></div>
+                        <div class="mrr-comp-item" v-if="summary.churned_mrr"><span class="dot red"></span><span>{{ t('mrr.churned') }}</span><span class="val danger">-¥{{ fmt(summary.churned_mrr) }}</span></div>
+                        <div class="mrr-comp-item" v-if="summary.reactivation_mrr"><span class="dot gray"></span><span>{{ t('mrr.type_reactivate') }}</span><span class="val success">+¥{{ fmt(summary.reactivation_mrr) }}</span></div>
                     </div>
                     <div class="filter-tags mt-3">
-                        <el-tag v-for="t in changeTypeFilters" :key="t.value" :type="filterType === t.value ? '' : 'info'" class="clickable" @click="setFilterType(t.value)">{{ t.label }}</el-tag>
-                        <el-tag v-if="filterType" type="info" class="clickable" @click="setFilterType('')">清除筛选</el-tag>
+                        <el-tag v-for="item in changeTypeFilters" :key="item.value" :type="filterType === item.value ? '' : 'info'" class="clickable" @click="setFilterType(item.value)">{{ item.label }}</el-tag>
+                        <el-tag v-if="filterType" type="info" class="clickable" @click="setFilterType('')">{{ t('mrr_waterfall_page.clear_filter') }}</el-tag>
                     </div>
                 </el-card>
             </el-col>
@@ -58,20 +58,20 @@
                 <el-card shadow="hover" v-loading="breakdownLoading">
                     <template #header>
                         <el-tabs v-model="breakdownTab" class="breakdown-tabs">
-                            <el-tab-pane label="按产品/方案" name="product" />
-                            <el-tab-pane label="按区域" name="region" />
+                            <el-tab-pane :label="t('mrr_waterfall_page.breakdown.tab_product')" name="product" />
+                            <el-tab-pane :label="t('mrr_waterfall_page.breakdown.tab_region')" name="region" />
                         </el-tabs>
                     </template>
                     <el-table :data="breakdownTab === 'product' ? productBreakdown : regionBreakdown" stripe size="small" max-height="260">
-                        <el-table-column :label="breakdownTab === 'product' ? '方案' : '区域'" prop="label" min-width="120" />
-                        <el-table-column label="变更笔数" prop="change_count" width="90" align="center" />
-                        <el-table-column label="MRR 影响" width="120" align="right">
+                        <el-table-column :label="breakdownTab === 'product' ? t('mrr_waterfall_page.breakdown.col_plan') : t('mrr_waterfall_page.breakdown.col_region')" prop="label" min-width="120" />
+                        <el-table-column :label="t('mrr_waterfall_page.breakdown.col_change_count')" prop="change_count" width="90" align="center" />
+                        <el-table-column :label="t('mrr_waterfall_page.breakdown.col_mrr_impact')" width="120" align="right">
                             <template #default="{ row }">
                                 <span :class="row.total_impact >= 0 ? 'success' : 'danger'">{{ row.total_impact >= 0 ? '+' : '' }}¥{{ fmt(row.total_impact) }}</span>
                             </template>
                         </el-table-column>
                     </el-table>
-                    <el-empty v-if="!(breakdownTab === 'product' ? productBreakdown : regionBreakdown).length" description="暂无数据" :image-size="60" />
+                    <el-empty v-if="!(breakdownTab === 'product' ? productBreakdown : regionBreakdown).length" :description="t('messages.no_data')" :image-size="60" />
                 </el-card>
             </el-col>
         </el-row>
@@ -83,11 +83,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Refresh } from '@element-plus/icons-vue';
 import MrrWaterfallChart from '@/components/MrrWaterfallChart.vue';
 import MrrDrilldownPanel from '@/components/MrrDrilldownPanel.vue';
 import { getMrrWaterfall, getMrrSummary, getMrrBreakdownByProduct, getMrrBreakdownByRegion } from '@/api/mrr.js';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const chartLoading = ref(false);
@@ -101,16 +104,25 @@ const filterType = ref('');
 const breakdownTab = ref('product');
 const chartMonths = ref(6);
 
-const changeTypeFilters = [
-    { value: 'new_subscription', label: '新增订阅' },
-    { value: 'upgrade', label: '升级' },
-    { value: 'downgrade', label: '降级' },
-    { value: 'cancellation', label: '取消' },
-    { value: 'reactivation', label: '重新激活' },
+const changeTypeFilterKeys = [
+    { value: 'new_subscription', key: 'mrr.type_new' },
+    { value: 'upgrade', key: 'mrr.type_upgrade' },
+    { value: 'downgrade', key: 'mrr.type_downgrade' },
+    { value: 'cancellation', key: 'mrr.type_cancel' },
+    { value: 'reactivation', key: 'mrr.type_reactivate' },
 ];
 
+const changeTypeFilters = computed(() => changeTypeFilterKeys.map((item) => ({
+    value: item.value,
+    label: t(item.key),
+})));
+
+function numberLocale() {
+    return locale.value?.startsWith('zh') ? 'zh-CN' : 'en-US';
+}
+
 function fmt(v) {
-    return Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return Number(v || 0).toLocaleString(numberLocale(), { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function setFilterType(type) {
@@ -189,7 +201,7 @@ onMounted(refreshAll);
 .mt-3 { margin-top: 12px; }
 .stat-label { font-size: 13px; color: #909399; margin-bottom: 4px; }
 .stat-value { font-size: 22px; font-weight: 600; }
-.stat-value.primary { color: #409eff; }
+.stat-value.primary { color: #0f172a; }
 .stat-value.success { color: #67c23a; }
 .stat-value.danger { color: #f56c6c; }
 .mrr-composition { display: flex; flex-direction: column; gap: 10px; }
@@ -197,7 +209,7 @@ onMounted(refreshAll);
 .mrr-comp-item .val { margin-left: auto; font-weight: 600; }
 .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .dot.green { background: #67c23a; }
-.dot.blue { background: #409eff; }
+.dot.blue { background: #0f172a; }
 .dot.orange { background: #e6a23c; }
 .dot.red { background: #f56c6c; }
 .dot.gray { background: #909399; }

@@ -1,20 +1,18 @@
 <template>
   <div class="compensation-panel">
-    <!-- 操作栏 -->
     <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-medium">SLA 违约补偿</h3>
+      <h3 class="text-lg font-medium">{{ t(`${P}.title`) }}</h3>
       <el-button type="primary" :loading="generating" @click="autoGenerate" v-if="hasOpenBreaches">
-        <el-icon><Plus /></el-icon> 为未处理违约生成补偿
+        <el-icon><Plus /></el-icon> {{ t(`${P}.auto_generate`) }}
       </el-button>
     </div>
 
-    <!-- 补偿统计 -->
     <el-row :gutter="20" class="mb-4">
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value">{{ compStats.total_count }}</div>
-            <div class="stat-label">补偿总数</div>
+            <div class="stat-label">{{ t(`${P}.stats.total`) }}</div>
           </div>
         </el-card>
       </el-col>
@@ -22,7 +20,7 @@
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value text-warning">{{ compStats.pending_count }}</div>
-            <div class="stat-label">待审批</div>
+            <div class="stat-label">{{ t(`${P}.stats.pending`) }}</div>
           </div>
         </el-card>
       </el-col>
@@ -30,7 +28,7 @@
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value text-success">{{ compStats.total_amount }}</div>
-            <div class="stat-label">总补偿金额</div>
+            <div class="stat-label">{{ t(`${P}.stats.amount`) }}</div>
           </div>
         </el-card>
       </el-col>
@@ -38,23 +36,22 @@
         <el-card shadow="hover">
           <div class="stat-card">
             <div class="stat-value">¥{{ compStats.total_amount }}</div>
-            <div class="stat-label">已发放总额</div>
+            <div class="stat-label">{{ t(`${P}.stats.issued`) }}</div>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 月度趋势 -->
     <el-card shadow="hover" class="mb-4" v-if="compStats.monthly_trend?.length">
-      <template #header>月度补偿趋势</template>
+      <template #header>{{ t(`${P}.monthly_trend`) }}</template>
       <el-table :data="compStats.monthly_trend" stripe size="small">
-        <el-table-column label="月份" prop="month" width="120" />
-        <el-table-column label="补偿次数" prop="cnt" width="120">
+        <el-table-column :label="t(`${P}.cols.month`)" prop="month" width="120" />
+        <el-table-column :label="t(`${P}.cols.count`)" prop="cnt" width="120">
           <template #default="{ row }">
-            <el-tag>{{ row.cnt }} 次</el-tag>
+            <el-tag>{{ t(`${P}.times_n`, { n: row.cnt }) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="补偿总额" prop="total" min-width="120">
+        <el-table-column :label="t(`${P}.cols.total`)" prop="total" min-width="120">
           <template #default="{ row }">
             <span class="text-success">¥{{ row.total }}</span>
           </template>
@@ -62,17 +59,16 @@
       </el-table>
     </el-card>
 
-    <!-- 类型分布 -->
     <el-card shadow="hover" class="mb-4" v-if="compStats.by_type?.length">
-      <template #header>补偿类型分布</template>
+      <template #header>{{ t(`${P}.type_dist`) }}</template>
       <el-table :data="compStats.by_type" stripe size="small">
-        <el-table-column label="补偿类型" prop="compensation_type" width="140">
+        <el-table-column :label="t(`${P}.cols.type`)" prop="compensation_type" width="140">
           <template #default="{ row }">
             <el-tag :type="typeTag(row.compensation_type)">{{ typeLabel(row.compensation_type) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="次数" prop="cnt" width="100" />
-        <el-table-column label="总额" prop="total" min-width="120">
+        <el-table-column :label="t(`${P}.cols.times`)" prop="cnt" width="100" />
+        <el-table-column :label="t(`${P}.cols.amount`)" prop="total" min-width="120">
           <template #default="{ row }">
             <span class="text-success">¥{{ row.total }}</span>
           </template>
@@ -80,83 +76,80 @@
       </el-table>
     </el-card>
 
-    <!-- 筛选栏 -->
     <el-card shadow="hover" class="mb-4">
       <el-form :inline="true" :model="filters" size="small">
-        <el-form-item label="状态">
-          <el-select v-model="filters.status" placeholder="全部状态" clearable style="width:140px">
+        <el-form-item :label="t(`${P}.cols.status`)">
+          <el-select v-model="filters.status" :placeholder="t(`${P}.all_status`)" clearable style="width:140px">
             <el-option v-for="s in allStatuses" :key="s.value" :label="s.label" :value="s.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="严重度">
-          <el-select v-model="filters.severity" placeholder="全部" clearable style="width:120px">
-            <el-option label="轻微" value="minor" />
-            <el-option label="主要" value="major" />
-            <el-option label="严重" value="critical" />
+        <el-form-item :label="t(`${P}.cols.severity`)">
+          <el-select v-model="filters.severity" :placeholder="t(`${P}.all`)" clearable style="width:120px">
+            <el-option :label="t(`${P}.severity.minor`)" value="minor" />
+            <el-option :label="t(`${P}.severity.major`)" value="major" />
+            <el-option :label="t(`${P}.severity.critical`)" value="critical" />
           </el-select>
         </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="filters.compensation_type" placeholder="全部类型" clearable style="width:140px">
-            <el-option label="信用额度" value="credit" />
-            <el-option label="折扣" value="discount" />
-            <el-option label="服务延长" value="extension" />
-            <el-option label="退款" value="refund" />
+        <el-form-item :label="t(`${P}.cols.type`)">
+          <el-select v-model="filters.compensation_type" :placeholder="t(`${P}.all_types`)" clearable style="width:140px">
+            <el-option :label="t(`${P}.types.credit`)" value="credit" />
+            <el-option :label="t(`${P}.types.discount`)" value="discount" />
+            <el-option :label="t(`${P}.types.extension`)" value="extension" />
+            <el-option :label="t(`${P}.types.refund`)" value="refund" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="loadData">筛选</el-button>
-          <el-button @click="resetFilters">重置</el-button>
+          <el-button type="primary" @click="loadData">{{ t('actions.filter') }}</el-button>
+          <el-button @click="resetFilters">{{ t('actions.reset') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- 补偿列表 -->
     <el-card shadow="hover">
       <el-table :data="compensations" stripe size="small" v-loading="loading">
-        <el-table-column label="合约" prop="contract.name" min-width="140" />
-        <el-table-column label="客户" prop="customer?.name" width="120">
+        <el-table-column :label="t(`${P}.cols.contract`)" prop="contract.name" min-width="140" />
+        <el-table-column :label="t(`${P}.cols.customer`)" prop="customer?.name" width="120">
           <template #default="{ row }">{{ row.customer?.name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="严重度" width="90">
+        <el-table-column :label="t(`${P}.cols.severity`)" width="90">
           <template #default="{ row }">
             <el-tag :type="severityTag(row.severity)" size="small">{{ severityLabel(row.severity) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="类型" width="100">
+        <el-table-column :label="t(`${P}.cols.type`)" width="100">
           <template #default="{ row }">
             <el-tag :type="typeTag(row.compensation_type)" size="small">{{ typeLabel(row.compensation_type) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="金额" prop="amount" width="100">
+        <el-table-column :label="t(`${P}.cols.amount`)" prop="amount" width="100">
           <template #default="{ row }">
             <span class="text-success">¥{{ row.amount }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column :label="t(`${P}.cols.status`)" width="100">
           <template #default="{ row }">
             <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="原因" prop="reason" min-width="200" show-overflow-tooltip />
-        <el-table-column label="创建时间" prop="created_at" width="160" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column :label="t(`${P}.cols.reason`)" prop="reason" min-width="200" show-overflow-tooltip />
+        <el-table-column :label="t(`${P}.cols.created`)" prop="created_at" width="160" />
+        <el-table-column :label="t(`${P}.cols.actions`)" width="200" fixed="right">
           <template #default="{ row }">
             <el-button v-if="row.status === 'pending'" type="primary" link size="small" @click="approve(row)">
-              审批
+              {{ t(`${P}.approve`) }}
             </el-button>
             <el-button v-if="row.status === 'approved'" type="success" link size="small" @click="issue(row)">
-              发放
+              {{ t(`${P}.issue`) }}
             </el-button>
             <el-button v-if="row.status === 'pending'" type="danger" link size="small" @click="showRejectDialog(row)">
-              拒绝
+              {{ t(`${P}.reject`) }}
             </el-button>
-            <el-tag v-if="row.status === 'issued'" type="success" size="small">已发放</el-tag>
-            <el-tag v-if="row.status === 'rejected'" type="danger" size="small">已拒绝</el-tag>
+            <el-tag v-if="row.status === 'issued'" type="success" size="small">{{ t(`${P}.status.issued`) }}</el-tag>
+            <el-tag v-if="row.status === 'rejected'" type="danger" size="small">{{ t(`${P}.status.rejected`) }}</el-tag>
           </template>
         </el-table-column>
       </el-table>
 
-      <!-- 分页 -->
       <div class="flex justify-center mt-4" v-if="pagination.total > pagination.per_page">
         <el-pagination
           background
@@ -169,30 +162,33 @@
       </div>
     </el-card>
 
-    <!-- 拒绝对话框 -->
-    <el-dialog v-model="rejectDialog.visible" title="拒绝补偿" width="420">
+    <el-dialog v-model="rejectDialog.visible" :title="t(`${P}.reject_title`)" width="420">
       <el-form :model="rejectDialog">
-        <el-form-item label="拒绝原因">
-          <el-input v-model="rejectDialog.reason" type="textarea" :rows="3" placeholder="请输入拒绝原因" />
+        <el-form-item :label="t(`${P}.reject_reason`)">
+          <el-input v-model="rejectDialog.reason" type="textarea" :rows="3" :placeholder="t(`${P}.reject_ph`)" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="rejectDialog.visible = false">取消</el-button>
-        <el-button type="danger" :loading="rejecting" @click="doReject">确认拒绝</el-button>
+        <el-button @click="rejectDialog.visible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="danger" :loading="rejecting" @click="doReject">{{ t(`${P}.confirm_reject`) }}</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import {
   getCompensations, getCompensationStats,
   autoGenerateCompensations, approveCompensation,
   issueCompensation, rejectCompensation,
 } from '../../../api/sla'
+
+const { t } = useI18n()
+const P = 'sla_compensation_panel'
 
 const loading = ref(false)
 const generating = ref(false)
@@ -212,12 +208,12 @@ const rejectDialog = reactive({
   reason: '',
 })
 
-const allStatuses = [
-  { value: 'pending', label: '待审批' },
-  { value: 'approved', label: '已审批' },
-  { value: 'issued', label: '已发放' },
-  { value: 'rejected', label: '已拒绝' },
-]
+const allStatuses = computed(() => [
+  { value: 'pending', label: t(`${P}.status.pending`) },
+  { value: 'approved', label: t(`${P}.status.approved`) },
+  { value: 'issued', label: t(`${P}.status.issued`) },
+  { value: 'rejected', label: t(`${P}.status.rejected`) },
+])
 
 function severityTag(s) {
   const map = { minor: 'info', major: 'warning', critical: 'danger' }
@@ -225,18 +221,20 @@ function severityTag(s) {
 }
 
 function severityLabel(s) {
-  const map = { minor: '轻微', major: '主要', critical: '严重' }
-  return map[s] || s
+  const key = `${P}.severity.${s}`
+  const translated = t(key)
+  return translated === key ? s : translated
 }
 
-function typeTag(t) {
+function typeTag(type) {
   const map = { credit: 'success', discount: 'warning', extension: 'primary', refund: 'danger' }
-  return map[t] || ''
+  return map[type] || ''
 }
 
-function typeLabel(t) {
-  const map = { credit: '信用额度', discount: '折扣', extension: '服务延长', refund: '退款' }
-  return map[t] || t
+function typeLabel(type) {
+  const key = `${P}.types.${type}`
+  const translated = t(key)
+  return translated === key ? type : translated
 }
 
 function statusTag(s) {
@@ -245,8 +243,9 @@ function statusTag(s) {
 }
 
 function statusLabel(s) {
-  const map = { pending: '待审批', approved: '已审批', issued: '已发放', rejected: '已拒绝' }
-  return map[s] || s
+  const key = `${P}.status.${s}`
+  const translated = t(key)
+  return translated === key ? s : translated
 }
 
 function resetFilters() {
@@ -277,7 +276,7 @@ async function loadData() {
     hasOpenBreaches.value = statsRes.data?.pending_count > 0
   } catch (e) {
     console.error('Failed to load compensations', e)
-    ElMessage.error('加载补偿数据失败')
+    ElMessage.error(t(`${P}.messages.load_failed`))
   } finally {
     loading.value = false
   }
@@ -287,10 +286,10 @@ async function autoGenerate() {
   generating.value = true
   try {
     const { data } = await autoGenerateCompensations()
-    ElMessage.success(`已生成 ${data.generated} 条补偿记录`)
+    ElMessage.success(t(`${P}.messages.generated`, { n: data.generated }))
     loadData()
   } catch (e) {
-    ElMessage.error('生成补偿失败')
+    ElMessage.error(t(`${P}.messages.generate_failed`))
   } finally {
     generating.value = false
   }
@@ -299,20 +298,20 @@ async function autoGenerate() {
 async function approve(comp) {
   try {
     await approveCompensation(comp.id)
-    ElMessage.success('已审批')
+    ElMessage.success(t(`${P}.messages.approved`))
     loadData()
   } catch (e) {
-    ElMessage.error('审批失败')
+    ElMessage.error(t(`${P}.messages.approve_failed`))
   }
 }
 
 async function issue(comp) {
   try {
     await issueCompensation(comp.id)
-    ElMessage.success('已标记为发放')
+    ElMessage.success(t(`${P}.messages.issued`))
     loadData()
   } catch (e) {
-    ElMessage.error('发放失败')
+    ElMessage.error(t(`${P}.messages.issue_failed`))
   }
 }
 
@@ -326,11 +325,11 @@ async function doReject() {
   rejecting.value = true
   try {
     await rejectCompensation(rejectDialog.compensationId, rejectDialog.reason)
-    ElMessage.success('已拒绝')
+    ElMessage.success(t(`${P}.messages.rejected`))
     rejectDialog.visible = false
     loadData()
   } catch (e) {
-    ElMessage.error('拒绝失败')
+    ElMessage.error(t(`${P}.messages.reject_failed`))
   } finally {
     rejecting.value = false
   }
@@ -348,6 +347,7 @@ onMounted(loadData)
 .text-warning { color: #e6a23c !important; }
 .flex { display: flex; }
 .justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
 .items-center { align-items: center; }
 .mb-4 { margin-bottom: 16px; }
 .mt-4 { margin-top: 16px; }

@@ -3,16 +3,14 @@
     <div class="page-header">
       <h2>
         <el-icon style="vertical-align:middle;margin-right:8px"><DataAnalysis /></el-icon>
-        Trial → 付费转化漏斗
+        {{ t('conversion_funnel_page.title') }}
       </h2>
       <div class="header-actions">
         <el-select v-model="period" style="width:140px;margin-right:8px" @change="refreshAll">
-          <el-option label="近7天" value="7" />
-          <el-option label="近30天" value="30" />
-          <el-option label="近90天" value="90" />
+          <el-option v-for="opt in periodOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
         </el-select>
         <el-button type="primary" @click="refreshAll" :loading="loading">
-          <el-icon><Refresh /></el-icon> 刷新
+          <el-icon><Refresh /></el-icon> {{ t('conversion_funnel_page.refresh') }}
         </el-button>
       </div>
     </div>
@@ -22,13 +20,13 @@
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value stat-primary">{{ stats.funnel?.total_started || 0 }}</div>
-          <div class="stat-label">注册 Trial</div>
+          <div class="stat-label">{{ t('conversion_funnel_page.stats.trial_registered') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value stat-success">{{ stats.funnel?.total_converted || 0 }}</div>
-          <div class="stat-label">转化为付费</div>
+          <div class="stat-label">{{ t('conversion_funnel_page.stats.converted') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
@@ -36,13 +34,13 @@
           <div class="stat-value" :class="stats.funnel?.overall_rate < 10 ? 'stat-danger' : 'stat-success'">
             {{ stats.funnel?.overall_rate || 0 }}%
           </div>
-          <div class="stat-label">整体转化率</div>
+          <div class="stat-label">{{ t('conversion_funnel_page.stats.overall_rate') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.today_registered || 0 }}</div>
-          <div class="stat-label">今日注册</div>
+          <div class="stat-label">{{ t('conversion_funnel_page.stats.today_registered') }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -51,12 +49,12 @@
       <el-col :span="16">
         <!-- 漏斗图 -->
         <el-card shadow="hover">
-          <template #header><span>转化漏斗</span></template>
-          <div v-if="funnelStages.length">
-            <div v-for="(stage, idx) in funnelStages" :key="stage.stage" class="funnel-row">
+          <template #header><span>{{ t('conversion_funnel_page.sections.funnel') }}</span></template>
+          <div v-if="localizedFunnelStages.length">
+            <div v-for="(stage, idx) in localizedFunnelStages" :key="stage.stage" class="funnel-row">
               <div class="funnel-label">
                 <span class="stage-name">{{ stage.label }}</span>
-                <span class="stage-count">{{ stage.count }} 个</span>
+                <span class="stage-count">{{ t('conversion_funnel_page.count_fmt', { n: stage.count }) }}</span>
               </div>
               <div class="funnel-bar-wrap">
                 <div
@@ -67,22 +65,22 @@
                 </div>
               </div>
               <div class="funnel-drop">
-                <span v-if="stage.drop_off > 0" class="drop-text">-{{ stage.drop_rate }}%</span>
+                <span v-if="stage.drop_off > 0" class="drop-text">{{ t('conversion_funnel_page.drop_fmt', { rate: stage.drop_rate }) }}</span>
               </div>
             </div>
           </div>
-          <el-empty v-else description="暂无数据" :image-size="60" />
+          <el-empty v-else :description="t('messages.no_data')" :image-size="60" />
         </el-card>
       </el-col>
       <el-col :span="8">
         <!-- 流失分析 -->
         <el-card shadow="hover">
-          <template #header><span>流失分析</span></template>
-          <div v-if="funnelStages.length">
-            <el-table :data="funnelStages" size="small" stripe>
-              <el-table-column label="阶段" prop="label" min-width="100" />
-              <el-table-column label="数量" prop="count" width="60" align="center" />
-              <el-table-column label="流失率" width="80" align="center">
+          <template #header><span>{{ t('conversion_funnel_page.sections.drop_off') }}</span></template>
+          <div v-if="localizedFunnelStages.length">
+            <el-table :data="localizedFunnelStages" size="small" stripe>
+              <el-table-column :label="t('conversion_funnel_page.cols.stage')" prop="label" min-width="100" />
+              <el-table-column :label="t('conversion_funnel_page.cols.count')" prop="count" width="60" align="center" />
+              <el-table-column :label="t('conversion_funnel_page.cols.drop_rate')" width="80" align="center">
                 <template #default="{ row }">
                   <span :class="row.drop_rate > 20 ? 'text-danger' : ''">{{ row.drop_rate }}%</span>
                 </template>
@@ -90,13 +88,13 @@
             </el-table>
             <el-alert
               v-if="stats.worst_stage"
-              :title="'最大流失点: ' + stats.worst_stage.label + ' (' + stats.worst_stage.drop_rate + '%)'"
+              :title="worstStageAlert"
               type="warning"
               :closable="false"
               style="margin-top:12px"
             />
           </div>
-          <el-empty v-else description="暂无数据" :image-size="60" />
+          <el-empty v-else :description="t('messages.no_data')" :image-size="60" />
         </el-card>
       </el-col>
     </el-row>
@@ -105,27 +103,27 @@
       <!-- 渠道分析 -->
       <el-col :span="12">
         <el-card shadow="hover">
-          <template #header><span>渠道来源分析</span></template>
+          <template #header><span>{{ t('conversion_funnel_page.sections.source') }}</span></template>
           <el-table :data="sourceData" stripe v-loading="sourceLoading" size="small">
-            <el-table-column label="渠道" prop="source" min-width="100" />
-            <el-table-column label="总数" prop="total" width="80" align="center" />
-            <el-table-column label="转化数" prop="converted" width="80" align="center" />
-            <el-table-column label="转化率" width="100" align="center">
+            <el-table-column :label="t('conversion_funnel_page.cols.source')" prop="source" min-width="100" />
+            <el-table-column :label="t('conversion_funnel_page.cols.total')" prop="total" width="80" align="center" />
+            <el-table-column :label="t('conversion_funnel_page.cols.converted')" prop="converted" width="80" align="center" />
+            <el-table-column :label="t('conversion_funnel_page.cols.rate')" width="100" align="center">
               <template #default="{ row }">
                 <el-tag :type="row.rate > 10 ? 'success' : 'warning'" size="small">{{ row.rate }}%</el-tag>
               </template>
             </el-table-column>
           </el-table>
-          <el-empty v-if="!sourceData.length" description="暂无渠道数据" :image-size="50" />
+          <el-empty v-if="!sourceData.length" :description="t('conversion_funnel_page.no_source_data')" :image-size="50" />
         </el-card>
       </el-col>
 
       <!-- 趋势 -->
       <el-col :span="12">
         <el-card shadow="hover">
-          <template #header><span>转化率趋势</span></template>
+          <template #header><span>{{ t('conversion_funnel_page.sections.trend') }}</span></template>
           <div ref="trendChartRef" style="height:240px"></div>
-          <el-empty v-if="!trendData.length" description="暂无趋势数据" :image-size="50" />
+          <el-empty v-if="!trendData.length" :description="t('conversion_funnel_page.no_trend_data')" :image-size="50" />
         </el-card>
       </el-col>
     </el-row>
@@ -133,10 +131,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { DataAnalysis, Refresh } from '@element-plus/icons-vue';
 import funnelApi from '@/api/conversionFunnel';
 import * as echarts from 'echarts';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const sourceLoading = ref(false);
@@ -147,7 +148,31 @@ const sourceData = ref([]);
 const trendData = ref([]);
 const trendChartRef = ref(null);
 
+const stageKeys = ['trial_registered', 'sdk_downloaded', 'sdk_activated', 'first_validation', 'feature_used', 'converted'];
+
+const periodOptions = computed(() => [
+  { label: t('conversion_funnel_page.period.days_7'), value: '7' },
+  { label: t('conversion_funnel_page.period.days_30'), value: '30' },
+  { label: t('conversion_funnel_page.period.days_90'), value: '90' },
+]);
+
+const stageLabels = computed(() => Object.fromEntries(
+  stageKeys.map((k) => [k, t(`conversion_funnel_page.stages.${k}`)]),
+));
+
 const funnelStages = computed(() => stats.value.funnel?.stages || []);
+
+const localizedFunnelStages = computed(() => funnelStages.value.map((stage) => ({
+  ...stage,
+  label: stageLabels.value[stage.stage] || stage.label,
+})));
+
+const worstStageAlert = computed(() => {
+  const ws = stats.value.worst_stage;
+  if (!ws) return '';
+  const label = stageLabels.value[ws.stage] || ws.label;
+  return t('conversion_funnel_page.worst_stage_alert', { stage: label, rate: ws.drop_rate });
+});
 
 onMounted(() => { refreshAll(); });
 
@@ -179,7 +204,7 @@ async function refreshAll() {
 }
 
 function stageColor(idx) {
-  const colors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#B37FEB'];
+  const colors = ['#0f172a', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#B37FEB'];
   return colors[idx % colors.length];
 }
 
@@ -193,7 +218,7 @@ function renderTrendChart() {
     series: [{
       type: 'line', data: trendData.value.map(d => d.conversion_rate),
       smooth: true, areaStyle: { opacity: 0.15 },
-      itemStyle: { color: '#409EFF' },
+      itemStyle: { color: '#0f172a' },
     }],
   });
 }
@@ -209,7 +234,7 @@ function renderTrendChart() {
 .stat-label { font-size: 13px; color: #909399; margin-top: 4px; }
 .stat-success { color: #67C23A; }
 .stat-danger { color: #F56C6C; }
-.stat-primary { color: #409EFF; }
+.stat-primary { color: #0f172a; }
 .funnel-row { display: flex; align-items: center; margin-bottom: 12px; gap: 12px; }
 .funnel-label { width: 140px; flex-shrink: 0; text-align: right; }
 .stage-name { font-weight: 600; font-size: 14px; display: block; }

@@ -3,6 +3,17 @@
     min-height: 100vh;
 }
 
+/* Element Plus brand → slate B2B */
+:root {
+    --el-color-primary: #0f172a;
+    --el-color-primary-light-3: #475569;
+    --el-color-primary-light-5: #64748b;
+    --el-color-primary-light-7: #94a3b8;
+    --el-color-primary-light-8: #cbd5e1;
+    --el-color-primary-light-9: #f1f5f9;
+    --el-color-primary-dark-2: #020617;
+}
+
 .app-loading {
     display: flex;
     flex-direction: column;
@@ -16,7 +27,7 @@
         width: 32px;
         height: 32px;
         border: 3px solid #e4e7ed;
-        border-top-color: #409eff;
+        border-top-color: #0f172a;
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
         margin-bottom: 16px;
@@ -46,7 +57,7 @@
 
 // WCAG 2.4.7: 焦点可见指示器（全局）
 :focus-visible {
-    outline: 2px solid #409eff;
+    outline: 2px solid #0f172a;
     outline-offset: 2px;
     border-radius: 2px;
 }
@@ -67,7 +78,7 @@
     }
 
     .el-menu-item.is-active {
-        color: #409eff;
+        color: #f8fafc;
     }
 }
 
@@ -80,8 +91,8 @@
 
 .el-input__wrapper.is-focus,
 .el-select__wrapper.is-focus {
-    border-color: #409eff;
-    box-shadow: 0 0 0 1px #409eff inset;
+    border-color: #0f172a;
+    box-shadow: 0 0 0 1px #0f172a inset;
 }
 
 // WCAG 2.4.4: 链接区分 — 给所有链接加下划线
@@ -97,11 +108,11 @@ a:not(.el-button):not(.skip-link):not(.el-menu-item):not(.el-breadcrumb__inner):
 
 // WCAG 1.4.3: 表格对比度 — 悬停行提升对比度
 .el-table__body tr:hover > td {
-    background-color: #ecf5ff;
+    background-color: #f1f5f9;
 }
 
 .el-table__body tr.current-row > td {
-    background-color: #d9ecff;
+    background-color: #e2e8f0;
 }
 
 // WCAG 2.4.6/2.4.10: 表单标签 — 确保标签可见
@@ -112,7 +123,7 @@ a:not(.el-button):not(.skip-link):not(.el-menu-item):not(.el-breadcrumb__inner):
 
 // WCAG 2.4.7: 为 el-button 提供 focus-visible 样式覆盖
 .el-button:focus-visible {
-    outline: 2px solid #409eff;
+    outline: 2px solid #0f172a;
     outline-offset: 2px;
 }
 
@@ -147,4 +158,138 @@ html {
     &[aria-hidden="false"] {
         aria-hidden: false;
     }
+}
+
+// Fix: ElMessageBox CSS not auto-imported by unplugin (used imperatively, not in templates)
+// The overlay wrapper — needs position:fixed to cover viewport + flex for centering
+.el-overlay-message-box {
+    position: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2011;
+}
+
+// The dialog box itself — standard element-plus message-box appearance
+.el-message-box {
+    display: inline-block;
+    max-width: 420px;
+    width: auto;
+    padding-bottom: 10px;
+    vertical-align: middle;
+    background-color: #fff;
+    border-radius: 4px;
+    border: 1px solid #ebeef5;
+    font-size: 18px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, .1);
+    text-align: left;
+    overflow: hidden;
+    backface-visibility: hidden;
+}
+
+// Close button in the header
+.el-message-box__headerbtn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 16px;
+    cursor: pointer;
+    color: #909399;
+    &:hover {
+        color: #409eff;
+    }
+}
+
+// Header area
+.el-message-box__header {
+    position: relative;
+    padding: 15px 15px 10px;
+}
+
+// Title text
+.el-message-box__title {
+    padding-left: 0;
+    margin-bottom: 0;
+    font-size: 18px;
+    line-height: 1;
+    color: #303133;
+}
+
+// Content area
+.el-message-box__content {
+    padding: 10px 15px;
+    color: #606266;
+    font-size: 14px;
+}
+
+// Status icon in content
+.el-message-box__status {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 24px !important;
+    &.el-icon-warning {
+        color: #e6a23c;
+    }
+}
+
+// Message text next to status icon
+.el-message-box__message {
+    margin: 0;
+    p {
+        margin: 0;
+        line-height: 24px;
+    }
+}
+
+// Button area at bottom
+.el-message-box__btns {
+    padding: 5px 15px 0;
+    text-align: right;
+}
+
+// Input inside message box (for prompt)
+.el-message-box__input {
+    padding-top: 15px;
+    .el-input__inner {
+        width: 100%;
+    }
+}
+
+// Fix: body scroll lock when modals are open (not auto-imported by unplugin)
+body.el-popup-parent--hidden,
+body.el-message-box-parent--hidden {
+    overflow: hidden;
+}
+
+// Fix: ElDialog overlay CSS not auto-imported by unplugin
+.el-overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2000;
+    height: 100%;
+    background-color: rgba(0, 0, 0, .5);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+// Fix: ElDialog wrapper centering
+.el-overlay-dialog {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
 }

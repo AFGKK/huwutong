@@ -2,8 +2,8 @@
   <div class="scim-page">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h2>SCIM 自动用户同步</h2>
-      <p class="text-muted">通过 SCIM 2.0 协议自动同步 IdP（Okta/Azure AD/OneLogin）中的用户和组</p>
+      <h2>{{ t('scim_page.title') }}</h2>
+      <p class="text-muted">{{ t('scim_page.subtitle') }}</p>
     </div>
 
     <!-- 仪表盘卡片 -->
@@ -11,25 +11,25 @@
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ dashboard.total_configs }}</div>
-          <div class="stat-label">同步配置</div>
+          <div class="stat-label">{{ t('scim_page.stats.total_configs') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ dashboard.active_configs }}</div>
-          <div class="stat-label">已启用</div>
+          <div class="stat-label">{{ t('scim_page.stats.active_configs') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ dashboard.total_synced }}</div>
-          <div class="stat-label">已同步用户</div>
+          <div class="stat-label">{{ t('scim_page.stats.synced_users') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ dashboard.failed_syncs }}</div>
-          <div class="stat-label">同步失败</div>
+          <div class="stat-label">{{ t('scim_page.stats.failed_syncs') }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -37,25 +37,25 @@
     <!-- 操作栏 -->
     <div class="action-bar">
       <el-button type="primary" @click="showDialog = true">
-        <el-icon><Plus /></el-icon> 新增配置
+        <el-icon><Plus /></el-icon> {{ t('scim_page.add_config') }}
       </el-button>
     </div>
 
     <!-- 配置列表 -->
     <el-table :data="configs" v-loading="loading" stripe style="width: 100%">
-      <el-table-column prop="name" label="名称" min-width="140" />
-      <el-table-column prop="provider" label="提供商" width="120">
+      <el-table-column prop="name" :label="t('scim_page.cols.name')" min-width="140" />
+      <el-table-column prop="provider" :label="t('scim_page.cols.provider')" width="120">
         <template #default="{ row }">
-          <el-tag :type="providerColor(row.provider)">{{ row.provider }}</el-tag>
+          <el-tag :type="providerColor(row.provider)">{{ providerLabel(row.provider) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="base_url" label="基础 URL" min-width="200" show-overflow-tooltip />
-      <el-table-column prop="sync_frequency" label="同步频率" width="110">
+      <el-table-column prop="base_url" :label="t('scim_page.cols.base_url')" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="sync_frequency" :label="t('scim_page.cols.sync_frequency')" width="110">
         <template #default="{ row }">
           <span>{{ freqLabel(row.sync_frequency) }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="enabled" label="状态" width="90">
+      <el-table-column prop="enabled" :label="t('scim_page.cols.status')" width="90">
         <template #default="{ row }">
           <el-switch
             :model-value="row.enabled"
@@ -64,21 +64,21 @@
           />
         </template>
       </el-table-column>
-      <el-table-column prop="last_sync_at" label="上次同步" width="170">
+      <el-table-column prop="last_sync_at" :label="t('scim_page.cols.last_sync')" width="170">
         <template #default="{ row }">
           <span v-if="row.last_sync_at">{{ row.last_sync_at }}</span>
-          <span v-else class="text-muted">从未</span>
+          <span v-else class="text-muted">{{ t('scim_page.never') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="300" fixed="right">
+      <el-table-column :label="t('scim_page.cols.actions')" width="300" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" @click="testConnection(row)">测试</el-button>
-          <el-button size="small" type="warning" :loading="row._syncing" @click="syncNow(row)">立即同步</el-button>
-          <el-button size="small" @click="editConfig(row)">编辑</el-button>
-          <el-button size="small" @click="showLogs(row)">日志</el-button>
-          <el-popconfirm title="确定删除此配置？" @confirm="deleteConfig(row)">
+          <el-button size="small" @click="testConnection(row)">{{ t('scim_page.actions.test') }}</el-button>
+          <el-button size="small" type="warning" :loading="row._syncing" @click="syncNow(row)">{{ t('scim_page.actions.sync_now') }}</el-button>
+          <el-button size="small" @click="editConfig(row)">{{ t('actions.edit') }}</el-button>
+          <el-button size="small" @click="showLogs(row)">{{ t('scim_page.actions.logs') }}</el-button>
+          <el-popconfirm :title="t('scim_page.confirm.delete')" @confirm="deleteConfig(row)">
             <template #reference>
-              <el-button size="small" type="danger">删除</el-button>
+              <el-button size="small" type="danger">{{ t('actions.delete') }}</el-button>
             </template>
           </el-popconfirm>
         </template>
@@ -86,91 +86,83 @@
     </el-table>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog v-model="showDialog" :title="editingId ? '编辑配置' : '新增 SCIM 配置'" width="640px" :close-on-click-modal="false">
+    <el-dialog v-model="showDialog" :title="editingId ? t('scim_page.dialog.edit_title') : t('scim_page.dialog.create_title')" width="640px" :close-on-click-modal="false">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="120px" v-loading="saving">
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="form.name" placeholder="例如：Okta 生产同步" maxlength="100" />
+        <el-form-item :label="t('scim_page.form.name')" prop="name">
+          <el-input v-model="form.name" :placeholder="t('scim_page.form.name_ph')" maxlength="100" />
         </el-form-item>
-        <el-form-item label="提供商" prop="provider">
+        <el-form-item :label="t('scim_page.form.provider')" prop="provider">
           <el-select v-model="form.provider" style="width:100%" @change="onProviderChange">
-            <el-option label="通用 (Generic)" value="generic" />
-            <el-option label="Okta" value="okta" />
-            <el-option label="Azure AD" value="azure" />
-            <el-option label="OneLogin" value="onelogin" />
+            <el-option v-for="opt in providerOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="基础 URL" prop="base_url">
+        <el-form-item :label="t('scim_page.form.base_url')" prop="base_url">
           <el-input v-model="form.base_url" placeholder="https://example.okta.com/scim" />
         </el-form-item>
-        <el-form-item label="API Token" prop="api_token">
-          <el-input v-model="form.api_token" type="password" show-password placeholder="IdP 生成的 API Token" />
+        <el-form-item :label="t('scim_page.form.api_token')" prop="api_token">
+          <el-input v-model="form.api_token" type="password" show-password :placeholder="t('scim_page.form.api_token_ph')" />
         </el-form-item>
-        <el-form-item label="同步频率">
+        <el-form-item :label="t('scim_page.form.sync_frequency')">
           <el-select v-model="form.sync_frequency" style="width:100%">
-            <el-option label="手动" value="manual" />
-            <el-option label="每小时" value="hourly" />
-            <el-option label="每天" value="daily" />
-            <el-option label="每周" value="weekly" />
+            <el-option v-for="opt in frequencyOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="启用">
+        <el-form-item :label="t('scim_page.form.enabled')">
           <el-switch v-model="form.enabled" />
         </el-form-item>
 
         <!-- 属性映射 -->
-        <el-divider>属性映射</el-divider>
-        <el-form-item label="外部用户名" prop="attribute_mapping.userName">
-          <el-input v-model="form.attribute_mapping.userName" placeholder="userName" />
+        <el-divider>{{ t('scim_page.attr_mapping.title') }}</el-divider>
+        <el-form-item :label="t('scim_page.attr_mapping.external_username')" prop="attribute_mapping.userName">
+          <el-input v-model="form.attribute_mapping.userName" :placeholder="t('scim_page.attr_mapping.username_ph')" />
         </el-form-item>
-        <el-form-item label="外部邮箱" prop="attribute_mapping.email">
-          <el-input v-model="form.attribute_mapping.email" placeholder="emails[0].value" />
+        <el-form-item :label="t('scim_page.attr_mapping.external_email')" prop="attribute_mapping.email">
+          <el-input v-model="form.attribute_mapping.email" :placeholder="t('scim_page.attr_mapping.email_ph')" />
         </el-form-item>
-        <el-form-item label="外部姓名" prop="attribute_mapping.displayName">
-          <el-input v-model="form.attribute_mapping.displayName" placeholder="displayName" />
+        <el-form-item :label="t('scim_page.attr_mapping.external_display_name')" prop="attribute_mapping.displayName">
+          <el-input v-model="form.attribute_mapping.displayName" :placeholder="t('scim_page.attr_mapping.display_name_ph')" />
         </el-form-item>
-        <el-form-item label="外部手机" prop="attribute_mapping.phone">
-          <el-input v-model="form.attribute_mapping.phone" placeholder="phoneNumbers[0].value" />
+        <el-form-item :label="t('scim_page.attr_mapping.external_phone')" prop="attribute_mapping.phone">
+          <el-input v-model="form.attribute_mapping.phone" :placeholder="t('scim_page.attr_mapping.phone_ph')" />
         </el-form-item>
 
         <!-- 角色映射 -->
-        <el-divider>角色映射</el-divider>
-        <el-form-item label="默认角色">
-          <el-select v-model="form.options.default_role" style="width:100%" clearable placeholder="选择默认角色">
-            <el-option label="管理员" value="admin" />
-            <el-option label="用户" value="user" />
-            <el-option label="只读" value="readonly" />
+        <el-divider>{{ t('scim_page.role_mapping.title') }}</el-divider>
+        <el-form-item :label="t('scim_page.role_mapping.default_role')">
+          <el-select v-model="form.options.default_role" style="width:100%" clearable :placeholder="t('scim_page.role_mapping.default_role_ph')">
+            <el-option v-for="opt in roleOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="自动停用">
+        <el-form-item :label="t('scim_page.role_mapping.auto_disable')">
           <el-switch v-model="form.options.auto_disable" />
-          <span class="text-muted" style="margin-left:8px">不再同步的用户自动停用</span>
+          <span class="text-muted" style="margin-left:8px">{{ t('scim_page.role_mapping.auto_disable_hint') }}</span>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showDialog = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveConfig">保存</el-button>
+        <el-button @click="showDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="saving" @click="saveConfig">{{ t('actions.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 同步日志对话框 -->
-    <el-dialog v-model="showLogDialog" title="同步日志" width="800px">
+    <el-dialog v-model="showLogDialog" :title="t('scim_page.logs.title')" width="800px">
       <el-table :data="syncLogs" v-loading="logsLoading" stripe style="width:100%">
-        <el-table-column prop="started_at" label="开始时间" width="170" />
-        <el-table-column prop="finished_at" label="结束时间" width="170" />
-        <el-table-column prop="status" label="状态" width="80">
+        <el-table-column prop="started_at" :label="t('scim_page.logs.started_at')" width="170" />
+        <el-table-column prop="finished_at" :label="t('scim_page.logs.finished_at')" width="170" />
+        <el-table-column prop="status" :label="t('scim_page.logs.status')" width="80">
           <template #default="{ row }">
             <el-tag :type="row.status === 'success' ? 'success' : row.status === 'partial' ? 'warning' : 'danger'" size="small">
-              {{ row.status }}
+              {{ logStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="total_count" label="总计" width="70" align="center" />
-        <el-table-column prop="success_count" label="成功" width="70" align="center" />
-        <el-table-column prop="failed_count" label="失败" width="70" align="center" />
-        <el-table-column prop="created_count" label="新增" width="70" align="center" />
-        <el-table-column prop="updated_count" label="更新" width="70" align="center" />
-        <el-table-column prop="disabled_count" label="停用" width="70" align="center" />
-        <el-table-column label="错误" min-width="160" show-overflow-tooltip>
+        <el-table-column prop="total_count" :label="t('scim_page.logs.total')" width="70" align="center" />
+        <el-table-column prop="success_count" :label="t('scim_page.logs.success')" width="70" align="center" />
+        <el-table-column prop="failed_count" :label="t('scim_page.logs.failed')" width="70" align="center" />
+        <el-table-column prop="created_count" :label="t('scim_page.logs.created')" width="70" align="center" />
+        <el-table-column prop="updated_count" :label="t('scim_page.logs.updated')" width="70" align="center" />
+        <el-table-column prop="disabled_count" :label="t('scim_page.logs.disabled')" width="70" align="center" />
+        <el-table-column :label="t('scim_page.logs.error')" min-width="160" show-overflow-tooltip>
           <template #default="{ row }">
             <span v-if="row.error_message" class="text-danger">{{ row.error_message }}</span>
             <span v-else class="text-muted">-</span>
@@ -192,7 +184,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import {
@@ -207,6 +200,8 @@ import {
   getScimDefaultMapping,
 } from '@/api/scim'
 
+const { t } = useI18n()
+
 // ── 数据 ──
 const loading = ref(false)
 const saving = ref(false)
@@ -217,6 +212,46 @@ const dashboard = reactive({
   total_synced: 0,
   failed_syncs: 0,
 })
+
+const providerKeys = ['generic', 'okta', 'azure', 'onelogin']
+const frequencyKeys = ['manual', 'hourly', 'daily', 'weekly']
+const roleKeys = [
+  { value: 'admin', key: 'team_page.roles.admin' },
+  { value: 'user', key: 'scim_page.roles.user' },
+  { value: 'readonly', key: 'team_page.roles.readonly' },
+]
+
+const providerOptions = computed(() =>
+  providerKeys.map((value) => ({ value, label: t(`scim_page.providers.${value}`) }))
+)
+
+const frequencyOptions = computed(() =>
+  frequencyKeys.map((value) => ({ value, label: t(`scim_page.frequencies.${value}`) }))
+)
+
+const roleOptions = computed(() =>
+  roleKeys.map(({ value, key }) => ({ value, label: t(key) }))
+)
+
+const freqLabels = computed(() =>
+  Object.fromEntries(frequencyKeys.map((k) => [k, t(`scim_page.frequencies.${k}`)]))
+)
+
+const providerLabels = computed(() =>
+  Object.fromEntries(providerKeys.map((k) => [k, t(`scim_page.providers.${k}`)]))
+)
+
+const logStatusLabels = computed(() => ({
+  success: t('scim_page.log_status.success'),
+  partial: t('scim_page.log_status.partial'),
+}))
+
+const rules = computed(() => ({
+  name: [{ required: true, message: t('scim_page.validation.name_required'), trigger: 'blur' }],
+  provider: [{ required: true, message: t('scim_page.validation.provider_required'), trigger: 'change' }],
+  base_url: [{ required: true, message: t('scim_page.validation.base_url_required'), trigger: 'blur' }],
+  api_token: [{ required: true, message: t('scim_page.validation.api_token_required'), trigger: 'blur' }],
+}))
 
 // ── 对话框 ──
 const showDialog = ref(false)
@@ -241,13 +276,6 @@ const form = reactive({
   },
 })
 
-const rules = {
-  name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
-  provider: [{ required: true, message: '请选择提供商', trigger: 'change' }],
-  base_url: [{ required: true, message: '请输入基础 URL', trigger: 'blur' }],
-  api_token: [{ required: true, message: '请输入 API Token', trigger: 'blur' }],
-}
-
 // ── 日志 ──
 const showLogDialog = ref(false)
 const logsLoading = ref(false)
@@ -263,9 +291,16 @@ function providerColor(provider) {
   return map[provider] || 'info'
 }
 
+function providerLabel(provider) {
+  return providerLabels.value[provider] || provider
+}
+
 function freqLabel(freq) {
-  const map = { manual: '手动', hourly: '每小时', daily: '每天', weekly: '每周' }
-  return map[freq] || freq
+  return freqLabels.value[freq] || freq
+}
+
+function logStatusLabel(status) {
+  return logStatusLabels.value[status] || status
 }
 
 async function loadData() {
@@ -278,7 +313,7 @@ async function loadData() {
     Object.assign(dashboard, dashRes.data || {})
     configs.value = (configRes.data || []).map(c => ({ ...c, _toggling: false, _syncing: false }))
   } catch (e) {
-    ElMessage.error('加载数据失败')
+    ElMessage.error(t('scim_page.messages.load_failed'))
   } finally {
     loading.value = false
   }
@@ -330,10 +365,10 @@ async function saveConfig() {
     }
     if (editingId.value) {
       await updateScimConfig(editingId.value, payload)
-      ElMessage.success('配置已更新')
+      ElMessage.success(t('scim_page.messages.config_updated'))
     } else {
       await createScimConfig(payload)
-      ElMessage.success('配置已创建')
+      ElMessage.success(t('scim_page.messages.config_created'))
     }
     showDialog.value = false
     resetForm()
@@ -348,7 +383,7 @@ async function saveConfig() {
 async function deleteConfig(row) {
   try {
     await deleteScimConfig(row.id)
-    ElMessage.success('配置已删除')
+    ElMessage.success(t('scim_page.messages.config_deleted'))
     await loadData()
   } catch (_) { /* ignore */ }
 }
@@ -358,7 +393,7 @@ async function toggleConfig(row) {
   try {
     await updateScimConfig(row.id, { enabled: !row.enabled })
     row.enabled = !row.enabled
-    ElMessage.success(row.enabled ? '已启用' : '已禁用')
+    ElMessage.success(row.enabled ? t('scim_page.messages.enabled') : t('scim_page.messages.disabled'))
   } catch (_) { /* ignore */ }
   finally { row._toggling = false }
 }
@@ -366,9 +401,9 @@ async function toggleConfig(row) {
 async function testConnection(row) {
   try {
     const res = await testScimConnection(row.id)
-    ElMessage.success(res.message || '连接测试通过')
+    ElMessage.success(res.message || t('scim_page.messages.test_ok'))
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '连接测试失败')
+    ElMessage.error(e.response?.data?.message || t('scim_page.messages.test_failed'))
   }
 }
 
@@ -376,10 +411,10 @@ async function syncNow(row) {
   row._syncing = true
   try {
     const res = await syncScimNow(row.id)
-    ElMessage.success(res.message || '同步已触发')
+    ElMessage.success(res.message || t('scim_page.messages.sync_triggered'))
     await loadData()
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '同步失败')
+    ElMessage.error(e.response?.data?.message || t('scim_page.messages.sync_failed'))
   } finally {
     row._syncing = false
   }
@@ -431,7 +466,7 @@ onMounted(loadData)
 .stat-value {
   font-size: 32px;
   font-weight: 700;
-  color: #409eff;
+  color: #0f172a;
 }
 .stat-label {
   font-size: 13px;

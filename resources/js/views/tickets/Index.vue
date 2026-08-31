@@ -2,14 +2,14 @@
     <div class="tickets-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>工单管理</h2>
-                <span class="header-subtitle">管理所有客户提交的工单</span>
+                <h2>{{ t('tickets_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('tickets_page.subtitle') }}</span>
             </div>
         </div>
 
         <!-- 统计卡片 -->
         <el-row :gutter="16" class="stats-row">
-            <el-col :span="4" v-for="s in statCards" :key="s.label">
+            <el-col :span="4" v-for="s in statCards" :key="s.key">
                 <el-card shadow="never" class="stat-card" @click="quickFilter(s.key)" style="cursor: pointer">
                     <div class="stat-value" :style="{ color: s.color }">{{ s.value }}</div>
                     <div class="stat-label">{{ s.label }}</div>
@@ -20,43 +20,37 @@
         <!-- 筛选栏 -->
         <el-card shadow="never" class="filter-card">
             <el-form :model="filters" inline>
-                <el-form-item label="搜索">
+                <el-form-item :label="t('tickets_page.search')">
                     <el-input
                         v-model="filters.search"
-                        placeholder="标题 / ID"
+                        :placeholder="t('tickets_page.search_ph')"
                         clearable
                         style="width: 200px"
                         @keyup.enter="doSearch"
                     />
                 </el-form-item>
-                <el-form-item label="状态">
-                    <el-select v-model="filters.status" clearable placeholder="全部状态" style="width: 130px" @change="doSearch">
-                        <el-option label="待处理" value="open" />
-                        <el-option label="处理中" value="in_progress" />
-                        <el-option label="已解决" value="resolved" />
-                        <el-option label="已关闭" value="closed" />
+                <el-form-item :label="t('tickets_page.status')">
+                    <el-select v-model="filters.status" clearable :placeholder="t('tickets_page.all_status')" style="width: 130px" @change="doSearch">
+                        <el-option v-for="opt in statusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="优先级">
-                    <el-select v-model="filters.priority" clearable placeholder="全部优先级" style="width: 130px" @change="doSearch">
-                        <el-option label="低" value="low" />
-                        <el-option label="普通" value="normal" />
-                        <el-option label="高" value="high" />
-                        <el-option label="紧急" value="urgent" />
+                <el-form-item :label="t('tickets_page.priority')">
+                    <el-select v-model="filters.priority" clearable :placeholder="t('tickets_page.all_priority')" style="width: 130px" @change="doSearch">
+                        <el-option v-for="opt in priorityOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="分类">
-                    <el-select v-model="filters.category_id" clearable placeholder="全部分类" style="width: 150px" @change="doSearch">
+                <el-form-item :label="t('tickets_page.category')">
+                    <el-select v-model="filters.category_id" clearable :placeholder="t('tickets_page.all_category')" style="width: 150px" @change="doSearch">
                         <el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" />
                     </el-select>
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="doSearch">
-                        <el-icon><Search /></el-icon> 搜索
+                        <el-icon><Search /></el-icon> {{ t('actions.search') }}
                     </el-button>
-                    <el-button @click="resetFilters">重置</el-button>
+                    <el-button @click="resetFilters">{{ t('actions.reset') }}</el-button>
                     <el-button @click="handleExport" :loading="exporting">
-                        <el-icon><Download /></el-icon> 导出CSV
+                        <el-icon><Download /></el-icon> {{ t('tickets_page.export_csv') }}
                     </el-button>
                 </el-form-item>
             </el-form>
@@ -72,16 +66,16 @@
         <!-- 批量操作栏 -->
         <el-card v-if="selectedIds.length > 0" shadow="never" class="mb-4">
             <div style="display:flex;align-items:center;gap:12px;font-size:13px">
-                <span>已选择 <strong>{{ selectedIds.length }}</strong> 项</span>
-                <el-button size="small" @click="clearSelection">取消选择</el-button>
+                <span>{{ t('tickets_page.selected_count', { n: selectedIds.length }) }}</span>
+                <el-button size="small" @click="clearSelection">{{ t('tickets_page.clear_selection') }}</el-button>
                 <el-button size="small" type="success" @click="handleBatchClose" :loading="batchLoading">
-                    <el-icon><CircleCheck /></el-icon> 批量关闭
+                    <el-icon><CircleCheck /></el-icon> {{ t('tickets_page.batch_close') }}
                 </el-button>
                 <el-button size="small" type="primary" @click="showBatchAssign = true" :loading="batchLoading">
-                    <el-icon><UserFilled /></el-icon> 批量分配
+                    <el-icon><UserFilled /></el-icon> {{ t('tickets_page.batch_assign') }}
                 </el-button>
                 <el-button size="small" type="danger" @click="handleBatchDelete" :loading="batchLoading">
-                    <el-icon><Delete /></el-icon> 批量删除
+                    <el-icon><Delete /></el-icon> {{ t('tickets_page.batch_delete') }}
                 </el-button>
             </div>
         </el-card>
@@ -92,7 +86,7 @@
                 @selection-change="onSelectionChange">
                 <el-table-column type="selection" width="45" />
                 <el-table-column prop="id" label="#" width="60" />
-                <el-table-column label="客户" min-width="140">
+                <el-table-column :label="t('tickets_page.col_customer')" min-width="140">
                     <template #default="{ row }">
                         <div class="customer-cell">
                             <div class="customer-name">{{ row.customer?.name || row.user?.name || '-' }}</div>
@@ -100,57 +94,57 @@
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column label="分类" width="100">
+                <el-table-column :label="t('tickets_page.col_category')" width="100">
                     <template #default="{ row }">
                         <el-tag size="small" effect="plain">{{ row.category?.name || '-' }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="标题" min-width="220">
+                <el-table-column :label="t('tickets_page.col_title')" min-width="220">
                     <template #default="{ row }">
                         <el-link type="primary" :underline="'never'" @click="$router.push(`/tickets/${row.id}`)">
                             {{ row.subject || row.title }}
                         </el-link>
                     </template>
                 </el-table-column>
-                <el-table-column label="状态" width="100">
+                <el-table-column :label="t('tickets_page.col_status')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="statusType(row.status)" size="small" effect="dark">
                             {{ statusLabel(row.status) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="优先级" width="80">
+                <el-table-column :label="t('tickets_page.col_priority')" width="80">
                     <template #default="{ row }">
                         <el-tag :type="priorityType(row.priority)" size="small">
                             {{ priorityLabel(row.priority) }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="处理人" width="120">
+                <el-table-column :label="t('tickets_page.col_assignee')" width="120">
                     <template #default="{ row }">
                         <span v-if="row.assigned_to">{{ row.assigned_to.name }}</span>
-                        <el-tag v-else size="small" type="warning">未分配</el-tag>
+                        <el-tag v-else size="small" type="warning">{{ t('tickets_page.unassigned') }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="回复" width="60" align="center">
+                <el-table-column :label="t('tickets_page.col_replies')" width="60" align="center">
                     <template #default="{ row }">
                         <el-tag round size="small">{{ row.replies_count || 0 }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="SLA" width="80">
+                <el-table-column :label="t('tickets_page.col_sla')" width="80">
                     <template #default="{ row }">
-                        <el-tag v-if="row.sla_breached" type="danger" size="small">超时</el-tag>
+                        <el-tag v-if="row.sla_breached" type="danger" size="small">{{ t('tickets_page.sla_breached') }}</el-tag>
                         <el-tag v-else-if="row.sla_deadline" type="warning" size="small">
                             {{ remainingTime(row.sla_deadline) }}
                         </el-tag>
                         <span v-else>-</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="created_at" label="创建时间" width="160" />
-                <el-table-column label="操作" width="160" fixed="right">
+                <el-table-column prop="created_at" :label="t('tickets_page.col_created')" width="160" />
+                <el-table-column :label="t('tickets_page.col_actions')" width="160" fixed="right">
                     <template #default="{ row }">
                         <el-button type="primary" link size="small" @click="$router.push(`/tickets/${row.id}`)">
-                            查看
+                            {{ t('actions.view') }}
                         </el-button>
                         <el-button
                             v-if="row.status === 'open'"
@@ -159,7 +153,7 @@
                             size="small"
                             @click="handleAssign(row)"
                         >
-                            分配
+                            {{ t('tickets_page.assign') }}
                         </el-button>
                         <el-button
                             v-if="row.status !== 'closed'"
@@ -168,7 +162,7 @@
                             size="small"
                             @click="handleQuickAction(row, 'close')"
                         >
-                            关闭
+                            {{ t('tickets_page.close') }}
                         </el-button>
                     </template>
                 </el-table-column>
@@ -188,10 +182,10 @@
         </el-card>
 
         <!-- 分配对话框 -->
-        <el-dialog v-model="showAssignDialog" title="分配工单" width="400px">
+        <el-dialog v-model="showAssignDialog" :title="t('tickets_page.assign_dialog_title')" width="400px">
             <el-form label-position="top">
-                <el-form-item label="选择处理人">
-                    <el-select v-model="assignUserId" placeholder="选择客服人员" filterable style="width: 100%">
+                <el-form-item :label="t('tickets_page.select_assignee')">
+                    <el-select v-model="assignUserId" :placeholder="t('tickets_page.select_staff_ph')" filterable style="width: 100%">
                         <el-option v-for="u in staffUsers" :key="u.id" :label="u.name" :value="u.id">
                             <span>{{ u.name }}</span>
                             <span class="text-muted" style="float: right; font-size: 12px;">{{ u.email }}</span>
@@ -200,16 +194,16 @@
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showAssignDialog = false">取消</el-button>
-                <el-button type="primary" @click="confirmAssign" :loading="assigning">确认分配</el-button>
+                <el-button @click="showAssignDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="confirmAssign" :loading="assigning">{{ t('tickets_page.confirm_assign') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 批量分配对话框 -->
-        <el-dialog v-model="showBatchAssign" title="批量分配工单" width="400px">
+        <el-dialog v-model="showBatchAssign" :title="t('tickets_page.batch_assign_dialog_title')" width="400px">
             <el-form label-position="top">
-                <el-form-item label="选择处理人">
-                    <el-select v-model="batchAssignUserId" placeholder="选择客服人员" filterable style="width: 100%">
+                <el-form-item :label="t('tickets_page.select_assignee')">
+                    <el-select v-model="batchAssignUserId" :placeholder="t('tickets_page.select_staff_ph')" filterable style="width: 100%">
                         <el-option v-for="u in staffUsers" :key="u.id" :label="u.name" :value="u.id">
                             <span>{{ u.name }}</span>
                             <span class="text-muted" style="float: right; font-size: 12px;">{{ u.email }}</span>
@@ -218,19 +212,22 @@
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showBatchAssign = false">取消</el-button>
-                <el-button type="primary" @click="confirmBatchAssign" :loading="batchLoading">确认分配</el-button>
+                <el-button @click="showBatchAssign = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="confirmBatchAssign" :loading="batchLoading">{{ t('tickets_page.confirm_assign') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import ticketApi from '@/api/ticket';
 import SavedSearchBar from '@/components/SavedSearchBar.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, CircleCheck, UserFilled, Delete, Download } from '@element-plus/icons-vue';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const tickets = ref([]);
@@ -265,10 +262,13 @@ function clearSelection() {
 async function handleBatchClose() {
     if (selectedIds.value.length === 0) return;
     try {
-        await ElMessageBox.confirm(`确定关闭 ${selectedIds.value.length} 个工单？`, '批量关闭');
+        await ElMessageBox.confirm(
+            t('tickets_page.batch_close_confirm', { n: selectedIds.value.length }),
+            t('tickets_page.batch_close_title'),
+        );
         batchLoading.value = true;
         const { data: res } = await ticketApi.batchClose(selectedIds.value);
-        ElMessage.success(res?.message || '关闭成功');
+        ElMessage.success(res?.message || t('tickets_page.close_ok'));
         clearSelection();
         fetchTickets();
     } catch { /* cancelled */ }
@@ -276,25 +276,29 @@ async function handleBatchClose() {
 }
 
 async function confirmBatchAssign() {
-    if (!batchAssignUserId.value) { ElMessage.warning('请选择处理人'); return; }
+    if (!batchAssignUserId.value) { ElMessage.warning(t('tickets_page.select_assignee_required')); return; }
     batchLoading.value = true;
     try {
         const { data: res } = await ticketApi.batchAssign(selectedIds.value, batchAssignUserId.value);
-        ElMessage.success(res?.message || '分配成功');
+        ElMessage.success(res?.message || t('tickets_page.assign_ok'));
         showBatchAssign.value = false;
         clearSelection();
         fetchTickets();
-    } catch { ElMessage.error('分配失败'); }
+    } catch { ElMessage.error(t('tickets_page.assign_fail')); }
     finally { batchLoading.value = false; }
 }
 
 async function handleBatchDelete() {
     if (selectedIds.value.length === 0) return;
     try {
-        await ElMessageBox.confirm(`确定删除 ${selectedIds.value.length} 个工单？此操作不可恢复。`, '批量删除', { type: 'warning' });
+        await ElMessageBox.confirm(
+            t('tickets_page.batch_delete_confirm', { n: selectedIds.value.length }),
+            t('tickets_page.batch_delete_title'),
+            { type: 'warning' },
+        );
         batchLoading.value = true;
         const { data: res } = await ticketApi.batchDelete(selectedIds.value);
-        ElMessage.success(res?.message || '删除成功');
+        ElMessage.success(res?.message || t('tickets_page.delete_ok'));
         clearSelection();
         fetchTickets();
     } catch { /* cancelled */ }
@@ -315,18 +319,27 @@ async function handleExport() {
         a.download = 'tickets-export-' + new Date().toISOString().slice(0, 10) + '.csv';
         a.click();
         URL.revokeObjectURL(url);
-        ElMessage.success('导出成功');
-    } catch { ElMessage.error('导出失败'); }
+        ElMessage.success(t('tickets_page.export_ok'));
+    } catch { ElMessage.error(t('tickets_page.export_fail')); }
     finally { exporting.value = false; }
 }
 
-const statCards = reactive([
-    { key: 'open', label: '待处理', value: '0', color: '#f56c6c' },
-    { key: 'in_progress', label: '处理中', value: '0', color: '#409eff' },
-    { key: 'resolved', label: '已解决', value: '0', color: '#67c23a' },
-    { key: 'closed', label: '已关闭', value: '0', color: '#909399' },
-    { key: 'urgent', label: '紧急', value: '0', color: '#f56c6c' },
-    { key: 'breached', label: 'SLA 超时', value: '0', color: '#f56c6c' },
+const statValues = reactive({
+    open: '0',
+    in_progress: '0',
+    resolved: '0',
+    closed: '0',
+    urgent: '0',
+    breached: '0',
+});
+
+const statCards = computed(() => [
+    { key: 'open', label: t('tickets_page.st_open'), value: statValues.open, color: '#f56c6c' },
+    { key: 'in_progress', label: t('tickets_page.st_in_progress'), value: statValues.in_progress, color: '#0f172a' },
+    { key: 'resolved', label: t('tickets_page.st_resolved'), value: statValues.resolved, color: '#67c23a' },
+    { key: 'closed', label: t('tickets_page.st_closed'), value: statValues.closed, color: '#909399' },
+    { key: 'urgent', label: t('tickets_page.st_urgent'), value: statValues.urgent, color: '#f56c6c' },
+    { key: 'breached', label: t('tickets_page.st_sla_breached'), value: statValues.breached, color: '#f56c6c' },
 ]);
 
 const filters = reactive({
@@ -336,39 +349,54 @@ const filters = reactive({
     category_id: '',
 });
 
-const STATUS_MAP = {
-    open: { type: 'danger', label: '待处理' },
-    in_progress: { type: 'primary', label: '处理中' },
-    resolved: { type: 'success', label: '已解决' },
-    closed: { type: 'info', label: '已关闭' },
-};
+const statusOptions = computed(() => [
+    { value: 'open', label: t('tickets_page.st_open') },
+    { value: 'in_progress', label: t('tickets_page.st_in_progress') },
+    { value: 'resolved', label: t('tickets_page.st_resolved') },
+    { value: 'closed', label: t('tickets_page.st_closed') },
+]);
 
-const PRIORITY_MAP = {
-    low: { type: 'info', label: '低' },
-    medium: { type: '', label: '普通' },
-    high: { type: 'warning', label: '高' },
-    urgent: { type: 'danger', label: '紧急' },
-};
+const priorityOptions = computed(() => [
+    { value: 'low', label: t('tickets_page.pri_low') },
+    { value: 'normal', label: t('tickets_page.pri_normal') },
+    { value: 'high', label: t('tickets_page.pri_high') },
+    { value: 'urgent', label: t('tickets_page.pri_urgent') },
+]);
 
-function statusType(s) { return STATUS_MAP[s]?.type || 'info'; }
-function statusLabel(s) { return STATUS_MAP[s]?.label || s; }
-function priorityType(p) { return PRIORITY_MAP[p]?.type || 'info'; }
-function priorityLabel(p) { return PRIORITY_MAP[p]?.label || p; }
+const STATUS_MAP = computed(() => ({
+    open: { type: 'danger', label: t('tickets_page.st_open') },
+    in_progress: { type: 'primary', label: t('tickets_page.st_in_progress') },
+    resolved: { type: 'success', label: t('tickets_page.st_resolved') },
+    closed: { type: 'info', label: t('tickets_page.st_closed') },
+}));
+
+const PRIORITY_MAP = computed(() => ({
+    low: { type: 'info', label: t('tickets_page.pri_low') },
+    medium: { type: '', label: t('tickets_page.pri_normal') },
+    normal: { type: '', label: t('tickets_page.pri_normal') },
+    high: { type: 'warning', label: t('tickets_page.pri_high') },
+    urgent: { type: 'danger', label: t('tickets_page.pri_urgent') },
+}));
+
+function statusType(s) { return STATUS_MAP.value[s]?.type || 'info'; }
+function statusLabel(s) { return STATUS_MAP.value[s]?.label || s; }
+function priorityType(p) { return PRIORITY_MAP.value[p]?.type || 'info'; }
+function priorityLabel(p) { return PRIORITY_MAP.value[p]?.label || p; }
 
 function remainingTime(deadline) {
     if (!deadline) return '-';
     const diff = new Date(deadline) - new Date();
-    if (diff <= 0) return '超时';
+    if (diff <= 0) return t('tickets_page.sla_breached');
     const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 1) return '<1h';
-    if (hours < 24) return `${hours}h`;
-    return `${Math.floor(hours / 24)}d`;
+    if (hours < 1) return t('tickets_page.remaining_lt1h');
+    if (hours < 24) return t('tickets_page.remaining_hours', { n: hours });
+    return t('tickets_page.remaining_days', { n: Math.floor(hours / 24) });
 }
 
 async function fetchCategories() {
     try {
         const { data: res } = await ticketApi.categories();
-        categories.value = res.data || [];
+        categories.value = res.data?.data || [];
     } catch {
         categories.value = [];
     }
@@ -377,13 +405,12 @@ async function fetchCategories() {
 async function fetchStaffUsers() {
     try {
         const { data: res } = await ticketApi.list({ per_page: 100, assigned: true });
-        // collect unique assigned users from tickets
+        const items = res.data?.data || res.data || [];
         const assignedUsers = new Map();
-        for (const t of tickets.value) {
-            if (t.assigned_to) assignedUsers.set(t.assigned_to.id, t.assigned_to);
+        for (const t of items) {
+            if (t.assignee) assignedUsers.set(t.assignee.id, t.assignee);
         }
         staffUsers.value = Array.from(assignedUsers.values());
-        // Also try from permissions endpoint if available
     } catch {
         staffUsers.value = [];
     }
@@ -408,15 +435,15 @@ async function fetchTickets() {
 
         // Stats
         const { data: statsRes } = await ticketApi.stats();
-        const s = statsRes.data || {};
-        statCards[0].value = String(s.open || 0);
-        statCards[1].value = String(s.in_progress || 0);
-        statCards[2].value = String(s.resolved || 0);
-        statCards[3].value = String(s.closed || 0);
-        statCards[4].value = String(s.urgent || 0);
-        statCards[5].value = String(s.sla_breached || 0);
+        const s = statsRes.data?.data || {};
+        statValues.open = String(s.open || 0);
+        statValues.in_progress = String(s.in_progress || 0);
+        statValues.resolved = String(s.resolved || 0);
+        statValues.closed = String(s.closed || 0);
+        statValues.urgent = String(s.urgent || 0);
+        statValues.breached = String(s.sla_breached || 0);
     } catch {
-        ElMessage.error('获取工单列表失败');
+        ElMessage.error(t('tickets_page.list_fail'));
     } finally {
         loading.value = false;
     }
@@ -459,17 +486,17 @@ function handleAssign(row) {
 
 async function confirmAssign() {
     if (!assignUserId.value) {
-        ElMessage.warning('请选择处理人');
+        ElMessage.warning(t('tickets_page.select_assignee_required'));
         return;
     }
     assigning.value = true;
     try {
         await ticketApi.assign(assignTicketId.value, assignUserId.value);
-        ElMessage.success('工单分配成功');
+        ElMessage.success(t('tickets_page.assign_ticket_ok'));
         showAssignDialog.value = false;
         await fetchTickets();
     } catch {
-        ElMessage.error('分配失败');
+        ElMessage.error(t('tickets_page.assign_fail'));
     } finally {
         assigning.value = false;
     }
@@ -477,17 +504,20 @@ async function confirmAssign() {
 
 async function handleQuickAction(row, action) {
     try {
+        const message = action === 'close'
+            ? t('tickets_page.quick_close_confirm', { id: row.id })
+            : t('tickets_page.quick_action_confirm', { id: row.id });
         await ElMessageBox.confirm(
-            `确认${action === 'close' ? '关闭' : '执行'} #${row.id} 工单？`,
-            '确认操作',
-            { confirmButtonText: '确认', cancelButtonText: '取消', type: 'info' }
+            message,
+            t('tickets_page.confirm_action_title'),
+            { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'info' }
         );
         await ticketApi[action](row.id);
-        ElMessage.success('操作成功');
+        ElMessage.success(t('messages.success'));
         await fetchTickets();
     } catch (e) {
         if (e !== 'cancel') {
-            ElMessage.error('操作失败');
+            ElMessage.error(t('messages.failed'));
         }
     }
 }
@@ -495,6 +525,7 @@ async function handleQuickAction(row, action) {
 onMounted(() => {
     fetchCategories();
     fetchTickets();
+    fetchStaffUsers();
 });
 </script>
 

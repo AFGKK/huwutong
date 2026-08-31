@@ -1,18 +1,18 @@
 <x-mail::message>
-# 新 Demo 预约
+# {{ __('app.mail.demo_notify.heading') }}
 
-**公司**: {{ $booking->company_name }}
-**联系人**: {{ $booking->contact_name }}
-**邮箱**: {{ $booking->email }}
-**手机**: {{ $booking->phone ?: '未提供' }}
-**员工规模**: {{ $booking->employee_count ?: '未提供' }}
-**感兴趣产品**: {{ $booking->product_interest ?: '未提供' }}
-**来源**: {{ $booking->source }}
+**{{ __('app.mail.demo_notify.company') }}**: {{ $booking->company_name }}
+**{{ __('app.mail.demo_notify.contact') }}**: {{ $booking->contact_name }}
+**{{ __('app.mail.demo_notify.email') }}**: {{ $booking->email }}
+**{{ __('app.mail.demo_notify.phone') }}**: {{ $booking->phone ?: __('app.mail.demo_notify.not_provided') }}
+**{{ __('app.mail.demo_notify.employees') }}**: {{ $booking->employee_count ?: __('app.mail.demo_notify.not_provided') }}
+**{{ __('app.mail.demo_notify.interest') }}**: {{ $booking->product_interest ?: __('app.mail.demo_notify.not_provided') }}
+**{{ __('app.mail.demo_notify.source') }}**: {{ $booking->source }}
 
-**备注**:
-{{ $booking->message ?: '无' }}
+**{{ __('app.mail.demo_notify.notes') }}**:
+{{ $booking->message ?: __('app.mail.demo_notify.none') }}
 
 <x-mail::button :url="url('/admin/demo-booking')">
-查看预约详情
+{{ __('app.mail.demo_notify.cta') }}
 </x-mail::button>
 </x-mail::message>

@@ -1,11 +1,11 @@
 <template>
     <div class="clustering-page">
-        <h2>AI 客户行为聚类</h2>
+        <h2>{{ t('customer_clustering_page.title') }}</h2>
 
         <div class="toolbar">
-            <el-button type="primary" @click="handleRunClustering" :loading="running">执行聚类分析</el-button>
-            <el-button @click="loadDashboard">刷新</el-button>
-            <span style="margin-left:12px;color:#909399;font-size:13px">已分配: {{ dashboard.total_assigned || 0 }} 客户</span>
+            <el-button type="primary" @click="handleRunClustering" :loading="running">{{ t('customer_clustering_page.btn_run') }}</el-button>
+            <el-button @click="loadDashboard">{{ t('customer_clustering_page.refresh') }}</el-button>
+            <span style="margin-left:12px;color:#909399;font-size:13px">{{ t('customer_clustering_page.assigned_count', { count: dashboard.total_assigned || 0 }) }}</span>
         </div>
 
         <!-- 分段卡片 -->
@@ -15,9 +15,9 @@
                     <div class="seg-card">
                         <div class="seg-label">{{ seg.label }}</div>
                         <div class="seg-count">{{ seg.count }}</div>
-                        <div class="seg-score">{{ seg.avg_score }}分</div>
+                        <div class="seg-score">{{ seg.avg_score }}{{ t('customer_clustering_page.score_suffix') }}</div>
                         <div class="seg-actions">
-                            <el-button size="small" @click="showSegment(key)">查看客户</el-button>
+                            <el-button size="small" @click="showSegment(key)">{{ t('customer_clustering_page.view_customers') }}</el-button>
                         </div>
                     </div>
                 </el-card>
@@ -25,52 +25,52 @@
         </el-row>
 
         <el-tabs v-model="activeTab" type="border-card">
-            <el-tab-pane label="分群明细" name="detail">
+            <el-tab-pane :label="t('customer_clustering_page.tabs.detail')" name="detail">
                 <div v-if="selectedSegment">
                     <h3>{{ selectedSegment }} - {{ dashboard.segments?.[selectedSegment]?.label }}</h3>
                     <el-tag v-for="act in (dashboard.segments?.[selectedSegment]?.actions || [])" :key="act" style="margin-right:6px">{{ act }}</el-tag>
                     <el-table :data="segmentCustomers" v-loading="customersLoading" stripe style="margin-top:12px">
-                        <el-table-column prop="id" label="ID" width="60" />
-                        <el-table-column prop="name" label="客户名称" min-width="180" />
-                        <el-table-column prop="email" label="邮箱" width="200" />
-                        <el-table-column label="操作" width="120">
+                        <el-table-column prop="id" :label="t('customer_clustering_page.cols.id')" width="60" />
+                        <el-table-column prop="name" :label="t('customer_clustering_page.cols.customer_name')" min-width="180" />
+                        <el-table-column prop="email" :label="t('customer_clustering_page.cols.email')" width="200" />
+                        <el-table-column :label="t('customer_clustering_page.cols.actions')" width="120">
                             <template #default="{row}">
-                                <el-button size="small" @click="viewCustomerCluster(row)">查看聚类</el-button>
+                                <el-button size="small" @click="viewCustomerCluster(row)">{{ t('customer_clustering_page.view_cluster') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
                 </div>
-                <el-empty v-else description="请点击上方的分群卡片查看客户" />
+                <el-empty v-else :description="t('customer_clustering_page.empty_select_segment')" />
             </el-tab-pane>
 
-            <el-tab-pane label="客户聚类详情" name="customer-cluster" :disabled="!customerClusterData">
+            <el-tab-pane :label="t('customer_clustering_page.tabs.customer_cluster')" name="customer-cluster" :disabled="!customerClusterData">
                 <div v-if="customerClusterData">
                     <el-descriptions :column="2" border>
-                        <el-descriptions-item label="客户">{{ customerClusterData.customer?.name }}</el-descriptions-item>
-                        <el-descriptions-item label="当前分群">
+                        <el-descriptions-item :label="t('customer_clustering_page.cols.customer')">{{ customerClusterData.customer?.name }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('customer_clustering_page.cols.current_segment')">
                             <el-tag :color="dashboard.segments?.[customerClusterData.current_segment]?.color" style="color:#fff">{{ customerClusterData.segment_label }}</el-tag>
                         </el-descriptions-item>
-                        <el-descriptions-item label="归属分数">{{ customerClusterData.score }}</el-descriptions-item>
-                        <el-descriptions-item label="分配时间">{{ customerClusterData.assigned_at }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('customer_clustering_page.cols.score')">{{ customerClusterData.score }}</el-descriptions-item>
+                        <el-descriptions-item :label="t('customer_clustering_page.cols.assigned_at')">{{ customerClusterData.assigned_at }}</el-descriptions-item>
                     </el-descriptions>
-                    <h4 style="margin-top:16px">特征向量</h4>
+                    <h4 style="margin-top:16px">{{ t('customer_clustering_page.feature_vectors') }}</h4>
                     <el-table :data="featureRows" stripe size="small">
-                        <el-table-column prop="key" label="特征" width="200" />
-                        <el-table-column prop="value" label="值" width="150" />
+                        <el-table-column prop="key" :label="t('customer_clustering_page.cols.feature')" width="200" />
+                        <el-table-column prop="value" :label="t('customer_clustering_page.cols.value')" width="150" />
                     </el-table>
-                    <h4 style="margin-top:12px">推荐运营动作</h4>
+                    <h4 style="margin-top:12px">{{ t('customer_clustering_page.recommended_actions') }}</h4>
                     <el-tag v-for="act in (customerClusterData.recommended_actions || [])" :key="act" style="margin-right:6px" type="success">{{ act }}</el-tag>
                 </div>
-                <el-empty v-else description="请从分群明细中选择客户" />
+                <el-empty v-else :description="t('customer_clustering_page.empty_select_customer')" />
             </el-tab-pane>
 
-            <el-tab-pane label="变更历史" name="history">
+            <el-tab-pane :label="t('customer_clustering_page.tabs.history')" name="history">
                 <el-table :data="history" v-loading="historyLoading" stripe>
-                    <el-table-column prop="customer.name" label="客户" width="180" />
-                    <el-table-column prop="segment_key" label="当前分群" width="140" />
-                    <el-table-column prop="score" label="分数" width="70" />
-                    <el-table-column prop="assigned_at" label="分配时间" width="170" />
-                    <el-table-column prop="previous_segment_at" label="上次变更" width="170" />
+                    <el-table-column prop="customer.name" :label="t('customer_clustering_page.cols.customer')" width="180" />
+                    <el-table-column prop="segment_key" :label="t('customer_clustering_page.cols.current_segment')" width="140" />
+                    <el-table-column prop="score" :label="t('customer_clustering_page.cols.score')" width="70" />
+                    <el-table-column prop="assigned_at" :label="t('customer_clustering_page.cols.assigned_at')" width="170" />
+                    <el-table-column prop="previous_segment_at" :label="t('customer_clustering_page.cols.previous_change')" width="170" />
                 </el-table>
             </el-tab-pane>
         </el-tabs>
@@ -79,8 +79,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { getClusteringDashboard, runClustering, getSegmentCustomers, getCustomerCluster, getClusteringHistory } from '@/api/customerClustering';
+
+const { t } = useI18n();
 
 const activeTab = ref('detail');
 const running = ref(false);
@@ -103,8 +106,12 @@ async function loadDashboard() {
 }
 async function handleRunClustering() {
     running.value = true;
-    try { const r = await runClustering(); ElMessage.success(`聚类完成: ${r.assigned}/${r.total} 客户已分配`); loadDashboard(); }
-    catch (e) { ElMessage.error('聚类分析失败'); } finally { running.value = false; }
+    try {
+        const r = await runClustering();
+        ElMessage.success(t('customer_clustering_page.messages.clustering_done', { assigned: r.assigned, total: r.total }));
+        loadDashboard();
+    }
+    catch (e) { ElMessage.error(t('customer_clustering_page.messages.clustering_failed')); } finally { running.value = false; }
 }
 async function showSegment(key) {
     selectedSegment.value = key;
@@ -114,7 +121,7 @@ async function showSegment(key) {
 }
 async function viewCustomerCluster(row) {
     try { const r = await getCustomerCluster(row.id); customerClusterData.value = r; activeTab.value = 'customer-cluster'; }
-    catch (e) { ElMessage.error('获取聚类详情失败'); }
+    catch (e) { ElMessage.error(t('customer_clustering_page.messages.cluster_detail_failed')); }
 }
 async function loadHistory() {
     historyLoading.value = true;

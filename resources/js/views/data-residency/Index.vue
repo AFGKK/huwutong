@@ -3,21 +3,20 @@
     <div class="page-header">
       <h2>
         <el-icon style="vertical-align:middle;margin-right:8px"><Connection /></el-icon>
-        数据本地化存储
+        {{ t(`${P}.title`) }}
       </h2>
       <div class="header-actions">
         <el-button @click="refreshAll" :loading="loading" size="small">
-          <el-icon><Refresh /></el-icon> 刷新
+          <el-icon><Refresh /></el-icon> {{ t(`${P}.refresh`) }}
         </el-button>
       </div>
     </div>
 
     <el-alert
-      title="按租户/区域指定数据存储位置 — 德国→法兰克福S3、中国→上海OSS，自动路由+合规审计"
+      :title="t(`${P}.alert`)"
       type="info" show-icon :closable="false" class="mb-4"
     />
 
-    <!-- 区域统计 -->
     <el-row :gutter="16" class="mb-4">
       <el-col :span="8" v-for="(rs, code) in dashboard.regions" :key="code">
         <el-card shadow="hover" class="region-card">
@@ -26,12 +25,12 @@
             <el-tag size="small" style="float:right">{{ code }}</el-tag>
           </template>
           <el-descriptions :column="2" size="small">
-            <el-descriptions-item label="租户数">{{ rs.tenant_count }}</el-descriptions-item>
-            <el-descriptions-item label="绑定记录">{{ rs.record_count }}</el-descriptions-item>
-            <el-descriptions-item label="活跃" :span="2">
+            <el-descriptions-item :label="t(`${P}.region.tenants`)">{{ rs.tenant_count }}</el-descriptions-item>
+            <el-descriptions-item :label="t(`${P}.region.records`)">{{ rs.record_count }}</el-descriptions-item>
+            <el-descriptions-item :label="t(`${P}.region.active`)" :span="2">
               <el-tag :type="rs.active_count > 0 ? 'success' : 'info'" size="small">{{ rs.active_count }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="合规" :span="2">
+            <el-descriptions-item :label="t(`${P}.region.compliance`)" :span="2">
               <el-space>
                 <el-tag v-for="c in rs.compliance" :key="c" size="small" round>{{ c }}</el-tag>
               </el-space>
@@ -41,36 +40,34 @@
       </el-col>
     </el-row>
 
-    <!-- 主 Tabs -->
     <el-card shadow="hover">
       <el-tabs v-model="activeTab">
-        <!-- Tab 1: 区域绑定 -->
-        <el-tab-pane label="区域绑定" name="bindings">
+        <el-tab-pane :label="t(`${P}.tabs.bindings`)" name="bindings">
           <div class="section-toolbar">
             <el-button type="primary" @click="showCreateDialog = true">
-              <el-icon><Plus /></el-icon> 新建绑定
+              <el-icon><Plus /></el-icon> {{ t(`${P}.new_binding`) }}
             </el-button>
           </div>
           <el-table :data="records" stripe v-loading="recordsLoading">
-            <el-table-column prop="id" label="ID" width="50" />
-            <el-table-column label="租户" width="150">
+            <el-table-column prop="id" :label="t(`${P}.cols.id`)" width="50" />
+            <el-table-column :label="t(`${P}.cols.tenant`)" width="150">
               <template #default="{ row }">{{ row.tenant?.name || 'N/A' }}</template>
             </el-table-column>
-            <el-table-column prop="tenant_id" label="租户ID" width="70" />
-            <el-table-column prop="region_code" label="区域" width="100">
+            <el-table-column prop="tenant_id" :label="t(`${P}.cols.tenant_id`)" width="70" />
+            <el-table-column prop="region_code" :label="t(`${P}.cols.region`)" width="100">
               <template #default="{ row }">
                 <el-tag :type="regionTag(row.region_code)" size="small">{{ row.region_code }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="data_classification" label="数据分类" width="150" />
-            <el-table-column prop="storage_driver" label="存储驱动" width="100" />
-            <el-table-column label="加密" width="70">
+            <el-table-column prop="data_classification" :label="t(`${P}.cols.classification`)" width="150" />
+            <el-table-column prop="storage_driver" :label="t(`${P}.cols.storage`)" width="100" />
+            <el-table-column :label="t(`${P}.cols.encryption`)" width="70">
               <template #default="{ row }">
-                <el-tag :type="row.encryption_enabled ? 'success' : 'info'" size="small">{{ row.encryption_enabled ? '是' : '否' }}</el-tag>
+                <el-tag :type="row.encryption_enabled ? 'success' : 'info'" size="small">{{ row.encryption_enabled ? t(`${P}.yes`) : t(`${P}.no`) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="retention_days" label="保留(天)" width="90" />
-            <el-table-column prop="status" label="状态" width="80">
+            <el-table-column prop="retention_days" :label="t(`${P}.cols.retention`)" width="90" />
+            <el-table-column prop="status" :label="t(`${P}.cols.status`)" width="80">
               <template #default="{ row }">
                 <el-tag :type="row.status === 'active' ? 'success' : 'warning'" size="small">{{ row.status }}</el-tag>
               </template>
@@ -78,68 +75,67 @@
           </el-table>
         </el-tab-pane>
 
-        <!-- Tab 2: 租户区域分配 -->
-        <el-tab-pane label="租户分配" name="tenants">
+        <el-tab-pane :label="t(`${P}.tabs.tenants`)" name="tenants">
           <el-table :data="tenantList" stripe v-loading="tenantsLoading">
-            <el-table-column prop="id" label="ID" width="50" />
-            <el-table-column prop="name" label="租户名称" min-width="200" />
-            <el-table-column label="数据区域" width="160">
+            <el-table-column prop="id" :label="t(`${P}.cols.id`)" width="50" />
+            <el-table-column prop="name" :label="t(`${P}.cols.tenant_name`)" min-width="200" />
+            <el-table-column :label="t(`${P}.cols.data_region`)" width="160">
               <template #default="{ row }">
-                <el-select v-model="row.data_region" placeholder="选择区域" size="small" @change="val => assignTenant(row.id, val)" style="width:150px">
+                <el-select v-model="row.data_region" :placeholder="t(`${P}.select_region`)" size="small" @change="val => assignTenant(row.id, val)" style="width:150px">
                   <el-option v-for="(reg, code) in regions" :key="code" :label="reg.name" :value="code" />
                 </el-select>
               </template>
             </el-table-column>
-            <el-table-column prop="created_at" label="创建时间" width="170" />
+            <el-table-column prop="created_at" :label="t(`${P}.cols.created`)" width="170" />
           </el-table>
         </el-tab-pane>
 
-        <!-- Tab 3: 数据迁移 -->
-        <el-tab-pane label="数据迁移" name="migrations">
+        <el-tab-pane :label="t(`${P}.tabs.migrations`)" name="migrations">
           <div class="section-toolbar">
             <el-button type="warning" @click="showMigrateDialog = true">
-              <el-icon><Connection /></el-icon> 新建迁移
+              <el-icon><Connection /></el-icon> {{ t(`${P}.new_migration`) }}
             </el-button>
           </div>
           <el-table :data="migrations" stripe v-loading="migLoading">
-            <el-table-column prop="id" label="ID" width="50" />
-            <el-table-column label="租户" width="120">{{ row.tenant_id }}</el-table-column>
-            <el-table-column label="从" width="120">
+            <el-table-column prop="id" :label="t(`${P}.cols.id`)" width="50" />
+            <el-table-column :label="t(`${P}.cols.tenant`)" width="120">
+              <template #default="{ row }">{{ row.tenant_id }}</template>
+            </el-table-column>
+            <el-table-column :label="t(`${P}.cols.from`)" width="120">
               <template #default="{ row }"><el-tag size="small">{{ row.source_region }}</el-tag></template>
             </el-table-column>
-            <el-table-column label="到" width="120">
+            <el-table-column :label="t(`${P}.cols.to`)" width="120">
               <template #default="{ row }"><el-tag type="success" size="small">{{ row.target_region }}</el-tag></template>
             </el-table-column>
-            <el-table-column prop="data_classification" label="分类" width="130" />
-            <el-table-column label="状态" width="100">
+            <el-table-column prop="data_classification" :label="t(`${P}.cols.class_short`)" width="130" />
+            <el-table-column :label="t(`${P}.cols.status`)" width="100">
               <template #default="{ row }">
                 <el-tag :type="row.status === 'completed' ? 'success' : row.status === 'running' ? 'warning' : row.status === 'failed' ? 'danger' : 'info'" size="small">
                   {{ row.status }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="进度" width="150">
+            <el-table-column :label="t(`${P}.cols.progress`)" width="150">
               <template #default="{ row }">
                 <el-progress v-if="row.total_items" :percentage="Math.round(row.processed_items / row.total_items * 100)" :stroke-width="14" />
                 <span v-else class="text-gray">-</span>
               </template>
             </el-table-column>
-            <el-table-column prop="created_at" label="创建时间" width="170" />
+            <el-table-column prop="created_at" :label="t(`${P}.cols.created`)" width="170" />
           </el-table>
         </el-tab-pane>
 
-        <!-- Tab 4: 合规审计 -->
-        <el-tab-pane label="合规审计" name="audit">
+        <el-tab-pane :label="t(`${P}.tabs.audit`)" name="audit">
           <el-descriptions :column="2" border class="mb-4">
-            <el-descriptions-item label="总绑定数">{{ audit.total_bindings }}</el-descriptions-item>
-            <el-descriptions-item label="总迁移数">{{ audit.total_migrations }}</el-descriptions-item>
-            <el-descriptions-item label="已完成迁移">{{ audit.completed_migrations }}</el-descriptions-item>
+            <el-descriptions-item :label="t(`${P}.audit.bindings`)">{{ audit.total_bindings }}</el-descriptions-item>
+            <el-descriptions-item :label="t(`${P}.audit.migrations`)">{{ audit.total_migrations }}</el-descriptions-item>
+            <el-descriptions-item :label="t(`${P}.audit.completed`)">{{ audit.completed_migrations }}</el-descriptions-item>
           </el-descriptions>
-          <h4 class="mb-2">按区域分布</h4>
+          <h4 class="mb-2">{{ t(`${P}.audit.by_region`) }}</h4>
           <el-table :data="auditByRegion" stripe size="small" v-if="auditByRegion.length">
-            <el-table-column prop="region" label="区域" width="140" />
-            <el-table-column prop="count" label="绑定数" width="80" />
-            <el-table-column label="租户" min-width="300">
+            <el-table-column prop="region" :label="t(`${P}.cols.region`)" width="140" />
+            <el-table-column prop="count" :label="t(`${P}.audit.binding_count`)" width="80" />
+            <el-table-column :label="t(`${P}.cols.tenant`)" min-width="300">
               <template #default="{ row }">{{ row.tenants?.join(', ') || '-' }}</template>
             </el-table-column>
           </el-table>
@@ -147,58 +143,56 @@
       </el-tabs>
     </el-card>
 
-    <!-- 新建绑定对话框 -->
-    <el-dialog v-model="showCreateDialog" title="新建区域绑定" width="450px">
+    <el-dialog v-model="showCreateDialog" :title="t(`${P}.dialog.binding_title`)" width="450px">
       <el-form :model="createForm" label-width="120px">
-        <el-form-item label="租户" required>
+        <el-form-item :label="t(`${P}.cols.tenant`)" required>
           <el-select v-model="createForm.tenant_id" style="width:100%">
-            <el-option v-for="t in tenantList" :key="t.id" :label="t.name" :value="t.id" />
+            <el-option v-for="tn in tenantList" :key="tn.id" :label="tn.name" :value="tn.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="区域" required>
+        <el-form-item :label="t(`${P}.cols.region`)" required>
           <el-select v-model="createForm.region_code" style="width:100%">
             <el-option v-for="(reg, code) in regions" :key="code" :label="reg.name" :value="code" />
           </el-select>
         </el-form-item>
-        <el-form-item label="数据分类" required>
+        <el-form-item :label="t(`${P}.cols.classification`)" required>
           <el-select v-model="createForm.data_classification" style="width:100%">
             <el-option v-for="(cfg, key) in classifications" :key="key" :label="key" :value="key" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showCreateDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleCreateRecord" :loading="creating">创建</el-button>
+        <el-button @click="showCreateDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" @click="handleCreateRecord" :loading="creating">{{ t('actions.create') }}</el-button>
       </template>
     </el-dialog>
 
-    <!-- 新建迁移对话框 -->
-    <el-dialog v-model="showMigrateDialog" title="新建数据迁移" width="500px">
+    <el-dialog v-model="showMigrateDialog" :title="t(`${P}.dialog.migrate_title`)" width="500px">
       <el-form :model="migrateForm" label-width="120px">
-        <el-form-item label="租户" required>
+        <el-form-item :label="t(`${P}.cols.tenant`)" required>
           <el-select v-model="migrateForm.tenant_id" style="width:100%">
-            <el-option v-for="t in tenantList" :key="t.id" :label="t.name" :value="t.id" />
+            <el-option v-for="tn in tenantList" :key="tn.id" :label="tn.name" :value="tn.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="源区域" required>
+        <el-form-item :label="t(`${P}.dialog.source`)" required>
           <el-select v-model="migrateForm.source_region" style="width:100%">
             <el-option v-for="(reg, code) in regions" :key="code" :label="reg.name" :value="code" />
           </el-select>
         </el-form-item>
-        <el-form-item label="目标区域" required>
+        <el-form-item :label="t(`${P}.dialog.target`)" required>
           <el-select v-model="migrateForm.target_region" style="width:100%">
             <el-option v-for="(reg, code) in regions" :key="code" :label="reg.name" :value="code" />
           </el-select>
         </el-form-item>
-        <el-form-item label="数据分类" required>
+        <el-form-item :label="t(`${P}.cols.classification`)" required>
           <el-select v-model="migrateForm.data_classification" style="width:100%">
             <el-option v-for="(cfg, key) in classifications" :key="key" :label="key" :value="key" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showMigrateDialog = false">取消</el-button>
-        <el-button type="warning" @click="handleStartMigration" :loading="migrating">创建迁移任务</el-button>
+        <el-button @click="showMigrateDialog = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="warning" @click="handleStartMigration" :loading="migrating">{{ t(`${P}.dialog.start_migrate`) }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -206,9 +200,13 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Connection, Refresh, Plus } from '@element-plus/icons-vue';
 import api from '@/api/dataResidency';
+
+const { t } = useI18n();
+const P = 'data_residency_page';
 
 const loading = ref(false);
 const activeTab = ref('bindings');
@@ -283,14 +281,14 @@ async function assignTenant(tenantId, region) {
   if (!region) return;
   try {
     await api.assignTenantRegion(tenantId, region);
-    ElMessage.success('租户区域已更新');
+    ElMessage.success(t(`${P}.messages.region_updated`));
   } catch {
-    ElMessage.error('分配失败');
+    ElMessage.error(t(`${P}.messages.assign_failed`));
   }
 }
 
 async function handleCreateRecord() {
-  if (!createForm.tenant_id) { ElMessage.warning('请选择租户'); return; }
+  if (!createForm.tenant_id) { ElMessage.warning(t(`${P}.messages.select_tenant`)); return; }
   creating.value = true;
   try {
     const { data } = await api.createRecord(createForm.tenant_id, createForm.region_code, createForm.data_classification);
@@ -303,7 +301,7 @@ async function handleCreateRecord() {
 }
 
 async function handleStartMigration() {
-  if (!migrateForm.tenant_id) { ElMessage.warning('请选择租户'); return; }
+  if (!migrateForm.tenant_id) { ElMessage.warning(t(`${P}.messages.select_tenant`)); return; }
   migrating.value = true;
   try {
     const { data } = await api.startMigration(migrateForm.tenant_id, migrateForm.source_region, migrateForm.target_region, migrateForm.data_classification);

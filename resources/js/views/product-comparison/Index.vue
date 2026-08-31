@@ -1,15 +1,15 @@
 <template>
     <div class="comparison-page">
         <el-tabs v-model="activeTab">
-            <el-tab-pane label="规格管理" name="specs">
+            <el-tab-pane :label="t('product_comparison_page.tab_specs')" name="specs">
                 <el-row :gutter="16">
                     <el-col :span="8">
                         <el-card class="side-card">
                             <template #header>
-                                <span>选择商品</span>
+                                <span>{{ t('product_comparison_page.select_product') }}</span>
                             </template>
-                            <el-input v-model="productSearch" placeholder="搜索商品..." size="small" clearable style="margin-bottom: 12px" />
-                            <el-select v-model="selectedProductId" filterable remote :remote-method="searchProducts" :loading="searchingProducts" placeholder="选择商品" style="width: 100%" @change="loadSpecs">
+                            <el-input v-model="productSearch" :placeholder="t('product_comparison_page.search_product_ph')" size="small" clearable style="margin-bottom: 12px" />
+                            <el-select v-model="selectedProductId" filterable remote :remote-method="searchProducts" :loading="searchingProducts" :placeholder="t('product_comparison_page.select_product_ph')" style="width: 100%" @change="loadSpecs">
                                 <el-option v-for="p in productOptions" :key="p.id" :label="p.name" :value="p.id" />
                             </el-select>
                         </el-card>
@@ -18,51 +18,51 @@
                         <el-card>
                             <template #header>
                                 <div class="flex-between">
-                                    <span>规格编辑</span>
+                                    <span>{{ t('product_comparison_page.spec_edit') }}</span>
                                     <div v-if="selectedProductId">
-                                        <el-button size="small" type="primary" @click="showAddGroup = true">添加分组</el-button>
-                                        <el-button size="small" @click="loadSpecs">刷新</el-button>
+                                        <el-button size="small" type="primary" @click="showAddGroup = true">{{ t('product_comparison_page.add_group') }}</el-button>
+                                        <el-button size="small" @click="loadSpecs">{{ t('product_comparison_page.refresh') }}</el-button>
                                     </div>
                                 </div>
                             </template>
                             <template v-if="!selectedProductId">
-                                <el-empty description="请选择商品" />
+                                <el-empty :description="t('product_comparison_page.select_product_empty')" />
                             </template>
                             <template v-else-if="loading">
                                 <el-skeleton :rows="5" animated />
                             </template>
                             <template v-else-if="specGroups.length === 0">
-                                <el-empty description="该商品暂无规格，请添加规格分组" />
+                                <el-empty :description="t('product_comparison_page.no_specs_hint')" />
                             </template>
                             <template v-else>
                                 <div v-for="group in specGroups" :key="group.id" class="spec-group">
                                     <div class="spec-group-header">
                                         <strong>{{ group.name }}</strong>
                                         <div>
-                                            <el-button size="small" @click="showAddSpec(group.id)">添加规格</el-button>
-                                            <el-button size="small" type="danger" plain @click="confirmDeleteGroup(group)">删除分组</el-button>
+                                            <el-button size="small" @click="showAddSpec(group.id)">{{ t('product_comparison_page.add_spec') }}</el-button>
+                                            <el-button size="small" type="danger" plain @click="confirmDeleteGroup(group)">{{ t('product_comparison_page.delete_group') }}</el-button>
                                         </div>
                                     </div>
                                     <el-table :data="group.specs" stripe size="small">
-                                        <el-table-column label="规格项" prop="label" />
-                                        <el-table-column label="类型" width="80">
+                                        <el-table-column :label="t('product_comparison_page.col_spec_item')" prop="label" />
+                                        <el-table-column :label="t('product_comparison_page.col_type')" width="80">
                                             <template #default="{ row }">{{ specTypeLabel(row.type) }}</template>
                                         </el-table-column>
-                                        <el-table-column label="单位" width="60" prop="unit" />
-                                        <el-table-column label="规格值" min-width="200">
+                                        <el-table-column :label="t('product_comparison_page.col_unit')" width="60" prop="unit" />
+                                        <el-table-column :label="t('product_comparison_page.col_spec_value')" min-width="200">
                                             <template #default="{ row }">
                                                 <div class="spec-value-cell">
                                                     <span class="value-text">{{ row.formatted_value || '-' }}</span>
-                                                    <el-button size="small" link @click="editSpecValue(row)">编辑</el-button>
+                                                    <el-button size="small" link @click="editSpecValue(row)">{{ t('actions.edit') }}</el-button>
                                                 </div>
                                             </template>
                                         </el-table-column>
-                                        <el-table-column label="操作" width="120">
+                                        <el-table-column :label="t('products_page.col_actions')" width="120">
                                             <template #default="{ row }">
-                                                <el-button size="small" link @click="showEditSpec(row)">编辑</el-button>
-                                                <el-popconfirm title="确定删除？" @confirm="handleDeleteSpec(row.id)">
+                                                <el-button size="small" link @click="showEditSpec(row)">{{ t('actions.edit') }}</el-button>
+                                                <el-popconfirm :title="t('product_comparison_page.confirm_delete_spec')" @confirm="handleDeleteSpec(row.id)">
                                                     <template #reference>
-                                                        <el-button size="small" link type="danger">删除</el-button>
+                                                        <el-button size="small" link type="danger">{{ t('actions.delete') }}</el-button>
                                                     </template>
                                                 </el-popconfirm>
                                             </template>
@@ -75,30 +75,30 @@
                 </el-row>
             </el-tab-pane>
 
-            <el-tab-pane label="商品对比" name="compare">
+            <el-tab-pane :label="t('product_comparison_page.tab_compare')" name="compare">
                 <el-card>
                     <template #header>
-                        <span>商品规格对比</span>
+                        <span>{{ t('product_comparison_page.compare_title') }}</span>
                     </template>
                     <el-form :inline="true" size="small">
-                        <el-form-item label="选择商品（2-10个）">
-                            <el-select v-model="compareProductIds" multiple filterable placeholder="选择要对比的商品" style="width: 400px" @change="doCompare">
+                        <el-form-item :label="t('product_comparison_page.select_products_label')">
+                            <el-select v-model="compareProductIds" multiple filterable :placeholder="t('product_comparison_page.select_products_ph')" style="width: 400px" @change="doCompare">
                                 <el-option v-for="p in allProducts" :key="p.id" :label="p.name" :value="p.id" />
                             </el-select>
                         </el-form-item>
                         <el-form-item>
-                            <el-button type="primary" :disabled="compareProductIds.length < 2" @click="doCompare">对比</el-button>
+                            <el-button type="primary" :disabled="compareProductIds.length < 2" @click="doCompare">{{ t('nav.compare') }}</el-button>
                         </el-form-item>
                     </el-form>
 
                     <template v-if="compareResult">
                         <div class="compare-header">
-                            <span class="compare-title">规格对比表</span>
+                            <span class="compare-title">{{ t('product_comparison_page.compare_table_title') }}</span>
                         </div>
                         <div v-for="group in compareResult.groups" :key="group.name" class="compare-group">
                             <div class="compare-group-title">{{ group.name }}</div>
                             <el-table :data="group.rows" border stripe size="small">
-                                <el-table-column label="规格" width="160" prop="label" fixed />
+                                <el-table-column :label="t('product_comparison_page.col_spec')" width="160" prop="label" fixed />
                                 <el-table-column v-for="p in compareResult.products" :key="p.id" :label="p.name" :min-width="150">
                                     <template #default="{ row }">
                                         <span :class="{ 'is-highlight': isBestValue(p.id, row) }">{{ row.values[p.id] || '-' }}</span>
@@ -107,100 +107,92 @@
                             </el-table>
                         </div>
                     </template>
-                    <el-empty v-else-if="compareProductIds.length < 2" description="请选择2-10个商品进行对比" />
+                    <el-empty v-else-if="compareProductIds.length < 2" :description="t('product_comparison_page.compare_empty_hint')" />
                 </el-card>
             </el-tab-pane>
         </el-tabs>
 
-        <!-- 添加分组 Dialog -->
-        <el-dialog v-model="showAddGroup" title="添加规格分组" width="400px">
+        <el-dialog v-model="showAddGroup" :title="t('product_comparison_page.dialog_add_group_title')" width="400px">
             <el-form>
-                <el-form-item label="分组名称">
-                    <el-input v-model="newGroupName" placeholder="如: 基本参数/性能" />
+                <el-form-item :label="t('product_comparison_page.group_name_label')">
+                    <el-input v-model="newGroupName" :placeholder="t('product_comparison_page.group_name_ph')" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showAddGroup = false">取消</el-button>
-                <el-button type="primary" @click="handleAddGroup">确定</el-button>
+                <el-button @click="showAddGroup = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleAddGroup">{{ t('actions.confirm') }}</el-button>
             </template>
         </el-dialog>
 
-        <!-- 添加规格 Dialog -->
-        <el-dialog v-model="showAddSpecDialog" title="添加规格项" width="500px">
+        <el-dialog v-model="showAddSpecDialog" :title="t('product_comparison_page.dialog_add_spec_title')" width="500px">
             <el-form>
-                <el-form-item label="规格名称">
-                    <el-input v-model="newSpec.label" placeholder="如: CPU/内存" />
+                <el-form-item :label="t('product_comparison_page.spec_name_label')">
+                    <el-input v-model="newSpec.label" :placeholder="t('product_comparison_page.spec_name_ph')" />
                 </el-form-item>
-                <el-form-item label="类型">
+                <el-form-item :label="t('product_comparison_page.type_label')">
                     <el-select v-model="newSpec.type" style="width: 100%">
-                        <el-option label="文本" value="text" />
-                        <el-option label="数字" value="number" />
-                        <el-option label="布尔值" value="boolean" />
-                        <el-option label="选择" value="select" />
+                        <el-option v-for="opt in specTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="单位">
-                    <el-input v-model="newSpec.unit" placeholder="如: GHz/GB" />
+                <el-form-item :label="t('product_comparison_page.unit_label')">
+                    <el-input v-model="newSpec.unit" :placeholder="t('product_comparison_page.unit_ph')" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showAddSpecDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleAddSpec">确定</el-button>
+                <el-button @click="showAddSpecDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleAddSpec">{{ t('actions.confirm') }}</el-button>
             </template>
         </el-dialog>
 
-        <!-- 编辑规格值 Dialog -->
-        <el-dialog v-model="showEditValue" title="编辑规格值" width="400px">
+        <el-dialog v-model="showEditValue" :title="t('product_comparison_page.dialog_edit_value_title')" width="400px">
             <el-form>
-                <el-form-item label="规格值">
+                <el-form-item :label="t('product_comparison_page.spec_value_label')">
                     <el-input v-model="editingValue" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showEditValue = false">取消</el-button>
-                <el-button type="primary" @click="handleSaveValue">保存</el-button>
+                <el-button @click="showEditValue = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleSaveValue">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
 
-        <!-- 编辑规格项 Dialog -->
-        <el-dialog v-model="showEditSpecDialog" title="编辑规格项" width="500px">
+        <el-dialog v-model="showEditSpecDialog" :title="t('product_comparison_page.dialog_edit_spec_title')" width="500px">
             <el-form>
-                <el-form-item label="规格名称">
+                <el-form-item :label="t('product_comparison_page.spec_name_label')">
                     <el-input v-model="editSpecData.label" />
                 </el-form-item>
-                <el-form-item label="类型">
+                <el-form-item :label="t('product_comparison_page.type_label')">
                     <el-select v-model="editSpecData.type" style="width: 100%">
-                        <el-option label="文本" value="text" />
-                        <el-option label="数字" value="number" />
-                        <el-option label="布尔值" value="boolean" />
-                        <el-option label="选择" value="select" />
+                        <el-option v-for="opt in specTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="单位">
+                <el-form-item :label="t('product_comparison_page.unit_label')">
                     <el-input v-model="editSpecData.unit" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showEditSpecDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleUpdateSpec">保存</el-button>
+                <el-button @click="showEditSpecDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleUpdateSpec">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
     getProductSpecs, createSpecGroup, deleteSpecGroup,
     createSpec, updateSpec, deleteSpec, setSpecValue,
     compareProducts, getAdminSpecList,
 } from '@/api/productComparison'
-import apiClient from '@/api/client'
+import productApi from '@/api/product'
+
+const { t } = useI18n()
 
 const activeTab = ref('specs')
 
-// ─── 规格管理 ───
 const productSearch = ref('')
 const searchingProducts = ref(false)
 const selectedProductId = ref(null)
@@ -222,13 +214,22 @@ const showEditValue = ref(false)
 const editingSpecId = ref(null)
 const editingValue = ref('')
 
+const specTypeKeys = ['text', 'number', 'boolean', 'select']
+
+const specTypeOptions = computed(() =>
+    specTypeKeys.map((value) => ({
+        value,
+        label: t(`product_comparison_page.spec_types.${value}`),
+    }))
+)
+
 function specTypeLabel(type) {
-    return { text: '文本', number: '数字', boolean: '布尔', select: '选择' }[type] || type
+    return t(`product_comparison_page.spec_types.${type}`, type)
 }
 
 async function loadProducts() {
     try {
-        const res = await apiClient.get('/admin/products', { params: { per_page: 200 } })
+        const res = await productApi.list({ per_page: 200 })
         const data = res.data?.data || res.data || []
         allProducts.value = data
         productOptions.value = data.slice(0, 20)
@@ -260,28 +261,32 @@ async function loadSpecs() {
 
 async function handleAddGroup() {
     if (!newGroupName.value) {
-        ElMessage.warning('请输入分组名称')
+        ElMessage.warning(t('product_comparison_page.messages.group_name_required'))
         return
     }
     try {
         await createSpecGroup(selectedProductId.value, { name: newGroupName.value })
-        ElMessage.success('分组已创建')
+        ElMessage.success(t('product_comparison_page.messages.group_created'))
         showAddGroup.value = false
         newGroupName.value = ''
         loadSpecs()
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '创建失败')
+        ElMessage.error(e.response?.data?.message || t('product_comparison_page.messages.create_failed'))
     }
 }
 
 function confirmDeleteGroup(group) {
-    ElMessageBox.confirm(`确定删除分组「${group.name}」及其所有规格项？`, '确认', { type: 'warning' }).then(async () => {
+    ElMessageBox.confirm(
+        t('product_comparison_page.confirm_delete_group', { name: group.name }),
+        t('actions.confirm'),
+        { type: 'warning' },
+    ).then(async () => {
         try {
             await deleteSpecGroup(group.id)
-            ElMessage.success('分组已删除')
+            ElMessage.success(t('product_comparison_page.messages.group_deleted'))
             loadSpecs()
         } catch {
-            ElMessage.error('删除失败')
+            ElMessage.error(t('product_comparison_page.messages.delete_failed'))
         }
     }).catch(() => {})
 }
@@ -293,7 +298,7 @@ function showAddSpec(groupId) {
 
 async function handleAddSpec() {
     if (!newSpec.value.label) {
-        ElMessage.warning('请输入规格名称')
+        ElMessage.warning(t('product_comparison_page.messages.spec_name_required'))
         return
     }
     try {
@@ -302,11 +307,11 @@ async function handleAddSpec() {
             type: newSpec.value.type,
             unit: newSpec.value.unit,
         })
-        ElMessage.success('规格项已创建')
+        ElMessage.success(t('product_comparison_page.messages.spec_created'))
         showAddSpecDialog.value = false
         loadSpecs()
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '创建失败')
+        ElMessage.error(e.response?.data?.message || t('product_comparison_page.messages.create_failed'))
     }
 }
 
@@ -322,21 +327,21 @@ async function handleUpdateSpec() {
             type: editSpecData.value.type,
             unit: editSpecData.value.unit,
         })
-        ElMessage.success('规格项已更新')
+        ElMessage.success(t('product_comparison_page.messages.spec_updated'))
         showEditSpecDialog.value = false
         loadSpecs()
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '更新失败')
+        ElMessage.error(e.response?.data?.message || t('product_comparison_page.messages.update_failed'))
     }
 }
 
 async function handleDeleteSpec(specId) {
     try {
         await deleteSpec(specId)
-        ElMessage.success('规格项已删除')
+        ElMessage.success(t('product_comparison_page.messages.spec_deleted'))
         loadSpecs()
     } catch {
-        ElMessage.error('删除失败')
+        ElMessage.error(t('product_comparison_page.messages.delete_failed'))
     }
 }
 
@@ -349,15 +354,14 @@ function editSpecValue(spec) {
 async function handleSaveValue() {
     try {
         await setSpecValue(selectedProductId.value, editingSpecId.value, { value: editingValue.value })
-        ElMessage.success('规格值已保存')
+        ElMessage.success(t('product_comparison_page.messages.value_saved'))
         showEditValue.value = false
         loadSpecs()
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '保存失败')
+        ElMessage.error(e.response?.data?.message || t('product_comparison_page.messages.save_failed'))
     }
 }
 
-// ─── 商品对比 ───
 const compareProductIds = ref([])
 const compareResult = ref(null)
 
@@ -367,7 +371,7 @@ async function doCompare() {
         const res = await compareProducts({ product_ids: compareProductIds.value })
         compareResult.value = res.data || res
     } catch (e) {
-        ElMessage.error('对比失败')
+        ElMessage.error(t('product_comparison_page.messages.compare_failed'))
     }
 }
 

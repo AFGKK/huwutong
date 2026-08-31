@@ -1,12 +1,12 @@
 <template>
   <div class="pipl-page">
     <div class="page-header">
-      <h2>PIPL 个人信息保护法合规</h2>
+      <h2>{{ t('pipl_compliance_page.title') }}</h2>
       <div class="header-actions">
         <el-button type="primary" :loading="scanLoading" @click="runScan">
-          <el-icon><Search /></el-icon> 扫描数据库字段
+          <el-icon><Search /></el-icon> {{ t('pipl_compliance_page.scan_db_fields') }}
         </el-button>
-        <el-button @click="loadAll" :loading="loading.stats">刷新</el-button>
+        <el-button @click="loadAll" :loading="loading.stats">{{ t('pipl_compliance_page.refresh') }}</el-button>
       </div>
     </div>
 
@@ -15,69 +15,69 @@
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.inventory?.total ?? 0 }}</div>
-          <div class="stat-label">个人信息字段</div>
+          <div class="stat-label">{{ t('pipl_compliance_page.stats.personal_info_fields') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card warning">
           <div class="stat-value">{{ stats.inventory?.by_level?.L3 ?? 0 }} / {{ stats.inventory?.by_level?.L4 ?? 0 }}</div>
-          <div class="stat-label">L3 敏感 / L4 核心</div>
+          <div class="stat-label">{{ t('pipl_compliance_page.stats.l3_l4_sensitive') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card info">
           <div class="stat-value">{{ stats.cross_border?.active ?? 0 }}</div>
-          <div class="stat-label">活跃跨境传输</div>
-          <div v-if="stats.cross_border?.overdue" class="stat-sub warning-text">待复评 {{ stats.cross_border.overdue }}</div>
+          <div class="stat-label">{{ t('pipl_compliance_page.stats.active_cross_border') }}</div>
+          <div v-if="stats.cross_border?.overdue" class="stat-sub warning-text">{{ t('pipl_compliance_page.stats.overdue_review', { n: stats.cross_border.overdue }) }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card success">
           <div class="stat-value">{{ stats.dpia?.completed ?? 0 }} / {{ stats.dpia?.total ?? 0 }}</div>
-          <div class="stat-label">已完成 DPIA</div>
+          <div class="stat-label">{{ t('pipl_compliance_page.stats.dpia_completed') }}</div>
         </el-card>
       </el-col>
     </el-row>
 
     <el-tabs v-model="activeTab" class="main-tabs">
       <!-- 个人信息清单 -->
-      <el-tab-pane label="个人信息清单" name="inventory">
+      <el-tab-pane :label="t('pipl_compliance_page.tabs.inventory')" name="inventory">
         <el-card shadow="never">
           <div class="tab-toolbar">
-            <el-input v-model="invFilter.table_name" placeholder="表名" clearable style="width:160px" @clear="loadInventory" @keyup.enter="loadInventory" />
-            <el-select v-model="invFilter.category" placeholder="分类" clearable style="width:140px" @change="loadInventory">
+            <el-input v-model="invFilter.table_name" :placeholder="t('pipl_compliance_page.filters.table_name_ph')" clearable style="width:160px" @clear="loadInventory" @keyup.enter="loadInventory" />
+            <el-select v-model="invFilter.category" :placeholder="t('pipl_compliance_page.filters.category_ph')" clearable style="width:140px" @change="loadInventory">
               <el-option v-for="(l, k) in categoryLabels" :key="k" :label="l" :value="k" />
             </el-select>
-            <el-select v-model="invFilter.classification" placeholder="分级" clearable style="width:120px" @change="loadInventory">
+            <el-select v-model="invFilter.classification" :placeholder="t('pipl_compliance_page.filters.classification_ph')" clearable style="width:120px" @change="loadInventory">
               <el-option v-for="(l, k) in classificationLabels" :key="k" :label="l" :value="k" />
             </el-select>
-            <el-button type="primary" size="small" @click="loadInventory">查询</el-button>
+            <el-button type="primary" size="small" @click="loadInventory">{{ t('actions.search') }}</el-button>
           </div>
           <el-table :data="inventory" v-loading="loading.inventory" stripe @selection-change="onInvSelect">
             <el-table-column type="selection" width="45" />
-            <el-table-column prop="table_name" label="表名" width="160" />
-            <el-table-column prop="field_name" label="字段" width="140" />
-            <el-table-column label="分类" width="130">
+            <el-table-column prop="table_name" :label="t('pipl_compliance_page.columns.table_name')" width="160" />
+            <el-table-column prop="field_name" :label="t('pipl_compliance_page.columns.field_name')" width="140" />
+            <el-table-column :label="t('pipl_compliance_page.columns.category')" width="130">
               <template #default="{ row }">
                 <el-tag :type="categoryTag(row.category)" size="small">{{ categoryLabels[row.category] || row.category }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="分级" width="120">
+            <el-table-column :label="t('pipl_compliance_page.columns.classification')" width="120">
               <template #default="{ row }">
                 <el-tag :type="levelTag(row.classification)" size="small" effect="dark">{{ classificationLabels[row.classification] || row.classification }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="purpose" label="处理目的" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="retention_days" label="保留(天)" width="90" />
-            <el-table-column label="可导出" width="70" align="center">
+            <el-table-column prop="purpose" :label="t('pipl_compliance_page.columns.purpose')" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="retention_days" :label="t('pipl_compliance_page.columns.retention_days')" width="90" />
+            <el-table-column :label="t('pipl_compliance_page.columns.exportable')" width="70" align="center">
               <template #default="{ row }"><el-icon :color="row.is_exportable ? '#67c23a' : '#909399'"><CircleCheck v-if="row.is_exportable" /><CircleClose v-else /></el-icon></template>
             </el-table-column>
-            <el-table-column label="可删除" width="70" align="center">
+            <el-table-column :label="t('pipl_compliance_page.columns.deletable')" width="70" align="center">
               <template #default="{ row }"><el-icon :color="row.is_deletable ? '#67c23a' : '#909399'"><CircleCheck v-if="row.is_deletable" /><CircleClose v-else /></el-icon></template>
             </el-table-column>
-            <el-table-column label="操作" width="80" fixed="right">
+            <el-table-column :label="t('pipl_compliance_page.columns.actions')" width="80" fixed="right">
               <template #default="{ row }">
-                <el-button text size="small" type="primary" @click="openInvEdit(row)">编辑</el-button>
+                <el-button text size="small" type="primary" @click="openInvEdit(row)">{{ t('actions.edit') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -89,38 +89,38 @@
       </el-tab-pane>
 
       <!-- 跨境传输 -->
-      <el-tab-pane label="跨境传输评估" name="cross-border">
+      <el-tab-pane :label="t('pipl_compliance_page.tabs.cross_border')" name="cross-border">
         <el-card shadow="never">
           <div class="tab-toolbar">
-            <el-button type="primary" size="small" @click="showTransferForm = true"><el-icon><Plus /></el-icon> 新增传输记录</el-button>
-            <el-select v-model="cbFilter.status" placeholder="状态" clearable style="width:120px" @change="loadTransfers">
-              <el-option label="活跃" value="active" /><el-option label="已过期" value="expired" /><el-option label="已撤销" value="revoked" />
+            <el-button type="primary" size="small" @click="showTransferForm = true"><el-icon><Plus /></el-icon> {{ t('pipl_compliance_page.buttons.add_transfer') }}</el-button>
+            <el-select v-model="cbFilter.status" :placeholder="t('pipl_compliance_page.filters.status_ph')" clearable style="width:120px" @change="loadTransfers">
+              <el-option v-for="(l, k) in transferStatusLabels" :key="k" :label="l" :value="k" />
             </el-select>
           </div>
           <el-table :data="transfers" v-loading="loading.transfers" stripe>
-            <el-table-column prop="data_category" label="数据类别" min-width="130" />
-            <el-table-column prop="recipient_country" label="目的地" width="100" />
-            <el-table-column prop="recipient_name" label="接收方" min-width="140" />
-            <el-table-column label="传输方式" width="90">
+            <el-table-column prop="data_category" :label="t('pipl_compliance_page.columns.data_category')" min-width="130" />
+            <el-table-column prop="recipient_country" :label="t('pipl_compliance_page.columns.destination')" width="100" />
+            <el-table-column prop="recipient_name" :label="t('pipl_compliance_page.columns.recipient')" min-width="140" />
+            <el-table-column :label="t('pipl_compliance_page.columns.transfer_method')" width="90">
               <template #default="{ row }">{{ transferMethodLabels[row.transfer_method] || row.transfer_method }}</template>
             </el-table-column>
-            <el-table-column label="法律依据" width="120">
+            <el-table-column :label="t('pipl_compliance_page.columns.legal_basis')" width="120">
               <template #default="{ row }">{{ legalBasisLabels[row.legal_basis] || row.legal_basis }}</template>
             </el-table-column>
-            <el-table-column label="状态" width="90">
+            <el-table-column :label="t('pipl_compliance_page.columns.status')" width="90">
               <template #default="{ row }">
                 <el-tag :type="transferStatusTag(row.status)" size="small">{{ transferStatusLabels[row.status] }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="下次复评" width="120">
+            <el-table-column :label="t('pipl_compliance_page.columns.next_review')" width="120">
               <template #default="{ row }">
                 <span :class="{ 'warning-text': isOverdue(row.next_review_at) }">{{ formatDate(row.next_review_at) }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="150" fixed="right">
+            <el-table-column :label="t('pipl_compliance_page.columns.actions')" width="150" fixed="right">
               <template #default="{ row }">
-                <el-button text size="small" @click="openTransferReview(row)">复评</el-button>
-                <el-button text size="small" type="primary" @click="openTransferEdit(row)">编辑</el-button>
+                <el-button text size="small" @click="openTransferReview(row)">{{ t('pipl_compliance_page.buttons.review') }}</el-button>
+                <el-button text size="small" type="primary" @click="openTransferEdit(row)">{{ t('actions.edit') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -132,34 +132,34 @@
       </el-tab-pane>
 
       <!-- DPIA -->
-      <el-tab-pane label="DPIA 影响评估" name="dpia">
+      <el-tab-pane :label="t('pipl_compliance_page.tabs.dpia')" name="dpia">
         <el-card shadow="never">
           <div class="tab-toolbar">
-            <el-button type="primary" size="small" @click="openDpiaCreate"><el-icon><Plus /></el-icon> 新建 DPIA</el-button>
-            <el-select v-model="dpiaFilter.status" placeholder="状态" clearable style="width:130px" @change="loadDpias">
+            <el-button type="primary" size="small" @click="openDpiaCreate"><el-icon><Plus /></el-icon> {{ t('pipl_compliance_page.buttons.new_dpia') }}</el-button>
+            <el-select v-model="dpiaFilter.status" :placeholder="t('pipl_compliance_page.filters.status_ph')" clearable style="width:130px" @change="loadDpias">
               <el-option v-for="(l, k) in dpiaStatusLabels" :key="k" :label="l" :value="k" />
             </el-select>
           </div>
           <el-table :data="dpias" v-loading="loading.dpias" stripe>
-            <el-table-column prop="title" label="标题" min-width="200" />
-            <el-table-column label="状态" width="100">
+            <el-table-column prop="title" :label="t('pipl_compliance_page.columns.title')" min-width="200" />
+            <el-table-column :label="t('pipl_compliance_page.columns.status')" width="100">
               <template #default="{ row }">
                 <el-tag :type="dpiaStatusTag(row.status)" size="small">{{ dpiaStatusLabels[row.status] }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="创建人" width="110">
+            <el-table-column :label="t('pipl_compliance_page.columns.creator')" width="110">
               <template #default="{ row }">{{ row.creator?.name || '-' }}</template>
             </el-table-column>
-            <el-table-column label="创建时间" width="160">
+            <el-table-column :label="t('pipl_compliance_page.columns.created_at')" width="160">
               <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
             </el-table-column>
-            <el-table-column label="完成时间" width="160">
+            <el-table-column :label="t('pipl_compliance_page.columns.completed_at')" width="160">
               <template #default="{ row }">{{ formatDate(row.completed_at) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="180" fixed="right">
+            <el-table-column :label="t('pipl_compliance_page.columns.actions')" width="180" fixed="right">
               <template #default="{ row }">
-                <el-button text size="small" @click="openDpiaDetail(row)">详情</el-button>
-                <el-button v-if="row.status !== 'completed'" text size="small" type="success" @click="openDpiaComplete(row)">完成评估</el-button>
+                <el-button text size="small" @click="openDpiaDetail(row)">{{ t('actions.view_details') }}</el-button>
+                <el-button v-if="row.status !== 'completed'" text size="small" type="success" @click="openDpiaComplete(row)">{{ t('pipl_compliance_page.buttons.complete_assessment') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -171,18 +171,18 @@
       </el-tab-pane>
 
       <!-- 敏感字段参考 -->
-      <el-tab-pane label="敏感字段定义" name="definitions">
+      <el-tab-pane :label="t('pipl_compliance_page.tabs.definitions')" name="definitions">
         <el-card shadow="never">
-          <p class="hint-text">系统预定义的敏感个人信息字段分类规则（GB/T 35273-2020 参照）</p>
+          <p class="hint-text">{{ t('pipl_compliance_page.hints.sensitive_fields') }}</p>
           <el-table :data="sensitiveFieldsList" v-loading="loading.definitions" stripe>
-            <el-table-column prop="field" label="字段名" width="180" />
-            <el-table-column prop="label" label="说明" min-width="140" />
-            <el-table-column label="分类" width="130">
+            <el-table-column prop="field" :label="t('pipl_compliance_page.columns.field_label')" width="180" />
+            <el-table-column prop="label" :label="t('pipl_compliance_page.columns.description')" min-width="140" />
+            <el-table-column :label="t('pipl_compliance_page.columns.category')" width="130">
               <template #default="{ row }">
                 <el-tag :type="categoryTag(row.category)" size="small">{{ categoryLabels[row.category] }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="分级" width="120">
+            <el-table-column :label="t('pipl_compliance_page.columns.classification')" width="120">
               <template #default="{ row }">
                 <el-tag :type="levelTag(row.level)" size="small" effect="dark">{{ classificationLabels[row.level] }}</el-tag>
               </template>
@@ -193,145 +193,145 @@
     </el-tabs>
 
     <!-- 编辑清单 -->
-    <el-dialog v-model="invEditVisible" title="编辑个人信息字段" width="520px">
+    <el-dialog v-model="invEditVisible" :title="t('pipl_compliance_page.dialogs.edit_inventory')" width="520px">
       <el-form :model="invForm" label-width="100px" size="small">
-        <el-form-item label="表/字段"><span>{{ invForm.table_name }}.{{ invForm.field_name }}</span></el-form-item>
-        <el-form-item label="分类">
+        <el-form-item :label="t('pipl_compliance_page.columns.table_field')"><span>{{ invForm.table_name }}.{{ invForm.field_name }}</span></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.columns.category')">
           <el-select v-model="invForm.category" style="width:100%">
             <el-option v-for="(l, k) in categoryLabels" :key="k" :label="l" :value="k" />
           </el-select>
         </el-form-item>
-        <el-form-item label="分级">
+        <el-form-item :label="t('pipl_compliance_page.columns.classification')">
           <el-select v-model="invForm.classification" style="width:100%">
             <el-option v-for="(l, k) in classificationLabels" :key="k" :label="l" :value="k" />
           </el-select>
         </el-form-item>
-        <el-form-item label="处理目的"><el-input v-model="invForm.purpose" type="textarea" :rows="2" /></el-form-item>
-        <el-form-item label="保留天数"><el-input v-model="invForm.retention_days" /></el-form-item>
-        <el-form-item label="可导出"><el-switch v-model="invForm.is_exportable" /></el-form-item>
-        <el-form-item label="可删除"><el-switch v-model="invForm.is_deletable" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.columns.purpose')"><el-input v-model="invForm.purpose" type="textarea" :rows="2" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.forms.retention_days')"><el-input v-model="invForm.retention_days" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.forms.exportable')"><el-switch v-model="invForm.is_exportable" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.forms.deletable')"><el-switch v-model="invForm.is_deletable" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="invEditVisible = false">取消</el-button>
-        <el-button type="primary" :loading="savingInv" @click="saveInvEdit">保存</el-button>
+        <el-button @click="invEditVisible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="savingInv" @click="saveInvEdit">{{ t('actions.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 跨境传输表单 -->
-    <el-dialog v-model="showTransferForm" :title="transferEditId ? '编辑跨境传输' : '新增跨境传输'" width="560px">
+    <el-dialog v-model="showTransferForm" :title="transferEditId ? t('pipl_compliance_page.dialogs.edit_transfer') : t('pipl_compliance_page.dialogs.add_transfer')" width="560px">
       <el-form :model="transferForm" label-width="100px" size="small">
-        <el-form-item label="数据类别" required><el-input v-model="transferForm.data_category" placeholder="如：用户账户信息" /></el-form-item>
-        <el-form-item label="目的地" required><el-input v-model="transferForm.recipient_country" placeholder="如：美国" /></el-form-item>
-        <el-form-item label="接收方" required><el-input v-model="transferForm.recipient_name" placeholder="如：AWS Inc." /></el-form-item>
-        <el-form-item label="传输目的" required><el-input v-model="transferForm.recipient_purpose" type="textarea" :rows="2" /></el-form-item>
-        <el-form-item label="传输方式" required>
+        <el-form-item :label="t('pipl_compliance_page.columns.data_category')" required><el-input v-model="transferForm.data_category" :placeholder="t('pipl_compliance_page.placeholders.data_category')" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.columns.destination')" required><el-input v-model="transferForm.recipient_country" :placeholder="t('pipl_compliance_page.placeholders.destination')" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.columns.recipient')" required><el-input v-model="transferForm.recipient_name" :placeholder="t('pipl_compliance_page.placeholders.recipient')" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.forms.transfer_purpose')" required><el-input v-model="transferForm.recipient_purpose" type="textarea" :rows="2" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.columns.transfer_method')" required>
           <el-select v-model="transferForm.transfer_method" style="width:100%">
             <el-option v-for="(l, k) in transferMethodLabels" :key="k" :label="l" :value="k" />
           </el-select>
         </el-form-item>
-        <el-form-item label="法律依据" required>
+        <el-form-item :label="t('pipl_compliance_page.columns.legal_basis')" required>
           <el-select v-model="transferForm.legal_basis" style="width:100%">
             <el-option v-for="(l, k) in legalBasisLabels" :key="k" :label="l" :value="k" />
           </el-select>
         </el-form-item>
-        <el-form-item label="安全措施"><el-input v-model="transferForm.security_measures" type="textarea" :rows="2" placeholder="TLS 加密、访问控制等" /></el-form-item>
-        <el-form-item v-if="transferEditId" label="状态">
+        <el-form-item :label="t('pipl_compliance_page.forms.security_measures')"><el-input v-model="transferForm.security_measures" type="textarea" :rows="2" :placeholder="t('pipl_compliance_page.placeholders.security_measures')" /></el-form-item>
+        <el-form-item v-if="transferEditId" :label="t('pipl_compliance_page.columns.status')">
           <el-select v-model="transferForm.status" style="width:100%">
             <el-option v-for="(l, k) in transferStatusLabels" :key="k" :label="l" :value="k" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showTransferForm = false">取消</el-button>
-        <el-button type="primary" :loading="savingTransfer" @click="saveTransfer">保存</el-button>
+        <el-button @click="showTransferForm = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="savingTransfer" @click="saveTransfer">{{ t('actions.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 跨境复评 -->
-    <el-dialog v-model="reviewVisible" title="跨境传输影响复评" width="520px">
-      <p class="hint-text mb-2">接收方：{{ reviewTarget?.recipient_name }}（{{ reviewTarget?.recipient_country }}）</p>
-      <el-input v-model="reviewForm.impact_assessment" type="textarea" :rows="5" placeholder="填写传输影响评估结论..." />
+    <el-dialog v-model="reviewVisible" :title="t('pipl_compliance_page.dialogs.transfer_review')" width="520px">
+      <p class="hint-text mb-2">{{ t('pipl_compliance_page.review_recipient', { name: reviewTarget?.recipient_name, country: reviewTarget?.recipient_country }) }}</p>
+      <el-input v-model="reviewForm.impact_assessment" type="textarea" :rows="5" :placeholder="t('pipl_compliance_page.placeholders.impact_assessment')" />
       <template #footer>
-        <el-button @click="reviewVisible = false">取消</el-button>
-        <el-button type="primary" :loading="savingReview" @click="submitReview">提交复评</el-button>
+        <el-button @click="reviewVisible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="savingReview" @click="submitReview">{{ t('pipl_compliance_page.buttons.submit_review') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- DPIA 创建 -->
-    <el-dialog v-model="dpiaCreateVisible" title="新建 DPIA" width="560px">
+    <el-dialog v-model="dpiaCreateVisible" :title="t('pipl_compliance_page.dialogs.new_dpia')" width="560px">
       <el-form :model="dpiaCreateForm" label-width="100px" size="small">
-        <el-form-item label="标题" required><el-input v-model="dpiaCreateForm.title" /></el-form-item>
-        <el-form-item label="描述"><el-input v-model="dpiaCreateForm.description" type="textarea" :rows="3" /></el-form-item>
-        <el-form-item label="涉及数据">
-          <el-select v-model="dpiaCreateForm.involved_data_categories" multiple filterable allow-create style="width:100%" placeholder="输入后回车添加">
-            <el-option label="用户账户信息" value="用户账户信息" />
-            <el-option label="设备指纹" value="设备指纹" />
-            <el-option label="IP 地址" value="IP 地址" />
-            <el-option label="支付信息" value="支付信息" />
+        <el-form-item :label="t('pipl_compliance_page.columns.title')" required><el-input v-model="dpiaCreateForm.title" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.columns.description')"><el-input v-model="dpiaCreateForm.description" type="textarea" :rows="3" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.forms.involved_data')">
+          <el-select v-model="dpiaCreateForm.involved_data_categories" multiple filterable allow-create style="width:100%" :placeholder="t('pipl_compliance_page.placeholders.involved_data')">
+            <el-option :label="t('pipl_compliance_page.data_categories.user_account')" :value="apiZh('pipl_compliance_page.data_categories.user_account')" />
+            <el-option :label="t('pipl_compliance_page.data_categories.device_fingerprint')" :value="apiZh('pipl_compliance_page.data_categories.device_fingerprint')" />
+            <el-option :label="t('pipl_compliance_page.data_categories.ip_address')" :value="apiZh('pipl_compliance_page.data_categories.ip_address')" />
+            <el-option :label="t('pipl_compliance_page.data_categories.payment_info')" :value="apiZh('pipl_compliance_page.data_categories.payment_info')" />
           </el-select>
         </el-form-item>
-        <el-form-item label="相关方">
+        <el-form-item :label="t('pipl_compliance_page.forms.stakeholders')">
           <el-select v-model="dpiaCreateForm.stakeholders" multiple filterable allow-create style="width:100%">
-            <el-option label="数据保护官" value="数据保护官" />
-            <el-option label="产品经理" value="产品经理" />
-            <el-option label="法务" value="法务" />
+            <el-option :label="t('pipl_compliance_page.stakeholders.dpo')" :value="apiZh('pipl_compliance_page.stakeholders.dpo')" />
+            <el-option :label="t('pipl_compliance_page.stakeholders.product_manager')" :value="apiZh('pipl_compliance_page.stakeholders.product_manager')" />
+            <el-option :label="t('pipl_compliance_page.stakeholders.legal')" :value="apiZh('pipl_compliance_page.stakeholders.legal')" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dpiaCreateVisible = false">取消</el-button>
-        <el-button type="primary" :loading="savingDpia" @click="saveDpiaCreate">创建</el-button>
+        <el-button @click="dpiaCreateVisible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="savingDpia" @click="saveDpiaCreate">{{ t('actions.create') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- DPIA 详情/编辑 -->
-    <el-dialog v-model="dpiaDetailVisible" title="DPIA 详情" width="680px" top="5vh">
+    <el-dialog v-model="dpiaDetailVisible" :title="t('pipl_compliance_page.dialogs.dpia_detail')" width="680px" top="5vh">
       <template v-if="dpiaDetail">
         <el-descriptions :column="2" border size="small" class="mb-3">
-          <el-descriptions-item label="标题" :span="2">{{ dpiaDetail.title }}</el-descriptions-item>
-          <el-descriptions-item label="状态"><el-tag :type="dpiaStatusTag(dpiaDetail.status)" size="small">{{ dpiaStatusLabels[dpiaDetail.status] }}</el-tag></el-descriptions-item>
-          <el-descriptions-item label="创建人">{{ dpiaDetail.creator?.name || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="描述" :span="2">{{ dpiaDetail.description || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="涉及数据" :span="2">{{ (dpiaDetail.involved_data_categories || []).join('、') || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="相关方" :span="2">{{ (dpiaDetail.stakeholders || []).join('、') || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('pipl_compliance_page.columns.title')" :span="2">{{ dpiaDetail.title }}</el-descriptions-item>
+          <el-descriptions-item :label="t('pipl_compliance_page.columns.status')"><el-tag :type="dpiaStatusTag(dpiaDetail.status)" size="small">{{ dpiaStatusLabels[dpiaDetail.status] }}</el-tag></el-descriptions-item>
+          <el-descriptions-item :label="t('pipl_compliance_page.columns.creator')">{{ dpiaDetail.creator?.name || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('pipl_compliance_page.columns.description')" :span="2">{{ dpiaDetail.description || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('pipl_compliance_page.forms.involved_data')" :span="2">{{ (dpiaDetail.involved_data_categories || []).join(localeListSep) || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('pipl_compliance_page.forms.stakeholders')" :span="2">{{ (dpiaDetail.stakeholders || []).join(localeListSep) || '-' }}</el-descriptions-item>
         </el-descriptions>
         <div v-if="dpiaDetail.status !== 'completed'" class="mt-3">
           <el-form :model="dpiaEditForm" label-width="100px" size="small">
-            <el-form-item label="状态">
+            <el-form-item :label="t('pipl_compliance_page.columns.status')">
               <el-select v-model="dpiaEditForm.status" style="width:200px">
-                <el-option label="草稿" value="draft" /><el-option label="进行中" value="in_progress" />
+                <el-option v-for="(l, k) in dpiaEditStatusLabels" :key="k" :label="l" :value="k" />
               </el-select>
             </el-form-item>
-            <el-form-item label="必要性评估"><el-input v-model="dpiaEditForm.necessity_assessment" type="textarea" :rows="2" /></el-form-item>
-            <el-form-item label="风险评估"><el-input v-model="dpiaEditForm.risk_assessment" type="textarea" :rows="2" /></el-form-item>
-            <el-form-item label="缓解措施"><el-input v-model="dpiaEditForm.mitigation_measures" type="textarea" :rows="2" /></el-form-item>
-            <el-form-item label="结论"><el-input v-model="dpiaEditForm.conclusion" type="textarea" :rows="2" /></el-form-item>
+            <el-form-item :label="t('pipl_compliance_page.forms.necessity_assessment')"><el-input v-model="dpiaEditForm.necessity_assessment" type="textarea" :rows="2" /></el-form-item>
+            <el-form-item :label="t('pipl_compliance_page.forms.risk_assessment')"><el-input v-model="dpiaEditForm.risk_assessment" type="textarea" :rows="2" /></el-form-item>
+            <el-form-item :label="t('pipl_compliance_page.forms.mitigation_measures')"><el-input v-model="dpiaEditForm.mitigation_measures" type="textarea" :rows="2" /></el-form-item>
+            <el-form-item :label="t('pipl_compliance_page.forms.conclusion')"><el-input v-model="dpiaEditForm.conclusion" type="textarea" :rows="2" /></el-form-item>
           </el-form>
           <div class="text-right">
-            <el-button type="primary" :loading="savingDpia" @click="saveDpiaEdit">保存进度</el-button>
+            <el-button type="primary" :loading="savingDpia" @click="saveDpiaEdit">{{ t('pipl_compliance_page.buttons.save_progress') }}</el-button>
           </div>
         </div>
         <template v-else>
-          <h5 class="section-title">评估结论</h5>
-          <p><strong>必要性：</strong>{{ dpiaDetail.necessity_assessment }}</p>
-          <p><strong>风险：</strong>{{ dpiaDetail.risk_assessment }}</p>
-          <p><strong>缓解措施：</strong>{{ dpiaDetail.mitigation_measures }}</p>
-          <p><strong>结论：</strong>{{ dpiaDetail.conclusion }}</p>
+          <h5 class="section-title">{{ t('pipl_compliance_page.assessment_conclusions') }}</h5>
+          <p><strong>{{ t('pipl_compliance_page.conclusion_labels.necessity') }}</strong>{{ dpiaDetail.necessity_assessment }}</p>
+          <p><strong>{{ t('pipl_compliance_page.conclusion_labels.risk') }}</strong>{{ dpiaDetail.risk_assessment }}</p>
+          <p><strong>{{ t('pipl_compliance_page.conclusion_labels.mitigation') }}</strong>{{ dpiaDetail.mitigation_measures }}</p>
+          <p><strong>{{ t('pipl_compliance_page.conclusion_labels.conclusion') }}</strong>{{ dpiaDetail.conclusion }}</p>
         </template>
       </template>
     </el-dialog>
 
     <!-- DPIA 完成 -->
-    <el-dialog v-model="dpiaCompleteVisible" title="完成 DPIA 评估" width="560px">
+    <el-dialog v-model="dpiaCompleteVisible" :title="t('pipl_compliance_page.dialogs.complete_dpia')" width="560px">
       <el-form :model="dpiaCompleteForm" label-width="100px" size="small">
-        <el-form-item label="必要性评估" required><el-input v-model="dpiaCompleteForm.necessity_assessment" type="textarea" :rows="3" /></el-form-item>
-        <el-form-item label="风险评估" required><el-input v-model="dpiaCompleteForm.risk_assessment" type="textarea" :rows="3" /></el-form-item>
-        <el-form-item label="缓解措施" required><el-input v-model="dpiaCompleteForm.mitigation_measures" type="textarea" :rows="3" /></el-form-item>
-        <el-form-item label="结论" required><el-input v-model="dpiaCompleteForm.conclusion" type="textarea" :rows="2" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.forms.necessity_assessment')" required><el-input v-model="dpiaCompleteForm.necessity_assessment" type="textarea" :rows="3" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.forms.risk_assessment')" required><el-input v-model="dpiaCompleteForm.risk_assessment" type="textarea" :rows="3" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.forms.mitigation_measures')" required><el-input v-model="dpiaCompleteForm.mitigation_measures" type="textarea" :rows="3" /></el-form-item>
+        <el-form-item :label="t('pipl_compliance_page.forms.conclusion')" required><el-input v-model="dpiaCompleteForm.conclusion" type="textarea" :rows="2" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dpiaCompleteVisible = false">取消</el-button>
-        <el-button type="success" :loading="savingDpia" @click="submitDpiaComplete">完成评估</el-button>
+        <el-button @click="dpiaCompleteVisible = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="success" :loading="savingDpia" @click="submitDpiaComplete">{{ t('pipl_compliance_page.buttons.complete_assessment') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -339,21 +339,61 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import i18n from '@/i18n';
 import { ElMessage } from 'element-plus';
 import { Plus, Search, CircleCheck, CircleClose } from '@element-plus/icons-vue';
 import piplApi from '@/api/pipl';
+
+const { t, locale } = useI18n();
+const apiZh = (key) => i18n.global.t(key, {}, { locale: 'zh_CN' });
 
 const activeTab = ref('inventory');
 const stats = ref({});
 const scanLoading = ref(false);
 const loading = reactive({ stats: false, inventory: false, transfers: false, dpias: false, definitions: false });
 
-const categoryLabels = { person: '个人信息', general: '一般信息', sensitive: '敏感个人信息', private: '私密信息' };
-const classificationLabels = { L1: 'L1 公开', L2: 'L2 内部', L3: 'L3 敏感', L4: 'L4 核心' };
-const legalBasisLabels = { consent: '单独同意', standard_clauses: '标准合同', adequacy: '充分保护认定', safe_harbor: '安全港', other: '其他' };
-const transferMethodLabels = { api: 'API', sdk: 'SDK', manual: '人工', cloud: '云服务' };
-const transferStatusLabels = { active: '活跃', expired: '已过期', revoked: '已撤销' };
-const dpiaStatusLabels = { draft: '草稿', in_progress: '进行中', completed: '已完成', archived: '已归档' };
+const categoryLabels = computed(() => ({
+  person: t('pipl_compliance_page.category.person'),
+  general: t('pipl_compliance_page.category.general'),
+  sensitive: t('pipl_compliance_page.category.sensitive'),
+  private: t('pipl_compliance_page.category.private'),
+}));
+const classificationLabels = computed(() => ({
+  L1: t('pipl_compliance_page.classification.L1'),
+  L2: t('pipl_compliance_page.classification.L2'),
+  L3: t('pipl_compliance_page.classification.L3'),
+  L4: t('pipl_compliance_page.classification.L4'),
+}));
+const legalBasisLabels = computed(() => ({
+  consent: t('pipl_compliance_page.legal_basis.consent'),
+  standard_clauses: t('pipl_compliance_page.legal_basis.standard_clauses'),
+  adequacy: t('pipl_compliance_page.legal_basis.adequacy'),
+  safe_harbor: t('pipl_compliance_page.legal_basis.safe_harbor'),
+  other: t('pipl_compliance_page.legal_basis.other'),
+}));
+const transferMethodLabels = computed(() => ({
+  api: t('pipl_compliance_page.transfer_method.api'),
+  sdk: t('pipl_compliance_page.transfer_method.sdk'),
+  manual: t('pipl_compliance_page.transfer_method.manual'),
+  cloud: t('pipl_compliance_page.transfer_method.cloud'),
+}));
+const transferStatusLabels = computed(() => ({
+  active: t('pipl_compliance_page.transfer_status.active'),
+  expired: t('pipl_compliance_page.transfer_status.expired'),
+  revoked: t('pipl_compliance_page.transfer_status.revoked'),
+}));
+const dpiaStatusLabels = computed(() => ({
+  draft: t('pipl_compliance_page.dpia_status.draft'),
+  in_progress: t('pipl_compliance_page.dpia_status.in_progress'),
+  completed: t('pipl_compliance_page.dpia_status.completed'),
+  archived: t('pipl_compliance_page.dpia_status.archived'),
+}));
+const dpiaEditStatusLabels = computed(() => ({
+  draft: t('pipl_compliance_page.dpia_status.draft'),
+  in_progress: t('pipl_compliance_page.dpia_status.in_progress'),
+}));
+const localeListSep = computed(() => (locale.value === 'en' ? ', ' : '、'));
 
 // Inventory
 const inventory = ref([]);
@@ -410,8 +450,12 @@ function categoryTag(c) { return { person: '', general: 'info', sensitive: 'warn
 function levelTag(l) { return { L1: 'info', L2: '', L3: 'warning', L4: 'danger' }[l] || ''; }
 function transferStatusTag(s) { return { active: 'success', expired: 'warning', revoked: 'info' }[s] || ''; }
 function dpiaStatusTag(s) { return { draft: 'info', in_progress: 'warning', completed: 'success', archived: '' }[s] || ''; }
-function formatDate(t) { return t ? new Date(t).toLocaleDateString('zh-CN') : '-'; }
-function isOverdue(t) { return t && new Date(t) <= new Date(); }
+function formatDate(val) {
+  if (!val) return '-';
+  const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+  return new Date(val).toLocaleDateString(loc);
+}
+function isOverdue(tVal) { return tVal && new Date(tVal) <= new Date(); }
 
 async function loadStats() {
   loading.stats = true;
@@ -483,11 +527,11 @@ async function runScan() {
   try {
     const { data: res } = await piplApi.scan();
     if (res.success) {
-      ElMessage.success(res.message || `扫描完成，新增 ${res.data?.items_created ?? 0} 条`);
+      ElMessage.success(res.message || t('pipl_compliance_page.messages.scan_done', { n: res.data?.items_created ?? 0 }));
       loadStats();
       loadInventory();
     }
-  } catch (e) { ElMessage.error(e.response?.data?.message || '扫描失败'); }
+  } catch (e) { ElMessage.error(e.response?.data?.message || t('pipl_compliance_page.messages.scan_failed')); }
   finally { scanLoading.value = false; }
 }
 
@@ -512,12 +556,12 @@ async function saveInvEdit() {
       is_exportable: invForm.is_exportable, is_deletable: invForm.is_deletable,
     });
     if (res.success) {
-      ElMessage.success('已更新');
+      ElMessage.success(t('pipl_compliance_page.messages.updated'));
       invEditVisible.value = false;
       loadInventory();
       loadStats();
     }
-  } catch (e) { ElMessage.error(e.response?.data?.message || '保存失败'); }
+  } catch (e) { ElMessage.error(e.response?.data?.message || t('pipl_compliance_page.messages.save_failed')); }
   finally { savingInv.value = false; }
 }
 
@@ -548,7 +592,7 @@ function openTransferReview(row) {
 
 async function saveTransfer() {
   if (!transferForm.data_category || !transferForm.recipient_country || !transferForm.recipient_name) {
-    ElMessage.warning('请填写必填项'); return;
+    ElMessage.warning(t('pipl_compliance_page.messages.required_fields')); return;
   }
   savingTransfer.value = true;
   try {
@@ -557,28 +601,28 @@ async function saveTransfer() {
       ? await piplApi.updateCrossBorderTransfer(transferEditId.value, payload)
       : await piplApi.createCrossBorderTransfer(payload);
     if (res.data.success) {
-      ElMessage.success(transferEditId.value ? '已更新' : '已创建');
+      ElMessage.success(transferEditId.value ? t('pipl_compliance_page.messages.updated') : t('pipl_compliance_page.messages.created'));
       showTransferForm.value = false;
       resetTransferForm();
       loadTransfers();
       loadStats();
     }
-  } catch (e) { ElMessage.error(e.response?.data?.message || '操作失败'); }
+  } catch (e) { ElMessage.error(e.response?.data?.message || t('messages.failed')); }
   finally { savingTransfer.value = false; }
 }
 
 async function submitReview() {
-  if (!reviewForm.impact_assessment.trim()) { ElMessage.warning('请填写评估结论'); return; }
+  if (!reviewForm.impact_assessment.trim()) { ElMessage.warning(t('pipl_compliance_page.messages.assessment_required')); return; }
   savingReview.value = true;
   try {
     const { data: res } = await piplApi.reviewCrossBorderTransfer(reviewTarget.value.id, reviewForm);
     if (res.success) {
-      ElMessage.success('复评已提交');
+      ElMessage.success(t('pipl_compliance_page.messages.review_submitted'));
       reviewVisible.value = false;
       loadTransfers();
       loadStats();
     }
-  } catch (e) { ElMessage.error(e.response?.data?.message || '提交失败'); }
+  } catch (e) { ElMessage.error(e.response?.data?.message || t('pipl_compliance_page.messages.submit_failed')); }
   finally { savingReview.value = false; }
 }
 
@@ -591,17 +635,17 @@ function openDpiaCreate() {
 }
 
 async function saveDpiaCreate() {
-  if (!dpiaCreateForm.title.trim()) { ElMessage.warning('请填写标题'); return; }
+  if (!dpiaCreateForm.title.trim()) { ElMessage.warning(t('pipl_compliance_page.messages.title_required')); return; }
   savingDpia.value = true;
   try {
     const { data: res } = await piplApi.createDpia({ ...dpiaCreateForm });
     if (res.success) {
-      ElMessage.success('DPIA 已创建');
+      ElMessage.success(t('pipl_compliance_page.messages.dpia_created'));
       dpiaCreateVisible.value = false;
       loadDpias();
       loadStats();
     }
-  } catch (e) { ElMessage.error(e.response?.data?.message || '创建失败'); }
+  } catch (e) { ElMessage.error(e.response?.data?.message || t('pipl_compliance_page.messages.create_failed')); }
   finally { savingDpia.value = false; }
 }
 
@@ -619,7 +663,7 @@ async function openDpiaDetail(row) {
       });
       dpiaDetailVisible.value = true;
     }
-  } catch { ElMessage.error('加载失败'); }
+  } catch { ElMessage.error(t('messages.load_failed')); }
 }
 
 async function saveDpiaEdit() {
@@ -627,11 +671,11 @@ async function saveDpiaEdit() {
   try {
     const { data: res } = await piplApi.updateDpia(dpiaDetail.value.id, { ...dpiaEditForm });
     if (res.success) {
-      ElMessage.success('已保存');
+      ElMessage.success(t('pipl_compliance_page.messages.saved'));
       dpiaDetail.value = res.data;
       loadDpias();
     }
-  } catch (e) { ElMessage.error(e.response?.data?.message || '保存失败'); }
+  } catch (e) { ElMessage.error(e.response?.data?.message || t('pipl_compliance_page.messages.save_failed')); }
   finally { savingDpia.value = false; }
 }
 
@@ -649,18 +693,18 @@ function openDpiaComplete(row) {
 async function submitDpiaComplete() {
   const f = dpiaCompleteForm;
   if (!f.necessity_assessment || !f.risk_assessment || !f.mitigation_measures || !f.conclusion) {
-    ElMessage.warning('请填写全部评估项'); return;
+    ElMessage.warning(t('pipl_compliance_page.messages.all_assessment_required')); return;
   }
   savingDpia.value = true;
   try {
     const { data: res } = await piplApi.completeDpia(dpiaCompleteTarget.value.id, { ...f });
     if (res.success) {
-      ElMessage.success('DPIA 评估已完成');
+      ElMessage.success(t('pipl_compliance_page.messages.dpia_completed'));
       dpiaCompleteVisible.value = false;
       loadDpias();
       loadStats();
     }
-  } catch (e) { ElMessage.error(e.response?.data?.message || '提交失败'); }
+  } catch (e) { ElMessage.error(e.response?.data?.message || t('pipl_compliance_page.messages.submit_failed')); }
   finally { savingDpia.value = false; }
 }
 
@@ -692,7 +736,7 @@ onMounted(() => {
 .stats-row { margin-bottom: 20px; }
 .stat-card { text-align: center; padding: 8px 0; }
 .stat-card.warning { border-left: 3px solid #e6a23c; }
-.stat-card.info { border-left: 3px solid #409eff; }
+.stat-card.info { border-left: 3px solid #0f172a; }
 .stat-card.success { border-left: 3px solid #67c23a; }
 .stat-value { font-size: 28px; font-weight: 700; color: #303133; }
 .stat-label { font-size: 13px; color: #909399; margin-top: 4px; }

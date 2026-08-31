@@ -5,25 +5,25 @@
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ stats.total_files }}</div>
-                    <div class="stat-label">文件总数</div>
+                    <div class="stat-label">{{ t('files_page.stat_total_files') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ stats.total_size_formatted || '0 B' }}</div>
-                    <div class="stat-label">总存储量</div>
+                    <div class="stat-label">{{ t('files_page.stat_total_size') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ stats.by_category?.invoice?.count || 0 }}</div>
-                    <div class="stat-label">发票文件</div>
+                    <div class="stat-label">{{ t('files_page.stat_invoice_files') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ stats.by_category?.contract?.count || 0 }}</div>
-                    <div class="stat-label">合同文件</div>
+                    <div class="stat-label">{{ t('files_page.stat_contract_files') }}</div>
                 </el-card>
             </el-col>
         </el-row>
@@ -32,25 +32,21 @@
         <el-card class="search-card">
             <el-row :gutter="16">
                 <el-col :span="5">
-                    <el-input v-model="filters.search" placeholder="搜索文件名" clearable @clear="loadList" @keyup.enter="loadList" />
+                    <el-input v-model="filters.search" :placeholder="t('files_page.search_ph')" clearable @clear="loadList" @keyup.enter="loadList" />
                 </el-col>
                 <el-col :span="4">
-                    <el-select v-model="filters.category" placeholder="分类" clearable @change="loadList" style="width: 100%">
-                        <el-option label="发票" value="invoice" />
-                        <el-option label="收据" value="receipt" />
-                        <el-option label="合同" value="contract" />
-                        <el-option label="附件" value="attachment" />
-                        <el-option label="其他" value="other" />
+                    <el-select v-model="filters.category" :placeholder="t('files_page.category_ph')" clearable @change="loadList" style="width: 100%">
+                        <el-option v-for="opt in categoryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-col>
                 <el-col :span="4">
-                    <el-input v-model="filters.customer_id" placeholder="客户ID" clearable @clear="loadList" @keyup.enter="loadList" />
+                    <el-input v-model="filters.customer_id" :placeholder="t('files_page.customer_id_ph')" clearable @clear="loadList" @keyup.enter="loadList" />
                 </el-col>
                 <el-col :span="11" style="text-align: right">
                     <el-button type="primary" @click="showUploadDialog">
-                        <el-icon><Upload /></el-icon> 上传文件
+                        <el-icon><Upload /></el-icon> {{ t('actions.upload') }}
                     </el-button>
-                    <el-button @click="loadList">刷新</el-button>
+                    <el-button @click="loadList">{{ t('files_page.refresh') }}</el-button>
                 </el-col>
             </el-row>
         </el-card>
@@ -58,7 +54,7 @@
         <!-- 文件列表 -->
         <el-card class="table-card">
             <el-table :data="list" v-loading="loading" border stripe style="width: 100%">
-                <el-table-column prop="original_name" label="文件名" min-width="250">
+                <el-table-column prop="original_name" :label="t('files_page.col_filename')" min-width="250">
                     <template #default="{ row }">
                         <div class="file-name-cell">
                             <el-icon :size="18" class="file-icon"><Document /></el-icon>
@@ -66,36 +62,36 @@
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column label="大小" width="100">
+                <el-table-column :label="t('files_page.col_size')" width="100">
                     <template #default="{ row }">{{ row.formattedSize?.() || formatBytes(row.file_size) }}</template>
                 </el-table-column>
-                <el-table-column label="类型" width="100">
+                <el-table-column :label="t('files_page.col_type')" width="100">
                     <template #default="{ row }">
                         <el-tag size="small">{{ row.file_extension?.toUpperCase() || '-' }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="分类" width="100">
+                <el-table-column :label="t('files_page.col_category')" width="100">
                     <template #default="{ row }">
                         <el-tag :type="categoryTag(row.category)" size="small">{{ categoryLabel(row.category) }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="客户" min-width="130">
-                    <template #default="{ row }">{{ row.customer?.name || '客户#' + row.customer_id }}</template>
+                <el-table-column :label="t('files_page.col_customer')" min-width="130">
+                    <template #default="{ row }">{{ row.customer?.name || t('files_page.customer_fallback', { id: row.customer_id }) }}</template>
                 </el-table-column>
-                <el-table-column label="上传者" width="120">
+                <el-table-column :label="t('files_page.col_uploader')" width="120">
                     <template #default="{ row }">{{ row.uploader?.name || '-' }}</template>
                 </el-table-column>
-                <el-table-column label="上传时间" width="170">
+                <el-table-column :label="t('files_page.col_uploaded_at')" width="170">
                     <template #default="{ row }">{{ row.uploaded_at }}</template>
                 </el-table-column>
-                <el-table-column label="操作" width="240" fixed="right">
+                <el-table-column :label="t('files_page.col_actions')" width="240" fixed="right">
                     <template #default="{ row }">
-                        <el-button size="small" type="primary" @click="handleDownload(row)">下载</el-button>
-                        <el-button size="small" @click="showDetail(row)">详情</el-button>
-                        <el-button size="small" @click="showShareDialog(row)">分享</el-button>
-                        <el-popconfirm title="确认删除此文件？" @confirm="handleDelete(row)">
+                        <el-button size="small" type="primary" @click="handleDownload(row)">{{ t('actions.download') }}</el-button>
+                        <el-button size="small" @click="showDetail(row)">{{ t('files_page.btn_detail') }}</el-button>
+                        <el-button size="small" @click="showShareDialog(row)">{{ t('actions.share') }}</el-button>
+                        <el-popconfirm :title="t('files_page.delete_confirm')" @confirm="handleDelete(row)">
                             <template #reference>
-                                <el-button size="small" type="danger">删除</el-button>
+                                <el-button size="small" type="danger">{{ t('actions.delete') }}</el-button>
                             </template>
                         </el-popconfirm>
                     </template>
@@ -113,9 +109,9 @@
         </el-card>
 
         <!-- 上传对话框 -->
-        <el-dialog v-model="uploadDialogVisible" title="上传文件" width="500px" :close-on-click-modal="false">
+        <el-dialog v-model="uploadDialogVisible" :title="t('files_page.upload_dialog_title')" width="500px" :close-on-click-modal="false">
             <el-form ref="uploadFormRef" :model="uploadForm" :rules="uploadRules" label-width="100px">
-                <el-form-item label="选择文件" prop="file">
+                <el-form-item :label="t('files_page.select_file')" prop="file">
                     <el-upload
                         ref="uploadRef"
                         :auto-upload="false"
@@ -124,116 +120,113 @@
                         drag
                     >
                         <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-                        <div class="el-upload__text">拖拽文件到此处或 <em>点击选择</em></div>
+                        <div class="el-upload__text">{{ t('files_page.upload_drag') }} <em>{{ t('files_page.upload_click') }}</em></div>
                     </el-upload>
                 </el-form-item>
-                <el-form-item label="客户ID" prop="customer_id">
+                <el-form-item :label="t('files_page.customer_id')" prop="customer_id">
                     <el-input-number v-model="uploadForm.customer_id" :min="1" style="width: 200px" />
                 </el-form-item>
-                <el-form-item label="分类">
+                <el-form-item :label="t('files_page.category_ph')">
                     <el-select v-model="uploadForm.category" style="width: 200px">
-                        <el-option label="发票" value="invoice" />
-                        <el-option label="收据" value="receipt" />
-                        <el-option label="合同" value="contract" />
-                        <el-option label="附件" value="attachment" />
-                        <el-option label="其他" value="other" />
+                        <el-option v-for="opt in categoryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="描述">
+                <el-form-item :label="t('files_page.description')">
                     <el-input v-model="uploadForm.description" type="textarea" :rows="2" maxlength="1000" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="uploadDialogVisible = false">取消</el-button>
-                <el-button type="primary" :loading="uploading" @click="submitUpload">上传</el-button>
+                <el-button @click="uploadDialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="uploading" @click="submitUpload">{{ t('actions.upload') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 详情对话框 -->
-        <el-dialog v-model="detailDialogVisible" title="文件详情" width="600px">
+        <el-dialog v-model="detailDialogVisible" :title="t('files_page.detail_dialog_title')" width="600px">
             <template v-if="detail">
                 <el-descriptions :column="2" border>
-                    <el-descriptions-item label="文件名" :span="2">{{ detail.original_name }}</el-descriptions-item>
-                    <el-descriptions-item label="大小">{{ formatBytes(detail.file_size) }}</el-descriptions-item>
-                    <el-descriptions-item label="MIME类型">{{ detail.mime_type }}</el-descriptions-item>
-                    <el-descriptions-item label="分类">
+                    <el-descriptions-item :label="t('files_page.label_filename')" :span="2">{{ detail.original_name }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('files_page.label_size')">{{ formatBytes(detail.file_size) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('files_page.label_mime_type')">{{ detail.mime_type }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('files_page.label_category')">
                         <el-tag :type="categoryTag(detail.category)" size="small">{{ categoryLabel(detail.category) }}</el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="可见性">
+                    <el-descriptions-item :label="t('files_page.label_visibility')">
                         <el-tag :type="detail.visibility === 'public' ? 'success' : 'info'" size="small">
-                            {{ detail.visibility === 'public' ? '公开' : '私有' }}
+                            {{ detail.visibility === 'public' ? t('files_page.visibility_public') : t('files_page.visibility_private') }}
                         </el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="上传者">{{ detail.uploader?.name || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="上传时间">{{ detail.uploaded_at }}</el-descriptions-item>
-                    <el-descriptions-item label="存储路径" :span="2">
+                    <el-descriptions-item :label="t('files_page.label_uploader')">{{ detail.uploader?.name || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('files_page.label_uploaded_at')">{{ detail.uploaded_at }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('files_page.label_storage_path')" :span="2">
                         <el-tooltip :content="detail.storage_path" placement="top">
                             <span class="path-text">{{ detail.storage_path }}</span>
                         </el-tooltip>
                     </el-descriptions-item>
                 </el-descriptions>
 
-                <el-divider>分享链接</el-divider>
+                <el-divider>{{ t('files_page.share_links_title') }}</el-divider>
                 <el-table v-if="detail.share_links?.length" :data="detail.share_links" border size="small">
-                    <el-table-column prop="token" label="令牌" width="200">
+                    <el-table-column prop="token" :label="t('files_page.col_token')" width="200">
                         <template #default="{ row }">
                             <code class="token-text">{{ row.token.substring(0, 16) }}...</code>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="is_active" label="状态" width="80">
+                    <el-table-column prop="is_active" :label="t('files_page.col_status')" width="80">
                         <template #default="{ row }">
                             <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-                                {{ row.is_active ? '有效' : '已撤销' }}
+                                {{ row.is_active ? t('files_page.share_active') : t('files_page.share_revoked') }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="download_count" label="下载" width="60" />
-                    <el-table-column label="操作" width="80">
+                    <el-table-column prop="download_count" :label="t('files_page.col_downloads')" width="60" />
+                    <el-table-column :label="t('files_page.col_actions')" width="80">
                         <template #default="{ row }">
-                            <el-button v-if="row.is_active" size="small" type="danger" @click="handleRevokeShare(row)">撤销</el-button>
+                            <el-button v-if="row.is_active" size="small" type="danger" @click="handleRevokeShare(row)">{{ t('files_page.btn_revoke') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
-                <el-empty v-else description="暂无分享链接" />
+                <el-empty v-else :description="t('files_page.no_share_links')" />
             </template>
         </el-dialog>
 
         <!-- 分享对话框 -->
-        <el-dialog v-model="shareDialogVisible" title="生成分享链接" width="450px">
+        <el-dialog v-model="shareDialogVisible" :title="t('files_page.share_dialog_title')" width="450px">
             <el-form :model="shareForm" label-width="120px">
-                <el-form-item label="访问密码">
-                    <el-input v-model="shareForm.password" placeholder="留空则无需密码" show-password />
+                <el-form-item :label="t('files_page.access_password')">
+                    <el-input v-model="shareForm.password" :placeholder="t('files_page.password_optional_ph')" show-password />
                 </el-form-item>
-                <el-form-item label="过期时间">
-                    <el-date-picker v-model="shareForm.expires_at" type="datetime" placeholder="留空则永不过期" style="width: 100%" />
+                <el-form-item :label="t('files_page.expires_at')">
+                    <el-date-picker v-model="shareForm.expires_at" type="datetime" :placeholder="t('files_page.expires_optional_ph')" style="width: 100%" />
                 </el-form-item>
-                <el-form-item label="最大下载次数">
-                    <el-input-number v-model="shareForm.max_downloads" :min="0" :max="1000" placeholder="0=不限" style="width: 200px" />
+                <el-form-item :label="t('files_page.max_downloads')">
+                    <el-input-number v-model="shareForm.max_downloads" :min="0" :max="1000" :placeholder="t('files_page.max_downloads_hint')" style="width: 200px" />
                 </el-form-item>
             </el-form>
             <template v-if="shareResult" style="margin-top: 16px">
                 <el-alert type="success" show-icon>
                     <template #title>
                         <div class="share-result">
-                            <div>分享链接已生成！</div>
+                            <div>{{ t('files_page.share_link_created') }}</div>
                             <div class="share-url">
                                 <code>{{ shareResult.url }}</code>
-                                <el-button size="small" @click="copyShareUrl">复制</el-button>
+                                <el-button size="small" @click="copyShareUrl">{{ t('actions.copy') }}</el-button>
                             </div>
                         </div>
                     </template>
                 </el-alert>
             </template>
             <template #footer>
-                <el-button @click="shareDialogVisible = false">关闭</el-button>
-                <el-button v-if="!shareResult" type="primary" :loading="sharing" @click="submitShare">生成链接</el-button>
+                <el-button @click="shareDialogVisible = false">{{ t('actions.close') }}</el-button>
+                <el-button v-if="!shareResult" type="primary" :loading="sharing" @click="submitShare">{{ t('files_page.generate_link') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Upload, Document, UploadFilled } from '@element-plus/icons-vue'
 import {
@@ -246,6 +239,8 @@ import {
     createShareLink,
     revokeShareLink,
 } from '@/api/files'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const stats = ref({ total_files: 0, total_size_formatted: '0 B', by_category: {} })
@@ -262,9 +257,10 @@ const uploadFormRef = ref(null)
 const uploadRef = ref(null)
 const uploading = ref(false)
 const uploadForm = ref({ file: null, customer_id: null, category: 'other', description: '' })
-const uploadRules = {
-    customer_id: [{ required: true, message: '请输入客户ID', trigger: 'blur' }],
-}
+
+const uploadRules = computed(() => ({
+    customer_id: [{ required: true, message: t('files_page.customer_id_required'), trigger: 'blur' }],
+}))
 
 // 详情
 const detailDialogVisible = ref(false)
@@ -277,10 +273,19 @@ const sharing = ref(false)
 const shareResult = ref(null)
 const currentShareFile = ref(null)
 
-const categoryLabels = { invoice: '发票', receipt: '收据', contract: '合同', attachment: '附件', other: '其他' }
+const categoryKeys = ['invoice', 'receipt', 'contract', 'attachment', 'other']
 const categoryTags = { invoice: 'primary', receipt: 'success', contract: 'warning', attachment: '', other: 'info' }
 
-function categoryLabel(c) { return categoryLabels[c] || c }
+const categoryLabels = computed(() => Object.fromEntries(
+    categoryKeys.map((key) => [key, t(`files_page.cat_${key}`)]),
+))
+
+const categoryOptions = computed(() => categoryKeys.map((value) => ({
+    value,
+    label: t(`files_page.cat_${value}`),
+})))
+
+function categoryLabel(c) { return categoryLabels.value[c] || c }
 function categoryTag(c) { return categoryTags[c] || 'info' }
 
 function formatBytes(bytes) {
@@ -306,7 +311,7 @@ async function loadList() {
         const res = await getFileList(params)
         list.value = res.data?.data || res.data || []
         total.value = res.data?.total || res.total || 0
-    } catch { ElMessage.error('加载失败') }
+    } catch { ElMessage.error(t('messages.load_failed')) }
     finally { loading.value = false }
 }
 
@@ -325,7 +330,7 @@ function onFileChange(uploadFile) {
 async function submitUpload() {
     const valid = await uploadFormRef.value.validate().catch(() => false)
     if (!valid || !uploadForm.value.file) {
-        ElMessage.warning('请选择文件')
+        ElMessage.warning(t('files_page.select_file_required'))
         return
     }
     uploading.value = true
@@ -336,12 +341,12 @@ async function submitUpload() {
         fd.append('category', uploadForm.value.category)
         if (uploadForm.value.description) fd.append('description', uploadForm.value.description)
         await uploadFile(fd)
-        ElMessage.success('上传成功')
+        ElMessage.success(t('files_page.upload_ok'))
         uploadDialogVisible.value = false
         loadList()
         loadStats()
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '上传失败')
+        ElMessage.error(e.response?.data?.message || t('files_page.upload_failed'))
     } finally {
         uploading.value = false
     }
@@ -352,7 +357,7 @@ async function showDetail(row) {
         const res = await getFileDetail(row.id)
         detail.value = res.data || res
         detailDialogVisible.value = true
-    } catch { ElMessage.error('加载详情失败') }
+    } catch { ElMessage.error(t('files_page.detail_load_failed')) }
 }
 
 async function handleDownload(row) {
@@ -360,16 +365,16 @@ async function handleDownload(row) {
         const res = await downloadFile(row.id)
         const data = res.data || res
         window.open(data.url, '_blank')
-    } catch { ElMessage.error('获取下载链接失败') }
+    } catch { ElMessage.error(t('files_page.download_link_failed')) }
 }
 
 async function handleDelete(row) {
     try {
         await deleteFile(row.id)
-        ElMessage.success('文件已删除')
+        ElMessage.success(t('files_page.deleted_ok'))
         loadList()
         loadStats()
-    } catch { ElMessage.error('删除失败') }
+    } catch { ElMessage.error(t('files_page.delete_failed')) }
 }
 
 function showShareDialog(row) {
@@ -393,7 +398,7 @@ async function submitShare() {
             token: link.token,
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '生成分享链接失败')
+        ElMessage.error(e.response?.data?.message || t('files_page.share_create_failed'))
     } finally {
         sharing.value = false
     }
@@ -402,16 +407,16 @@ async function submitShare() {
 function copyShareUrl() {
     if (shareResult.value?.url) {
         navigator.clipboard.writeText(shareResult.value.url)
-        ElMessage.success('已复制到剪贴板')
+        ElMessage.success(t('files_page.copied_ok'))
     }
 }
 
 async function handleRevokeShare(link) {
     try {
         await revokeShareLink(detail.value.id, link.id)
-        ElMessage.success('分享链接已撤销')
+        ElMessage.success(t('files_page.share_revoked_ok'))
         showDetail({ id: detail.value.id })
-    } catch { ElMessage.error('撤销失败') }
+    } catch { ElMessage.error(t('files_page.revoke_failed')) }
 }
 
 onMounted(() => {
@@ -430,7 +435,7 @@ onMounted(() => {
 .table-card { margin-bottom: 20px; }
 .pagination-wrap { margin-top: 16px; display: flex; justify-content: flex-end; }
 .file-name-cell { display: flex; align-items: center; gap: 6px; }
-.file-name-cell .file-icon { flex-shrink: 0; color: #409eff; }
+.file-name-cell .file-icon { flex-shrink: 0; color: #0f172a; }
 .path-text { max-width: 200px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .token-text { font-size: 12px; background: #f5f7fa; padding: 2px 6px; border-radius: 3px; }
 .share-result { line-height: 2; }

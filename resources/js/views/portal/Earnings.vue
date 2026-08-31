@@ -3,10 +3,10 @@
         <!-- 页面标题 -->
         <div class="page-header">
             <div>
-                <h2>收益账户</h2>
-                <p class="text-muted">查看收益明细、发起提现、管理收款账户</p>
+                <h2>{{ $t('portal.earnings_title') }}</h2>
+                <p class="text-muted">{{ $t('portal.earnings_subtitle') }}</p>
             </div>
-            <el-button type="primary" @click="loadAll" :loading="loading" :icon="Refresh">刷新</el-button>
+            <el-button type="primary" @click="loadAll" :loading="loading" :icon="Refresh">{{ $t('portal.refresh') }}</el-button>
         </div>
 
         <!-- 余额概览卡片 -->
@@ -16,7 +16,7 @@
                     <div class="balance-content">
                         <div class="balance-info">
                             <div class="balance-value">¥{{ formatMoney(balance.available_balance) }}</div>
-                            <div class="balance-label">可提现余额</div>
+                            <div class="balance-label">{{ $t('portal.available_balance') }}</div>
                         </div>
                         <el-icon :size="40" color="#67c23a"><Coin /></el-icon>
                     </div>
@@ -27,7 +27,7 @@
                     <div class="balance-content">
                         <div class="balance-info">
                             <div class="balance-value">¥{{ formatMoney(balance.pending_balance) }}</div>
-                            <div class="balance-label">冻结中（T+30）</div>
+                            <div class="balance-label">{{ $t('portal.frozen_t30') }}</div>
                         </div>
                         <el-icon :size="40" color="#e6a23c"><Timer /></el-icon>
                     </div>
@@ -38,9 +38,9 @@
                     <div class="balance-content">
                         <div class="balance-info">
                             <div class="balance-value">¥{{ formatMoney(balance.total_withdrawn) }}</div>
-                            <div class="balance-label">已提现总额</div>
+                            <div class="balance-label">{{ $t('portal.total_withdrawn') }}</div>
                         </div>
-                        <el-icon :size="40" color="#409eff"><TrendCharts /></el-icon>
+                        <el-icon :size="40" color="#0f172a"><TrendCharts /></el-icon>
                     </div>
                 </el-card>
             </el-col>
@@ -49,7 +49,7 @@
                     <div class="balance-content">
                         <div class="balance-info">
                             <div class="balance-value">¥{{ formatMoney(balance.total_earned) }}</div>
-                            <div class="balance-label">累计收益</div>
+                            <div class="balance-label">{{ $t('portal.total_earned') }}</div>
                         </div>
                         <el-icon :size="40" color="#b37feb"><Money /></el-icon>
                     </div>
@@ -61,7 +61,7 @@
         <el-card v-if="promotionStats.agent_code" class="mb-4">
             <template #header>
                 <div class="card-header">
-                    <span><el-icon><Link /></el-icon> 推广业绩</span>
+                    <span><el-icon><Link /></el-icon> {{ $t('portal.promo_perf') }}</span>
                     <el-tag size="small" type="warning" v-if="promotionStats.level_label">{{ promotionStats.level_label }}</el-tag>
                 </div>
             </template>
@@ -69,19 +69,19 @@
                 <el-col :span="8">
                     <div class="promo-stat">
                         <div class="promo-value">{{ promotionStats.active_subscriptions }}</div>
-                        <div class="promo-label">活跃订阅</div>
+                        <div class="promo-label">{{ $t('portal.active_subs') }}</div>
                     </div>
                 </el-col>
                 <el-col :span="8">
                     <div class="promo-stat">
                         <div class="promo-value">{{ promotionStats.total_referrals }}</div>
-                        <div class="promo-label">累计推广</div>
+                        <div class="promo-label">{{ $t('portal.total_referrals') }}</div>
                     </div>
                 </el-col>
                 <el-col :span="8">
                     <div class="promo-stat">
                         <div class="promo-value">¥{{ formatMoney(promotionStats.total_earned) }}</div>
-                        <div class="promo-label">推广收益</div>
+                        <div class="promo-label">{{ $t('portal.promo_earnings') }}</div>
                     </div>
                 </el-col>
             </el-row>
@@ -91,56 +91,58 @@
         <el-card class="mb-4">
             <template #header>
                 <div class="card-header">
-                    <span><el-icon><TrendCharts /></el-icon> 月度收益趋势</span>
+                    <span><el-icon><TrendCharts /></el-icon> {{ $t('portal.monthly_trend') }}</span>
                 </div>
             </template>
             <div v-if="monthlyTrend.length" class="trend-table">
                 <el-table :data="monthlyTrend" stripe size="small" max-height="300">
-                    <el-table-column prop="period" label="月份" width="120" />
-                    <el-table-column label="收益金额" min-width="150">
+                    <el-table-column prop="period" :label="$t('portal.month')" width="120" />
+                    <el-table-column :label="$t('portal.earnings_amount')" min-width="150">
                         <template #default="{ row }">
                             <span class="amount-text">¥{{ formatMoney(row.amount) }}</span>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="count" label="结算笔数" width="100" />
+                    <el-table-column prop="count" :label="$t('portal.settle_count')" width="100" />
                 </el-table>
             </div>
-            <el-empty v-else description="暂无收益数据" />
+            <el-empty v-else :description="$t('portal.no_earnings_data')" />
         </el-card>
 
         <!-- 主 tabs：收益明细 / 提现记录 / 发起提现 -->
         <el-card>
             <el-tabs v-model="activeTab">
                 <!-- Tab 1: 收益明细 -->
-                <el-tab-pane label="收益明细" name="commissions">
+                <el-tab-pane :label="$t('portal.commissions_tab')" name="commissions">
                     <div class="mb-3 flex items-center gap-2">
-                        <el-button size="small" :type="commissionFilter === '' ? 'primary' : ''" @click="commissionFilter = ''; loadCommissions()">全部</el-button>
-                        <el-button size="small" :type="commissionFilter === 'frozen' ? 'primary' : ''" @click="commissionFilter = 'frozen'; loadCommissions()">冻结中</el-button>
-                        <el-button size="small" :type="commissionFilter === 'released' ? 'primary' : ''" @click="commissionFilter = 'released'; loadCommissions()">可提现</el-button>
-                        <el-button size="small" icon="Download" @click="exportCommissions" class="ml-auto">导出 CSV</el-button>
+                        <el-button size="small" :type="commissionFilter === '' ? 'primary' : ''" @click="commissionFilter = ''; loadCommissions()">{{ $t('portal.all') }}</el-button>
+                        <el-button size="small" :type="commissionFilter === 'frozen' ? 'primary' : ''" @click="commissionFilter = 'frozen'; loadCommissions()">{{ $t('portal.frozen_filter') }}</el-button>
+                        <el-button size="small" :type="commissionFilter === 'released' ? 'primary' : ''" @click="commissionFilter = 'released'; loadCommissions()">{{ $t('portal.withdrawable') }}</el-button>
+                        <el-button size="small" icon="Download" @click="exportCommissions" class="ml-auto">{{ $t('portal.export_csv') }}</el-button>
                     </div>
                     <el-table v-if="commissions.length" :data="commissions" stripe v-loading="loadingCommissions">
-                        <el-table-column label="金额" width="120">
+                        <el-table-column :label="$t('portal.amount')" width="120">
                             <template #default="{ row }">
                                 <span class="amount-text">¥{{ formatMoney(row.amount) }}</span>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="rate" label="佣金率" width="80">
+                        <el-table-column prop="rate" :label="$t('portal.commission_rate')" width="80">
                             <template #default="{ row }">{{ row.rate }}%</template>
                         </el-table-column>
-                        <el-table-column label="状态" width="100">
+                        <el-table-column :label="$t('portal.status')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="row.status === 'released' ? 'success' : row.status === 'frozen' ? 'warning' : 'info'" size="small">
-                                    {{ row.status_label }}
+                                    {{ commissionStatusLabel(row.status, row.status_label) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="frozen_until" label="解冻日期" width="120">
-                            <template #default="{ row }">{{ row.frozen_until || '-' }}</template>
+                        <el-table-column prop="frozen_until" :label="$t('portal.unfreeze_date')" width="120">
+                            <template #default="{ row }">{{ formatDate(row.frozen_until) }}</template>
                         </el-table-column>
-                        <el-table-column prop="settled_at" label="入账时间" width="180" />
+                        <el-table-column prop="settled_at" :label="$t('portal.settled_at')" width="180">
+                            <template #default="{ row }">{{ formatDate(row.settled_at) }}</template>
+                        </el-table-column>
                     </el-table>
-                    <el-empty v-else description="暂无收益明细" />
+                    <el-empty v-else :description="$t('portal.no_commissions')" />
 
                     <!-- 分页 -->
                     <div class="pagination-wrap" v-if="commissionsPagination.total > commissionsPagination.per_page">
@@ -156,39 +158,41 @@
                 </el-tab-pane>
 
                 <!-- Tab 2: 提现记录 -->
-                <el-tab-pane label="提现记录" name="withdrawals">
+                <el-tab-pane :label="$t('portal.withdrawals_tab')" name="withdrawals">
                     <el-table v-if="recentWithdrawals.length" :data="recentWithdrawals" stripe>
-                        <el-table-column label="金额" width="120">
+                        <el-table-column :label="$t('portal.amount')" width="120">
                             <template #default="{ row }">
                                 <span class="amount-text">¥{{ formatMoney(row.amount) }}</span>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="channel_display" label="渠道" width="90" />
-                        <el-table-column prop="channel_account_masked" label="收款账号" width="160" />
-                        <el-table-column label="状态" width="100">
+                        <el-table-column prop="channel_display" :label="$t('portal.channel')" width="90" />
+                        <el-table-column prop="channel_account_masked" :label="$t('portal.payout_account')" width="160" />
+                        <el-table-column :label="$t('portal.status')" width="100">
                             <template #default="{ row }">
                                 <el-tag
                                     :type="row.status === 'completed' ? 'success' : row.status === 'failed' || row.status === 'rejected' ? 'danger' : row.status === 'cancelled' ? 'info' : 'warning'"
                                     size="small"
                                 >
-                                    {{ row.status_label }}
+                                    {{ withdrawalStatusLabel(row.status, row.status_label) }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="手续费" width="80">
+                        <el-table-column :label="$t('portal.fee')" width="80">
                             <template #default="{ row }">¥{{ formatMoney(row.fee) }}</template>
                         </el-table-column>
-                        <el-table-column prop="created_at" label="申请时间" width="170" />
-                        <el-table-column prop="completed_at" label="到账时间" width="170">
-                            <template #default="{ row }">{{ row.completed_at || '-' }}</template>
+                        <el-table-column prop="created_at" :label="$t('portal.applied_at')" width="170">
+                            <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
                         </el-table-column>
-                        <el-table-column label="失败原因" min-width="120">
+                        <el-table-column prop="completed_at" :label="$t('portal.completed_at')" width="170">
+                            <template #default="{ row }">{{ formatDate(row.completed_at) }}</template>
+                        </el-table-column>
+                        <el-table-column :label="$t('portal.fail_reason')" min-width="120">
                             <template #default="{ row }">
                                 <span v-if="row.failure_reason" class="text-danger">{{ row.failure_reason }}</span>
                                 <span v-else>-</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="80" fixed="right">
+                        <el-table-column :label="$t('portal.actions')" width="80" fixed="right">
                             <template #default="{ row }">
                                 <el-button
                                     v-if="row.status === 'pending_review' || row.status === 'pending'"
@@ -196,20 +200,20 @@
                                     size="small"
                                     @click="handleCancel(row)"
                                 >
-                                    取消
+                                    {{ $t('actions.cancel') }}
                                 </el-button>
                             </template>
                         </el-table-column>
                     </el-table>
-                    <el-empty v-else description="暂无提现记录" />
+                    <el-empty v-else :description="$t('portal.no_withdrawals')" />
                 </el-tab-pane>
 
                 <!-- Tab 3: 发起提现 -->
-                <el-tab-pane label="发起提现" name="new-withdrawal">
+                <el-tab-pane :label="$t('portal.new_withdrawal_tab')" name="new-withdrawal">
                     <div class="withdrawal-form-wrap">
                         <!-- 余额提示 -->
                         <el-alert
-                            :title="`可提现余额：¥${formatMoney(balance.available_balance)}`"
+                            :title="$t('portal.available_balance_title', { amount: formatMoney(balance.available_balance) })"
                             :type="balance.available_balance > 0 ? 'success' : 'warning'"
                             :closable="false"
                             show-icon
@@ -218,7 +222,7 @@
 
                         <!-- 渠道选择 -->
                         <el-form ref="formRef" :model="withdrawalForm" :rules="withdrawalRules" label-width="100px">
-                            <el-form-item label="收款渠道" prop="channel">
+                            <el-form-item :label="$t('portal.payout_channel')" prop="channel">
                                 <el-radio-group v-model="withdrawalForm.channel" @change="onChannelChange">
                                     <el-radio-button v-for="ch in channels" :key="ch.id" :value="ch.id" :disabled="ch.id !== selectedChannel && !isChannelSelected(ch.id)">
                                         <el-icon style="vertical-align: middle; margin-right: 4px;"><component :is="ch.icon" /></el-icon>
@@ -227,14 +231,14 @@
                                 </el-radio-group>
                                 <div class="channel-hint" v-if="selectedChannel && selectedChannelInfo">
                                     <div class="mt-2">
-                                        <span class="text-muted">限额：¥{{ selectedChannelInfo.min_amount }} ~ ¥{{ selectedChannelInfo.max_amount }} | </span>
-                                        <span class="text-muted">手续费：{{ (selectedChannelInfo.fee_rate * 100).toFixed(1) }}%{{ selectedChannel === 'paypal' ? '+$0.39' : '' }} | </span>
-                                        <span class="text-muted">日限额：¥{{ formatMoney(selectedChannelInfo.daily_limit) }}</span>
+                                        <span class="text-muted">{{ $t('portal.limit_range', { min: selectedChannelInfo.min_amount, max: selectedChannelInfo.max_amount }) }} | </span>
+                                        <span class="text-muted">{{ $t('portal.fee_rate_label', { rate: (selectedChannelInfo.fee_rate * 100).toFixed(1) }) }}{{ selectedChannel === 'paypal' ? '+$0.39' : '' }} | </span>
+                                        <span class="text-muted">{{ $t('portal.daily_limit', { amount: formatMoney(selectedChannelInfo.daily_limit) }) }}</span>
                                     </div>
                                 </div>
                             </el-form-item>
 
-                            <el-form-item label="提现金额" prop="amount">
+                            <el-form-item :label="$t('portal.withdraw_amount')" prop="amount">
                                 <el-input-number
                                     v-model="withdrawalForm.amount"
                                     :min="selectedChannelInfo?.min_amount || 1"
@@ -245,163 +249,168 @@
                                     style="width: 240px"
                                 />
                                 <div class="fee-hint mt-1" v-if="withdrawalForm.amount > 0 && selectedChannelInfo">
-                                    手续费：¥{{ formatMoney(calcFee(withdrawalForm.amount, selectedChannel)) }}，实际到账：¥{{ formatMoney(withdrawalForm.amount - calcFee(withdrawalForm.amount, selectedChannel)) }}
+                                    {{ $t('portal.fee_net', {
+                                        fee: formatMoney(calcFee(withdrawalForm.amount, selectedChannel)),
+                                        net: formatMoney(withdrawalForm.amount - calcFee(withdrawalForm.amount, selectedChannel)),
+                                    }) }}
                                 </div>
                             </el-form-item>
 
                             <!-- 银行卡 -->
                             <template v-if="selectedChannel === 'bank'">
-                                <el-form-item label="银行名称" prop="bank_name">
-                                    <el-input v-model="withdrawalForm.bank_name" placeholder="如：中国银行" style="width: 300px" />
+                                <el-form-item :label="$t('portal.bank_name_field')" prop="bank_name">
+                                    <el-input v-model="withdrawalForm.bank_name" :placeholder="$t('portal.bank_name_eg')" style="width: 300px" />
                                 </el-form-item>
-                                <el-form-item label="开户支行" prop="bank_branch">
-                                    <el-input v-model="withdrawalForm.bank_branch" placeholder="如：北京朝阳支行" style="width: 300px" />
+                                <el-form-item :label="$t('portal.bank_branch')" prop="bank_branch">
+                                    <el-input v-model="withdrawalForm.bank_branch" :placeholder="$t('portal.bank_branch_eg')" style="width: 300px" />
                                 </el-form-item>
-                                <el-form-item label="开户姓名" prop="bank_account_name">
-                                    <el-input v-model="withdrawalForm.bank_account_name" placeholder="持卡人姓名" style="width: 300px" />
+                                <el-form-item :label="$t('portal.account_name')" prop="bank_account_name">
+                                    <el-input v-model="withdrawalForm.bank_account_name" :placeholder="$t('portal.cardholder_ph')" style="width: 300px" />
                                 </el-form-item>
-                                <el-form-item label="银行卡号" prop="bank_account_no">
-                                    <el-input v-model="withdrawalForm.bank_account_no" placeholder="银行卡号" style="width: 300px" maxlength="19" />
+                                <el-form-item :label="$t('portal.bank_card_no')" prop="bank_account_no">
+                                    <el-input v-model="withdrawalForm.bank_account_no" :placeholder="$t('portal.bank_account_ph')" style="width: 300px" maxlength="19" />
                                 </el-form-item>
                             </template>
 
                             <!-- 支付宝 -->
                             <template v-if="selectedChannel === 'alipay'">
-                                <el-form-item label="支付宝账号" prop="alipay_account">
-                                    <el-input v-model="withdrawalForm.alipay_account" placeholder="手机号或邮箱" style="width: 300px" />
+                                <el-form-item :label="$t('portal.alipay_account')" prop="alipay_account">
+                                    <el-input v-model="withdrawalForm.alipay_account" :placeholder="$t('portal.phone_or_email')" style="width: 300px" />
                                 </el-form-item>
                             </template>
 
                             <!-- 微信 -->
                             <template v-if="selectedChannel === 'wechat'">
-                                <el-form-item label="微信账号" prop="wechat_account">
-                                    <el-input v-model="withdrawalForm.wechat_account" placeholder="微信号" style="width: 300px" />
+                                <el-form-item :label="$t('portal.wechat_account')" prop="wechat_account">
+                                    <el-input v-model="withdrawalForm.wechat_account" :placeholder="$t('portal.wechat_id_ph')" style="width: 300px" />
                                 </el-form-item>
                             </template>
 
                             <!-- PayPal -->
                             <template v-if="selectedChannel === 'paypal'">
-                                <el-form-item label="PayPal邮箱" prop="paypal_email">
+                                <el-form-item :label="$t('portal.paypal_email')" prop="paypal_email">
                                     <el-input v-model="withdrawalForm.paypal_email" placeholder="your@email.com" style="width: 300px" />
                                 </el-form-item>
                             </template>
 
                             <el-form-item>
                                 <el-button type="primary" @click="submitWithdrawal" :loading="submitting" :disabled="balance.available_balance <= 0">
-                                    提交提现申请
+                                    {{ $t('portal.submit_withdrawal') }}
                                 </el-button>
-                                <el-button @click="resetForm">重置</el-button>
+                                <el-button @click="resetForm">{{ $t('actions.reset') }}</el-button>
                             </el-form-item>
                         </el-form>
 
                         <el-divider />
                         <div class="withdrawal-notice">
-                            <h4>提现须知</h4>
+                            <h4>{{ $t('portal.withdrawal_notes_title') }}</h4>
                             <ul>
-                                <li>冻结中的收益（T+30）需等待解冻后方可提现</li>
-                                <li>单笔提现金额超过 ¥5,000 需人工审核，预计 1-2 个工作日处理</li>
-                                <li>提现申请提交后可在提现记录中查看进度</li>
-                                <li>待审核的提现可自行取消</li>
+                                <li>{{ $t('portal.withdrawal_note_1') }}</li>
+                                <li>{{ $t('portal.withdrawal_note_2') }}</li>
+                                <li>{{ $t('portal.withdrawal_note_3') }}</li>
+                                <li>{{ $t('portal.withdrawal_note_4') }}</li>
                             </ul>
                         </div>
                     </div>
                 </el-tab-pane>
 
                 <!-- Tab 4: 税务信息 -->
-                <el-tab-pane label="📋 税务信息" name="tax">
+                <el-tab-pane :label="$t('portal.tax_tab')" name="tax">
                     <el-form :model="taxForm" label-width="120px">
-                        <el-form-item label="发票抬头">
-                            <el-input v-model="taxForm.invoice_title" placeholder="公司全称或个人姓名" style="width:400px" />
+                        <el-form-item :label="$t('portal.title_name')">
+                            <el-input v-model="taxForm.invoice_title" :placeholder="$t('portal.invoice_title_ph')" style="width:400px" />
                         </el-form-item>
-                        <el-form-item label="税号">
-                            <el-input v-model="taxForm.tax_id" placeholder="统一社会信用代码" style="width:400px" />
+                        <el-form-item :label="$t('portal.tax_no')">
+                            <el-input v-model="taxForm.tax_id" :placeholder="$t('portal.tax_no_ph')" style="width:400px" />
                         </el-form-item>
-                        <el-form-item label="公司名称">
-                            <el-input v-model="taxForm.company_name" style="width:400px" />
+                        <el-form-item :label="$t('portal.company_name')">
+                            <el-input v-model="taxForm.company_name" :placeholder="$t('portal.company_name_ph')" style="width:400px" />
                         </el-form-item>
-                        <el-form-item label="注册地址">
-                            <el-input v-model="taxForm.address" style="width:400px" />
+                        <el-form-item :label="$t('portal.reg_address')">
+                            <el-input v-model="taxForm.address" :placeholder="$t('portal.address_ph')" style="width:400px" />
                         </el-form-item>
-                        <el-form-item label="注册电话">
-                            <el-input v-model="taxForm.phone" style="width:400px" />
+                        <el-form-item :label="$t('portal.reg_phone')">
+                            <el-input v-model="taxForm.phone" :placeholder="$t('portal.phone_ph')" style="width:400px" />
                         </el-form-item>
-                        <el-form-item label="开户银行">
-                            <el-input v-model="taxForm.bank_name" style="width:400px" />
+                        <el-form-item :label="$t('portal.opening_bank')">
+                            <el-input v-model="taxForm.bank_name" :placeholder="$t('portal.bank_name_ph')" style="width:400px" />
                         </el-form-item>
-                        <el-form-item label="银行账号">
-                            <el-input v-model="taxForm.bank_account" style="width:400px" />
+                        <el-form-item :label="$t('portal.bank_account')">
+                            <el-input v-model="taxForm.bank_account" :placeholder="$t('portal.bank_account_ph')" style="width:400px" />
                         </el-form-item>
-                        <el-form-item label="税务辖区">
+                        <el-form-item :label="$t('portal.tax_jurisdiction')">
                             <el-select v-model="taxForm.tax_authority" style="width:200px">
-                                <el-option label="中国大陆" value="cn" />
-                                <el-option label="美国" value="us" />
-                                <el-option label="欧盟" value="eu" />
-                                <el-option label="其他" value="other" />
+                                <el-option :label="$t('portal.jurisdiction_cn')" value="cn" />
+                                <el-option :label="$t('portal.jurisdiction_us')" value="us" />
+                                <el-option :label="$t('portal.jurisdiction_eu')" value="eu" />
+                                <el-option :label="$t('portal.jurisdiction_other')" value="other" />
                             </el-select>
                         </el-form-item>
-                        <el-form-item label="税率(%)">
+                        <el-form-item :label="$t('portal.tax_rate')">
                             <el-input-number v-model="taxForm.tax_rate" :min="0" :max="100" :precision="2" />
                         </el-form-item>
                         <el-form-item>
-                            <el-button type="primary" :loading="savingTax" @click="saveTaxInfo">保存税务信息</el-button>
+                            <el-button type="primary" :loading="savingTax" @click="saveTaxInfo">{{ $t('portal.save_tax') }}</el-button>
                         </el-form-item>
                     </el-form>
                 </el-tab-pane>
 
                 <!-- Tab 5: 结算日历 -->
-                <el-tab-pane label="📅 结算日历" name="calendar">
+                <el-tab-pane :label="$t('portal.calendar_tab')" name="calendar">
                     <el-card shadow="never" class="mb-3">
                         <el-row :gutter="16">
                             <el-col :span="6">
                                 <div class="cal-stat">
                                     <div class="cal-value warning">¥{{ formatMoney(settlementCalendar.current_pending) }}</div>
-                                    <div class="cal-label">当前冻结中</div>
+                                    <div class="cal-label">{{ $t('portal.currently_frozen') }}</div>
                                 </div>
                             </el-col>
                             <el-col :span="6">
                                 <div class="cal-stat">
                                     <div class="cal-value success">¥{{ formatMoney(settlementCalendar.available_balance) }}</div>
-                                    <div class="cal-label">可用余额</div>
+                                    <div class="cal-label">{{ $t('portal.usable_balance') }}</div>
                                 </div>
                             </el-col>
                             <el-col :span="6">
                                 <div class="cal-stat">
                                     <div class="cal-value primary">¥{{ formatMoney(settlementCalendar.month_summary?.will_release_this_month) }}</div>
-                                    <div class="cal-label">本月将解冻</div>
+                                    <div class="cal-label">{{ $t('portal.release_this_month') }}</div>
                                 </div>
                             </el-col>
                             <el-col :span="6">
                                 <div class="cal-stat">
                                     <div class="cal-value">¥{{ formatMoney(settlementCalendar.month_summary?.released_this_month) }}</div>
-                                    <div class="cal-label">本月已解冻</div>
+                                    <div class="cal-label">{{ $t('portal.released_this_month') }}</div>
                                 </div>
                             </el-col>
                         </el-row>
                     </el-card>
 
-                    <h4 class="mb-2">即将解冻 (最近30笔)</h4>
+                    <h4 class="mb-2">{{ $t('portal.upcoming_releases') }}</h4>
                     <el-table :data="settlementCalendar.upcoming_releases ?? []" stripe size="small" v-loading="loadingCalendar">
-                        <el-table-column label="金额" width="120">
+                        <el-table-column :label="$t('portal.amount')" width="120">
                             <template #default="{ row }">¥{{ formatMoney(row.amount) }}</template>
                         </el-table-column>
-                        <el-table-column label="预计解冻日" width="130" prop="frozen_until" />
-                        <el-table-column label="剩余天数" width="100">
+                        <el-table-column :label="$t('portal.expected_release')" width="130" prop="frozen_until">
+                            <template #default="{ row }">{{ formatDate(row.frozen_until) }}</template>
+                        </el-table-column>
+                        <el-table-column :label="$t('portal.days_left')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="row.days_left <= 3 ? 'success' : row.days_left <= 7 ? 'warning' : 'info'" size="small">
-                                    {{ row.days_left > 0 ? row.days_left + '天' : '今日' }}
+                                    {{ row.days_left > 0 ? $t('portal.days_n', { n: row.days_left }) : $t('portal.today') }}
                                 </el-tag>
                             </template>
                         </el-table-column>
                     </el-table>
-                    <el-empty v-if="!settlementCalendar.upcoming_releases?.length && !loadingCalendar" description="暂无待解冻佣金" />
+                    <el-empty v-if="!settlementCalendar.upcoming_releases?.length && !loadingCalendar" :description="$t('portal.no_pending_release')" />
 
-                    <h4 class="mt-4 mb-2">月度解冻分布</h4>
+                    <h4 class="mt-4 mb-2">{{ $t('portal.monthly_release') }}</h4>
                     <el-table :data="settlementCalendar.by_month ?? []" stripe size="small">
-                        <el-table-column prop="month" label="月份" width="120" />
-                        <el-table-column label="解冻金额" width="140">
+                        <el-table-column prop="month" :label="$t('portal.month')" width="120" />
+                        <el-table-column :label="$t('portal.release_amount')" width="140">
                             <template #default="{ row }">¥{{ formatMoney(row.total) }}</template>
                         </el-table-column>
-                        <el-table-column prop="count" label="笔数" width="80" />
+                        <el-table-column prop="count" :label="$t('portal.count_col')" width="80" />
                     </el-table>
                 </el-tab-pane>
             </el-tabs>
@@ -411,6 +420,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   Refresh, Coin, Timer, TrendCharts, Money,
@@ -420,7 +430,8 @@ import {
 import earningsPortalApi from '@/api/earningsPortal';
 import withdrawalApi from '@/api/withdrawal';
 
-// ── States ──
+const { t, locale } = useI18n();
+
 const loading = ref(false);
 const loadingCommissions = ref(false);
 const submitting = ref(false);
@@ -452,7 +463,6 @@ const commissionsPagination = reactive({
 const channels = ref([]);
 const selectedChannel = ref('');
 
-// ── M3-74 税务信息 ──
 const taxForm = reactive({
   invoice_title: '', tax_id: '', company_name: '',
   address: '', phone: '', bank_name: '', bank_account: '',
@@ -460,7 +470,6 @@ const taxForm = reactive({
 });
 const savingTax = ref(false);
 
-// ── M3-74 结算日历 ──
 const settlementCalendar = reactive({
   upcoming_releases: [],
   month_summary: {},
@@ -484,39 +493,73 @@ const withdrawalForm = reactive({
 
 const formRef = ref(null);
 
-// ── Computed ──
 const selectedChannelInfo = computed(() => {
   return channels.value.find(c => c.id === selectedChannel.value) || null;
 });
 
-// ── Form Rules ──
 const withdrawalRules = computed(() => {
   const rules = {
-    channel: [{ required: true, message: '请选择收款渠道', trigger: 'change' }],
+    channel: [{ required: true, message: t('portal.title_required'), trigger: 'change' }],
     amount: [
-      { required: true, message: '请输入提现金额', trigger: 'blur' },
-      { type: 'number', min: 1, message: '金额必须大于 0', trigger: 'blur' },
+      { required: true, message: t('portal.name_required'), trigger: 'blur' },
+      { type: 'number', min: 1, message: t('portal.name_required'), trigger: 'blur' },
     ],
   };
 
   if (selectedChannel.value === 'bank') {
-    rules.bank_name = [{ required: true, message: '请输入银行名称', trigger: 'blur' }];
-    rules.bank_account_name = [{ required: true, message: '请输入开户姓名', trigger: 'blur' }];
-    rules.bank_account_no = [{ required: true, message: '请输入银行卡号', trigger: 'blur' }];
+    rules.bank_name = [{ required: true, message: t('portal.name_required'), trigger: 'blur' }];
+    rules.bank_account_name = [{ required: true, message: t('portal.cardholder_required'), trigger: 'blur' }];
+    rules.bank_account_no = [{ required: true, message: t('portal.card_required'), trigger: 'blur' }];
   } else if (selectedChannel.value === 'alipay') {
-    rules.alipay_account = [{ required: true, message: '请输入支付宝账号', trigger: 'blur' }];
+    rules.alipay_account = [{ required: true, message: t('portal.name_required'), trigger: 'blur' }];
   } else if (selectedChannel.value === 'wechat') {
-    rules.wechat_account = [{ required: true, message: '请输入微信账号', trigger: 'blur' }];
+    rules.wechat_account = [{ required: true, message: t('portal.name_required'), trigger: 'blur' }];
   } else if (selectedChannel.value === 'paypal') {
-    rules.paypal_email = [{ required: true, message: '请输入PayPal邮箱', trigger: 'blur' }, { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }];
+    rules.paypal_email = [
+      { required: true, message: t('portal.name_required'), trigger: 'blur' },
+      { type: 'email', message: t('portal.email_invalid'), trigger: 'blur' },
+    ];
   }
 
   return rules;
 });
 
-// ── Methods ──
 function formatMoney(val) {
   return (parseFloat(val) || 0).toFixed(2);
+}
+
+function formatDate(value) {
+  if (!value || value === '-') return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+  return date.toLocaleString(loc, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function commissionStatusLabel(status, fallback) {
+  const map = {
+    released: t('portal.withdrawable'),
+    frozen: t('portal.frozen_filter'),
+  };
+  return map[status] || fallback || status;
+}
+
+function withdrawalStatusLabel(status, fallback) {
+  const map = {
+    completed: t('portal.pay_success'),
+    failed: t('portal.pay_fail'),
+    rejected: t('portal.pay_fail'),
+    cancelled: t('portal.cancelled_ok'),
+    pending: t('portal.exp_pending'),
+    pending_review: t('portal.exp_pending'),
+  };
+  return map[status] || fallback || status;
 }
 
 function calcFee(amount, channel) {
@@ -535,7 +578,6 @@ function onChannelChange(ch) {
   selectedChannel.value = ch;
 }
 
-// ── M3-74 导出佣金 ──
 async function exportCommissions() {
   try {
     const res = await earningsPortalApi.exportCommissions({ status: commissionFilter.value || undefined });
@@ -546,13 +588,12 @@ async function exportCommissions() {
     a.download = 'commissions_export_' + new Date().toISOString().slice(0, 10) + '.csv';
     a.click();
     URL.revokeObjectURL(url);
-    ElMessage.success('导出成功');
+    ElMessage.success(t('portal.export_ok'));
   } catch (e) {
-    ElMessage.error('导出失败');
+    ElMessage.error(t('portal.export_fail'));
   }
 }
 
-// ── M3-74 税务信息 ──
 async function loadTaxInfo() {
   try {
     const res = await earningsPortalApi.getTaxInfo();
@@ -564,15 +605,14 @@ async function saveTaxInfo() {
   savingTax.value = true;
   try {
     await earningsPortalApi.saveTaxInfo({ ...taxForm });
-    ElMessage.success('税务信息已保存');
+    ElMessage.success(t('portal.tax_saved'));
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '保存失败');
+    ElMessage.error(e.response?.data?.message || t('portal.save_failed'));
   } finally {
     savingTax.value = false;
   }
 }
 
-// ── M3-74 结算日历 ──
 async function loadSettlementCalendar() {
   loadingCalendar.value = true;
   try {
@@ -601,7 +641,7 @@ async function loadAll() {
 
     channels.value = channelsRes.data.data || [];
   } catch (e) {
-    ElMessage.error('加载数据失败');
+    ElMessage.error(t('portal.earnings_load_failed'));
   } finally {
     loading.value = false;
   }
@@ -621,7 +661,7 @@ async function loadCommissions() {
     commissionsPagination.per_page = data.per_page;
     commissionsPagination.total = data.total;
   } catch (e) {
-    ElMessage.error('加载收益明细失败');
+    ElMessage.error(t('portal.commissions_load_failed'));
   } finally {
     loadingCommissions.value = false;
   }
@@ -639,7 +679,6 @@ async function submitWithdrawal() {
       amount: withdrawalForm.amount,
     };
 
-    // Add channel-specific fields
     switch (withdrawalForm.channel) {
       case 'bank':
         payload.bank_name = withdrawalForm.bank_name;
@@ -659,13 +698,12 @@ async function submitWithdrawal() {
     }
 
     const res = await withdrawalApi.requestWithdrawal(payload);
-    ElMessage.success(res.data.message || '提现申请已提交');
+    ElMessage.success(res.data.message || t('portal.withdrawal_submitted'));
     resetForm();
-    // Refresh data
     await loadAll();
     activeTab.value = 'withdrawals';
   } catch (e) {
-    const msg = e.response?.data?.message || '提现申请失败';
+    const msg = e.response?.data?.message || t('portal.submit_failed');
     ElMessage.error(msg);
   } finally {
     submitting.value = false;
@@ -688,22 +726,21 @@ function resetForm() {
 
 async function handleCancel(row) {
   try {
-    await ElMessageBox.confirm(`确定取消这笔 ¥${formatMoney(row.amount)} 的提现申请？`, '确认取消', {
+    await ElMessageBox.confirm(t('portal.cancel_order_confirm'), t('actions.confirm'), {
       type: 'warning',
-      confirmButtonText: '确定取消',
-      cancelButtonText: '再想想',
+      confirmButtonText: t('actions.confirm'),
+      cancelButtonText: t('actions.cancel'),
     });
     await withdrawalApi.cancelWithdrawal(row.id);
-    ElMessage.success('提现已取消');
+    ElMessage.success(t('portal.withdrawal_cancelled'));
     await loadAll();
   } catch (e) {
     if (e !== 'cancel') {
-      ElMessage.error('取消失败');
+      ElMessage.error(t('portal.cancel_failed'));
     }
   }
 }
 
-// ── Lifecycle ──
 onMounted(() => {
   loadAll();
   loadTaxInfo();
@@ -776,7 +813,7 @@ onMounted(() => {
 
 .balance-card.available .balance-value { color: #67c23a; }
 .balance-card.pending .balance-value { color: #e6a23c; }
-.balance-card.withdrawn .balance-value { color: #409eff; }
+.balance-card.withdrawn .balance-value { color: #0f172a; }
 .balance-card.earned .balance-value { color: #b37feb; }
 
 .card-header {
@@ -800,7 +837,7 @@ onMounted(() => {
 .promo-value {
   font-size: 24px;
   font-weight: 700;
-  color: #409eff;
+  color: #0f172a;
   margin-bottom: 4px;
 }
 
@@ -828,7 +865,7 @@ onMounted(() => {
 .cal-value { font-size: 22px; font-weight: 700; }
 .cal-value.warning { color: #e6a23c; }
 .cal-value.success { color: #67c23a; }
-.cal-value.primary { color: #409eff; }
+.cal-value.primary { color: #0f172a; }
 .cal-label { font-size: 13px; color: #909399; margin-top: 4px; }
 
 .pagination-wrap {

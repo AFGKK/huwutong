@@ -2,8 +2,8 @@
     <div class="notifications-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>通知中心</h2>
-                <span class="header-subtitle">管理所有系统通知</span>
+                <h2>{{ t('notifications_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('notifications_page.subtitle') }}</span>
             </div>
             <div class="header-right">
                 <el-button
@@ -12,7 +12,7 @@
                     @click="handleMarkAllRead"
                 >
                     <el-icon><Check /></el-icon>
-                    全部已读
+                    {{ t('notifications_page.mark_all_read') }}
                 </el-button>
             </div>
         </div>
@@ -20,24 +20,24 @@
         <!-- 筛选 -->
         <el-card shadow="never" class="filter-card">
             <el-form :model="filters" inline>
-                <el-form-item label="通知类型">
-                    <el-select v-model="filters.type" clearable placeholder="全部类型" style="width: 150px" @change="doSearch">
-                        <el-option label="过期提醒" value="expiry_warning" />
-                        <el-option label="状态变更" value="status_change" />
-                        <el-option label="系统通知" value="system" />
-                        <el-option label="激活通知" value="license_activation" />
+                <el-form-item :label="t('notifications_page.filter_type')">
+                    <el-select v-model="filters.type" clearable :placeholder="t('notifications_page.all_types')" style="width: 150px" @change="doSearch">
+                        <el-option :label="t('notifications_page.type_expiry_warning')" value="expiry_warning" />
+                        <el-option :label="t('notifications_page.type_status_change')" value="status_change" />
+                        <el-option :label="t('notifications_page.type_system')" value="system" />
+                        <el-option :label="t('notifications_page.type_license_activation')" value="license_activation" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="状态">
-                    <el-select v-model="filters.is_read" clearable placeholder="全部" style="width: 110px" @change="doSearch">
-                        <el-option label="未读" :value="false" />
-                        <el-option label="已读" :value="true" />
+                <el-form-item :label="t('notifications_page.status')">
+                    <el-select v-model="filters.is_read" clearable :placeholder="t('notifications_page.all')" style="width: 110px" @change="doSearch">
+                        <el-option :label="t('notifications_page.unread')" :value="false" />
+                        <el-option :label="t('notifications_page.read')" :value="true" />
                     </el-select>
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="doSearch">
                         <el-icon><Search /></el-icon>
-                        搜索
+                        {{ t('actions.search') }}
                     </el-button>
                 </el-form-item>
             </el-form>
@@ -45,16 +45,16 @@
 
         <!-- 批量操作 -->
         <div class="batch-bar" v-if="selectedIds.length > 0">
-            <span class="batch-info">已选择 {{ selectedIds.length }} 项</span>
-            <el-button size="small" @click="clearSelection">取消选择</el-button>
-            <el-button size="small" type="primary" @click="batchAction('read')">标记已读</el-button>
-            <el-button size="small" type="danger" @click="batchAction('delete')">批量删除</el-button>
+            <span class="batch-info">{{ t('notifications_page.selected_count', { n: selectedIds.length }) }}</span>
+            <el-button size="small" @click="clearSelection">{{ t('notifications_page.clear_selection') }}</el-button>
+            <el-button size="small" type="primary" @click="batchAction('read')">{{ t('notifications_page.mark_read') }}</el-button>
+            <el-button size="small" type="danger" @click="batchAction('delete')">{{ t('notifications_page.batch_delete') }}</el-button>
         </div>
 
         <!-- 通知列表 -->
         <el-card shadow="never">
             <div v-if="notifications.length === 0 && !loading" class="empty-state">
-                <el-empty :image-size="80" description="暂无通知" />
+                <el-empty :image-size="80" :description="t('notifications_page.empty')" />
             </div>
 
             <div v-loading="loading" class="notification-list">
@@ -89,7 +89,7 @@
                                 </el-tag>
                             </span>
                             <span class="notif-time">{{ formatDate(item.created_at) }}</span>
-                            <span v-if="!item.is_read" class="unread-badge">未读</span>
+                            <span v-if="!item.is_read" class="unread-badge">{{ t('notifications_page.unread') }}</span>
                         </div>
                         <div class="notif-title">{{ item.title }}</div>
                         <div class="notif-content-text">{{ item.content }}</div>
@@ -101,7 +101,7 @@
                                 type="primary"
                                 @click="handleMarkRead(item)"
                             >
-                                标记已读
+                                {{ t('notifications_page.mark_read') }}
                             </el-button>
                             <el-button
                                 text
@@ -109,7 +109,7 @@
                                 type="danger"
                                 @click="handleDelete(item)"
                             >
-                                删除
+                                {{ t('actions.delete') }}
                             </el-button>
                         </div>
                     </div>
@@ -134,9 +134,12 @@
 
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Check } from '@element-plus/icons-vue';
 import notificationApi from '@/api/notification';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const notifications = ref([]);
@@ -152,6 +155,18 @@ const filters = reactive({
 
 const hasUnread = computed(() => notifications.value.some(n => !n.is_read));
 
+const TYPE_LABEL_MAP = computed(() => ({
+    expiry_warning: t('notifications_page.type_expiry_warning'),
+    status_change: t('notifications_page.type_status_change'),
+    system: t('notifications_page.type_system'),
+    license_activation: t('notifications_page.type_license_activation'),
+}));
+
+const BATCH_ACTION_LABELS = computed(() => ({
+    read: t('notifications_page.mark_read'),
+    delete: t('actions.delete'),
+}));
+
 function typeTag(type) {
     const map = {
         expiry_warning: 'warning',
@@ -163,13 +178,7 @@ function typeTag(type) {
 }
 
 function typeLabel(type) {
-    const map = {
-        expiry_warning: '过期提醒',
-        status_change: '状态变更',
-        system: '系统通知',
-        license_activation: '激活通知',
-    };
-    return map[type] || type;
+    return TYPE_LABEL_MAP.value[type] || type;
 }
 
 function typeIcon(type) {
@@ -184,7 +193,8 @@ function typeIcon(type) {
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(dateStr).toLocaleString(loc, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit',
     });
@@ -229,12 +239,11 @@ function toggleSelect(id, val) {
     }
 }
 
-// 标记已读
 async function handleMarkRead(item) {
     try {
         await notificationApi.markRead(item.id);
         item.is_read = true;
-        ElMessage.success('已标记为已读');
+        ElMessage.success(t('notifications_page.mark_read_ok'));
     } catch { /* ignore */ }
 }
 
@@ -242,41 +251,38 @@ async function handleMarkAllRead() {
     try {
         await notificationApi.markAllRead();
         notifications.value.forEach(n => n.is_read = true);
-        ElMessage.success('已全部标记为已读');
+        ElMessage.success(t('notifications_page.mark_all_read_ok'));
     } catch { /* ignore */ }
 }
 
-// 删除
 async function handleDelete(item) {
     try {
-        await ElMessageBox.confirm('确定要删除该通知吗？', '确认删除', {
-            confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning',
+        await ElMessageBox.confirm(t('notifications_page.delete_confirm'), t('notifications_page.delete_title'), {
+            confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning',
         });
         await notificationApi.destroy(item.id);
-        ElMessage.success('通知已删除');
+        ElMessage.success(t('notifications_page.deleted_ok'));
         loadNotifications();
     } catch { /* cancelled */ }
 }
 
-// 批量操作
 async function batchAction(action) {
     if (selectedIds.value.length === 0) {
-        ElMessage.warning('请先选择通知');
+        ElMessage.warning(t('notifications_page.select_first'));
         return;
     }
-    const labels = { read: '标记已读', delete: '删除' };
-    const label = labels[action];
+    const label = BATCH_ACTION_LABELS.value[action];
 
     try {
         if (action === 'delete') {
             await ElMessageBox.confirm(
-                `确定要${label}选中的 ${selectedIds.value.length} 条通知吗？`,
-                '批量操作',
-                { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+                t('notifications_page.batch_confirm', { action: label, n: selectedIds.value.length }),
+                t('notifications_page.batch_action_title'),
+                { confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel'), type: 'warning' }
             );
         }
         await notificationApi.batch(selectedIds.value, action);
-        ElMessage.success(`批量${label}成功`);
+        ElMessage.success(t('notifications_page.batch_ok', { action: label }));
         clearSelection();
         loadNotifications();
     } catch { /* cancelled */ }
@@ -399,4 +405,45 @@ onMounted(() => {
 
 :deep(.el-card__body) { padding: 16px; }
 .filter-card :deep(.el-card__body) { padding: 12px 16px; }
+
+/* ─── 移动端响应式 ─── */
+@media (max-width: 768px) {
+    .notifications-page {
+        min-width: 0;
+        overflow-x: clip;
+    }
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    .filter-card .el-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .filter-card .el-form-item {
+        margin-right: 0 !important;
+        width: 100%;
+    }
+    .filter-card .el-form-item .el-select {
+        width: 100% !important;
+    }
+    .filter-card .el-form-item:last-child {
+        margin-bottom: 0;
+    }
+    .batch-bar {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .notification-card {
+        padding: 10px 12px;
+    }
+    .notif-title {
+        font-size: 14px;
+    }
+    .notif-content-text {
+        font-size: 12px;
+    }
+}
 </style>

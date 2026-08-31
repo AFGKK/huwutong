@@ -1,28 +1,26 @@
 <template>
   <div class="customer-audit-logs">
-    <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <h2>操作审计日志</h2>
-        <span class="header-subtitle">查看团队内所有关键操作记录</span>
+        <h2>{{ t('customer_audit_logs_page.title') }}</h2>
+        <span class="header-subtitle">{{ t('customer_audit_logs_page.subtitle') }}</span>
       </div>
       <div class="header-right">
         <el-button type="primary" @click="handleExport">
-          <el-icon><Download /></el-icon> 导出 CSV
+          <el-icon><Download /></el-icon> {{ t('customer_audit_logs_page.export_csv') }}
         </el-button>
         <el-button @click="refreshData">
-          <el-icon><Refresh /></el-icon> 刷新
+          <el-icon><Refresh /></el-icon> {{ t('actions.refresh') }}
         </el-button>
       </div>
     </div>
 
-    <!-- 统计概览卡片 -->
     <el-row :gutter="16" class="mb-4">
       <el-col :span="6">
         <el-card shadow="hover">
           <div class="stat-box">
             <div class="stat-value">{{ stats.total }}</div>
-            <div class="stat-label">总操作数</div>
+            <div class="stat-label">{{ t('customer_audit_logs_page.stats.total') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -30,7 +28,7 @@
         <el-card shadow="hover">
           <div class="stat-box">
             <div class="stat-value today">{{ stats.today }}</div>
-            <div class="stat-label">今日操作</div>
+            <div class="stat-label">{{ t('customer_audit_logs_page.stats.today') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -38,7 +36,7 @@
         <el-card shadow="hover">
           <div class="stat-box">
             <div class="stat-value week">{{ stats.this_week }}</div>
-            <div class="stat-label">本周操作</div>
+            <div class="stat-label">{{ t('customer_audit_logs_page.stats.week') }}</div>
           </div>
         </el-card>
       </el-col>
@@ -46,24 +44,23 @@
         <el-card shadow="hover">
           <div class="stat-box">
             <div class="stat-value month">{{ stats.this_month }}</div>
-            <div class="stat-label">本月操作</div>
+            <div class="stat-label">{{ t('customer_audit_logs_page.stats.month') }}</div>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 筛选区 -->
     <el-card shadow="never" class="mb-4">
       <el-form :inline="true" :model="filters" size="small">
-        <el-form-item label="操作类别">
+        <el-form-item :label="t('customer_audit_logs_page.action_category')">
           <el-select
             v-model="filters.action_prefix"
-            placeholder="全部操作"
+            :placeholder="t('customer_audit_logs_page.all_actions')"
             clearable
             style="width: 160px"
             @change="handleFilterChange"
           >
-            <el-option label="全部操作" value="" />
+            <el-option :label="t('customer_audit_logs_page.all_actions')" value="" />
             <el-option
               v-for="(cat, key) in actionCategories"
               :key="key"
@@ -72,15 +69,15 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="具体操作">
+        <el-form-item :label="t('customer_audit_logs_page.specific_action')">
           <el-select
             v-model="filters.action"
-            placeholder="全部"
+            :placeholder="t('customer_audit_logs_page.all')"
             clearable
             style="width: 180px"
             @change="handleFilterChange"
           >
-            <el-option label="全部" value="" />
+            <el-option :label="t('customer_audit_logs_page.all')" value="" />
             <template v-for="(cat, key) in actionCategories" :key="key">
               <el-option
                 v-for="(label, act) in cat.actions"
@@ -91,22 +88,22 @@
             </template>
           </el-select>
         </el-form-item>
-        <el-form-item label="时间范围">
+        <el-form-item :label="t('customer_audit_logs_page.date_range')">
           <el-date-picker
             v-model="dateRange"
             type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
+            :range-separator="t('customer_audit_logs_page.to')"
+            :start-placeholder="t('customer_audit_logs_page.start_date')"
+            :end-placeholder="t('customer_audit_logs_page.end_date')"
             value-format="YYYY-MM-DD"
             style="width: 260px"
             @change="handleDateChange"
           />
         </el-form-item>
-        <el-form-item label="关键词">
+        <el-form-item :label="t('customer_audit_logs_page.keyword')">
           <el-input
             v-model="filters.search"
-            placeholder="搜索操作描述..."
+            :placeholder="t('customer_audit_logs_page.search_ph')"
             clearable
             style="width: 200px"
             @keyup.enter="handleFilterChange"
@@ -118,13 +115,12 @@
           </el-input>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleFilterChange">查询</el-button>
-          <el-button @click="resetFilters">重置</el-button>
+          <el-button type="primary" @click="handleFilterChange">{{ t('actions.search') }}</el-button>
+          <el-button @click="resetFilters">{{ t('actions.reset') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- 审计日志列表 -->
     <el-card shadow="never">
       <el-table
         :data="logs"
@@ -135,7 +131,7 @@
       >
         <el-table-column
           prop="created_at"
-          label="时间"
+          :label="t('customer_audit_logs_page.cols.time')"
           width="170"
           sortable="custom"
         >
@@ -143,7 +139,7 @@
             <span class="log-time">{{ formatTime(row.created_at) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作人" width="150">
+        <el-table-column :label="t('customer_audit_logs_page.cols.actor')" width="150">
           <template #default="{ row }">
             <div class="user-info" v-if="row.user">
               <el-tooltip :content="row.user.email" placement="top">
@@ -153,10 +149,10 @@
               </el-tooltip>
               <span class="user-name">{{ row.user.name || row.user.email }}</span>
             </div>
-            <span v-else class="text-muted">系统</span>
+            <span v-else class="text-muted">{{ t('customer_audit_logs_page.system') }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="action" label="操作类型" width="140">
+        <el-table-column prop="action" :label="t('customer_audit_logs_page.cols.action')" width="140">
           <template #default="{ row }">
             <el-tag
               :type="getActionTagType(row.action)"
@@ -167,17 +163,17 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="操作描述" min-width="250">
+        <el-table-column prop="description" :label="t('customer_audit_logs_page.cols.description')" min-width="250">
           <template #default="{ row }">
             <div class="log-description">{{ row.description }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="ip_address" label="IP 地址" width="140">
+        <el-table-column prop="ip_address" :label="t('customer_audit_logs_page.cols.ip')" width="140">
           <template #default="{ row }">
             <code class="ip-address">{{ row.ip_address || '-' }}</code>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="80" fixed="right">
+        <el-table-column :label="t('customer_audit_logs_page.cols.actions')" width="80" fixed="right">
           <template #default="{ row }">
             <el-button
               link
@@ -185,13 +181,12 @@
               size="small"
               @click="showDetail(row)"
             >
-              详情
+              {{ t('customer_audit_logs_page.detail') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <!-- 分页 -->
       <div class="pagination-wrapper">
         <el-pagination
           v-model:current-page="currentPage"
@@ -205,20 +200,19 @@
       </div>
     </el-card>
 
-    <!-- 详情抽屉 -->
     <el-drawer
       v-model="detailVisible"
-      title="审计日志详情"
+      :title="t('customer_audit_logs_page.detail_title')"
       size="500px"
     >
       <template v-if="detailLog">
         <div class="detail-section">
           <div class="detail-item">
-            <label>操作时间</label>
+            <label>{{ t('customer_audit_logs_page.detail_time') }}</label>
             <span>{{ formatTime(detailLog.created_at) }}</span>
           </div>
           <div class="detail-item">
-            <label>操作类型</label>
+            <label>{{ t('customer_audit_logs_page.cols.action') }}</label>
             <el-tag
               :type="getActionTagType(detailLog.action)"
               size="small"
@@ -227,19 +221,19 @@
             </el-tag>
           </div>
           <div class="detail-item">
-            <label>操作描述</label>
+            <label>{{ t('customer_audit_logs_page.cols.description') }}</label>
             <span>{{ detailLog.description }}</span>
           </div>
           <div class="detail-item" v-if="detailLog.user">
-            <label>操作人</label>
+            <label>{{ t('customer_audit_logs_page.cols.actor') }}</label>
             <span>{{ detailLog.user.name || detailLog.user.email }}</span>
           </div>
           <div class="detail-item" v-if="detailLog.user">
-            <label>邮箱</label>
+            <label>{{ t('customer_audit_logs_page.email') }}</label>
             <span>{{ detailLog.user.email }}</span>
           </div>
           <div class="detail-item">
-            <label>IP 地址</label>
+            <label>{{ t('customer_audit_logs_page.cols.ip') }}</label>
             <code>{{ detailLog.ip_address || '-' }}</code>
           </div>
           <div class="detail-item">
@@ -247,7 +241,7 @@
             <div class="ua-text">{{ detailLog.user_agent || '-' }}</div>
           </div>
           <div class="detail-item" v-if="detailLog.payload">
-            <label>负载数据</label>
+            <label>{{ t('customer_audit_logs_page.payload') }}</label>
             <pre class="payload-json">{{ JSON.stringify(detailLog.payload, null, 2) }}</pre>
           </div>
         </div>
@@ -257,28 +251,30 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted, computed } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { Download, Refresh, Search } from '@element-plus/icons-vue';
-import customerAuditLogApi from '../../api/customerAuditLog';
+import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
+import { Download, Refresh, Search } from '@element-plus/icons-vue'
+import customerAuditLogApi from '../../api/customerAuditLog'
 
 export default {
   name: 'CustomerAuditLogs',
   components: { Download, Refresh, Search },
   setup() {
-    const loading = ref(false);
-    const logs = ref([]);
-    const total = ref(0);
-    const currentPage = ref(1);
-    const perPage = ref(20);
-    const sortOrder = ref('-created_at');
+    const { t } = useI18n()
+    const loading = ref(false)
+    const logs = ref([])
+    const total = ref(0)
+    const currentPage = ref(1)
+    const perPage = ref(20)
+    const sortOrder = ref('-created_at')
 
     const stats = reactive({
       total: 0,
       today: 0,
       this_week: 0,
       this_month: 0,
-    });
+    })
 
     const filters = reactive({
       action_prefix: '',
@@ -286,28 +282,27 @@ export default {
       user_id: '',
       search: '',
       sort: '-created_at',
-    });
+    })
 
-    const dateRange = ref(null);
-    const actionCategories = ref({});
+    const dateRange = ref(null)
+    const actionCategories = ref({})
 
-    const detailVisible = ref(false);
-    const detailLog = ref(null);
+    const detailVisible = ref(false)
+    const detailLog = ref(null)
 
     function getActionLabel(action) {
       for (const cat of Object.values(actionCategories.value)) {
         if (cat.actions && cat.actions[action]) {
-          return cat.actions[action];
+          return cat.actions[action]
         }
       }
-      // fallback: 从 action 推断
-      const parts = action.split('.');
-      const label = parts[parts.length - 1].replace(/_/g, ' ');
-      return label.charAt(0).toUpperCase() + label.slice(1);
+      const parts = action.split('.')
+      const label = parts[parts.length - 1].replace(/_/g, ' ')
+      return label.charAt(0).toUpperCase() + label.slice(1)
     }
 
     function getActionTagType(action) {
-      const prefix = action.split('.')[0];
+      const prefix = action.split('.')[0]
       const typeMap = {
         license: 'primary',
         device: 'success',
@@ -317,147 +312,148 @@ export default {
         billing: 'danger',
         security: 'info',
         setting: '',
-      };
-      return typeMap[prefix] || '';
+      }
+      return typeMap[prefix] || ''
     }
 
     function formatTime(time) {
-      if (!time) return '-';
-      const d = new Date(time);
-      const pad = (n) => String(n).padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      if (!time) return '-'
+      const d = new Date(time)
+      const pad = (n) => String(n).padStart(2, '0')
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
     }
 
     async function fetchLogs() {
-      loading.value = true;
+      loading.value = true
       try {
         const params = {
           per_page: perPage.value,
           page: currentPage.value,
           sort: sortOrder.value,
-        };
-        if (filters.action_prefix) params['filter[action_prefix]'] = filters.action_prefix;
-        if (filters.action) params['filter[action]'] = filters.action;
-        if (filters.search) params['search'] = filters.search;
+        }
+        if (filters.action_prefix) params['filter[action_prefix]'] = filters.action_prefix
+        if (filters.action) params['filter[action]'] = filters.action
+        if (filters.search) params['search'] = filters.search
         if (dateRange.value) {
-          params['date_from'] = dateRange.value[0];
-          params['date_to'] = dateRange.value[1];
+          params['date_from'] = dateRange.value[0]
+          params['date_to'] = dateRange.value[1]
         }
 
-        const response = await customerAuditLogApi.list(params);
-        const data = response.data;
-        logs.value = data.data || [];
-        total.value = data.meta?.total || data.total || 0;
+        const response = await customerAuditLogApi.list(params)
+        const data = response.data
+        logs.value = data.data || []
+        total.value = data.meta?.total || data.total || 0
       } catch (err) {
-        console.error('Failed to fetch audit logs:', err);
-        ElMessage.error('获取审计日志失败');
+        console.error('Failed to fetch audit logs:', err)
+        ElMessage.error(t('customer_audit_logs_page.messages.load_failed'))
       } finally {
-        loading.value = false;
+        loading.value = false
       }
     }
 
     async function fetchStats() {
       try {
-        const response = await customerAuditLogApi.stats();
-        const data = response.data;
-        Object.assign(stats, data);
+        const response = await customerAuditLogApi.stats()
+        const data = response.data
+        Object.assign(stats, data)
       } catch (err) {
-        console.error('Failed to fetch stats:', err);
+        console.error('Failed to fetch stats:', err)
       }
     }
 
     async function fetchActionCategories() {
       try {
-        const response = await customerAuditLogApi.actionCategories();
-        actionCategories.value = response.data || {};
+        const response = await customerAuditLogApi.actionCategories()
+        actionCategories.value = response.data || {}
       } catch (err) {
-        console.error('Failed to fetch action categories:', err);
+        console.error('Failed to fetch action categories:', err)
       }
     }
 
     function handleFilterChange() {
-      currentPage.value = 1;
-      fetchLogs();
+      currentPage.value = 1
+      fetchLogs()
     }
 
     function resetFilters() {
-      filters.action_prefix = '';
-      filters.action = '';
-      filters.search = '';
-      dateRange.value = null;
-      currentPage.value = 1;
-      fetchLogs();
+      filters.action_prefix = ''
+      filters.action = ''
+      filters.search = ''
+      dateRange.value = null
+      currentPage.value = 1
+      fetchLogs()
     }
 
     function handleSortChange({ prop, order }) {
-      if (!prop) return;
-      sortOrder.value = order === 'descending' ? `-${prop}` : prop;
-      filters.sort = sortOrder.value;
-      fetchLogs();
+      if (!prop) return
+      sortOrder.value = order === 'descending' ? `-${prop}` : prop
+      filters.sort = sortOrder.value
+      fetchLogs()
     }
 
     function handlePageChange(page) {
-      currentPage.value = page;
-      fetchLogs();
+      currentPage.value = page
+      fetchLogs()
     }
 
     function handleSizeChange(size) {
-      perPage.value = size;
-      currentPage.value = 1;
-      fetchLogs();
+      perPage.value = size
+      currentPage.value = 1
+      fetchLogs()
     }
 
     function handleDateChange() {
-      currentPage.value = 1;
-      fetchLogs();
+      currentPage.value = 1
+      fetchLogs()
     }
 
     async function showDetail(row) {
       try {
-        const response = await customerAuditLogApi.detail(row.id);
-        detailLog.value = response.data;
-        detailVisible.value = true;
+        const response = await customerAuditLogApi.detail(row.id)
+        detailLog.value = response.data
+        detailVisible.value = true
       } catch (err) {
-        ElMessage.error('获取日志详情失败');
+        ElMessage.error(t('customer_audit_logs_page.messages.detail_failed'))
       }
     }
 
     async function handleExport() {
       try {
-        const params = {};
-        if (filters.action_prefix) params['filter[action_prefix]'] = filters.action_prefix;
-        if (filters.action) params['filter[action]'] = filters.action;
+        const params = {}
+        if (filters.action_prefix) params['filter[action_prefix]'] = filters.action_prefix
+        if (filters.action) params['filter[action]'] = filters.action
         if (dateRange.value) {
-          params['date_from'] = dateRange.value[0];
-          params['date_to'] = dateRange.value[1];
+          params['date_from'] = dateRange.value[0]
+          params['date_to'] = dateRange.value[1]
         }
 
-        const blob = await customerAuditLogApi.exportCsv(params);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        ElMessage.success('导出成功');
+        const blob = await customerAuditLogApi.exportCsv(params)
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        ElMessage.success(t('customer_audit_logs_page.messages.export_ok'))
       } catch (err) {
-        ElMessage.error('导出失败');
+        ElMessage.error(t('customer_audit_logs_page.messages.export_failed'))
       }
     }
 
     async function refreshData() {
-      await Promise.all([fetchLogs(), fetchStats()]);
+      await Promise.all([fetchLogs(), fetchStats()])
     }
 
     onMounted(() => {
-      fetchActionCategories();
-      fetchLogs();
-      fetchStats();
-    });
+      fetchActionCategories()
+      fetchLogs()
+      fetchStats()
+    })
 
     return {
+      t,
       loading,
       logs,
       total,
@@ -481,9 +477,9 @@ export default {
       showDetail,
       handleExport,
       refreshData,
-    };
+    }
   },
-};
+}
 </script>
 
 <style scoped>
@@ -526,7 +522,7 @@ export default {
 }
 
 .stat-value.today {
-  color: #409eff;
+  color: #0f172a;
 }
 
 .stat-value.week {
@@ -566,27 +562,28 @@ export default {
 
 .text-muted {
   color: #c0c4cc;
-  font-size: 13px;
 }
 
 .log-description {
   font-size: 13px;
-  color: #303133;
-  line-height: 1.5;
+  color: #606266;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ip-address {
+  font-family: monospace;
   font-size: 12px;
-  color: #606266;
   background: #f5f7fa;
   padding: 2px 6px;
   border-radius: 3px;
 }
 
 .pagination-wrapper {
-  margin-top: 16px;
   display: flex;
   justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .detail-section {
@@ -602,11 +599,10 @@ export default {
   font-size: 12px;
   color: #909399;
   margin-bottom: 4px;
-  font-weight: 500;
 }
 
-.detail-item > span,
-.detail-item > code {
+.detail-item span,
+.detail-item code {
   font-size: 14px;
   color: #303133;
 }
@@ -615,17 +611,14 @@ export default {
   font-size: 12px;
   color: #606266;
   word-break: break-all;
-  line-height: 1.5;
 }
 
 .payload-json {
-  font-size: 12px;
   background: #f5f7fa;
   padding: 12px;
   border-radius: 4px;
+  font-size: 12px;
   overflow-x: auto;
   max-height: 300px;
-  white-space: pre-wrap;
-  word-break: break-all;
 }
 </style>

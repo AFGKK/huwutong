@@ -1,6 +1,5 @@
 <template>
   <div>
-    <!-- 统计卡片 -->
     <el-row :gutter="16" class="mb-4">
       <el-col :span="6" v-for="stat in stats" :key="stat.label">
         <el-card shadow="hover" class="stat-card" @click="stat.click ? stat.click() : null">
@@ -10,45 +9,43 @@
       </el-col>
     </el-row>
 
-    <!-- 过滤 & 操作栏 -->
     <el-card shadow="never" class="mb-4">
       <el-row :gutter="12" justify="space-between" align="middle">
         <el-col :span="16">
           <el-space wrap>
-            <el-input v-model="filters.search" placeholder="搜索规则名称..." clearable style="width:240px"
+            <el-input v-model="filters.search" :placeholder="t('rule_list_page.search_ph')" clearable style="width:240px"
               @clear="fetchRules" @keyup.enter="fetchRules" />
-            <el-select v-model="filters.status" placeholder="状态" clearable style="width:120px" @change="fetchRules">
-              <el-option label="全部" value="" />
-              <el-option label="启用" value="active" />
-              <el-option label="暂停" value="paused" />
-              <el-option label="草稿" value="draft" />
-              <el-option label="归档" value="archived" />
+            <el-select v-model="filters.status" :placeholder="t('rule_list_page.cols.status')" clearable style="width:120px" @change="fetchRules">
+              <el-option :label="t('rule_list_page.all')" value="" />
+              <el-option :label="t('rule_list_page.statuses.active')" value="active" />
+              <el-option :label="t('rule_list_page.statuses.paused')" value="paused" />
+              <el-option :label="t('rule_list_page.statuses.draft')" value="draft" />
+              <el-option :label="t('rule_list_page.statuses.archived')" value="archived" />
             </el-select>
-            <el-select v-model="filters.category" placeholder="分类" clearable style="width:130px" @change="fetchRules">
-              <el-option label="全部" value="" />
+            <el-select v-model="filters.category" :placeholder="t('rule_list_page.cols.category')" clearable style="width:130px" @change="fetchRules">
+              <el-option :label="t('rule_list_page.all')" value="" />
               <el-option v-for="c in ruleCategories" :key="c.value" :label="c.label" :value="c.value" />
             </el-select>
-            <el-select v-model="filters.trigger_type" placeholder="触发器" clearable style="width:130px" @change="fetchRules">
-              <el-option label="全部" value="" />
-              <el-option label="事件" value="event" />
-              <el-option label="定时" value="schedule" />
+            <el-select v-model="filters.trigger_type" :placeholder="t('rule_list_page.cols.trigger')" clearable style="width:130px" @change="fetchRules">
+              <el-option :label="t('rule_list_page.all')" value="" />
+              <el-option :label="t('rule_list_page.triggers.event')" value="event" />
+              <el-option :label="t('rule_list_page.triggers.schedule')" value="schedule" />
               <el-option label="Webhook" value="webhook" />
-              <el-option label="条件" value="condition" />
+              <el-option :label="t('rule_list_page.triggers.condition')" value="condition" />
             </el-select>
           </el-space>
         </el-col>
         <el-col :span="8" class="text-right">
           <el-button type="primary" @click="openCreateDialog">
-            <el-icon><Plus /></el-icon> 新建规则
+            <el-icon><Plus /></el-icon> {{ t('rule_list_page.new_rule') }}
           </el-button>
         </el-col>
       </el-row>
     </el-card>
 
-    <!-- 规则表格 -->
     <el-card shadow="never">
       <el-table :data="rules" v-loading="loading" stripe style="width:100%">
-        <el-table-column prop="name" label="规则名称" min-width="180">
+        <el-table-column prop="name" :label="t('rule_list_page.cols.name')" min-width="180">
           <template #default="{ row }">
             <div class="rule-name">
               <el-tag size="small" :type="categoryTagType(row.category)" class="mr-2">{{ categoryLabel(row.category) }}</el-tag>
@@ -56,37 +53,37 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="trigger_type" label="触发器" width="100">
+        <el-table-column prop="trigger_type" :label="t('rule_list_page.cols.trigger')" width="100">
           <template #default="{ row }">
             <el-tag size="small" effect="plain">{{ triggerLabel(row.trigger_type) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="动作数" width="80" align="center">
+        <el-table-column :label="t('rule_list_page.cols.action_count')" width="80" align="center">
           <template #default="{ row }">{{ row.actions?.length ?? 0 }}</template>
         </el-table-column>
-        <el-table-column label="执行计数" width="160">
+        <el-table-column :label="t('rule_list_page.cols.exec_count')" width="160">
           <template #default="{ row }">
             <el-progress :percentage="execPercent(row)" :stroke-width="12" striped>
               <span class="text-xs">{{ row.success_count }}/{{ row.execution_count }}</span>
             </el-progress>
           </template>
         </el-table-column>
-        <el-table-column prop="priority" label="优先级" width="80" align="center" />
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column prop="priority" :label="t('rule_list_page.cols.priority')" width="80" align="center" />
+        <el-table-column :label="t('rule_list_page.cols.status')" width="100" align="center">
           <template #default="{ row }">
             <el-switch :model-value="row.status === 'active'" :loading="toggling === row.id"
-              @click="toggleRule(row)" active-text="启用" inactive-text="暂停" />
+              @click="toggleRule(row)" :active-text="t('actions.enable')" :inactive-text="t('rule_list_page.statuses.paused')" />
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column :label="t('rule_list_page.cols.actions')" width="280" fixed="right">
           <template #default="{ row }">
             <el-space>
-              <el-button size="small" type="primary" link @click="viewRule(row)">详情</el-button>
-              <el-button size="small" link @click="editRule(row)">编辑</el-button>
-              <el-button size="small" link @click="manualExecute(row)" :disabled="row.status !== 'active'">执行</el-button>
-              <el-popconfirm title="确定删除此规则？" @confirm="deleteRule(row)">
+              <el-button size="small" type="primary" link @click="viewRule(row)">{{ t('actions.view_details') }}</el-button>
+              <el-button size="small" link @click="editRule(row)">{{ t('actions.edit') }}</el-button>
+              <el-button size="small" link @click="manualExecute(row)" :disabled="row.status !== 'active'">{{ t('rule_list_page.execute') }}</el-button>
+              <el-popconfirm :title="t('rule_list_page.delete_confirm')" @confirm="deleteRule(row)">
                 <template #reference>
-                  <el-button size="small" type="danger" link>删除</el-button>
+                  <el-button size="small" type="danger" link>{{ t('actions.delete') }}</el-button>
                 </template>
               </el-popconfirm>
             </el-space>
@@ -100,7 +97,6 @@
       </div>
     </el-card>
 
-    <!-- 规则对话框 (创建/编辑) -->
     <RuleDialog ref="ruleDialogRef" :categories="ruleCategories" :triggerTypes="triggerTypes"
       :availableActions="availableActions" :webhooks="webhookList" @saved="fetchRules" />
   </div>
@@ -108,11 +104,13 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import api from '../../../api/automation'
 import RuleDialog from './RuleDialog.vue'
 
+const { t } = useI18n()
 const emit = defineEmits(['view-rule'])
 
 const loading = ref(false)
@@ -120,14 +118,14 @@ const toggling = ref(null)
 const rules = ref([])
 const total = ref(0)
 const perPage = ref(20)
-const ruleCategories = [
+const ruleCategories = computed(() => [
   { value: 'license', label: 'License' },
-  { value: 'billing', label: '账单' },
-  { value: 'customer', label: '客户' },
-  { value: 'security', label: '安全' },
-  { value: 'system', label: '系统' },
-  { value: 'custom', label: '自定义' },
-]
+  { value: 'billing', label: t('rule_list_page.categories.billing') },
+  { value: 'customer', label: t('rule_list_page.categories.customer') },
+  { value: 'security', label: t('rule_list_page.categories.security') },
+  { value: 'system', label: t('rule_list_page.categories.system') },
+  { value: 'custom', label: t('rule_list_page.categories.custom') },
+])
 const availableActions = ref([])
 const webhookList = ref([])
 const triggerTypes = ref([])
@@ -135,18 +133,21 @@ const triggerTypes = ref([])
 const filters = reactive({ search: '', status: '', category: '', trigger_type: '' })
 
 const stats = computed(() => [
-  { label: '规则总数', value: rules.value.length, color: 'text-blue-500' },
-  { label: '已启用', value: rules.value.filter(r => r.status === 'active').length, color: 'text-green-500' },
-  { label: '最近执行', value: '—', color: 'text-purple-500' },
-  { label: '失败规则', value: rules.value.filter(r => r.failure_count > 0).length, color: 'text-red-500' },
+  { label: t('rule_list_page.stats.total'), value: rules.value.length, color: 'text-blue-500' },
+  { label: t('rule_list_page.stats.active'), value: rules.value.filter(r => r.status === 'active').length, color: 'text-green-500' },
+  { label: t('rule_list_page.stats.recent'), value: '—', color: 'text-purple-500' },
+  { label: t('rule_list_page.stats.failed'), value: rules.value.filter(r => r.failure_count > 0).length, color: 'text-red-500' },
 ])
 
 const ruleDialogRef = ref(null)
 function categoryTagType(cat) {
   return { license: 'success', billing: 'warning', customer: 'primary', security: 'danger', system: 'info', custom: '' }[cat] || ''
 }
-function categoryLabel(cat) { return ruleCategories.find(c => c.value === cat)?.label || cat }
-function triggerLabel(t) { return { event: '事件', schedule: '定时', webhook: 'Webhook', condition: '条件' }[t] || t }
+function categoryLabel(cat) { return ruleCategories.value.find(c => c.value === cat)?.label || cat }
+function triggerLabel(type) {
+  const key = { event: 'event', schedule: 'schedule', webhook: 'webhook', condition: 'condition' }[type]
+  return key ? t(`rule_list_page.triggers.${key}`) : type
+}
 function execPercent(row) {
   if (!row.execution_count) return 0
   return Math.round((row.success_count / row.execution_count) * 100)
@@ -164,7 +165,7 @@ async function fetchRules(page = 1) {
       total.value = 0
     }
   } catch (e) {
-    ElMessage.error('获取规则列表失败')
+    ElMessage.error(t('rule_list_page.messages.load_failed'))
   } finally {
     loading.value = false
   }
@@ -200,9 +201,9 @@ async function toggleRule(row) {
   try {
     await api.toggleRule(row.id)
     row.status = row.status === 'active' ? 'paused' : 'active'
-    ElMessage.success(row.status === 'active' ? '规则已启用' : '规则已暂停')
+    ElMessage.success(row.status === 'active' ? t('rule_list_page.messages.enabled') : t('rule_list_page.messages.paused'))
   } catch (e) {
-    ElMessage.error('操作失败')
+    ElMessage.error(t('messages.failed'))
   } finally {
     toggling.value = null
   }
@@ -211,24 +212,24 @@ async function toggleRule(row) {
 async function deleteRule(row) {
   try {
     await api.deleteRule(row.id)
-    ElMessage.success('规则已删除')
+    ElMessage.success(t('rule_list_page.messages.deleted'))
     fetchRules()
   } catch (e) {
-    ElMessage.error('删除失败')
+    ElMessage.error(t('rule_list_page.messages.delete_failed'))
   }
 }
 
 function manualExecute(row) {
-  ElMessageBox.prompt('输入上下文数据(JSON，可选)', '手动执行规则', {
+  ElMessageBox.prompt(t('rule_list_page.execute_prompt'), t('rule_list_page.execute_title'), {
     inputType: 'textarea',
     inputPlaceholder: '{}',
   }).then(async ({ value }) => {
     try {
       const context = value ? JSON.parse(value) : {}
       await api.executeRule(row.id, context)
-      ElMessage.success('规则已触发执行')
+      ElMessage.success(t('rule_list_page.messages.executed'))
     } catch (e) {
-      ElMessage.error(e.response?.data?.message || '执行失败')
+      ElMessage.error(e.response?.data?.message || t('rule_list_page.messages.execute_failed'))
     }
   }).catch(() => {})
 }

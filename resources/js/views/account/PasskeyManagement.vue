@@ -1,9 +1,9 @@
 <template>
     <div class="passkey-manage">
-        <el-page-header :content="'Passkey 凭据管理'" @back="$router.push('/admin/dashboard')" />
+        <el-page-header :content="t('passkey_page.title')" @back="$router.push('/admin/dashboard')" />
 
         <el-alert
-            title="Passkey（WebAuthn）支持指纹、面部识别、Windows Hello 和 YubiKey 等硬件安全密钥，取代传统密码登录。"
+            :title="t('passkey_page.alert')"
             type="info"
             show-icon
             :closable="false"
@@ -13,46 +13,48 @@
         <el-card>
             <template #header>
                 <el-space>
-                    <span>已注册的 Passkey</span>
-                    <el-button size="small" type="primary" @click="handleRegister">注册新 Passkey</el-button>
+                    <span>{{ t('passkey_page.registered') }}</span>
+                    <el-button size="small" type="primary" @click="handleRegister">{{ t('passkey_page.register') }}</el-button>
                 </el-space>
             </template>
             <el-table :data="credentials" stripe v-loading="loading">
-                <el-table-column prop="name" label="名称" min-width="200" />
-                <el-table-column label="类型" width="120">
+                <el-table-column prop="name" :label="t('passkey_page.cols.name')" min-width="200" />
+                <el-table-column :label="t('passkey_page.cols.type')" width="120">
                     <template #default="{ row }">
-                        <el-tag size="small">{{ row.type === 'platform' ? '平台内置' : '跨平台' }}</el-tag>
+                        <el-tag size="small">{{ row.type === 'platform' ? t('passkey_page.type_platform') : t('passkey_page.type_cross') }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="传输方式" width="120">
+                <el-table-column :label="t('passkey_page.cols.transports')" width="120">
                     <template #default="{ row }">
-                        <el-tag v-for="t in row.transports" :key="t" size="small" style="margin-right:4px">{{ t }}</el-tag>
+                        <el-tag v-for="tr in row.transports" :key="tr" size="small" style="margin-right:4px">{{ tr }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="created_at" label="创建时间" width="160" />
-                <el-table-column prop="last_used_at" label="最后使用" width="160">
+                <el-table-column prop="created_at" :label="t('passkey_page.cols.created')" width="160" />
+                <el-table-column prop="last_used_at" :label="t('passkey_page.cols.last_used')" width="160">
                     <template #default="{ row }">{{ row.last_used_at || '-' }}</template>
                 </el-table-column>
-                <el-table-column label="操作" width="120" fixed="right">
+                <el-table-column :label="t('passkey_page.cols.actions')" width="120" fixed="right">
                     <template #default="{ row }">
-                        <el-popconfirm title="确认删除此 Passkey?" @confirm="handleDelete(row)">
+                        <el-popconfirm :title="t('passkey_page.confirm_delete')" @confirm="handleDelete(row)">
                             <template #reference>
-                                <el-button size="small" type="danger">删除</el-button>
+                                <el-button size="small" type="danger">{{ t('actions.delete') }}</el-button>
                             </template>
                         </el-popconfirm>
                     </template>
                 </el-table-column>
             </el-table>
-            <el-empty v-if="!loading && credentials.length === 0" description="暂未注册 Passkey" :image-size="80" />
+            <el-empty v-if="!loading && credentials.length === 0" :description="t('passkey_page.empty')" :image-size="80" />
         </el-card>
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import apiClient from '@/api/client';
 
+const { t, locale } = useI18n();
 const loading = ref(false);
 const credentials = ref([]);
 
@@ -66,12 +68,11 @@ async function fetchCredentials() {
 
 async function handleRegister() {
     try {
-        // 1. Get registration options
+        const dateLoc = locale.value === 'en' || locale.value?.startsWith('en') ? 'en-US' : 'zh-CN';
         const { data: optionsRes } = await apiClient.post('/auth/webauthn/register/options', {
-            name: `Passkey ${new Date().toLocaleDateString()}`,
+            name: `Passkey ${new Date().toLocaleDateString(dateLoc)}`,
         });
 
-        // 2. Convert to credentials creation options
         const options = optionsRes.data;
         const publicKey = {
             ...options,
@@ -82,11 +83,9 @@ async function handleRegister() {
             })),
         };
 
-        // 3. Create credential via browser WebAuthn API
         const credential = await navigator.credentials.create({ publicKey });
-        if (!credential) { ElMessage.error('用户取消注册'); return; }
+        if (!credential) { ElMessage.error(t('passkey_page.messages.cancelled')); return; }
 
-        // 4. Send to server for verification
         const payload = {
             id: credential.id,
             raw_id: bufToBase64(credential.rawId),
@@ -99,19 +98,19 @@ async function handleRegister() {
         };
 
         await apiClient.post('/auth/webauthn/register/verify', payload);
-        ElMessage.success('Passkey 注册成功');
+        ElMessage.success(t('passkey_page.messages.registered'));
         await fetchCredentials();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '注册失败');
+        ElMessage.error(e.response?.data?.message || t('passkey_page.messages.register_failed'));
     }
 }
 
 async function handleDelete(row) {
     try {
         await apiClient.delete(`/auth/webauthn/credentials/${row.id}`);
-        ElMessage.success('已删除');
+        ElMessage.success(t('passkey_page.messages.deleted'));
         await fetchCredentials();
-    } catch { ElMessage.error('删除失败'); }
+    } catch { ElMessage.error(t('passkey_page.messages.delete_failed')); }
 }
 
 function base64ToUint8(str) {

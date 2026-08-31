@@ -1,10 +1,10 @@
 <template>
     <div class="metered-billing-page">
         <div class="page-header">
-            <h2>用量计费 Metered Billing</h2>
+            <h2>{{ t('metered_billing_page.title') }}</h2>
             <div class="header-actions">
                 <el-button @click="refreshAll" :loading="loading">
-                    <el-icon><Refresh /></el-icon> 刷新
+                    <el-icon><Refresh /></el-icon> {{ t('metered_billing_page.refresh') }}
                 </el-button>
             </div>
         </div>
@@ -13,26 +13,26 @@
         <el-row :gutter="16" class="mb-4">
             <el-col :span="6">
                 <el-card shadow="hover">
-                    <div class="stat-label">活跃价格配置</div>
+                    <div class="stat-label">{{ t('metered_billing_page.stat_active_prices') }}</div>
                     <div class="stat-value">{{ overview.active_prices }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-active">
-                    <div class="stat-label">启用用量计费订阅</div>
+                    <div class="stat-label">{{ t('metered_billing_page.stat_active_metered_subs') }}</div>
                     <div class="stat-value">{{ overview.active_subscriptions }}</div>
-                    <div class="stat-sub">/ {{ overview.total_subscriptions }} 总订阅</div>
+                    <div class="stat-sub">{{ t('metered_billing_page.stat_total_subs_suffix', { total: overview.total_subscriptions }) }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-warning">
-                    <div class="stat-label">用量计费采用率</div>
+                    <div class="stat-label">{{ t('metered_billing_page.stat_adoption_rate') }}</div>
                     <div class="stat-value">{{ overview.metered_adoption_rate }}%</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-info">
-                    <div class="stat-label">本月用量计费金额</div>
+                    <div class="stat-label">{{ t('metered_billing_page.stat_monthly_amount') }}</div>
                     <div class="stat-value">¥{{ overview.monthly_metered_amount }}</div>
                 </el-card>
             </el-col>
@@ -40,51 +40,51 @@
 
         <el-tabs v-model="activeTab">
             <!-- Tab 1: 价格配置 -->
-            <el-tab-pane label="价格配置" name="prices">
+            <el-tab-pane :label="t('metered_billing_page.tab_prices')" name="prices">
                 <el-card>
                     <div class="mb-3">
                         <el-button type="primary" @click="openPriceDialog">
-                            <el-icon><Plus /></el-icon> 新增价格配置
+                            <el-icon><Plus /></el-icon> {{ t('metered_billing_page.btn_new_price') }}
                         </el-button>
-                        <el-button @click="loadPrices" :loading="loadingPrices">刷新</el-button>
+                        <el-button @click="loadPrices" :loading="loadingPrices">{{ t('metered_billing_page.refresh') }}</el-button>
                     </div>
 
                     <el-table :data="prices" v-loading="loadingPrices" stripe>
-                        <el-table-column prop="name" label="名称" min-width="140" />
-                        <el-table-column prop="metric_key" label="计量指标" width="180" />
-                        <el-table-column prop="unit" label="单位" width="80" />
-                        <el-table-column prop="billing_period" label="结算周期" width="100">
+                        <el-table-column prop="name" :label="t('metered_billing_page.col_name')" min-width="140" />
+                        <el-table-column prop="metric_key" :label="t('metered_billing_page.col_metric')" width="180" />
+                        <el-table-column prop="unit" :label="t('metered_billing_page.col_unit')" width="80" />
+                        <el-table-column prop="billing_period" :label="t('metered_billing_page.col_billing_period')" width="100">
                             <template #default="{ row }">
-                                {{ row.billing_period === 'monthly' ? '月度' : row.billing_period === 'quarterly' ? '季度' : '年度' }}
+                                {{ billingPeriodLabel(row.billing_period) }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="价格阶梯" min-width="220">
+                        <el-table-column :label="t('metered_billing_page.col_price_tiers')" min-width="220">
                             <template #default="{ row }">
                                 <div v-if="row.tiers?.length">
                                     <div v-for="(tier, i) in row.tiers" :key="i" class="tier-item">
-                                        第{{ i + 1 }}阶梯: {{ tier.from }}{{ tier.to ? '~' + tier.to : '+' }} × ¥{{ tier.unit_price }}/{{ row.unit }}
+                                        {{ formatTierRange(i, tier, row.unit) }}
                                     </div>
                                 </div>
                                 <span v-else class="text-gray-400">-</span>
                             </template>
                         </el-table-column>
-                        <el-table-column label="基础费" width="80" align="right">
+                        <el-table-column :label="t('metered_billing_page.col_base_fee')" width="80" align="right">
                             <template #default="{ row }">¥{{ row.base_fee }}</template>
                         </el-table-column>
-                        <el-table-column label="包含用量" width="90" align="right">
+                        <el-table-column :label="t('metered_billing_page.col_included_qty')" width="90" align="right">
                             <template #default="{ row }">{{ row.included_quantity }}</template>
                         </el-table-column>
-                        <el-table-column prop="is_active" label="状态" width="80">
+                        <el-table-column prop="is_active" :label="t('metered_billing_page.col_status')" width="80">
                             <template #default="{ row }">
                                 <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-                                    {{ row.is_active ? '启用' : '停用' }}
+                                    {{ row.is_active ? t('metered_billing_page.status_active') : t('metered_billing_page.status_inactive') }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="100" fixed="right">
+                        <el-table-column :label="t('metered_billing_page.col_actions')" width="100" fixed="right">
                             <template #default="{ row }">
-                                <el-button size="small" text type="primary" @click="editPrice(row)">编辑</el-button>
-                                <el-button size="small" text type="danger" @click="handleDeletePrice(row)">删除</el-button>
+                                <el-button size="small" text type="primary" @click="editPrice(row)">{{ t('actions.edit') }}</el-button>
+                                <el-button size="small" text type="danger" @click="handleDeletePrice(row)">{{ t('actions.delete') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -92,57 +92,57 @@
             </el-tab-pane>
 
             <!-- Tab 2: 订阅配置 -->
-            <el-tab-pane label="订阅配置" name="subscriptions">
+            <el-tab-pane :label="t('metered_billing_page.tab_subscriptions')" name="subscriptions">
                 <el-card>
                     <div class="mb-3">
-                        <el-button @click="loadSubscriptions" :loading="loadingSubs">刷新</el-button>
+                        <el-button @click="loadSubscriptions" :loading="loadingSubs">{{ t('metered_billing_page.refresh') }}</el-button>
                         <el-button @click="handleBatchGenerate" type="warning">
-                            <el-icon><Coin /></el-icon> 批量生成账单
+                            <el-icon><Coin /></el-icon> {{ t('metered_billing_page.btn_batch_generate') }}
                         </el-button>
                     </div>
 
                     <el-table :data="subscriptions" v-loading="loadingSubs" stripe>
-                        <el-table-column label="客户" width="140">
+                        <el-table-column :label="t('billing_page.col_customer')" width="140">
                             <template #default="{ row }">{{ row.customer?.name || '-' }}</template>
                         </el-table-column>
-                        <el-table-column label="产品" width="120">
+                        <el-table-column :label="t('billing_page.col_product')" width="120">
                             <template #default="{ row }">{{ row.product?.name || '-' }}</template>
                         </el-table-column>
-                        <el-table-column label="状态" width="90">
+                        <el-table-column :label="t('metered_billing_page.col_status')" width="90">
                             <template #default="{ row }">
                                 <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">{{ row.status }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="用量计费" width="90">
+                        <el-table-column :label="t('metered_billing_page.col_metered')" width="90">
                             <template #default="{ row }">
-                                <el-tag v-if="row.metered_config?.enabled" type="success" size="small">已启用</el-tag>
-                                <el-tag v-else type="info" size="small">未启用</el-tag>
+                                <el-tag v-if="row.metered_config?.enabled" type="success" size="small">{{ t('metered_billing_page.metered_enabled') }}</el-tag>
+                                <el-tag v-else type="info" size="small">{{ t('metered_billing_page.metered_disabled') }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="结算周期" width="90">
+                        <el-table-column :label="t('metered_billing_page.col_billing_period')" width="90">
                             <template #default="{ row }">
-                                {{ row.metered_config?.billing_period === 'monthly' ? '月度' : row.metered_config?.billing_period === 'quarterly' ? '季度' : '年度' }}
+                                {{ billingPeriodLabel(row.metered_config?.billing_period) }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="超额保护" width="90">
+                        <el-table-column :label="t('metered_billing_page.col_overage_cap')" width="90">
                             <template #default="{ row }">
-                                {{ row.metered_config?.cap_type === 'hard' ? '硬上限' : '软上限' }}
+                                {{ capTypeLabel(row.metered_config?.cap_type) }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="上限金额" width="100" align="right">
+                        <el-table-column :label="t('metered_billing_page.col_cap_amount')" width="100" align="right">
                             <template #default="{ row }">
                                 {{ row.metered_config?.monthly_cap ? '¥' + row.metered_config.monthly_cap : '-' }}
                             </template>
                         </el-table-column>
-                        <el-table-column label="最后结算" width="170">
+                        <el-table-column :label="t('metered_billing_page.col_last_billed')" width="170">
                             <template #default="{ row }">{{ formatTime(row.last_billed_at) }}</template>
                         </el-table-column>
-                        <el-table-column label="操作" width="180" fixed="right">
+                        <el-table-column :label="t('metered_billing_page.col_actions')" width="180" fixed="right">
                             <template #default="{ row }">
                                 <el-button size="small" text type="primary"
-                                    @click="openSubConfigDialog(row)">配置</el-button>
+                                    @click="openSubConfigDialog(row)">{{ t('metered_billing_page.btn_configure') }}</el-button>
                                 <el-button size="small" text type="warning"
-                                    @click="handleGenerateSingle(row)">生成账单</el-button>
+                                    @click="handleGenerateSingle(row)">{{ t('metered_billing_page.btn_generate_invoice') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -159,25 +159,25 @@
             </el-tab-pane>
 
             <!-- Tab 3: 最近发票 -->
-            <el-tab-pane label="最近发票" name="invoices">
+            <el-tab-pane :label="t('metered_billing_page.tab_invoices')" name="invoices">
                 <el-card>
                     <el-table :data="overview.recent_invoices" stripe>
-                        <el-table-column prop="invoice_no" label="发票号" width="220" />
-                        <el-table-column prop="customer_name" label="客户" width="140" />
-                        <el-table-column label="金额" width="120" align="right">
+                        <el-table-column prop="invoice_no" :label="t('billing_page.col_invoice_no')" width="220" />
+                        <el-table-column prop="customer_name" :label="t('billing_page.col_customer')" width="140" />
+                        <el-table-column :label="t('billing_page.col_amount')" width="120" align="right">
                             <template #default="{ row }">¥{{ row.amount }}</template>
                         </el-table-column>
-                        <el-table-column label="状态" width="100">
+                        <el-table-column :label="t('metered_billing_page.col_status')" width="100">
                             <template #default="{ row }">
                                 <el-tag :type="row.paid ? 'success' : 'warning'" size="small">
-                                    {{ row.paid ? '已支付' : row.status }}
+                                    {{ row.paid ? t('metered_billing_page.status_paid') : row.status }}
                                 </el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="行项目" width="80" align="center">
+                        <el-table-column :label="t('metered_billing_page.col_line_items')" width="80" align="center">
                             <template #default="{ row }">{{ row.line_items_count }}</template>
                         </el-table-column>
-                        <el-table-column prop="created_at" label="创建时间" width="170">
+                        <el-table-column prop="created_at" :label="t('billing_page.col_created')" width="170">
                             <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
                         </el-table-column>
                     </el-table>
@@ -186,115 +186,115 @@
         </el-tabs>
 
         <!-- 价格配置对话框 -->
-        <el-dialog v-model="showPriceDialog" :title="isEditPrice ? '编辑价格配置' : '新增价格配置'" width="650px">
+        <el-dialog v-model="showPriceDialog" :title="isEditPrice ? t('metered_billing_page.dialog_edit_price') : t('metered_billing_page.dialog_new_price')" width="650px">
             <el-form :model="priceForm" label-width="120px" ref="priceFormRef" :rules="priceRules">
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="计量指标" prop="metric_key" required>
-                            <el-select v-model="priceForm.metric_key" filterable allow-create placeholder="选择或输入">
+                        <el-form-item :label="t('metered_billing_page.col_metric')" prop="metric_key" required>
+                            <el-select v-model="priceForm.metric_key" filterable allow-create :placeholder="t('metered_billing_page.ph_select_metric')">
                                 <el-option v-for="m in availableMetrics" :key="m.metric_key"
                                     :label="`${m.name} (${m.metric_key})`" :value="m.metric_key" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="显示名称" prop="name" required>
+                        <el-form-item :label="t('metered_billing_page.label_display_name')" prop="name" required>
                             <el-input v-model="priceForm.name" />
                         </el-form-item>
                     </el-col>
                 </el-row>
                 <el-row :gutter="16">
                     <el-col :span="8">
-                        <el-form-item label="计价单位" prop="unit" required>
+                        <el-form-item :label="t('metered_billing_page.label_pricing_unit')" prop="unit" required>
                             <el-input v-model="priceForm.unit" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="结算周期" prop="billing_period">
+                        <el-form-item :label="t('metered_billing_page.col_billing_period')" prop="billing_period">
                             <el-select v-model="priceForm.billing_period">
-                                <el-option label="月度" value="monthly" />
-                                <el-option label="季度" value="quarterly" />
-                                <el-option label="年度" value="yearly" />
+                                <el-option v-for="opt in billingPeriodOptions" :key="opt.value"
+                                    :label="opt.label" :value="opt.value" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="基础费" prop="base_fee">
+                        <el-form-item :label="t('metered_billing_page.label_base_fee')" prop="base_fee">
                             <el-input-number v-model="priceForm.base_fee" :min="0" :precision="2" />
                         </el-form-item>
                     </el-col>
                 </el-row>
                 <el-row :gutter="16">
                     <el-col :span="12">
-                        <el-form-item label="包含用量" prop="included_quantity">
+                        <el-form-item :label="t('metered_billing_page.col_included_qty')" prop="included_quantity">
                             <el-input-number v-model="priceForm.included_quantity" :min="0" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                        <el-form-item label="用量上限" prop="max_quantity">
+                        <el-form-item :label="t('metered_billing_page.label_max_quantity')" prop="max_quantity">
                             <el-input-number v-model="priceForm.max_quantity" :min="0" :max="999999999" />
                         </el-form-item>
                     </el-col>
                 </el-row>
-                <el-form-item label="价格阶梯" required>
+                <el-form-item :label="t('metered_billing_page.label_tiers')" required>
                     <div v-for="(tier, i) in priceForm.tiers" :key="i" class="tier-row">
-                        <span class="tier-label">第{{ i + 1 }}阶梯</span>
-                        <el-input-number v-model="tier.from" :min="0" size="small" style="width: 100px" placeholder="from" />
+                        <span class="tier-label">{{ t('metered_billing_page.tier_label', { n: i + 1 }) }}</span>
+                        <el-input-number v-model="tier.from" :min="0" size="small" style="width: 100px" :placeholder="t('metered_billing_page.ph_from')" />
                         <span class="mx-1">~</span>
                         <el-input-number v-model="tier.to" :min="(tier.from || 0) + 1" size="small"
-                            style="width: 100px" :disabled="i === priceForm.tiers.length - 1" placeholder="to" />
+                            style="width: 100px" :disabled="i === priceForm.tiers.length - 1" :placeholder="t('metered_billing_page.ph_to')" />
                         <span class="mx-1">× ¥</span>
                         <el-input-number v-model="tier.unit_price" :min="0" :precision="4" size="small"
-                            style="width: 120px" placeholder="单价" />
+                            style="width: 120px" :placeholder="t('metered_billing_page.ph_unit_price')" />
                         <el-button v-if="priceForm.tiers.length > 1" type="danger" text size="small"
                             @click="priceForm.tiers.splice(i, 1)">
                             <el-icon><Delete /></el-icon>
                         </el-button>
                     </div>
-                    <el-button size="small" @click="addTier" class="mt-1">+ 添加阶梯</el-button>
+                    <el-button size="small" @click="addTier" class="mt-1">{{ t('metered_billing_page.btn_add_tier') }}</el-button>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showPriceDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleSavePrice" :loading="savingPrice">保存</el-button>
+                <el-button @click="showPriceDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleSavePrice" :loading="savingPrice">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 订阅配置对话框 -->
-        <el-dialog v-model="showSubConfigDialog" title="用量计费配置" width="550px">
+        <el-dialog v-model="showSubConfigDialog" :title="t('metered_billing_page.dialog_sub_config')" width="550px">
             <el-form :model="subConfigForm" label-width="130px">
-                <el-form-item label="启用用量计费">
+                <el-form-item :label="t('metered_billing_page.label_enable_metered')">
                     <el-switch v-model="subConfigForm.enabled" />
                 </el-form-item>
-                <el-form-item label="结算周期" v-if="subConfigForm.enabled">
+                <el-form-item :label="t('metered_billing_page.col_billing_period')" v-if="subConfigForm.enabled">
                     <el-select v-model="subConfigForm.billing_period">
-                        <el-option label="月度" value="monthly" />
-                        <el-option label="季度" value="quarterly" />
-                        <el-option label="年度" value="yearly" />
+                        <el-option v-for="opt in billingPeriodOptions" :key="opt.value"
+                            :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="超额保护" v-if="subConfigForm.enabled">
+                <el-form-item :label="t('metered_billing_page.col_overage_cap')" v-if="subConfigForm.enabled">
                     <el-radio-group v-model="subConfigForm.cap_type">
-                        <el-radio value="soft">软上限（仅警告）</el-radio>
-                        <el-radio value="hard">硬上限（封顶）</el-radio>
+                        <el-radio v-for="opt in capTypeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</el-radio>
                     </el-radio-group>
                 </el-form-item>
-                <el-form-item label="月度封顶金额" v-if="subConfigForm.enabled && subConfigForm.cap_type === 'hard'">
+                <el-form-item :label="t('metered_billing_page.label_monthly_cap')" v-if="subConfigForm.enabled && subConfigForm.cap_type === 'hard'">
                     <el-input-number v-model="subConfigForm.monthly_cap" :min="0" :precision="2" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showSubConfigDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleSaveSubConfig" :loading="savingSubConfig">保存</el-button>
+                <el-button @click="showSubConfigDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleSaveSubConfig" :loading="savingSubConfig">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, watch, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import meteredBillingApi from '@/api/meteredBilling';
+
+const { t } = useI18n();
 
 const loading = ref(true);
 const activeTab = ref('prices');
@@ -316,11 +316,22 @@ const priceForm = reactive({
     tiers: [{ from: 0, to: 1000, unit_price: 0.01 }],
 });
 
-const priceRules = {
-    metric_key: [{ required: true, message: '请选择计量指标' }],
-    name: [{ required: true, message: '请输入显示名称' }],
-    unit: [{ required: true, message: '请输入计价单位' }],
-};
+const billingPeriodOptions = computed(() => [
+    { value: 'monthly', label: t('metered_billing_page.period_monthly') },
+    { value: 'quarterly', label: t('metered_billing_page.period_quarterly') },
+    { value: 'yearly', label: t('metered_billing_page.period_yearly') },
+]);
+
+const capTypeOptions = computed(() => [
+    { value: 'soft', label: t('metered_billing_page.cap_soft_warn') },
+    { value: 'hard', label: t('metered_billing_page.cap_hard_stop') },
+]);
+
+const priceRules = computed(() => ({
+    metric_key: [{ required: true, message: t('metered_billing_page.validation_metric_required') }],
+    name: [{ required: true, message: t('metered_billing_page.validation_display_name_required') }],
+    unit: [{ required: true, message: t('metered_billing_page.validation_unit_required') }],
+}));
 
 // 订阅配置
 const subscriptions = ref([]);
@@ -335,6 +346,32 @@ const subConfigForm = reactive({
     cap_type: 'soft',
     monthly_cap: null,
 });
+
+function billingPeriodLabel(period) {
+    const map = {
+        monthly: t('metered_billing_page.period_monthly'),
+        quarterly: t('metered_billing_page.period_quarterly'),
+        yearly: t('metered_billing_page.period_yearly'),
+    };
+    return map[period] || period || '-';
+}
+
+function capTypeLabel(type) {
+    if (type === 'hard') return t('metered_billing_page.cap_hard');
+    if (type === 'soft') return t('metered_billing_page.cap_soft');
+    return type || '-';
+}
+
+function formatTierRange(index, tier, unit) {
+    const toPart = tier.to ? `~${tier.to}` : '+';
+    return t('metered_billing_page.tier_range_fmt', {
+        n: index + 1,
+        from: tier.from,
+        to: toPart,
+        price: tier.unit_price,
+        unit,
+    });
+}
 
 function formatTime(val) {
     if (!val) return null;
@@ -370,7 +407,7 @@ async function loadPrices() {
         const res = await meteredBillingApi.getPrices();
         prices.value = res.data?.data || [];
     } catch {
-        ElMessage.error('加载价格配置失败');
+        ElMessage.error(t('metered_billing_page.err_load_prices'));
     } finally {
         loadingPrices.value = false;
     }
@@ -390,7 +427,7 @@ async function loadSubscriptions(page = 1) {
         subscriptions.value = res.data?.data || [];
         subsMeta.value = res.data?.meta;
     } catch {
-        ElMessage.error('加载订阅列表失败');
+        ElMessage.error(t('metered_billing_page.err_load_subs'));
     } finally {
         loadingSubs.value = false;
     }
@@ -428,12 +465,12 @@ async function handleSavePrice() {
     savingPrice.value = true;
     try {
         await meteredBillingApi.upsertPrice(priceForm);
-        ElMessage.success('价格配置已保存');
+        ElMessage.success(t('metered_billing_page.msg_price_saved'));
         showPriceDialog.value = false;
         await loadPrices();
         await loadOverview();
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '保存失败');
+        ElMessage.error(err.response?.data?.message || t('messages.failed'));
     } finally {
         savingPrice.value = false;
     }
@@ -441,9 +478,12 @@ async function handleSavePrice() {
 
 async function handleDeletePrice(row) {
     try {
-        await ElMessageBox.confirm(`确认删除 "${row.name}" 的价格配置？`, '确认删除');
+        await ElMessageBox.confirm(
+            t('metered_billing_page.confirm_delete_price', { name: row.name }),
+            t('metered_billing_page.confirm_delete_title'),
+        );
         await meteredBillingApi.deletePrice(row.id);
-        ElMessage.success('已删除');
+        ElMessage.success(t('metered_billing_page.msg_deleted'));
         await loadPrices();
         await loadOverview();
     } catch { }
@@ -463,11 +503,11 @@ async function handleSaveSubConfig() {
     savingSubConfig.value = true;
     try {
         await meteredBillingApi.updateSubscriptionConfig(editingSub.value.id, subConfigForm);
-        ElMessage.success('订阅配置已更新');
+        ElMessage.success(t('metered_billing_page.msg_sub_config_saved'));
         showSubConfigDialog.value = false;
         await loadSubscriptions();
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || '保存失败');
+        ElMessage.error(err.response?.data?.message || t('messages.failed'));
     } finally {
         savingSubConfig.value = false;
     }
@@ -475,23 +515,33 @@ async function handleSaveSubConfig() {
 
 async function handleGenerateSingle(row) {
     try {
-        await ElMessageBox.confirm(`确认为 "${row.customer?.name || row.id}" 生成用量账单？`, '确认生成');
+        await ElMessageBox.confirm(
+            t('metered_billing_page.confirm_generate_single', { name: row.customer?.name || row.id }),
+            t('metered_billing_page.confirm_generate_title'),
+        );
         const res = await meteredBillingApi.generateInvoice(row.id, { dry_run: false });
-        ElMessage.success(`账单已生成，金额 ¥${res.data?.data?.totals?.amount || 0}`);
+        ElMessage.success(t('metered_billing_page.msg_invoice_generated', {
+            amount: res.data?.data?.totals?.amount || 0,
+        }));
         await loadSubscriptions();
         await loadOverview();
     } catch (err) {
         if (err !== 'cancel') {
-            ElMessage.error(err.response?.data?.message || '生成账单失败');
+            ElMessage.error(err.response?.data?.message || t('metered_billing_page.err_generate_invoice'));
         }
     }
 }
 
 async function handleBatchGenerate() {
     try {
-        await ElMessageBox.confirm('确认批量生成所有已启用用量计费的订阅的账单？', '确认批量生成');
+        await ElMessageBox.confirm(
+            t('metered_billing_page.confirm_batch_generate'),
+            t('metered_billing_page.confirm_batch_title'),
+        );
         const res = await meteredBillingApi.batchGenerateInvoices({ dry_run: false });
-        ElMessage.success(`已处理 ${res.data?.data?.total || 0} 个订阅`);
+        ElMessage.success(t('metered_billing_page.msg_batch_processed', {
+            count: res.data?.data?.total || 0,
+        }));
         await loadSubscriptions();
         await loadOverview();
     } catch { }
@@ -514,7 +564,7 @@ onMounted(refreshAll);
 .stat-sub { font-size: 12px; color: #c0c4cc; }
 .stat-active .stat-value { color: #67c23a; }
 .stat-warning .stat-value { color: #e6a23c; }
-.stat-info .stat-value { color: #409eff; }
+.stat-info .stat-value { color: #0f172a; }
 .mb-4 { margin-bottom: 16px; }
 .mb-3 { margin-bottom: 12px; }
 .mt-1 { margin-top: 4px; }

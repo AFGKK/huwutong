@@ -2,133 +2,129 @@
     <div class="llm-page">
         <div class="page-header">
             <div class="header-left">
-                <h2>大模型统一适配层</h2>
-                <span class="header-subtitle">DeepSeek / OpenAI / Anthropic Claude / 通义千问 / 文心一言 / 智谱 GLM</span>
+                <h2>{{ t('llm_page.title') }}</h2>
+                <span class="header-subtitle">{{ t('llm_page.subtitle') }}</span>
             </div>
         </div>
 
-        <el-alert title="已对接 DeepSeek-V3 / DeepSeek-R1，支持一键切换 Provider、Token 用量统计、流式输出、自动降级" type="success" show-icon :closable="false" class="alert-bar" />
+        <el-alert :title="t('llm_page.alert')" type="success" show-icon :closable="false" class="alert-bar" />
 
         <el-tabs v-model="activeTab" class="tabs-container">
             <!-- Provider 管理 -->
-            <el-tab-pane label="Provider 管理" name="providers">
+            <el-tab-pane :label="t('llm_page.tabs.providers')" name="providers">
                 <div style="margin-bottom:12px">
-                    <el-button type="primary" size="small" @click="openCreateDialog">+ 新增 Provider</el-button>
+                    <el-button type="primary" size="small" @click="openCreateDialog">{{ t('llm_page.add_provider') }}</el-button>
                 </div>
                 <el-table :data="providers" v-loading="loadingProviders" stripe>
-                    <el-table-column label="排序" width="60" prop="sort_order" align="center" />
-                    <el-table-column label="名称" min-width="120" prop="name" />
-                    <el-table-column label="驱动" width="110" prop="driver" />
-                    <el-table-column label="默认模型" width="150" prop="default_model" />
-                    <el-table-column label="API Base" min-width="200" prop="api_base" />
-                    <el-table-column label="API Key" width="100">
+                    <el-table-column :label="t('llm_page.cols.sort')" width="60" prop="sort_order" align="center" />
+                    <el-table-column :label="t('llm_page.cols.name')" min-width="120" prop="name" />
+                    <el-table-column :label="t('llm_page.cols.driver')" width="110" prop="driver" />
+                    <el-table-column :label="t('llm_page.cols.default_model')" width="150" prop="default_model" />
+                    <el-table-column :label="t('llm_page.cols.api_base')" min-width="200" prop="api_base" />
+                    <el-table-column :label="t('llm_page.cols.api_key')" width="100">
                         <template #default="{ row }">
                             <el-tag :type="row.api_key_set ? 'success' : 'danger'" size="small" effect="plain">
-                                {{ row.api_key_set ? '已配置' : '未配置' }}
+                                {{ row.api_key_set ? t('llm_page.status.configured') : t('llm_page.status.not_configured') }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="状态" width="80">
+                    <el-table-column :label="t('llm_page.cols.status')" width="80">
                         <template #default="{ row }">
                             <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-                                {{ row.is_active ? '启用' : '停用' }}
+                                {{ row.is_active ? t('llm_page.status.enabled') : t('llm_page.status.disabled') }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="备用" width="60" align="center">
+                    <el-table-column :label="t('llm_page.cols.fallback')" width="60" align="center">
                         <template #default="{ row }">
-                            <el-tag v-if="row.is_fallback" type="warning" size="small">备用</el-tag>
+                            <el-tag v-if="row.is_fallback" type="warning" size="small">{{ t('llm_page.status.fallback_tag') }}</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="操作" width="180" fixed="right">
+                    <el-table-column :label="t('llm_page.cols.actions')" width="180" fixed="right">
                         <template #default="{ row }">
-                            <el-button text size="small" type="primary" @click="openEditDialog(row)">编辑</el-button>
-                            <el-button text size="small" type="success" :loading="testingId === row.id" @click="handleTest(row)">测试</el-button>
+                            <el-button text size="small" type="primary" @click="openEditDialog(row)">{{ t('actions.edit') }}</el-button>
+                            <el-button text size="small" type="success" :loading="testingId === row.id" @click="handleTest(row)">{{ t('llm_page.test') }}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
 
                 <!-- 编辑/新增 Provider 对话框 -->
-                <el-dialog v-model="editDialogVisible" :title="isCreating ? '新增 Provider' : '编辑 ' + editForm.name" width="560px">
+                <el-dialog v-model="editDialogVisible" :title="editDialogTitle" width="560px">
                     <el-form :model="editForm" label-position="top" size="small">
                         <el-row :gutter="16">
                             <el-col :span="12">
-                                <el-form-item label="名称">
+                                <el-form-item :label="t('llm_page.providers.name')">
                                     <el-input v-model="editForm.name" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="12" v-if="isCreating">
-                                <el-form-item label="驱动">
+                                <el-form-item :label="t('llm_page.providers.driver')">
                                     <el-select v-model="editForm.driver" style="width:100%">
-                                        <el-option label="OpenAI 兼容" value="openai" />
-                                        <el-option label="DeepSeek" value="deepseek" />
-                                        <el-option label="Ollama (本地)" value="ollama" />
-                                        <el-option label="vLLM (本地)" value="vllm" />
-                                        <el-option label="Anthropic Claude" value="claude" />
+                                        <el-option v-for="opt in driverOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                     </el-select>
                                 </el-form-item>
                             </el-col>
                         </el-row>
                         <el-row :gutter="16">
                             <el-col :span="12">
-                                <el-form-item label="默认模型">
-                                    <el-input v-model="editForm.default_model" placeholder="如 deepseek-chat" />
+                                <el-form-item :label="t('llm_page.providers.default_model')">
+                                    <el-input v-model="editForm.default_model" :placeholder="t('llm_page.providers.default_model_ph')" />
                                 </el-form-item>
                             </el-col>
                         </el-row>
-                        <el-form-item label="API Base URL">
-                            <el-input v-model="editForm.api_base" placeholder="https://api.deepseek.com" />
+                        <el-form-item :label="t('llm_page.providers.api_base')">
+                            <el-input v-model="editForm.api_base" :placeholder="t('llm_page.providers.api_base_ph')" />
                         </el-form-item>
-                        <el-form-item label="API Key">
-                            <el-input v-model="editForm.api_key" type="password" show-password placeholder="留空不修改" />
+                        <el-form-item :label="t('llm_page.providers.api_key')">
+                            <el-input v-model="editForm.api_key" type="password" show-password :placeholder="t('llm_page.providers.api_key_ph')" />
                         </el-form-item>
                         <el-row :gutter="16">
                             <el-col :span="8">
-                                <el-form-item label="温度 (temperature)">
+                                <el-form-item :label="t('llm_page.providers.temperature')">
                                     <el-input-number v-model="editForm.config.temperature" :min="0" :max="2" :step="0.1" :precision="1" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="8">
-                                <el-form-item label="最大 Token">
+                                <el-form-item :label="t('llm_page.providers.max_tokens')">
                                     <el-input-number v-model="editForm.config.max_tokens" :min="100" :max="128000" :step="1000" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="4">
-                                <el-form-item label="启用">
+                                <el-form-item :label="t('llm_page.providers.enable')">
                                     <el-switch v-model="editForm.is_active" />
                                 </el-form-item>
                             </el-col>
                             <el-col :span="4">
-                                <el-form-item label="备用">
+                                <el-form-item :label="t('llm_page.providers.fallback')">
                                     <el-switch v-model="editForm.is_fallback" />
                                 </el-form-item>
                             </el-col>
                         </el-row>
                     </el-form>
                     <template #footer>
-                        <el-button @click="editDialogVisible = false">取消</el-button>
-                        <el-button type="primary" :loading="savingProvider" @click="handleSaveProvider">保存</el-button>
+                        <el-button @click="editDialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                        <el-button type="primary" :loading="savingProvider" @click="handleSaveProvider">{{ t('actions.save') }}</el-button>
                     </template>
                 </el-dialog>
             </el-tab-pane>
 
             <!-- AI 聊天测试 -->
-            <el-tab-pane label="AI 聊天测试" name="chat">
+            <el-tab-pane :label="t('llm_page.tabs.chat')" name="chat">
                 <div class="chat-container">
                     <div class="chat-messages" ref="chatRef">
                         <div v-if="chatMessages.length === 0" class="chat-empty">
                             <el-icon :size="48" color="#c0c4cc"><ChatLineSquare /></el-icon>
-                            <p>输入内容开始与 AI 对话测试</p>
+                            <p>{{ t('llm_page.chat.empty') }}</p>
                         </div>
                         <div v-for="(msg, i) in chatMessages" :key="i" :class="['chat-msg', msg.role]">
-                            <div class="msg-role">{{ msg.role === 'user' ? '你' : 'AI' }}</div>
+                            <div class="msg-role">{{ msg.role === 'user' ? t('llm_page.chat.you') : t('llm_page.chat.ai') }}</div>
                             <div class="msg-content" v-html="renderMarkdown(msg.content)" />
                             <div v-if="msg.usage" class="msg-usage">
-                                Token: {{ msg.usage.total_tokens }} | {{ msg.duration_ms }}ms
+                                {{ t('llm_page.chat.token_usage', { tokens: msg.usage.total_tokens, ms: msg.duration_ms }) }}
                             </div>
                         </div>
                         <div v-if="streaming" class="chat-msg assistant">
-                            <div class="msg-role">AI</div>
+                            <div class="msg-role">{{ t('llm_page.chat.ai') }}</div>
                             <div class="msg-content">{{ streamContent }}<span class="cursor-blink">▍</span></div>
                         </div>
                     </div>
@@ -139,48 +135,48 @@
                         <el-select v-model="chatModel" size="small" style="width: 150px; margin-right: 8px;">
                             <el-option v-for="m in availableModels" :key="m.id" :label="m.name" :value="m.id" />
                         </el-select>
-                        <el-input v-model="chatInput" size="small" placeholder="输入消息，按 Enter 发送" @keyup.enter="sendChat" :disabled="streaming" clearable />
+                        <el-input v-model="chatInput" size="small" :placeholder="t('llm_page.chat.input_ph')" @keyup.enter="sendChat" :disabled="streaming" clearable />
                         <el-button type="primary" size="small" :loading="streaming" @click="sendChat" style="margin-left: 8px;">
-                            发送
+                            {{ t('llm_page.send') }}
                         </el-button>
-                        <el-button size="small" @click="clearChat" style="margin-left: 4px;">清空</el-button>
+                        <el-button size="small" @click="clearChat" style="margin-left: 4px;">{{ t('llm_page.clear') }}</el-button>
                     </div>
                 </div>
             </el-tab-pane>
 
             <!-- 自动降级管理 -->
-            <el-tab-pane label="自动降级管理" name="fallback">
+            <el-tab-pane :label="t('llm_page.tabs.fallback')" name="fallback">
                 <div class="fallback-panel">
                     <el-row :gutter="16">
                         <el-col :span="12">
                             <el-card shadow="never" class="section-card">
                                 <template #header>
                                     <div class="card-header">
-                                        <span>降级状态</span>
-                                        <el-tag v-if="fallbackStatus?.fallback_active" type="warning">降级中</el-tag>
-                                        <el-tag v-else type="success">正常</el-tag>
+                                        <span>{{ t('llm_page.fallback.status_title') }}</span>
+                                        <el-tag v-if="fallbackStatus?.fallback_active" type="warning">{{ t('llm_page.status.in_fallback') }}</el-tag>
+                                        <el-tag v-else type="success">{{ t('llm_page.status.normal') }}</el-tag>
                                     </div>
                                 </template>
                                 <el-descriptions :column="1" border v-if="fallbackStatus">
-                                    <el-descriptions-item label="降级策略">
-                                        <el-tag size="small">{{ fallbackStatus.fallback_strategy || '无' }}</el-tag>
+                                    <el-descriptions-item :label="t('llm_page.fallback.strategy')">
+                                        <el-tag size="small">{{ fallbackStatus.fallback_strategy || t('llm_page.none') }}</el-tag>
                                     </el-descriptions-item>
-                                    <el-descriptions-item label="活跃降级 Provider">
-                                        {{ fallbackStatus.fallback_provider || '-' }}
+                                    <el-descriptions-item :label="t('llm_page.fallback.active_provider')">
+                                        {{ fallbackStatus.fallback_provider || t('llm_page.dash') }}
                                     </el-descriptions-item>
-                                    <el-descriptions-item label="连续失败次数（当前）">
+                                    <el-descriptions-item :label="t('llm_page.fallback.consecutive_failures')">
                                         <el-tag :type="(fallbackStatus.consecutive_failures || 0) > 3 ? 'danger' : 'info'" size="small">
                                             {{ fallbackStatus.consecutive_failures || 0 }}
                                         </el-tag>
                                     </el-descriptions-item>
-                                    <el-descriptions-item label="降级触发时间">
-                                        {{ fallbackStatus.fallback_triggered_at || '-' }}
+                                    <el-descriptions-item :label="t('llm_page.fallback.triggered_at')">
+                                        {{ fallbackStatus.fallback_triggered_at || t('llm_page.dash') }}
                                     </el-descriptions-item>
-                                    <el-descriptions-item label="总计降级次数">
+                                    <el-descriptions-item :label="t('llm_page.fallback.total_fallbacks')">
                                         {{ fallbackStatus.total_fallbacks || 0 }}
                                     </el-descriptions-item>
-                                    <el-descriptions-item label="上次降级原因">
-                                        {{ fallbackStatus.last_fallback_reason || '-' }}
+                                    <el-descriptions-item :label="t('llm_page.fallback.last_reason')">
+                                        {{ fallbackStatus.last_fallback_reason || t('llm_page.dash') }}
                                     </el-descriptions-item>
                                 </el-descriptions>
                                 <div v-else class="empty-data">
@@ -190,102 +186,102 @@
                         </el-col>
                         <el-col :span="12">
                             <el-card shadow="never" class="section-card">
-                                <template #header><span>Provider 健康度</span></template>
+                                <template #header><span>{{ t('llm_page.fallback.provider_health') }}</span></template>
                                 <el-table :data="fallbackStatus?.provider_health || []" size="small" v-if="(fallbackStatus?.provider_health?.length || 0) > 0">
-                                    <el-table-column label="Provider" prop="provider_name" />
-                                    <el-table-column label="健康状态" width="100">
+                                    <el-table-column :label="t('llm_page.cols.provider')" prop="provider_name" />
+                                    <el-table-column :label="t('llm_page.cols.health')" width="100">
                                         <template #default="{ row }">
                                             <el-tag :type="row.healthy ? 'success' : 'danger'" size="small">
-                                                {{ row.healthy ? '健康' : '异常' }}
+                                                {{ row.healthy ? t('llm_page.status.healthy') : t('llm_page.status.unhealthy') }}
                                             </el-tag>
                                         </template>
                                     </el-table-column>
-                                    <el-table-column label="最近成功" width="160" prop="last_success_at">
-                                        <template #default="{ row }">{{ row.last_success_at || '-' }}</template>
+                                    <el-table-column :label="t('llm_page.cols.last_success')" width="160" prop="last_success_at">
+                                        <template #default="{ row }">{{ row.last_success_at || t('llm_page.dash') }}</template>
                                     </el-table-column>
-                                    <el-table-column label="失败率" width="100">
+                                    <el-table-column :label="t('llm_page.cols.failure_rate')" width="100">
                                         <template #default="{ row }">
                                             {{ row.failure_rate ? (row.failure_rate * 100).toFixed(1) + '%' : '0%' }}
                                         </template>
                                     </el-table-column>
                                 </el-table>
-                                <el-empty v-else-if="!loadingFallback" description="暂无 Provider 健康数据" />
+                                <el-empty v-else-if="!loadingFallback" :description="t('llm_page.fallback.no_health_data')" />
                                 <el-skeleton v-else :rows="3" animated />
                             </el-card>
                         </el-col>
                     </el-row>
                     <el-card shadow="never" class="section-card">
-                        <template #header><span>操作</span></template>
+                        <template #header><span>{{ t('llm_page.fallback.actions_title') }}</span></template>
                         <div class="action-bar">
                             <el-button type="warning" @click="handleResetFallback" :loading="resettingFallback">
-                                <el-icon style="margin-right:4px"><Refresh /></el-icon>重置降级状态
+                                <el-icon style="margin-right:4px"><Refresh /></el-icon>{{ t('llm_page.reset_fallback') }}
                             </el-button>
                             <el-button @click="loadFallbackStatus" :loading="loadingFallback" style="margin-left: 8px;">
-                                刷新状态
+                                {{ t('llm_page.refresh_status') }}
                             </el-button>
-                            <span class="tip-text">重置后系统将重新尝试使用主 Provider</span>
+                            <span class="tip-text">{{ t('llm_page.fallback.reset_tip') }}</span>
                         </div>
                     </el-card>
                 </div>
             </el-tab-pane>
 
             <!-- LLM 健康监控 -->
-            <el-tab-pane label="健康监控" name="health">
+            <el-tab-pane :label="t('llm_page.tabs.health')" name="health">
                 <div class="health-panel">
                     <el-row :gutter="16">
                         <el-col :span="12">
                             <el-card shadow="never" class="section-card">
                                 <template #header>
                                     <div class="card-header">
-                                        <span>Provider 健康状态</span>
-                                        <el-button size="small" @click="runHealthCheck" :loading="checkingHealth">执行检查</el-button>
+                                        <span>{{ t('llm_page.health.provider_status') }}</span>
+                                        <el-button size="small" @click="runHealthCheck" :loading="checkingHealth">{{ t('llm_page.run_check') }}</el-button>
                                     </div>
                                 </template>
                                 <el-table :data="healthData" size="small" v-loading="loadingHealth">
-                                    <el-table-column label="Provider" prop="name" width="120" />
-                                    <el-table-column label="状态" width="80">
+                                    <el-table-column :label="t('llm_page.cols.provider')" prop="name" width="120" />
+                                    <el-table-column :label="t('llm_page.cols.status')" width="80">
                                         <template #default="{ row }">
-                                            <el-tag v-if="row.healthy" type="success" size="small">健康</el-tag>
-                                            <el-tag v-else type="danger" size="small">异常</el-tag>
+                                            <el-tag v-if="row.healthy" type="success" size="small">{{ t('llm_page.status.healthy') }}</el-tag>
+                                            <el-tag v-else type="danger" size="small">{{ t('llm_page.status.unhealthy') }}</el-tag>
                                         </template>
                                     </el-table-column>
-                                    <el-table-column label="延迟" width="80" align="right">
+                                    <el-table-column :label="t('llm_page.cols.latency')" width="80" align="right">
                                         <template #default="{ row }">
                                             <span :style="{ color: row.latency_ms > 5000 ? '#e6a23c' : '#67c23a' }">
-                                                {{ row.latency_ms ? row.latency_ms + 'ms' : '-' }}
+                                                {{ row.latency_ms ? row.latency_ms + 'ms' : t('llm_page.dash') }}
                                             </span>
                                         </template>
                                     </el-table-column>
-                                    <el-table-column label="24h 健康率" width="100" align="right">
+                                    <el-table-column :label="t('llm_page.cols.health_rate_24h')" width="100" align="right">
                                         <template #default="{ row }">
                                             <el-tag :type="(row.health_rate_24h || 100) >= 99 ? 'success' : (row.health_rate_24h || 100) >= 95 ? 'warning' : 'danger'" size="small">
                                                 {{ row.health_rate_24h || 100 }}%
                                             </el-tag>
                                         </template>
                                     </el-table-column>
-                                    <el-table-column label="24h 平均延迟" width="110" align="right">
+                                    <el-table-column :label="t('llm_page.cols.avg_latency_24h')" width="110" align="right">
                                         <template #default="{ row }">
-                                            {{ row.avg_latency_24h ? row.avg_latency_24h + 'ms' : '-' }}
+                                            {{ row.avg_latency_24h ? row.avg_latency_24h + 'ms' : t('llm_page.dash') }}
                                         </template>
                                     </el-table-column>
-                                    <el-table-column label="熔断" width="60">
+                                    <el-table-column :label="t('llm_page.cols.circuit')" width="60">
                                         <template #default="{ row }">
-                                            <el-tag v-if="row.circuit_status === 'open'" type="danger" size="small">开</el-tag>
-                                            <el-tag v-else type="success" size="small">关</el-tag>
+                                            <el-tag v-if="row.circuit_status === 'open'" type="danger" size="small">{{ t('llm_page.status.circuit_open') }}</el-tag>
+                                            <el-tag v-else type="success" size="small">{{ t('llm_page.status.circuit_closed') }}</el-tag>
                                         </template>
                                     </el-table-column>
-                                    <el-table-column label="报错" min-width="140">
+                                    <el-table-column :label="t('llm_page.cols.error')" min-width="140">
                                         <template #default="{ row }">
-                                            <span class="error-text">{{ row.last_error || '-' }}</span>
+                                            <span class="error-text">{{ row.last_error || t('llm_page.dash') }}</span>
                                         </template>
                                     </el-table-column>
-                                    <el-table-column label="最后检查" width="160" prop="last_check_at" />
+                                    <el-table-column :label="t('llm_page.cols.last_check')" width="160" prop="last_check_at" />
                                 </el-table>
                             </el-card>
                         </el-col>
                         <el-col :span="12">
                             <el-card shadow="never" class="section-card">
-                                <template #header><span>降级事件时间线</span></template>
+                                <template #header><span>{{ t('llm_page.health.event_timeline') }}</span></template>
                                 <div class="event-timeline" v-if="events.length > 0">
                                     <el-timeline>
                                         <el-timeline-item v-for="evt in events" :key="evt.id"
@@ -303,7 +299,7 @@
                                         </el-timeline-item>
                                     </el-timeline>
                                 </div>
-                                <el-empty v-else description="暂无降级事件" />
+                                <el-empty v-else :description="t('llm_page.health.no_events')" />
                             </el-card>
                         </el-col>
                     </el-row>
@@ -311,7 +307,7 @@
             </el-tab-pane>
 
             <!-- Token 统计 -->
-            <el-tab-pane label="Token 用量统计" name="stats">
+            <el-tab-pane :label="t('llm_page.tabs.stats')" name="stats">
                 <el-row :gutter="16" class="stats-row">
                     <el-col :span="6" v-for="s in tokenStatCards" :key="s.label">
                         <el-card shadow="never" class="stat-card">
@@ -322,21 +318,21 @@
                 </el-row>
 
                 <el-card shadow="never" class="section-card">
-                    <template #header><span>按模型统计</span></template>
+                    <template #header><span>{{ t('llm_page.stats.by_model') }}</span></template>
                     <el-table :data="byModel" v-loading="loadingStats" stripe size="small">
-                        <el-table-column label="模型" prop="model" />
-                        <el-table-column label="Token 数" prop="tokens" align="right">
+                        <el-table-column :label="t('llm_page.cols.model')" prop="model" />
+                        <el-table-column :label="t('llm_page.cols.tokens')" prop="tokens" align="right">
                             <template #default="{ row }">{{ formatNumber(row.tokens) }}</template>
                         </el-table-column>
-                        <el-table-column label="费用 (USD)" prop="cost" align="right" width="140">
+                        <el-table-column :label="t('llm_page.cols.cost_usd')" prop="cost" align="right" width="140">
                             <template #default="{ row }">${{ row.cost.toFixed(6) }}</template>
                         </el-table-column>
-                        <el-table-column label="请求数" prop="requests" align="right" width="100" />
+                        <el-table-column :label="t('llm_page.cols.requests')" prop="requests" align="right" width="100" />
                     </el-table>
                 </el-card>
 
                 <el-card shadow="never" class="section-card">
-                    <template #header><span>每日趋势（近 30 天）</span></template>
+                    <template #header><span>{{ t('llm_page.stats.daily_trend') }}</span></template>
                     <div class="daily-chart" v-if="byDay.length > 0">
                         <div class="bar-item" v-for="d in dailyChartData" :key="d.date">
                             <div class="bar-label">{{ d.label }}</div>
@@ -346,66 +342,65 @@
                             <div class="bar-value">{{ formatNumber(d.tokens) }}</div>
                         </div>
                     </div>
-                    <el-empty v-else description="暂无数据" />
+                    <el-empty v-else :description="t('messages.no_data')" />
                 </el-card>
             </el-tab-pane>
 
             <!-- 日志 -->
-            <el-tab-pane label="请求日志" name="logs">
+            <el-tab-pane :label="t('llm_page.tabs.logs')" name="logs">
                 <div class="filter-bar">
                     <el-select v-model="logFilter.errorsOnly" size="small" style="width: 130px;" @change="loadLogs">
-                        <el-option label="全部" :value="false" />
-                        <el-option label="仅错误" :value="true" />
+                        <el-option v-for="opt in logFilterOptions" :key="String(opt.value)" :label="opt.label" :value="opt.value" />
                     </el-select>
-                    <el-button size="small" @click="loadLogs" style="margin-left: 8px;">刷新</el-button>
+                    <el-button size="small" @click="loadLogs" style="margin-left: 8px;">{{ t('llm_page.refresh') }}</el-button>
                 </div>
                 <el-table :data="logList" v-loading="loadingLogs" stripe size="small" max-height="500">
-                    <el-table-column label="Provider" width="100" prop="provider_name" />
-                    <el-table-column label="模型" width="120" prop="model" />
-                    <el-table-column label="功能" width="80" prop="function" />
+                    <el-table-column :label="t('llm_page.cols.provider')" width="100" prop="provider_name" />
+                    <el-table-column :label="t('llm_page.cols.model')" width="120" prop="model" />
+                    <el-table-column :label="t('llm_page.cols.function')" width="80" prop="function" />
                     <el-table-column label="Token" width="100" align="right">
                         <template #default="{ row }">{{ row.total_tokens }}</template>
                     </el-table-column>
-                    <el-table-column label="费用 $" width="100" align="right" prop="cost_usd" />
-                    <el-table-column label="耗时" width="80" align="right" prop="duration_ms">
+                    <el-table-column :label="t('llm_page.cols.cost')" width="100" align="right" prop="cost_usd" />
+                    <el-table-column :label="t('llm_page.cols.duration')" width="80" align="right" prop="duration_ms">
                         <template #default="{ row }">{{ row.duration_ms }}ms</template>
                     </el-table-column>
-                    <el-table-column label="状态" width="70">
+                    <el-table-column :label="t('llm_page.cols.status')" width="70">
                         <template #default="{ row }">
                             <el-tag :type="row.success ? 'success' : 'danger'" size="small">
-                                {{ row.success ? '成功' : '失败' }}
+                                {{ row.success ? t('llm_page.status.success') : t('llm_page.status.failed') }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="错误" min-width="160" prop="error_message" />
-                    <el-table-column label="时间" width="170" prop="created_at" />
+                    <el-table-column :label="t('llm_page.cols.error')" min-width="160" prop="error_message" />
+                    <el-table-column :label="t('llm_page.cols.time')" width="170" prop="created_at" />
                 </el-table>
             </el-tab-pane>
 
             <!-- ─── 本地大模型部署 (M3-49) ─── -->
-            <el-tab-pane label="本地部署" name="local">
+            <el-tab-pane :label="t('llm_page.tabs.local')" name="local">
                 <el-alert
-                  title="私有化本地大模型 — 数据不出企业内网，支持 Ollama / vLLM"
+                  :title="t('llm_page.local.alert')"
                   type="info" show-icon :closable="false" class="mb-3"
                 />
 
                 <!-- 实例状态 -->
-                <h4 class="mb-2">运行实例</h4>
+                <h4 class="mb-2">{{ t('llm_page.local.running_instances') }}</h4>
                 <el-row :gutter="16" class="mb-3">
                   <el-col :span="8" v-for="inst in localInstances" :key="inst.id || inst.driver">
                     <el-card shadow="hover" :class="['instance-card', inst.healthy ? 'healthy' : 'unhealthy']">
                       <template #header>
                         <span>{{ inst.name }}</span>
                         <el-tag :type="inst.healthy ? 'success' : 'danger'" size="small" style="float:right">
-                          {{ inst.healthy ? '健康' : '异常' }}
+                          {{ inst.healthy ? t('llm_page.status.healthy') : t('llm_page.status.unhealthy') }}
                         </el-tag>
                       </template>
                       <div class="instance-meta">
-                        <div>驱动: {{ inst.driver }}</div>
-                        <div>API: <code>{{ inst.api_base }}</code></div>
-                        <div>延迟: {{ inst.latency_ms }}ms</div>
-                        <div>模型数: {{ inst.model_count }}</div>
-                        <div v-if="inst.default_model">默认模型: {{ inst.default_model }}</div>
+                        <div>{{ t('llm_page.local.driver_label') }}: {{ inst.driver }}</div>
+                        <div>{{ t('llm_page.local.api_label') }}: <code>{{ inst.api_base }}</code></div>
+                        <div>{{ t('llm_page.local.latency_label') }}: {{ inst.latency_ms }}ms</div>
+                        <div>{{ t('llm_page.local.model_count') }}: {{ inst.model_count }}</div>
+                        <div v-if="inst.default_model">{{ t('llm_page.local.default_model') }}: {{ inst.default_model }}</div>
                       </div>
                     </el-card>
                   </el-col>
@@ -413,51 +408,45 @@
 
                 <!-- GPU 信息 -->
                 <el-card shadow="never" class="mb-3" v-if="gpuInfo.available">
-                  <template #header><span>GPU 状态</span></template>
+                  <template #header><span>{{ t('llm_page.local.gpu_status') }}</span></template>
                   <el-table :data="gpuInfo.gpus || []" stripe size="small">
-                    <el-table-column prop="index" label="GPU #" width="60" />
-                    <el-table-column prop="name" label="型号" min-width="200" />
-                    <el-table-column label="显存" width="200">
+                    <el-table-column prop="index" :label="t('llm_page.cols.gpu_index')" width="60" />
+                    <el-table-column prop="name" :label="t('llm_page.cols.gpu_model')" min-width="200" />
+                    <el-table-column :label="t('llm_page.cols.vram')" width="200">
                       <template #default="{ row }">
                         {{ formatMB(row.memory_used_mb) }} / {{ formatMB(row.memory_total_mb) }}
                       </template>
                     </el-table-column>
-                    <el-table-column label="温度" width="100">
+                    <el-table-column :label="t('llm_page.cols.temperature')" width="100">
                       <template #default="{ row }">{{ row.temperature_c }}°C</template>
                     </el-table-column>
-                    <el-table-column label="利用率" width="120">
+                    <el-table-column :label="t('llm_page.cols.utilization')" width="120">
                       <template #default="{ row }">
                         <el-progress :percentage="row.utilization_percent" :stroke-width="12" />
                       </template>
                     </el-table-column>
                   </el-table>
                 </el-card>
-                <el-alert v-else title="未检测到 GPU" type="warning" show-icon :closable="false" class="mb-3" />
+                <el-alert v-else :title="t('llm_page.local.no_gpu')" type="warning" show-icon :closable="false" class="mb-3" />
 
                 <!-- 模型管理 -->
-                <h4 class="mb-2">模型管理 (Ollama)</h4>
+                <h4 class="mb-2">{{ t('llm_page.local.model_mgmt') }}</h4>
                 <div class="section-toolbar mb-2">
-                  <el-select v-model="modelToPull" placeholder="选择要下载的模型" style="width:220px">
-                    <el-option label="Qwen 2 (7B) - 推荐" value="qwen2:7b" />
-                    <el-option label="Qwen 2 (72B)" value="qwen2:72b" />
-                    <el-option label="DeepSeek R1 (7B)" value="deepseek-r1:7b" />
-                    <el-option label="DeepSeek R1 (14B)" value="deepseek-r1:14b" />
-                    <el-option label="Llama 3 (8B)" value="llama3" />
-                    <el-option label="Mistral (7B)" value="mistral" />
-                    <el-option label="Nomic Embed Text" value="nomic-embed-text" />
+                  <el-select v-model="modelToPull" :placeholder="t('llm_page.local.select_model_ph')" style="width:220px">
+                    <el-option v-for="opt in modelPullOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                   </el-select>
-                  <el-button type="primary" @click="handlePullModel" :loading="pulling" size="small">下载模型</el-button>
+                  <el-button type="primary" @click="handlePullModel" :loading="pulling" size="small">{{ t('llm_page.pull_model') }}</el-button>
                 </div>
                 <el-table :data="localModels" stripe size="small" v-if="localModels.length">
-                  <el-table-column prop="id" label="模型名称" min-width="250" />
-                  <el-table-column label="大小" width="120">
+                  <el-table-column prop="id" :label="t('llm_page.cols.model_name')" min-width="250" />
+                  <el-table-column :label="t('llm_page.cols.size')" width="120">
                     <template #default="{ row }">{{ formatBytes(row.size) }}</template>
                   </el-table-column>
-                  <el-table-column label="操作" width="100">
+                  <el-table-column :label="t('llm_page.cols.actions')" width="100">
                     <template #default="{ row }">
-                      <el-popconfirm title="确认删除此模型？" @confirm="deleteModel(row.id)">
+                      <el-popconfirm :title="t('llm_page.local.delete_confirm')" @confirm="deleteModel(row.id)">
                         <template #reference>
-                          <el-button text type="danger" size="small">删除</el-button>
+                          <el-button text type="danger" size="small">{{ t('actions.delete') }}</el-button>
                         </template>
                       </el-popconfirm>
                     </template>
@@ -466,32 +455,36 @@
 
                 <!-- 硬件信息 -->
                 <el-card shadow="never" class="mt-3">
-                  <template #header><span>硬件信息</span></template>
+                  <template #header><span>{{ t('llm_page.local.hardware_info') }}</span></template>
                   <el-descriptions :column="3" border size="small">
-                    <el-descriptions-item label="CPU">{{ hardware.cpu || 'N/A' }}</el-descriptions-item>
-                    <el-descriptions-item label="核心数">{{ hardware.cpu_cores || 'N/A' }}</el-descriptions-item>
-                    <el-descriptions-item label="内存">{{ hardware.ram_total_gb }}GB / {{ hardware.ram_available_gb }}GB 可用</el-descriptions-item>
-                    <el-descriptions-item label="磁盘">{{ hardware.disk_total_gb }}GB / {{ hardware.disk_free_gb }}GB 可用</el-descriptions-item>
-                    <el-descriptions-item label="最低要求">
+                    <el-descriptions-item :label="t('llm_page.local.cpu')">{{ hardware.cpu || 'N/A' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('llm_page.local.cores')">{{ hardware.cpu_cores || 'N/A' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t('llm_page.local.memory')">
+                        {{ t('llm_page.local.memory_fmt', { total: hardware.ram_total_gb, available: hardware.ram_available_gb }) }}
+                    </el-descriptions-item>
+                    <el-descriptions-item :label="t('llm_page.local.disk')">
+                        {{ t('llm_page.local.disk_fmt', { total: hardware.disk_total_gb, free: hardware.disk_free_gb }) }}
+                    </el-descriptions-item>
+                    <el-descriptions-item :label="t('llm_page.local.min_requirements')">
                       <el-tag :type="hardware.meets_minimum ? 'success' : 'danger'" size="small">
-                        {{ hardware.meets_minimum ? '达标' : '未达标' }}
+                        {{ hardware.meets_minimum ? t('llm_page.status.meets_minimum') : t('llm_page.status.not_meets_minimum') }}
                       </el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="推荐配置">
-                      RAM ≥ {{ hardware.recommended_hardware?.recommended_ram_gb }}GB | VRAM ≥ {{ hardware.recommended_hardware?.recommended_vram_gb }}GB
+                    <el-descriptions-item :label="t('llm_page.local.recommended')">
+                      {{ t('llm_page.local.recommended_fmt', { ram: hardware.recommended_hardware?.recommended_ram_gb, vram: hardware.recommended_hardware?.recommended_vram_gb }) }}
                     </el-descriptions-item>
                   </el-descriptions>
                 </el-card>
 
                 <!-- 部署指引 -->
                 <el-card shadow="never" class="mt-3">
-                  <template #header><span>部署指引</span></template>
+                  <template #header><span>{{ t('llm_page.local.deploy_guide') }}</span></template>
                   <el-steps direction="vertical" :active="-1" v-if="deployGuide.ollama">
                     <el-step v-for="(s, i) in deployGuide.ollama.steps" :key="i" :title="s.action" :description="s.command" />
                   </el-steps>
                   <el-divider />
                   <el-button size="small" @click="refreshLocalData" :loading="localLoading">
-                    <el-icon><Refresh /></el-icon> 刷新状态
+                    <el-icon><Refresh /></el-icon> {{ t('llm_page.refresh_status') }}
                   </el-button>
                 </el-card>
             </el-tab-pane>
@@ -500,13 +493,16 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
+import { ref, reactive, computed, onMounted, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { ChatLineSquare } from '@element-plus/icons-vue';
 import llmApi from '@/api/llm';
 import llmFallbackApi from '@/api/llmFallback';
 import localLlmApi from '@/api/localLLM';
 import { Refresh } from '@element-plus/icons-vue';
+
+const { t, locale } = useI18n();
 
 const activeTab = ref('providers');
 const loadingProviders = ref(false);
@@ -522,6 +518,35 @@ const editForm = reactive({
     config: { temperature: 0.7, max_tokens: 4096 },
 });
 
+const editDialogTitle = computed(() =>
+    isCreating.value
+        ? t('llm_page.providers.create_title')
+        : t('llm_page.providers.edit_title', { name: editForm.name }),
+);
+
+const driverOptions = computed(() => [
+    { label: t('llm_page.drivers.openai'), value: 'openai' },
+    { label: t('llm_page.drivers.deepseek'), value: 'deepseek' },
+    { label: t('llm_page.drivers.ollama'), value: 'ollama' },
+    { label: t('llm_page.drivers.vllm'), value: 'vllm' },
+    { label: t('llm_page.drivers.claude'), value: 'claude' },
+]);
+
+const logFilterOptions = computed(() => [
+    { label: t('llm_page.logs.all'), value: false },
+    { label: t('llm_page.logs.errors_only'), value: true },
+]);
+
+const modelPullOptions = computed(() => [
+    { label: t('llm_page.models.qwen2_7b'), value: 'qwen2:7b' },
+    { label: t('llm_page.models.qwen2_72b'), value: 'qwen2:72b' },
+    { label: t('llm_page.models.deepseek_r1_7b'), value: 'deepseek-r1:7b' },
+    { label: t('llm_page.models.deepseek_r1_14b'), value: 'deepseek-r1:14b' },
+    { label: t('llm_page.models.llama3'), value: 'llama3' },
+    { label: t('llm_page.models.mistral'), value: 'mistral' },
+    { label: t('llm_page.models.nomic_embed'), value: 'nomic-embed-text' },
+]);
+
 // Chat
 const chatInput = ref('');
 const chatMessages = ref([]);
@@ -530,7 +555,6 @@ const chatModel = ref('deepseek-chat');
 const streaming = ref(false);
 const streamContent = ref('');
 const chatRef = ref(null);
-let abortController = null;
 
 const activeProviders = computed(() => providers.value.filter(p => p.is_active));
 const availableModels = computed(() => {
@@ -548,10 +572,10 @@ const byModel = ref([]);
 const byDay = ref([]);
 
 const tokenStatCards = computed(() => [
-    { label: '总 Token', value: formatNumber(tokenStats.total_tokens), color: '#409EFF' },
-    { label: '总费用 (USD)', value: '$' + (tokenStats.total_cost_usd || 0).toFixed(6), color: '#F56C6C' },
-    { label: '总请求数', value: formatNumber(tokenStats.total_requests), color: '#67C23A' },
-    { label: 'Prompt/Completion', value: formatNumber(tokenStats.total_prompt_tokens) + ' / ' + formatNumber(tokenStats.total_completion_tokens), color: '#E6A23C' },
+    { label: t('llm_page.stats.total_tokens'), value: formatNumber(tokenStats.total_tokens), color: '#0f172a' },
+    { label: t('llm_page.stats.total_cost'), value: '$' + (tokenStats.total_cost_usd || 0).toFixed(6), color: '#F56C6C' },
+    { label: t('llm_page.stats.total_requests'), value: formatNumber(tokenStats.total_requests), color: '#67C23A' },
+    { label: t('llm_page.stats.prompt_completion'), value: formatNumber(tokenStats.total_prompt_tokens) + ' / ' + formatNumber(tokenStats.total_completion_tokens), color: '#E6A23C' },
 ]);
 
 const dailyChartData = computed(() => {
@@ -644,18 +668,18 @@ async function handleSaveProvider() {
             data.driver = editForm.driver;
             const { data: res } = await llmApi.createProvider(data);
             if (res.success) {
-                ElMessage.success('Provider 已创建');
+                ElMessage.success(t('llm_page.messages.provider_created'));
             }
         } else {
             const { data: res } = await llmApi.updateProvider(editForm.id, data);
             if (res.success) {
-                ElMessage.success('配置已保存');
+                ElMessage.success(t('llm_page.messages.config_saved'));
             }
         }
         editDialogVisible.value = false;
         await loadProviders();
     } catch {
-        ElMessage.error(isCreating.value ? '创建失败' : '保存失败');
+        ElMessage.error(isCreating.value ? t('llm_page.messages.create_failed') : t('llm_page.messages.save_failed'));
     } finally {
         savingProvider.value = false;
     }
@@ -666,12 +690,12 @@ async function handleTest(provider) {
     try {
         const { data: res } = await llmApi.testConnection(provider.id);
         if (res.success) {
-            ElMessage.success(res.data?.message || '连接成功');
+            ElMessage.success(res.data?.message || t('llm_page.messages.connection_ok'));
         } else {
-            ElMessage.warning(res.message || '连接异常');
+            ElMessage.warning(res.message || t('llm_page.messages.connection_abnormal'));
         }
     } catch {
-        ElMessage.error('测试失败');
+        ElMessage.error(t('llm_page.messages.test_failed'));
     } finally {
         testingId.value = null;
     }
@@ -692,7 +716,7 @@ async function sendChat() {
 
     try {
         const { data: res } = await llmApi.chat([
-            { role: 'system', content: '你是一个智能助手，请用中文回答。' },
+            { role: 'system', content: t('llm_page.chat.system_prompt') },
             ...chatMessages.value.slice(0, msgIndex).map(m => ({ role: m.role, content: m.content })),
         ], {
             provider: chatProvider.value,
@@ -703,10 +727,10 @@ async function sendChat() {
             chatMessages.value[msgIndex].content = res.data?.content || '';
             chatMessages.value[msgIndex].usage = res.data?.usage || null;
         } else {
-            chatMessages.value[msgIndex].content = '错误: ' + (res.message || '请求失败');
+            chatMessages.value[msgIndex].content = t('llm_page.chat.error_prefix') + (res.message || t('llm_page.chat.request_failed'));
         }
     } catch (e) {
-        chatMessages.value[msgIndex].content = '请求异常: ' + (e.message || '未知错误');
+        chatMessages.value[msgIndex].content = t('llm_page.chat.exception_prefix') + (e.message || t('llm_page.chat.unknown_error'));
     } finally {
         streaming.value = false;
         scrollToBottom();
@@ -763,6 +787,15 @@ const loadingHealth = ref(false);
 const checkingHealth = ref(false);
 const events = ref([]);
 
+const eventLabels = computed(() => ({
+    circuit_opened: t('llm_page.events.circuit_opened'),
+    circuit_closed: t('llm_page.events.circuit_closed'),
+    provider_switch: t('llm_page.events.provider_switch'),
+    health_fail: t('llm_page.events.health_fail'),
+    health_recover: t('llm_page.events.health_recover'),
+    all_down: t('llm_page.events.all_down'),
+}));
+
 async function loadHealthStatus() {
     loadingHealth.value = true;
     try {
@@ -784,11 +817,14 @@ async function runHealthCheck() {
     try {
         const { data: res } = await llmApi.runHealthCheck();
         if (res.success) {
-            ElMessage.success(`健康检查完成: ${res.data.healthy_count}/${res.data.total_count} 正常`);
+            ElMessage.success(t('llm_page.messages.health_check_done', {
+                healthy: res.data.healthy_count,
+                total: res.data.total_count,
+            }));
             await loadHealthStatus();
             await loadFallbackEvents();
         }
-    } catch { ElMessage.error('健康检查失败'); }
+    } catch { ElMessage.error(t('llm_page.messages.health_check_failed')); }
     finally { checkingHealth.value = false; }
 }
 
@@ -797,20 +833,13 @@ function eventTagType(type) {
 }
 
 function eventLabel(type) {
-    const labels = {
-        circuit_opened: '熔断开启',
-        circuit_closed: '熔断关闭',
-        provider_switch: 'Provider切换',
-        health_fail: '健康异常',
-        health_recover: '健康恢复',
-        all_down: '全部不可用',
-    };
-    return labels[type] || type;
+    return eventLabels.value[type] || type;
 }
 
-function formatEventTime(t) {
-    if (!t) return '';
-    return new Date(t).toLocaleString('zh-CN');
+function formatEventTime(time) {
+    if (!time) return '';
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(time).toLocaleString(loc);
 }
 
 async function loadFallbackStatus() {
@@ -830,13 +859,13 @@ async function handleResetFallback() {
     try {
         const { data: res } = await llmFallbackApi.reset();
         if (res.success) {
-            ElMessage.success('降级状态已重置');
+            ElMessage.success(t('llm_page.messages.fallback_reset'));
             await loadFallbackStatus();
         } else {
-            ElMessage.warning(res.message || '重置失败');
+            ElMessage.warning(res.message || t('llm_page.messages.reset_failed'));
         }
     } catch {
-        ElMessage.error('重置请求失败');
+        ElMessage.error(t('llm_page.messages.reset_request_failed'));
     } finally {
         resettingFallback.value = false;
     }
@@ -904,11 +933,11 @@ async function loadLocalData() {
 
 async function refreshLocalData() {
   await loadLocalData();
-  ElMessage.success('本地 LLM 状态已刷新');
+  ElMessage.success(t('llm_page.messages.local_refreshed'));
 }
 
 async function handlePullModel() {
-  if (!modelToPull.value) { ElMessage.warning('请选择模型'); return; }
+  if (!modelToPull.value) { ElMessage.warning(t('llm_page.messages.select_model')); return; }
   pulling.value = true;
   try {
     const { data } = await localLlmApi.pullModel(modelToPull.value);
@@ -919,7 +948,7 @@ async function handlePullModel() {
       ElMessage.error(data.message);
     }
   } catch {
-    ElMessage.error('模型下载失败');
+    ElMessage.error(t('llm_page.messages.pull_failed'));
   } finally {
     pulling.value = false;
   }
@@ -933,7 +962,7 @@ async function deleteModel(modelName) {
       await loadLocalData();
     }
   } catch {
-    ElMessage.error('删除失败');
+    ElMessage.error(t('llm_page.messages.delete_failed'));
   }
 }
 </script>
@@ -1066,7 +1095,7 @@ async function deleteModel(modelName) {
 }
 .bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #409EFF, #79bbff);
+    background: linear-gradient(90deg, #0f172a, #94a3b8);
     border-radius: 8px;
     transition: width 0.3s ease;
 }

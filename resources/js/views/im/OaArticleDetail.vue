@@ -4,39 +4,37 @@
         <div class="oa-article-topbar" :class="{ 'topbar-hidden': topbarHidden }">
             <div class="topbar-left">
                 <el-button text size="small" @click="goBack">
-                    <el-icon><ArrowLeft /></el-icon> 返回互物号
+                    <el-icon><ArrowLeft /></el-icon> {{ tp('back') }}
                 </el-button>
                 <el-divider direction="vertical" />
                 <span v-if="article" class="topbar-acc-name">{{ article.account?.name }}</span>
             </div>
             <div class="topbar-right">
-                <el-button text size="small" @click="toggleFontSize" title="字号">
+                <el-button text size="small" @click="toggleFontSize" :title="tp('font_size')">
                     <el-icon><ZoomIn /></el-icon>
                 </el-button>
-                <el-button text size="small" @click="useSerif = !useSerif" :type="useSerif ? 'primary' : 'default'" title="切换衬线字体">Aa</el-button>
-                <el-button text size="small" :type="isSpeaking ? 'primary' : 'default'" @click="toggleSpeech" title="语音朗读">🔊</el-button>
+                <el-button text size="small" @click="useSerif = !useSerif" :type="useSerif ? 'primary' : 'default'" :title="tp('serif_font')">Aa</el-button>
+                <el-button text size="small" :type="isSpeaking ? 'primary' : 'default'" @click="toggleSpeech" :title="tp('speech')">TTS</el-button>
                 <el-dropdown trigger="click" @command="setTheme">
-                    <el-button text size="small" title="主题">🎨</el-button>
+                    <el-button text size="small" :title="tp('theme')">T</el-button>
                     <template #dropdown>
                         <el-dropdown-menu>
-                            <el-dropdown-item command="default">☀️ 默认</el-dropdown-item>
-                            <el-dropdown-item command="sepia">📜 羊皮纸</el-dropdown-item>
-                            <el-dropdown-item command="night">🌃 夜间</el-dropdown-item>
+                            <el-dropdown-item v-for="opt in themeOptions" :key="opt.command" :command="opt.command">{{ opt.label }}</el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
                 </el-dropdown>
                 <el-dropdown trigger="click" @command="handleShareCommand">
                     <el-button text size="small">
-                        <el-icon><Share /></el-icon> 分享 <span v-if="shareRewardPoints > 0" style="color:#e6a23c;font-size:11px">+{{ shareRewardPoints }}</span> <el-icon><ArrowDown /></el-icon>
+                        <el-icon><Share /></el-icon> {{ t('actions.share') }} <span v-if="shareRewardPoints > 0" style="color:#e6a23c;font-size:11px">+{{ shareRewardPoints }}</span> <el-icon><ArrowDown /></el-icon>
                     </el-button>
                     <template #dropdown>
                         <el-dropdown-menu>
-                            <el-dropdown-item command="chat">💬 好友/聊天</el-dropdown-item>
-                            <el-dropdown-item command="plaza">🌐 社区</el-dropdown-item>
-                            <el-dropdown-item command="channel">📡 圈子</el-dropdown-item>
-                            <el-dropdown-item command="wechat" divided>💚 微信 <PointsIcon :size="14" />+1</el-dropdown-item>
-                            <el-dropdown-item command="weibo">🔴 微博 <PointsIcon :size="14" />+1</el-dropdown-item>
-                            <el-dropdown-item command="copy">🔗 复制链接 <PointsIcon :size="14" />+1</el-dropdown-item>
+                            <el-dropdown-item command="chat">{{ shareTargetLabels.chat }}</el-dropdown-item>
+                            <el-dropdown-item command="plaza">{{ shareTargetLabels.plaza }}</el-dropdown-item>
+                            <el-dropdown-item command="channel">{{ shareTargetLabels.channel }}</el-dropdown-item>
+                            <el-dropdown-item command="wechat" divided>{{ shareTargetLabels.wechat }} <PointsIcon :size="14" />+1</el-dropdown-item>
+                            <el-dropdown-item command="weibo">{{ shareTargetLabels.weibo }} <PointsIcon :size="14" />+1</el-dropdown-item>
+                            <el-dropdown-item command="copy">{{ shareTargetLabels.copy }} <PointsIcon :size="14" />+1</el-dropdown-item>
                         </el-dropdown-menu>
                     </template>
                 </el-dropdown>
@@ -48,10 +46,10 @@
             <!-- 阅读进度条 -->
             <div class="oa-reading-progress" :style="{ width: readingProgress + '%' }"></div>
             <!-- 阅读进度环 -->
-            <div class="oa-reading-ring" @click="focusMode = !focusMode" :title="focusMode ? '退出专注模式' : '专注模式'">
+            <div class="oa-reading-ring" @click="focusMode = !focusMode" :title="focusMode ? tp('exit_focus_mode') : tp('focus_mode')">
                 <svg width="44" height="44" viewBox="0 0 44 44">
                     <circle cx="22" cy="22" r="18" fill="none" stroke="#e8e8e8" stroke-width="3" />
-                    <circle cx="22" cy="22" r="18" fill="none" stroke="#409eff" stroke-width="3"
+                    <circle cx="22" cy="22" r="18" fill="none" stroke="#0f172a" stroke-width="3"
                         stroke-linecap="round" :stroke-dasharray="113.1"
                         :stroke-dashoffset="113.1 - (readingProgress / 100) * 113.1"
                         transform="rotate(-90 22 22)" style="transition: stroke-dashoffset 0.2s" />
@@ -64,28 +62,28 @@
                 <header class="oa-article-header" :class="{ 'focus-hidden': focusMode }">
                     <h1 class="oa-article-title">{{ article.title }}</h1>
                     <div class="oa-article-meta-row">
-                        <el-tag v-if="article.is_original" size="small" type="danger" style="margin-right:6px">原创</el-tag>
+                        <el-tag v-if="article.is_original" size="small" type="danger" style="margin-right:6px">{{ tp('original') }}</el-tag>
                         <span class="oa-meta-author">
                             <img v-if="article.author?.avatar" :src="article.author.avatar" class="oa-meta-avatar" />
-                            {{ article.author?.name || '匿名' }}
+                            {{ article.author?.name || tp('anonymous') }}
                         </span>
                         <span class="oa-meta-sep">·</span>
                         <span class="oa-meta-acc">{{ article.account?.name }}</span>
                         <template v-if="isLoggedIn">
-                            <el-button v-if="article.is_following === false" size="small" text type="primary" @click="handleFollow" style="margin-left:4px;font-size:12px">+ 关注</el-button>
-                            <el-button v-else size="small" text type="default" @click="handleUnfollow" style="margin-left:4px;font-size:12px">已关注</el-button>
+                            <el-button v-if="article.is_following === false" size="small" text type="primary" @click="handleFollow" style="margin-left:4px;font-size:12px">{{ tp('follow') }}</el-button>
+                            <el-button v-else size="small" text type="default" @click="handleUnfollow" style="margin-left:4px;font-size:12px">{{ tp('following') }}</el-button>
                         </template>
-                        <span v-else class="oa-login-hint" @click="redirectToLogin" style="margin-left:4px;font-size:12px;color:#409eff;cursor:pointer">登录后可关注</span>
+                        <span v-else class="oa-login-hint" @click="redirectToLogin" style="margin-left:4px;font-size:12px;color:#0f172a;cursor:pointer">{{ tp('login_to_follow') }}</span>
                         <span class="oa-meta-sep">·</span>
                         <span class="oa-meta-time">{{ formatFullTime(article.published_at) }}</span>
                         <span class="oa-meta-sep">·</span>
-                        <span class="oa-meta-time">⏱️ {{ readingTime }} 分钟</span>
-                        <span class="oa-meta-time">📝 {{ wordCount }} 字</span>
+                        <span class="oa-meta-time">{{ tp('reading_minutes', { n: readingTime }) }}</span>
+                        <span class="oa-meta-time">{{ tp('word_count', { n: wordCount }) }}</span>
                     </div>
                 </header>
 
                 <div v-if="getCoverImage(article)" class="oa-article-cover">
-                    <img :src="getCoverImage(article)" :alt="(article.title || '文章') + ' - 封面图'" />
+                    <img :src="getCoverImage(article)" :alt="(article.title || tp('article_fallback')) + ' - ' + tp('cover_suffix')" />
                 </div>
 
                 <!-- 🔒 付费墙 -->
@@ -94,30 +92,30 @@
                         <div class="oa-paywall-preview">{{ article.content_preview }}...</div>
                     </div>
                     <div class="oa-paywall-overlay">
-                        <div class="oa-paywall-icon">🔒</div>
-                        <h3 class="oa-paywall-title">付费文章</h3>
-                        <p class="oa-paywall-desc">阅读全部内容需解锁</p>
+                        <div class="oa-paywall-icon">*</div>
+                        <h3 class="oa-paywall-title">{{ tp('paywall.title') }}</h3>
+                        <p class="oa-paywall-desc">{{ tp('paywall.desc') }}</p>
                         <div class="oa-paywall-price">
-                            <PointsIcon v-if="article.price_type === 'points'" :size="26" /> {{ article.price_type === 'points' ? article.price + ' 积分' : '¥' + article.price }}
+                            <PointsIcon v-if="article.price_type === 'points'" :size="26" /> {{ article.price_type === 'points' ? article.price + ' ' + tp('paywall.points_unit') : '¥' + article.price }}
                         </div>
                         <template v-if="isLoggedIn">
                             <el-button type="warning" size="large" :loading="purchasingArticle" @click="purchaseArticle">
-                                <PointsIcon :size="18" v-if="article.price_type === 'points'" /> {{ article.price_type === 'points' ? '积分解锁' : '💳 支付解锁' }}
+                                <PointsIcon :size="18" v-if="article.price_type === 'points'" /> {{ article.price_type === 'points' ? tp('paywall.unlock_points') : tp('paywall.unlock_pay') }}
                             </el-button>
                             <p v-if="article.price_type === 'points' && userBalance >= 0" class="oa-paywall-balance">
-                                当前余额：<PointsIcon :size="14" /> {{ userBalance }} 积分
-                                <span v-if="userBalance < article.price" style="color:#f56c6c">（不足）</span>
+                                {{ tp('paywall.balance') }}<PointsIcon :size="14" /> {{ userBalance }} {{ tp('paywall.points_unit') }}
+                                <span v-if="userBalance < article.price" style="color:#f56c6c">{{ tp('paywall.insufficient') }}</span>
                             </p>
                         </template>
                         <template v-else>
-                            <el-button type="primary" size="large" @click="redirectToLogin">登录后解锁</el-button>
+                            <el-button type="primary" size="large" @click="redirectToLogin">{{ tp('paywall.login_unlock') }}</el-button>
                         </template>
                     </div>
                 </div>
 
                 <!-- 目录导航 -->
                 <div v-if="tocItems.length > 0" class="oa-toc">
-                    <div class="oa-toc-header" @click="showToc = !showToc">📑 目录 <el-icon><ArrowDown /></el-icon></div>
+                    <div class="oa-toc-header" @click="showToc = !showToc">{{ tp('toc') }} <el-icon><ArrowDown /></el-icon></div>
                     <div v-show="showToc" class="oa-toc-body">
                         <div v-for="(item, idx) in tocItems" :key="idx" class="oa-toc-item"
                             :style="{ paddingLeft: (item.level - 1) * 16 + 'px' }"
@@ -129,7 +127,7 @@
 
                 <div class="oa-article-content" v-html="article.content" @click="onArticleContentClick" ref="contentRef" v-if="!article.is_paid || article.has_purchased"></div>
                 <div v-else-if="article.content_preview" class="oa-article-content oa-content-locked">
-                    <p style="color:#999;text-align:center;padding:20px">🔒 付费内容已隐藏，请解锁后阅读</p>
+                    <p style="color:#999;text-align:center;padding:20px">{{ tp('paywall.content_hidden') }}</p>
                 </div>
 
                 <!-- 多图展示 -->
@@ -145,38 +143,38 @@
 
                 <!-- 操作栏（居中） -->
                 <div class="oa-article-actions" v-if="article">
-                    <el-button :type="article.is_liked ? 'primary' : 'default'" text @click="isLoggedIn ? handleLike() : redirectToLogin()" title="点赞">
-                        🤍 {{ article.likes_count || 0 }}
+                    <el-button :type="article.is_liked ? 'primary' : 'default'" text @click="isLoggedIn ? handleLike() : redirectToLogin()" :title="tp('like')">
+                        {{ article.likes_count || 0 }}
                     </el-button>
-                    <el-button text disabled title="阅读">
-                        👁️ {{ article.reads_count || 0 }}
+                    <el-button text disabled :title="tp('read')">
+                        {{ article.reads_count || 0 }}
                     </el-button>
-                    <el-button :type="article.is_favorited ? 'warning' : 'default'" text @click="isLoggedIn ? handleFavorite() : redirectToLogin()" title="收藏">
-                        {{ article.is_favorited ? '⭐' : '☆' }} 收藏
+                    <el-button :type="article.is_favorited ? 'warning' : 'default'" text @click="isLoggedIn ? handleFavorite() : redirectToLogin()" :title="tp('favorite')">
+                        {{ tp('favorite') }}
                     </el-button>
-                    <el-button text type="warning" @click="openTipDialog" title="打赏">
-                        <PointsIcon :size="16" /> 打赏
+                    <el-button text type="warning" @click="openTipDialog" :title="tp('tip')">
+                        <PointsIcon :size="16" /> {{ tp('tip') }}
                     </el-button>
                     <el-button v-if="(article.author?.id || article.user_id) !== myId" text type="warning" @click="isLoggedIn ? reportArticle() : redirectToLogin()">
-                        ⚠️ 举报
+                        {{ tp('report') }}
                     </el-button>
                 </div>
 
                 <!-- 上一篇/下一篇 -->
                 <div v-if="article.prev_article || article.next_article" class="oa-article-prev-next">
                     <a v-if="article.prev_article" :href="'/build/oa-article/' + article.prev_article.id" class="oa-pn-link oa-pn-prev">
-                        <span class="oa-pn-label">← 上一篇</span>
+                        <span class="oa-pn-label">{{ tp('prev_article') }}</span>
                         <span class="oa-pn-title">{{ article.prev_article.title }}</span>
                     </a>
                     <a v-if="article.next_article" :href="'/build/oa-article/' + article.next_article.id" class="oa-pn-link oa-pn-next">
-                        <span class="oa-pn-label">下一篇 →</span>
+                        <span class="oa-pn-label">{{ tp('next_article') }}</span>
                         <span class="oa-pn-title">{{ article.next_article.title }}</span>
                     </a>
                 </div>
 
                 <!-- 推荐阅读 -->
                 <div v-if="article.related_articles?.length" class="oa-article-related">
-                    <h3>📖 推荐阅读</h3>
+                    <h3>{{ tp('related') }}</h3>
                     <div class="oa-related-grid">
                         <a v-for="r in article.related_articles" :key="r.id" :href="'/build/oa-article/' + r.id" class="oa-related-card">
                             <div v-if="getCoverImage(r)" class="oa-related-cover">
@@ -194,35 +192,41 @@
 
                 <!-- 评论区 -->
                 <div class="oa-article-comments">
-                    <h3>💬 评论 ({{ article.comments?.length || 0 }})</h3>
+                    <h3>{{ tp('comments_title', { n: article.comments?.length || 0 }) }}</h3>
                     <div v-if="isLoggedIn" class="oa-comment-input">
                         <div style="display:flex;gap:8px;align-items:flex-start">
                             <el-avatar :size="32" :src="currentUserAvatar" style="flex-shrink:0">{{ myId ? '?' : '' }}</el-avatar>
                             <div style="flex:1">
-                                <div style="display:flex;gap:6px;margin-bottom:6px">
-                                    <el-button size="small" text @click="toggleEmojiPicker" title="表情" style="padding:0 6px">😊</el-button>
-                                    <el-button size="small" text @click="insertCommentImage" title="图片" style="padding:0 6px">🖼️</el-button>
-                                    <el-button size="small" text @click="uploadCommentImage" title="上传图片" style="padding:0 6px">📁</el-button>
+                                <div style="display:flex;gap:6px;margin-bottom:6px;position:relative">
+                                    <el-button size="small" text @click="showEmojiPicker = !showEmojiPicker" :title="tp('emoji')" style="padding:0 6px">:)</el-button>
+                                    <div v-if="showEmojiPicker" style="position:absolute;top:100%;left:0;z-index:100;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);display:flex;flex-wrap:wrap;gap:2px;width:280px" @mouseleave="showEmojiPicker = false">
+                                        <span v-for="emo in ['😊','😂','👍','❤️','🎉','🔥','💪','😍','🤔','👏','🙏','✨','💯','😭','🥰','😎','🤩','😢','🙌','💀','👻','🎈','⭐','🌙','☀️','🌈','🍀','🔥','💡','📌','💎','🆒','🆕','✅','❌','💯','🔔']" :key="emo"
+                                            style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px;font-size:18px"
+                                            :class="{'hover:bg-gray-100': true}"
+                                            @click="newCommentText += emo; showEmojiPicker = false" @mouseenter="$el.style.backgroundColor='#f3f4f6'">{{ emo }}</span>
+                                    </div>
+                                    <el-button size="small" text @click="insertCommentImage" :title="tp('image')" style="padding:0 6px">Img</el-button>
+                                    <el-button size="small" text @click="uploadCommentImage" :title="tp('upload_image')" style="padding:0 6px">{{ t('actions.upload') }}</el-button>
                                 </div>
-                                <el-input v-model="newCommentText" type="textarea" :rows="2" placeholder="写下你的评论..." maxlength="1000" @focus="loadOaAiSuggestions" />
+                                <el-input v-model="newCommentText" type="textarea" :rows="2" :placeholder="tp('comment_placeholder')" maxlength="1000" @focus="loadOaAiSuggestions" />
                         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
                             <span v-for="(sg, si) in oaAiSuggestions" :key="si"
                                 class="px-2.5 py-1 text-xs rounded-full border border-gray-200 text-gray-500 cursor-pointer hover:bg-primary-50 hover:border-primary-300 hover:text-primary-600 transition"
                                 @click="newCommentText = sg; oaAiSuggestions = []">
-                                🤖 {{ sg }}
+                                {{ sg }}
                             </span>
-                            <el-button v-if="oaAiSuggestions.length" size="small" text @click="oaAiSuggestions = []" style="font-size:11px">取消</el-button>
+                            <el-button v-if="oaAiSuggestions.length" size="small" text @click="oaAiSuggestions = []" style="font-size:11px">{{ t('actions.cancel') }}</el-button>
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-                            <input v-if="showCommentImageInput" v-model="commentImageUrl" placeholder="输入图片URL..." size="small" style="flex:1;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px" />
-                            <el-button size="small" type="primary" :loading="submittingComment" @click="submitComment">发表评论</el-button>
+                            <input v-if="showCommentImageInput" v-model="commentImageUrl" :placeholder="tp('comment_image_url_ph')" size="small" style="flex:1;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px" />
+                            <el-button size="small" type="primary" :loading="submittingComment" @click="submitComment">{{ tp('submit_comment') }}</el-button>
                         </div>
                             </div>
                         </div>
                     </div>
                     <div v-else class="oa-comment-login-tip" style="text-align:center;padding:20px;background:#f9f9f9;border-radius:8px;margin-bottom:12px">
-                        <span style="color:#999;font-size:13px">💬 登录后可发表评论</span>
-                        <el-button size="small" text type="primary" @click="redirectToLogin" style="margin-left:8px">立即登录</el-button>
+                        <span style="color:#999;font-size:13px">{{ tp('login_to_comment') }}</span>
+                        <el-button size="small" text type="primary" @click="redirectToLogin" style="margin-left:8px">{{ tp('login_now') }}</el-button>
                     </div>
                     <div v-if="article.comments?.length" class="oa-comment-list">
                         <div v-for="c in displayedComments" :key="c.id" class="oa-comment-item" :class="{ 'oa-comment-pinned': c.is_pinned }">
@@ -230,18 +234,18 @@
                             <span v-else class="oa-comment-avatar-text">{{ c.user?.name?.charAt(0) || '?' }}</span>
                             <div class="oa-comment-body">
                                 <div class="oa-comment-author">
-                                    <el-tag v-if="c.is_pinned" size="small" type="warning" style="margin-right:4px">📌 置顶</el-tag>
-                                    {{ c.user?.name || '匿名' }}
+                                    <el-tag v-if="c.is_pinned" size="small" type="warning" style="margin-right:4px">{{ tp('pinned') }}</el-tag>
+                                    {{ c.user?.name || tp('anonymous') }}
                                     <span v-if="c.user?.region" class="oa-comment-region">{{ c.user.region }}</span>
                                     <span class="oa-comment-time">{{ formatTime(c.created_at) }}</span>
-                                    <el-button v-if="c.user_id === myId" text size="small" type="danger" @click="deleteComment(c)" style="font-size:11px;padding:0 4px;margin-left:4px">删除</el-button>
+                                    <el-button v-if="c.user_id === myId" text size="small" type="danger" @click="deleteComment(c)" style="font-size:11px;padding:0 4px;margin-left:4px">{{ t('actions.delete') }}</el-button>
                                 </div>
                                 <div class="oa-comment-text">{{ c.content }}</div>
                                 <div v-if="c.image" class="oa-comment-image">
                                     <img :src="c.image" style="max-width:200px;max-height:150px;border-radius:6px;margin-top:4px" @click="$event.target.closest('.oa-comment-image')?.querySelector('img')?.classList.toggle('expanded')" />
                                 </div>
                                 <div class="oa-comment-footer" style="display:flex;gap:8px;margin-top:4px">
-                                    <el-button text size="small" @click="startReply(c)" style="font-size:12px;padding:0;height:auto;color:#999">💬 回复</el-button>
+                                    <el-button text size="small" @click="startReply(c)" style="font-size:12px;padding:0;height:auto;color:#999">{{ tp('reply') }}</el-button>
                                     <el-button text size="small" @click="toggleCommentLike(c)" style="font-size:12px;padding:0;height:auto" :type="c.is_liked ? 'primary' : 'default'">
                                         ❤️ {{ c.likes_count || 0 }}
                                     </el-button>
@@ -267,16 +271,16 @@
                                 <!-- 回复输入框 -->
                                 <div v-if="replyingTo === c.id" class="oa-reply-box" style="margin-top:8px;display:flex;gap:6px;align-items:center">
                                     <el-avatar :size="24" :src="currentUserAvatar" style="flex-shrink:0">{{ myId ? '?' : '' }}</el-avatar>
-                                    <el-input v-model="replyText" placeholder="输入回复..." size="small" style="flex:1" maxlength="1000" />
-                                    <el-button size="small" type="primary" :loading="replying" @click="submitReply(c)">发送</el-button>
-                                    <el-button size="small" @click="replyingTo = null">取消</el-button>
+                                    <el-input v-model="replyText" :placeholder="tp('reply_placeholder')" size="small" style="flex:1" maxlength="1000" />
+                                    <el-button size="small" type="primary" :loading="replying" @click="submitReply(c)">{{ tp('send') }}</el-button>
+                                    <el-button size="small" @click="replyingTo = null">{{ t('actions.cancel') }}</el-button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div v-else style="text-align:center;padding:16px;color:#999;font-size:13px">暂无评论，来说两句吧</div>
+                    <div v-else style="text-align:center;padding:16px;color:#999;font-size:13px">{{ tp('no_comments') }}</div>
                     <div v-if="hasMoreComments && article.comments?.length > 5" style="text-align:center;margin-top:8px">
-                        <el-button size="small" text @click="loadMoreComments" :loading="loadingMoreComments">📖 加载更多评论</el-button>
+                        <el-button size="small" text @click="loadMoreComments" :loading="loadingMoreComments">{{ tp('load_more_comments') }}</el-button>
                     </div>
                 </div>
             </article>
@@ -284,7 +288,7 @@
 
         <div v-else class="oa-article-loading">
             <el-icon class="is-loading" :size="32"><Loading /></el-icon>
-            <p>加载中...</p>
+            <p>{{ t('actions.loading') }}</p>
         </div>
     </div>
     <!-- 图片灯箱 -->
@@ -298,12 +302,42 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox, ElImageViewer } from 'element-plus';
 import PointsIcon from '@/components/PointsIcon.vue';
 import { ArrowLeft, Share, Loading, ZoomIn, ArrowDown } from '@element-plus/icons-vue';
 import apiClient from '@/api/client';
+import i18n from '@/i18n';
 import TipDialog from '@/components/TipDialog.vue';
 import PointsHistory from '@/components/PointsHistory.vue';
+
+const { t } = useI18n();
+const tp = (key, params) => t('oa_article_detail_page.' + key, params);
+
+const themeOptions = computed(() => [
+    { command: 'default', label: tp('themes.default') },
+    { command: 'sepia', label: tp('themes.sepia') },
+    { command: 'night', label: tp('themes.night') },
+]);
+
+const shareTargetLabels = computed(() => ({
+    chat: tp('share_targets.chat'),
+    plaza: tp('share_targets.plaza'),
+    channel: tp('share_targets.channel'),
+    wechat: tp('share_targets.wechat'),
+    weibo: tp('share_targets.weibo'),
+    copy: tp('share_targets.copy_link'),
+}));
+
+function pollTypeLabel(type) {
+    return type === 'multiple' ? tp('poll.multiple') : tp('poll.single');
+}
+function pollFooterText(total, type) {
+    return tp('poll.participants', { n: total, type: pollTypeLabel(type) });
+}
+function pollVoteCount(count) {
+    return tp('poll.vote_count', { n: count });
+}
 
 function extractFirstImage(html) {
   if (!html) return '';
@@ -406,16 +440,22 @@ function toggleOaReaction(commentId, emoji) {
 function formatFullTime(date) {
     if (!date) return '';
     const d = new Date(date);
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    return tp('date_full', {
+        year: d.getFullYear(),
+        month: d.getMonth() + 1,
+        day: d.getDate(),
+        hours: String(d.getHours()).padStart(2, '0'),
+        minutes: String(d.getMinutes()).padStart(2, '0'),
+    });
 }
 function formatTime(date) {
     if (!date) return '';
     const d = new Date(date);
     const now = new Date();
     const diff = now - d;
-    if (diff < 60000) return '刚刚';
-    if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
-    if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+    if (diff < 60000) return t('time.just_now');
+    if (diff < 3600000) return t('time.minutes_ago', { minutes: Math.floor(diff / 60000) });
+    if (diff < 86400000) return t('time.hours_ago', { hours: Math.floor(diff / 3600000) });
     return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
@@ -438,15 +478,15 @@ function stripHtml(html) {
 }
 
 function toggleSpeech() {
-    if (!window.speechSynthesis) { ElMessage.warning('浏览器不支持语音朗读'); return; }
+    if (!window.speechSynthesis) { ElMessage.warning(tp('toast.speech_unsupported')); return; }
     if (isSpeaking.value) { window.speechSynthesis.cancel(); isSpeaking.value = false; return; }
     const text = stripHtml(article.value?.content || '');
-    if (!text) { ElMessage.warning('没有可朗读的内容'); return; }
+    if (!text) { ElMessage.warning(tp('toast.no_speech_content')); return; }
     const u = new SpeechSynthesisUtterance(text.substring(0, 5000));
     u.lang = 'zh-CN'; u.rate = speechRate.value;
     u.onend = () => { isSpeaking.value = false; };
-    u.onerror = () => { isSpeaking.value = false; ElMessage.error('朗读出错'); };
-    window.speechSynthesis.speak(u); isSpeaking.value = true; ElMessage.info('🔊 开始朗读');
+    u.onerror = () => { isSpeaking.value = false; ElMessage.error(tp('toast.speech_error')); };
+    window.speechSynthesis.speak(u); isSpeaking.value = true; ElMessage.info(tp('toast.speech_started'));
 }
 
 function scrollToHeading(idx) {
@@ -487,8 +527,8 @@ function onArticleContentClick(event) {
     if (x > rect.width - 50 && y < 30) {
         const code = pre.textContent || ''
         navigator.clipboard.writeText(code).then(() => {
-            ElMessage.success('✅ 代码已复制')
-        }).catch(() => ElMessage.error('复制失败'))
+            ElMessage.success(tp('toast.code_copied'))
+        }).catch(() => ElMessage.error(tp('toast.copy_failed')))
     }
 }
 
@@ -581,8 +621,8 @@ async function loadArticle() {
                 'description': desc,
                 'image': article.value.cover_image || null,
                 'datePublished': article.value.published_at || null,
-                'author': { '@type': 'Person', 'name': article.value.author?.name || '匿名' },
-                'publisher': { '@type': 'Organization', 'name': article.value.account?.name || '互物号' },
+                'author': { '@type': 'Person', 'name': article.value.author?.name || tp('anonymous') },
+                'publisher': { '@type': 'Organization', 'name': article.value.account?.name || tp('publisher_fallback') },
                 'mainEntityOfPage': { '@type': 'WebPage', '@id': window.location.href },
             });
         }
@@ -622,22 +662,22 @@ async function loadArticle() {
                     pre.prepend(badge);
                     if (lang === 'javascript' || lang === 'js') {
                         const runBtn = document.createElement('button');
-                        runBtn.className = 'code-run-btn'; runBtn.textContent = '▶️ 运行';
+                        runBtn.className = 'code-run-btn'; runBtn.textContent = '▶ ' + tp('code.run');
                         runBtn.onclick = function(e) { e.stopPropagation();
                             const p = this.closest('pre'); const code = p?.querySelector('code')?.textContent || '';
                             const out = p?.querySelector('.code-runner-output');
-                            if (out) { out.remove(); if (this.textContent === '⏹ 停止') { this.textContent = '▶️ 运行'; return; } }
+                            if (out) { out.remove(); if (this.textContent === tp('code.stop')) { this.textContent = '▶ ' + tp('code.run'); return; } }
                             const d = document.createElement('div'); d.className = 'code-runner-output';
-                            d.innerHTML = '<div style="padding:8px;font-size:12px;color:#999">⏳ 运行中...</div>';
-                            p?.appendChild(d); this.textContent = '⏹ 停止';
+                            d.innerHTML = '<div style="padding:8px;font-size:12px;color:#999">' + tp('code.running') + '</div>';
+                            p?.appendChild(d); this.textContent = tp('code.stop');
                             const logs = []; const origLog = console.log; console.log = function() { logs.push(Array.from(arguments).join(' ')); };
                             try { const r = new Function(code)(); if (r !== undefined) logs.push('=> ' + r);
-                                d.innerHTML = '<div class="code-runner-header">▶ 运行结果</div><pre class="code-runner-pre">' +
-                                    (logs.length ? logs.map(l => l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')).join('\n') : '<span style="color:#999">（无输出）</span>') + '</pre>';
+                                d.innerHTML = '<div class="code-runner-header">▶ ' + tp('code.result') + '</div><pre class="code-runner-pre">' +
+                                    (logs.length ? logs.map(l => l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')).join('\n') : '<span style="color:#999">' + tp('code.no_output') + '</span>') + '</pre>';
                             } catch (err) {
-                                d.innerHTML = '<div class="code-runner-header" style="color:#f56c6c">✕ 运行错误</div><pre class="code-runner-pre" style="color:#f56c6c">' +
+                                d.innerHTML = '<div class="code-runner-header" style="color:#f56c6c">✕ ' + tp('code.error') + '</div><pre class="code-runner-pre" style="color:#f56c6c">' +
                                     err.message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>';
-                            } finally { console.log = origLog; this.textContent = '▶️ 运行'; }
+                            } finally { console.log = origLog; this.textContent = '▶ ' + tp('code.run'); }
                         };
                         pre.appendChild(runBtn);
                     }
@@ -646,11 +686,11 @@ async function loadArticle() {
             // 增强嵌入组件渲染
             div.querySelectorAll('[data-link-href]').forEach(el => {
                 const href = el.getAttribute('data-link-href');
-                const label = el.getAttribute('data-link-label') || '查看详情';
+                const label = el.getAttribute('data-link-label') || t('actions.view_details');
                 if (href) {
                     el.innerHTML = '<div style="padding:16px;border:1px solid #e4e7ed;border-radius:8px;background:#fff;margin:12px 0;text-align:center">' +
-                        '<div style="font-size:14px;font-weight:500;color:#303133;margin-bottom:8px">🔗 ' + (el.textContent.trim() || '链接内容') + '</div>' +
-                        '<a href="' + href + '" target="_blank" rel="noopener" style="display:inline-block;padding:6px 20px;background:#409eff;color:#fff;border-radius:4px;text-decoration:none;font-size:13px">' + label + '</a></div>';
+                        '<div style="font-size:14px;font-weight:500;color:#303133;margin-bottom:8px">' + (el.textContent.trim() || tp('embed.link_content')) + '</div>' +
+                        '<a href="' + href + '" target="_blank" rel="noopener" style="display:inline-block;padding:6px 20px;background:#0f172a;color:#fff;border-radius:4px;text-decoration:none;font-size:13px">' + label + '</a></div>';
                     el.style.cssText = '';
                 }
             });
@@ -698,7 +738,7 @@ async function loadArticle() {
             } catch { /* ignore */ }
         }
     } catch {
-        ElMessage.error('文章加载失败');
+        ElMessage.error(tp('toast.load_failed'));
     }
 }
 
@@ -709,16 +749,19 @@ async function purchaseArticle() {
     try {
         const r = await apiClient.post('/official-accounts/articles/' + article.value.id + '/purchase');
         if (r.data?.success) {
-            ElMessage.success('🎉 已解锁！');
+            ElMessage.success(tp('toast.unlocked'));
             // 重新加载文章获取完整内容
             await loadArticle();
         } else {
-            ElMessage.error(r.data?.error?.message || '解锁失败');
+            ElMessage.error(r.data?.error?.message || tp('toast.unlock_failed'));
         }
     } catch (e) {
-        const msg = e.response?.data?.error?.message || e.response?.data?.message || '解锁失败';
-        if (msg.includes('余额不足')) {
-            ElMessage.warning('🪙 积分不足，请先获取积分');
+        const msg = e.response?.data?.error?.message || e.response?.data?.message || tp('toast.unlock_failed');
+        if (
+            msg.includes(i18n.global.t('oa_article_detail_page.toast.insufficient_marker', {}, { locale: 'zh_CN' }))
+            || msg.toLowerCase().includes('insufficient')
+        ) {
+            ElMessage.warning(tp('toast.insufficient_points'));
         } else {
             ElMessage.error(msg);
         }
@@ -737,10 +780,10 @@ async function handlePollVote(pollId, optionIds) {
             pollResults.value[pollId] = data
             // 更新文章内容中的投票显示
             updatePollDisplay(pollId, data)
-            ElMessage.success('投票成功')
+            ElMessage.success(tp('toast.vote_ok'))
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '投票失败')
+        ElMessage.error(e.response?.data?.message || tp('toast.vote_failed'))
     }
 }
 function updatePollDisplay(pollId, data) {
@@ -756,16 +799,16 @@ function updatePollDisplay(pollId, data) {
         const count = opt.votes_count || 0
         const isMine = myVotes.includes(oid)
         el.style.cursor = 'default'
-        el.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin:4px 0;background:#f0f5ff;border-radius:6px;font-size:14px;color:#303133;position:relative;overflow:hidden;${isMine ? 'border:1px solid #409eff;font-weight:600' : ''}">
-            <div style="position:absolute;top:0;left:0;height:100%;background:rgba(64,158,255,0.12);transition:width 0.5s;width:${pct}%"></div>
-            <span style="width:16px;height:16px;border-radius:50%;background:#409eff;color:#fff;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;position:relative">${isMine ? '✓' : ''}</span>
+        el.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin:4px 0;background:#f0f5ff;border-radius:6px;font-size:14px;color:#303133;position:relative;overflow:hidden;${isMine ? 'border:1px solid #0f172a;font-weight:600' : ''}">
+            <div style="position:absolute;top:0;left:0;height:100%;background:rgba(15,23,42,0.12);transition:width 0.5s;width:${pct}%"></div>
+            <span style="width:16px;height:16px;border-radius:50%;background:#0f172a;color:#fff;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;position:relative">${isMine ? '✓' : ''}</span>
             <span style="flex:1;position:relative">${opt.label}</span>
-            <span style="font-size:13px;font-weight:600;color:#409eff;position:relative">${pct}%</span>
-            <span style="font-size:11px;color:#909399;position:relative">${count}票</span>
+            <span style="font-size:13px;font-weight:600;color:#0f172a;position:relative">${pct}%</span>
+            <span style="font-size:11px;color:#909399;position:relative">${pollVoteCount(count)}</span>
         </div>`
     })
     const footer = container.querySelector('.poll-footer')
-    if (footer) footer.textContent = `共 ${total} 人参与 · ${data.type === 'multiple' ? '多选' : '单选'}`
+    if (footer) footer.textContent = pollFooterText(total, data.type)
 }
 
 // ── 投票卡片渲染辅助 ──
@@ -776,12 +819,12 @@ function renderPollWithResults(el, data) {
         const pct = opt.percentage || 0
         const isMine = myVotes.includes(opt.id)
         return `<div data-poll-option style="cursor:default;margin:4px 0">
-            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f0f5ff;border-radius:6px;font-size:14px;color:#303133;position:relative;overflow:hidden;${isMine ? 'border:1px solid #409eff;font-weight:600' : ''}">
-                <div style="position:absolute;top:0;left:0;height:100%;background:rgba(64,158,255,0.12);transition:width 0.5s;width:${pct}%"></div>
-                <span style="width:16px;height:16px;border-radius:50%;background:#409eff;color:#fff;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;position:relative">${isMine ? '✓' : ''}</span>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f0f5ff;border-radius:6px;font-size:14px;color:#303133;position:relative;overflow:hidden;${isMine ? 'border:1px solid #0f172a;font-weight:600' : ''}">
+                <div style="position:absolute;top:0;left:0;height:100%;background:rgba(15,23,42,0.12);transition:width 0.5s;width:${pct}%"></div>
+                <span style="width:16px;height:16px;border-radius:50%;background:#0f172a;color:#fff;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;position:relative">${isMine ? '✓' : ''}</span>
                 <span style="flex:1;position:relative">${opt.label}</span>
-                <span style="font-size:13px;font-weight:600;color:#409eff;position:relative">${pct}%</span>
-                <span style="font-size:11px;color:#909399;position:relative">${opt.votes_count || 0}票</span>
+                <span style="font-size:13px;font-weight:600;color:#0f172a;position:relative">${pct}%</span>
+                <span style="font-size:11px;color:#909399;position:relative">${pollVoteCount(opt.votes_count || 0)}</span>
             </div>
         </div>`
     }).join('')
@@ -791,12 +834,12 @@ function renderPollWithResults(el, data) {
             <span style="font-size:15px;font-weight:600;color:#303133">${data.question}</span>
         </div>
         <div>${opts}</div>
-        <div class="poll-footer" style="font-size:12px;color:#909399;margin-top:10px;text-align:center">共 ${total} 人参与 · ${data.type === 'multiple' ? '多选' : '单选'}</div>
+        <div class="poll-footer" style="font-size:12px;color:#909399;margin-top:10px;text-align:center">${pollFooterText(total, data.type)}</div>
     </div>`
 }
 function renderPollOptions(el, pollId) {
     el.setAttribute('data-poll-id', pollId)
-    const question = el.getAttribute('data-poll-question') || '投票'
+    const question = el.getAttribute('data-poll-question') || tp('poll.default_question')
     const type = el.getAttribute('data-poll-type') || 'single'
     const totalVotes = parseInt(el.getAttribute('data-poll-total') || '0')
     // 解析选项
@@ -814,7 +857,7 @@ function renderPollOptions(el, pollId) {
             <span style="font-size:15px;font-weight:600;color:#303133">${question}</span>
         </div>
         <div>${optsHtml}</div>
-        <div class="poll-footer" style="font-size:12px;color:#909399;margin-top:10px;text-align:center">共 ${totalVotes} 人参与 · ${type === 'multiple' ? '多选' : '单选'}</div>
+        <div class="poll-footer" style="font-size:12px;color:#909399;margin-top:10px;text-align:center">${pollFooterText(totalVotes, type)}</div>
     </div>`
 }
 
@@ -836,9 +879,9 @@ async function handleFavorite() {
         const r = await apiClient.post('/official-accounts/articles/' + article.value.id + '/favorite');
         article.value.is_favorited = r.data?.data?.favorited;
         if (article.value.is_favorited) {
-            ElMessage.success('已收藏');
+            ElMessage.success(tp('toast.favorited'));
         } else {
-            ElMessage.success('已取消收藏');
+            ElMessage.success(tp('toast.unfavorited'));
         }
     } catch { /* ignore */ }
 }
@@ -855,16 +898,16 @@ async function handleFollow() {
     try {
         await apiClient.post('/official-accounts/' + article.value.account.id + '/follow');
         article.value.is_following = true;
-        ElMessage.success('已关注');
-    } catch (e) { ElMessage.error(e.response?.data?.message || '关注失败'); }
+        ElMessage.success(tp('toast.followed'));
+    } catch (e) { ElMessage.error(e.response?.data?.message || tp('toast.follow_failed')); }
 }
 async function handleUnfollow() {
     if (!article.value?.account?.id) return;
     try {
         await apiClient.post('/official-accounts/' + article.value.account.id + '/unfollow');
         article.value.is_following = false;
-        ElMessage.success('已取消关注');
-    } catch (e) { ElMessage.error(e.response?.data?.message || '操作失败'); }
+        ElMessage.success(tp('toast.unfollowed'));
+    } catch (e) { ElMessage.error(e.response?.data?.message || tp('toast.action_failed')); }
 }
 
 async function deleteComment(comment) {
@@ -873,8 +916,8 @@ async function deleteComment(comment) {
         if (article.value?.comments) {
             article.value.comments = article.value.comments.filter(c => c.id !== comment.id);
         }
-        ElMessage.success('已删除');
-    } catch (e) { ElMessage.error(e.response?.data?.message || '删除失败'); }
+        ElMessage.success(tp('toast.deleted'));
+    } catch (e) { ElMessage.error(e.response?.data?.message || tp('toast.delete_failed')); }
 }
 
 // ── 分享 ──
@@ -890,9 +933,9 @@ async function rewardShare(platform) {
         const data = r.data?.data;
         if (data?.rewarded) {
             shareRewardPoints.value += data.points || 0;
-            ElMessage.success('🎉 分享得 ' + data.points + ' 积分！');
+            ElMessage.success(tp('toast.share_reward', { n: data.points || 0 }));
         } else if (data?.reason === 'daily_limit') {
-            ElMessage.info('今日分享奖励已达上限');
+            ElMessage.info(tp('toast.share_daily_limit'));
         }
     } catch { /* ignore */ }
 }
@@ -904,7 +947,7 @@ async function handleShareCommand(command) {
     // 复制链接 - 游客可用
     if (command === 'copy') {
         const url = window.location.origin + '/build/oa-article/' + art.id
-        navigator.clipboard.writeText(url).then(() => ElMessage.success('链接已复制'))
+        navigator.clipboard.writeText(url).then(() => ElMessage.success(tp('toast.link_copied')))
         rewardShare('copy')
         return
     }
@@ -918,8 +961,8 @@ async function handleShareCommand(command) {
     if (command === 'plaza') {
         try {
             await apiClient.post('/official-accounts/articles/' + art.id + '/share', { target: 'plaza' })
-            ElMessage.success('已分享到广场')
-        } catch (e) { ElMessage.error(e.response?.data?.message || '分享失败') }
+            ElMessage.success(tp('toast.shared_plaza'))
+        } catch (e) { ElMessage.error(e.response?.data?.message || tp('toast.share_failed')) }
         return
     }
 
@@ -927,7 +970,7 @@ async function handleShareCommand(command) {
         const res = await apiClient.post('/official-accounts/articles/' + art.id + '/share', { target: 'wechat' })
         const data = res.data?.data
         const text = (data?.share_text || art.title) + ' ' + (data?.share_url || window.location.href)
-        navigator.clipboard.writeText(text).then(() => ElMessage.success('已复制，请粘贴到微信发送'))
+        navigator.clipboard.writeText(text).then(() => ElMessage.success(tp('toast.wechat_copied')))
         rewardShare('wechat')
         return
     }
@@ -942,14 +985,14 @@ async function handleShareCommand(command) {
 
     if (command === 'chat' || command === 'channel') {
         try {
-            const label = command === 'chat' ? '会话ID' : '圈子ID'
-            const { value: id } = await ElMessageBox.prompt('请输入目标' + label + '：', command === 'chat' ? '分享到聊天' : '分享到圈子', {
-                inputPlaceholder: '请输入' + label + '...',
+            const label = command === 'chat' ? tp('dialog.conv_id') : tp('dialog.channel_id')
+            const { value: id } = await ElMessageBox.prompt(tp('dialog.enter_target', { label }), command === 'chat' ? tp('dialog.share_to_chat') : tp('dialog.share_to_channel'), {
+                inputPlaceholder: tp('dialog.input_ph', { label }),
             })
             if (id) {
                 const payload = command === 'chat' ? { conversation_id: parseInt(id) } : { channel_id: parseInt(id) }
                 await apiClient.post('/official-accounts/articles/' + art.id + '/share', { target: command, ...payload })
-                ElMessage.success('已分享')
+                ElMessage.success(tp('toast.shared'))
             }
         } catch { /* cancelled */ }
     }
@@ -960,8 +1003,8 @@ async function reportArticle() {
     const art = article.value
     if (!art?.id) return
     try {
-        const { value: reason } = await ElMessageBox.prompt('举报原因（spam/harassment/pornographic/illegal/other）：', '⚠️ 举报文章', {
-            inputPlaceholder: '输入原因代码...',
+        const { value: reason } = await ElMessageBox.prompt(tp('dialog.report_reason'), tp('dialog.report_title'), {
+            inputPlaceholder: tp('dialog.report_reason_ph'),
         })
         if (reason) {
             await apiClient.post('/user-chat/reports', {
@@ -969,7 +1012,7 @@ async function reportArticle() {
                 reportable_id: art.id,
                 reason: reason.trim(),
             })
-            ElMessage.success('举报已提交')
+            ElMessage.success(tp('toast.report_submitted'))
         }
     } catch { /* cancelled */ }
 }
@@ -979,14 +1022,7 @@ function previewImage(url) {
 }
 
 function toggleEmojiPicker() {
-    // Simple emoji insertion
-    const emojis = ['😊','😂','👍','❤️','🎉','🔥','💪','😍','🤔','👏','🙏','✨','💯','😭','🥰','😎'];
-    const picker = prompt('选择表情：\n' + emojis.join(' '));
-    if (picker) {
-        const found = emojis.find(e => e.includes(picker) || picker.includes(e));
-        if (found) newCommentText.value += found;
-        else newCommentText.value += picker;
-    }
+    showEmojiPicker.value = !showEmojiPicker.value;
 }
 function insertCommentImage() {
     showCommentImageInput.value = !showCommentImageInput.value;
@@ -1004,8 +1040,8 @@ function uploadCommentImage() {
         try {
             const { data: res } = await apiClient.post('/files/upload/simple', formData);
             const url = res?.data?.files?.[0]?.url;
-            if (url) { commentImageUrl.value = url; showCommentImageInput.value = true; ElMessage.success('图片已上传'); }
-        } catch { ElMessage.error('上传失败'); }
+            if (url) { commentImageUrl.value = url; showCommentImageInput.value = true; ElMessage.success(tp('toast.image_uploaded')); }
+        } catch { ElMessage.error(tp('toast.upload_failed')); }
     };
     input.click();
 }
@@ -1021,7 +1057,7 @@ async function toggleCommentLike(comment) {
 }
 
 async function submitComment() {
-    if (!newCommentText.value.trim()) { ElMessage.warning('请输入评论内容'); return; }
+    if (!newCommentText.value.trim()) { ElMessage.warning(tp('toast.comment_required')); return; }
     submittingComment.value = true;
     try {
         const payload = { content: newCommentText.value };
@@ -1030,18 +1066,18 @@ async function submitComment() {
         const comment = r.data?.data;
         if (comment && article.value) {
             if (comment.status === 'pending') {
-                ElMessage.success('评论已提交，等待审核通过后将显示');
+                ElMessage.success(tp('toast.comment_pending'));
             } else {
                 if (!article.value.comments) article.value.comments = [];
                 article.value.comments.unshift(comment);
-                ElMessage.success('评论成功');
+                ElMessage.success(tp('toast.comment_ok'));
             }
             newCommentText.value = '';
             commentImageUrl.value = '';
             showCommentImageInput.value = false;
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '评论失败');
+        ElMessage.error(e.response?.data?.message || tp('toast.comment_failed'));
     } finally { submittingComment.value = false; }
 }
 
@@ -1050,7 +1086,7 @@ function startReply(comment) {
     replyText.value = '';
 }
 async function submitReply(comment) {
-    if (!replyText.value.trim()) { ElMessage.warning('请输入回复内容'); return; }
+    if (!replyText.value.trim()) { ElMessage.warning(tp('toast.reply_required')); return; }
     replying.value = true;
     try {
         const r = await apiClient.post('/official-accounts/comments/' + comment.id + '/reply', { content: replyText.value });
@@ -1060,10 +1096,10 @@ async function submitReply(comment) {
             comment.replies.push(reply);
             replyText.value = '';
             replyingTo.value = null;
-            ElMessage.success('回复成功');
+            ElMessage.success(tp('toast.reply_ok'));
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '回复失败');
+        ElMessage.error(e.response?.data?.message || tp('toast.reply_failed'));
     } finally { replying.value = false; }
 }
 
@@ -1080,7 +1116,7 @@ function onTipped(data) {
 
 // ── 跳转登录 ──
 function redirectToLogin() {
-    ElMessage.info('请先登录');
+    ElMessage.info(tp('toast.login_required'));
     window.location.href = '/login';
 }
 
@@ -1095,7 +1131,7 @@ async function loadOaAiSuggestions() {
             const content = (article.value.content || '').replace(/<[^>]*>/g, '').substring(0, 300)
             const h = { Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
             const res = await apiClient.post('/user-chat/ai-conversation', {
-                message: '你是一个文章评论助手。请针对以下文章内容，生成3条简短友好的评论建议（每条不超过20字），用中文，用|分隔，直接返回结果不要多余文字。\n\n' + content
+                message: t('oa_article_detail_page.ai_comment_prompt') + content
             }, { headers: h })
             const reply = res.data?.data?.reply || ''
             oaAiSuggestions.value = reply.split('|').filter(Boolean).map(s => s.trim()).slice(0, 3)
@@ -1132,13 +1168,13 @@ onMounted(async () => {
 .oa-article-topbar.topbar-hidden { transform: translateY(-100%); }
 .oa-article-topbar { transition: transform .3s ease; }
 .topbar-left, .topbar-right { display: flex; align-items: center; gap: 8px; }
-.topbar-acc-name { font-size: 14px; font-weight: 500; color: #409eff; }
+.topbar-acc-name { font-size: 14px; font-weight: 500; color: #0f172a; }
 .oa-article-container { flex: 1; display: flex; justify-content: center; padding: 20px 16px 60px; }
 .oa-article-body { max-width: 720px; width: 100%; }
 .oa-article-header { text-align: center; margin-bottom: 28px; }
 .oa-article-title { font-size: 26px; font-weight: 700; line-height: 1.4; margin: 0 0 16px; }
 .oa-article-meta-row { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; color: #999; flex-wrap: wrap; }
-.oa-meta-author { display: flex; align-items: center; gap: 4px; color: #409eff; font-weight: 500; }
+.oa-meta-author { display: flex; align-items: center; gap: 4px; color: #0f172a; font-weight: 500; }
 .oa-meta-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
 .oa-meta-sep { color: #ddd; }
 .oa-meta-acc { color: #666; }
@@ -1192,18 +1228,18 @@ onMounted(async () => {
 .chat-dark-mode .oa-toc-header { background: #1a1a2e; color: #ccc; }
 .oa-toc-body { padding: 4px 0; max-height: 240px; overflow-y: auto; }
 .oa-toc-item { display: flex; align-items: center; gap: 6px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: #606266; transition: color 0.2s; }
-.oa-toc-item:hover { color: #409eff; background: #f0f7ff; }
+.oa-toc-item:hover { color: #0f172a; background: #f0f7ff; }
 .chat-dark-mode .oa-toc-item { color: #999; }
-.chat-dark-mode .oa-toc-item:hover { color: #409eff; background: #16213e; }
+.chat-dark-mode .oa-toc-item:hover { color: #0f172a; background: #16213e; }
 .oa-toc-dot { width: 4px; height: 4px; border-radius: 50%; background: #c0c4cc; flex-shrink: 0; }
 /* 打印样式 */
 @media print { .oa-article-topbar,.oa-article-actions,.oa-article-prev-next,.oa-article-related,.oa-article-comments,.oa-reading-progress,.oa-toc{display:none!important} .oa-article-container{padding:0} .oa-article-body{max-width:100%} .oa-article-page{min-height:auto} }
 /* 阅读进度条 */
-.oa-reading-progress { position: fixed; top: 0; left: 0; height: 3px; background: #409eff; z-index: 1000; transition: width 0.1s; }
+.oa-reading-progress { position: fixed; top: 0; left: 0; height: 3px; background: #0f172a; z-index: 1000; transition: width 0.1s; }
 /* 阅读进度环 */
 .oa-reading-ring { position: fixed; bottom: 24px; right: 24px; width: 44px; height: 44px; cursor: pointer; z-index: 1001; opacity: .7; transition: opacity .3s; }
 .oa-reading-ring:hover { opacity: 1; }
-.oa-reading-ring-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 10px; font-weight: 600; color: #409eff; pointer-events: none; }
+.oa-reading-ring-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 10px; font-weight: 600; color: #0f172a; pointer-events: none; }
 /* 专注模式 */
 .oa-focus-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 999; cursor: pointer; }
 .focus-active { position: relative; z-index: 1000; }
@@ -1225,9 +1261,9 @@ onMounted(async () => {
 .chat-dark-mode .oa-article-actions { border-color: #2a2a3e; }
 .oa-article-prev-next { display: flex; gap: 16px; margin-top: 24px; }
 .oa-pn-link { flex: 1; padding: 14px; border-radius: 8px; border: 1px solid #eee; text-decoration: none !important; color: inherit; transition: all 0.2s; display: block; }
-.oa-pn-link:hover { border-color: #409eff; background: #f0f7ff; }
+.oa-pn-link:hover { border-color: #0f172a; background: #f0f7ff; }
 .chat-dark-mode .oa-pn-link { border-color: #2a2a3e; }
-.chat-dark-mode .oa-pn-link:hover { border-color: #409eff; background: #16213e; }
+.chat-dark-mode .oa-pn-link:hover { border-color: #0f172a; background: #16213e; }
 .oa-pn-label { display: block; font-size: 12px; color: #999; margin-bottom: 4px; }
 .oa-pn-title { font-size: 14px; font-weight: 500; }
 .oa-pn-next { text-align: right; }
@@ -1235,7 +1271,7 @@ onMounted(async () => {
 .oa-article-related h3 { font-size: 18px; margin-bottom: 12px; }
 .oa-related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 .oa-related-card { border-radius: 8px; border: 1px solid #eee; overflow: hidden; cursor: pointer; text-decoration: none !important; color: inherit; transition: all 0.2s; }
-.oa-related-card:hover { border-color: #409eff; box-shadow: 0 2px 8px rgba(64,158,255,0.1); }
+.oa-related-card:hover { border-color: #0f172a; box-shadow: 0 2px 8px rgba(15,23,42,0.1); }
 .chat-dark-mode .oa-related-card { border-color: #2a2a3e; }
 .oa-related-cover { width: 100%; height: 120px; overflow: hidden; background: #f5f7fa; display: flex; align-items: center; justify-content: center; font-size: 32px; }
 .chat-dark-mode .oa-related-cover { background: #1a1a2e; }
@@ -1252,9 +1288,9 @@ onMounted(async () => {
 .oa-comment-list { display: flex; flex-direction: column; gap: 16px; }
 .oa-comment-item { display: flex; gap: 10px; }
 .oa-comment-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-.oa-comment-avatar-text { width: 36px; height: 36px; border-radius: 50%; background: #409eff; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.oa-comment-avatar-text { width: 36px; height: 36px; border-radius: 50%; background: #0f172a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
 .oa-comment-body { flex: 1; min-width: 0; }
-.oa-comment-author { font-size: 14px; font-weight: 600; color: #409eff; }
+.oa-comment-author { font-size: 14px; font-weight: 600; color: #0f172a; }
 .oa-comment-time { font-size: 12px; color: #999; margin-left: 8px; font-weight: 400; }
 .oa-comment-region { font-size: 12px; color: #999; margin-left: 6px; font-weight: 400; }
 .oa-comment-region::before { content: '· '; }
@@ -1262,12 +1298,12 @@ onMounted(async () => {
 /* 表情反应 */
 .oa-comment-reactions { display: flex; gap: 4px; margin-top: 4px; }
 .oa-reaction-btn { display: inline-flex; align-items: center; gap: 2px; padding: 1px 6px; border-radius: 10px; font-size: 13px; cursor: pointer; border: 1px solid #eee; transition: all .2s; line-height: 1.6; user-select: none; }
-.oa-reaction-btn:hover { border-color: #409eff; background: #f0f7ff; }
-.oa-reaction-btn.active { border-color: #409eff; background: #e6f0ff; }
+.oa-reaction-btn:hover { border-color: #0f172a; background: #f0f7ff; }
+.oa-reaction-btn.active { border-color: #0f172a; background: #e6f0ff; }
 .oa-reaction-count { font-size: 11px; color: #909399; min-width: 8px; }
 .chat-dark-mode .oa-reaction-btn { border-color: #2a2a3e; }
-.chat-dark-mode .oa-reaction-btn:hover { border-color: #409eff; background: #16213e; }
-.chat-dark-mode .oa-reaction-btn.active { border-color: #409eff; background: #16213e; }
+.chat-dark-mode .oa-reaction-btn:hover { border-color: #0f172a; background: #16213e; }
+.chat-dark-mode .oa-reaction-btn.active { border-color: #0f172a; background: #16213e; }
 .oa-comment-replies { margin-top: 8px; padding: 10px; background: #f5f7fa; border-radius: 6px; }
 .chat-dark-mode .oa-comment-replies { background: #1a1a2e; }
 .oa-comment-reply { padding: 4px 0; font-size: 13px; display: flex; align-items: flex-start; gap: 4px; }

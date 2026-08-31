@@ -1,99 +1,96 @@
 <template>
   <div class="callback-page">
     <div class="page-header">
-      <h2>支付回调管理</h2>
-      <p class="text-muted">统一处理支付成功/失败/退款回调，自动更新订单状态并触发发货</p>
+      <h2>{{ t('payment_callback_page.title') }}</h2>
+      <p class="text-muted">{{ t('payment_callback_page.subtitle') }}</p>
     </div>
 
-    <!-- 统计 -->
     <el-row :gutter="20" class="dashboard-cards">
       <el-col :span="4">
-        <el-card shadow="hover" class="stat-card"><div class="stat-value">{{ stats.total }}</div><div class="stat-label">总计</div></el-card>
+        <el-card shadow="hover" class="stat-card"><div class="stat-value">{{ stats.total }}</div><div class="stat-label">{{ t('payment_callback_page.stats.total') }}</div></el-card>
       </el-col>
       <el-col :span="4">
-        <el-card shadow="hover" class="stat-card"><div class="stat-value text-success">{{ stats.completed }}</div><div class="stat-label">已完成</div></el-card>
+        <el-card shadow="hover" class="stat-card"><div class="stat-value text-success">{{ stats.completed }}</div><div class="stat-label">{{ t('payment_callback_page.statuses.completed') }}</div></el-card>
       </el-col>
       <el-col :span="4">
-        <el-card shadow="hover" class="stat-card"><div class="stat-value text-danger">{{ stats.failed }}</div><div class="stat-label">失败</div></el-card>
+        <el-card shadow="hover" class="stat-card"><div class="stat-value text-danger">{{ stats.failed }}</div><div class="stat-label">{{ t('payment_callback_page.statuses.failed') }}</div></el-card>
       </el-col>
       <el-col :span="4">
-        <el-card shadow="hover" class="stat-card"><div class="stat-value text-warning">{{ stats.pending }}</div><div class="stat-label">待处理</div></el-card>
+        <el-card shadow="hover" class="stat-card"><div class="stat-value text-warning">{{ stats.pending }}</div><div class="stat-label">{{ t('payment_callback_page.statuses.pending') }}</div></el-card>
       </el-col>
       <el-col :span="4">
-        <el-card shadow="hover" class="stat-card"><div class="stat-value">{{ stats.today }}</div><div class="stat-label">今日</div></el-card>
+        <el-card shadow="hover" class="stat-card"><div class="stat-value">{{ stats.today }}</div><div class="stat-label">{{ t('payment_callback_page.stats.today') }}</div></el-card>
       </el-col>
       <el-col :span="4">
-        <el-card shadow="hover" class="stat-card"><div class="stat-value">{{ stats.duplicate }}</div><div class="stat-label">重复</div></el-card>
+        <el-card shadow="hover" class="stat-card"><div class="stat-value">{{ stats.duplicate }}</div><div class="stat-label">{{ t('payment_callback_page.statuses.duplicate') }}</div></el-card>
       </el-col>
     </el-row>
 
-    <!-- 筛选 -->
     <el-card shadow="hover" style="margin-bottom:20px">
       <el-form :inline="true" :model="filters">
-        <el-form-item label="网关">
-          <el-select v-model="filters.gateway" placeholder="全部" clearable style="width:130px" @change="loadCallbacks">
+        <el-form-item :label="t('payment_callback_page.cols.gateway')">
+          <el-select v-model="filters.gateway" :placeholder="t('payment_callback_page.all')" clearable style="width:130px" @change="loadCallbacks">
             <el-option label="Stripe" value="stripe" />
-            <el-option label="支付宝" value="alipay" />
-            <el-option label="微信" value="wechat" />
+            <el-option :label="t('payment_callback_page.gateways.alipay')" value="alipay" />
+            <el-option :label="t('payment_callback_page.gateways.wechat')" value="wechat" />
             <el-option label="PayPal" value="paypal" />
             <el-option label="Mock" value="mock" />
           </el-select>
         </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="filters.status" placeholder="全部" clearable style="width:130px" @change="loadCallbacks">
-            <el-option label="已完成" value="completed" />
-            <el-option label="失败" value="failed" />
-            <el-option label="待处理" value="received" />
-            <el-option label="重复" value="duplicate" />
+        <el-form-item :label="t('payment_callback_page.cols.status')">
+          <el-select v-model="filters.status" :placeholder="t('payment_callback_page.all')" clearable style="width:130px" @change="loadCallbacks">
+            <el-option :label="t('payment_callback_page.statuses.completed')" value="completed" />
+            <el-option :label="t('payment_callback_page.statuses.failed')" value="failed" />
+            <el-option :label="t('payment_callback_page.statuses.pending')" value="received" />
+            <el-option :label="t('payment_callback_page.statuses.duplicate')" value="duplicate" />
           </el-select>
         </el-form-item>
-        <el-form-item label="事件">
-          <el-select v-model="filters.event_type" placeholder="全部" clearable style="width:150px" @change="loadCallbacks">
-            <el-option label="支付成功" value="payment_success" />
-            <el-option label="支付失败" value="payment_failed" />
-            <el-option label="退款" value="refund" />
-            <el-option label="拒付" value="chargeback" />
+        <el-form-item :label="t('payment_callback_page.cols.event')">
+          <el-select v-model="filters.event_type" :placeholder="t('payment_callback_page.all')" clearable style="width:150px" @change="loadCallbacks">
+            <el-option :label="t('payment_callback_page.events.payment_success')" value="payment_success" />
+            <el-option :label="t('payment_callback_page.events.payment_failed')" value="payment_failed" />
+            <el-option :label="t('payment_callback_page.events.refund')" value="refund" />
+            <el-option :label="t('payment_callback_page.events.chargeback')" value="chargeback" />
           </el-select>
         </el-form-item>
-        <el-form-item label="搜索">
-          <el-input v-model="filters.search" placeholder="订单号/交易号" clearable style="width:200px" @input="onSearch" />
+        <el-form-item :label="t('actions.search')">
+          <el-input v-model="filters.search" :placeholder="t('payment_callback_page.search_ph')" clearable style="width:200px" @input="onSearch" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="loadCallbacks">查询</el-button>
-          <el-button :disabled="!hasFailed" type="danger" :loading="batchLoading" @click="batchRetry">批量重试失败</el-button>
-          <el-button type="warning" @click="showSimulate = true">模拟回调</el-button>
+          <el-button type="primary" @click="loadCallbacks()">{{ t('payment_callback_page.query') }}</el-button>
+          <el-button :disabled="!hasFailed" type="danger" :loading="batchLoading" @click="batchRetry">{{ t('payment_callback_page.batch_retry') }}</el-button>
+          <el-button type="warning" @click="showSimulate = true">{{ t('payment_callback_page.simulate') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- 回调列表 -->
     <el-table :data="callbacks" v-loading="loading" stripe style="width:100%">
       <el-table-column prop="id" label="ID" width="60" />
-      <el-table-column prop="created_at" label="时间" width="170" />
-      <el-table-column prop="gateway" label="网关" width="80">
+      <el-table-column prop="created_at" :label="t('payment_callback_page.cols.time')" width="170" />
+      <el-table-column prop="gateway" :label="t('payment_callback_page.cols.gateway')" width="80">
         <template #default="{ row }"><el-tag size="small">{{ row.gateway }}</el-tag></template>
       </el-table-column>
-      <el-table-column prop="event_type" label="事件" width="120">
+      <el-table-column prop="event_type" :label="t('payment_callback_page.cols.event')" width="120">
         <template #default="{ row }">
           <el-tag :type="eventTypeTag(row.event_type)" size="small">{{ eventLabel(row.event_type) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="order" label="订单" width="140">
+      <el-table-column prop="order" :label="t('payment_callback_page.cols.order')" width="140">
         <template #default="{ row }">{{ row.order?.order_no || '-' }}</template>
       </el-table-column>
-      <el-table-column prop="transaction_id" label="交易号" width="180" show-overflow-tooltip />
-      <el-table-column prop="amount" label="金额" width="100">
+      <el-table-column prop="transaction_id" :label="t('payment_callback_page.cols.txn')" width="180" show-overflow-tooltip />
+      <el-table-column prop="amount" :label="t('payment_callback_page.cols.amount')" width="100">
         <template #default="{ row }">{{ row.amount ? formatMoney(row.amount) : '-' }}</template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="100">
+      <el-table-column prop="status" :label="t('payment_callback_page.cols.status')" width="100">
         <template #default="{ row }">
           <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120" fixed="right">
+      <el-table-column :label="t('payment_callback_page.cols.actions')" width="120" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" @click="showDetail(row)">详情</el-button>
-          <el-button v-if="row.status === 'failed'" size="small" type="warning" :loading="row._retrying" @click="retry(row)">重试</el-button>
+          <el-button size="small" @click="showDetail(row)">{{ t('actions.view_details') }}</el-button>
+          <el-button v-if="row.status === 'failed'" size="small" type="warning" :loading="row._retrying" @click="retry(row)">{{ t('actions.retry') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -106,51 +103,49 @@
       style="margin-top:16px;justify-content:center"
     />
 
-    <!-- 详情抽屉 -->
-    <el-drawer v-model="showDetailDrawer" :title="'回调 #' + (detail?.id || '')" size="600px">
+    <el-drawer v-model="showDetailDrawer" :title="t('payment_callback_page.detail_title', { id: detail?.id || '' })" size="600px">
       <template v-if="detail">
         <el-descriptions :column="2" border size="small">
-          <el-descriptions-item label="网关">{{ detail.gateway }}</el-descriptions-item>
-          <el-descriptions-item label="事件">{{ eventLabel(detail.event_type) }}</el-descriptions-item>
-          <el-descriptions-item label="订单号">{{ detail.order?.order_no || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="交易号">{{ detail.transaction_id }}</el-descriptions-item>
-          <el-descriptions-item label="金额">{{ detail.amount ? formatMoney(detail.amount) : '-' }}</el-descriptions-item>
-          <el-descriptions-item label="状态"><el-tag :type="statusTag(detail.status)" size="small">{{ statusLabel(detail.status) }}</el-tag></el-descriptions-item>
+          <el-descriptions-item :label="t('payment_callback_page.cols.gateway')">{{ detail.gateway }}</el-descriptions-item>
+          <el-descriptions-item :label="t('payment_callback_page.cols.event')">{{ eventLabel(detail.event_type) }}</el-descriptions-item>
+          <el-descriptions-item :label="t('payment_callback_page.order_no')">{{ detail.order?.order_no || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('payment_callback_page.cols.txn')">{{ detail.transaction_id }}</el-descriptions-item>
+          <el-descriptions-item :label="t('payment_callback_page.cols.amount')">{{ detail.amount ? formatMoney(detail.amount) : '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('payment_callback_page.cols.status')"><el-tag :type="statusTag(detail.status)" size="small">{{ statusLabel(detail.status) }}</el-tag></el-descriptions-item>
         </el-descriptions>
         <div v-if="detail.error_message" class="error-msg">{{ detail.error_message }}</div>
-        <h4 style="margin:16px 0 8px">原始回调数据</h4>
+        <h4 style="margin:16px 0 8px">{{ t('payment_callback_page.raw_payload') }}</h4>
         <pre class="code-pre">{{ formatJson(detail.raw_payload) }}</pre>
       </template>
     </el-drawer>
 
-    <!-- 模拟回调对话框 -->
-    <el-dialog v-model="showSimulate" title="模拟支付回调" width="500px">
+    <el-dialog v-model="showSimulate" :title="t('payment_callback_page.simulate_title')" width="500px">
       <el-form :model="simForm" label-width="100px">
-        <el-form-item label="网关">
+        <el-form-item :label="t('payment_callback_page.cols.gateway')">
           <el-select v-model="simForm.gateway" style="width:100%">
             <el-option label="Mock" value="mock" />
             <el-option label="Stripe" value="stripe" />
-            <el-option label="支付宝" value="alipay" />
+            <el-option :label="t('payment_callback_page.gateways.alipay')" value="alipay" />
           </el-select>
         </el-form-item>
-        <el-form-item label="事件类型">
+        <el-form-item :label="t('payment_callback_page.event_type')">
           <el-select v-model="simForm.event_type" style="width:100%">
-            <el-option label="支付成功" value="payment_success" />
-            <el-option label="支付失败" value="payment_failed" />
-            <el-option label="退款" value="refund" />
-            <el-option label="拒付" value="chargeback" />
+            <el-option :label="t('payment_callback_page.events.payment_success')" value="payment_success" />
+            <el-option :label="t('payment_callback_page.events.payment_failed')" value="payment_failed" />
+            <el-option :label="t('payment_callback_page.events.refund')" value="refund" />
+            <el-option :label="t('payment_callback_page.events.chargeback')" value="chargeback" />
           </el-select>
         </el-form-item>
-        <el-form-item label="订单 ID">
+        <el-form-item :label="t('payment_callback_page.order_id')">
           <el-input-number v-model="simForm.order_id" :min="1" style="width:100%" />
         </el-form-item>
-        <el-form-item label="金额">
+        <el-form-item :label="t('payment_callback_page.cols.amount')">
           <el-input-number v-model="simForm.amount" :min="0" :precision="2" style="width:100%" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showSimulate = false">取消</el-button>
-        <el-button type="primary" :loading="simLoading" @click="doSimulate">发送模拟回调</el-button>
+        <el-button @click="showSimulate = false">{{ t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="simLoading" @click="doSimulate">{{ t('payment_callback_page.send_simulate') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -158,11 +153,14 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import {
   getCallbackStats, getCallbacks,
   retryCallback, batchRetryCallbacks, simulateCallback,
 } from '@/api/paymentCallback'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const batchLoading = ref(false)
@@ -181,16 +179,16 @@ const hasFailed = computed(() => stats.failed > 0)
 let searchTimer = null
 
 function eventLabel(type) {
-  const map = { payment_success: '支付成功', payment_failed: '支付失败', refund: '退款', chargeback: '拒付' }
-  return map[type] || type
+  const key = { payment_success: 'payment_success', payment_failed: 'payment_failed', refund: 'refund', chargeback: 'chargeback' }[type]
+  return key ? t(`payment_callback_page.events.${key}`) : type
 }
 function eventTypeTag(type) {
   const map = { payment_success: 'success', payment_failed: 'danger', refund: 'warning', chargeback: 'info' }
   return map[type] || ''
 }
 function statusLabel(s) {
-  const map = { completed: '已完成', failed: '失败', received: '待处理', processing: '处理中', duplicate: '重复' }
-  return map[s] || s
+  const key = { completed: 'completed', failed: 'failed', received: 'pending', processing: 'processing', duplicate: 'duplicate' }[s]
+  return key ? t(`payment_callback_page.statuses.${key}`) : s
 }
 function statusTag(s) {
   const map = { completed: 'success', failed: 'danger', received: 'warning', processing: 'primary', duplicate: 'info' }
@@ -227,7 +225,7 @@ async function retry(row) {
   row._retrying = true
   try {
     const res = await retryCallback(row.id)
-    ElMessage.success(res.message || '重试成功')
+    ElMessage.success(res.message || t('payment_callback_page.messages.retry_ok'))
     await loadCallbacks(pagination.page)
   } catch (_) { /* ignore */ }
   finally { row._retrying = false }
@@ -236,8 +234,8 @@ async function retry(row) {
 async function batchRetry() {
   batchLoading.value = true
   try {
-    const res = await batchRetryCallbacks({ ids: [] })
-    ElMessage.success('批量重试完成')
+    await batchRetryCallbacks({ ids: [] })
+    ElMessage.success(t('payment_callback_page.messages.batch_ok'))
     await loadCallbacks()
     await loadStats()
   } catch (_) { /* ignore */ }
@@ -248,7 +246,7 @@ async function doSimulate() {
   simLoading.value = true
   try {
     const res = await simulateCallback(simForm)
-    ElMessage.success(res.message || '模拟回调成功')
+    ElMessage.success(res.message || t('payment_callback_page.messages.simulate_ok'))
     showSimulate.value = false
     await loadCallbacks()
     await loadStats()
@@ -271,7 +269,7 @@ onMounted(() => { loadStats(); loadCallbacks() })
 .page-header h2 { margin: 0 0 4px; font-size: 22px; }
 .text-muted { color: #909399; font-size: 14px; }
 .stat-card { text-align: center; }
-.stat-value { font-size: 24px; font-weight: 700; color: #409eff; }
+.stat-value { font-size: 24px; font-weight: 700; color: #0f172a; }
 .stat-value.text-success { color: #67c23a; }
 .stat-value.text-danger { color: #f56c6c; }
 .stat-value.text-warning { color: #e6a23c; }

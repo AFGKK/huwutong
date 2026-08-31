@@ -3,11 +3,11 @@
     <div class="page-header">
       <h2>
         <el-icon style="vertical-align:middle;margin-right:8px"><Timer /></el-icon>
-        授权预申请 · 两阶段提交
+        {{ t('two_phase_commit_page.title') }}
       </h2>
       <div class="header-actions">
         <el-button type="primary" @click="refreshAll" :loading="loading">
-          <el-icon><Refresh /></el-icon> 刷新
+          <el-icon><Refresh /></el-icon> {{ t('two_phase_commit_page.refresh') }}
         </el-button>
       </div>
     </div>
@@ -17,25 +17,25 @@
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value stat-primary">{{ stats.active_count }}</div>
-          <div class="stat-label">活跃预留</div>
+          <div class="stat-label">{{ t('two_phase_commit_page.stats.active_reservations') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value stat-success">{{ stats.committed_count }}</div>
-          <div class="stat-label">已提交</div>
+          <div class="stat-label">{{ t('two_phase_commit_page.stats.committed') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value stat-danger">{{ stats.expired_count }}</div>
-          <div class="stat-label">已过期</div>
+          <div class="stat-label">{{ t('two_phase_commit_page.stats.expired') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.active_licenses }}</div>
-          <div class="stat-label">使用中 License</div>
+          <div class="stat-label">{{ t('two_phase_commit_page.stats.active_licenses') }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -44,51 +44,51 @@
     <el-card shadow="hover">
       <el-tabs v-model="activeTab">
         <!-- 活跃预留 -->
-        <el-tab-pane label="活跃预留" name="active">
+        <el-tab-pane :label="t('two_phase_commit_page.tabs.active')" name="active">
           <div class="tab-toolbar">
-            <el-select v-model="activeFilter.license_id" placeholder="选择 License" clearable filterable style="width:240px;margin-right:8px" @change="loadActive">
+            <el-select v-model="activeFilter.license_id" :placeholder="t('two_phase_commit_page.filter.license_ph')" clearable filterable style="width:240px;margin-right:8px" @change="loadActive">
               <el-option v-for="l in licenseOptions" :key="l.id" :label="l.license_key" :value="l.id" />
             </el-select>
           </div>
           <el-table :data="activeReservations" stripe v-loading="activeLoading">
-            <el-table-column label="预留Token" min-width="200">
+            <el-table-column :label="t('two_phase_commit_page.col_reservation_token')" min-width="200">
               <template #default="{ row }">
                 <span class="font-mono text-sm">{{ row.reservation_token }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="License" width="160">
+            <el-table-column :label="t('two_phase_commit_page.col_license')" width="160">
               <template #default="{ row }">{{ row.license?.license_key || '—' }}</template>
             </el-table-column>
-            <el-table-column label="设备指纹" width="140">
+            <el-table-column :label="t('two_phase_commit_page.col_fingerprint')" width="140">
               <template #default="{ row }">
                 <el-tooltip :content="row.fingerprint || '—'">
                   <span>{{ row.fingerprint?.substring(0, 16) || '—' }}...</span>
                 </el-tooltip>
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="80">
+            <el-table-column :label="t('two_phase_commit_page.col_status')" width="80">
               <template #default="{ row }">
                 <el-tag :type="row.status === 'active' ? 'success' : row.status === 'committed' ? 'primary' : 'info'" size="small">
-                  {{ row.status }}
+                  {{ statusLabel(row.status) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="过期时间" width="160">
+            <el-table-column :label="t('two_phase_commit_page.col_expires_at')" width="160">
               <template #default="{ row }">{{ formatTime(row.expires_at) }}</template>
             </el-table-column>
-            <el-table-column label="剩余(秒)" width="80" align="center">
+            <el-table-column :label="t('two_phase_commit_page.col_seconds_remaining')" width="80" align="center">
               <template #default="{ row }">
                 <span :class="row.seconds_remaining < 30 ? 'text-danger' : ''">
                   {{ row.seconds_remaining ?? '—' }}
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="创建时间" width="160">
+            <el-table-column :label="t('two_phase_commit_page.col_created_at')" width="160">
               <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="100" fixed="right">
+            <el-table-column :label="t('two_phase_commit_page.col_actions')" width="100" fixed="right">
               <template #default="{ row }">
-                <el-button size="small" type="danger" @click="handleCancel(row)">取消</el-button>
+                <el-button size="small" type="danger" @click="handleCancel(row)">{{ t('actions.cancel') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -104,42 +104,38 @@
         </el-tab-pane>
 
         <!-- 预留历史 -->
-        <el-tab-pane label="预留历史" name="history">
+        <el-tab-pane :label="t('two_phase_commit_page.tabs.history')" name="history">
           <div class="tab-toolbar">
-            <el-select v-model="historyFilter.status" placeholder="状态" clearable style="width:130px;margin-right:8px" @change="loadHistory">
-              <el-option label="全部" value="" />
-              <el-option label="活跃" value="active" />
-              <el-option label="已提交" value="committed" />
-              <el-option label="已过期" value="expired" />
-              <el-option label="已取消" value="cancelled" />
+            <el-select v-model="historyFilter.status" :placeholder="t('two_phase_commit_page.filter.status_ph')" clearable style="width:130px;margin-right:8px" @change="loadHistory">
+              <el-option v-for="opt in historyStatusOptions" :key="opt.value || 'all'" :label="opt.label" :value="opt.value" />
             </el-select>
           </div>
           <el-table :data="historyRecords" stripe v-loading="historyLoading">
-            <el-table-column label="预留Token" min-width="200">
+            <el-table-column :label="t('two_phase_commit_page.col_reservation_token')" min-width="200">
               <template #default="{ row }">
                 <span class="font-mono text-sm">{{ row.reservation_token }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="License" width="160">
+            <el-table-column :label="t('two_phase_commit_page.col_license')" width="160">
               <template #default="{ row }">{{ row.license?.license_key || '—' }}</template>
             </el-table-column>
-            <el-table-column label="设备指纹" width="140">
+            <el-table-column :label="t('two_phase_commit_page.col_fingerprint')" width="140">
               <template #default="{ row }">{{ row.fingerprint?.substring(0, 16) || '—' }}...</template>
             </el-table-column>
-            <el-table-column label="状态" width="80">
+            <el-table-column :label="t('two_phase_commit_page.col_status')" width="80">
               <template #default="{ row }">
                 <el-tag :type="row.status === 'committed' ? 'primary' : row.status === 'expired' ? 'danger' : row.status === 'cancelled' ? 'warning' : 'success'" size="small">
-                  {{ row.status }}
+                  {{ statusLabel(row.status) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="过期时间" width="160">
+            <el-table-column :label="t('two_phase_commit_page.col_expires_at')" width="160">
               <template #default="{ row }">{{ formatTime(row.expires_at) }}</template>
             </el-table-column>
-            <el-table-column label="创建时间" width="160">
+            <el-table-column :label="t('two_phase_commit_page.col_created_at')" width="160">
               <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
             </el-table-column>
-            <el-table-column label="日志" min-width="200">
+            <el-table-column :label="t('two_phase_commit_page.col_logs')" min-width="200">
               <template #default="{ row }">
                 <div v-if="row.logs?.length" class="log-list">
                   <el-tag v-for="log in row.logs.slice(0, 3)" :key="log.id" size="small" type="info" effect="plain" style="margin-right:4px;margin-bottom:2px">
@@ -166,10 +162,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Timer, Refresh } from '@element-plus/icons-vue';
 import twoPhaseApi from '@/api/twoPhaseCommit';
+
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const activeTab = ref('active');
@@ -193,6 +192,14 @@ const historyPagination = reactive({ current_page: 1, per_page: 20, total: 0 });
 
 // License 选项
 const licenseOptions = ref([]);
+
+const historyStatusOptions = computed(() => [
+  { value: '', label: t('two_phase_commit_page.filter.all') },
+  { value: 'active', label: t('two_phase_commit_page.status.active') },
+  { value: 'committed', label: t('two_phase_commit_page.status.committed') },
+  { value: 'expired', label: t('two_phase_commit_page.status.expired') },
+  { value: 'cancelled', label: t('two_phase_commit_page.status.cancelled') },
+]);
 
 onMounted(() => {
   refreshAll();
@@ -251,19 +258,34 @@ async function loadHistory() {
 }
 
 async function handleCancel(row) {
+  const tokenPreview = `${row.reservation_token?.substring(0, 16)}...`;
   try {
-    await ElMessageBox.confirm(`确定取消预留 ${row.reservation_token?.substring(0, 16)}...？`, '取消确认');
+    await ElMessageBox.confirm(
+      t('two_phase_commit_page.dialog.cancel_confirm', { token: tokenPreview }),
+      t('two_phase_commit_page.dialog.cancel_title'),
+    );
     await twoPhaseApi.cancelReservation(row.reservation_token);
-    ElMessage.success('预留已取消');
+    ElMessage.success(t('two_phase_commit_page.messages.cancel_success'));
     loadActive();
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error('取消失败');
+    if (e !== 'cancel') ElMessage.error(t('two_phase_commit_page.messages.cancel_failed'));
   }
 }
 
-function formatTime(t) {
-  if (!t) return '—';
-  return new Date(t).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+function statusLabel(status) {
+  const map = {
+    active: t('two_phase_commit_page.status.active'),
+    committed: t('two_phase_commit_page.status.committed'),
+    expired: t('two_phase_commit_page.status.expired'),
+    cancelled: t('two_phase_commit_page.status.cancelled'),
+  };
+  return map[status] || status;
+}
+
+function formatTime(time) {
+  if (!time) return '—';
+  const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+  return new Date(time).toLocaleString(loc, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 </script>
 
@@ -277,7 +299,7 @@ function formatTime(t) {
 .stat-label { font-size: 13px; color: #909399; margin-top: 4px; }
 .stat-success { color: #67C23A; }
 .stat-danger { color: #F56C6C; }
-.stat-primary { color: #409EFF; }
+.stat-primary { color: #0f172a; }
 .tab-toolbar { display: flex; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
 .pagination-wrap { display: flex; justify-content: flex-end; margin-top: 16px; }
 .font-mono { font-family: 'SFMono-Regular', Consolas, monospace; }

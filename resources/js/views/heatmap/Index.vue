@@ -1,22 +1,16 @@
 <template>
   <div class="heatmap-page">
     <div class="page-header">
-      <h2><el-icon style="vertical-align:middle;margin-right:8px"><MapLocation /></el-icon>多层热力地图</h2>
+      <h2><el-icon style="vertical-align:middle;margin-right:8px"><MapLocation /></el-icon>{{ t('heatmap_page.title') }}</h2>
       <div class="header-actions">
-        <el-select v-model="selectedLayers" multiple placeholder="选择图层" style="width:280px;margin-right:8px">
-          <el-option label="License 激活" value="license_activations" />
-          <el-option label="产品使用" value="product_usage" />
-          <el-option label="API 调用" value="api_calls" />
-          <el-option label="收入分布" value="revenue" />
+        <el-select v-model="selectedLayers" multiple :placeholder="t('heatmap_page.select_layers_ph')" style="width:280px;margin-right:8px">
+          <el-option v-for="opt in layerSourceOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
         </el-select>
         <el-select v-model="days" style="width:120px;margin-right:8px">
-          <el-option label="近7天" :value="7" />
-          <el-option label="近30天" :value="30" />
-          <el-option label="近90天" :value="90" />
-          <el-option label="全年" :value="365" />
+          <el-option v-for="opt in daysOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
         </el-select>
         <el-button type="primary" @click="loadData" :loading="loading">
-          <el-icon><Refresh /></el-icon> 刷新
+          <el-icon><Refresh /></el-icon> {{ t('heatmap_page.refresh') }}
         </el-button>
       </div>
     </div>
@@ -26,25 +20,25 @@
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.activated_countries }}</div>
-          <div class="stat-label">覆盖国家/地区</div>
+          <div class="stat-label">{{ t('heatmap_page.stats.countries') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card stat-active">
           <div class="stat-value">{{ stats.total_geo_points }}</div>
-          <div class="stat-label">定位数据点</div>
+          <div class="stat-label">{{ t('heatmap_page.stats.geo_points') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.recent_30d_events }}</div>
-          <div class="stat-label">30天事件数</div>
+          <div class="stat-label">{{ t('heatmap_page.stats.events_30d') }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ activeLayerCount }}</div>
-          <div class="stat-label">活跃图层</div>
+          <div class="stat-label">{{ t('heatmap_page.stats.active_layers') }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -54,7 +48,7 @@
       <el-col :span="16">
         <el-card shadow="hover">
           <template #header>
-            <span>地理分布热力图</span>
+            <span>{{ t('heatmap_page.sections.geo_heatmap') }}</span>
             <el-tag v-if="mapLayerName" size="small" style="margin-left:8px">{{ mapLayerName }}</el-tag>
           </template>
           <div ref="mapRef" style="width:100%;height:520px"></div>
@@ -63,7 +57,7 @@
       <el-col :span="8">
         <el-card shadow="hover">
           <template #header>
-            <span>国家/地区排名</span>
+            <span>{{ t('heatmap_page.sections.country_ranking') }}</span>
             <el-tag size="small" style="margin-left:8px">{{ topCountries.length }}</el-tag>
           </template>
           <div class="country-list" v-if="topCountries.length">
@@ -78,7 +72,7 @@
               </span>
             </div>
           </div>
-          <el-empty v-else description="暂无数据" />
+          <el-empty v-else :description="t('messages.no_data')" />
         </el-card>
       </el-col>
     </el-row>
@@ -86,94 +80,89 @@
     <!-- 图层管理 -->
     <el-card shadow="hover" class="mt-4">
       <template #header>
-        <span>热力图层管理</span>
+        <span>{{ t('heatmap_page.sections.layer_management') }}</span>
         <el-button size="small" type="primary" style="float:right" @click="showLayerDialog = true">
-          <el-icon><Plus /></el-icon> 新建图层
+          <el-icon><Plus /></el-icon> {{ t('heatmap_page.buttons.new_layer') }}
         </el-button>
       </template>
       <el-table :data="layers" stripe v-loading="layersLoading">
-        <el-table-column prop="name" label="图层名称" width="180" />
-        <el-table-column prop="slug" label="标识" width="160" />
-        <el-table-column label="数据源" width="140">
+        <el-table-column prop="name" :label="t('heatmap_page.cols.name')" width="180" />
+        <el-table-column prop="slug" :label="t('heatmap_page.cols.slug')" width="160" />
+        <el-table-column :label="t('heatmap_page.cols.data_source')" width="140">
           <template #default="{ row }">
             <el-tag>{{ layerSourceLabel(row.data_source) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="类型" width="140">
+        <el-table-column :label="t('heatmap_page.cols.type')" width="140">
           <template #default="{ row }">
             <el-tag type="info">{{ layerTypeLabel(row.type) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="80">
+        <el-table-column :label="t('heatmap_page.cols.status')" width="80">
           <template #default="{ row }">
             <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
-              {{ row.is_active ? '启用' : '停用' }}
+              {{ row.is_active ? t('heatmap_page.status.enabled') : t('heatmap_page.status.disabled') }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="140">
+        <el-table-column :label="t('heatmap_page.cols.actions')" width="140">
           <template #default="{ row }">
-            <el-button size="small" @click="editLayer(row)">编辑</el-button>
-            <el-button size="small" type="danger" @click="deleteLayer(row)">删除</el-button>
+            <el-button size="small" @click="editLayer(row)">{{ t('actions.edit') }}</el-button>
+            <el-button size="small" type="danger" @click="deleteLayer(row)">{{ t('actions.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
     <!-- 图层编辑对话框 -->
-    <el-dialog v-model="showLayerDialog" :title="editingLayer ? '编辑图层' : '新建图层'" width="520px">
+    <el-dialog v-model="showLayerDialog" :title="editingLayer ? t('heatmap_page.dialog.edit_layer') : t('heatmap_page.dialog.new_layer')" width="520px">
       <el-form :model="layerForm" label-width="110px">
-        <el-form-item label="图层名称" required>
-          <el-input v-model="layerForm.name" placeholder="例如：全球激活热力图" />
+        <el-form-item :label="t('heatmap_page.cols.name')" required>
+          <el-input v-model="layerForm.name" :placeholder="t('heatmap_page.dialog.name_ph')" />
         </el-form-item>
-        <el-form-item label="标识 (slug)" required>
-          <el-input v-model="layerForm.slug" placeholder="例如：global-activations" />
+        <el-form-item :label="t('heatmap_page.dialog.slug_label')" required>
+          <el-input v-model="layerForm.slug" :placeholder="t('heatmap_page.dialog.slug_ph')" />
         </el-form-item>
-        <el-form-item label="数据源" required>
+        <el-form-item :label="t('heatmap_page.cols.data_source')" required>
           <el-select v-model="layerForm.data_source" style="width:100%">
-            <el-option label="License 激活" value="license_activations" />
-            <el-option label="产品使用" value="product_usage" />
-            <el-option label="API 调用" value="api_calls" />
-            <el-option label="收入分布" value="revenue" />
+            <el-option v-for="opt in layerSourceOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="图层类型">
+        <el-form-item :label="t('heatmap_page.dialog.layer_type')">
           <el-select v-model="layerForm.type" style="width:100%">
-            <el-option label="散点热力图" value="heatmap_scatter" />
-            <el-option label="国家色阶图" value="country_choropleth" />
-            <el-option label="区域气泡图" value="region_bubble" />
+            <el-option v-for="opt in layerTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showLayerDialog = false">取消</el-button>
+        <el-button @click="showLayerDialog = false">{{ t('actions.cancel') }}</el-button>
         <el-button type="primary" @click="saveLayer" :loading="savingLayer">
-          {{ editingLayer ? '保存' : '创建' }}
+          {{ editingLayer ? t('actions.save') : t('actions.create') }}
         </el-button>
       </template>
     </el-dialog>
 
     <!-- 国家钻取对话框 -->
-    <el-dialog v-model="showDrillDialog" :title="`国家详情 — ${drillCountry}`" width="700px">
+    <el-dialog v-model="showDrillDialog" :title="t('heatmap_page.dialog.country_detail', { code: drillCountry })" width="700px">
       <el-row :gutter="16" v-if="drillData">
         <el-col :span="12">
           <el-card shadow="hover">
-            <template #header><span>事件类型分布</span></template>
+            <template #header><span>{{ t('heatmap_page.drill.event_distribution') }}</span></template>
             <div ref="drillEventChartRef" style="height:200px"></div>
           </el-card>
         </el-col>
         <el-col :span="12">
           <el-card shadow="hover">
-            <template #header><span>每日趋势</span></template>
+            <template #header><span>{{ t('heatmap_page.drill.daily_trend') }}</span></template>
             <div ref="drillTrendChartRef" style="height:200px"></div>
           </el-card>
         </el-col>
         <el-col :span="24" class="mt-4">
           <el-card shadow="hover">
-            <template #header><span>城市分布</span></template>
+            <template #header><span>{{ t('heatmap_page.drill.city_distribution') }}</span></template>
             <el-table :data="drillData.cities" stripe size="small">
-              <el-table-column prop="city" label="城市" />
-              <el-table-column prop="cnt" label="事件数" width="100" sortable />
+              <el-table-column prop="city" :label="t('heatmap_page.cols.city')" />
+              <el-table-column prop="cnt" :label="t('heatmap_page.cols.event_count')" width="100" sortable />
             </el-table>
           </el-card>
         </el-col>
@@ -184,10 +173,13 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { MapLocation, Refresh, Plus } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import heatmapApi from '../../api/heatmap'
+
+const { t, locale } = useI18n()
 
 // ── 状态 ──
 const loading = ref(false)
@@ -196,6 +188,7 @@ const selectedLayers = ref(['license_activations'])
 const stats = ref({ activated_countries: 0, total_geo_points: 0, recent_30d_events: 0 })
 const mapRef = ref(null)
 const mapChart = ref(null)
+const lastMapPoints = ref([])
 
 const topCountries = ref([])
 const activeLayers = ref([])
@@ -215,18 +208,42 @@ const drillData = ref(null)
 const drillEventChartRef = ref(null)
 const drillTrendChartRef = ref(null)
 
-// ── 计算 ──
-const activeLayerCount = computed(() => selectedLayers.value.length)
-const mapLayerName = computed(() => {
-    const labels = {
-        license_activations: 'License 激活',
-        product_usage: '产品使用',
-        api_calls: 'API 调用',
-        revenue: '收入分布',
-    }
-    return selectedLayers.value.map(l => labels[l] || l).join(' + ')
-})
+const layerSourceKeys = ['license_activations', 'product_usage', 'api_calls', 'revenue']
+const layerTypeKeys = ['heatmap_scatter', 'country_choropleth', 'region_bubble']
 
+// ── 计算 ──
+const layerSourceLabels = computed(() => ({
+    license_activations: t('heatmap_page.sources.license_activations'),
+    product_usage: t('heatmap_page.sources.product_usage'),
+    api_calls: t('heatmap_page.sources.api_calls'),
+    revenue: t('heatmap_page.sources.revenue'),
+}))
+
+const layerSourceOptions = computed(() =>
+    layerSourceKeys.map((value) => ({ value, label: layerSourceLabels.value[value] }))
+)
+
+const layerTypeLabels = computed(() => ({
+    heatmap_scatter: t('heatmap_page.layer_types.heatmap_scatter'),
+    country_choropleth: t('heatmap_page.layer_types.country_choropleth'),
+    region_bubble: t('heatmap_page.layer_types.region_bubble'),
+}))
+
+const layerTypeOptions = computed(() =>
+    layerTypeKeys.map((value) => ({ value, label: layerTypeLabels.value[value] }))
+)
+
+const daysOptions = computed(() => [
+    { label: t('heatmap_page.days.d7'), value: 7 },
+    { label: t('heatmap_page.days.d30'), value: 30 },
+    { label: t('heatmap_page.days.d90'), value: 90 },
+    { label: t('heatmap_page.days.d365'), value: 365 },
+])
+
+const activeLayerCount = computed(() => selectedLayers.value.length)
+const mapLayerName = computed(() =>
+    selectedLayers.value.map((l) => layerSourceLabels.value[l] || l).join(' + ')
+)
 
 // ── 方法 ──
 function formatNum(n) {
@@ -254,23 +271,12 @@ function getFlagEmoji(code) {
     return String.fromCodePoint(base + a, base + b)
 }
 
-function layerSourceLabel(s) {
-    const map = {
-        license_activations: 'License 激活',
-        product_usage: '产品使用',
-        api_calls: 'API 调用',
-        revenue: '收入分布',
-    }
-    return map[s] || s
+function layerSourceLabel(source) {
+    return layerSourceLabels.value[source] || source
 }
 
-function layerTypeLabel(t) {
-    const map = {
-        heatmap_scatter: '散点热力图',
-        country_choropleth: '国家色阶图',
-        region_bubble: '区域气泡图',
-    }
-    return map[t] || t
+function layerTypeLabel(type) {
+    return layerTypeLabels.value[type] || type
 }
 
 async function loadDashboard() {
@@ -307,7 +313,7 @@ async function loadData() {
         }
     } catch (e) {
         console.error('Failed to load heatmap data', e)
-        ElMessage.error('加载热力图数据失败')
+        ElMessage.error(t('heatmap_page.messages.load_data_failed'))
     } finally {
         loading.value = false
     }
@@ -332,12 +338,12 @@ function saveLayer() {
         : heatmapApi.createLayer(layerForm.value)
 
     apiCall.then(() => {
-        ElMessage.success(editingLayer.value ? '图层已更新' : '图层已创建')
+        ElMessage.success(editingLayer.value ? t('heatmap_page.messages.layer_updated') : t('heatmap_page.messages.layer_created'))
         showLayerDialog.value = false
         editingLayer.value = null
         loadLayers()
     }).catch(e => {
-        ElMessage.error('操作失败：' + (e.response?.data?.message || e.message))
+        ElMessage.error(t('messages.failed') + ': ' + (e.response?.data?.message || e.message))
     }).finally(() => {
         savingLayer.value = false
     })
@@ -355,9 +361,13 @@ function editLayer(row) {
 }
 
 function deleteLayer(row) {
-    ElMessageBox.confirm(`确定删除图层"${row.name}"？`, '确认', { type: 'warning' }).then(() => {
+    ElMessageBox.confirm(
+        t('heatmap_page.prompts.delete_layer', { name: row.name }),
+        t('actions.confirm'),
+        { type: 'warning' },
+    ).then(() => {
         heatmapApi.deleteLayer(row.id).then(() => {
-            ElMessage.success('已删除')
+            ElMessage.success(t('heatmap_page.messages.deleted'))
             loadLayers()
         })
     }).catch(() => {})
@@ -379,11 +389,12 @@ async function drillDown(countryCode) {
 // ── ECharts 地图渲染 ──
 function renderMap(points) {
     if (!mapRef.value) return
+    lastMapPoints.value = points || []
     if (!mapChart.value) {
         mapChart.value = echarts.init(mapRef.value)
     }
 
-    const scatterData = (points || []).map(p => ({
+    const scatterData = lastMapPoints.value.map(p => ({
         value: [parseFloat(p.longitude), parseFloat(p.latitude), parseInt(p.intensity) || 1],
         name: p.city || p.country_name || '',
     }))
@@ -393,7 +404,7 @@ function renderMap(points) {
             trigger: 'item',
             formatter: params => {
                 if (params.seriesType === 'scatter') {
-                    return `${params.name}<br/>经度: ${params.value[0]}<br/>纬度: ${params.value[1]}<br/>强度: ${params.value[2]}`
+                    return `${params.name}<br/>${t('heatmap_page.charts.longitude')}: ${params.value[0]}<br/>${t('heatmap_page.charts.latitude')}: ${params.value[1]}<br/>${t('heatmap_page.charts.intensity')}: ${params.value[2]}`
                 }
                 return params.name
             },
@@ -404,7 +415,7 @@ function renderMap(points) {
             inRange: {
                 color: ['#313695', '#4575b4', '#74add1', '#abd9e9', '#fee090', '#fdae61', '#f46d43', '#d73027'],
             },
-            text: ['高', '低'],
+            text: [t('heatmap_page.charts.high'), t('heatmap_page.charts.low')],
             calculable: true,
             bottom: 20,
         },
@@ -423,7 +434,7 @@ function renderMap(points) {
             },
         },
         series: [{
-            name: '热力分布',
+            name: t('heatmap_page.charts.heat_distribution'),
             type: 'scatter',
             coordinateSystem: 'geo',
             data: scatterData,
@@ -485,6 +496,12 @@ function renderDrillCharts() {
 // ── 侦听图层/天数变化 ──
 watch([selectedLayers, days], () => {
     loadData()
+})
+
+watch(locale, () => {
+    if (mapChart.value) {
+        renderMap(lastMapPoints.value)
+    }
 })
 
 // ── 生命周期 ──
@@ -566,7 +583,7 @@ function handleResize() {
 }
 
 .stat-active .stat-value {
-    color: #409eff;
+    color: #0f172a;
 }
 
 .country-list {

@@ -2,8 +2,8 @@
     <div class="portal-kb">
         <div class="page-header">
             <div>
-                <h2>帮助中心</h2>
-                <p class="text-muted">搜索帮助文档，查找常见问题的解答</p>
+                <h2>{{ $t('portal.kb_title') }}</h2>
+                <p class="text-muted">{{ $t('portal.kb_subtitle') }}</p>
             </div>
         </div>
 
@@ -11,7 +11,7 @@
         <el-card shadow="never" class="search-card">
             <el-input
                 v-model="searchQuery"
-                placeholder="搜索帮助文档..."
+                :placeholder="$t('portal.kb_search_ph')"
                 size="large"
                 clearable
                 @keyup.enter="doSearch"
@@ -21,11 +21,11 @@
                     <el-icon><Search /></el-icon>
                 </template>
                 <template #append>
-                    <el-button @click="doSearch" :loading="searching">搜索</el-button>
+                    <el-button @click="doSearch" :loading="searching">{{ $t('actions.search') }}</el-button>
                 </template>
             </el-input>
             <div v-if="searchQuery" class="search-hint">
-                按 Enter 搜索或点击搜索按钮
+                {{ $t('portal.search_hint') }}
             </div>
         </el-card>
 
@@ -33,7 +33,7 @@
         <div v-if="searchResults.length > 0" class="search-results">
             <el-card shadow="never">
                 <template #header>
-                    <span>搜索结果（{{ searchTotal }} 条）</span>
+                    <span>{{ $t('portal.search_results_n', { n: searchTotal }) }}</span>
                 </template>
                 <div class="result-list">
                     <div v-for="article in searchResults" :key="article.id" class="result-item" @click="openArticle(article)">
@@ -41,7 +41,7 @@
                         <div class="result-excerpt">{{ article.excerpt || article.content?.substring(0, 150) }}</div>
                         <div class="result-meta">
                             <el-tag v-if="article.category" size="small" effect="plain">{{ article.category.name }}</el-tag>
-                            <span class="result-date">更新于 {{ formatDate(article.updated_at) }}</span>
+                            <span class="result-date">{{ $t('portal.updated_at_label', { date: formatDate(article.updated_at) }) }}</span>
                         </div>
                     </div>
                 </div>
@@ -54,7 +54,7 @@
                 <el-col v-for="category in categories" :key="category.id" :span="8" class="mb-4">
                     <el-card shadow="never" class="category-card" @click="selectCategory(category)">
                         <div class="category-icon">
-                            <el-avatar :size="48" :style="{ background: category.color || '#409eff' }">
+                            <el-avatar :size="48" :style="{ background: category.color || '#0f172a' }">
                                 <el-icon :size="24" color="#fff">
                                     <component :is="categoryIcon(category.name)" />
                                 </el-icon>
@@ -63,12 +63,12 @@
                         <div class="category-info">
                             <div class="category-name">{{ category.name }}</div>
                             <div class="category-desc">{{ category.description || '' }}</div>
-                            <div class="category-count">{{ category.articles_count || 0 }} 篇文章</div>
+                            <div class="category-count">{{ $t('portal.articles_n', { n: category.articles_count || 0 }) }}</div>
                         </div>
                     </el-card>
                 </el-col>
             </el-row>
-            <el-empty v-if="!loadingCategories && categories.length === 0" :image-size="80" description="暂无帮助文档" />
+            <el-empty v-if="!loadingCategories && categories.length === 0" :image-size="80" :description="$t('portal.no_kb')" />
         </div>
 
         <!-- 文章详情 Dialog -->
@@ -83,14 +83,14 @@
                     <el-tag v-if="currentArticle.category" size="small" effect="plain">
                         {{ currentArticle.category.name }}
                     </el-tag>
-                    <span class="article-date">更新于 {{ formatDate(currentArticle.updated_at) }}</span>
+                    <span class="article-date">{{ $t('portal.updated_at_label', { date: formatDate(currentArticle.updated_at) }) }}</span>
                 </div>
 
                 <div class="article-content" v-html="renderedContent"></div>
 
                 <!-- 相关文章 -->
                 <div v-if="relatedArticles.length > 0" class="related-section">
-                    <h4>相关文章</h4>
+                    <h4>{{ $t('portal.related_articles') }}</h4>
                     <div v-for="r in relatedArticles" :key="r.id" class="related-item" @click="openArticle(r)">
                         {{ r.title }}
                     </div>
@@ -99,7 +99,7 @@
                 <!-- 反馈 -->
                 <el-divider />
                 <div class="feedback-section">
-                    <span class="feedback-label">这篇文章对您有帮助吗？</span>
+                    <span class="feedback-label">{{ $t('portal.article_helpful') }}</span>
                     <div class="feedback-buttons">
                         <el-button
                             :type="feedback === 'yes' ? 'success' : 'default'"
@@ -107,7 +107,7 @@
                             @click="submitFeedback(true)"
                             :disabled="feedback !== null"
                         >
-                            有帮助
+                            {{ $t('portal.helpful_yes') }}
                         </el-button>
                         <el-button
                             :type="feedback === 'no' ? 'danger' : 'default'"
@@ -115,10 +115,10 @@
                             @click="submitFeedback(false)"
                             :disabled="feedback !== null"
                         >
-                            没帮助
+                            {{ $t('portal.helpful_no') }}
                         </el-button>
                     </div>
-                    <div v-if="feedback" class="feedback-thanks">感谢您的反馈！</div>
+                    <div v-if="feedback" class="feedback-thanks">{{ $t('portal.feedback_thanks') }}</div>
                 </div>
             </div>
         </el-drawer>
@@ -127,9 +127,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Search, CircleCheck, Close, Document, Setting, Goods, QuestionFilled } from '@element-plus/icons-vue';
 import kbApi from '@/api/kb';
+import i18n from '@/i18n';
+
+const { t, locale } = useI18n();
 
 const loadingCategories = ref(false);
 const searching = ref(false);
@@ -145,20 +149,26 @@ const feedback = ref(null);
 const NO_ICON = 'Document';
 
 function categoryIcon(name) {
-    const map = {
-        '快速入门': 'MagicStick',
-        '常见问题': QuestionFilled,
-        '集成指南': 'Connection',
-        'API 参考': 'Monitor',
-        '计费': Goods,
-        '设置': Setting,
+    const zh = (key) => i18n.global.t(`portal.kb_categories.${key}`, {}, { locale: 'zh_CN' });
+    const en = (key) => i18n.global.t(`portal.kb_categories.${key}`, {}, { locale: 'en' });
+    const icons = {
+        getting_started: 'MagicStick',
+        faq: QuestionFilled,
+        integration: 'Connection',
+        api: 'Monitor',
+        billing: Goods,
+        settings: Setting,
     };
-    return map[name] || Document;
+    for (const [key, icon] of Object.entries(icons)) {
+        if (name === key || name === zh(key) || name === en(key)) return icon;
+    }
+    return Document;
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    const dateLocale = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(dateStr).toLocaleString(dateLocale, {
         year: 'numeric', month: '2-digit', day: '2-digit',
     });
 }
@@ -223,7 +233,7 @@ async function openArticle(article) {
             currentArticle.value = article;
             relatedArticles.value = [];
         } else {
-            ElMessage.error('加载文章失败');
+            ElMessage.error(t('portal.article_load_failed'));
             showArticleDrawer.value = false;
         }
     } finally {
@@ -236,9 +246,9 @@ async function submitFeedback(isHelpful) {
     try {
         await kbApi.submitFeedback(currentArticle.value.id, { is_helpful: isHelpful });
         feedback.value = isHelpful ? 'yes' : 'no';
-        ElMessage.success('感谢您的反馈');
+        ElMessage.success(t('portal.feedback_thanks'));
     } catch {
-        ElMessage.error('提交反馈失败');
+        ElMessage.error(t('portal.feedback_submit_failed'));
     }
 }
 
@@ -317,7 +327,7 @@ onMounted(() => {
 }
 .category-card:hover {
     border-color: var(--el-color-primary) !important;
-    box-shadow: 0 2px 12px rgba(64, 158, 255, 0.1);
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.1);
 }
 .category-card :deep(.el-card__body) {
     padding: 20px;

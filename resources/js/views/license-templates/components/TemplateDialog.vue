@@ -1,113 +1,115 @@
 <template>
-  <el-dialog v-model="visible" :title="templateData?.id ? '编辑 License 模板' : '新建 License 模板'" width="640px"
+  <el-dialog v-model="visible" :title="templateData?.id ? t('license_template_dialog.edit_title') : t('license_template_dialog.create_title')" width="640px"
     :close-on-click-modal="false" @close="reset">
     <el-tabs v-model="formTab" type="border-card">
-      <el-tab-pane label="基本信息" name="basic">
+      <el-tab-pane :label="t('license_template_dialog.tabs.basic')" name="basic">
         <el-form ref="formRef" :model="form" :rules="formRules" label-width="110px" v-loading="saving" class="mt-3">
           <el-row :gutter="16">
             <el-col :span="16">
-              <el-form-item label="模板名称" prop="name">
+              <el-form-item :label="t('license_template_dialog.name')" prop="name">
                 <el-input v-model="form.name" maxlength="200" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="启用">
+              <el-form-item :label="t('actions.enable')">
                 <el-switch v-model="form.is_active" />
               </el-form-item>
             </el-col>
           </el-row>
-          <el-form-item label="产品" prop="product_id">
+          <el-form-item :label="t('license_template_dialog.product')" prop="product_id">
             <el-select v-model="form.product_id" clearable style="width:100%">
               <el-option v-for="p in products" :key="p.id" :label="p.name" :value="p.id" />
             </el-select>
           </el-form-item>
-          <el-form-item label="描述">
+          <el-form-item :label="t('license_template_dialog.description')">
             <el-input v-model="form.description" type="textarea" :rows="2" />
           </el-form-item>
           <el-row :gutter="16">
             <el-col :span="8">
-              <el-form-item label="类型" prop="type">
+              <el-form-item :label="t('license_template_dialog.type')" prop="type">
                 <el-select v-model="form.type" style="width:100%">
-                  <el-option label="试用" value="trial" />
-                  <el-option label="标准" value="standard" />
-                  <el-option label="企业" value="enterprise" />
-                  <el-option label="开发" value="development" />
+                  <el-option :label="t('license_template_dialog.types.trial')" value="trial" />
+                  <el-option :label="t('license_template_dialog.types.standard')" value="standard" />
+                  <el-option :label="t('license_template_dialog.types.enterprise')" value="enterprise" />
+                  <el-option :label="t('license_template_dialog.types.development')" value="development" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="座位数" prop="seats">
+              <el-form-item :label="t('license_template_dialog.seats')" prop="seats">
                 <el-input-number v-model="form.seats" :min="1" :max="10000" style="width:100%" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="设备数" prop="max_devices">
+              <el-form-item :label="t('license_template_dialog.max_devices')" prop="max_devices">
                 <el-input-number v-model="form.max_devices" :min="1" :max="10000" style="width:100%" />
               </el-form-item>
             </el-col>
           </el-row>
-          <el-form-item label="有效期(天)" prop="expiry_days">
+          <el-form-item :label="t('license_template_dialog.expiry_days')" prop="expiry_days">
             <el-input-number v-model="form.expiry_days" :min="0" style="width:100%" />
-            <span class="ml-2 text-gray-400">0 或空为永久</span>
+            <span class="ml-2 text-gray-400">{{ t('license_template_dialog.expiry_hint') }}</span>
           </el-form-item>
-          <el-form-item label="元数据(JSON)">
+          <el-form-item :label="t('license_template_dialog.metadata')">
             <el-input v-model="form.metadata" type="textarea" :rows="3" placeholder='{"key": "value"}' />
           </el-form-item>
         </el-form>
       </el-tab-pane>
 
-      <el-tab-pane label="变量定义" name="variables" v-if="templateData?.id || savedTemplateId">
-        <div class="mb-3 text-sm text-gray-500">定义模板变量，批量生成时每行可指定不同的变量值，在 metadata 中使用 {{变量名}} 引用</div>
+      <el-tab-pane :label="t('license_template_dialog.tabs.variables')" name="variables" v-if="templateData?.id || savedTemplateId">
+        <div class="mb-3 text-sm text-gray-500">{{ t('license_template_dialog.vars_hint') }}</div>
         <div v-for="(v, i) in variables" :key="i" class="variable-row mb-2 p-2 bg-gray-50 rounded">
           <el-row :gutter="12">
             <el-col :span="5">
-              <el-input v-model="v.key" placeholder="变量名" size="small" />
+              <el-input v-model="v.key" :placeholder="t('license_template_dialog.var_key')" size="small" />
             </el-col>
             <el-col :span="5">
-              <el-input v-model="v.label" placeholder="显示名" size="small" />
+              <el-input v-model="v.label" :placeholder="t('license_template_dialog.var_label')" size="small" />
             </el-col>
             <el-col :span="4">
               <el-select v-model="v.variable_type" size="small" style="width:100%">
-                <el-option label="字符串" value="string" />
-                <el-option label="数字" value="number" />
-                <el-option label="日期" value="date" />
-                <el-option label="布尔" value="boolean" />
-                <el-option label="选择" value="select" />
+                <el-option :label="t('license_template_dialog.var_types.string')" value="string" />
+                <el-option :label="t('license_template_dialog.var_types.number')" value="number" />
+                <el-option :label="t('license_template_dialog.var_types.date')" value="date" />
+                <el-option :label="t('license_template_dialog.var_types.boolean')" value="boolean" />
+                <el-option :label="t('license_template_dialog.var_types.select')" value="select" />
               </el-select>
             </el-col>
             <el-col :span="3">
-              <el-checkbox v-model="v.is_required">必填</el-checkbox>
+              <el-checkbox v-model="v.is_required">{{ t('license_template_dialog.required') }}</el-checkbox>
             </el-col>
             <el-col :span="5">
-              <el-input v-model="v.default_value" placeholder="默认值" size="small" />
+              <el-input v-model="v.default_value" :placeholder="t('license_template_dialog.default_value')" size="small" />
             </el-col>
             <el-col :span="2">
               <el-button type="danger" :icon="Delete" size="small" circle @click="variables.splice(i, 1)" />
             </el-col>
           </el-row>
         </div>
-        <el-button size="small" @click="addVariable">添加变量</el-button>
-        <el-button size="small" type="primary" @click="saveVariables" :loading="savingVars">保存变量</el-button>
+        <el-button size="small" @click="addVariable">{{ t('license_template_dialog.add_var') }}</el-button>
+        <el-button size="small" type="primary" @click="saveVariables" :loading="savingVars">{{ t('license_template_dialog.save_vars') }}</el-button>
       </el-tab-pane>
     </el-tabs>
 
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">{{ templateData?.id ? '保存' : '创建' }}</el-button>
+      <el-button @click="visible = false">{{ t('actions.cancel') }}</el-button>
+      <el-button type="primary" :loading="saving" @click="save">{{ templateData?.id ? t('actions.save') : t('actions.create') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
 import {
   createLicenseTemplate, updateLicenseTemplate,
   getLicenseTemplateVariables, saveLicenseTemplateVariables,
-  getLicenseTemplateWithExtras,
 } from '../../../api/licenseTemplate'
 import productApi from '../../../api/product'
+
+const { t } = useI18n()
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -130,9 +132,9 @@ const form = reactive({
   is_active: true, sort_order: 0,
 })
 
-const formRules = {
-  name: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
-}
+const formRules = computed(() => ({
+  name: [{ required: true, message: t('license_template_dialog.validation.name'), trigger: 'blur' }],
+}))
 
 const variables = ref([])
 
@@ -158,15 +160,15 @@ async function save() {
     const payload = { ...form, metadata: parseJson(form.metadata), expiry_days: form.expiry_days || null }
     if (props.templateData?.id) {
       await updateLicenseTemplate(props.templateData.id, payload)
-      ElMessage.success('已更新')
+      ElMessage.success(t('license_template_dialog.messages.updated'))
       savedTemplateId.value = props.templateData.id
     } else {
       const { data } = await createLicenseTemplate(payload)
-      ElMessage.success('已创建')
+      ElMessage.success(t('license_template_dialog.messages.created'))
       savedTemplateId.value = data?.id || data?.data?.id
     }
     emit('saved')
-  } catch (e) { ElMessage.error('操作失败') } finally { saving.value = false }
+  } catch (e) { ElMessage.error(t('messages.failed')) } finally { saving.value = false }
 }
 
 async function saveVariables() {
@@ -174,8 +176,8 @@ async function saveVariables() {
   savingVars.value = true
   try {
     await saveLicenseTemplateVariables(savedTemplateId.value, variables.value)
-    ElMessage.success('变量已保存')
-  } catch (e) { ElMessage.error('保存变量失败') } finally { savingVars.value = false }
+    ElMessage.success(t('license_template_dialog.messages.vars_saved'))
+  } catch (e) { ElMessage.error(t('license_template_dialog.messages.vars_failed')) } finally { savingVars.value = false }
 }
 
 function reset() {
@@ -207,7 +209,6 @@ watch(() => props.templateData, async (val) => {
     form.is_active = val.is_active !== false
     form.sort_order = val.sort_order || 0
 
-    // Load variables
     try {
       const { data } = await getLicenseTemplateVariables(val.id)
       variables.value = Array.isArray(data) ? data : []

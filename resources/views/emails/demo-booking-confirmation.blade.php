@@ -1,21 +1,22 @@
+@php $appName = __('app.app_name'); @endphp
 <x-mail::message>
-# 感谢您的预约
+# {{ __('app.mail.demo_confirm.heading') }}
 
-{{ $name }} 您好，
+{{ __('app.mail.demo_confirm.greeting', ['name' => $name]) }}
 
-感谢您对互物通的关注！我们已收到您的预约请求。
+{{ __('app.mail.demo_confirm.body', ['app' => $appName]) }}
 
-**我们的销售团队将在 24 小时内与您联系**，为您安排专属产品演示。
+{{ __('app.mail.demo_confirm.sla') }}
 
-在此期间，您可以：
-- 👉 [免费注册]({{ url('/build/register') }}) 体验管理后台
-- 👉 [查看 SDK 文档]({{ url('/docs/sdk') }}) 了解集成方式
-- 👉 [查看定价]({{ url('/pricing') }}) 了解套餐详情
+{{ __('app.mail.demo_confirm.meanwhile') }}
+- 👉 [{{ __('app.mail.demo_confirm.link_register') }}]({{ url('/build/register') }}) {{ __('app.mail.demo_confirm.link_register_hint') }}
+- 👉 [{{ __('app.mail.demo_confirm.link_sdk') }}]({{ url('/docs/sdk') }}) {{ __('app.mail.demo_confirm.link_sdk_hint') }}
+- 👉 [{{ __('app.mail.demo_confirm.link_pricing') }}]({{ url('/pricing') }}) {{ __('app.mail.demo_confirm.link_pricing_hint') }}
 
-如有任何问题，请随时回复此邮件。
+{{ __('app.mail.demo_confirm.questions') }}
 
 ---
 
-互物通团队
+{{ __('app.mail.demo_confirm.team', ['app' => $appName]) }}
 {{ url('/') }}
 </x-mail::message>

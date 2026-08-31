@@ -5,40 +5,40 @@
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ stats.total_items }}</div>
-                    <div class="stat-label">收藏总数</div>
+                    <div class="stat-label">{{ t('wishlist_page.stat_total_items') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ stats.total_groups }}</div>
-                    <div class="stat-label">收藏分组</div>
+                    <div class="stat-label">{{ t('wishlist_page.stat_total_groups') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ stats.sale_notify }}</div>
-                    <div class="stat-label">降价通知</div>
+                    <div class="stat-label">{{ t('wishlist_page.stat_sale_notify') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="hover" class="stat-card">
                     <div class="stat-value">{{ stats.high_priority }}</div>
-                    <div class="stat-label">高优先级</div>
+                    <div class="stat-label">{{ t('wishlist_page.stat_high_priority') }}</div>
                 </el-card>
             </el-col>
         </el-row>
 
         <!-- 操作栏 -->
         <el-card class="action-bar">
-            <el-button type="primary" size="small" @click="showAddGroup = true">新建分组</el-button>
+            <el-button type="primary" size="small" @click="showAddGroup = true">{{ t('wishlist_page.new_group') }}</el-button>
             <el-button size="small" @click="showAddDialog = true">
-                <el-icon><Plus /></el-icon> 添加商品
+                <el-icon><Plus /></el-icon> {{ t('wishlist_page.add_product') }}
             </el-button>
         </el-card>
 
         <!-- 收藏列表（按分组） -->
         <div v-if="wishlists.length === 0">
-            <el-empty description="暂无收藏，去发现商品吧！" />
+            <el-empty :description="t('wishlist_page.empty')" />
         </div>
         <div v-else v-for="group in wishlists" :key="group.id" class="group-section">
             <div class="group-header">
@@ -47,165 +47,164 @@
                     <strong>{{ group.name }}</strong>
                 </div>
                 <div>
-                    <el-button size="small" link @click="editGroup(group)">编辑</el-button>
-                    <el-popconfirm title="删除分组将同时删除组内收藏" @confirm="handleDeleteGroup(group.id)">
+                    <el-button size="small" link @click="editGroup(group)">{{ t('actions.edit') }}</el-button>
+                    <el-popconfirm :title="t('wishlist_page.delete_group_confirm')" @confirm="handleDeleteGroup(group.id)">
                         <template #reference>
-                            <el-button size="small" link type="danger">删除分组</el-button>
+                            <el-button size="small" link type="danger">{{ t('wishlist_page.delete_group') }}</el-button>
                         </template>
                     </el-popconfirm>
                 </div>
             </div>
 
             <el-table v-if="group.items.length" :data="group.items" stripe border size="small">
-                <el-table-column label="商品" min-width="180">
+                <el-table-column :label="t('checkout_page.col_product')" min-width="180">
                     <template #default="{ row }">
                         <div class="product-cell">
-                            <span class="product-name">{{ row.product?.name || '已删除' }}</span>
+                            <span class="product-name">{{ row.product?.name || t('wishlist_page.product_deleted') }}</span>
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column label="备注" width="150">
+                <el-table-column :label="t('wishlist_page.col_note')" width="150">
                     <template #default="{ row }">
-                        <span class="text-muted">{{ row.note || '-' }}</span>
+                        <span class="text-muted">{{ row.note || t('products_page.em_dash') }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="优先级" width="80">
+                <el-table-column :label="t('wishlist_page.col_priority')" width="80">
                     <template #default="{ row }">
                         <el-tag :type="priorityType(row.priority)" size="small">{{ priorityLabel(row.priority) }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="目标价格" width="100">
+                <el-table-column :label="t('wishlist_page.col_target_price')" width="100">
                     <template #default="{ row }">
-                        {{ row.target_price ? `¥${row.target_price}` : '-' }}
+                        {{ row.target_price ? `¥${row.target_price}` : t('products_page.em_dash') }}
                     </template>
                 </el-table-column>
-                <el-table-column label="通知" width="120">
+                <el-table-column :label="t('wishlist_page.col_notify')" width="120">
                     <template #default="{ row }">
-                        <el-tag v-if="row.notify_on_sale" size="small" type="warning">降价</el-tag>
-                        <el-tag v-if="row.notify_on_stock" size="small" type="success">到货</el-tag>
+                        <el-tag v-if="row.notify_on_sale" size="small" type="warning">{{ t('wishlist_page.notify_sale') }}</el-tag>
+                        <el-tag v-if="row.notify_on_stock" size="small" type="success">{{ t('wishlist_page.notify_stock') }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="180" fixed="right">
+                <el-table-column :label="t('products_page.col_actions')" width="180" fixed="right">
                     <template #default="{ row }">
-                        <el-button size="small" link @click="editItem(row)">编辑</el-button>
-                        <el-button size="small" link @click="showMoveDialog(row)">移动</el-button>
-                        <el-popconfirm title="确定移出收藏？" @confirm="handleRemove(row.id)">
+                        <el-button size="small" link @click="editItem(row)">{{ t('actions.edit') }}</el-button>
+                        <el-button size="small" link @click="showMoveDialog(row)">{{ t('wishlist_page.move') }}</el-button>
+                        <el-popconfirm :title="t('wishlist_page.remove_confirm')" @confirm="handleRemove(row.id)">
                             <template #reference>
-                                <el-button size="small" link type="danger">移除</el-button>
+                                <el-button size="small" link type="danger">{{ t('wishlist_page.remove') }}</el-button>
                             </template>
                         </el-popconfirm>
                     </template>
                 </el-table-column>
             </el-table>
-            <el-empty v-else :description="`${group.name} 分组暂无收藏`" />
+            <el-empty v-else :description="t('wishlist_page.group_empty', { name: group.name })" />
         </div>
 
         <!-- 添加商品 Dialog -->
-        <el-dialog v-model="showAddDialog" title="添加收藏" width="450px">
+        <el-dialog v-model="showAddDialog" :title="t('wishlist_page.add_dialog_title')" width="450px">
             <el-form label-position="top">
-                <el-form-item label="商品ID">
+                <el-form-item :label="t('wishlist_page.field_product_id')">
                     <el-input-number v-model="addProductId" :min="1" style="width: 100%" />
                 </el-form-item>
-                <el-form-item label="分组">
-                    <el-select v-model="addGroupId" placeholder="默认分组" clearable style="width: 100%">
+                <el-form-item :label="t('wishlist_page.field_group')">
+                    <el-select v-model="addGroupId" :placeholder="t('wishlist_page.default_group_ph')" clearable style="width: 100%">
                         <el-option v-for="g in wishlists" :key="g.id" :label="g.name" :value="g.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="备注">
-                    <el-input v-model="addNote" type="textarea" :rows="2" placeholder="为什么想要这个？" />
+                <el-form-item :label="t('wishlist_page.field_note')">
+                    <el-input v-model="addNote" type="textarea" :rows="2" :placeholder="t('wishlist_page.note_ph')" />
                 </el-form-item>
-                <el-form-item label="优先级">
+                <el-form-item :label="t('wishlist_page.field_priority')">
                     <el-select v-model="addPriority" style="width: 100%">
-                        <el-option label="普通" :value="0" />
-                        <el-option label="重要" :value="1" />
-                        <el-option label="紧急" :value="2" />
+                        <el-option v-for="opt in priorityOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showAddDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleAdd">添加</el-button>
+                <el-button @click="showAddDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleAdd">{{ t('wishlist_page.add_btn') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 编辑收藏 Dialog -->
-        <el-dialog v-model="showEditDialog" title="编辑收藏" width="450px">
+        <el-dialog v-model="showEditDialog" :title="t('wishlist_page.edit_dialog_title')" width="450px">
             <el-form label-position="top">
-                <el-form-item label="备注">
+                <el-form-item :label="t('wishlist_page.field_note')">
                     <el-input v-model="editNote" type="textarea" :rows="2" />
                 </el-form-item>
-                <el-form-item label="优先级">
+                <el-form-item :label="t('wishlist_page.field_priority')">
                     <el-select v-model="editPriority" style="width: 100%">
-                        <el-option label="普通" :value="0" />
-                        <el-option label="重要" :value="1" />
-                        <el-option label="紧急" :value="2" />
+                        <el-option v-for="opt in priorityOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="目标价格">
+                <el-form-item :label="t('wishlist_page.field_target_price')">
                     <el-input-number v-model="editTargetPrice" :min="0" :precision="2" style="width: 100%" />
                 </el-form-item>
-                <el-form-item label="降价通知">
+                <el-form-item :label="t('wishlist_page.notify_sale_label')">
                     <el-switch v-model="editNotifySale" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showEditDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleUpdate">保存</el-button>
+                <el-button @click="showEditDialog = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleUpdate">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 移动 Dialog -->
-        <el-dialog v-model="showMoveDialogVisible" title="移动收藏" width="400px">
+        <el-dialog v-model="showMoveDialogVisible" :title="t('wishlist_page.move_dialog_title')" width="400px">
             <el-form>
-                <el-form-item label="目标分组">
+                <el-form-item :label="t('wishlist_page.target_group')">
                     <el-select v-model="moveTargetGroupId" style="width: 100%">
                         <el-option v-for="g in wishlists" :key="g.id" :label="g.name" :value="g.id" />
                     </el-select>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showMoveDialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="handleMove">移动</el-button>
+                <el-button @click="showMoveDialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleMove">{{ t('wishlist_page.move') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 新建分组 Dialog -->
-        <el-dialog v-model="showAddGroup" title="新建分组" width="400px">
+        <el-dialog v-model="showAddGroup" :title="t('wishlist_page.new_group_dialog_title')" width="400px">
             <el-form>
-                <el-form-item label="分组名称">
-                    <el-input v-model="newGroupName" placeholder="如: 待购/对比/礼物" />
+                <el-form-item :label="t('wishlist_page.group_name')">
+                    <el-input v-model="newGroupName" :placeholder="t('wishlist_page.group_name_ph')" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showAddGroup = false">取消</el-button>
-                <el-button type="primary" @click="handleAddGroup">创建</el-button>
+                <el-button @click="showAddGroup = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleAddGroup">{{ t('actions.create') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 编辑分组 Dialog -->
-        <el-dialog v-model="showEditGroup" title="编辑分组" width="400px">
+        <el-dialog v-model="showEditGroup" :title="t('wishlist_page.edit_group_dialog_title')" width="400px">
             <el-form>
-                <el-form-item label="分组名称">
+                <el-form-item :label="t('wishlist_page.group_name')">
                     <el-input v-model="editGroupName" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showEditGroup = false">取消</el-button>
-                <el-button type="primary" @click="handleUpdateGroup">保存</el-button>
+                <el-button @click="showEditGroup = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="handleUpdateGroup">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import {
     getMyWishlists, getMyStats, addToWishlist, removeWishlistItem,
     updateWishlistItem, moveWishlistItem,
     createWishlistGroup, updateWishlistGroup, deleteWishlistGroup,
 } from '@/api/wishlist'
+
+const { t } = useI18n()
 
 const stats = ref({ total_items: 0, total_groups: 0, sale_notify: 0, high_priority: 0 })
 const wishlists = ref([])
@@ -237,12 +236,22 @@ const showEditGroup = ref(false)
 const editGroupId = ref(null)
 const editGroupName = ref('')
 
+const priorityOptions = computed(() => [
+    { value: 0, label: t('wishlist_page.priority_normal') },
+    { value: 1, label: t('wishlist_page.priority_important') },
+    { value: 2, label: t('wishlist_page.priority_urgent') },
+])
+
+const priorityLabels = computed(() => Object.fromEntries(
+    priorityOptions.value.map((opt) => [opt.value, opt.label]),
+))
+
 function priorityType(p) {
     return ['info', 'warning', 'danger'][p] || 'info'
 }
 
 function priorityLabel(p) {
-    return ['普通', '重要', '紧急'][p] || '普通'
+    return priorityLabels.value[p] ?? priorityLabels.value[0]
 }
 
 async function loadData() {
@@ -251,14 +260,14 @@ async function loadData() {
         wishlists.value = wishlistsRes.data?.data || wishlistsRes.data || []
         stats.value = statsRes.data?.data || statsRes.data || stats.value
     } catch {
-        ElMessage.error('加载收藏列表失败')
+        ElMessage.error(t('wishlist_page.load_failed'))
     }
 }
 
 // 添加
 function handleAdd() {
     if (!addProductId.value) {
-        ElMessage.warning('请输入商品ID')
+        ElMessage.warning(t('wishlist_page.product_id_required'))
         return
     }
     addToWishlist({
@@ -267,14 +276,14 @@ function handleAdd() {
         note: addNote.value,
         priority: addPriority.value,
     }).then(() => {
-        ElMessage.success('已添加')
+        ElMessage.success(t('wishlist_page.added_ok'))
         showAddDialog.value = false
         addProductId.value = null
         addNote.value = ''
         addPriority.value = 0
         loadData()
     }).catch(e => {
-        ElMessage.error(e.response?.data?.message || '添加失败')
+        ElMessage.error(e.response?.data?.message || t('wishlist_page.add_failed'))
     })
 }
 
@@ -295,21 +304,21 @@ function handleUpdate() {
         target_price: editTargetPrice.value,
         notify_on_sale: editNotifySale.value,
     }).then(() => {
-        ElMessage.success('已更新')
+        ElMessage.success(t('wishlist_page.updated_ok'))
         showEditDialog.value = false
         loadData()
     }).catch(e => {
-        ElMessage.error(e.response?.data?.message || '更新失败')
+        ElMessage.error(e.response?.data?.message || t('wishlist_page.update_failed'))
     })
 }
 
 // 移除
 function handleRemove(id) {
     removeWishlistItem(id).then(() => {
-        ElMessage.success('已移除')
+        ElMessage.success(t('wishlist_page.removed_ok'))
         loadData()
     }).catch(() => {
-        ElMessage.error('移除失败')
+        ElMessage.error(t('wishlist_page.remove_failed'))
     })
 }
 
@@ -322,31 +331,31 @@ function showMoveDialog(row) {
 
 function handleMove() {
     if (!moveTargetGroupId.value) {
-        ElMessage.warning('请选择目标分组')
+        ElMessage.warning(t('wishlist_page.target_group_required'))
         return
     }
     moveWishlistItem(moveItemId.value, { group_id: moveTargetGroupId.value }).then(() => {
-        ElMessage.success('已移动')
+        ElMessage.success(t('wishlist_page.moved_ok'))
         showMoveDialogVisible.value = false
         loadData()
     }).catch(e => {
-        ElMessage.error(e.response?.data?.message || '移动失败')
+        ElMessage.error(e.response?.data?.message || t('wishlist_page.move_failed'))
     })
 }
 
 // 分组
 function handleAddGroup() {
     if (!newGroupName.value) {
-        ElMessage.warning('请输入分组名称')
+        ElMessage.warning(t('wishlist_page.group_name_required'))
         return
     }
     createWishlistGroup({ name: newGroupName.value }).then(() => {
-        ElMessage.success('分组已创建')
+        ElMessage.success(t('wishlist_page.group_created_ok'))
         showAddGroup.value = false
         newGroupName.value = ''
         loadData()
     }).catch(e => {
-        ElMessage.error(e.response?.data?.message || '创建失败')
+        ElMessage.error(e.response?.data?.message || t('wishlist_page.create_failed'))
     })
 }
 
@@ -358,20 +367,20 @@ function editGroup(group) {
 
 function handleUpdateGroup() {
     updateWishlistGroup(editGroupId.value, { name: editGroupName.value }).then(() => {
-        ElMessage.success('分组已更新')
+        ElMessage.success(t('wishlist_page.group_updated_ok'))
         showEditGroup.value = false
         loadData()
     }).catch(e => {
-        ElMessage.error(e.response?.data?.message || '更新失败')
+        ElMessage.error(e.response?.data?.message || t('wishlist_page.update_failed'))
     })
 }
 
 function handleDeleteGroup(id) {
     deleteWishlistGroup(id).then(() => {
-        ElMessage.success('分组已删除')
+        ElMessage.success(t('wishlist_page.group_deleted_ok'))
         loadData()
     }).catch(() => {
-        ElMessage.error('删除失败')
+        ElMessage.error(t('wishlist_page.delete_failed'))
     })
 }
 

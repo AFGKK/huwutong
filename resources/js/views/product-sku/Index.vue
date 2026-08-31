@@ -1,36 +1,36 @@
 <template>
     <div class="sku-management">
         <div class="page-header">
-            <h2>SKU 商品规格管理</h2>
+            <h2>{{ t('product_sku_page.title') }}</h2>
             <div>
-                <el-button @click="handleExport"><el-icon><Download /></el-icon> 导出</el-button>
-                <el-button @click="handleImport"><el-icon><Upload /></el-icon> 导入</el-button>
+                <el-button @click="handleExport"><el-icon><Download /></el-icon> {{ t('actions.export') }}</el-button>
+                <el-button @click="handleImport"><el-icon><Upload /></el-icon> {{ t('actions.import') }}</el-button>
                 <el-button type="primary" @click="openCreateDialog">
-                    <el-icon><Plus /></el-icon> 新建 SKU
+                    <el-icon><Plus /></el-icon> {{ t('product_sku_page.create_sku') }}
                 </el-button>
             </div>
         </div>
 
         <!-- 批量操作栏 -->
         <div v-if="selectedIds.length > 0" class="batch-bar">
-            <span class="batch-info">已选 {{ selectedIds.length }} 项</span>
-            <el-button size="small" type="success" @click="doBatchAction('activate')">批量上架</el-button>
-            <el-button size="small" type="warning" @click="doBatchAction('deactivate')">批量下架</el-button>
-            <el-button size="small" type="danger" @click="doBatchAction('delete')">批量删除</el-button>
-            <el-button size="small" @click="showBatchPrice = true">批量改价</el-button>
-            <el-button size="small" text @click="selectedIds = []">取消</el-button>
+            <span class="batch-info">{{ t('product_sku_page.selected_count', { n: selectedIds.length }) }}</span>
+            <el-button size="small" type="success" @click="doBatchAction('activate')">{{ t('product_sku_page.batch_activate') }}</el-button>
+            <el-button size="small" type="warning" @click="doBatchAction('deactivate')">{{ t('product_sku_page.batch_deactivate') }}</el-button>
+            <el-button size="small" type="danger" @click="doBatchAction('delete')">{{ t('product_sku_page.batch_delete') }}</el-button>
+            <el-button size="small" @click="showBatchPrice = true">{{ t('product_sku_page.batch_set_price') }}</el-button>
+            <el-button size="small" text @click="selectedIds = []">{{ t('actions.cancel') }}</el-button>
         </div>
 
         <!-- 批量改价对话框 -->
-        <el-dialog v-model="showBatchPrice" title="批量修改价格" width="400px">
+        <el-dialog v-model="showBatchPrice" :title="t('product_sku_page.batch_price_title')" width="400px">
             <el-form label-width="100px">
-                <el-form-item label="新价格">
+                <el-form-item :label="t('product_sku_page.new_price')">
                     <el-input-number v-model="batchPriceValue" :min="0" :precision="2" style="width:200px" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="showBatchPrice = false">取消</el-button>
-                <el-button type="primary" @click="doBatchAction('set_price')">确认修改</el-button>
+                <el-button @click="showBatchPrice = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" @click="doBatchAction('set_price')">{{ t('product_sku_page.confirm_price_change') }}</el-button>
             </template>
         </el-dialog>
 
@@ -40,7 +40,7 @@
                 <el-card shadow="never">
                     <div class="stat-card">
                         <div class="stat-value">{{ stats.total_skus || 0 }}</div>
-                        <div class="stat-label">SKU 总数</div>
+                        <div class="stat-label">{{ t('product_sku_page.stat_total') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -48,7 +48,7 @@
                 <el-card shadow="never">
                     <div class="stat-card">
                         <div class="stat-value" style="color: #67c23a">{{ stats.active_skus || 0 }}</div>
-                        <div class="stat-label">已上架</div>
+                        <div class="stat-label">{{ t('product_sku_page.stat_active') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -56,7 +56,7 @@
                 <el-card shadow="never">
                     <div class="stat-card">
                         <div class="stat-value" style="color: #e6a23c">{{ stats.low_stock_count || 0 }}</div>
-                        <div class="stat-label">低库存（≤10）</div>
+                        <div class="stat-label">{{ t('product_sku_page.stat_low_stock') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -64,7 +64,7 @@
                 <el-card shadow="never">
                     <div class="stat-card">
                         <div class="stat-value" style="color: #f56c6c">{{ stats.out_of_stock || 0 }}</div>
-                        <div class="stat-label">缺货</div>
+                        <div class="stat-label">{{ t('product_sku_page.stat_out_of_stock') }}</div>
                     </div>
                 </el-card>
             </el-col>
@@ -73,38 +73,32 @@
         <!-- 筛选栏 -->
         <el-card shadow="never" class="mb-4">
             <el-form :inline="true" :model="filters" size="small">
-                <el-form-item label="产品">
-                    <el-select v-model="filters.product_id" clearable placeholder="全部产品" style="width:180px">
+                <el-form-item :label="t('product_sku_page.filter_product')">
+                    <el-select v-model="filters.product_id" clearable :placeholder="t('product_sku_page.all_products')" style="width:180px">
                         <el-option v-for="p in products" :key="p.id" :label="p.name" :value="p.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="状态">
-                    <el-select v-model="filters.is_active" clearable placeholder="全部" style="width:120px">
-                        <el-option label="已上架" :value="true" />
-                        <el-option label="已下架" :value="false" />
+                <el-form-item :label="t('product_sku_page.filter_status')">
+                    <el-select v-model="filters.is_active" clearable :placeholder="t('product_sku_page.all')" style="width:120px">
+                        <el-option v-for="opt in statusFilterOptions" :key="String(opt.value)" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="计费周期">
-                    <el-select v-model="filters.billing_cycle" clearable placeholder="全部" style="width:140px">
-                        <el-option label="月付" value="monthly" />
-                        <el-option label="季付" value="quarterly" />
-                        <el-option label="年付" value="yearly" />
-                        <el-option label="一次性" value="one-time" />
+                <el-form-item :label="t('product_sku_page.filter_billing_cycle')">
+                    <el-select v-model="filters.billing_cycle" clearable :placeholder="t('product_sku_page.all')" style="width:140px">
+                        <el-option v-for="opt in billingCycleOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="库存">
-                    <el-select v-model="filters.stock_status" clearable placeholder="全部" style="width:140px">
-                        <el-option label="低库存" value="low" />
-                        <el-option label="缺货" value="out" />
-                        <el-option label="无限" value="unlimited" />
+                <el-form-item :label="t('product_sku_page.filter_stock')">
+                    <el-select v-model="filters.stock_status" clearable :placeholder="t('product_sku_page.all')" style="width:140px">
+                        <el-option v-for="opt in stockStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="搜索">
-                    <el-input v-model="filters.search" placeholder="SKU编码/名称" clearable style="width:200px" />
+                <el-form-item :label="t('product_sku_page.filter_search')">
+                    <el-input v-model="filters.search" :placeholder="t('product_sku_page.search_ph')" clearable style="width:200px" />
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="loadSkus(1)">查询</el-button>
-                    <el-button @click="resetFilters">重置</el-button>
+                    <el-button type="primary" @click="loadSkus(1)">{{ t('product_sku_page.query') }}</el-button>
+                    <el-button @click="resetFilters">{{ t('actions.reset') }}</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -114,58 +108,55 @@
             <el-table :data="skus" stripe v-loading="loading" @selection-change="onSelectionChange">
                 <el-table-column type="selection" width="40" />
                 <el-table-column type="index" label="#" width="50" />
-                <el-table-column prop="sku_code" label="SKU编码" width="150" />
-                <el-table-column prop="name" label="名称" min-width="180" show-overflow-tooltip />
-                <el-table-column prop="product.name" label="所属产品" width="150" show-overflow-tooltip />
-                <el-table-column label="售价" width="100">
+                <el-table-column prop="sku_code" :label="t('product_sku_page.col_sku_code')" width="150" />
+                <el-table-column prop="name" :label="t('product_sku_page.col_name')" min-width="180" show-overflow-tooltip />
+                <el-table-column prop="product.name" :label="t('product_sku_page.col_product')" width="150" show-overflow-tooltip />
+                <el-table-column :label="t('product_sku_page.col_price')" width="100">
                     <template #default="{ row }">¥{{ row.price }}</template>
                 </el-table-column>
-                <el-table-column label="划线价" width="100">
+                <el-table-column :label="t('product_sku_page.col_compare_price')" width="100">
                     <template #default="{ row }">
                         <span v-if="row.compare_at_price" class="text-muted text-line-through">¥{{ row.compare_at_price }}</span>
                         <span v-else>-</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="billing_cycle" label="周期" width="100">
+                <el-table-column prop="billing_cycle" :label="t('product_sku_page.col_cycle')" width="100">
                     <template #default="{ row }">
-                        <el-tag v-if="row.billing_cycle === 'monthly'" size="small">月付</el-tag>
-                        <el-tag v-else-if="row.billing_cycle === 'quarterly'" size="small" type="warning">季付</el-tag>
-                        <el-tag v-else-if="row.billing_cycle === 'yearly'" size="small" type="success">年付</el-tag>
-                        <el-tag v-else-if="row.billing_cycle === 'one-time'" size="small" type="info">一次性</el-tag>
+                        <el-tag v-if="billingCycleLabels[row.billing_cycle]" size="small">{{ billingCycleLabels[row.billing_cycle] }}</el-tag>
                         <span v-else>-</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="库存" width="80">
+                <el-table-column :label="t('product_sku_page.col_stock')" width="80">
                     <template #default="{ row }">
-                        <span v-if="row.stock === -1" style="color:#909399">无限</span>
+                        <span v-if="row.stock === -1" style="color:#909399">{{ t('product_sku_page.stock_unlimited') }}</span>
                         <span v-else :style="{ color: row.stock <= 0 ? '#f56c6c' : (row.stock <= (row.low_stock_threshold ?? 10)) ? '#e6a23c' : '#67c23a' }">{{ row.stock }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="sold_count" label="已售" width="70" />
-                <el-table-column label="佣金率" width="80">
+                <el-table-column prop="sold_count" :label="t('product_sku_page.col_sold')" width="70" />
+                <el-table-column :label="t('product_sku_page.col_commission')" width="80">
                     <template #default="{ row }">
                         <span v-if="row.commission_rate !== null && row.commission_rate !== undefined" style="color:#e6a23c;font-weight:600">{{ row.commission_rate }}%</span>
-                        <span v-else class="text-muted">默认</span>
+                        <span v-else class="text-muted">{{ t('product_sku_page.commission_default') }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="currency" label="币种" width="70" />
-                <el-table-column label="状态" width="80">
+                <el-table-column prop="currency" :label="t('product_sku_page.col_currency')" width="70" />
+                <el-table-column :label="t('product_sku_page.col_status')" width="80">
                     <template #default="{ row }">
-                        <el-tag v-if="row.is_active" type="success" size="small">上架</el-tag>
-                        <el-tag v-else type="info" size="small">下架</el-tag>
+                        <el-tag v-if="row.is_active" type="success" size="small">{{ t('product_sku_page.status_listed') }}</el-tag>
+                        <el-tag v-else type="info" size="small">{{ t('product_sku_page.status_delisted') }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="created_at" label="创建时间" width="170" />
-                <el-table-column label="操作" width="280" fixed="right">
+                <el-table-column prop="created_at" :label="t('product_sku_page.col_created_at')" width="170" />
+                <el-table-column :label="t('product_sku_page.col_actions')" width="280" fixed="right">
                     <template #default="{ row }">
-                        <el-button text type="primary" size="small" @click="openEditDialog(row)">编辑</el-button>
-                        <el-button text type="primary" size="small" @click="handleClone(row)">克隆</el-button>
-                        <el-button text type="primary" size="small" @click="openStockLogDialog(row)">库存</el-button>
-                        <el-button text type="primary" size="small" @click="openCurrencyDialog(row)">定价</el-button>
+                        <el-button text type="primary" size="small" @click="openEditDialog(row)">{{ t('actions.edit') }}</el-button>
+                        <el-button text type="primary" size="small" @click="handleClone(row)">{{ t('product_sku_page.clone') }}</el-button>
+                        <el-button text type="primary" size="small" @click="openStockLogDialog(row)">{{ t('product_sku_page.stock') }}</el-button>
+                        <el-button text type="primary" size="small" @click="openCurrencyDialog(row)">{{ t('product_sku_page.pricing') }}</el-button>
                         <el-button text :type="row.is_active ? 'warning' : 'success'" size="small" @click="handleToggle(row)">
-                            {{ row.is_active ? '下架' : '上架' }}
+                            {{ row.is_active ? t('product_sku_page.status_delisted') : t('product_sku_page.status_listed') }}
                         </el-button>
-                        <el-button text type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+                        <el-button text type="danger" size="small" @click="handleDelete(row)">{{ t('actions.delete') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -181,58 +172,55 @@
         </el-card>
 
         <!-- 创建/编辑弹窗 -->
-        <el-dialog v-model="dialogVisible" :title="isEditing ? '编辑 SKU' : '新建 SKU'" width="750px">
+        <el-dialog v-model="dialogVisible" :title="isEditing ? t('product_sku_page.edit_title') : t('product_sku_page.create_title')" width="750px">
             <el-form :model="form" label-width="100px" :rules="formRules" ref="formRef">
-                <el-form-item label="所属产品" prop="product_id">
+                <el-form-item :label="t('product_sku_page.field_product')" prop="product_id">
                     <el-select v-model="form.product_id" style="width:100%" :disabled="isEditing">
                         <el-option v-for="p in products" :key="p.id" :label="p.name" :value="p.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="SKU编码" prop="sku_code">
-                    <el-input v-model="form.sku_code" placeholder="留空自动生成" :disabled="isEditing" />
+                <el-form-item :label="t('product_sku_page.field_sku_code')" prop="sku_code">
+                    <el-input v-model="form.sku_code" :placeholder="t('product_sku_page.sku_code_ph')" :disabled="isEditing" />
                 </el-form-item>
-                <el-form-item label="名称" prop="name">
-                    <el-input v-model="form.name" placeholder="如：专业版-年付" />
+                <el-form-item :label="t('product_sku_page.field_name')" prop="name">
+                    <el-input v-model="form.name" :placeholder="t('product_sku_page.name_ph')" />
                 </el-form-item>
-                <el-form-item label="售价" prop="price">
+                <el-form-item :label="t('product_sku_page.field_price')" prop="price">
                     <el-input-number v-model="form.price" :min="0" :precision="2" style="width:200px" />
                 </el-form-item>
-                <el-form-item label="划线价">
+                <el-form-item :label="t('product_sku_page.field_compare_price')">
                     <el-input-number v-model="form.compare_at_price" :min="0" :precision="2" style="width:200px" />
                 </el-form-item>
-                <el-form-item label="币种">
+                <el-form-item :label="t('product_sku_page.field_currency')">
                     <el-select v-model="form.currency" style="width:120px">
                         <el-option label="CNY" value="CNY" />
                         <el-option label="USD" value="USD" />
                         <el-option label="EUR" value="EUR" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="计费周期">
-                    <el-select v-model="form.billing_cycle" clearable placeholder="不限制" style="width:100%">
-                        <el-option label="月付" value="monthly" />
-                        <el-option label="季付" value="quarterly" />
-                        <el-option label="年付" value="yearly" />
-                        <el-option label="一次性" value="one-time" />
+                <el-form-item :label="t('product_sku_page.field_billing_cycle')">
+                    <el-select v-model="form.billing_cycle" clearable :placeholder="t('product_sku_page.billing_no_limit')" style="width:100%">
+                        <el-option v-for="opt in billingCycleOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="库存">
+                <el-form-item :label="t('product_sku_page.field_stock')">
                     <el-input-number v-model="form.stock" :min="-1" style="width:200px" />
-                    <span class="text-muted ml-2">-1=无限</span>
+                    <span class="text-muted ml-2">{{ t('product_sku_page.stock_unlimited_hint') }}</span>
                 </el-form-item>
-                <el-form-item label="低库存阈值">
+                <el-form-item :label="t('product_sku_page.field_low_stock_threshold')">
                     <el-input-number v-model="form.low_stock_threshold" :min="0" :max="9999" style="width:200px" />
-                    <span class="text-muted ml-2">低于此值显示警告</span>
+                    <span class="text-muted ml-2">{{ t('product_sku_page.low_stock_hint') }}</span>
                 </el-form-item>
-                <el-form-item label="允许缺货">
+                <el-form-item :label="t('product_sku_page.field_allow_backorder')">
                     <el-switch v-model="form.allow_backorder" />
-                    <span class="text-muted ml-2">缺货时允许继续下单</span>
+                    <span class="text-muted ml-2">{{ t('product_sku_page.backorder_hint') }}</span>
                 </el-form-item>
-                <el-form-item label="佣金率(%)">
-                    <el-input-number v-model="form.commission_rate" :min="0" :max="100" :precision="1" style="width:200px" :placeholder="`默认 ${defaultCommissionRate}%`" />
-                    <span class="text-muted ml-2">留空使用系统默认 {{ defaultCommissionRate }}%</span>
+                <el-form-item :label="t('product_sku_page.field_commission_rate')">
+                    <el-input-number v-model="form.commission_rate" :min="0" :max="100" :precision="1" style="width:200px" :placeholder="t('product_sku_page.commission_default_ph', { rate: defaultCommissionRate })" />
+                    <span class="text-muted ml-2">{{ t('product_sku_page.commission_default_hint', { rate: defaultCommissionRate }) }}</span>
                 </el-form-item>
-                <el-divider content-position="left">SKU 图片</el-divider>
-                <el-form-item label="图片">
+                <el-divider content-position="left">{{ t('product_sku_page.section_sku_image') }}</el-divider>
+                <el-form-item :label="t('product_sku_page.field_image')">
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <template v-if="form.image_url">
                             <el-image :src="form.image_url" fit="cover" style="width:60px;height:60px;border-radius:4px" />
@@ -241,42 +229,35 @@
                             </el-button>
                         </template>
                         <el-upload :show-file-list="false" :before-upload="handleSkuImageUpload" accept="image/*">
-                            <el-button size="small" type="primary" plain><el-icon><Upload /></el-icon> 上传图片</el-button>
+                            <el-button size="small" type="primary" plain><el-icon><Upload /></el-icon> {{ t('product_sku_page.upload_image') }}</el-button>
                         </el-upload>
                     </div>
                 </el-form-item>
-                <el-form-item label="规格">
-                    <el-input v-model="specsText" type="textarea" :rows="3" placeholder='JSON格式，如 {"version":"专业版","period":"年"}' />
+                <el-form-item :label="t('product_sku_page.field_specs')">
+                    <el-input v-model="specsText" type="textarea" :rows="3" :placeholder="t('product_sku_page.specs_ph')" />
                 </el-form-item>
 
                 <!-- 交付物管理 -->
-                <el-divider content-position="left">交付物管理</el-divider>
-                <el-form-item label="交付物">
+                <el-divider content-position="left">{{ t('product_sku_page.section_deliverables') }}</el-divider>
+                <el-form-item :label="t('product_sku_page.field_deliverables')">
                     <div style="width:100%">
                         <div v-for="(item, idx) in form.deliverables" :key="idx" class="deliverable-item">
                             <el-row :gutter="8" align="middle">
                                 <el-col :span="4">
-                                    <el-select v-model="item.type" size="small" placeholder="类型" @change="onDeliverableTypeChange(item)">
-                                        <el-option label="📦 文件" value="file" />
-                                        <el-option label="🔗 链接" value="link" />
-                                        <el-option label="📝 文本" value="text" />
+                                    <el-select v-model="item.type" size="small" :placeholder="t('product_sku_page.deliverable_type')" @change="onDeliverableTypeChange(item)">
+                                        <el-option v-for="opt in deliverableTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                     </el-select>
                                 </el-col>
                                 <el-col :span="4">
-                                    <el-select v-model="item.category" size="small" placeholder="分类">
-                                        <el-option label="💻 软件" value="software" />
-                                        <el-option label="📄 文档" value="document" />
-                                        <el-option label="🔧 模板" value="template" />
-                                        <el-option label="🌐 API" value="api" />
-                                        <el-option label="🎓 教程" value="tutorial" />
-                                        <el-option label="其他" value="other" />
+                                    <el-select v-model="item.category" size="small" :placeholder="t('product_sku_page.deliverable_category')">
+                                        <el-option v-for="opt in deliverableCategoryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                     </el-select>
                                 </el-col>
                                 <el-col :span="6">
-                                    <el-input v-model="item.name" size="small" placeholder="名称，如：AI客户端v2.1" />
+                                    <el-input v-model="item.name" size="small" :placeholder="t('product_sku_page.deliverable_name_ph')" />
                                 </el-col>
                                 <el-col :span="8">
-                                    <el-input v-model="item.description" size="small" placeholder="简短说明" />
+                                    <el-input v-model="item.description" size="small" :placeholder="t('product_sku_page.deliverable_desc_ph')" />
                                 </el-col>
                                 <el-col :span="2" style="text-align:right">
                                     <el-button text type="danger" size="small" @click="removeDeliverable(idx)">
@@ -297,13 +278,13 @@
                                             accept="*">
                                             <template #trigger>
                                                 <el-button size="small" type="primary" plain>
-                                                    <el-icon><Upload /></el-icon> 选择文件
+                                                    <el-icon><Upload /></el-icon> {{ t('product_sku_page.select_file') }}
                                                 </el-button>
                                             </template>
                                         </el-upload>
                                     </el-col>
                                     <el-col :span="12">
-                                        <el-input v-model="item.file_url" size="small" placeholder="或输入网盘/下载链接" />
+                                        <el-input v-model="item.file_url" size="small" :placeholder="t('product_sku_page.file_url_ph')" />
                                     </el-col>
                                 </el-row>
                                 <div v-if="item.original_name" class="file-info mt-1">
@@ -315,62 +296,62 @@
                             </div>
 
                             <div v-if="item.type === 'link'" class="deliverable-content mt-1">
-                                <el-input v-model="item.file_url" placeholder="https://pan.baidu.com/s/xxx 或 https://..." size="small" />
+                                <el-input v-model="item.file_url" :placeholder="t('product_sku_page.link_ph')" size="small" />
                             </div>
 
                             <div v-if="item.type === 'text'" class="deliverable-content mt-1">
-                                <el-input v-model="item.content" type="textarea" :rows="2" placeholder="输入文本内容，如 API地址、端口号、配置说明等" size="small" />
+                                <el-input v-model="item.content" type="textarea" :rows="2" :placeholder="t('product_sku_page.text_content_ph')" size="small" />
                             </div>
                         </div>
 
                         <el-button type="primary" plain size="small" @click="addDeliverable" class="mt-2">
-                            <el-icon><Plus /></el-icon> 添加交付物
+                            <el-icon><Plus /></el-icon> {{ t('product_sku_page.add_deliverable') }}
                         </el-button>
-                        <span class="text-muted ml-2" style="font-size:12px">支持软件包、文档、模板、API地址、网盘链接等多种类型</span>
+                        <span class="text-muted ml-2" style="font-size:12px">{{ t('product_sku_page.deliverables_hint') }}</span>
                     </div>
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button type="primary" :loading="saving" @click="saveSku">保存</el-button>
+                <el-button @click="dialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="saving" @click="saveSku">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
 
         <!-- 库存日志对话框 -->
-        <el-dialog v-model="stockLogVisible" title="库存变更日志" width="700px">
+        <el-dialog v-model="stockLogVisible" :title="t('product_sku_page.stock_log_title')" width="700px">
             <div v-if="stockLogSku" style="margin-bottom:12px">
                 <strong>{{ stockLogSku.name }}</strong>
-                <el-tag size="small" style="margin-left:8px">当前库存: {{ stockLogSku.stock }}</el-tag>
+                <el-tag size="small" style="margin-left:8px">{{ t('product_sku_page.current_stock', { n: stockLogSku.stock }) }}</el-tag>
             </div>
             <div style="display:flex;gap:8px;margin-bottom:12px">
-                <el-input-number v-model="stockAdjustValue" :min="-99999" placeholder="调整数量" style="width:180px" />
-                <el-input v-model="stockAdjustReason" placeholder="调整原因" style="width:250px" />
-                <el-button type="primary" :loading="stockAdjusting" @click="handleStockAdjust">确认调整</el-button>
+                <el-input-number v-model="stockAdjustValue" :min="-99999" :placeholder="t('product_sku_page.adjust_qty')" style="width:180px" />
+                <el-input v-model="stockAdjustReason" :placeholder="t('product_sku_page.adjust_reason')" style="width:250px" />
+                <el-button type="primary" :loading="stockAdjusting" @click="handleStockAdjust">{{ t('product_sku_page.confirm_adjust') }}</el-button>
             </div>
             <el-table :data="stockLogs" stripe v-loading="stockLogLoading" max-height="400">
-                <el-table-column prop="created_at" label="时间" width="170" />
-                <el-table-column label="变更" width="100">
+                <el-table-column prop="created_at" :label="t('product_sku_page.col_time')" width="170" />
+                <el-table-column :label="t('product_sku_page.col_change')" width="100">
                     <template #default="{ row }">
                         <span :style="{ color: row.change > 0 ? '#67c23a' : '#f56c6c', fontWeight:600 }">
                             {{ row.change > 0 ? '+' : '' }}{{ row.change }}
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column label="变更前" width="80" prop="old_stock" />
-                <el-table-column label="变更后" width="80" prop="new_stock" />
-                <el-table-column prop="reason" label="原因" min-width="150" />
-                <el-table-column prop="user.name" label="操作人" width="120" />
+                <el-table-column :label="t('product_sku_page.col_before')" width="80" prop="old_stock" />
+                <el-table-column :label="t('product_sku_page.col_after')" width="80" prop="new_stock" />
+                <el-table-column prop="reason" :label="t('product_sku_page.col_reason')" min-width="150" />
+                <el-table-column prop="user.name" :label="t('product_sku_page.col_operator')" width="120" />
             </el-table>
         </el-dialog>
 
         <!-- 多币种定价对话框 -->
-        <el-dialog v-model="currencyVisible" title="多币种定价" width="600px">
+        <el-dialog v-model="currencyVisible" :title="t('product_sku_page.currency_title')" width="600px">
             <div v-if="currencySku" style="margin-bottom:12px">
                 <strong>{{ currencySku.name }}</strong>
-                <el-tag size="small" style="margin-left:8px">基础价: ¥{{ currencySku.price }}</el-tag>
+                <el-tag size="small" style="margin-left:8px">{{ t('product_sku_page.base_price', { price: currencySku.price }) }}</el-tag>
             </div>
             <el-table :data="currencyPrices" stripe>
-                <el-table-column label="币种" width="100">
+                <el-table-column :label="t('product_sku_page.col_currency')" width="100">
                     <template #default="{ row }">
                         <el-select v-model="row.currency" style="width:100px">
                             <el-option label="CNY" value="CNY" />
@@ -382,45 +363,48 @@
                         </el-select>
                     </template>
                 </el-table-column>
-                <el-table-column label="售价">
+                <el-table-column :label="t('product_sku_page.col_price')">
                     <template #default="{ row }">
                         <el-input-number v-model="row.price" :min="0" :precision="2" style="width:140px" />
                     </template>
                 </el-table-column>
-                <el-table-column label="划线价">
+                <el-table-column :label="t('product_sku_page.col_compare_price')">
                     <template #default="{ row }">
                         <el-input-number v-model="row.compare_at_price" :min="0" :precision="2" style="width:140px" />
                     </template>
                 </el-table-column>
-                <el-table-column label="成本价">
+                <el-table-column :label="t('product_sku_page.col_cost_price')">
                     <template #default="{ row }">
                         <el-input-number v-model="row.cost_price" :min="0" :precision="2" style="width:140px" />
                     </template>
                 </el-table-column>
                 <el-table-column width="60">
                     <template #default="{ $index }">
-                        <el-button text type="danger" size="small" @click="currencyPrices.splice($index,1)">删除</el-button>
+                        <el-button text type="danger" size="small" @click="currencyPrices.splice($index,1)">{{ t('actions.delete') }}</el-button>
                     </template>
                 </el-table-column>
             </el-table>
             <el-button size="small" @click="currencyPrices.push({ currency: 'USD', price: 0, compare_at_price: null, cost_price: null })" class="mt-2">
-                <el-icon><Plus /></el-icon> 添加币种
+                <el-icon><Plus /></el-icon> {{ t('product_sku_page.add_currency') }}
             </el-button>
             <template #footer>
-                <el-button @click="currencyVisible = false">取消</el-button>
-                <el-button type="primary" :loading="currencySaving" @click="handleSaveCurrency">保存定价</el-button>
+                <el-button @click="currencyVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="currencySaving" @click="handleSaveCurrency">{{ t('product_sku_page.save_pricing') }}</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch, computed } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Delete, Upload, Download, Close } from '@element-plus/icons-vue';
-import { getSkuDashboard, getSkus, getSkuDetail, createSku, updateSku, deleteSku, toggleSku, uploadDeliverable, cloneSku, adjustStock, getStockLogs, getCurrencyPrices, saveCurrencyPrices, batchActionSku, uploadSkuImage, exportSkuCsv, importSkuCsv, getLowStockSkus } from '@/api/productSku';
-import request from '@/utils/request';
-import apiClient from '@/api/client';
+import { getSkuDashboard, getSkus, createSku, updateSku, deleteSku, toggleSku, uploadDeliverable, cloneSku, adjustStock, getStockLogs, getCurrencyPrices, saveCurrencyPrices, batchActionSku, uploadSkuImage, exportSkuCsv, importSkuCsv } from '@/api/productSku';
+import { getBillingCycleOptions } from '@/api/billingCycle';
+import productApi from '@/api/product';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const skus = ref([]);
@@ -473,6 +457,53 @@ const form = reactive({
     specs: null,
     deliverables: [],
 });
+
+const statusFilterOptions = computed(() => [
+    { label: t('product_sku_page.status_active'), value: true },
+    { label: t('product_sku_page.status_inactive'), value: false },
+]);
+
+const billingCycles = ref([]);
+
+async function loadBillingCycleOptions() {
+    try {
+        const res = await getBillingCycleOptions();
+        billingCycles.value = res.data?.data || [];
+    } catch {
+        // fallback to empty
+    }
+}
+
+const billingCycleOptions = computed(() =>
+    billingCycles.value.map((c) => ({ label: c.name, value: c.code }))
+);
+
+const billingCycleLabels = computed(() => {
+    const map = {};
+    billingCycles.value.forEach((c) => { map[c.code] = c.name; });
+    return map;
+});
+
+const stockStatusOptions = computed(() => [
+    { label: t('product_sku_page.stock_low'), value: 'low' },
+    { label: t('product_sku_page.stock_out'), value: 'out' },
+    { label: t('product_sku_page.stock_unlimited'), value: 'unlimited' },
+]);
+
+const deliverableTypeOptions = computed(() => [
+    { label: t('product_sku_page.type_file'), value: 'file' },
+    { label: t('product_sku_page.type_link'), value: 'link' },
+    { label: t('product_sku_page.type_text'), value: 'text' },
+]);
+
+const deliverableCategoryOptions = computed(() => [
+    { label: t('product_sku_page.cat_software'), value: 'software' },
+    { label: t('product_sku_page.cat_document'), value: 'document' },
+    { label: t('product_sku_page.cat_template'), value: 'template' },
+    { label: t('product_sku_page.cat_api'), value: 'api' },
+    { label: t('product_sku_page.cat_tutorial'), value: 'tutorial' },
+    { label: t('product_sku_page.cat_other'), value: 'other' },
+]);
 
 // 交付物上传相关
 const uploadRefs = ref({});
@@ -535,7 +566,7 @@ const onFileSelect = async (idx, uploadFile) => {
             form.deliverables[idx].mime_type = data.mime_type || rawFile.type;
         }
     } catch (e) {
-        ElMessage.error('文件上传失败');
+        ElMessage.error(t('product_sku_page.file_upload_fail'));
     } finally {
         uploading.value = false;
         uploadingIdx.value = -1;
@@ -573,11 +604,11 @@ const specsText = computed({
     }
 });
 
-const formRules = {
-    product_id: [{ required: true, message: '请选择所属产品', trigger: 'change' }],
-    name: [{ required: true, message: '请输入SKU名称', trigger: 'blur' }],
-    price: [{ required: true, message: '请输入售价', trigger: 'blur' }],
-};
+const formRules = computed(() => ({
+    product_id: [{ required: true, message: t('product_sku_page.product_required'), trigger: 'change' }],
+    name: [{ required: true, message: t('product_sku_page.name_required'), trigger: 'blur' }],
+    price: [{ required: true, message: t('product_sku_page.price_required'), trigger: 'blur' }],
+}));
 
 const loadDashboard = async () => {
     try {
@@ -588,7 +619,7 @@ const loadDashboard = async () => {
 
 const loadProducts = async () => {
     try {
-        const res = await apiClient.get('/products', { params: { per_page: 200 } });
+        const res = await productApi.list({ per_page: 200 });
         const raw = res.data?.data || res.data || [];
         products.value = Array.isArray(raw) ? raw : (raw?.data || raw?.items || []);
     } catch (e) { /* ignore */ }
@@ -671,20 +702,20 @@ const saveSku = async () => {
         if (isEditing.value) {
             const res = await updateSku(editingId.value, data);
             if (res.data.success) {
-                ElMessage.success('SKU更新成功');
+                ElMessage.success(t('product_sku_page.update_ok'));
                 dialogVisible.value = false;
                 loadSkus(page.value);
             }
         } else {
             const res = await createSku(data);
             if (res.data.success) {
-                ElMessage.success('SKU创建成功');
+                ElMessage.success(t('product_sku_page.create_ok'));
                 dialogVisible.value = false;
                 loadSkus(1);
             }
         }
     } catch (e) {
-        ElMessage.error('操作失败');
+        ElMessage.error(t('messages.failed'));
     }
     finally { saving.value = false; }
 };
@@ -693,7 +724,7 @@ const handleToggle = async (row) => {
     try {
         const res = await toggleSku(row.id);
         if (res.data.success) {
-            ElMessage.success(res.data.message || '操作成功');
+            ElMessage.success(res.data.message || t('messages.success'));
             loadSkus(page.value);
             loadDashboard();
         }
@@ -702,15 +733,19 @@ const handleToggle = async (row) => {
 
 const handleDelete = async (row) => {
     try {
-        await ElMessageBox.confirm(`确定删除 SKU "${row.name}"？`, '确认删除', { type: 'warning' });
+        await ElMessageBox.confirm(
+            t('product_sku_page.delete_confirm', { name: row.name }),
+            t('product_sku_page.confirm_delete_title'),
+            { type: 'warning' },
+        );
         const res = await deleteSku(row.id);
         if (res.data.success) {
-            ElMessage.success('已删除');
+            ElMessage.success(t('product_sku_page.deleted_ok'));
             loadSkus(page.value);
             loadDashboard();
         }
     } catch (e) {
-        if (e !== 'cancel') ElMessage.error('删除失败');
+        if (e !== 'cancel') ElMessage.error(t('product_sku_page.delete_fail'));
     }
 };
 
@@ -719,23 +754,29 @@ function onSelectionChange(rows) {
     selectedIds.value = rows.map(r => r.id);
 }
 async function doBatchAction(action) {
-    if (!selectedIds.value.length) return ElMessage.warning('请先选择 SKU');
+    if (!selectedIds.value.length) return ElMessage.warning(t('product_sku_page.select_sku_first'));
     if (action === 'delete') {
-        try { await ElMessageBox.confirm(`确定删除 ${selectedIds.value.length} 个 SKU？`, '确认', { type: 'warning' }); }
+        try {
+            await ElMessageBox.confirm(
+                t('product_sku_page.batch_delete_confirm', { n: selectedIds.value.length }),
+                t('product_sku_page.confirm_title'),
+                { type: 'warning' },
+            );
+        }
         catch { return; }
     }
     const extra = action === 'set_price' ? { price: batchPriceValue.value } : {};
     try {
         const res = await batchActionSku(action, selectedIds.value, extra);
         if (res.data.success) {
-            ElMessage.success(res.data.message || '操作成功');
+            ElMessage.success(res.data.message || t('messages.success'));
             showBatchPrice.value = false;
             selectedIds.value = [];
             loadSkus(page.value);
             loadDashboard();
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '操作失败');
+        ElMessage.error(e.response?.data?.message || t('messages.failed'));
     }
 }
 
@@ -743,10 +784,10 @@ async function doBatchAction(action) {
 async function handleClone(row) {
     try {
         await cloneSku(row.id);
-        ElMessage.success('SKU 已克隆');
+        ElMessage.success(t('product_sku_page.clone_ok'));
         loadSkus(page.value);
         loadDashboard();
-    } catch { ElMessage.error('克隆失败'); }
+    } catch { ElMessage.error(t('product_sku_page.clone_fail')); }
 }
 
 // ── 库存日志 ──
@@ -766,17 +807,20 @@ async function loadStockLogs(skuId) {
     finally { stockLogLoading.value = false; }
 }
 async function handleStockAdjust() {
-    if (!stockAdjustValue.value) return ElMessage.warning('请输入调整数量');
+    if (!stockAdjustValue.value) return ElMessage.warning(t('product_sku_page.adjust_qty_required'));
     stockAdjusting.value = true;
     try {
-        const res = await adjustStock(stockLogSku.value.id, stockAdjustValue.value, stockAdjustReason.value || '手动调整');
+        const res = await adjustStock(stockLogSku.value.id, stockAdjustValue.value, stockAdjustReason.value || t('product_sku_page.manual_adjust'));
         if (res.data.success) {
-            ElMessage.success(`库存已调整: ${res.data.data.old_stock} → ${res.data.data.new_stock}`);
+            ElMessage.success(t('product_sku_page.stock_adjusted', {
+                old: res.data.data.old_stock,
+                new: res.data.data.new_stock,
+            }));
             stockLogSku.value.stock = res.data.data.new_stock;
             loadStockLogs(stockLogSku.value.id);
             loadDashboard();
         }
-    } catch (e) { ElMessage.error(e.response?.data?.message || '调整失败'); }
+    } catch (e) { ElMessage.error(e.response?.data?.message || t('product_sku_page.adjust_fail')); }
     finally { stockAdjusting.value = false; }
 }
 
@@ -799,10 +843,10 @@ async function handleSaveCurrency() {
             cost_price: p.cost_price || null,
         })));
         if (res.data.success) {
-            ElMessage.success('多币种定价已保存');
+            ElMessage.success(t('product_sku_page.currency_saved'));
             currencyVisible.value = false;
         }
-    } catch (e) { ElMessage.error(e.response?.data?.message || '保存失败'); }
+    } catch (e) { ElMessage.error(e.response?.data?.message || t('product_sku_page.save_fail')); }
     finally { currencySaving.value = false; }
 }
 
@@ -811,8 +855,8 @@ async function handleSkuImageUpload(file) {
     try {
         const res = await uploadSkuImage(file);
         if (res.data.success) form.image_url = res.data.data.url;
-        else ElMessage.error(res.data.message || '上传失败');
-    } catch { ElMessage.error('上传失败'); }
+        else ElMessage.error(res.data.message || t('product_sku_page.upload_fail'));
+    } catch { ElMessage.error(t('product_sku_page.upload_fail')); }
     return false;
 }
 
@@ -825,27 +869,31 @@ async function handleExport() {
         link.href = url; link.setAttribute('download', 'skus.csv');
         document.body.appendChild(link); link.click();
         document.body.removeChild(link); window.URL.revokeObjectURL(url);
-        ElMessage.success('导出成功');
-    } catch { ElMessage.error('导出失败'); }
+        ElMessage.success(t('product_sku_page.export_ok'));
+    } catch { ElMessage.error(t('product_sku_page.export_fail')); }
 }
 async function handleImport() {
     try {
-        const { value: csvText } = await ElMessageBox.prompt('粘贴 CSV 内容（第一行为表头：product_name,sku_code,name,price,compare_at_price,currency,stock,billing_cycle,is_active,commission_rate）', '导入 SKU', {
-            inputType: 'textarea',
-            inputPlaceholder: 'product_name,sku_code,name,price,currency,stock\n示例产品,DEMO-001,演示SKU,99,CNY,-1',
-            confirmButtonText: '导入',
-            cancelButtonText: '取消',
-        });
+        const { value: csvText } = await ElMessageBox.prompt(
+            t('product_sku_page.import_prompt'),
+            t('product_sku_page.import_title'),
+            {
+                inputType: 'textarea',
+                inputPlaceholder: t('product_sku_page.import_ph'),
+                confirmButtonText: t('product_sku_page.import_btn'),
+                cancelButtonText: t('actions.cancel'),
+            },
+        );
         if (!csvText) return;
         const res = await importSkuCsv(csvText);
         if (res.data.success) {
             const data = res.data.data;
-            ElMessage.success(data?.message || '导入完成');
+            ElMessage.success(data?.message || t('product_sku_page.import_done'));
             if (data?.errors?.length) ElMessage.warning(data.errors.join('；'));
             loadSkus(); loadDashboard();
         }
     } catch (e) {
-        if (e !== 'cancel') ElMessage.error('导入失败');
+        if (e !== 'cancel') ElMessage.error(t('product_sku_page.import_fail'));
     }
 }
 
@@ -853,6 +901,7 @@ onMounted(() => {
     loadDashboard();
     loadProducts();
     loadSkus();
+    loadBillingCycleOptions();
 });
 </script>
 
@@ -869,10 +918,10 @@ onMounted(() => {
 .ml-2 { margin-left: 8px; }
 .mt-1 { margin-top: 8px; }.batch-bar {
     margin-bottom: 12px; padding: 8px 16px;
-    background: #ecf5ff; border-radius: 4px;
+    background: #f1f5f9; border-radius: 4px;
     display: flex; align-items: center; gap: 8px;
 }
-.batch-bar .batch-info { font-size: 13px; color: #409eff; margin-right: 8px; }.mt-2 { margin-top: 12px; }
+.batch-bar .batch-info { font-size: 13px; color: #0f172a; margin-right: 8px; }.mt-2 { margin-top: 12px; }
 
 .deliverable-item {
     background: #fafafa;

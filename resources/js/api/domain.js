@@ -16,6 +16,9 @@ export default {
     issueSsl(id) {
         return apiClient.post(`/domains/${id}/ssl/issue`);
     },
+    uploadSsl(id, data) {
+        return apiClient.post(`/domains/${id}/ssl/upload`, data);
+    },
     dnsInfo(id) {
         return apiClient.get(`/domains/${id}/dns`);
     },

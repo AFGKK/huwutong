@@ -1,8 +1,8 @@
 <template>
     <div class="sdk-page">
         <div class="page-header">
-            <h2>SDK 开发工具包</h2>
-            <p class="text-muted">多语言 SDK 集成 — Python / Go / Java / PHP / Node.js</p>
+            <h2>{{ t('sdk_page.title') }}</h2>
+            <p class="text-muted">{{ t('sdk_page.subtitle') }}</p>
         </div>
 
         <!-- SDK 版本概览 -->
@@ -10,7 +10,7 @@
             <el-col :span="4" v-for="(lang, key) in languages" :key="key">
                 <el-card shadow="never" :body-style="{ padding: '16px' }">
                     <div class="lang-card" :class="'lang-' + key">
-                        <div class="lang-icon">{{ langIcon(key) }}</div>
+                        <div class="lang-badge">{{ langBadge(key) }}</div>
                         <div class="lang-name">{{ lang.name }}</div>
                         <div class="lang-version">v{{ lang.version }}</div>
                         <el-tag :type="statusTag(lang.status)" size="small">{{ statusLabel(lang.status) }}</el-tag>
@@ -21,9 +21,9 @@
 
         <!-- 功能矩阵 -->
         <el-card shadow="never" class="mb-4">
-            <template #header><span>功能矩阵</span></template>
-            <el-table :data="matrix" stripe>
-                <el-table-column prop="feature" label="功能" width="180" />
+            <template #header><span>{{ t('sdk_page.matrix_title') }}</span></template>
+            <el-table :data="localizedMatrix" stripe>
+                <el-table-column prop="feature" :label="t('sdk_page.col_feature')" width="180" />
                 <el-table-column v-for="lang in langKeys" :key="lang" :label="langLabel(lang)" width="120" align="center">
                     <template #default="{ row }">
                         <el-icon v-if="row[lang]" color="#67c23a"><CircleCheck /></el-icon>
@@ -37,24 +37,20 @@
         <el-card shadow="never">
             <template #header>
                 <div class="card-header">
-                    <span>示例代码</span>
+                    <span>{{ t('sdk_page.example_title') }}</span>
                     <div class="card-actions">
                         <el-select v-model="exampleLang" size="small" style="width:140px">
                             <el-option v-for="(lang, key) in languages" :key="key" :label="lang.name" :value="key" />
                         </el-select>
                         <el-select v-model="exampleAction" size="small" style="width:140px" class="ml-2">
-                            <el-option label="激活 License" value="activate" />
-                            <el-option label="验证 License" value="validate" />
-                            <el-option label="解除激活" value="deactivate" />
-                            <el-option label="离线验证" value="offline_verify" />
-                            <el-option label="检查 Feature" value="check_feature" />
+                            <el-option v-for="opt in exampleActionOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                         </el-select>
-                        <el-button size="small" class="ml-2" @click="copyCode">{{ copied ? '已复制' : '复制' }}</el-button>
+                        <el-button size="small" class="ml-2" @click="copyCode">{{ copyButtonLabel }}</el-button>
                     </div>
                 </div>
             </template>
             <div class="code-block">
-                <pre><code>{{ exampleCode || '选择语言和操作查看示例代码' }}</code></pre>
+                <pre><code>{{ exampleCode || t('sdk_page.code_placeholder') }}</code></pre>
             </div>
         </el-card>
     </div>
@@ -62,8 +58,10 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { ElMessage } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import { getSdkVersions, getSdkExample } from '@/api/sdk';
+
+const { t } = useI18n();
 
 const languages = ref({});
 const matrix = ref([]);
@@ -73,10 +71,31 @@ const exampleAction = ref('activate');
 const exampleCode = ref('');
 const copied = ref(false);
 
-const langIcon = (key) => ({ php: '🐘', node: '🟢', python: '🐍', go: '🔷', java: '☕' }[key] || '📦');
-const langLabel = (key) => ({ php: 'PHP', node: 'Node.js', python: 'Python', go: 'Go', java: 'Java' }[key] || key);
+const exampleActionKeys = ['activate', 'validate', 'deactivate', 'offline_verify', 'check_feature'];
+
+const exampleActionOptions = computed(() =>
+    exampleActionKeys.map((value) => ({
+        value,
+        label: t(`sdk_page.actions.${value}`),
+    }))
+);
+
+const localizedMatrix = computed(() =>
+    matrix.value.map((row) => ({
+        ...row,
+        feature: featureLabel(row.feature),
+    }))
+);
+
+const copyButtonLabel = computed(() =>
+    copied.value ? t('sdk_page.messages.copied') : t('actions.copy')
+);
+
+const langBadge = (key) => ({ php: 'PHP', node: 'JS', python: 'PY', go: 'GO', java: 'JV' }[key] || key.toUpperCase().slice(0, 2));
+const langLabel = (key) => t(`sdk_page.langs.${key}`) !== `sdk_page.langs.${key}` ? t(`sdk_page.langs.${key}`) : key;
 const statusTag = (s) => ({ stable: 'success', beta: 'warning', deprecated: 'danger' }[s] || 'info');
-const statusLabel = (s) => ({ stable: '稳定', beta: 'Beta', deprecated: '已废弃' }[s] || s);
+const statusLabel = (s) => t(`sdk_page.status.${s}`) !== `sdk_page.status.${s}` ? t(`sdk_page.status.${s}`) : s;
+const featureLabel = (feature) => t(`sdk_page.features.${feature}`) !== `sdk_page.features.${feature}` ? t(`sdk_page.features.${feature}`) : feature;
 
 const loadData = async () => {
     try {
@@ -119,7 +138,7 @@ onMounted(() => {
 .page-header h2 { margin: 0; }
 .text-muted { color: #909399; font-size: 13px; margin: 4px 0 0 0; }
 .lang-card { text-align: center; cursor: default; }
-.lang-icon { font-size: 32px; margin-bottom: 8px; }
+.lang-badge { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin: 0 auto 8px; border-radius: 8px; background: #f0f2f5; color: #606266; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; }
 .lang-name { font-weight: 600; font-size: 14px; }
 .lang-version { font-size: 12px; color: #909399; margin: 2px 0; }
 .card-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }

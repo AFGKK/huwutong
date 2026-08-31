@@ -1,17 +1,17 @@
 <template>
     <div class="system-health">
         <div class="page-header">
-            <h2>系统健康监控</h2>
+            <h2>{{ t('system_health_page.title') }}</h2>
             <div class="header-actions">
-                <el-button size="small" :icon="Refresh" @click="refreshAll" :loading="refreshing">刷新</el-button>
-                <el-button size="small" :icon="Camera" @click="takeSnapshot" :loading="snapshotting">记录快照</el-button>
+                <el-button size="small" :icon="Refresh" @click="refreshAll" :loading="refreshing">{{ t('system_health_page.refresh') }}</el-button>
+                <el-button size="small" :icon="Camera" @click="takeSnapshot" :loading="snapshotting">{{ t('system_health_page.take_snapshot') }}</el-button>
             </div>
         </div>
 
         <!-- ── 全局状态横幅 ── -->
         <el-alert
             v-if="currentStatus === 'degraded'"
-            title="系统降级运行"
+            :title="t('system_health_page.alerts.degraded_title')"
             type="warning"
             :description="degradedDescription"
             show-icon
@@ -20,9 +20,9 @@
         />
         <el-alert
             v-else-if="currentStatus === 'down'"
-            title="系统不可用"
+            :title="t('system_health_page.alerts.down_title')"
             type="error"
-            description="关键服务（数据库或Redis）异常，请立即处理"
+            :description="t('system_health_page.alerts.down_desc')"
             show-icon
             :closable="false"
             class="mb-4"
@@ -33,25 +33,25 @@
             <el-col :span="6">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value" :class="scoreColor(currentScore)">{{ currentScore }}</div>
-                    <div class="stat-label">当前健康分</div>
+                    <div class="stat-label">{{ t('system_health_page.stats.health_score') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value success">{{ uptime24h }}%</div>
-                    <div class="stat-label">24h 可用率</div>
+                    <div class="stat-label">{{ t('system_health_page.stats.uptime_24h') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value success">{{ uptime7d }}%</div>
-                    <div class="stat-label">7天可用率</div>
+                    <div class="stat-label">{{ t('system_health_page.stats.uptime_7d') }}</div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card shadow="never" class="stat-card">
                     <div class="stat-value" :class="queueSizeColor">{{ queueSize }}</div>
-                    <div class="stat-label">队列积压</div>
+                    <div class="stat-label">{{ t('system_health_page.stats.queue_backlog') }}</div>
                 </el-card>
             </el-col>
         </el-row>
@@ -60,7 +60,7 @@
             <!-- ── 左列: 服务状态 ── -->
             <el-col :span="14">
                 <el-card shadow="never" class="mb-4">
-                    <template #header><span>服务状态</span></template>
+                    <template #header><span>{{ t('system_health_page.sections.service_status') }}</span></template>
                     <div class="service-grid">
                         <div v-for="svc in services" :key="svc.name" class="service-item" :class="svc.status">
                             <div class="service-indicator">
@@ -73,7 +73,7 @@
                                         {{ svc.latency_ms }}ms
                                     </template>
                                     <template v-else-if="svc.size !== undefined">
-                                        {{ svc.size }} 条待处理
+                                        {{ t('system_health_page.service.pending_count', { count: svc.size }) }}
                                     </template>
                                     <template v-else-if="svc.driver">
                                         {{ svc.driver }}
@@ -89,31 +89,31 @@
 
                 <!-- ── 资源使用 ── -->
                 <el-card shadow="never" class="mb-4">
-                    <template #header><span>资源使用</span></template>
+                    <template #header><span>{{ t('system_health_page.sections.resource_usage') }}</span></template>
                     <el-row :gutter="16">
                         <el-col :span="8">
                             <div class="resource-card">
-                                <div class="resource-label">磁盘使用</div>
+                                <div class="resource-label">{{ t('system_health_page.resources.disk') }}</div>
                                 <el-progress :percentage="diskPercent" :stroke-width="16"
                                     :status="diskPercent > 90 ? 'exception' : diskPercent > 75 ? 'warning' : 'success'"
                                     :format="() => diskPercent + '%'" />
-                                <div class="resource-meta">{{ diskFree }} GB 剩余 / {{ diskTotal }} GB 总计</div>
+                                <div class="resource-meta">{{ t('system_health_page.resources.disk_meta', { free: diskFree, total: diskTotal }) }}</div>
                             </div>
                         </el-col>
                         <el-col :span="8">
                             <div class="resource-card">
-                                <div class="resource-label">PHP 内存</div>
+                                <div class="resource-label">{{ t('system_health_page.resources.php_memory') }}</div>
                                 <el-progress :percentage="memoryPercent" :stroke-width="16"
                                     :status="memoryPercent > 80 ? 'exception' : memoryPercent > 50 ? 'warning' : 'success'"
                                     :format="() => memoryCurrent + ' MB'" />
-                                <div class="resource-meta">峰值 {{ memoryPeak }} MB</div>
+                                <div class="resource-meta">{{ t('system_health_page.resources.memory_peak', { peak: memoryPeak }) }}</div>
                             </div>
                         </el-col>
                         <el-col :span="8">
                             <div class="resource-card">
-                                <div class="resource-label">DB 连接数</div>
+                                <div class="resource-label">{{ t('system_health_page.resources.db_connections') }}</div>
                                 <div class="resource-value">{{ dbConnections }}</div>
-                                <div class="resource-meta">活跃连接</div>
+                                <div class="resource-meta">{{ t('system_health_page.resources.active_connections') }}</div>
                             </div>
                         </el-col>
                     </el-row>
@@ -123,16 +123,18 @@
                 <el-card shadow="never">
                     <template #header>
                         <div class="card-header">
-                            <span>健康趋势</span>
+                            <span>{{ t('system_health_page.sections.health_trend') }}</span>
                             <el-radio-group v-model="trendPeriod" size="small" @change="fetchTrend">
-                                <el-radio-button value="24h">24小时</el-radio-button>
-                                <el-radio-button value="7d">7天</el-radio-button>
-                                <el-radio-button value="30d">30天</el-radio-button>
+                                <el-radio-button
+                                    v-for="opt in trendPeriodOptions"
+                                    :key="opt.value"
+                                    :value="opt.value"
+                                >{{ opt.label }}</el-radio-button>
                             </el-radio-group>
                         </div>
                     </template>
                     <div ref="trendChart" class="trend-chart" />
-                    <div v-if="!trendData.labels?.length" class="empty-chart">暂无趋势数据</div>
+                    <div v-if="!trendData.labels?.length" class="empty-chart">{{ t('apm_page.empty.no_trend_data') }}</div>
                 </el-card>
             </el-col>
 
@@ -142,12 +144,12 @@
                 <el-card shadow="never" class="mb-4">
                     <template #header>
                         <div class="card-header">
-                            <span>最近告警</span>
+                            <span>{{ t('system_health_page.sections.recent_alerts') }}</span>
                             <el-tag size="small">{{ recentAlerts.length }}</el-tag>
                         </div>
                     </template>
                     <div v-if="recentAlerts.length === 0" class="empty-state">
-                        <el-empty description="暂无告警" :image-size="60" />
+                        <el-empty :description="t('system_health_page.empty.no_alerts')" :image-size="60" />
                     </div>
                     <div v-else class="alert-list">
                         <div v-for="a in recentAlerts" :key="a.id" class="alert-item">
@@ -160,8 +162,8 @@
                                     {{ a.rule?.name || '' }} · {{ formatTime(a.fired_at) }}
                                 </div>
                             </div>
-                            <el-tag v-if="a.status === 'firing'" type="danger" size="small">进行中</el-tag>
-                            <el-tag v-else size="small">{{ a.status === 'acknowledged' ? '已确认' : '已解决' }}</el-tag>
+                            <el-tag v-if="a.status === 'firing'" type="danger" size="small">{{ alertStatusLabels.firing }}</el-tag>
+                            <el-tag v-else size="small">{{ alertStatusLabel(a.status) }}</el-tag>
                         </div>
                     </div>
                 </el-card>
@@ -170,20 +172,20 @@
                 <el-card shadow="never" class="mb-4">
                     <template #header>
                         <div class="card-header">
-                            <span>阈值配置</span>
-                            <el-button text size="small" @click="loadThresholds">刷新</el-button>
+                            <span>{{ t('system_health_page.sections.thresholds') }}</span>
+                            <el-button text size="small" @click="loadThresholds">{{ t('system_health_page.refresh') }}</el-button>
                         </div>
                     </template>
-                    <div v-for="t in thresholds" :key="t.id" class="threshold-item">
+                    <div v-for="th in thresholds" :key="th.id" class="threshold-item">
                         <div class="threshold-header">
-                            <span class="threshold-label">{{ t.label }}</span>
-                            <el-tag v-if="!t.is_active" size="small" type="info">已禁用</el-tag>
+                            <span class="threshold-label">{{ th.label }}</span>
+                            <el-tag v-if="!th.is_active" size="small" type="info">{{ t('system_health_page.thresholds.disabled') }}</el-tag>
                         </div>
                         <div class="threshold-values">
-                            <span class="threshold-warn">⚠ {{ t.warning_threshold }}{{ t.unit }}</span>
-                            <span class="threshold-crit">⛔ {{ t.critical_threshold }}{{ t.unit }}</span>
+                            <span class="threshold-warn">{{ t('system_health_page.thresholds.warn_label', { value: th.warning_threshold, unit: th.unit }) }}</span>
+                            <span class="threshold-crit">{{ t('system_health_page.thresholds.crit_label', { value: th.critical_threshold, unit: th.unit }) }}</span>
                         </div>
-                        <el-button text size="small" @click="editThreshold(t)">编辑</el-button>
+                        <el-button text size="small" @click="editThreshold(th)">{{ t('actions.edit') }}</el-button>
                     </div>
                 </el-card>
 
@@ -191,18 +193,18 @@
                 <el-card shadow="never">
                     <template #header>
                         <div class="card-header">
-                            <span>失败任务</span>
+                            <span>{{ t('apm_page.dashboard.failed_jobs') }}</span>
                             <el-tag :type="failedJobs.length > 0 ? 'danger' : 'success'" size="small">
                                 {{ failedJobs.length }}
                             </el-tag>
                         </div>
                     </template>
                     <div v-if="failedJobs.length === 0" class="empty-state">
-                        <el-empty description="无失败任务" :image-size="60" />
+                        <el-empty :description="t('system_health_page.empty.no_failed_jobs')" :image-size="60" />
                     </div>
                     <div v-else class="failed-jobs-list">
                         <div v-for="job in failedJobs.slice(0, 10)" :key="job.id" class="failed-job-item">
-                            <div class="failed-job-name">{{ job.display_name || job.command || job.payload?.displayName || '未知' }}</div>
+                            <div class="failed-job-name">{{ job.display_name || job.command || job.payload?.displayName || t('system_health_page.empty.unknown') }}</div>
                             <div class="failed-job-meta">{{ formatTime(job.failed_at) }}</div>
                         </div>
                     </div>
@@ -211,21 +213,21 @@
         </el-row>
 
         <!-- ── 编辑阈值对话框 ── -->
-        <el-dialog v-model="thresholdDialogVisible" title="编辑阈值" width="400px">
+        <el-dialog v-model="thresholdDialogVisible" :title="t('system_health_page.thresholds.edit_title')" width="400px">
             <el-form label-position="top" size="small">
-                <el-form-item :label="`${editThresholdForm.label} - 警告阈值`">
+                <el-form-item :label="t('system_health_page.thresholds.warning_field', { label: editThresholdForm.label })">
                     <el-input-number v-model="editThresholdForm.warning_threshold" :min="0" :step="10" style="width:100%" />
                 </el-form-item>
-                <el-form-item :label="`${editThresholdForm.label} - 严重阈值`">
+                <el-form-item :label="t('system_health_page.thresholds.critical_field', { label: editThresholdForm.label })">
                     <el-input-number v-model="editThresholdForm.critical_threshold" :min="0" :step="10" style="width:100%" />
                 </el-form-item>
                 <el-form-item>
-                    <el-switch v-model="editThresholdForm.is_active" active-text="启用" inactive-text="禁用" />
+                    <el-switch v-model="editThresholdForm.is_active" :active-text="t('actions.enable')" :inactive-text="t('actions.disable')" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="thresholdDialogVisible = false">取消</el-button>
-                <el-button type="primary" :loading="thresholdSaving" @click="saveThreshold">保存</el-button>
+                <el-button @click="thresholdDialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="thresholdSaving" @click="saveThreshold">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -233,10 +235,13 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick, onBeforeUnmount } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Refresh, Camera } from '@element-plus/icons-vue';
 import * as echarts from 'echarts';
 import systemHealthApi from '@/api/systemHealth';
+
+const { t } = useI18n();
 
 const refreshing = ref(false);
 const snapshotting = ref(false);
@@ -266,9 +271,38 @@ const queueSizeColor = computed(() => {
     return '';
 });
 
+const memoryPercent = computed(() => {
+    if (memoryLimit.value <= 0) return 0;
+    return Math.min(100, Math.round((memoryCurrent.value / memoryLimit.value) * 100));
+});
+
+const trendPeriodOptions = computed(() => [
+    { value: '24h', label: t('system_health_page.trend.period_24h') },
+    { value: '7d', label: t('system_health_page.trend.period_7d') },
+    { value: '30d', label: t('system_health_page.trend.period_30d') },
+]);
+
+const serviceStatusLabels = computed(() => ({
+    healthy: t('apm_page.health.healthy'),
+    degraded: t('system_health_page.service.status.degraded'),
+    down: t('apm_page.health.unhealthy'),
+}));
+
+const severityLabels = computed(() => ({
+    critical: t('alert_page.severity.critical'),
+    warning: t('alert_page.severity.warning'),
+    info: t('alert_page.severity.info'),
+}));
+
+const alertStatusLabels = computed(() => ({
+    firing: t('alert_page.status.firing'),
+    acknowledged: t('alert_page.status.acknowledged'),
+    resolved: t('alert_page.status.resolved'),
+}));
+
 const degradedDescription = computed(() => {
     const down = services.value.filter(s => s.status !== 'healthy').map(s => s.name);
-    return `以下服务异常: ${down.join(', ')}`;
+    return t('system_health_page.alerts.degraded_desc', { services: down.join(', ') });
 });
 
 // ─── 阈值对话 ───
@@ -354,11 +388,11 @@ async function takeSnapshot() {
     try {
         const { data: res } = await systemHealthApi.takeSnapshot();
         if (res.success) {
-            ElMessage.success('健康快照已记录');
+            ElMessage.success(t('system_health_page.messages.snapshot_ok'));
             await loadDashboard();
         }
     } catch (e) {
-        ElMessage.error('快照记录失败');
+        ElMessage.error(t('system_health_page.messages.snapshot_failed'));
     } finally {
         snapshotting.value = false;
     }
@@ -366,12 +400,12 @@ async function takeSnapshot() {
 
 // ─── 阈值编辑 ───
 
-function editThreshold(t) {
-    editThresholdForm.id = t.id;
-    editThresholdForm.label = t.label;
-    editThresholdForm.warning_threshold = t.warning_threshold;
-    editThresholdForm.critical_threshold = t.critical_threshold;
-    editThresholdForm.is_active = t.is_active;
+function editThreshold(th) {
+    editThresholdForm.id = th.id;
+    editThresholdForm.label = th.label;
+    editThresholdForm.warning_threshold = th.warning_threshold;
+    editThresholdForm.critical_threshold = th.critical_threshold;
+    editThresholdForm.is_active = th.is_active;
     thresholdDialogVisible.value = true;
 }
 
@@ -384,12 +418,12 @@ async function saveThreshold() {
             is_active: editThresholdForm.is_active,
         });
         if (res.success) {
-            ElMessage.success('阈值已更新');
+            ElMessage.success(t('system_health_page.messages.threshold_updated'));
             thresholdDialogVisible.value = false;
             await loadThresholds();
         }
     } catch (e) {
-        ElMessage.error(e.response?.data?.error?.message || '保存失败');
+        ElMessage.error(e.response?.data?.error?.message || t('messages.failed'));
     } finally {
         thresholdSaving.value = false;
     }
@@ -409,7 +443,11 @@ function renderChart() {
             axisPointer: { type: 'cross' },
         },
         legend: {
-            data: ['健康分', 'DB延迟(ms)', '磁盘使用率(%)'],
+            data: [
+                t('system_health_page.trend.chart.health_score'),
+                t('system_health_page.trend.chart.db_latency'),
+                t('system_health_page.trend.chart.disk_usage'),
+            ],
             bottom: 0,
             textStyle: { fontSize: 11 },
         },
@@ -420,12 +458,12 @@ function renderChart() {
             axisLabel: { fontSize: 10, rotate: 45 },
         },
         yAxis: [
-            { type: 'value', name: '分数', min: 0, max: 100 },
-            { type: 'value', name: '延迟/使用率', min: 0 },
+            { type: 'value', name: t('system_health_page.trend.chart.score_axis'), min: 0, max: 100 },
+            { type: 'value', name: t('system_health_page.trend.chart.latency_axis'), min: 0 },
         ],
         series: [
             {
-                name: '健康分',
+                name: t('system_health_page.trend.chart.health_score'),
                 type: 'line',
                 data: trendData.scores,
                 smooth: true,
@@ -434,7 +472,7 @@ function renderChart() {
                 areaStyle: { color: 'rgba(103, 194, 58, 0.1)' },
             },
             {
-                name: 'DB延迟(ms)',
+                name: t('system_health_page.trend.chart.db_latency'),
                 type: 'line',
                 yAxisIndex: 1,
                 data: trendData.db_latency,
@@ -443,7 +481,7 @@ function renderChart() {
                 itemStyle: { color: '#e6a23c' },
             },
             {
-                name: '磁盘使用率(%)',
+                name: t('system_health_page.trend.chart.disk_usage'),
                 type: 'line',
                 yAxisIndex: 1,
                 data: trendData.disk_usage,
@@ -475,7 +513,7 @@ function serviceTagType(status) {
 }
 
 function serviceStatusLabel(status) {
-    return { healthy: '正常', degraded: '降级', down: '异常' }[status] || status;
+    return serviceStatusLabels.value[status] || status;
 }
 
 function severityType(severity) {
@@ -483,7 +521,11 @@ function severityType(severity) {
 }
 
 function severityLabel(severity) {
-    return { critical: '严重', warning: '警告', info: '信息' }[severity] || severity;
+    return severityLabels.value[severity] || severity;
+}
+
+function alertStatusLabel(status) {
+    return alertStatusLabels.value[status] || status;
 }
 
 function formatTime(date) {

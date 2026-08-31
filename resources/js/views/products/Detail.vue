@@ -2,74 +2,74 @@
     <div class="product-detail-page" v-loading="loading">
         <div class="page-breadcrumb">
             <el-breadcrumb>
-                <el-breadcrumb-item :to="{ path: '/products' }">产品管理</el-breadcrumb-item>
-                <el-breadcrumb-item>产品详情</el-breadcrumb-item>
+                <el-breadcrumb-item :to="{ path: '/products' }">{{ t('product_detail_page.breadcrumb_products') }}</el-breadcrumb-item>
+                <el-breadcrumb-item>{{ t('product_detail_page.breadcrumb_detail') }}</el-breadcrumb-item>
             </el-breadcrumb>
         </div>
 
         <div v-if="product" class="detail-content">
             <el-tabs type="border-card" class="detail-tabs">
-                <el-tab-pane label="基本信息" name="basic">
+                <el-tab-pane :label="t('product_detail_page.tab_basic')" name="basic">
                     <el-card shadow="never" class="info-card">
                         <template #header>
                             <div class="card-header">
-                                <span>基本信息</span>
+                                <span>{{ t('product_detail_page.basic_info') }}</span>
                                 <div class="header-actions">
-                                    <el-button size="small" @click="openEditDialog">编辑</el-button>
-                                    <el-button v-if="product.is_active" size="small" type="warning" @click="toggleActive(false)">下架</el-button>
-                                    <el-button v-else size="small" type="success" @click="toggleActive(true)">上架</el-button>
+                                    <el-button size="small" @click="openEditDialog">{{ t('actions.edit') }}</el-button>
+                                    <el-button v-if="product.is_active" size="small" type="warning" @click="toggleActive(false)">{{ t('products_page.deactivate') }}</el-button>
+                                    <el-button v-else size="small" type="success" @click="toggleActive(true)">{{ t('products_page.activate') }}</el-button>
                                 </div>
                             </div>
                         </template>
                         <el-descriptions :column="3" border>
-                            <el-descriptions-item label="产品 ID"><code>{{ product.id }}</code></el-descriptions-item>
-                            <el-descriptions-item label="产品名称" :span="2">
+                            <el-descriptions-item :label="t('product_detail_page.field_product_id')"><code>{{ product.id }}</code></el-descriptions-item>
+                            <el-descriptions-item :label="t('products_page.field_name')" :span="2">
                                 <div style="display:flex;align-items:center;gap:12px;">
                                     <el-avatar v-if="product.image_url" :size="48" shape="square" :src="product.image_url" />
                                     <span>{{ product.name }}</span>
                                 </div>
                             </el-descriptions-item>
-                            <el-descriptions-item label="编码"><code>{{ product.slug }}</code></el-descriptions-item>
-                            <el-descriptions-item label="版本">{{ product.version || '-' }}</el-descriptions-item>
-                            <el-descriptions-item label="可售卖">
-                                <el-tag :type="product.is_sellable ? 'success' : 'info'" size="small">{{ product.is_sellable ? '是' : '否' }}</el-tag>
+                            <el-descriptions-item :label="t('products_page.field_slug')"><code>{{ product.slug }}</code></el-descriptions-item>
+                            <el-descriptions-item :label="t('products_page.field_version')">{{ product.version || '-' }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('product_detail_page.field_sellable')">
+                                <el-tag :type="product.is_sellable ? 'success' : 'info'" size="small">{{ product.is_sellable ? t('product_detail_page.yes') : t('product_detail_page.no') }}</el-tag>
                             </el-descriptions-item>
-                            <el-descriptions-item label="精选产品">
-                                <el-tag :type="product.is_featured ? 'warning' : 'info'" size="small">{{ product.is_featured ? '是' : '否' }}</el-tag>
+                            <el-descriptions-item :label="t('products_page.field_featured')">
+                                <el-tag :type="product.is_featured ? 'warning' : 'info'" size="small">{{ product.is_featured ? t('product_detail_page.yes') : t('product_detail_page.no') }}</el-tag>
                             </el-descriptions-item>
-                            <el-descriptions-item label="基础价格">{{ product.base_price ? '¥' + product.base_price : '-' }}</el-descriptions-item>
-                            <el-descriptions-item label="标签" :span="2">
+                            <el-descriptions-item :label="t('product_detail_page.field_base_price')">{{ product.base_price ? '¥' + product.base_price : '-' }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('product_detail_page.field_tags')" :span="2">
                                 <template v-if="product.tags?.length">
-                                    <el-tag v-for="t in product.tags" :key="t" size="small" effect="plain" style="margin:2px 4px 2px 0">{{ t }}</el-tag>
+                                    <el-tag v-for="tag in product.tags" :key="tag" size="small" effect="plain" style="margin:2px 4px 2px 0">{{ tag }}</el-tag>
                                 </template>
                                 <span v-else>-</span>
                             </el-descriptions-item>
-                            <el-descriptions-item label="状态">
-                                <el-tag :type="product.is_active ? 'success' : 'info'" size="small">{{ product.is_active ? '上架' : '下架' }}</el-tag>
+                            <el-descriptions-item :label="t('product_detail_page.field_status')">
+                                <el-tag :type="product.is_active ? 'success' : 'info'" size="small">{{ product.is_active ? t('product_detail_page.status_listed') : t('product_detail_page.status_delisted') }}</el-tag>
                             </el-descriptions-item>
-                            <el-descriptions-item label="License 数"><el-tag type="primary" effect="plain" size="small">{{ product.licenses_count || 0 }}</el-tag></el-descriptions-item>
-                            <el-descriptions-item label="累计销量">{{ product.sales_count ?? 0 }}</el-descriptions-item>
-                            <el-descriptions-item label="描述" :span="3">{{ product.description || '暂无描述' }}</el-descriptions-item>
-                            <el-descriptions-item label="分类" :span="3">
+                            <el-descriptions-item :label="t('product_detail_page.field_licenses_count')"><el-tag type="primary" effect="plain" size="small">{{ product.licenses_count || 0 }}</el-tag></el-descriptions-item>
+                            <el-descriptions-item :label="t('product_detail_page.field_sales_count')">{{ product.sales_count ?? 0 }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('products_page.field_description')" :span="3">{{ product.description || t('product_detail_page.no_description') }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('products_page.field_category')" :span="3">
                                 <el-tag v-if="product.category" size="small" effect="plain">{{ product.category.name }}</el-tag>
                                 <span v-else>-</span>
                             </el-descriptions-item>
-                            <el-descriptions-item label="模块" :span="3">
+                            <el-descriptions-item :label="t('products_page.field_modules')" :span="3">
                                 <template v-if="product.modules?.length">
                                     <el-tag v-for="mod in product.modules" :key="mod" size="small" effect="plain" style="margin:2px 4px 2px 0">{{ mod }}</el-tag>
                                 </template>
-                                <span v-else>无模块配置</span>
+                                <span v-else>{{ t('product_detail_page.no_modules') }}</span>
                             </el-descriptions-item>
-                            <el-descriptions-item label="创建时间">{{ formatDate(product.created_at) }}</el-descriptions-item>
-                            <el-descriptions-item label="更新时间">{{ formatDate(product.updated_at) }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('product_detail_page.field_created_at')">{{ formatDate(product.created_at) }}</el-descriptions-item>
+                            <el-descriptions-item :label="t('product_detail_page.field_updated_at')">{{ formatDate(product.updated_at) }}</el-descriptions-item>
                         </el-descriptions>
                     </el-card>
 
                     <el-card shadow="never" class="section-card" style="margin-top:16px">
                         <template #header>
                             <div class="card-header">
-                                <span>Feature Flags ({{ assignedFeatures.length }})</span>
-                                <el-button size="small" type="primary" @click="showFeatureDialog = true"><el-icon><Setting /></el-icon> 管理</el-button>
+                                <span>{{ t('product_detail_page.feature_flags_title', { n: assignedFeatures.length }) }}</span>
+                                <el-button size="small" type="primary" @click="showFeatureDialog = true"><el-icon><Setting /></el-icon> {{ t('product_detail_page.manage') }}</el-button>
                             </div>
                         </template>
                         <div v-if="assignedFeatures.length > 0" class="feature-list">
@@ -77,246 +77,246 @@
                                 <el-icon style="margin-right:4px"><Flag /></el-icon>{{ f.name }} <code style="margin-left:4px;font-size:11px">{{ f.key }}</code>
                             </el-tag>
                         </div>
-                        <div v-else class="empty-state"><el-empty :image-size="60" description="尚未分配 Feature Flag" /></div>
+                        <div v-else class="empty-state"><el-empty :image-size="60" :description="t('product_detail_page.no_feature_flags')" /></div>
                     </el-card>
 
                     <el-card shadow="never" class="section-card" style="margin-top:16px">
                         <template #header>
                             <div class="card-header">
-                                <span>最近 License</span>
-                                <el-button size="small" type="primary" @click="$router.push('/licenses?product_id='+product.id)">查看全部</el-button>
+                                <span>{{ t('product_detail_page.recent_licenses') }}</span>
+                                <el-button size="small" type="primary" @click="$router.push('/licenses?product_id='+product.id)">{{ t('product_detail_page.view_all') }}</el-button>
                             </div>
                         </template>
                         <el-table :data="recentLicenses" stripe size="small">
-                            <el-table-column label="License Key" min-width="220">
+                            <el-table-column :label="t('licenses_page.license_key')" min-width="220">
                                 <template #default="{ row }"><el-link type="primary" @click="$router.push('/licenses/'+row.id)"><code>{{ (row.license_key||'').substring(0,20) }}...</code></el-link></template>
                             </el-table-column>
-                            <el-table-column label="客户" width="160">
+                            <el-table-column :label="t('licenses_page.col_customer')" width="160">
                                 <template #default="{ row }">{{ row.customer?.user?.name || '-' }}</template>
                             </el-table-column>
-                            <el-table-column label="状态" width="90">
+                            <el-table-column :label="t('licenses_page.col_status')" width="90">
                                 <template #default="{ row }"><el-tag :type="licenseStatusType(row.status)" size="small">{{ licenseStatusLabel(row.status) }}</el-tag></template>
                             </el-table-column>
-                            <el-table-column label="过期时间" width="170">{{ formatDate(row.expires_at) }}</el-table-column>
-                            <el-table-column label="创建时间" width="170">{{ formatDate(row.created_at) }}</el-table-column>
+                            <el-table-column :label="t('licenses_page.col_expires_at')" width="170">
+                                <template #default="{ row }">{{ formatDate(row.expires_at) }}</template>
+                            </el-table-column>
+                            <el-table-column :label="t('licenses_page.col_created_at')" width="170">
+                                <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
+                            </el-table-column>
                         </el-table>
                     </el-card>
                 </el-tab-pane>
 
-                <el-tab-pane label="SKU 管理" name="sku">
+                <el-tab-pane :label="t('product_detail_page.tab_sku')" name="sku">
                     <el-card shadow="never">
                         <template #header>
                             <div class="card-header">
-                                <span>SKU 列表 ({{ skus.length }})</span>
-                                <el-button size="small" type="primary" @click="showSkuDialog = true; skuForm = { sku_code: '', name: '', price: null, stock: -1, is_active: true, billing_cycle: 'one_time' }">新建 SKU</el-button>
+                                <span>{{ t('product_detail_page.sku_list_title', { n: skus.length }) }}</span>
+                                <el-button size="small" type="primary" @click="showSkuDialog = true; skuForm = { sku_code: '', name: '', price: null, stock: -1, is_active: true, billing_cycle: 'one_time' }">{{ t('product_detail_page.create_sku') }}</el-button>
                             </div>
                         </template>
                         <el-table :data="skus" stripe v-loading="skusLoading">
-                            <el-table-column label="SKU 编码" prop="sku_code" min-width="140" />
-                            <el-table-column label="名称" prop="name" min-width="160" />
-                            <el-table-column label="价格" width="100">
+                            <el-table-column :label="t('product_detail_page.col_sku_code')" prop="sku_code" min-width="140" />
+                            <el-table-column :label="t('product_detail_page.col_name')" prop="name" min-width="160" />
+                            <el-table-column :label="t('product_detail_page.col_price')" width="100">
                                 <template #default="{ row }">¥{{ row.price ?? '-' }}</template>
                             </el-table-column>
-                            <el-table-column label="计费周期" width="100">
-                                <template #default="{ row }">{{ {one_time:'一次性',monthly:'月度',yearly:'年度',lifetime:'终身'}[row.billing_cycle] || row.billing_cycle }}</template>
+                            <el-table-column :label="t('product_detail_page.col_billing_cycle')" width="100">
+                                <template #default="{ row }">{{ billingCycleLabel(row.billing_cycle) }}</template>
                             </el-table-column>
-                            <el-table-column label="库存" width="70" prop="stock">
-                                <template #default="{ row }">{{ row.stock === -1 ? '不限' : row.stock }}</template>
+                            <el-table-column :label="t('product_detail_page.col_stock')" width="70" prop="stock">
+                                <template #default="{ row }">{{ row.stock === -1 ? t('product_detail_page.stock_unlimited') : row.stock }}</template>
                             </el-table-column>
-                            <el-table-column label="已售" width="60" prop="sold_count" />
-                            <el-table-column label="状态" width="70">
-                                <template #default="{ row }"><el-tag :type="row.is_active ? 'success' : 'info'" size="small">{{ row.is_active ? '启用' : '停用' }}</el-tag></template>
+                            <el-table-column :label="t('product_detail_page.col_sold')" width="60" prop="sold_count" />
+                            <el-table-column :label="t('product_detail_page.field_status')" width="70">
+                                <template #default="{ row }"><el-tag :type="row.is_active ? 'success' : 'info'" size="small">{{ row.is_active ? t('product_detail_page.sku_status_active') : t('product_detail_page.sku_status_inactive') }}</el-tag></template>
                             </el-table-column>
-                            <el-table-column label="操作" width="120" fixed="right">
+                            <el-table-column :label="t('product_detail_page.col_actions')" width="120" fixed="right">
                                 <template #default="{ row }">
-                                    <el-button text size="small" type="primary" @click="editSku(row)">编辑</el-button>
-                                    <el-button text size="small" type="danger" @click="deleteSku(row)">删除</el-button>
+                                    <el-button text size="small" type="primary" @click="editSku(row)">{{ t('actions.edit') }}</el-button>
+                                    <el-button text size="small" type="danger" @click="deleteSku(row)">{{ t('actions.delete') }}</el-button>
                                 </template>
                             </el-table-column>
                         </el-table>
                     </el-card>
 
-                    <el-dialog v-model="showSkuDialog" :title="skuEditingId ? '编辑 SKU' : '新建 SKU'" width="500px" :close-on-click-modal="false">
+                    <el-dialog v-model="showSkuDialog" :title="skuEditingId ? t('product_detail_page.edit_sku_title') : t('product_detail_page.create_sku_title')" width="500px" :close-on-click-modal="false">
                         <el-form :model="skuForm" label-width="100px">
-                            <el-form-item label="SKU 编码"><el-input v-model="skuForm.sku_code" placeholder="如：pro-monthly" /></el-form-item>
-                            <el-form-item label="名称"><el-input v-model="skuForm.name" placeholder="如：专业版-月度" /></el-form-item>
-                            <el-form-item label="价格"><el-input-number v-model="skuForm.price" :precision="2" :min="0" style="width:200px"><template #prefix>¥</template></el-input-number></el-form-item>
-                            <el-form-item label="计费周期">
+                            <el-form-item :label="t('product_detail_page.col_sku_code')"><el-input v-model="skuForm.sku_code" :placeholder="t('product_detail_page.sku_code_ph')" /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.col_name')"><el-input v-model="skuForm.name" :placeholder="t('product_detail_page.sku_name_ph')" /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.col_price')"><el-input-number v-model="skuForm.price" :precision="2" :min="0" style="width:200px"><template #prefix>¥</template></el-input-number></el-form-item>
+                            <el-form-item :label="t('product_detail_page.col_billing_cycle')">
                                 <el-select v-model="skuForm.billing_cycle" style="width:200px">
-                                    <el-option label="一次性" value="one_time" />
-                                    <el-option label="月度" value="monthly" />
-                                    <el-option label="年度" value="yearly" />
-                                    <el-option label="终身" value="lifetime" />
+                                    <el-option v-for="opt in billingCycleOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                 </el-select>
                             </el-form-item>
-                            <el-form-item label="库存"><el-input-number v-model="skuForm.stock" :min="-1" style="width:200px" /> <span style="color:#909399;font-size:12px;margin-left:8px">-1 表示不限</span></el-form-item>
-                            <el-form-item label="启用"><el-switch v-model="skuForm.is_active" /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.col_stock')"><el-input-number v-model="skuForm.stock" :min="-1" style="width:200px" /> <span style="color:#909399;font-size:12px;margin-left:8px">{{ t('product_detail_page.stock_unlimited_hint') }}</span></el-form-item>
+                            <el-form-item :label="t('product_detail_page.field_enabled')"><el-switch v-model="skuForm.is_active" /></el-form-item>
                         </el-form>
                         <template #footer>
-                            <el-button @click="showSkuDialog = false">取消</el-button>
-                            <el-button type="primary" :loading="skuSubmitting" @click="submitSku">保存</el-button>
+                            <el-button @click="showSkuDialog = false">{{ t('actions.cancel') }}</el-button>
+                            <el-button type="primary" :loading="skuSubmitting" @click="submitSku">{{ t('actions.save') }}</el-button>
                         </template>
                     </el-dialog>
                 </el-tab-pane>
 
-                <el-tab-pane label="规格参数" name="specs">
+                <el-tab-pane :label="t('product_detail_page.tab_specs')" name="specs">
                     <el-card shadow="never">
                         <template #header>
                             <div class="card-header">
-                                <span>规格参数</span>
-                                <el-button size="small" type="primary" @click="addSpecGroup">添加规格组</el-button>
+                                <span>{{ t('product_detail_page.specs_title') }}</span>
+                                <el-button size="small" type="primary" @click="addSpecGroup">{{ t('product_detail_page.add_spec_group') }}</el-button>
                             </div>
                         </template>
                         <div v-if="specGroups.length > 0">
                             <el-card v-for="(group, gi) in specGroups" :key="gi" shadow="never" style="margin-bottom:12px">
                                 <template #header>
                                     <div class="card-header">
-                                        <el-input v-model="group.name" placeholder="规格组名称" style="width:200px" />
+                                        <el-input v-model="group.name" :placeholder="t('product_detail_page.spec_group_name_ph')" style="width:200px" />
                                         <div>
-                                            <el-button size="small" @click="addSpecValue(gi)">添加参数</el-button>
-                                            <el-button size="small" type="danger" plain @click="specGroups.splice(gi,1)">删除组</el-button>
+                                            <el-button size="small" @click="addSpecValue(gi)">{{ t('product_detail_page.add_spec_param') }}</el-button>
+                                            <el-button size="small" type="danger" plain @click="specGroups.splice(gi,1)">{{ t('product_detail_page.delete_group') }}</el-button>
                                         </div>
                                     </div>
                                 </template>
                                 <div v-for="(sv, si) in group.values" :key="si" style="display:flex;gap:8px;margin-bottom:8px">
-                                    <el-input v-model="sv.name" placeholder="参数名" style="width:200px" />
-                                    <el-input v-model="sv.value" placeholder="参数值" style="width:300px" />
-                                    <el-button size="small" type="danger" plain @click="group.values.splice(si,1)">删除</el-button>
+                                    <el-input v-model="sv.name" :placeholder="t('product_detail_page.param_name_ph')" style="width:200px" />
+                                    <el-input v-model="sv.value" :placeholder="t('product_detail_page.param_value_ph')" style="width:300px" />
+                                    <el-button size="small" type="danger" plain @click="group.values.splice(si,1)">{{ t('actions.delete') }}</el-button>
                                 </div>
                             </el-card>
-                            <el-button type="primary" :loading="specSubmitting" @click="saveSpecs">保存规格配置</el-button>
+                            <el-button type="primary" :loading="specSubmitting" @click="saveSpecs">{{ t('product_detail_page.save_specs') }}</el-button>
                         </div>
-                        <div v-else><el-empty :image-size="60" description="暂未配置规格参数" /></div>
+                        <div v-else><el-empty :image-size="60" :description="t('product_detail_page.no_specs')" /></div>
                     </el-card>
                 </el-tab-pane>
 
-                <el-tab-pane label="SEO" name="seo">
+                <el-tab-pane :label="t('product_detail_page.tab_seo')" name="seo">
                     <el-card shadow="never">
-                        <template #header><span>SEO 元数据</span></template>
+                        <template #header><span>{{ t('product_detail_page.seo_metadata') }}</span></template>
                         <el-form :model="seoForm" label-width="140px">
-                            <el-form-item label="Meta 标题"><el-input v-model="seoForm.meta_title" placeholder="搜索引擎显示的标题" maxlength="160" show-word-limit /></el-form-item>
-                            <el-form-item label="Meta 描述"><el-input v-model="seoForm.meta_description" type="textarea" :rows="3" placeholder="搜索引擎显示的描述" maxlength="500" show-word-limit /></el-form-item>
-                            <el-form-item label="Meta 关键词"><el-input v-model="seoForm.meta_keywords" placeholder="逗号分隔" /></el-form-item>
-                            <el-form-item label="规范 URL (Canonical)"><el-input v-model="seoForm.canonical_url" placeholder="https://..." /></el-form-item>
-                            <el-form-item label="OG 标题"><el-input v-model="seoForm.og_title" placeholder="社交分享标题" maxlength="160" /></el-form-item>
-                            <el-form-item label="OG 描述"><el-input v-model="seoForm.og_description" type="textarea" :rows="2" placeholder="社交分享描述" /></el-form-item>
-                            <el-form-item><el-button type="primary" :loading="seoSubmitting" @click="saveSeo">保存 SEO 设置</el-button></el-form-item>
+                            <el-form-item :label="t('product_detail_page.meta_title')"><el-input v-model="seoForm.meta_title" :placeholder="t('product_detail_page.meta_title_ph')" maxlength="160" show-word-limit /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.meta_description')"><el-input v-model="seoForm.meta_description" type="textarea" :rows="3" :placeholder="t('product_detail_page.meta_description_ph')" maxlength="500" show-word-limit /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.meta_keywords')"><el-input v-model="seoForm.meta_keywords" :placeholder="t('product_detail_page.meta_keywords_ph')" /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.canonical_url')"><el-input v-model="seoForm.canonical_url" :placeholder="t('product_detail_page.canonical_url_ph')" /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.og_title')"><el-input v-model="seoForm.og_title" :placeholder="t('product_detail_page.og_title_ph')" maxlength="160" /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.og_description')"><el-input v-model="seoForm.og_description" type="textarea" :rows="2" :placeholder="t('product_detail_page.og_description_ph')" /></el-form-item>
+                            <el-form-item><el-button type="primary" :loading="seoSubmitting" @click="saveSeo">{{ t('product_detail_page.save_seo') }}</el-button></el-form-item>
                         </el-form>
                     </el-card>
                 </el-tab-pane>
 
-                <el-tab-pane label="多语言" name="translations">
+                <el-tab-pane :label="t('product_detail_page.tab_translations')" name="translations">
                     <el-card shadow="never">
                         <template #header>
                             <div class="card-header">
-                                <span>多语言翻译</span>
-                                <el-button size="small" type="primary" @click="addTranslation">添加翻译</el-button>
+                                <span>{{ t('product_detail_page.translations_title') }}</span>
+                                <el-button size="small" type="primary" @click="addTranslation">{{ t('product_detail_page.add_translation') }}</el-button>
                             </div>
                         </template>
                         <div v-if="translations.length > 0">
                             <el-table :data="translations" stripe>
-                                <el-table-column label="语言" width="100">
-                                    <template #default="{ row }">{{ {en:'English',zh:'中文',ja:'日本語','zh-TW':'繁体中文'}[row.locale] || row.locale }}</template>
+                                <el-table-column :label="t('product_detail_page.col_language')" width="100">
+                                    <template #default="{ row }">{{ localeLabel(row.locale) }}</template>
                                 </el-table-column>
-                                <el-table-column label="名称" prop="name" min-width="160" />
-                                <el-table-column label="描述" prop="description" min-width="200" />
-                                <el-table-column label="操作" width="80">
-                                    <template #default="{ row, $index }"><el-button text size="small" type="danger" @click="translations.splice($index,1)">删除</el-button></template>
+                                <el-table-column :label="t('product_detail_page.col_name')" prop="name" min-width="160" />
+                                <el-table-column :label="t('products_page.field_description')" prop="description" min-width="200" />
+                                <el-table-column :label="t('product_detail_page.col_actions')" width="80">
+                                    <template #default="{ $index }"><el-button text size="small" type="danger" @click="translations.splice($index,1)">{{ t('actions.delete') }}</el-button></template>
                                 </el-table-column>
                             </el-table>
-                            <el-button type="primary" :loading="transSubmitting" @click="saveTranslations" style="margin-top:12px">保存翻译</el-button>
+                            <el-button type="primary" :loading="transSubmitting" @click="saveTranslations" style="margin-top:12px">{{ t('product_detail_page.save_translations') }}</el-button>
                         </div>
-                        <div v-else><el-empty :image-size="60" description="暂未添加翻译" /></div>
+                        <div v-else><el-empty :image-size="60" :description="t('product_detail_page.no_translations')" /></div>
                     </el-card>
-                    <el-dialog v-model="showTransDialog" title="添加翻译" width="500px">
+                    <el-dialog v-model="showTransDialog" :title="t('product_detail_page.add_translation_title')" width="500px">
                         <el-form :model="transForm" label-width="80px">
-                            <el-form-item label="语言"><el-select v-model="transForm.locale" style="width:100%">
-                                <el-option label="English" value="en" /><el-option label="中文" value="zh" /><el-option label="日本語" value="ja" /><el-option label="繁体中文" value="zh-TW" />
+                            <el-form-item :label="t('product_detail_page.col_language')"><el-select v-model="transForm.locale" style="width:100%">
+                                <el-option v-for="opt in localeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                             </el-select></el-form-item>
-                            <el-form-item label="名称"><el-input v-model="transForm.name" /></el-form-item>
-                            <el-form-item label="描述"><el-input v-model="transForm.description" type="textarea" :rows="3" /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.col_name')"><el-input v-model="transForm.name" /></el-form-item>
+                            <el-form-item :label="t('products_page.field_description')"><el-input v-model="transForm.description" type="textarea" :rows="3" /></el-form-item>
                         </el-form>
                         <template #footer>
-                            <el-button @click="showTransDialog = false">取消</el-button>
-                            <el-button type="primary" @click="confirmAddTranslation">添加</el-button>
+                            <el-button @click="showTransDialog = false">{{ t('actions.cancel') }}</el-button>
+                            <el-button type="primary" @click="confirmAddTranslation">{{ t('product_detail_page.add_btn') }}</el-button>
                         </template>
                     </el-dialog>
                 </el-tab-pane>
-                <el-tab-pane label="产品演示" name="demo">
+                <el-tab-pane :label="t('product_detail_page.tab_demo')" name="demo">
                     <el-card shadow="never">
                         <template #header>
                             <div class="card-header">
-                                <span>产品演示设置</span>
-                                <el-button size="small" type="primary" @click="openAddDemoDialog">添加演示平台</el-button>
+                                <span>{{ t('product_detail_page.demo_settings_title') }}</span>
+                                <el-button size="small" type="primary" @click="openAddDemoDialog">{{ t('product_detail_page.add_demo_platform') }}</el-button>
                             </div>
                         </template>
 
                         <el-form label-width="120px" style="margin-bottom:20px">
-                            <el-form-item label="启用演示">
+                            <el-form-item :label="t('product_detail_page.demo_enabled')">
                                 <el-switch v-model="demoSettings.enabled" @change="saveDemoSettings" />
-                                <span style="margin-left:10px;color:#909399;font-size:12px">开启后前端产品详情页将显示「演示」按钮</span>
+                                <span style="margin-left:10px;color:#909399;font-size:12px">{{ t('product_detail_page.demo_enabled_hint') }}</span>
                             </el-form-item>
-                            <el-form-item label="演示图片">
+                            <el-form-item :label="t('product_detail_page.demo_images')">
                                 <div style="width:100%">
                                     <div v-for="(img, idx) in demoSettings.images" :key="idx" style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-                                        <el-input v-model="img.label" placeholder="图片标签，如：H5移动端演示" style="width:160px" @blur="saveDemoSettings" />
+                                        <el-input v-model="img.label" :placeholder="t('product_detail_page.demo_image_label_ph')" style="width:160px" @blur="saveDemoSettings" />
                                         <el-input v-model="img.url" placeholder="https://..." style="width:320px" @blur="saveDemoSettings" />
-                                        <el-button size="small" @click="uploadDemoImage(idx)">上传</el-button>
-                                        <el-button size="small" type="danger" plain @click="removeDemoImage(idx)">删除</el-button>
+                                        <el-button size="small" @click="uploadDemoImage(idx)">{{ t('actions.upload') }}</el-button>
+                                        <el-button size="small" type="danger" plain @click="removeDemoImage(idx)">{{ t('actions.delete') }}</el-button>
                                         <template v-if="img.url">
                                             <el-image :src="img.url" fit="cover" style="width:48px;height:48px;border-radius:4px;border:1px solid #e5e7eb" />
                                         </template>
                                     </div>
                                     <el-button size="small" type="primary" plain @click="demoSettings.images.push({label:'',url:''})">
-                                        + 添加图片
+                                        + {{ t('product_detail_page.add_image') }}
                                     </el-button>
                                 </div>
                             </el-form-item>
                         </el-form>
 
                         <el-table :data="demoList" stripe v-loading="demoLoading">
-                            <el-table-column label="排序" width="60" prop="sort_order" />
-                            <el-table-column label="演示平台" min-width="140" prop="platform" />
-                            <el-table-column label="演示站点" min-width="240" prop="site_url">
+                            <el-table-column :label="t('product_detail_page.col_sort_order')" width="60" prop="sort_order" />
+                            <el-table-column :label="t('product_detail_page.col_demo_platform')" min-width="140" prop="platform" />
+                            <el-table-column :label="t('product_detail_page.col_demo_site')" min-width="240" prop="site_url">
                                 <template #default="{ row }">
-                                    <a :href="row.site_url" target="_blank" style="color:#409eff">{{ row.site_url || '-' }}</a>
+                                    <a :href="row.site_url" target="_blank" style="color:#0f172a">{{ row.site_url || '-' }}</a>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="演示账号" width="140" prop="account" />
-                            <el-table-column label="演示密码" width="140" prop="password" />
-                            <el-table-column label="操作" width="140" fixed="right">
+                            <el-table-column :label="t('product_detail_page.col_demo_account')" width="140" prop="account" />
+                            <el-table-column :label="t('product_detail_page.col_demo_password')" width="140" prop="password" />
+                            <el-table-column :label="t('product_detail_page.col_actions')" width="140" fixed="right">
                                 <template #default="{ row }">
-                                    <el-button text size="small" type="primary" @click="openEditDemoDialog(row)">编辑</el-button>
-                                    <el-button text size="small" type="danger" @click="deleteDemo(row)">删除</el-button>
+                                    <el-button text size="small" type="primary" @click="openEditDemoDialog(row)">{{ t('actions.edit') }}</el-button>
+                                    <el-button text size="small" type="danger" @click="deleteDemo(row)">{{ t('actions.delete') }}</el-button>
                                 </template>
                             </el-table-column>
                         </el-table>
                         <div v-if="demoList.length === 0 && !demoLoading" style="text-align:center;padding:40px;color:#909399">
-                            暂未添加演示平台，点击上方「添加演示平台」按钮添加
+                            {{ t('product_detail_page.no_demo_platforms') }}
                         </div>
                     </el-card>
 
-                    <el-dialog v-model="showDemoDialog" :title="demoEditingId ? '编辑演示平台' : '添加演示平台'" width="500px" :close-on-click-modal="false">
+                    <el-dialog v-model="showDemoDialog" :title="demoEditingId ? t('product_detail_page.edit_demo_title') : t('product_detail_page.add_demo_title')" width="500px" :close-on-click-modal="false">
                         <el-form :model="demoForm" label-width="100px">
-                            <el-form-item label="演示平台"><el-input v-model="demoForm.platform" placeholder="如：管理后台、PC端前台、H5端前台" /></el-form-item>
-                            <el-form-item label="演示站点"><el-input v-model="demoForm.site_url" placeholder="https://..." /></el-form-item>
-                            <el-form-item label="演示账号"><el-input v-model="demoForm.account" placeholder="demo@example.com" /></el-form-item>
-                            <el-form-item label="演示密码"><el-input v-model="demoForm.password" placeholder="demo123" /></el-form-item>
-                            <el-form-item label="排序"><el-input-number v-model="demoForm.sort_order" :min="0" style="width:100px" /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.col_demo_platform')"><el-input v-model="demoForm.platform" :placeholder="t('product_detail_page.demo_platform_ph')" /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.col_demo_site')"><el-input v-model="demoForm.site_url" placeholder="https://..." /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.col_demo_account')"><el-input v-model="demoForm.account" placeholder="demo@example.com" /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.col_demo_password')"><el-input v-model="demoForm.password" placeholder="demo123" /></el-form-item>
+                            <el-form-item :label="t('product_detail_page.col_sort_order')"><el-input-number v-model="demoForm.sort_order" :min="0" style="width:100px" /></el-form-item>
                         </el-form>
                         <template #footer>
-                            <el-button @click="showDemoDialog = false">取消</el-button>
-                            <el-button type="primary" :loading="demoSubmitting" @click="submitDemo">保存</el-button>
+                            <el-button @click="showDemoDialog = false">{{ t('actions.cancel') }}</el-button>
+                            <el-button type="primary" :loading="demoSubmitting" @click="submitDemo">{{ t('actions.save') }}</el-button>
                         </template>
                     </el-dialog>
                 </el-tab-pane>
             </el-tabs>
         </div>
 
-        <!-- 编辑 Dialog -->
         <el-dialog
             v-model="dialogVisible"
-            title="编辑产品"
+            :title="t('products_page.edit_title')"
             width="600px"
             :close-on-click-modal="false"
         >
@@ -327,24 +327,24 @@
                 label-width="100px"
                 label-position="right"
             >
-                <el-form-item label="产品名称" prop="name">
+                <el-form-item :label="t('products_page.field_name')" prop="name">
                     <el-input v-model="form.name" />
                 </el-form-item>
-                <el-form-item label="编码" prop="slug">
+                <el-form-item :label="t('products_page.field_slug')" prop="slug">
                     <el-input v-model="form.slug" />
                 </el-form-item>
-                <el-form-item label="版本" prop="version">
+                <el-form-item :label="t('products_page.field_version')" prop="version">
                     <el-input v-model="form.version" style="width: 200px" />
                 </el-form-item>
-                <el-form-item label="描述" prop="description">
+                <el-form-item :label="t('products_page.field_description')" prop="description">
                     <el-input v-model="form.description" type="textarea" :rows="3" />
                 </el-form-item>
-                <el-form-item label="分类" prop="category_id">
-                    <el-select v-model="form.category_id" clearable placeholder="选择产品分类" style="width: 100%">
+                <el-form-item :label="t('products_page.field_category')" prop="category_id">
+                    <el-select v-model="form.category_id" clearable :placeholder="t('products_page.category_ph')" style="width: 100%">
                         <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="主图">
+                <el-form-item :label="t('products_page.field_main_image')">
                     <div class="image-upload-wrapper">
                         <template v-if="form.image_url">
                             <div class="image-preview">
@@ -356,12 +356,12 @@
                         </template>
                         <el-upload :show-file-list="false" :before-upload="handleMainImageUpload" accept="image/jpeg,image/png,image/gif,image/webp">
                             <el-button type="primary" plain>
-                                <el-icon><Upload /></el-icon> 上传主图
+                                <el-icon><Upload /></el-icon> {{ t('products_page.upload_main_image') }}
                             </el-button>
                         </el-upload>
                     </div>
                 </el-form-item>
-                <el-form-item label="轮播图">
+                <el-form-item :label="t('products_page.field_carousel')">
                     <div class="images-upload-wrapper">
                         <div class="images-list" v-if="form.images && form.images.length">
                             <div v-for="(img, idx) in form.images" :key="idx" class="image-preview">
@@ -373,44 +373,43 @@
                         </div>
                         <el-upload :show-file-list="false" :before-upload="handleCarouselImageUpload" accept="image/jpeg,image/png,image/gif,image/webp">
                             <el-button type="primary" plain size="small">
-                                <el-icon><Plus /></el-icon> 添加轮播图
+                                <el-icon><Plus /></el-icon> {{ t('products_page.add_image') }}
                             </el-button>
                         </el-upload>
                     </div>
                 </el-form-item>
-                <el-form-item label="模块" prop="modules">
+                <el-form-item :label="t('products_page.field_modules')" prop="modules">
                     <el-select
                         v-model="form.modules"
                         multiple
                         allow-create
                         filterable
                         default-first-option
-                        placeholder="输入后回车添加"
+                        :placeholder="t('products_page.tag_input_ph')"
                         style="width: 100%"
                     />
                 </el-form-item>
-                <el-form-item label="精选产品">
+                <el-form-item :label="t('products_page.field_featured')">
                     <el-switch v-model="form.is_featured" />
                 </el-form-item>
-                <el-form-item label="上架">
+                <el-form-item :label="t('products_page.field_active')">
                     <el-switch v-model="form.is_active" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button type="primary" :loading="submitting" @click="submitForm">保存</el-button>
+                <el-button @click="dialogVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="submitting" @click="submitForm">{{ t('actions.save') }}</el-button>
             </template>
         </el-dialog>
 
-        <!-- Feature Flags 管理 Dialog -->
         <el-dialog
             v-model="showFeatureDialog"
-            title="管理 Feature Flags"
+            :title="t('product_detail_page.manage_feature_flags')"
             width="550px"
             :close-on-click-modal="false"
         >
             <div v-loading="featuresLoading">
-                <el-empty v-if="availableFeatures.length === 0" :image-size="60" description="暂无可用 Feature Flag" />
+                <el-empty v-if="availableFeatures.length === 0" :image-size="60" :description="t('product_detail_page.no_available_features')" />
                 <el-checkbox-group v-else v-model="selectedFeatureIds" class="feature-checkbox-group">
                     <el-checkbox
                         v-for="f in availableFeatures"
@@ -427,9 +426,9 @@
                 </el-checkbox-group>
             </div>
             <template #footer>
-                <el-button @click="showFeatureDialog = false">取消</el-button>
+                <el-button @click="showFeatureDialog = false">{{ t('actions.cancel') }}</el-button>
                 <el-button type="primary" :loading="featureSubmitting" @click="submitFeatures">
-                    保存
+                    {{ t('actions.save') }}
                 </el-button>
             </template>
         </el-dialog>
@@ -439,12 +438,14 @@
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Setting, Flag, Upload, Close, Plus } from '@element-plus/icons-vue';
 import productApi from '@/api/product';
 import productDemoApi from '@/api/productDemo';
 import categoryApi from '@/api/productCategory';
 
+const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const productId = Number(route.params.id);
@@ -453,18 +454,40 @@ const loading = ref(false);
 const product = ref(null);
 const recentLicenses = ref([]);
 
-// 所有图片预览列表
-const allImages = computed(() => {
-    if (!product.value) return [];
-    const list = [];
-    if (product.value.image_url) list.push(product.value.image_url);
-    if (product.value.images && product.value.images.length) {
-        list.push(...product.value.images);
-    }
-    return list;
-});
+const billingCycleOptions = computed(() => [
+    { label: t('shop_page.cycle_onetime'), value: 'one_time' },
+    { label: t('shop_page.cycle_monthly'), value: 'monthly' },
+    { label: t('shop_page.cycle_yearly'), value: 'yearly' },
+    { label: t('shop_page.cycle_lifetime'), value: 'lifetime' },
+]);
 
-// Edit dialog
+const localeOptions = computed(() => [
+    { label: t('product_detail_page.locale_en'), value: 'en' },
+    { label: t('product_detail_page.locale_zh'), value: 'zh' },
+    { label: t('product_detail_page.locale_ja'), value: 'ja' },
+    { label: t('product_detail_page.locale_zh_tw'), value: 'zh-TW' },
+]);
+
+function billingCycleLabel(cycle) {
+    const map = {
+        one_time: t('shop_page.cycle_onetime'),
+        monthly: t('shop_page.cycle_monthly'),
+        yearly: t('shop_page.cycle_yearly'),
+        lifetime: t('shop_page.cycle_lifetime'),
+    };
+    return map[cycle] || cycle;
+}
+
+function localeLabel(loc) {
+    const map = {
+        en: t('product_detail_page.locale_en'),
+        zh: t('product_detail_page.locale_zh'),
+        ja: t('product_detail_page.locale_ja'),
+        'zh-TW': t('product_detail_page.locale_zh_tw'),
+    };
+    return map[loc] || loc;
+}
+
 const dialogVisible = ref(false);
 const submitting = ref(false);
 const formRef = ref(null);
@@ -472,12 +495,11 @@ const form = reactive({
     name: '', slug: '', version: '', description: '', modules: [], is_active: true, is_featured: false,
     image_url: '', images: [], category_id: null,
 });
-const formRules = {
-    name: [{ required: true, message: '请输入产品名称', trigger: 'blur' }],
-    slug: [{ required: true, message: '请输入产品编码', trigger: 'blur' }],
-};
+const formRules = computed(() => ({
+    name: [{ required: true, message: t('products_page.name_required'), trigger: 'blur' }],
+    slug: [{ required: true, message: t('products_page.slug_required'), trigger: 'blur' }],
+}));
 
-// Product categories
 const categories = ref([]);
 async function loadCategories() {
     try {
@@ -486,7 +508,6 @@ async function loadCategories() {
     } catch { categories.value = []; }
 }
 
-// Feature flags
 const showFeatureDialog = ref(false);
 const featuresLoading = ref(false);
 const featureSubmitting = ref(false);
@@ -496,7 +517,8 @@ const selectedFeatureIds = ref([]);
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN', {
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
+    return new Date(dateStr).toLocaleString(loc, {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit',
     });
@@ -508,7 +530,14 @@ function licenseStatusType(status) {
 }
 
 function licenseStatusLabel(status) {
-    const map = { active: '启用', expired: '过期', suspended: '暂停', revoked: '撤销', frozen: '冻结', blacklisted: '黑名单' };
+    const map = {
+        active: t('licenses_page.st_active'),
+        expired: t('licenses_page.st_expired'),
+        suspended: t('licenses_page.st_suspended'),
+        revoked: t('licenses_page.st_revoked'),
+        frozen: t('licenses_page.st_frozen'),
+        blacklisted: t('licenses_page.st_blacklisted'),
+    };
     return map[status] || status;
 }
 
@@ -522,7 +551,7 @@ async function loadDetail() {
             assignedFeatures.value = res.data.product.feature_flags || [];
         }
     } catch {
-        ElMessage.error('获取产品详情失败');
+        ElMessage.error(t('product_detail_page.load_detail_failed'));
     } finally {
         loading.value = false;
     }
@@ -544,7 +573,6 @@ async function loadFeatures() {
     }
 }
 
-// 编辑
 function openEditDialog() {
     if (!product.value) return;
     form.name = product.value.name;
@@ -567,7 +595,7 @@ async function submitForm() {
     submitting.value = true;
     try {
         await productApi.update(productId, { ...form, is_active: form.is_active ? 1 : 0 });
-        ElMessage.success('产品更新成功');
+        ElMessage.success(t('products_page.update_ok'));
         dialogVisible.value = false;
         loadDetail();
     } catch {
@@ -577,7 +605,6 @@ async function submitForm() {
     }
 }
 
-// 图片上传
 async function handleMainImageUpload(file) {
     const fd = new FormData();
     fd.append('file', file);
@@ -586,10 +613,10 @@ async function handleMainImageUpload(file) {
         if (res.success) {
             form.image_url = res.data.url;
         } else {
-            ElMessage.error(res.message || '上传失败');
+            ElMessage.error(res.message || t('products_page.upload_fail'));
         }
     } catch {
-        ElMessage.error('图片上传失败');
+        ElMessage.error(t('products_page.upload_image_fail'));
     }
     return false;
 }
@@ -603,33 +630,37 @@ async function handleCarouselImageUpload(file) {
             if (!form.images) form.images = [];
             form.images.push(res.data.url);
         } else {
-            ElMessage.error(res.message || '上传失败');
+            ElMessage.error(res.message || t('products_page.upload_fail'));
         }
     } catch {
-        ElMessage.error('图片上传失败');
+        ElMessage.error(t('products_page.upload_image_fail'));
     }
     return false;
 }
 
-// 上架/下架
 async function toggleActive(active) {
-    const action = active ? '上架' : '下架';
+    const action = active ? t('products_page.activate') : t('products_page.deactivate');
     try {
-        await ElMessageBox.confirm(`确定要${action}该产品吗？`, '确认操作', {
-            confirmButtonText: '确定', cancelButtonText: '取消', type: active ? 'info' : 'warning',
-        });
+        await ElMessageBox.confirm(
+            t('product_detail_page.toggle_confirm', { action }),
+            t('products_page.confirm_title'),
+            {
+                confirmButtonText: t('actions.confirm'),
+                cancelButtonText: t('actions.cancel'),
+                type: active ? 'info' : 'warning',
+            },
+        );
         await productApi.update(productId, { is_active: active ? 1 : 0 });
-        ElMessage.success(`${action}成功`);
+        ElMessage.success(t('product_detail_page.toggle_ok', { action }));
         loadDetail();
     } catch { /* cancelled */ }
 }
 
-// Feature Flags
 async function submitFeatures() {
     featureSubmitting.value = true;
     try {
         await productApi.assignFeatures(productId, selectedFeatureIds.value);
-        ElMessage.success('Feature Flags 更新成功');
+        ElMessage.success(t('product_detail_page.feature_flags_updated'));
         showFeatureDialog.value = false;
         loadDetail();
     } catch {
@@ -639,7 +670,6 @@ async function submitFeatures() {
     }
 }
 
-// ── SKU 管理 ──
 const skus = ref([]);
 const skusLoading = ref(false);
 const showSkuDialog = ref(false);
@@ -667,28 +697,31 @@ async function submitSku() {
     try {
         if (skuEditingId.value) {
             await productApi.updateSku(skuEditingId.value, { ...skuForm });
-            ElMessage.success('SKU 已更新');
+            ElMessage.success(t('product_detail_page.sku_updated'));
         } else {
             await productApi.createSku(productId, { ...skuForm });
-            ElMessage.success('SKU 已创建');
+            ElMessage.success(t('product_detail_page.sku_created'));
         }
         showSkuDialog.value = false;
         skuEditingId.value = null;
         loadSkus();
-    } catch { ElMessage.error('操作失败'); }
+    } catch { ElMessage.error(t('messages.failed')); }
     finally { skuSubmitting.value = false; }
 }
 
 async function deleteSku(row) {
     try {
-        await ElMessageBox.confirm('确定删除此 SKU？', '确认', { type: 'warning' });
+        await ElMessageBox.confirm(
+            t('product_detail_page.delete_sku_confirm'),
+            t('product_detail_page.confirm_title'),
+            { type: 'warning', confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel') },
+        );
         await productApi.deleteSku(row.id);
-        ElMessage.success('SKU 已删除');
+        ElMessage.success(t('product_detail_page.sku_deleted'));
         loadSkus();
     } catch { /* cancelled */ }
 }
 
-// ── 规格参数 ──
 const specGroups = ref([]);
 const specSubmitting = ref(false);
 
@@ -702,12 +735,11 @@ async function saveSpecs() {
     specSubmitting.value = true;
     try {
         await productApi.saveSpecs(productId, specGroups.value);
-        ElMessage.success('规格配置已保存');
-    } catch { ElMessage.error('保存失败'); }
+        ElMessage.success(t('product_detail_page.specs_saved'));
+    } catch { ElMessage.error(t('product_detail_page.save_failed')); }
     finally { specSubmitting.value = false; }
 }
 
-// ── SEO ──
 const seoForm = reactive({ meta_title: '', meta_description: '', meta_keywords: '', canonical_url: '', og_title: '', og_description: '' });
 const seoSubmitting = ref(false);
 
@@ -718,7 +750,6 @@ async function loadSeo() {
     } catch { /* ignore */ }
 }
 
-// ── 产品演示 ──
 const demoList = ref([]);
 const demoLoading = ref(false);
 const showDemoDialog = ref(false);
@@ -762,6 +793,7 @@ function openEditDemoDialog(row) {
 
 async function submitDemo() {
     demoSubmitting.value = true;
+    const wasEditing = Boolean(demoEditingId.value);
     try {
         if (demoEditingId.value) {
             await productDemoApi.update(demoEditingId.value, demoForm);
@@ -770,17 +802,21 @@ async function submitDemo() {
         }
         showDemoDialog.value = false;
         await loadDemos();
-        ElMessage.success(demoEditingId.value ? '演示平台已更新' : '演示平台已添加');
+        ElMessage.success(wasEditing ? t('product_detail_page.demo_updated') : t('product_detail_page.demo_added'));
     } catch (e) { console.error(e); }
     demoSubmitting.value = false;
 }
 
 async function deleteDemo(row) {
     try {
-        await ElMessageBox.confirm('确定删除该演示平台？', '提示', { type: 'warning' });
+        await ElMessageBox.confirm(
+            t('product_detail_page.delete_demo_confirm'),
+            t('product_detail_page.prompt_title'),
+            { type: 'warning', confirmButtonText: t('actions.confirm'), cancelButtonText: t('actions.cancel') },
+        );
         await productDemoApi.delete(row.id);
         await loadDemos();
-        ElMessage.success('已删除');
+        ElMessage.success(t('product_detail_page.deleted_ok'));
     } catch (e) { if (e !== 'cancel') console.error(e); }
 }
 
@@ -790,16 +826,16 @@ async function saveDemoSettings() {
             demo_enabled: demoSettings.value.enabled,
             demo_images: demoSettings.value.images,
         });
-        ElMessage.success('演示设置已保存');
+        ElMessage.success(t('product_detail_page.demo_settings_saved'));
     } catch (e) { console.error(e); }
 }
 
 function removeDemoImage(idx) {
-        demoSettings.value.images.splice(idx, 1);
-        saveDemoSettings();
-    }
+    demoSettings.value.images.splice(idx, 1);
+    saveDemoSettings();
+}
 
-    function uploadDemoImage(idx) {
+function uploadDemoImage(idx) {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -813,7 +849,7 @@ function removeDemoImage(idx) {
             if (res.success) {
                 demoSettings.value.images[idx].url = res.data.url;
                 await saveDemoSettings();
-                ElMessage.success('图片已上传');
+                ElMessage.success(t('product_detail_page.image_uploaded'));
             }
         } catch (e) { console.error(e); }
     };
@@ -830,12 +866,11 @@ async function saveSeo() {
     seoSubmitting.value = true;
     try {
         await productApi.saveSeo(productId, { ...seoForm });
-        ElMessage.success('SEO 设置已保存');
-    } catch { ElMessage.error('保存失败'); }
+        ElMessage.success(t('product_detail_page.seo_saved'));
+    } catch { ElMessage.error(t('product_detail_page.save_failed')); }
     finally { seoSubmitting.value = false; }
 }
 
-// ── 多语言 ──
 const translations = ref([]);
 const transSubmitting = ref(false);
 const showTransDialog = ref(false);
@@ -851,8 +886,8 @@ async function saveTranslations() {
     transSubmitting.value = true;
     try {
         await productApi.saveTranslations(productId, translations.value);
-        ElMessage.success('翻译已保存');
-    } catch { ElMessage.error('保存失败'); }
+        ElMessage.success(t('product_detail_page.translations_saved'));
+    } catch { ElMessage.error(t('product_detail_page.save_failed')); }
     finally { transSubmitting.value = false; }
 }
 

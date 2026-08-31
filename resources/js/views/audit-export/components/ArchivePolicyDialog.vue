@@ -1,62 +1,64 @@
 <template>
-  <el-dialog v-model="visible" :title="isEdit ? '编辑归档策略' : '新建归档策略'" width="520px" destroy-on-close>
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="130px" v-loading="saving">
-      <el-form-item label="策略名称" prop="name">
+  <el-dialog v-model="visible" :title="isEdit ? t('archive_policy_dialog.edit_title') : t('archive_policy_dialog.create_title')" width="520px" destroy-on-close>
+    <el-form ref="formRef" :model="form" :rules="formRules" label-width="130px" v-loading="saving">
+      <el-form-item :label="t('archive_policy_dialog.name')" prop="name">
         <el-input v-model="form.name" maxlength="200" />
       </el-form-item>
-      <el-form-item label="日志类型" prop="type">
+      <el-form-item :label="t('archive_policy_dialog.log_type')" prop="type">
         <el-select v-model="form.type" style="width:100%" :disabled="isEdit">
-          <el-option v-for="(lb, key) in types" :key="key" :label="lb" :value="key" />
+          <el-option v-for="(lb, key) in typeOptions" :key="key" :label="lb" :value="key" />
         </el-select>
       </el-form-item>
       <el-row :gutter="12">
         <el-col :span="12">
-          <el-form-item label="归档天数" prop="archive_after_days">
+          <el-form-item :label="t('archive_policy_dialog.archive_days')" prop="archive_after_days">
             <el-input-number v-model="form.archive_after_days" :min="1" :max="3650" style="width:100%" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="清理天数" prop="delete_after_days">
+          <el-form-item :label="t('archive_policy_dialog.delete_days')" prop="delete_after_days">
             <el-input-number v-model="form.delete_after_days" :min="1" :max="3650" style="width:100%" />
           </el-form-item>
         </el-col>
       </el-row>
       <el-row :gutter="12">
         <el-col :span="12">
-          <el-form-item label="存储磁盘">
+          <el-form-item :label="t('archive_policy_dialog.disk')">
             <el-select v-model="form.archive_disk" style="width:100%">
-              <el-option label="本地" value="local" />
+              <el-option :label="t('archive_policy_dialog.disks.local')" value="local" />
               <el-option label="S3" value="s3" />
-              <el-option label="公共" value="public" />
+              <el-option :label="t('archive_policy_dialog.disks.public')" value="public" />
             </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="启用">
+          <el-form-item :label="t('archive_policy_dialog.enabled')">
             <el-switch v-model="form.is_active" />
           </el-form-item>
         </el-col>
       </el-row>
-      <el-form-item label="启用压缩">
+      <el-form-item :label="t('archive_policy_dialog.compress')">
         <el-switch v-model="form.compress_archive" />
       </el-form-item>
-      <el-form-item label="描述">
+      <el-form-item :label="t('archive_policy_dialog.description')">
         <el-input v-model="form.description" type="textarea" :rows="2" />
       </el-form-item>
     </el-form>
 
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" @click="save" :loading="saving">保存</el-button>
+      <el-button @click="visible = false">{{ t('actions.cancel') }}</el-button>
+      <el-button type="primary" @click="save" :loading="saving">{{ t('actions.save') }}</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { upsertArchivePolicy, updateArchivePolicy } from '../../../api/auditExport'
 
+const { t } = useI18n()
 const emit = defineEmits(['saved'])
 const visible = ref(false)
 const isEdit = ref(false)
@@ -64,7 +66,12 @@ const editId = ref(null)
 const saving = ref(false)
 const formRef = ref(null)
 
-const types = { audit: '审计', security: '安全', error: '错误', system: '系统' }
+const typeOptions = computed(() => ({
+  audit: t('archive_policy_dialog.types.audit'),
+  security: t('archive_policy_dialog.types.security'),
+  error: t('archive_policy_dialog.types.error'),
+  system: t('archive_policy_dialog.types.system'),
+}))
 
 const defForm = () => ({
   name: '', type: 'audit', archive_after_days: 90, delete_after_days: 365,
@@ -72,11 +79,11 @@ const defForm = () => ({
 })
 
 const form = reactive(defForm())
-const rules = {
-  name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
-  type: [{ required: true, message: '请选择类型', trigger: 'change' }],
-  archive_after_days: [{ required: true, message: '请输入归档天数', trigger: 'blur' }],
-}
+const formRules = computed(() => ({
+  name: [{ required: true, message: t('archive_policy_dialog.rules.name'), trigger: 'blur' }],
+  type: [{ required: true, message: t('archive_policy_dialog.rules.type'), trigger: 'change' }],
+  archive_after_days: [{ required: true, message: t('archive_policy_dialog.rules.archive_days'), trigger: 'blur' }],
+}))
 
 function open(mode, row = null) {
   isEdit.value = mode === 'edit'
@@ -102,15 +109,15 @@ async function save() {
   try {
     if (isEdit.value) {
       await updateArchivePolicy(editId.value, { ...form })
-      ElMessage.success('策略已更新')
+      ElMessage.success(t('archive_policy_dialog.messages.updated'))
     } else {
       await upsertArchivePolicy({ ...form })
-      ElMessage.success('策略已创建')
+      ElMessage.success(t('archive_policy_dialog.messages.created'))
     }
     visible.value = false
     emit('saved')
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '保存失败')
+    ElMessage.error(e.response?.data?.message || t('archive_policy_dialog.messages.save_failed'))
   } finally {
     saving.value = false
   }

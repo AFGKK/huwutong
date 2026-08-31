@@ -1,43 +1,43 @@
 <template>
   <div class="user-interactions">
-    <!-- 📊 阅读统计仪表盘 -->
+    <!-- 阅读统计仪表盘 -->
     <div class="stats-dashboard" v-if="stats">
       <div class="stats-grid">
         <div class="stat-card stat-card-primary">
           <div class="stat-icon">📚</div>
           <div class="stat-body">
             <div class="stat-value">{{ stats.total_read }}</div>
-            <div class="stat-label">已读文章</div>
+            <div class="stat-label">{{ t('user_interactions_page.stats.articles_read') }}</div>
           </div>
         </div>
         <div class="stat-card stat-card-success">
           <div class="stat-icon">⏱️</div>
           <div class="stat-body">
             <div class="stat-value">{{ stats.total_minutes }}</div>
-            <div class="stat-label">累计分钟</div>
+            <div class="stat-label">{{ t('user_interactions_page.stats.total_minutes') }}</div>
           </div>
         </div>
         <div class="stat-card stat-card-warning">
           <div class="stat-icon">🔥</div>
           <div class="stat-body">
             <div class="stat-value">{{ stats.streak_days }}</div>
-            <div class="stat-label">连续天数</div>
+            <div class="stat-label">{{ t('user_interactions_page.stats.streak_days') }}</div>
           </div>
         </div>
         <div class="stat-card stat-card-info">
           <div class="stat-icon">📊</div>
           <div class="stat-body">
             <div class="stat-value">{{ stats.blog_read }}/{{ stats.oa_read }}</div>
-            <div class="stat-label">博客/OA</div>
+            <div class="stat-label">{{ t('user_interactions_page.stats.blog_oa') }}</div>
           </div>
         </div>
       </div>
 
-      <!-- 🎯 猜你喜欢 -->
+      <!-- 推荐内容 -->
       <div class="recommend-section" v-if="recItems.length > 0">
         <div class="rec-header">
-          <span class="trend-header">🎯 猜你喜欢</span>
-          <el-button text size="small" @click="loadRecommendations" :loading="recLoading">🔄 换一批</el-button>
+          <span class="trend-header">{{ t('user_interactions_page.recommend.title') }}</span>
+          <el-button text size="small" @click="loadRecommendations" :loading="recLoading">{{ t('user_interactions_page.recommend.refresh') }}</el-button>
         </div>
         <div class="rec-grid">
           <div v-for="(item, idx) in recItems" :key="'rec-'+idx" class="rec-card" @click="openRec(item)">
@@ -51,17 +51,17 @@
         </div>
       </div>
 
-      <!-- 📋 阅读报告 -->
+      <!-- 阅读报告 -->
       <div class="report-section" v-if="reportData">
         <div class="report-header">
-          <span class="trend-header">📋 {{ reportData.period_label }}阅读报告</span>
+          <span class="trend-header">{{ t('user_interactions_page.report.title', { period: reportData.period_label }) }}</span>
           <div class="report-header-actions">
             <el-button size="small" text @click="shareReport">
-              <el-icon><Share /></el-icon> 分享
+              <el-icon><Share /></el-icon> {{ t('actions.share') }}
             </el-button>
             <el-radio-group v-model="reportPeriod" size="small" @change="loadReport">
-              <el-radio-button value="weekly">周报</el-radio-button>
-              <el-radio-button value="monthly">月报</el-radio-button>
+              <el-radio-button value="weekly">{{ t('user_interactions_page.report.weekly') }}</el-radio-button>
+              <el-radio-button value="monthly">{{ t('user_interactions_page.report.monthly') }}</el-radio-button>
             </el-radio-group>
           </div>
         </div>
@@ -69,47 +69,47 @@
           <div class="report-main">
             <div class="report-stat">
               <span class="report-num">{{ reportData.total_read }}</span>
-              <span class="report-unit">篇</span>
-              <span class="report-label">阅读量</span>
+              <span class="report-unit">{{ t('user_interactions_page.report.unit_articles') }}</span>
+              <span class="report-label">{{ t('user_interactions_page.report.read_count') }}</span>
               <span class="report-growth" :class="reportData.growth_percent >= 0 ? 'up' : 'down'">
-                {{ reportData.growth_label }} 较{{ reportData.prev_period_label }}
+                {{ reportData.growth_label }} {{ t('user_interactions_page.report.vs_prev', { period: reportData.prev_period_label }) }}
               </span>
             </div>
             <div class="report-stat">
               <span class="report-num">{{ reportData.avg_daily }}</span>
-              <span class="report-unit">篇/天</span>
-              <span class="report-label">日均阅读</span>
+              <span class="report-unit">{{ t('user_interactions_page.report.per_day') }}</span>
+              <span class="report-label">{{ t('user_interactions_page.report.avg_daily') }}</span>
             </div>
             <div class="report-stat">
               <span class="report-num">{{ reportData.streak_days }}</span>
-              <span class="report-unit">天</span>
-              <span class="report-label">最长连续</span>
+              <span class="report-unit">{{ t('user_interactions_page.report.unit_days') }}</span>
+              <span class="report-label">{{ t('user_interactions_page.report.longest_streak') }}</span>
             </div>
           </div>
           <div class="report-details">
             <div class="report-detail-item">
               <span class="report-detail-icon">📝</span>
-              <span>博客 <strong>{{ reportData.blog_read }}</strong> 篇</span>
+              <span>{{ t('user_interactions_page.report.blog_count', { n: reportData.blog_read }) }}</span>
             </div>
             <div class="report-detail-item">
               <span class="report-detail-icon">📄</span>
-              <span>OA <strong>{{ reportData.oa_read }}</strong> 篇</span>
+              <span>{{ t('user_interactions_page.report.oa_count', { n: reportData.oa_read }) }}</span>
             </div>
             <div class="report-detail-item">
               <span class="report-detail-icon">⭐</span>
-              <span>收藏 <strong>{{ reportData.total_favorites }}</strong> 次</span>
+              <span>{{ t('user_interactions_page.report.favorites_count', { n: reportData.total_favorites }) }}</span>
             </div>
             <div class="report-detail-item">
               <span class="report-detail-icon">👍</span>
-              <span>点赞 <strong>{{ reportData.total_likes }}</strong> 次</span>
+              <span>{{ t('user_interactions_page.report.likes_count', { n: reportData.total_likes }) }}</span>
             </div>
             <div class="report-detail-item">
               <span class="report-detail-icon">⏰</span>
-              <span>最活跃时段 <strong>{{ reportData.peak_hour }}:00-{{ reportData.peak_hour + 1 }}:00</strong></span>
+              <span>{{ t('user_interactions_page.report.peak_hour', { start: reportData.peak_hour, end: reportData.peak_hour + 1 }) }}</span>
             </div>
             <div class="report-detail-item" v-if="reportData.top_tags?.length">
               <span class="report-detail-icon">🏷️</span>
-              <span>最爱标签 <strong>{{ reportData.top_tags.join(' · ') }}</strong></span>
+              <span>{{ t('user_interactions_page.report.top_tags') }} <strong>{{ reportData.top_tags.join(' · ') }}</strong></span>
             </div>
           </div>
         </div>
@@ -117,54 +117,54 @@
 
       <!-- 本周阅读趋势 -->
       <div class="trend-section">
-        <div class="trend-header">📈 本周阅读趋势</div>
+        <div class="trend-header">{{ t('user_interactions_page.trend.title') }}</div>
         <div class="trend-bars">
           <div v-for="day in stats.weekly_trend" :key="day.date" class="trend-day">
             <div class="trend-bar-wrap">
-              <div class="trend-bar blog-bar" :style="{ height: barHeight(day.blog) + 'px' }" :title="'博客: ' + day.blog"></div>
-              <div class="trend-bar oa-bar" :style="{ height: barHeight(day.oa) + 'px' }" :title="'OA: ' + day.oa"></div>
+              <div class="trend-bar blog-bar" :style="{ height: barHeight(day.blog) + 'px' }" :title="t('user_interactions_page.trend.blog_tip', { n: day.blog })"></div>
+              <div class="trend-bar oa-bar" :style="{ height: barHeight(day.oa) + 'px' }" :title="t('user_interactions_page.trend.oa_tip', { n: day.oa })"></div>
             </div>
             <div class="trend-label">{{ day.label }}</div>
             <div class="trend-value" v-if="day.total > 0">{{ day.total }}</div>
           </div>
         </div>
         <div class="trend-legend">
-          <span><span class="legend-dot blog-dot"></span> 博客</span>
-          <span><span class="legend-dot oa-dot"></span> OA文章</span>
+          <span><span class="legend-dot blog-dot"></span> {{ t('user_interactions_page.trend.blog') }}</span>
+          <span><span class="legend-dot oa-dot"></span> {{ t('user_interactions_page.trend.oa') }}</span>
         </div>
       </div>
 
-      <!-- � 今日阅读目标 -->
+      <!-- 今日阅读目标 -->
       <div class="goal-section">
         <div class="goal-header">
-          <span class="trend-header">🎯 今日阅读目标</span>
-          <el-button v-if="!showGoalEditor" text size="small" @click="showGoalEditor = true">⚙️ 设置</el-button>
+          <span class="trend-header">{{ t('user_interactions_page.goal.title') }}</span>
+          <el-button v-if="!showGoalEditor" text size="small" @click="showGoalEditor = true">{{ t('user_interactions_page.goal.settings') }}</el-button>
         </div>
         <div class="goal-body">
           <div class="goal-info">
             <span class="goal-emoji">📖</span>
-            <span>今日已读 <strong>{{ stats.today_read }}</strong> 篇</span>
+            <span>{{ t('user_interactions_page.goal.read_today', { n: stats.today_read }) }}</span>
             <span class="goal-divider">/</span>
-            <span>目标 <strong>{{ stats.daily_goal }}</strong> 篇</span>
+            <span>{{ t('user_interactions_page.goal.target', { n: stats.daily_goal }) }}</span>
           </div>
           <div class="goal-bar-wrap">
             <div class="goal-bar" :style="{ width: stats.goal_progress + '%' }" :class="goalBarClass">
               <span v-if="stats.goal_progress > 15">{{ stats.goal_progress }}%</span>
             </div>
           </div>
-          <div class="goal-message" v-if="stats.goal_progress >= 100">✅ 今日目标已完成！</div>
+          <div class="goal-message" v-if="stats.goal_progress >= 100">{{ t('user_interactions_page.goal.completed') }}</div>
           <div class="goal-editor" v-if="showGoalEditor">
-            <span style="font-size:12px;color:#909399">每日目标：</span>
+            <span style="font-size:12px;color:#909399">{{ t('user_interactions_page.goal.daily_label') }}</span>
             <el-input-number v-model="editGoal" :min="1" :max="100" size="small" style="width:100px" />
-            <el-button size="small" type="primary" @click="saveGoal" :loading="goalSaving">保存</el-button>
-            <el-button size="small" @click="showGoalEditor = false">取消</el-button>
+            <el-button size="small" type="primary" @click="saveGoal" :loading="goalSaving">{{ t('actions.save') }}</el-button>
+            <el-button size="small" @click="showGoalEditor = false">{{ t('actions.cancel') }}</el-button>
           </div>
         </div>
       </div>
-      <!-- 📊 互动热力图 -->
+      <!-- 互动热力图 -->
       <div class="heatmap-section" v-if="heatmapData">
         <div class="heatmap-header">
-          <span class="trend-header">📊 互动热力图</span>
+          <span class="trend-header">{{ t('user_interactions_page.heatmap.title') }}</span>
           <div class="heatmap-controls">
             <el-button v-if="heatmapYear > 2024" text size="small" @click="switchHeatmapYear(-1)">‹ {{ heatmapYear - 1 }}</el-button>
             <span style="font-weight:600;font-size:13px">{{ heatmapYear }}</span>
@@ -172,11 +172,11 @@
           </div>
         </div>
         <div class="heatmap-stats">
-          <span>{{ heatmapData.total_interactions }} 次互动</span>
+          <span>{{ t('user_interactions_page.heatmap.interactions', { n: heatmapData.total_interactions }) }}</span>
           <span>·</span>
-          <span>{{ heatmapData.total_active_days }} 天活跃</span>
+          <span>{{ t('user_interactions_page.heatmap.active_days', { n: heatmapData.total_active_days }) }}</span>
           <span>·</span>
-          <span>今日 {{ heatmapData.today_count }}</span>
+          <span>{{ t('user_interactions_page.heatmap.today', { n: heatmapData.today_count }) }}</span>
         </div>
         <div class="heatmap-wrap">
           <div class="heatmap-months">
@@ -184,30 +184,30 @@
           </div>
           <div class="heatmap-grid">
             <div class="heatmap-days">
-              <span>一</span><span>三</span><span>五</span>
+              <span>{{ t('user_interactions_page.heatmap.weekday_mon') }}</span><span>{{ t('user_interactions_page.heatmap.weekday_wed') }}</span><span>{{ t('user_interactions_page.heatmap.weekday_fri') }}</span>
             </div>
             <div class="heatmap-cells">
               <div v-for="cell in heatmapDays" :key="cell.date"
                 class="heatmap-cell"
                 :class="'level-' + cell.level"
-                :title="cell.date + ': ' + cell.count + ' 次互动'">
+                :title="t('user_interactions_page.heatmap.cell_title', { date: cell.date, n: cell.count })">
               </div>
             </div>
           </div>
           <div class="heatmap-legend">
-            <span>少</span>
+            <span>{{ t('user_interactions_page.heatmap.less') }}</span>
             <span class="legend-cell level-0"></span>
             <span class="legend-cell level-1"></span>
             <span class="legend-cell level-2"></span>
             <span class="legend-cell level-3"></span>
             <span class="legend-cell level-4"></span>
-            <span>多</span>
+            <span>{{ t('user_interactions_page.heatmap.more') }}</span>
           </div>
         </div>
       </div>
-      <!-- �🏅 成就系统 -->
+      <!-- 成就 -->
       <div class="achievement-section">
-        <div class="trend-header">🏅 成就</div>
+        <div class="trend-header">{{ t('user_interactions_page.achievements.title') }}</div>
         <div class="achievement-grid">          <div v-for="ach in stats.achievements" :key="ach.key" class="achievement-item" :class="{ unlocked: isUnlocked(ach.key) }">
             <div class="ach-icon">{{ ach.icon }}</div>
             <div class="ach-name">{{ ach.name }}</div>
@@ -216,9 +216,9 @@
         </div>
       </div>
 
-      <!-- 📤 数据导出 -->
+      <!-- 数据导出 -->
       <div class="export-section">
-        <span class="trend-header">📤 导出数据</span>
+        <span class="trend-header">{{ t('user_interactions_page.export.title') }}</span>
         <div class="export-body">
           <el-select v-model="exportFormat" size="small" style="width:120px">
             <el-option label="Markdown" value="markdown" />
@@ -226,12 +226,9 @@
             <el-option label="CSV" value="csv" />
           </el-select>
           <el-select v-model="exportType" size="small" style="width:130px">
-            <el-option label="全部数据" value="all" />
-            <el-option label="仅关注" value="follows" />
-            <el-option label="仅收藏" value="favorites" />
-            <el-option label="仅点赞" value="likes" />
+            <el-option v-for="opt in EXPORT_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
-          <el-button size="small" type="primary" @click="handleExport" :loading="exporting">📥 下载</el-button>
+          <el-button size="small" type="primary" @click="handleExport" :loading="exporting">{{ t('actions.download') }}</el-button>
         </div>
       </div>
     </div>
@@ -241,20 +238,19 @@
 
     <!-- 互动列表标签页 -->
     <el-tabs v-model="activeInteractionTab" @tab-change="onTabChange">
-      <!-- 🔥 关注动态 (新) -->
-      <el-tab-pane label="🔥 关注动态" name="feed">
+      <el-tab-pane :label="t('user_interactions_page.tabs.feed')" name="feed">
         <div class="feed-toolbar">
-          <span style="font-size:12px;color:#909399">共 {{ feedItems.length }} 条动态</span>
-          <a :href="'/build/following-feed'" target="_blank" style="font-size:12px;color:#409eff;text-decoration:none">查看全部 ›</a>
+          <span style="font-size:12px;color:#909399">{{ t('user_interactions_page.feed.count', { n: feedItems.length }) }}</span>
+          <a :href="'/build/following-feed'" target="_blank" style="font-size:12px;color:#0f172a;text-decoration:none">{{ t('user_interactions_page.feed.view_all') }} ›</a>
         </div>
         <div v-if="feedLoading" class="loading-wrap"><el-icon class="is-loading" :size="24"><Loading /></el-icon></div>
-        <div v-else-if="feedItems.length === 0" class="empty-wrap"><el-empty description="关注的账号还没有发布内容" :image-size="60" /></div>
+        <div v-else-if="feedItems.length === 0" class="empty-wrap"><el-empty :description="t('user_interactions_page.feed.empty')" :image-size="60" /></div>
         <div v-else class="feed-list">
           <div v-for="item in feedItems" :key="'fd-'+item.id" class="feed-card" @click="openFeedItem(item)" style="cursor:pointer">
             <div class="feed-header">
               <el-avatar :size="28" :src="item.account?.avatar" class="feed-avatar">{{ item.account?.name?.charAt(0) || '?' }}</el-avatar>
               <div class="feed-account">
-                <span class="feed-account-name">{{ item.account?.name || '未知账号' }}</span>
+                <span class="feed-account-name">{{ item.account?.name || t('user_interactions_page.feed.unknown_account') }}</span>
                 <span class="feed-time">{{ formatTime(item.published_at) }}</span>
               </div>
             </div>
@@ -273,74 +269,72 @@
           </div>
         </div>
       </el-tab-pane>
-      <el-tab-pane label="📋 阅读清单" name="queue">
+      <el-tab-pane :label="t('user_interactions_page.tabs.queue')" name="queue">
         <div class="queue-tabs">
           <el-radio-group v-model="queueTab" size="small" @change="loadQueue">
-            <el-radio-button value="pending">⏳ 待读 ({{ queuePendingCount }})</el-radio-button>
-            <el-radio-button value="completed">✅ 已完成 ({{ queueDoneCount }})</el-radio-button>
+            <el-radio-button value="pending">{{ t('user_interactions_page.queue.pending', { n: queuePendingCount }) }}</el-radio-button>
+            <el-radio-button value="completed">{{ t('user_interactions_page.queue.completed', { n: queueDoneCount }) }}</el-radio-button>
           </el-radio-group>
         </div>
         <div v-if="queueLoading" class="loading-wrap"><el-icon class="is-loading" :size="24"><Loading /></el-icon></div>
-        <div v-else-if="queueItems.length === 0" class="empty-wrap"><el-empty :description="queueTab === 'pending' ? '阅读清单是空的，从收藏中添加内容吧' : '还没有完成的阅读'" :image-size="60" /></div>
+        <div v-else-if="queueItems.length === 0" class="empty-wrap"><el-empty :description="queueTab === 'pending' ? t('user_interactions_page.queue.empty_pending') : t('user_interactions_page.queue.empty_completed')" :image-size="60" /></div>
         <div v-else class="queue-list" ref="queueListRef">
           <div v-for="(item, idx) in queueItems" :key="item.id" class="queue-item" :class="{ 'is-completed': item.is_completed }" draggable="true"
             @dragstart="onDragStart(idx)" @dragover.prevent @drop="onDrop(idx)">
-            <div class="queue-drag-handle" title="拖动排序">⠿</div>
+            <div class="queue-drag-handle" :title="t('user_interactions_page.queue.drag_sort')">⠿</div>
             <div v-if="item.cover" class="queue-cover"><img :src="item.cover" :alt="item.title" /></div>
             <div v-else class="queue-cover queue-cover-placeholder">{{ typeIcon(item.type) }}</div>
             <div class="queue-body">
-              <div class="queue-title">{{ item.title || '(无标题)' }}</div>
+              <div class="queue-title">{{ item.title || t('user_interactions_page.queue.no_title') }}</div>
               <div class="queue-meta">
                 <el-tag size="small" :type="typeTag(item.type)">{{ typeLabel(item.type) }}</el-tag>
-                <span v-if="item.note" class="queue-note">📌 {{ item.note }}</span>
+                <span v-if="item.note" class="queue-note">{{ item.note }}</span>
               </div>
             </div>
             <div class="queue-actions">
-              <el-button text size="small" :type="item.is_completed ? 'warning' : 'success'" @click="toggleQueueItem(item)" :title="item.is_completed ? '移回待读' : '标记完成'">
-                {{ item.is_completed ? '↩️' : '✅' }}
+              <el-button text size="small" :type="item.is_completed ? 'warning' : 'success'" @click="toggleQueueItem(item)" :title="item.is_completed ? t('user_interactions_page.queue.move_pending') : t('user_interactions_page.queue.mark_complete')">
+                {{ item.is_completed ? '↩' : '✓' }}
               </el-button>
-              <el-button text size="small" type="danger" @click="removeQueueItem(item)" title="移除">🗑️</el-button>
+              <el-button text size="small" type="danger" @click="removeQueueItem(item)" :title="t('user_interactions_page.queue.remove')">×</el-button>
             </div>
           </div>
         </div>
       </el-tab-pane>
-      <el-tab-pane label="❤️ 关注" name="follows">
+      <el-tab-pane :label="t('user_interactions_page.tabs.follows')" name="follows">
         <div v-if="loading" class="loading-wrap"><el-icon class="is-loading" :size="24"><Loading /></el-icon></div>
-        <div v-else-if="interactions.follows?.length === 0" class="empty-wrap"><el-empty description="还没有关注任何账号" :image-size="60" /></div>
+        <div v-else-if="interactions.follows?.length === 0" class="empty-wrap"><el-empty :description="t('user_interactions_page.follows.empty')" :image-size="60" /></div>
         <div v-else class="interaction-list">
           <div v-for="item in interactions.follows" :key="'f-'+item.id" class="interaction-item">
             <el-avatar :size="40" :src="item.avatar" class="item-avatar">{{ item.name?.charAt(0) || '?' }}</el-avatar>
             <div class="item-body">
               <div class="item-title">{{ item.name }}</div>
-              <div class="item-meta">{{ item.description }} · 👥 {{ item.followers_count }} 人关注</div>
+              <div class="item-meta">{{ item.description }} · {{ t('user_interactions_page.follows.followers', { n: item.followers_count }) }}</div>
             </div>
             <div class="item-action"><span class="item-time">{{ formatTime(item.interacted_at) }}</span></div>
           </div>
         </div>
       </el-tab-pane>
-      <el-tab-pane label="⭐ 收藏" name="favorites">
-        <!-- 视图切换 + 搜索+筛选 -->
+      <el-tab-pane :label="t('user_interactions_page.tabs.favorites')" name="favorites">
         <div class="filter-bar">
           <el-radio-group v-model="favViewMode" size="small" @change="favViewMode === 'collections' ? loadCollections() : loadFavorites()">
-            <el-radio-button value="collections">📁 分类</el-radio-button>
-            <el-radio-button value="list">📋 列表</el-radio-button>
+            <el-radio-button value="collections">{{ t('user_interactions_page.favorites.view_collections') }}</el-radio-button>
+            <el-radio-button value="list">{{ t('user_interactions_page.favorites.view_list') }}</el-radio-button>
           </el-radio-group>
           <template v-if="favViewMode === 'list'">
-            <el-input v-model="favSearch" size="small" placeholder="🔍 搜索收藏..." clearable style="width:200px" @input="loadFavorites" @clear="loadFavorites" />
+            <el-input v-model="favSearch" size="small" :placeholder="t('user_interactions_page.favorites.search_ph')" clearable style="width:200px" @input="loadFavorites" @clear="loadFavorites" />
             <el-radio-group v-model="favTypeFilter" size="small" @change="loadFavorites">
-              <el-radio-button value="">全部</el-radio-button>
-              <el-radio-button value="blog_post">📝 博客</el-radio-button>
-              <el-radio-button value="oa_article">📄 OA</el-radio-button>
-              <el-radio-button value="forum_post">🌐 广场</el-radio-button>
+              <el-radio-button value="">{{ t('user_interactions_page.favorites.filter_all') }}</el-radio-button>
+              <el-radio-button value="blog_post">{{ t('user_interactions_page.types.blog_post') }}</el-radio-button>
+              <el-radio-button value="oa_article">{{ t('user_interactions_page.types.oa_article') }}</el-radio-button>
+              <el-radio-button value="forum_post">{{ t('user_interactions_page.types.forum_post') }}</el-radio-button>
             </el-radio-group>
           </template>
-          <span class="filter-count" v-if="collectionsTotal > 0">共 {{ collectionsTotal }} 项</span>
+          <span class="filter-count" v-if="collectionsTotal > 0">{{ t('user_interactions_page.favorites.total', { n: collectionsTotal }) }}</span>
         </div>
 
-        <!-- 分类视图 -->
         <div v-if="favViewMode === 'collections'">
           <div v-if="colLoading" class="loading-wrap"><el-icon class="is-loading" :size="24"><Loading /></el-icon></div>
-          <div v-else-if="collections.length === 0" class="empty-wrap"><el-empty description="还没有收藏任何内容" :image-size="60" /></div>
+          <div v-else-if="collections.length === 0" class="empty-wrap"><el-empty :description="t('user_interactions_page.favorites.empty')" :image-size="60" /></div>
           <div v-else class="collections-grid">
             <div v-for="col in collections" :key="col.key" class="collection-card" @click="switchToFilteredList(col)">
               <div class="collection-header">
@@ -356,21 +350,20 @@
                   </div>
                 </div>
               </div>
-              <div class="collection-empty" v-else><span>暂无内容</span></div>
+              <div class="collection-empty" v-else><span>{{ t('user_interactions_page.favorites.no_content') }}</span></div>
             </div>
           </div>
         </div>
 
-        <!-- 列表视图 -->
         <template v-if="favViewMode === 'list'">
           <div v-if="favLoading" class="loading-wrap"><el-icon class="is-loading" :size="24"><Loading /></el-icon></div>
-          <div v-else-if="interactions.favorites?.length === 0" class="empty-wrap"><el-empty :description="favSearch ? '没有匹配的收藏' : '还没有收藏任何内容'" :image-size="60" /></div>
+          <div v-else-if="interactions.favorites?.length === 0" class="empty-wrap"><el-empty :description="favSearch ? t('user_interactions_page.favorites.empty_search') : t('user_interactions_page.favorites.empty')" :image-size="60" /></div>
           <div v-else class="interaction-list">
             <div v-for="(item, idx) in interactions.favorites" :key="'fav-'+idx" class="interaction-item">
               <div v-if="item.cover" class="item-cover"><img :src="item.cover" :alt="item.title" /></div>
               <div v-else class="item-cover item-cover-placeholder">{{ typeIcon(item.type) }}</div>
               <div class="item-body">
-                <div class="item-title">{{ item.title || '(无标题)' }}</div>
+                <div class="item-title">{{ item.title || t('user_interactions_page.queue.no_title') }}</div>
                 <div class="item-meta">
                   <el-tag size="small" :type="typeTag(item.type)">{{ typeLabel(item.type) }}</el-tag>
                   {{ formatTime(item.interacted_at) }}
@@ -380,15 +373,15 @@
           </div>
         </template>
       </el-tab-pane>
-      <el-tab-pane label="👍 点赞" name="likes">
+      <el-tab-pane :label="t('user_interactions_page.tabs.likes')" name="likes">
         <div v-if="loading" class="loading-wrap"><el-icon class="is-loading" :size="24"><Loading /></el-icon></div>
-        <div v-else-if="interactions.likes?.length === 0" class="empty-wrap"><el-empty description="还没有点赞任何内容" :image-size="60" /></div>
+        <div v-else-if="interactions.likes?.length === 0" class="empty-wrap"><el-empty :description="t('user_interactions_page.likes.empty')" :image-size="60" /></div>
         <div v-else class="interaction-list">
           <div v-for="(item, idx) in interactions.likes" :key="'lik-'+idx" class="interaction-item">
             <div v-if="item.cover" class="item-cover"><img :src="item.cover" :alt="item.title" /></div>
             <div v-else class="item-cover item-cover-placeholder">{{ typeIcon(item.type) }}</div>
             <div class="item-body">
-              <div class="item-title">{{ item.title || '(无标题)' }}</div>
+              <div class="item-title">{{ item.title || t('user_interactions_page.queue.no_title') }}</div>
               <div class="item-meta"><el-tag size="small" :type="typeTag(item.type)">{{ typeLabel(item.type) }}</el-tag> {{ formatTime(item.interacted_at) }}</div>
             </div>
           </div>
@@ -400,9 +393,25 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Loading, Share } from '@element-plus/icons-vue';
 import { getInteractions, getReadingStats, getFollowingFeed, getFavoriteCollections, saveReadingGoal, exportData, getHeatmap, getReadingReport, getRecommendations, getReadingQueue, addToReadingQueue, removeFromReadingQueue, toggleReadingQueueItem, sortReadingQueue } from '@/api/interaction';
+
+const { t, locale } = useI18n();
+
+const TYPE_LABEL_MAP = computed(() => ({
+  blog_post: t('user_interactions_page.types.blog_post'),
+  oa_article: t('user_interactions_page.types.oa_article'),
+  forum_post: t('user_interactions_page.types.forum_post'),
+}));
+
+const EXPORT_TYPE_OPTIONS = computed(() => [
+  { label: t('user_interactions_page.export.type_all'), value: 'all' },
+  { label: t('user_interactions_page.export.type_follows'), value: 'follows' },
+  { label: t('user_interactions_page.export.type_favorites'), value: 'favorites' },
+  { label: t('user_interactions_page.export.type_likes'), value: 'likes' },
+]);
 
 function extractFirstImage(html) {
   if (!html) return '';
@@ -462,10 +471,10 @@ async function saveGoal() {
   goalSaving.value = true;
   try {
     await saveReadingGoal(editGoal.value);
-    ElMessage.success('阅读目标已更新');
+    ElMessage.success(t('user_interactions_page.messages.goal_updated'));
     showGoalEditor.value = false;
     loadStats();
-  } catch { ElMessage.error('保存失败'); }
+  } catch { ElMessage.error(t('messages.failed')); }
   finally { goalSaving.value = false; }
 }
 
@@ -481,8 +490,8 @@ async function handleExport() {
     a.download = `my-data-${new Date().toISOString().slice(0,10)}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
-    ElMessage.success('📤 数据已导出');
-  } catch { ElMessage.error('导出失败'); }
+    ElMessage.success(t('user_interactions_page.messages.export_ok'));
+  } catch { ElMessage.error(t('messages.failed')); }
   finally { exporting.value = false; }
 }
 
@@ -499,7 +508,7 @@ async function loadHeatmap() {
         const m = d.date.slice(5, 7);
         if (m !== currentMonth) {
           currentMonth = m;
-          months.push({ label: parseInt(m) + '月', offset: (i % 7) * 14 + Math.floor(i / 7) * 14 });
+          months.push({ label: t('user_interactions_page.heatmap.month', { n: parseInt(m) }), offset: (i % 7) * 14 + Math.floor(i / 7) * 14 });
         }
       });
       monthLabels.value = months;
@@ -552,17 +561,17 @@ async function toggleQueueItem(item) {
   try {
     const res = await toggleReadingQueueItem(item.id);
     item.is_completed = res.data?.data?.is_completed;
-    ElMessage.success(item.is_completed ? '✅ 标记完成' : '↩️ 移回待读');
+    ElMessage.success(item.is_completed ? t('user_interactions_page.messages.mark_complete') : t('user_interactions_page.messages.move_pending'));
     loadQueue();
-  } catch { ElMessage.error('操作失败'); }
+  } catch { ElMessage.error(t('messages.failed')); }
 }
 
 async function removeQueueItem(item) {
   try {
     await removeFromReadingQueue(item.id);
-    ElMessage.success('已移除');
+    ElMessage.success(t('user_interactions_page.messages.removed'));
     loadQueue();
-  } catch { ElMessage.error('移除失败'); }
+  } catch { ElMessage.error(t('user_interactions_page.messages.remove_failed')); }
 }
 
 function onDragStart(idx) {
@@ -586,26 +595,27 @@ async function onDrop(idx) {
 function shareReport() {
   if (!reportData.value) return;
   const d = reportData.value;
+  const copyOk = t('user_interactions_page.share_dialog.copied').replace(/'/g, "\\'");
+  const copyFail = t('user_interactions_page.share_dialog.copy_failed').replace(/'/g, "\\'");
 
   ElMessageBox({
-    title: '📤 分享阅读报告',
+    title: t('user_interactions_page.share_dialog.title'),
     message: `<div style="text-align:center;padding:8px 0">
       <canvas id="report-share-canvas" style="width:100%;max-width:380px;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.1);margin:0 auto 12px"></canvas>
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-        <el-button type="primary" id="report-download-btn" onclick="(function(){var c=document.getElementById('report-share-canvas');var a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='reading-report-${new Date().toISOString().slice(0,10)}.png';a.click();})()">📥 下载图片</el-button>
-        <el-button id="report-copy-btn" onclick="(function(){var c=document.getElementById('report-share-canvas');c.toBlob(function(b){navigator.clipboard.write([new ClipboardItem({'image/png':b})]).then(function(){ElMessage.success('✅ 图片已复制到剪贴板')}).catch(function(){ElMessage.warning('复制失败，请尝试下载')})})})()">📋 复制图片</el-button>
+        <el-button type="primary" id="report-download-btn" onclick="(function(){var c=document.getElementById('report-share-canvas');var a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='reading-report-${new Date().toISOString().slice(0,10)}.png';a.click();})()">${t('user_interactions_page.share_dialog.download_image')}</el-button>
+        <el-button id="report-copy-btn" onclick="(function(){var c=document.getElementById('report-share-canvas');c.toBlob(function(b){navigator.clipboard.write([new ClipboardItem({'image/png':b})]).then(function(){ElMessage.success('${copyOk}')}).catch(function(){ElMessage.warning('${copyFail}')})})})()">${t('user_interactions_page.share_dialog.copy_image')}</el-button>
       </div>
     </div>`,
     dangerouslyUseHTMLString: true,
     showConfirmButton: false,
     showCancelButton: true,
-    cancelButtonText: '关闭',
+    cancelButtonText: t('actions.close'),
     beforeClose: (action, instance, done) => {
       done();
     },
   });
 
-  // 异步生成图片
   setTimeout(() => generateReportImage(d), 100);
 }
 
@@ -622,7 +632,7 @@ function generateReportImage(d) {
   const grad = ctx.createLinearGradient(0, 0, W, H);
   grad.addColorStop(0, '#667eea');
   grad.addColorStop(0.5, '#764ba2');
-  grad.addColorStop(1, '#409eff');
+  grad.addColorStop(1, '#0f172a');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
@@ -659,32 +669,28 @@ function generateReportImage(d) {
   ctx.fillStyle = '#303133';
   ctx.font = 'bold 15px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText(d.user_name || '用户', avatarX + avatarR * 2 + 10, avatarY + avatarR + 5);
+  ctx.fillText(d.user_name || t('user_interactions_page.share_card.user_fallback'), avatarX + avatarR * 2 + 10, avatarY + avatarR + 5);
 
-  // 标题
   ctx.fillStyle = '#303133';
   ctx.font = 'bold 22px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('📋 ' + d.period_label + '阅读报告', W / 2, 110);
+  ctx.fillText(t('user_interactions_page.share_card.report_title', { period: d.period_label }), W / 2, 110);
 
-  // 日期范围
   ctx.fillStyle = '#909399';
   ctx.font = '12px sans-serif';
   ctx.fillText(d.date_range || '', W / 2, 132);
 
-  // 主统计 - 阅读量
   ctx.fillStyle = '#303133';
   ctx.font = 'bold 48px sans-serif';
   ctx.fillText(d.total_read, W / 2, 192);
 
   ctx.fillStyle = '#909399';
   ctx.font = '13px sans-serif';
-  ctx.fillText('篇阅读量', W / 2, 214);
+  ctx.fillText(t('user_interactions_page.share_card.read_volume'), W / 2, 214);
 
-  // 增长率
   ctx.fillStyle = d.growth_percent >= 0 ? '#67c23a' : '#f56c6c';
   ctx.font = 'bold 18px sans-serif';
-  ctx.fillText(d.growth_label + ' 较' + d.prev_period_label, W / 2, 242);
+  ctx.fillText(t('user_interactions_page.share_card.vs_prev', { growth: d.growth_label, period: d.prev_period_label }), W / 2, 242);
 
   // 分隔线
   ctx.strokeStyle = '#eee';
@@ -696,24 +702,23 @@ function generateReportImage(d) {
 
   // 统计详情 - 两列布局
   const stats = [
-    { label: '博客', value: d.blog_read, icon: '📝', x: W * 0.25 },
-    { label: 'OA文章', value: d.oa_read, icon: '📄', x: W * 0.75 },
+    { label: t('user_interactions_page.share_card.blog'), value: d.blog_read, icon: '', x: W * 0.25 },
+    { label: t('user_interactions_page.share_card.oa'), value: d.oa_read, icon: '', x: W * 0.75 },
   ];
   stats.forEach(s => {
     ctx.fillStyle = '#303133';
     ctx.font = 'bold 24px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(s.icon + ' ' + s.value, s.x, 300);
+    ctx.fillText(String(s.value), s.x, 300);
     ctx.fillStyle = '#909399';
     ctx.font = '12px sans-serif';
     ctx.fillText(s.label, s.x, 320);
   });
 
-  // 第二行详情
   const details = [
-    { label: '收藏', value: d.total_favorites, x: W * 0.2 },
-    { label: '点赞', value: d.total_likes, x: W * 0.5 },
-    { label: '连续', value: d.streak_days + '天', x: W * 0.8 },
+    { label: t('user_interactions_page.share_card.favorites'), value: d.total_favorites, x: W * 0.2 },
+    { label: t('user_interactions_page.share_card.likes'), value: d.total_likes, x: W * 0.5 },
+    { label: t('user_interactions_page.share_card.streak'), value: t('user_interactions_page.share_card.streak_days', { n: d.streak_days }), x: W * 0.8 },
   ];
   details.forEach(s => {
     ctx.fillStyle = '#303133';
@@ -729,20 +734,18 @@ function generateReportImage(d) {
   ctx.fillStyle = '#606266';
   ctx.font = '13px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('⏰ 最爱时段 ' + d.peak_hour + ':00-' + (d.peak_hour + 1) + ':00', W / 2, 415);
+  ctx.fillText(t('user_interactions_page.share_card.peak_hour', { start: d.peak_hour, end: d.peak_hour + 1 }), W / 2, 415);
 
-  // 最爱标签
   if (d.top_tags?.length) {
     ctx.fillStyle = '#606266';
     ctx.font = '13px sans-serif';
-    ctx.fillText('🏷️ ' + d.top_tags.join(' · '), W / 2, 440);
+    ctx.fillText(d.top_tags.join(' · '), W / 2, 440);
   }
 
-  // 底部品牌
   ctx.fillStyle = '#c0c4cc';
   ctx.font = '12px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('📊 来自 HWT License', W / 2, H - 55);
+  ctx.fillText(t('user_interactions_page.share_card.brand'), W / 2, H - 55);
   ctx.font = '11px sans-serif';
   ctx.fillText('88.huwutong.com', W / 2, H - 38);
 }
@@ -858,13 +861,13 @@ function formatTime(date) {
   const d = new Date(date);
   const now = new Date();
   const diff = now - d;
-  if (diff < 86400000) return '今天';
-  if (diff < 172800000) return '昨天';
-  return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+  if (diff < 86400000) return t('time.today');
+  if (diff < 172800000) return t('time.yesterday');
+  return d.toLocaleDateString(locale.value === 'zh_CN' ? 'zh-CN' : 'en-US', { month: '2-digit', day: '2-digit' });
 }
 
 function typeLabel(type) {
-  return { blog_post: '博客', oa_article: 'OA 文章', forum_post: '广场' }[type] || type;
+  return TYPE_LABEL_MAP.value[type] || type;
 }
 
 function typeTag(type) {
@@ -882,7 +885,7 @@ onMounted(() => { loadStats(); loadFeed(); loadCollections(); loadHeatmap(); loa
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
 .stat-card { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 8px; background: #f8f9fa; border: 1px solid #eee; transition: transform .2s; }
 .stat-card:hover { transform: translateY(-2px); }
-.stat-card-primary { border-left: 3px solid #409eff; }
+.stat-card-primary { border-left: 3px solid #0f172a; }
 .stat-card-success { border-left: 3px solid #67c23a; }
 .stat-card-warning { border-left: 3px solid #e6a23c; }
 .stat-card-info { border-left: 3px solid #909399; }
@@ -896,13 +899,13 @@ onMounted(() => { loadStats(); loadFeed(); loadCollections(); loadHeatmap(); loa
 .trend-day { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
 .trend-bar-wrap { display: flex; align-items: flex-end; gap: 2px; height: 70px; }
 .trend-bar { width: 12px; border-radius: 3px 3px 0 0; min-height: 4px; transition: height .3s; }
-.blog-bar { background: #409eff; }
+.blog-bar { background: #0f172a; }
 .oa-bar { background: #67c23a; }
 .trend-label { font-size: 11px; color: #909399; }
 .trend-value { font-size: 10px; color: #606266; font-weight: 600; }
 .trend-legend { display: flex; justify-content: center; gap: 16px; margin-top: 8px; font-size: 11px; color: #909399; }
 .legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; }
-.blog-dot { background: #409eff; }
+.blog-dot { background: #0f172a; }
 .oa-dot { background: #67c23a; }
 .achievement-section { background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #eee; }
 
@@ -914,7 +917,7 @@ onMounted(() => { loadStats(); loadFeed(); loadCollections(); loadHeatmap(); loa
 .goal-emoji { font-size: 20px; }
 .goal-divider { color: #c0c4cc; }
 .goal-bar-wrap { height: 20px; background: #e8e8e8; border-radius: 10px; overflow: hidden; margin-bottom: 6px; }
-.goal-bar { height: 100%; border-radius: 10px; transition: width .5s; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff; font-weight: 600; background: #409eff; }
+.goal-bar { height: 100%; border-radius: 10px; transition: width .5s; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff; font-weight: 600; background: #0f172a; }
 .goal-bar.goal-half { background: #e6a23c; }
 .goal-bar.goal-done { background: #67c23a; }
 .goal-message { font-size: 13px; color: #67c23a; font-weight: 500; margin-bottom: 6px; }
@@ -939,12 +942,12 @@ onMounted(() => { loadStats(); loadFeed(); loadCollections(); loadHeatmap(); loa
   background: #fff; border: 1px solid #eee; cursor: pointer;
   transition: all .2s;
 }
-.rec-card:hover { border-color: #409eff; box-shadow: 0 2px 8px rgba(64,158,255,0.08); }
+.rec-card:hover { border-color: #0f172a; box-shadow: 0 2px 8px rgba(15,23,42,0.08); }
 .rec-cover { width: 56px; height: 56px; border-radius: 4px; overflow: hidden; flex-shrink: 0; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
 .rec-cover img { width: 100%; height: 100%; object-fit: cover; }
 .rec-body { flex: 1; min-width: 0; }
 .rec-title { font-size: 13px; font-weight: 500; color: #303133; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
-.rec-reason { font-size: 11px; color: #409eff; margin-top: 4px; }
+.rec-reason { font-size: 11px; color: #0f172a; margin-top: 4px; }
 
 /* 阅读清单 */
 .queue-tabs { margin-bottom: 12px; }
@@ -1031,7 +1034,7 @@ onMounted(() => { loadStats(); loadFeed(); loadCollections(); loadHeatmap(); loa
   border: 1px solid #eee; border-radius: 8px; padding: 14px;
   cursor: pointer; transition: all .2s; background: #fff;
 }
-.collection-card:hover { border-color: #409eff; box-shadow: 0 2px 8px rgba(64,158,255,0.08); }
+.collection-card:hover { border-color: #0f172a; box-shadow: 0 2px 8px rgba(15,23,42,0.08); }
 .collection-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .collection-icon { font-size: 20px; }
 .collection-name { font-size: 13px; font-weight: 600; color: #303133; flex: 1; }
@@ -1049,7 +1052,7 @@ onMounted(() => { loadStats(); loadFeed(); loadCollections(); loadHeatmap(); loa
 /* 关注动态 Feed */
 .feed-list { display: flex; flex-direction: column; gap: 12px; }
 .feed-card { border: 1px solid #eee; border-radius: 8px; padding: 14px; transition: all .2s; background: #fff; }
-.feed-card:hover { border-color: #409eff; box-shadow: 0 2px 8px rgba(64,158,255,0.08); }
+.feed-card:hover { border-color: #0f172a; box-shadow: 0 2px 8px rgba(15,23,42,0.08); }
 .feed-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .feed-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .feed-avatar { flex-shrink: 0; }

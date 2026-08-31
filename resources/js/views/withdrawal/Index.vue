@@ -2,199 +2,199 @@
     <div class="withdrawal-page">
         <div class="page-header">
             <div>
-                <h2>提现管理</h2>
-                <p class="text-muted">多渠道提现审核与批次打款</p>
+                <h2>{{ t(`${P}.title`) }}</h2>
+                <p class="text-muted">{{ t(`${P}.subtitle`) }}</p>
             </div>
-            <el-button @click="refreshAll" :loading="loading" :icon="Refresh">刷新</el-button>
+            <el-button @click="refreshAll" :loading="loading" :icon="Refresh">{{ t(`${P}.refresh`) }}</el-button>
         </div>
 
         <el-row :gutter="16" class="mb-4">
             <el-col :xs="24" :sm="12" :md="6" :lg="4">
-                <el-card shadow="hover"><div class="stat-label">待审核</div><div class="stat-value warning">{{ stats.pending_review_count || 0 }}</div></el-card>
+                <el-card shadow="hover"><div class="stat-label">{{ t(`${P}.stats.pending_review`) }}</div><div class="stat-value warning">{{ stats.pending_review_count || 0 }}</div></el-card>
             </el-col>
             <el-col :xs="24" :sm="12" :md="6" :lg="5">
-                <el-card shadow="hover"><div class="stat-label">待处理金额</div><div class="stat-value">¥{{ formatMoney(stats.pending_amount) }}</div></el-card>
+                <el-card shadow="hover"><div class="stat-label">{{ t(`${P}.stats.pending_amount`) }}</div><div class="stat-value">¥{{ formatMoney(stats.pending_amount) }}</div></el-card>
             </el-col>
             <el-col :xs="24" :sm="12" :md="6" :lg="5">
-                <el-card shadow="hover"><div class="stat-label">处理中</div><div class="stat-value primary">{{ stats.processing_count || 0 }}</div></el-card>
+                <el-card shadow="hover"><div class="stat-label">{{ t(`${P}.stats.processing`) }}</div><div class="stat-value primary">{{ stats.processing_count || 0 }}</div></el-card>
             </el-col>
             <el-col :xs="24" :sm="12" :md="6" :lg="5">
-                <el-card shadow="hover"><div class="stat-label">今日打款</div><div class="stat-value success">¥{{ formatMoney(stats.today_completed_amount) }}</div></el-card>
+                <el-card shadow="hover"><div class="stat-label">{{ t(`${P}.stats.today_completed`) }}</div><div class="stat-value success">¥{{ formatMoney(stats.today_completed_amount) }}</div></el-card>
             </el-col>
             <el-col :xs="24" :sm="12" :md="6" :lg="5">
-                <el-card shadow="hover"><div class="stat-label">本月打款</div><div class="stat-value">¥{{ formatMoney(stats.month_completed_amount) }}</div></el-card>
+                <el-card shadow="hover"><div class="stat-label">{{ t(`${P}.stats.month_completed`) }}</div><div class="stat-value">¥{{ formatMoney(stats.month_completed_amount) }}</div></el-card>
             </el-col>
         </el-row>
 
         <el-card shadow="hover">
             <el-tabs v-model="activeTab" @tab-change="onTabChange">
-                <el-tab-pane label="提现记录" name="records">
+                <el-tab-pane :label="t(`${P}.tabs.records`)" name="records">
                     <div class="tab-toolbar">
-                        <el-input v-model="filters.search" placeholder="搜索用户" clearable style="width:200px" @keyup.enter="loadRecords" />
-                        <el-select v-model="filters.status" placeholder="状态" clearable style="width:130px" @change="loadRecords">
+                        <el-input v-model="filters.search" :placeholder="t(`${P}.filters.search_user_ph`)" clearable style="width:200px" @keyup.enter="loadRecords" />
+                        <el-select v-model="filters.status" :placeholder="t(`${P}.filters.status_ph`)" clearable style="width:130px" @change="loadRecords">
                             <el-option v-for="s in statusOptions" :key="s.value" :label="s.label" :value="s.value" />
                         </el-select>
-                        <el-select v-model="filters.channel" placeholder="渠道" clearable style="width:120px" @change="loadRecords">
+                        <el-select v-model="filters.channel" :placeholder="t(`${P}.filters.channel_ph`)" clearable style="width:120px" @change="loadRecords">
                             <el-option v-for="c in channelOptions" :key="c.value" :label="c.label" :value="c.value" />
                         </el-select>
-                        <el-date-picker v-model="filters.dateRange" type="daterange" range-separator="至" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" style="width:260px" @change="loadRecords" />
-                        <el-button @click="loadRecords">查询</el-button>
-                        <el-button type="warning" :loading="retryLoading" @click="handleBatchRetry">批量重试失败</el-button>
-                        <el-button type="success" :loading="releasing" @click="handleReleasePending">T+30 解冻</el-button>
+                        <el-date-picker v-model="filters.dateRange" type="daterange" :range-separator="t(`${P}.filters.date_range_sep`)" :start-placeholder="t(`${P}.filters.date_start_ph`)" :end-placeholder="t(`${P}.filters.date_end_ph`)" value-format="YYYY-MM-DD" style="width:260px" @change="loadRecords" />
+                        <el-button @click="loadRecords">{{ t(`${P}.filters.query`) }}</el-button>
+                        <el-button type="warning" :loading="retryLoading" @click="handleBatchRetry">{{ t(`${P}.filters.batch_retry`) }}</el-button>
+                        <el-button type="success" :loading="releasing" @click="handleReleasePending">{{ t(`${P}.filters.release_pending`) }}</el-button>
                     </div>
                     <el-table :data="records" stripe v-loading="recordsLoading">
-                        <el-table-column label="ID" prop="id" width="70" />
-                        <el-table-column label="用户" min-width="180">
+                        <el-table-column :label="t(`${P}.cols.id`)" prop="id" width="70" />
+                        <el-table-column :label="t(`${P}.cols.user`)" min-width="180">
                             <template #default="{ row }">
                                 <div>{{ row.earnings_account?.user?.name || '-' }}</div>
                                 <div class="text-muted small">{{ row.earnings_account?.user?.email || '' }}</div>
                             </template>
                         </el-table-column>
-                        <el-table-column label="金额" width="100"><template #default="{ row }">¥{{ formatMoney(row.amount) }}</template></el-table-column>
-                        <el-table-column label="手续费" width="90"><template #default="{ row }">¥{{ formatMoney(row.fee) }}</template></el-table-column>
-                        <el-table-column label="净额" width="100"><template #default="{ row }">¥{{ formatMoney(row.net_amount) }}</template></el-table-column>
-                        <el-table-column label="渠道" width="90"><template #default="{ row }"><el-tag size="small">{{ channelLabel(row.channel) }}</el-tag></template></el-table-column>
-                        <el-table-column label="状态" width="100"><template #default="{ row }"><el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag></template></el-table-column>
-                        <el-table-column label="批次号" prop="batch_no" width="130" />
-                        <el-table-column label="创建时间" width="160"><template #default="{ row }">{{ formatDate(row.created_at) }}</template></el-table-column>
-                        <el-table-column label="操作" width="280" fixed="right">
+                        <el-table-column :label="t(`${P}.cols.amount`)" width="100"><template #default="{ row }">¥{{ formatMoney(row.amount) }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.fee`)" width="90"><template #default="{ row }">¥{{ formatMoney(row.fee) }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.net_amount`)" width="100"><template #default="{ row }">¥{{ formatMoney(row.net_amount) }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.channel`)" width="90"><template #default="{ row }"><el-tag size="small">{{ channelLabel(row.channel) }}</el-tag></template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.status`)" width="100"><template #default="{ row }"><el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag></template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.batch_no`)" prop="batch_no" width="130" />
+                        <el-table-column :label="t(`${P}.cols.created_at`)" width="160"><template #default="{ row }">{{ formatDate(row.created_at) }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.actions`)" width="280" fixed="right">
                             <template #default="{ row }">
-                                <el-button size="small" link @click="openDetail(row)">详情</el-button>
-                                <el-button v-if="row.status === 'pending_review'" size="small" link type="primary" @click="openReview(row)">审核</el-button>
-                                <el-button v-if="['pending','processing'].includes(row.status)" size="small" link type="success" @click="openComplete(row)">完成</el-button>
-                                <el-button v-if="['pending','processing'].includes(row.status)" size="small" link type="danger" @click="openFailed(row)">失败</el-button>
-                                <el-button v-if="row.status === 'failed' || row.status === 'rejected'" size="small" link type="warning" @click="handleRetry(row)">重试</el-button>
+                                <el-button size="small" link @click="openDetail(row)">{{ t(`${P}.row_actions.detail`) }}</el-button>
+                                <el-button v-if="row.status === 'pending_review'" size="small" link type="primary" @click="openReview(row)">{{ t(`${P}.row_actions.review`) }}</el-button>
+                                <el-button v-if="['pending','processing'].includes(row.status)" size="small" link type="success" @click="openComplete(row)">{{ t(`${P}.row_actions.complete`) }}</el-button>
+                                <el-button v-if="['pending','processing'].includes(row.status)" size="small" link type="danger" @click="openFailed(row)">{{ t(`${P}.row_actions.failed`) }}</el-button>
+                                <el-button v-if="row.status === 'failed' || row.status === 'rejected'" size="small" link type="warning" @click="handleRetry(row)">{{ t('actions.retry') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
                     <el-pagination class="mt-3" layout="total, prev, pager, next" :total="recordsTotal" :page-size="20" v-model:current-page="recordsPage" @current-change="loadRecords" />
                 </el-tab-pane>
 
-                <el-tab-pane label="打款批次" name="batches">
+                <el-tab-pane :label="t(`${P}.tabs.batches`)" name="batches">
                     <div class="tab-toolbar">
-                        <el-select v-model="batchFilters.channel" placeholder="渠道" clearable style="width:120px" @change="loadBatches">
+                        <el-select v-model="batchFilters.channel" :placeholder="t(`${P}.filters.channel_ph`)" clearable style="width:120px" @change="loadBatches">
                             <el-option v-for="c in channelOptions" :key="c.value" :label="c.label" :value="c.value" />
                         </el-select>
-                        <el-button type="primary" @click="openCreateBatch">创建批次</el-button>
+                        <el-button type="primary" @click="openCreateBatch">{{ t(`${P}.row_actions.create_batch`) }}</el-button>
                     </div>
                     <el-table :data="batches" stripe v-loading="batchesLoading">
-                        <el-table-column label="批次号" prop="batch_no" width="140" />
-                        <el-table-column label="渠道" width="90"><template #default="{ row }">{{ channelLabel(row.channel) }}</template></el-table-column>
-                        <el-table-column label="标题" prop="title" min-width="140" />
-                        <el-table-column label="状态" width="100"><template #default="{ row }"><el-tag size="small">{{ row.status }}</el-tag></template></el-table-column>
-                        <el-table-column label="笔数" prop="total_count" width="70" />
-                        <el-table-column label="总金额" width="110"><template #default="{ row }">¥{{ formatMoney(row.total_amount) }}</template></el-table-column>
-                        <el-table-column label="创建人" width="100"><template #default="{ row }">{{ row.creator?.name || '-' }}</template></el-table-column>
-                        <el-table-column label="创建时间" width="160"><template #default="{ row }">{{ formatDate(row.created_at) }}</template></el-table-column>
-                        <el-table-column label="操作" width="160" fixed="right">
+                        <el-table-column :label="t(`${P}.cols.batch_no`)" prop="batch_no" width="140" />
+                        <el-table-column :label="t(`${P}.cols.channel`)" width="90"><template #default="{ row }">{{ channelLabel(row.channel) }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.title`)" prop="title" min-width="140" />
+                        <el-table-column :label="t(`${P}.cols.status`)" width="100"><template #default="{ row }"><el-tag size="small">{{ row.status }}</el-tag></template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.total_count`)" prop="total_count" width="70" />
+                        <el-table-column :label="t(`${P}.cols.total_amount`)" width="110"><template #default="{ row }">¥{{ formatMoney(row.total_amount) }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.creator`)" width="100"><template #default="{ row }">{{ row.creator?.name || '-' }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.created_at`)" width="160"><template #default="{ row }">{{ formatDate(row.created_at) }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.actions`)" width="160" fixed="right">
                             <template #default="{ row }">
-                                <el-button size="small" link @click="openBatchDetail(row)">详情</el-button>
-                                <el-button v-if="row.status === 'pending'" size="small" link type="success" @click="completeBatch(row)">完成批次</el-button>
+                                <el-button size="small" link @click="openBatchDetail(row)">{{ t(`${P}.row_actions.detail`) }}</el-button>
+                                <el-button v-if="row.status === 'pending'" size="small" link type="success" @click="completeBatch(row)">{{ t(`${P}.row_actions.complete_batch`) }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
                     <el-pagination class="mt-3" layout="total, prev, pager, next" :total="batchesTotal" :page-size="20" v-model:current-page="batchesPage" @current-change="loadBatches" />
                 </el-tab-pane>
 
-                <el-tab-pane label="渠道配置" name="channels">
+                <el-tab-pane :label="t(`${P}.tabs.channels`)" name="channels">
                     <el-table :data="channels" stripe v-loading="channelsLoading">
-                        <el-table-column label="渠道" width="120"><template #default="{ row }">{{ row.name }}</template></el-table-column>
-                        <el-table-column label="最低金额" width="110"><template #default="{ row }">¥{{ formatMoney(row.min_amount) }}</template></el-table-column>
-                        <el-table-column label="最高金额" width="110"><template #default="{ row }">¥{{ formatMoney(row.max_amount) }}</template></el-table-column>
-                        <el-table-column label="手续费率" width="100"><template #default="{ row }">{{ (row.fee_rate * 100).toFixed(2) }}%</template></el-table-column>
-                        <el-table-column label="日限额" width="120"><template #default="{ row }">¥{{ formatMoney(row.daily_limit) }}</template></el-table-column>
-                        <el-table-column label="待处理" width="90"><template #default="{ row }">{{ stats.channel_stats?.[row.id]?.pending_count || 0 }}</template></el-table-column>
-                        <el-table-column label="本月打款" width="120"><template #default="{ row }">¥{{ formatMoney(stats.channel_stats?.[row.id]?.month_amount) }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.channel`)" width="120"><template #default="{ row }">{{ row.name }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.min_amount`)" width="110"><template #default="{ row }">¥{{ formatMoney(row.min_amount) }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.max_amount`)" width="110"><template #default="{ row }">¥{{ formatMoney(row.max_amount) }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.fee_rate`)" width="100"><template #default="{ row }">{{ (row.fee_rate * 100).toFixed(2) }}%</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.daily_limit`)" width="120"><template #default="{ row }">¥{{ formatMoney(row.daily_limit) }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.pending`)" width="90"><template #default="{ row }">{{ stats.channel_stats?.[row.id]?.pending_count || 0 }}</template></el-table-column>
+                        <el-table-column :label="t(`${P}.cols.month_payout`)" width="120"><template #default="{ row }">¥{{ formatMoney(stats.channel_stats?.[row.id]?.month_amount) }}</template></el-table-column>
                     </el-table>
                 </el-tab-pane>
             </el-tabs>
         </el-card>
 
-        <el-dialog v-model="reviewVisible" title="审核提现" width="420px">
+        <el-dialog v-model="reviewVisible" :title="t(`${P}.dialogs.review_title`)" width="420px">
             <el-form label-width="80px">
-                <el-form-item label="操作">
+                <el-form-item :label="t(`${P}.cols.operation`)">
                     <el-radio-group v-model="reviewForm.action">
-                        <el-radio value="approve">通过</el-radio>
-                        <el-radio value="reject">驳回</el-radio>
+                        <el-radio value="approve">{{ t('actions.approve') }}</el-radio>
+                        <el-radio value="reject">{{ t('actions.reject') }}</el-radio>
                     </el-radio-group>
                 </el-form-item>
-                <el-form-item label="备注"><el-input v-model="reviewForm.remark" type="textarea" :rows="3" /></el-form-item>
+                <el-form-item :label="t(`${P}.cols.remark`)"><el-input v-model="reviewForm.remark" type="textarea" :rows="3" /></el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="reviewVisible = false">取消</el-button>
-                <el-button type="primary" :loading="submitting" @click="submitReview">确认</el-button>
+                <el-button @click="reviewVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="submitting" @click="submitReview">{{ t('actions.confirm') }}</el-button>
             </template>
         </el-dialog>
 
-        <el-dialog v-model="completeVisible" title="标记打款完成" width="420px">
+        <el-dialog v-model="completeVisible" :title="t(`${P}.dialogs.complete_title`)" width="420px">
             <el-form label-width="90px">
-                <el-form-item label="交易号"><el-input v-model="completeForm.transaction_id" /></el-form-item>
-                <el-form-item label="凭证"><el-upload :auto-upload="false" :limit="1" :on-change="onProofChange"><el-button>选择图片</el-button></el-upload></el-form-item>
+                <el-form-item :label="t(`${P}.cols.transaction_id`)"><el-input v-model="completeForm.transaction_id" /></el-form-item>
+                <el-form-item :label="t(`${P}.cols.proof`)"><el-upload :auto-upload="false" :limit="1" :on-change="onProofChange"><el-button>{{ t(`${P}.form.select_image`) }}</el-button></el-upload></el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="completeVisible = false">取消</el-button>
-                <el-button type="primary" :loading="submitting" @click="submitComplete">确认</el-button>
+                <el-button @click="completeVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="submitting" @click="submitComplete">{{ t('actions.confirm') }}</el-button>
             </template>
         </el-dialog>
 
-        <el-dialog v-model="failedVisible" title="标记打款失败" width="420px">
+        <el-dialog v-model="failedVisible" :title="t(`${P}.dialogs.failed_title`)" width="420px">
             <el-form label-width="80px">
-                <el-form-item label="原因"><el-input v-model="failedForm.failure_reason" type="textarea" :rows="3" /></el-form-item>
+                <el-form-item :label="t(`${P}.cols.reason`)"><el-input v-model="failedForm.failure_reason" type="textarea" :rows="3" /></el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="failedVisible = false">取消</el-button>
-                <el-button type="danger" :loading="submitting" @click="submitFailed">确认</el-button>
+                <el-button @click="failedVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="danger" :loading="submitting" @click="submitFailed">{{ t('actions.confirm') }}</el-button>
             </template>
         </el-dialog>
 
-        <el-dialog v-model="batchCreateVisible" title="创建打款批次" width="420px">
+        <el-dialog v-model="batchCreateVisible" :title="t(`${P}.dialogs.create_batch_title`)" width="420px">
             <el-form label-width="80px">
-                <el-form-item label="渠道">
+                <el-form-item :label="t(`${P}.cols.channel`)">
                     <el-select v-model="batchForm.channel" style="width:100%">
                         <el-option v-for="c in channelOptions" :key="c.value" :label="c.label" :value="c.value" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="标题"><el-input v-model="batchForm.title" /></el-form-item>
+                <el-form-item :label="t(`${P}.cols.title`)"><el-input v-model="batchForm.title" /></el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="batchCreateVisible = false">取消</el-button>
-                <el-button type="primary" :loading="submitting" @click="submitCreateBatch">创建</el-button>
+                <el-button @click="batchCreateVisible = false">{{ t('actions.cancel') }}</el-button>
+                <el-button type="primary" :loading="submitting" @click="submitCreateBatch">{{ t('actions.create') }}</el-button>
             </template>
         </el-dialog>
 
-        <el-drawer v-model="detailVisible" title="提现详情" size="480px">
+        <el-drawer v-model="detailVisible" :title="t(`${P}.dialogs.detail_title`)" size="480px">
             <template v-if="currentRecord">
                 <el-descriptions :column="1" border>
-                    <el-descriptions-item label="ID">{{ currentRecord.id }}</el-descriptions-item>
-                    <el-descriptions-item label="用户">{{ currentRecord.earnings_account?.user?.name }} ({{ currentRecord.earnings_account?.user?.email }})</el-descriptions-item>
-                    <el-descriptions-item label="金额">¥{{ formatMoney(currentRecord.amount) }}</el-descriptions-item>
-                    <el-descriptions-item label="手续费">¥{{ formatMoney(currentRecord.fee) }}</el-descriptions-item>
-                    <el-descriptions-item label="净额">¥{{ formatMoney(currentRecord.net_amount) }}</el-descriptions-item>
-                    <el-descriptions-item label="渠道">{{ channelLabel(currentRecord.channel) }}</el-descriptions-item>
-                    <el-descriptions-item label="状态">{{ statusLabel(currentRecord.status) }}</el-descriptions-item>
-                    <el-descriptions-item label="批次号">{{ currentRecord.batch_no || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="交易号">{{ currentRecord.transaction_id || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="备注">{{ currentRecord.remark || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="失败原因">{{ currentRecord.failure_reason || '-' }}</el-descriptions-item>
-                    <el-descriptions-item label="创建时间">{{ formatDate(currentRecord.created_at) }}</el-descriptions-item>
-                    <el-descriptions-item label="完成时间">{{ formatDate(currentRecord.completed_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.id`)">{{ currentRecord.id }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.user`)">{{ currentRecord.earnings_account?.user?.name }} ({{ currentRecord.earnings_account?.user?.email }})</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.amount`)">¥{{ formatMoney(currentRecord.amount) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.fee`)">¥{{ formatMoney(currentRecord.fee) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.net_amount`)">¥{{ formatMoney(currentRecord.net_amount) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.channel`)">{{ channelLabel(currentRecord.channel) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.status`)">{{ statusLabel(currentRecord.status) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.batch_no`)">{{ currentRecord.batch_no || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.transaction_id`)">{{ currentRecord.transaction_id || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.remark`)">{{ currentRecord.remark || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.failure_reason`)">{{ currentRecord.failure_reason || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.created_at`)">{{ formatDate(currentRecord.created_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.completed_at`)">{{ formatDate(currentRecord.completed_at) }}</el-descriptions-item>
                 </el-descriptions>
             </template>
         </el-drawer>
 
-        <el-drawer v-model="batchDetailVisible" title="批次详情" size="640px">
+        <el-drawer v-model="batchDetailVisible" :title="t(`${P}.dialogs.batch_detail_title`)" size="640px">
             <template v-if="currentBatch">
                 <el-descriptions :column="2" border class="mb-3">
-                    <el-descriptions-item label="批次号">{{ currentBatch.batch_no }}</el-descriptions-item>
-                    <el-descriptions-item label="渠道">{{ channelLabel(currentBatch.channel) }}</el-descriptions-item>
-                    <el-descriptions-item label="状态">{{ currentBatch.status }}</el-descriptions-item>
-                    <el-descriptions-item label="总金额">¥{{ formatMoney(currentBatch.total_amount) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.batch_no`)">{{ currentBatch.batch_no }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.channel`)">{{ channelLabel(currentBatch.channel) }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.status`)">{{ currentBatch.status }}</el-descriptions-item>
+                    <el-descriptions-item :label="t(`${P}.cols.total_amount`)">¥{{ formatMoney(currentBatch.total_amount) }}</el-descriptions-item>
                 </el-descriptions>
                 <el-table :data="currentBatch.withdrawals || []" stripe size="small">
-                    <el-table-column label="ID" prop="id" width="60" />
-                    <el-table-column label="用户" min-width="120"><template #default="{ row }">{{ row.earnings_account?.user?.name || '-' }}</template></el-table-column>
-                    <el-table-column label="金额" width="90"><template #default="{ row }">¥{{ formatMoney(row.amount) }}</template></el-table-column>
-                    <el-table-column label="状态" width="90"><template #default="{ row }">{{ statusLabel(row.status) }}</template></el-table-column>
+                    <el-table-column :label="t(`${P}.cols.id`)" prop="id" width="60" />
+                    <el-table-column :label="t(`${P}.cols.user`)" min-width="120"><template #default="{ row }">{{ row.earnings_account?.user?.name || '-' }}</template></el-table-column>
+                    <el-table-column :label="t(`${P}.cols.amount`)" width="90"><template #default="{ row }">¥{{ formatMoney(row.amount) }}</template></el-table-column>
+                    <el-table-column :label="t(`${P}.cols.status`)" width="90"><template #default="{ row }">{{ statusLabel(row.status) }}</template></el-table-column>
                 </el-table>
             </template>
         </el-drawer>
@@ -202,10 +202,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh } from '@element-plus/icons-vue';
 import withdrawalApi from '@/api/withdrawal';
+
+const P = 'withdrawal_page';
+const { t, locale } = useI18n();
 
 const loading = ref(false);
 const activeTab = ref('records');
@@ -247,33 +251,38 @@ const batchRetryIds = ref([]);
 // T+30 解冻
 const releasing = ref(false);
 
-const channelOptions = [
-    { value: 'bank', label: '银行卡' },
-    { value: 'alipay', label: '支付宝' },
-    { value: 'wechat', label: '微信' },
-    { value: 'paypal', label: 'PayPal' },
-];
-const statusOptions = [
-    { value: 'pending_review', label: '待审核' },
-    { value: 'pending', label: '待打款' },
-    { value: 'processing', label: '处理中' },
-    { value: 'completed', label: '已完成' },
-    { value: 'failed', label: '失败' },
-    { value: 'rejected', label: '已驳回' },
-    { value: 'cancelled', label: '已取消' },
-];
+const CHANNEL_KEYS = ['bank', 'alipay', 'wechat', 'paypal'];
+const STATUS_KEYS = ['pending_review', 'pending', 'processing', 'completed', 'failed', 'rejected', 'cancelled'];
+
+const channelOptions = computed(() =>
+    CHANNEL_KEYS.map((value) => ({ value, label: t(`${P}.channel.${value}`) })),
+);
+
+const statusOptions = computed(() =>
+    STATUS_KEYS.map((value) => ({ value, label: t(`${P}.status.${value}`) })),
+);
+
+const channelLabels = computed(() =>
+    Object.fromEntries(CHANNEL_KEYS.map((key) => [key, t(`${P}.channel.${key}`)])),
+);
+
+const statusLabels = computed(() =>
+    Object.fromEntries(STATUS_KEYS.map((key) => [key, t(`${P}.status.${key}`)])),
+);
+
+const dateLocale = computed(() => (locale.value === 'zh_CN' ? 'zh-CN' : 'en-US'));
 
 function formatMoney(v) {
-    return Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return Number(v || 0).toLocaleString(dateLocale.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function formatDate(v) {
-    return v ? new Date(v).toLocaleString('zh-CN') : '-';
+    return v ? new Date(v).toLocaleString(dateLocale.value) : '-';
 }
 function channelLabel(ch) {
-    return channelOptions.find(c => c.value === ch)?.label || ch;
+    return channelLabels.value[ch] || ch;
 }
 function statusLabel(s) {
-    return statusOptions.find(o => o.value === s)?.label || s;
+    return statusLabels.value[s] || s;
 }
 function statusTag(s) {
     return { pending_review: 'warning', pending: 'info', processing: 'primary', completed: 'success', failed: 'danger', rejected: 'info', cancelled: 'info' }[s] || 'info';
@@ -370,11 +379,11 @@ async function submitReview() {
     submitting.value = true;
     try {
         await withdrawalApi.review(currentRecord.value.id, { action: reviewForm.action, remark: reviewForm.remark });
-        ElMessage.success('审核完成');
+        ElMessage.success(t(`${P}.messages.review_done`));
         reviewVisible.value = false;
         await refreshAll();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '操作失败');
+        ElMessage.error(e.response?.data?.message || t('messages.failed'));
     } finally {
         submitting.value = false;
     }
@@ -387,26 +396,26 @@ async function submitComplete() {
         if (completeForm.transaction_id) fd.append('transaction_id', completeForm.transaction_id);
         if (completeForm.proof) fd.append('proof', completeForm.proof);
         await withdrawalApi.markCompleted(currentRecord.value.id, fd);
-        ElMessage.success('已标记完成');
+        ElMessage.success(t(`${P}.messages.marked_complete`));
         completeVisible.value = false;
         await refreshAll();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '操作失败');
+        ElMessage.error(e.response?.data?.message || t('messages.failed'));
     } finally {
         submitting.value = false;
     }
 }
 
 async function submitFailed() {
-    if (!failedForm.failure_reason) return ElMessage.warning('请填写失败原因');
+    if (!failedForm.failure_reason) return ElMessage.warning(t(`${P}.messages.failure_reason_required`));
     submitting.value = true;
     try {
         await withdrawalApi.markFailed(currentRecord.value.id, { failure_reason: failedForm.failure_reason });
-        ElMessage.success('已标记失败');
+        ElMessage.success(t(`${P}.messages.marked_failed`));
         failedVisible.value = false;
         await refreshAll();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '操作失败');
+        ElMessage.error(e.response?.data?.message || t('messages.failed'));
     } finally {
         submitting.value = false;
     }
@@ -416,38 +425,38 @@ async function submitFailed() {
 
 async function handleRetry(row) {
     try {
-        await ElMessageBox.confirm(`确认重试提现 #${row.id}？将重置为待处理状态。`, '提示');
+        await ElMessageBox.confirm(t(`${P}.confirm.retry`, { id: row.id }), t('actions.confirm'));
         await withdrawalApi.retry(row.id);
-        ElMessage.success('提现已重置');
+        ElMessage.success(t(`${P}.messages.reset_done`));
         await loadRecords();
     } catch (e) {
-        if (e !== 'cancel') ElMessage.error(e.response?.data?.message || '重试失败');
+        if (e !== 'cancel') ElMessage.error(e.response?.data?.message || t(`${P}.messages.retry_failed`));
     }
 }
 
 async function handleBatchRetry() {
     const failedRecords = records.value.filter(r => r.status === 'failed' || r.status === 'rejected');
-    if (!failedRecords.length) return ElMessage.warning('没有可重试的失败/驳回提现');
+    if (!failedRecords.length) return ElMessage.warning(t(`${P}.messages.no_retryable`));
     try {
-        await ElMessageBox.confirm(`确认批量重试 ${failedRecords.length} 条失败提现？`, '提示');
+        await ElMessageBox.confirm(t(`${P}.confirm.batch_retry`, { count: failedRecords.length }), t('actions.confirm'));
         const ids = failedRecords.map(r => r.id);
         const res = await withdrawalApi.batchRetry(ids);
-        ElMessage.success(res.data?.message || '重试完成');
+        ElMessage.success(res.data?.message || t(`${P}.messages.reset_done`));
         await loadRecords();
     } catch (e) {
-        if (e !== 'cancel') ElMessage.error(e.response?.data?.message || '批量重试失败');
+        if (e !== 'cancel') ElMessage.error(e.response?.data?.message || t(`${P}.messages.batch_retry_failed`));
     }
 }
 
 async function handleReleasePending() {
     try {
-        await ElMessageBox.confirm('确认执行 T+30 到期佣金解冻？将释放所有到期冻结余额。', '提示');
+        await ElMessageBox.confirm(t(`${P}.confirm.release_pending`), t('actions.confirm'));
         releasing.value = true;
         const res = await withdrawalApi.releasePending();
-        ElMessage.success(res.data?.message || '解冻完成');
+        ElMessage.success(res.data?.message || t('messages.success'));
         await loadStats();
     } catch (e) {
-        if (e !== 'cancel') ElMessage.error(e.response?.data?.message || '解冻失败');
+        if (e !== 'cancel') ElMessage.error(e.response?.data?.message || t(`${P}.messages.release_failed`));
     } finally {
         releasing.value = false;
     }
@@ -463,12 +472,12 @@ async function submitCreateBatch() {
     submitting.value = true;
     try {
         await withdrawalApi.createBatch({ channel: batchForm.channel, title: batchForm.title });
-        ElMessage.success('批次已创建');
+        ElMessage.success(t(`${P}.messages.batch_created`));
         batchCreateVisible.value = false;
         activeTab.value = 'batches';
         await loadBatches();
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '创建失败');
+        ElMessage.error(e.response?.data?.message || t(`${P}.messages.create_failed`));
     } finally {
         submitting.value = false;
     }
@@ -480,19 +489,19 @@ async function openBatchDetail(row) {
         currentBatch.value = res.data?.data || res.data;
         batchDetailVisible.value = true;
     } catch {
-        ElMessage.error('加载批次详情失败');
+        ElMessage.error(t(`${P}.messages.batch_detail_load_failed`));
     }
 }
 
 async function completeBatch(row) {
     try {
-        await ElMessageBox.confirm('确认完成该批次打款？', '提示');
+        await ElMessageBox.confirm(t(`${P}.confirm.complete_batch`), t('actions.confirm'));
         await withdrawalApi.completeBatch(row.id, {});
-        ElMessage.success('批次已完成');
+        ElMessage.success(t(`${P}.messages.batch_completed`));
         await loadBatches();
         await loadStats();
     } catch (e) {
-        if (e !== 'cancel') ElMessage.error(e.response?.data?.message || '操作失败');
+        if (e !== 'cancel') ElMessage.error(e.response?.data?.message || t('messages.failed'));
     }
 }
 
@@ -509,7 +518,7 @@ onMounted(refreshAll);
 .stat-label { font-size: 13px; color: #909399; margin-bottom: 4px; }
 .stat-value { font-size: 24px; font-weight: 600; }
 .stat-value.warning { color: #e6a23c; }
-.stat-value.primary { color: #409eff; }
+.stat-value.primary { color: #0f172a; }
 .stat-value.success { color: #67c23a; }
 .mb-3 { margin-bottom: 12px; }
 .mb-4 { margin-bottom: 16px; }

@@ -1,8 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import enhancedApi from '@/api/affiliateEnhanced'
 import affiliateApi from '@/api/affiliate'
+
+const { t, locale } = useI18n()
+const ns = 'affiliate_enhanced_page'
 
 const activeTab = ref('campaigns')
 const loading = ref(false)
@@ -40,6 +44,16 @@ const attributeForm = ref({ referral_code: '', converted_user_id: null, commissi
 const attributing = ref(false)
 const attrResult = ref(null)
 
+const sourceOptions = computed(() => [
+    { label: t(`${ns}.source.affiliate_commission`), value: 'affiliate_commission' },
+    { label: t(`${ns}.source.store_commission`), value: 'store_commission' },
+    { label: t(`${ns}.source.manual`), value: 'manual' },
+])
+
+function yesNoLabel(value) {
+    return value ? t(`${ns}.bool.yes`) : t(`${ns}.bool.no`)
+}
+
 async function loadDashboard() {
     try {
         const res = await affiliateApi.dashboard()
@@ -52,35 +66,35 @@ async function generateLink() {
     try {
         const res = await enhancedApi.generateLink(linkForm.value)
         generatedLink.value = res.data.data
-        ElMessage.success('推广链接已生成')
+        ElMessage.success(t(`${ns}.messages.link_generated`))
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '生成失败')
+        ElMessage.error(e.response?.data?.message || t(`${ns}.messages.generate_failed`))
     } finally {
         generatingLink.value = false
     }
 }
 
 async function loadAgentLinks() {
-    if (!linkAgentId.value) { ElMessage.warning('请输入代理商ID'); return }
+    if (!linkAgentId.value) { ElMessage.warning(t(`${ns}.messages.enter_agent_id`)); return }
     linkLoading.value = true
     try {
         const res = await enhancedApi.agentLinks(linkAgentId.value)
         agentLinks.value = res.data.data || []
     } catch (e) {
-        ElMessage.error('加载链接失败')
+        ElMessage.error(t(`${ns}.messages.load_links_failed`))
     } finally {
         linkLoading.value = false
     }
 }
 
 async function loadPortal() {
-    if (!portalAgentId.value) { ElMessage.warning('请输入代理商ID'); return }
+    if (!portalAgentId.value) { ElMessage.warning(t(`${ns}.messages.enter_agent_id`)); return }
     portalLoading.value = true
     try {
         const res = await enhancedApi.agentPortal(portalAgentId.value)
         portalData.value = res.data.data
     } catch (e) {
-        ElMessage.error('加载门户数据失败')
+        ElMessage.error(t(`${ns}.messages.load_portal_failed`))
     } finally {
         portalLoading.value = false
     }
@@ -91,9 +105,9 @@ async function settleCommission() {
     try {
         const res = await enhancedApi.settleCommission(settleForm.value)
         settleResult.value = res.data.data
-        ElMessage.success('佣金已结算到收益账户')
+        ElMessage.success(t(`${ns}.messages.commission_settled`))
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '结算失败')
+        ElMessage.error(e.response?.data?.message || t(`${ns}.messages.settle_failed`))
     } finally {
         settling.value = false
     }
@@ -104,9 +118,9 @@ async function generateProductLink() {
     try {
         const res = await enhancedApi.generateProductLink(productLinkForm.value)
         productLinkResult.value = res.data.data
-        ElMessage.success('商品推广链接已生成')
+        ElMessage.success(t(`${ns}.messages.product_link_generated`))
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '生成失败')
+        ElMessage.error(e.response?.data?.message || t(`${ns}.messages.generate_failed`))
     } finally {
         productLinkLoading.value = false
     }
@@ -124,22 +138,29 @@ async function attributeConversion() {
     try {
         const res = await enhancedApi.attributeWithSettlement(attributeForm.value)
         attrResult.value = res.data.data
-        ElMessage.success(res.data.data.attributed ? '转化已归因并结算' : '未找到匹配点击')
+        ElMessage.success(
+            res.data.data.attributed
+                ? t(`${ns}.messages.attributed_settled`)
+                : t(`${ns}.messages.no_matching_click`)
+        )
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || '归因失败')
+        ElMessage.error(e.response?.data?.message || t(`${ns}.messages.attribute_failed`))
     } finally {
         attributing.value = false
     }
 }
 
 function formatMoney(v) {
-    return v != null ? '¥' + Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '¥0.00'
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN'
+    return v != null ? '¥' + Number(v).toLocaleString(loc, { minimumFractionDigits: 2 }) : '¥0.00'
 }
 function fmtDate(d) {
-    return d ? new Date(d).toLocaleString('zh-CN') : '-'
+    if (!d) return '-'
+    const loc = locale.value === 'en' ? 'en-US' : 'zh-CN'
+    return new Date(d).toLocaleString(loc)
 }
 function copyText(text) {
-    navigator.clipboard?.writeText(text).then(() => ElMessage.success('已复制'))
+    navigator.clipboard?.writeText(text).then(() => ElMessage.success(t(`${ns}.messages.copied`)))
 }
 
 onMounted(() => {
@@ -150,9 +171,9 @@ onMounted(() => {
 <template>
     <div>
         <el-breadcrumb separator="/" class="mb-4">
-            <el-breadcrumb-item :to="{ path: '/admin' }">首页</el-breadcrumb-item>
-            <el-breadcrumb-item>商业管理</el-breadcrumb-item>
-            <el-breadcrumb-item>联盟推广 M3-05</el-breadcrumb-item>
+            <el-breadcrumb-item :to="{ path: '/admin' }">{{ t('nav.home') }}</el-breadcrumb-item>
+            <el-breadcrumb-item>{{ t(`${ns}.breadcrumb.business`) }}</el-breadcrumb-item>
+            <el-breadcrumb-item>{{ t(`${ns}.breadcrumb.current`) }}</el-breadcrumb-item>
         </el-breadcrumb>
 
         <!-- 看板统计 -->
@@ -160,7 +181,7 @@ onMounted(() => {
             <el-col :span="4">
                 <el-card shadow="hover">
                     <div class="stat-item">
-                        <div class="stat-label">累计点击</div>
+                        <div class="stat-label">{{ t(`${ns}.stats.total_clicks`) }}</div>
                         <div class="stat-value">{{ dashboardData.overview.total_clicks }}</div>
                     </div>
                 </el-card>
@@ -168,7 +189,7 @@ onMounted(() => {
             <el-col :span="4">
                 <el-card shadow="hover">
                     <div class="stat-item">
-                        <div class="stat-label">转化次数</div>
+                        <div class="stat-label">{{ t(`${ns}.stats.total_conversions`) }}</div>
                         <div class="stat-value" style="color:#67C23A">{{ dashboardData.overview.total_conversions }}</div>
                     </div>
                 </el-card>
@@ -176,15 +197,15 @@ onMounted(() => {
             <el-col :span="4">
                 <el-card shadow="hover">
                     <div class="stat-item">
-                        <div class="stat-label">转化率</div>
-                        <div class="stat-value" style="color:#409EFF">{{ dashboardData.overview.conversion_rate }}%</div>
+                        <div class="stat-label">{{ t(`${ns}.stats.conversion_rate`) }}</div>
+                        <div class="stat-value" style="color:#0f172a">{{ dashboardData.overview.conversion_rate }}%</div>
                     </div>
                 </el-card>
             </el-col>
             <el-col :span="4">
                 <el-card shadow="hover">
                     <div class="stat-item">
-                        <div class="stat-label">累计佣金</div>
+                        <div class="stat-label">{{ t(`${ns}.stats.total_commission`) }}</div>
                         <div class="stat-value">{{ formatMoney(dashboardData.overview.total_commission) }}</div>
                     </div>
                 </el-card>
@@ -192,7 +213,7 @@ onMounted(() => {
             <el-col :span="4">
                 <el-card shadow="hover">
                     <div class="stat-item">
-                        <div class="stat-label">活跃活动</div>
+                        <div class="stat-label">{{ t(`${ns}.stats.active_campaigns`) }}</div>
                         <div class="stat-value" style="color:#E6A23C">{{ dashboardData.overview.active_campaigns }}</div>
                     </div>
                 </el-card>
@@ -200,7 +221,7 @@ onMounted(() => {
             <el-col :span="4">
                 <el-card shadow="hover">
                     <div class="stat-item">
-                        <div class="stat-label">月佣金</div>
+                        <div class="stat-label">{{ t(`${ns}.stats.monthly_commission`) }}</div>
                         <div class="stat-value">{{ formatMoney(dashboardData.monthly_trend?.[dashboardData.monthly_trend.length - 1]?.commission || 0) }}</div>
                     </div>
                 </el-card>
@@ -210,31 +231,31 @@ onMounted(() => {
         <el-card shadow="never">
             <el-tabs v-model="activeTab">
                 <!-- Tab 1: 推广链接 -->
-                <el-tab-pane label="🔗 推广链接" name="links">
+                <el-tab-pane :label="t(`${ns}.tabs.links`)" name="links">
                     <el-row :gutter="24">
                         <el-col :span="10">
                             <el-card shadow="never">
-                                <template #header><span class="font-semibold">生成推广链接</span></template>
+                                <template #header><span class="font-semibold">{{ t(`${ns}.links.generate_title`) }}</span></template>
                                 <el-form :model="linkForm" label-width="110px">
-                                    <el-form-item label="代理商ID" required>
+                                    <el-form-item :label="t(`${ns}.cols.agent_id`)" required>
                                         <el-input-number v-model="linkForm.agent_id" :min="1" style="width:100%" />
                                     </el-form-item>
-                                    <el-form-item label="活动ID">
+                                    <el-form-item :label="t(`${ns}.cols.campaign_id`)">
                                         <el-input-number v-model="linkForm.campaign_id" :min="0" style="width:100%" />
                                     </el-form-item>
-                                    <el-form-item label="商品ID">
+                                    <el-form-item :label="t(`${ns}.cols.product_id`)">
                                         <el-input-number v-model="linkForm.product_id" :min="0" style="width:100%" />
                                     </el-form-item>
                                     <el-form-item>
-                                        <el-button type="primary" :loading="generatingLink" @click="generateLink">生成链接</el-button>
+                                        <el-button type="primary" :loading="generatingLink" @click="generateLink">{{ t(`${ns}.buttons.generate_link`) }}</el-button>
                                     </el-form-item>
                                 </el-form>
                                 <div v-if="generatedLink" class="p-3 bg-green-50 rounded">
-                                    <div class="mb-2"><strong>推广码：</strong><code>{{ generatedLink.referral_code }}</code></div>
-                                    <div class="mb-2"><strong>短链：</strong><code class="text-sm break-all">{{ generatedLink.short_url }}</code></div>
-                                    <div class="mb-2"><strong>完整URL：</strong><code class="text-xs break-all">{{ generatedLink.full_url }}</code></div>
-                                    <el-button size="small" @click="copyText(generatedLink.short_url)">复制短链</el-button>
-                                    <el-button size="small" @click="copyText(generatedLink.full_url)">复制完整链接</el-button>
+                                    <div class="mb-2"><strong>{{ t(`${ns}.labels.referral_code`) }}</strong><code>{{ generatedLink.referral_code }}</code></div>
+                                    <div class="mb-2"><strong>{{ t(`${ns}.labels.short_url`) }}</strong><code class="text-sm break-all">{{ generatedLink.short_url }}</code></div>
+                                    <div class="mb-2"><strong>{{ t(`${ns}.labels.full_url`) }}</strong><code class="text-xs break-all">{{ generatedLink.full_url }}</code></div>
+                                    <el-button size="small" @click="copyText(generatedLink.short_url)">{{ t(`${ns}.buttons.copy_short`) }}</el-button>
+                                    <el-button size="small" @click="copyText(generatedLink.full_url)">{{ t(`${ns}.buttons.copy_full`) }}</el-button>
                                 </div>
                             </el-card>
                         </el-col>
@@ -242,51 +263,51 @@ onMounted(() => {
                             <el-card shadow="never">
                                 <template #header>
                                     <div class="flex items-center justify-between">
-                                        <span class="font-semibold">代理推广链接列表</span>
+                                        <span class="font-semibold">{{ t(`${ns}.links.agent_list_title`) }}</span>
                                         <div class="flex gap-2">
-                                            <el-input v-model="linkAgentId" placeholder="代理商ID" style="width:140px" />
-                                            <el-button @click="loadAgentLinks">查询</el-button>
+                                            <el-input v-model="linkAgentId" :placeholder="t(`${ns}.placeholders.agent_id`)" style="width:140px" />
+                                            <el-button @click="loadAgentLinks">{{ t(`${ns}.buttons.query`) }}</el-button>
                                         </div>
                                     </div>
                                 </template>
                                 <el-table :data="agentLinks" v-loading="linkLoading" size="small" stripe>
-                                    <el-table-column prop="invite_code" label="推广码" width="120" />
-                                    <el-table-column label="转化" width="70" align="center">
+                                    <el-table-column prop="invite_code" :label="t(`${ns}.cols.referral_code`)" width="120" />
+                                    <el-table-column :label="t(`${ns}.cols.converted`)" width="70" align="center">
                                         <template #default="{ row }">
-                                            <el-tag :type="row.converted ? 'success' : 'info'" size="small">{{ row.converted ? '是' : '否' }}</el-tag>
+                                            <el-tag :type="row.converted ? 'success' : 'info'" size="small">{{ yesNoLabel(row.converted) }}</el-tag>
                                         </template>
                                     </el-table-column>
-                                    <el-table-column prop="clicks" label="点击" width="60" />
-                                    <el-table-column label="商品" width="70">
+                                    <el-table-column prop="clicks" :label="t(`${ns}.cols.clicks`)" width="60" />
+                                    <el-table-column :label="t(`${ns}.cols.product`)" width="70">
                                         <template #default="{ row }">{{ row.product_id || '-' }}</template>
                                     </el-table-column>
-                                    <el-table-column label="创建时间" width="160">
+                                    <el-table-column :label="t(`${ns}.cols.created_at`)" width="160">
                                         <template #default="{ row }">{{ fmtDate(row.created_at) }}</template>
                                     </el-table-column>
-                                    <el-table-column label="操作" width="60">
+                                    <el-table-column :label="t(`${ns}.cols.actions`)" width="60">
                                         <template #default="{ row }">
-                                            <el-button size="small" @click="copyText(row.landing_url)">复制</el-button>
+                                            <el-button size="small" @click="copyText(row.landing_url)">{{ t('actions.copy') }}</el-button>
                                         </template>
                                     </el-table-column>
                                 </el-table>
-                                <el-empty v-if="!agentLinks.length && linkLoading === false" description="输入代理商ID查询" />
+                                <el-empty v-if="!agentLinks.length && linkLoading === false" :description="t(`${ns}.empty.enter_agent_id_query`)" />
                             </el-card>
                         </el-col>
                     </el-row>
                 </el-tab-pane>
 
                 <!-- Tab 2: 推广门户 -->
-                <el-tab-pane label="🏪 推广门户" name="portal">
+                <el-tab-pane :label="t(`${ns}.tabs.portal`)" name="portal">
                     <div class="flex gap-2 mb-4">
-                        <el-input v-model="portalAgentId" placeholder="输入代理商ID查看门户" style="width:260px" />
-                        <el-button type="primary" :loading="portalLoading" @click="loadPortal">查看门户</el-button>
+                        <el-input v-model="portalAgentId" :placeholder="t(`${ns}.placeholders.portal_agent_id`)" style="width:260px" />
+                        <el-button type="primary" :loading="portalLoading" @click="loadPortal">{{ t(`${ns}.buttons.view_portal`) }}</el-button>
                     </div>
                     <div v-if="portalData" v-loading="portalLoading">
                         <el-row :gutter="16" class="mb-4">
                             <el-col :span="6">
                                 <el-card shadow="hover">
                                     <div class="stat-item">
-                                        <div class="stat-label">累计点击</div>
+                                        <div class="stat-label">{{ t(`${ns}.stats.total_clicks`) }}</div>
                                         <div class="stat-value">{{ portalData.summary?.clicks_total ?? 0 }}</div>
                                     </div>
                                 </el-card>
@@ -294,7 +315,7 @@ onMounted(() => {
                             <el-col :span="6">
                                 <el-card shadow="hover">
                                     <div class="stat-item">
-                                        <div class="stat-label">转化次数</div>
+                                        <div class="stat-label">{{ t(`${ns}.stats.total_conversions`) }}</div>
                                         <div class="stat-value" style="color:#67C23A">{{ portalData.summary?.conversions_total ?? 0 }}</div>
                                     </div>
                                 </el-card>
@@ -302,15 +323,15 @@ onMounted(() => {
                             <el-col :span="6">
                                 <el-card shadow="hover">
                                     <div class="stat-item">
-                                        <div class="stat-label">转化率</div>
-                                        <div class="stat-value" style="color:#409EFF">{{ portalData.summary?.conversion_rate ?? 0 }}%</div>
+                                        <div class="stat-label">{{ t(`${ns}.stats.conversion_rate`) }}</div>
+                                        <div class="stat-value" style="color:#0f172a">{{ portalData.summary?.conversion_rate ?? 0 }}%</div>
                                     </div>
                                 </el-card>
                             </el-col>
                             <el-col :span="6">
                                 <el-card shadow="hover">
                                     <div class="stat-item">
-                                        <div class="stat-label">下级代理</div>
+                                        <div class="stat-label">{{ t(`${ns}.stats.downline_count`) }}</div>
                                         <div class="stat-value">{{ portalData.summary?.downline_count ?? 0 }}</div>
                                     </div>
                                 </el-card>
@@ -319,49 +340,48 @@ onMounted(() => {
 
                         <!-- 收益账户 -->
                         <el-card shadow="never" class="mb-4" v-if="portalData.earnings_account">
-                            <template #header><span>💰 收益账户</span></template>
+                            <template #header><span>{{ t(`${ns}.portal.earnings_account`) }}</span></template>
                             <el-descriptions :column="4" border size="small">
-                                <el-descriptions-item label="待结算(冻结)">{{ formatMoney(portalData.earnings_account.pending_balance) }}</el-descriptions-item>
-                                <el-descriptions-item label="可用余额">{{ formatMoney(portalData.earnings_account.available_balance) }}</el-descriptions-item>
-                                <el-descriptions-item label="已提现总额">{{ formatMoney(portalData.earnings_account.total_withdrawn) }}</el-descriptions-item>
-                                <el-descriptions-item label="待结算佣金">{{ formatMoney(portalData.pending_commission) }}</el-descriptions-item>
+                                <el-descriptions-item :label="t(`${ns}.earnings.pending_balance`)">{{ formatMoney(portalData.earnings_account.pending_balance) }}</el-descriptions-item>
+                                <el-descriptions-item :label="t(`${ns}.earnings.available_balance`)">{{ formatMoney(portalData.earnings_account.available_balance) }}</el-descriptions-item>
+                                <el-descriptions-item :label="t(`${ns}.earnings.total_withdrawn`)">{{ formatMoney(portalData.earnings_account.total_withdrawn) }}</el-descriptions-item>
+                                <el-descriptions-item :label="t(`${ns}.earnings.pending_commission`)">{{ formatMoney(portalData.pending_commission) }}</el-descriptions-item>
                             </el-descriptions>
-                            <!-- 提现入口 -->
                             <div class="mt-3">
                                 <el-button type="primary" @click="$router.push('/admin/withdrawals')">
-                                    💸 前往提现 ({{ formatMoney(portalData.withdrawal?.available_balance) }}) 
+                                    {{ t(`${ns}.buttons.go_withdraw`, { amount: formatMoney(portalData.withdrawal?.available_balance) }) }}
                                 </el-button>
-                                <span class="text-xs text-gray-400 ml-2">最低提现额: {{ formatMoney(portalData.withdrawal?.min_withdrawal) }}</span>
+                                <span class="text-xs text-gray-400 ml-2">{{ t(`${ns}.labels.min_withdrawal`) }} {{ formatMoney(portalData.withdrawal?.min_withdrawal) }}</span>
                             </div>
                         </el-card>
 
                         <!-- 最近转化 -->
                         <el-card shadow="never" class="mb-4">
-                            <template #header><span>📋 最近转化 (最近10笔)</span></template>
+                            <template #header><span>{{ t(`${ns}.portal.recent_conversions`) }}</span></template>
                             <el-table :data="portalData.recent_conversions ?? []" size="small" stripe>
-                                <el-table-column label="客户" prop="user_name" />
-                                <el-table-column label="佣金" width="130">
+                                <el-table-column :label="t(`${ns}.cols.customer`)" prop="user_name" />
+                                <el-table-column :label="t(`${ns}.cols.commission`)" width="130">
                                     <template #default="{ row }">{{ formatMoney(row.commission) }}</template>
                                 </el-table-column>
-                                <el-table-column label="时间" width="160">
+                                <el-table-column :label="t(`${ns}.cols.time`)" width="160">
                                     <template #default="{ row }">{{ fmtDate(row.converted_at) }}</template>
                                 </el-table-column>
                             </el-table>
-                            <el-empty v-if="!portalData.recent_conversions?.length" description="暂无转化" />
+                            <el-empty v-if="!portalData.recent_conversions?.length" :description="t(`${ns}.empty.no_conversions`)" />
                         </el-card>
 
                         <!-- 推广链接 -->
                         <el-card shadow="never">
-                            <template #header><span>🔗 推广链接 ({{ portalData.referral_links?.length ?? 0 }} 个)</span></template>
+                            <template #header><span>{{ t(`${ns}.portal.referral_links`, { count: portalData.referral_links?.length ?? 0 }) }}</span></template>
                             <el-table :data="portalData.referral_links ?? []" size="small" stripe>
-                                <el-table-column prop="invite_code" label="推广码" width="120" />
-                                <el-table-column label="已转化" width="80" align="center">
+                                <el-table-column prop="invite_code" :label="t(`${ns}.cols.referral_code`)" width="120" />
+                                <el-table-column :label="t(`${ns}.cols.converted`)" width="80" align="center">
                                     <template #default="{ row }">
-                                        <el-tag :type="row.converted ? 'success' : 'info'" size="small">{{ row.converted ? '是' : '否' }}</el-tag>
+                                        <el-tag :type="row.converted ? 'success' : 'info'" size="small">{{ yesNoLabel(row.converted) }}</el-tag>
                                     </template>
                                 </el-table-column>
-                                <el-table-column prop="clicks" label="点击数" width="70" />
-                                <el-table-column label="落地页" min-width="200">
+                                <el-table-column prop="clicks" :label="t(`${ns}.cols.click_count`)" width="70" />
+                                <el-table-column :label="t(`${ns}.cols.landing_page`)" min-width="200">
                                     <template #default="{ row }">
                                         <span class="text-xs break-all">{{ row.landing_url }}</span>
                                     </template>
@@ -369,60 +389,58 @@ onMounted(() => {
                             </el-table>
                         </el-card>
                     </div>
-                    <el-empty v-else-if="!portalLoading" description="输入代理商ID查看推广门户" />
+                    <el-empty v-else-if="!portalLoading" :description="t(`${ns}.empty.enter_agent_id_portal`)" />
                 </el-tab-pane>
 
                 <!-- Tab 3: 收益账户结算 -->
-                <el-tab-pane label="💰 收益结算" name="settlement">
+                <el-tab-pane :label="t(`${ns}.tabs.settlement`)" name="settlement">
                     <el-row :gutter="24">
                         <el-col :span="10">
                             <el-card shadow="never">
-                                <template #header><span class="font-semibold">结算佣金到收益账户</span></template>
+                                <template #header><span class="font-semibold">{{ t(`${ns}.settlement.settle_title`) }}</span></template>
                                 <el-form :model="settleForm" label-width="120px">
-                                    <el-form-item label="代理商ID" required>
+                                    <el-form-item :label="t(`${ns}.cols.agent_id`)" required>
                                         <el-input-number v-model="settleForm.agent_id" :min="1" style="width:100%" />
                                     </el-form-item>
-                                    <el-form-item label="金额(元)" required>
+                                    <el-form-item :label="t(`${ns}.cols.amount_yuan`)" required>
                                         <el-input-number v-model="settleForm.amount" :min="0.01" :precision="2" style="width:100%" />
                                     </el-form-item>
-                                    <el-form-item label="来源">
+                                    <el-form-item :label="t(`${ns}.cols.source`)">
                                         <el-select v-model="settleForm.source" style="width:100%">
-                                            <el-option label="联盟推广" value="affiliate_commission" />
-                                            <el-option label="电商分销" value="store_commission" />
-                                            <el-option label="手动结算" value="manual" />
+                                            <el-option v-for="opt in sourceOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                         </el-select>
                                     </el-form-item>
-                                    <el-form-item label="备注">
+                                    <el-form-item :label="t(`${ns}.cols.notes`)">
                                         <el-input v-model="settleForm.notes" type="textarea" :rows="2" />
                                     </el-form-item>
                                     <el-form-item>
-                                        <el-button type="primary" :loading="settling" @click="settleCommission">结算到收益账户</el-button>
+                                        <el-button type="primary" :loading="settling" @click="settleCommission">{{ t(`${ns}.buttons.settle`) }}</el-button>
                                     </el-form-item>
                                 </el-form>
                                 <div v-if="settleResult" class="p-3 bg-green-50 rounded mt-2">
-                                    ✅ 结算成功！记录ID: {{ settleResult.id }}, 金额: {{ formatMoney(settleResult.commission_amount) }}
+                                    {{ t(`${ns}.settlement.success`, { id: settleResult.id, amount: formatMoney(settleResult.commission_amount) }) }}
                                 </div>
                             </el-card>
                         </el-col>
                         <el-col :span="14">
                             <el-card shadow="never">
-                                <template #header><span class="font-semibold">转化归因 + 自动结算</span></template>
+                                <template #header><span class="font-semibold">{{ t(`${ns}.settlement.attribute_title`) }}</span></template>
                                 <el-form :model="attributeForm" label-width="120px">
-                                    <el-form-item label="推广码" required>
-                                        <el-input v-model="attributeForm.referral_code" placeholder="如 AFABC1231" />
+                                    <el-form-item :label="t(`${ns}.cols.referral_code`)" required>
+                                        <el-input v-model="attributeForm.referral_code" :placeholder="t(`${ns}.placeholders.referral_code`)" />
                                     </el-form-item>
-                                    <el-form-item label="转化用户ID" required>
+                                    <el-form-item :label="t(`${ns}.cols.converted_user_id`)" required>
                                         <el-input-number v-model="attributeForm.converted_user_id" :min="1" style="width:100%" />
                                     </el-form-item>
-                                    <el-form-item label="佣金金额">
+                                    <el-form-item :label="t(`${ns}.cols.commission_amount`)">
                                         <el-input-number v-model="attributeForm.commission_amount" :min="0" :precision="2" style="width:100%" />
                                     </el-form-item>
                                     <el-form-item>
-                                        <el-button type="primary" :loading="attributing" @click="attributeConversion">归因并结算</el-button>
+                                        <el-button type="primary" :loading="attributing" @click="attributeConversion">{{ t(`${ns}.buttons.attribute_settle`) }}</el-button>
                                     </el-form-item>
                                 </el-form>
                                 <div v-if="attrResult" :class="['p-3 rounded mt-2', attrResult.attributed ? 'bg-green-50' : 'bg-yellow-50']">
-                                    {{ attrResult.attributed ? '✅ 转化已归因，佣金已进入收益账户待结算期' : '⚠️ 未找到匹配点击记录' }}
+                                    {{ attrResult.attributed ? t(`${ns}.attribute.success_attributed`) : t(`${ns}.attribute.no_click_record`) }}
                                 </div>
                             </el-card>
                         </el-col>
@@ -430,64 +448,64 @@ onMounted(() => {
                 </el-tab-pane>
 
                 <!-- Tab 4: 电商分销 (M2-149) -->
-                <el-tab-pane label="🛒 电商分销" name="store">
+                <el-tab-pane :label="t(`${ns}.tabs.store`)" name="store">
                     <el-row :gutter="24">
                         <el-col :span="10">
                             <el-card shadow="never" class="mb-4">
-                                <template #header><span class="font-semibold">生成商品推广链接</span></template>
+                                <template #header><span class="font-semibold">{{ t(`${ns}.store.generate_product_link`) }}</span></template>
                                 <el-form :model="productLinkForm" label-width="110px">
-                                    <el-form-item label="代理商ID" required>
+                                    <el-form-item :label="t(`${ns}.cols.agent_id`)" required>
                                         <el-input-number v-model="productLinkForm.agent_id" :min="1" style="width:100%" />
                                     </el-form-item>
-                                    <el-form-item label="商品ID" required>
+                                    <el-form-item :label="t(`${ns}.cols.product_id`)" required>
                                         <el-input-number v-model="productLinkForm.product_id" :min="1" style="width:100%" />
                                     </el-form-item>
-                                    <el-form-item label="活动ID">
+                                    <el-form-item :label="t(`${ns}.cols.campaign_id`)">
                                         <el-input-number v-model="productLinkForm.campaign_id" :min="0" style="width:100%" />
                                     </el-form-item>
                                     <el-form-item>
-                                        <el-button type="primary" :loading="productLinkLoading" @click="generateProductLink">生成商品链接</el-button>
+                                        <el-button type="primary" :loading="productLinkLoading" @click="generateProductLink">{{ t(`${ns}.buttons.generate_product_link`) }}</el-button>
                                     </el-form-item>
                                 </el-form>
                                 <div v-if="productLinkResult" class="p-3 bg-green-50 rounded">
-                                    <div><strong>推广码：</strong><code>{{ productLinkResult.referral_code }}</code></div>
-                                    <div><strong>链接：</strong><code class="text-xs break-all">{{ productLinkResult.full_url }}</code></div>
-                                    <el-button size="small" class="mt-2" @click="copyText(productLinkResult.full_url)">复制链接</el-button>
+                                    <div><strong>{{ t(`${ns}.labels.referral_code`) }}</strong><code>{{ productLinkResult.referral_code }}</code></div>
+                                    <div><strong>{{ t(`${ns}.labels.link`) }}</strong><code class="text-xs break-all">{{ productLinkResult.full_url }}</code></div>
+                                    <el-button size="small" class="mt-2" @click="copyText(productLinkResult.full_url)">{{ t(`${ns}.buttons.copy_link`) }}</el-button>
                                 </div>
                             </el-card>
                         </el-col>
                         <el-col :span="14">
                             <el-card shadow="never">
                                 <template #header>
-                                    <span class="font-semibold">📊 电商分销看板</span>
-                                    <el-button size="small" class="ml-2" @click="loadProductStats">刷新</el-button>
+                                    <span class="font-semibold">{{ t(`${ns}.store.dashboard_title`) }}</span>
+                                    <el-button size="small" class="ml-2" @click="loadProductStats">{{ t(`${ns}.buttons.refresh`) }}</el-button>
                                 </template>
                                 <div v-if="storeDashData">
-                                    <h4 class="mb-2">商品推广统计</h4>
+                                    <h4 class="mb-2">{{ t(`${ns}.store.product_stats_title`) }}</h4>
                                     <el-table :data="storeDashData.product_stats ?? []" size="small" stripe>
-                                        <el-table-column prop="name" label="素材名称" min-width="150" />
-                                        <el-table-column prop="clicks" label="点击" width="70" />
-                                        <el-table-column prop="conversions" label="转化" width="70" />
-                                        <el-table-column prop="conversion_rate" label="转化率" width="80">
+                                        <el-table-column prop="name" :label="t(`${ns}.cols.material_name`)" min-width="150" />
+                                        <el-table-column prop="clicks" :label="t(`${ns}.cols.clicks`)" width="70" />
+                                        <el-table-column prop="conversions" :label="t(`${ns}.cols.conversion_count`)" width="70" />
+                                        <el-table-column prop="conversion_rate" :label="t(`${ns}.cols.conversion_rate`)" width="80">
                                             <template #default="{ row }">{{ row.conversion_rate }}%</template>
                                         </el-table-column>
-                                        <el-table-column label="状态" width="70">
+                                        <el-table-column :label="t(`${ns}.cols.status`)" width="70">
                                             <template #default="{ row }">
-                                                <el-tag :type="row.is_active ? 'success' : 'info'" size="small">{{ row.is_active ? '启用' : '禁用' }}</el-tag>
+                                                <el-tag :type="row.is_active ? 'success' : 'info'" size="small">{{ row.is_active ? t('actions.enable') : t('actions.disable') }}</el-tag>
                                             </template>
                                         </el-table-column>
                                     </el-table>
 
-                                    <h4 class="mt-4 mb-2">Top 推广代理</h4>
+                                    <h4 class="mt-4 mb-2">{{ t(`${ns}.store.top_agents_title`) }}</h4>
                                     <el-table :data="storeDashData.top_agents ?? []" size="small" stripe>
-                                        <el-table-column prop="agent_id" label="代理商ID" width="100" />
-                                        <el-table-column prop="conversions" label="转化数" width="80" />
-                                        <el-table-column label="佣金" width="130">
+                                        <el-table-column prop="agent_id" :label="t(`${ns}.cols.agent_id`)" width="100" />
+                                        <el-table-column prop="conversions" :label="t(`${ns}.cols.conversion_count`)" width="80" />
+                                        <el-table-column :label="t(`${ns}.cols.commission`)" width="130">
                                             <template #default="{ row }">{{ formatMoney(row.commission) }}</template>
                                         </el-table-column>
                                     </el-table>
                                 </div>
-                                <el-empty v-else-if="!storeDashData" description="暂无数据，点击刷新加载" />
+                                <el-empty v-else-if="!storeDashData" :description="t(`${ns}.empty.no_data_refresh`)" />
                             </el-card>
                         </el-col>
                     </el-row>

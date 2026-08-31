@@ -9,7 +9,7 @@
     >
         <template #reference>
             <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notification-badge">
-                <el-tooltip content="通知" placement="bottom">
+                <el-tooltip :content="t('admin.notifications_label')" placement="bottom">
                     <el-button
                         circle
                         :icon="Bell"
@@ -22,7 +22,7 @@
 
         <div class="notification-popover">
             <div class="popover-header">
-                <span class="popover-title">通知</span>
+                <span class="popover-title">{{ t('admin.notifications_label') }}</span>
                 <div class="popover-actions">
                     <el-button
                         v-if="unreadCount > 0"
@@ -31,7 +31,7 @@
                         type="primary"
                         @click="handleMarkAllRead"
                     >
-                        全部已读
+                        {{ t('admin.mark_all_read') }}
                     </el-button>
                     <el-button
                         text
@@ -39,14 +39,14 @@
                         type="primary"
                         @click="$router.push('/notifications'); popoverVisible = false"
                     >
-                        查看全部
+                        {{ t('portal.view_all') }}
                     </el-button>
                 </div>
             </div>
 
             <div class="popover-body" v-loading="loading">
                 <div v-if="notifications.length === 0" class="empty-state">
-                    <el-empty :image-size="50" description="暂无通知" />
+                    <el-empty :image-size="50" :description="t('admin.no_notifications')" />
                 </div>
                 <div
                     v-for="item in notifications"
@@ -81,11 +81,13 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { Bell } from '@element-plus/icons-vue';
 import notificationApi from '@/api/notification';
 
+const { t, locale } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
 const popoverVisible = ref(false);
@@ -118,17 +120,21 @@ function typeIcon(type) {
     return map[type] || '📢';
 }
 
+function dateLocale() {
+    return String(locale.value).startsWith('zh') ? 'zh-CN' : 'en-US';
+}
+
 function timeAgo(dateStr) {
     if (!dateStr) return '';
     const now = Date.now();
     const date = new Date(dateStr).getTime();
     const diff = Math.floor((now - date) / 1000);
 
-    if (diff < 60) return '刚刚';
-    if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`;
-    if (diff < 2592000) return `${Math.floor(diff / 86400)}天前`;
-    return new Date(dateStr).toLocaleDateString('zh-CN');
+    if (diff < 60) return t('time.just_now');
+    if (diff < 3600) return t('time.minutes_ago', { minutes: Math.floor(diff / 60) });
+    if (diff < 86400) return t('time.hours_ago', { hours: Math.floor(diff / 3600) });
+    if (diff < 2592000) return t('time.days_ago', { days: Math.floor(diff / 86400) });
+    return new Date(dateStr).toLocaleDateString(dateLocale());
 }
 
 async function loadNotifications() {

@@ -1,31 +1,13 @@
 <template>
   <div class="payment-security-page">
-    <h2>支付安全管理</h2>
+    <h2>{{ t('payment_security_page.title') }}</h2>
 
     <!-- 统计卡片 -->
     <el-row :gutter="16" class="mb-4">
-      <el-col :span="6">
+      <el-col v-for="item in statItems" :key="item.key" :span="6">
         <el-card shadow="never">
-          <div class="stat-value">{{ stats.total_checks ?? 0 }}</div>
-          <div class="stat-label">总检测次数</div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="never">
-          <div class="stat-value text-success">{{ stats.passed ?? 0 }}</div>
-          <div class="stat-label">通过</div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="never">
-          <div class="stat-value text-danger">{{ stats.failed ?? 0 }}</div>
-          <div class="stat-label">失败</div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="never">
-          <div class="stat-value text-warning">{{ stats.critical_today ?? 0 }}</div>
-          <div class="stat-label">今日严重</div>
+          <div class="stat-value" :class="item.valueClass">{{ stats[item.key] ?? 0 }}</div>
+          <div class="stat-label">{{ item.label }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -33,21 +15,18 @@
     <!-- 过滤器 -->
     <el-card shadow="never" class="mb-4">
       <el-form :inline="true" :model="filters" size="small">
-        <el-form-item label="检测类型">
-          <el-select v-model="filters.check_type" clearable placeholder="全部">
-            <el-option v-for="t in checkTypes" :key="t" :label="t" :value="t" />
+        <el-form-item :label="t('payment_security_page.filter_check_type')">
+          <el-select v-model="filters.check_type" clearable :placeholder="t('payment_security_page.filter_all')">
+            <el-option v-for="opt in checkTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="风险等级">
-          <el-select v-model="filters.risk_level" clearable placeholder="全部">
-            <el-option label="Low" value="low" />
-            <el-option label="Medium" value="medium" />
-            <el-option label="High" value="high" />
-            <el-option label="Critical" value="critical" />
+        <el-form-item :label="t('payment_security_page.filter_risk_level')">
+          <el-select v-model="filters.risk_level" clearable :placeholder="t('payment_security_page.filter_all')">
+            <el-option v-for="opt in riskLevelOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="fetchLogs">搜索</el-button>
+          <el-button type="primary" @click="fetchLogs">{{ t('actions.search') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -55,25 +34,27 @@
     <!-- 日志表格 -->
     <el-card shadow="never">
       <el-table :data="logs" v-loading="logLoading" stripe size="small">
-        <el-table-column prop="created_at" label="时间" width="160" />
-        <el-table-column prop="check_type" label="检测类型" width="140" />
-        <el-table-column label="结果" width="80" align="center">
+        <el-table-column prop="created_at" :label="t('payment_security_page.cols.time')" width="160" />
+        <el-table-column :label="t('payment_security_page.cols.check_type')" width="140">
+          <template #default="{ row }">{{ checkTypeLabel(row.check_type) }}</template>
+        </el-table-column>
+        <el-table-column :label="t('payment_security_page.cols.result')" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.passed ? 'success' : 'danger'" size="small">
-              {{ row.passed ? '✓' : '✗' }}
+              {{ row.passed ? t('payment_security_page.result.passed') : t('payment_security_page.result.failed') }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="风险等级" width="90" align="center">
+        <el-table-column :label="t('payment_security_page.cols.risk_level')" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="levelTag(row.risk_level)" size="small">{{ row.risk_level }}</el-tag>
+            <el-tag :type="levelTag(row.risk_level)" size="small">{{ riskLevelLabel(row.risk_level) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="ip_address" label="IP 地址" width="140" />
-        <el-table-column label="详情" min-width="200">
+        <el-table-column prop="ip_address" :label="t('payment_security_page.cols.ip_address')" width="140" />
+        <el-table-column :label="t('payment_security_page.cols.details')" min-width="200">
           <template #default="{ row }">
             <el-tooltip :content="JSON.stringify(row.details)" placement="top">
-              <el-button text size="small">查看</el-button>
+              <el-button text size="small">{{ t('actions.view') }}</el-button>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -93,8 +74,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/api/paymentSecurity'
+
+const { t } = useI18n()
 
 const stats = ref({})
 const logs = ref([])
@@ -104,7 +88,39 @@ const page = ref(1)
 const perPage = ref(20)
 const total = ref(0)
 
-const checkTypes = ['duplicate_payment', 'amount_tamper', 'signature_verify', 'refund_abuse', 'ip_check']
+const checkTypeKeys = ['duplicate_payment', 'amount_tamper', 'signature_verify', 'refund_abuse', 'ip_check']
+const riskLevelKeys = ['low', 'medium', 'high', 'critical']
+
+const statItems = computed(() => [
+  { key: 'total_checks', label: t('payment_security_page.stats.total_checks'), valueClass: '' },
+  { key: 'passed', label: t('payment_security_page.stats.passed'), valueClass: 'text-success' },
+  { key: 'failed', label: t('payment_security_page.stats.failed'), valueClass: 'text-danger' },
+  { key: 'critical_today', label: t('payment_security_page.stats.critical_today'), valueClass: 'text-warning' },
+])
+
+const checkTypeOptions = computed(() =>
+  checkTypeKeys.map((value) => ({
+    value,
+    label: t(`payment_security_page.check_types.${value}`),
+  }))
+)
+
+const riskLevelOptions = computed(() =>
+  riskLevelKeys.map((value) => ({
+    value,
+    label: t(`payment_security_page.risk_levels.${value}`),
+  }))
+)
+
+function checkTypeLabel(type) {
+  const key = `payment_security_page.check_types.${type}`
+  return t(key) !== key ? t(key) : type
+}
+
+function riskLevelLabel(level) {
+  const key = `payment_security_page.risk_levels.${level}`
+  return t(key) !== key ? t(key) : level
+}
 
 function levelTag(level) {
   const map = { low: 'info', medium: 'warning', high: 'danger', critical: 'danger' }
