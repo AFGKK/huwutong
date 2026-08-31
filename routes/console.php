@@ -301,6 +301,14 @@ Schedule::command('email-drip:send', ['--batch=50'])
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/scheduler-email-drip.log'));
 
+// ── 自动化营销活动处理 (D-24) ──
+// 每 10 分钟检查待发送的营销活动
+Schedule::command('marketing:process-campaigns', ['--batch=100'])
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/scheduler-marketing.log'));
+
 // ── MRR 月度变化记录 (M3-59) ──
 // 每月1日凌晨 6:00 扫描订阅变动并写入 MrrChangeDetail
 Schedule::command('mrr:record-changes')

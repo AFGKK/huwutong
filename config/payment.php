@@ -7,7 +7,7 @@ return [
     |--------------------------------------------------------------------------
     | 默认支付驱动
     |--------------------------------------------------------------------------
-    | 支持: mock, alipay, wechat, stripe
+    | 支持: mock, alipay, wechat, stripe, paypal, yipay
     */
     'driver' => env('PAYMENT_DRIVER', 'mock'),
 
@@ -15,7 +15,7 @@ return [
     |--------------------------------------------------------------------------
     | 支持的支付渠道
     |--------------------------------------------------------------------------
-    | 支持: mock, alipay, wechat, stripe, paypal
+    | 支持: mock, alipay, wechat, stripe, paypal, yipay
     */
     'channels' => [
         'alipay' => [
@@ -35,6 +35,8 @@ return [
             'app_id' => env('WECHAT_APP_ID', ''),
             'mch_id' => env('WECHAT_MCH_ID', ''),
             'key' => env('WECHAT_PAY_KEY', ''),
+            'serial_no' => env('WECHAT_PAY_SERIAL_NO', ''),
+            'private_key' => env('WECHAT_PAY_PRIVATE_KEY', ''),
             'cert_path' => env('WECHAT_CERT_PATH', ''),
             'key_path' => env('WECHAT_KEY_PATH', ''),
             'notify_url' => env('WECHAT_NOTIFY_URL', ''),
@@ -56,6 +58,16 @@ return [
             'client_secret' => env('PAYPAL_CLIENT_SECRET', ''),
             'webhook_id' => env('PAYPAL_WEBHOOK_ID', ''),
             'sandbox' => env('PAYPAL_SANDBOX', true),
+        ],
+
+        'yipay' => [
+            'name' => '易支付',
+            'enabled' => env('YIPAY_ENABLED', false),
+            'pid' => env('YIPAY_PID', ''),
+            'key' => env('YIPAY_KEY', ''),
+            'api_url' => env('YIPAY_API_URL', 'https://pay.example.com/'),
+            'notify_url' => env('YIPAY_NOTIFY_URL', ''),
+            'return_url' => env('YIPAY_RETURN_URL', ''),
         ],
     ],
 

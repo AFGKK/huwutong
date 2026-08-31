@@ -23,7 +23,7 @@ use App\Http\Controllers\Api\DunningController;
 use App\Http\Controllers\Api\EnterpriseSsoController;
 use App\Http\Controllers\Api\MarketingCampaignController;
 use App\Http\Controllers\Api\PostmanController;
-use App\Http\Controllers\Api\SystemHealthController;
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\TenantIsolationController;
 
 // ── 业务指标 ──
@@ -39,13 +39,13 @@ Route::prefix('admin/business-metrics')->group(function () {
 
 // ── 系统健康 ──
 Route::prefix('admin/system-health')->group(function () {
-    Route::get('/dashboard', [SystemHealthController::class, 'dashboard']);
-    Route::get('/check', [SystemHealthController::class, 'check']);
-    Route::get('/trend', [SystemHealthController::class, 'trend']);
-    Route::post('/snapshot', [SystemHealthController::class, 'snapshot']);
-    Route::get('/thresholds', [SystemHealthController::class, 'thresholds']);
-    Route::put('/thresholds/{id}', [SystemHealthController::class, 'updateThreshold'])->whereNumber('id');
-    Route::get('/failed-jobs', [SystemHealthController::class, 'failedJobs']);
+    Route::get('/dashboard', [HealthController::class, 'dashboard']);
+    Route::get('/check', [HealthController::class, 'check']);
+    Route::get('/trend', [HealthController::class, 'trend']);
+    Route::post('/snapshot', [HealthController::class, 'snapshot']);
+    Route::get('/thresholds', [HealthController::class, 'thresholds']);
+    Route::put('/thresholds/{id}', [HealthController::class, 'updateThreshold'])->whereNumber('id');
+    Route::get('/failed-jobs', [HealthController::class, 'failedJobs']);
 });
 
 // ── 营销自动化 ──
@@ -64,6 +64,7 @@ Route::prefix('admin/marketing')->group(function () {
     Route::post('/campaigns/{campaignId}/cancel', [MarketingCampaignController::class, 'cancel'])->whereNumber('campaignId');
     Route::put('/campaigns/{campaignId}/steps', [MarketingCampaignController::class, 'updateSteps'])->whereNumber('campaignId');
     Route::post('/campaigns/{campaignId}/simulate', [MarketingCampaignController::class, 'simulateSend'])->whereNumber('campaignId');
+    Route::post('/campaigns/{campaignId}/send', [MarketingCampaignController::class, 'send'])->whereNumber('campaignId');
     Route::get('/campaigns/{campaignId}/analytics', [MarketingCampaignController::class, 'analytics'])->whereNumber('campaignId');
 });
 

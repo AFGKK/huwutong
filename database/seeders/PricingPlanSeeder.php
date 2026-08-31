@@ -19,6 +19,7 @@ class PricingPlanSeeder extends Seeder
                 'slug' => 'free',
                 'name' => '免费版',
                 'description' => '适合个人开发者和小型项目',
+                'billing_period' => 'monthly',
                 'price_monthly' => 0,
                 'price_quarterly' => 0,
                 'price_semi_annually' => 0,
@@ -27,6 +28,7 @@ class PricingPlanSeeder extends Seeder
                 'trial_days' => 0,
                 'sort_order' => 1,
                 'is_public' => true,
+                'is_active' => true,
                 'badge' => null,
                 'features' => [
                     '1 个产品',
@@ -47,6 +49,7 @@ class PricingPlanSeeder extends Seeder
                 'slug' => 'basic',
                 'name' => '基础版',
                 'description' => '适合初创团队和小型企业',
+                'billing_period' => 'monthly',
                 'price_monthly' => 99,
                 'price_quarterly' => 267,   // 9折
                 'price_semi_annually' => 504, // 85折
@@ -139,6 +142,8 @@ class PricingPlanSeeder extends Seeder
         ];
 
         foreach ($plans as $plan) {
+            $plan['billing_period'] = $plan['billing_period'] ?? 'monthly';
+            $plan['is_active'] = $plan['is_active'] ?? true;
             PricingPlan::updateOrCreate(
                 ['slug' => $plan['slug']],
                 $plan

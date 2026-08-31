@@ -297,6 +297,9 @@ Route::prefix('admin/case-studies')->group(function () {
 Route::prefix('compare')->group(function () {
     Route::get('/advantages', [ComparePageController::class, 'advantages']);
     Route::get('/competitors', [ComparePageController::class, 'competitors']);
+    Route::get('/config', [ComparePageController::class, 'config']);
+    Route::put('/', [ComparePageController::class, 'update']);
+    Route::post('/reset', [ComparePageController::class, 'resetFromConfig']);
     Route::get('/', [ComparePageController::class, 'comparison']);
 });
 

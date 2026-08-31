@@ -17,14 +17,36 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | 默认 Provider（站点设置未配置时的兜底）
+    |--------------------------------------------------------------------------
+    | LOCAL_LLM_ENABLED=true 时默认 ollama，否则 deepseek
+    */
+    'default_provider' => env(
+        'LLM_DEFAULT_PROVIDER',
+        env('LOCAL_LLM_ENABLED', false) ? 'ollama' : 'deepseek'
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
     | Ollama 配置
     |--------------------------------------------------------------------------
     */
     'ollama' => [
-        'api_base' => env('OLLAMA_API_BASE', 'http://localhost:11434'),
-        'default_model' => env('OLLAMA_DEFAULT_MODEL', 'qwen2:7b'),
+        'api_base' => env('OLLAMA_API_BASE', 'http://127.0.0.1:11434'),
+        'default_model' => env('OLLAMA_DEFAULT_MODEL', 'qwen2.5:7b'),
         'health_endpoint' => '/api/tags',
-        'timeout' => 300,
+        'timeout' => 3600,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | D-37 推荐模型（setup.sh / ollama:setup --pull）
+    |--------------------------------------------------------------------------
+    */
+    'recommended_models' => [
+        'qwen2.5:7b',
+        'qwen2.5:1.5b',
+        'nomic-embed-text',
     ],
 
     /*

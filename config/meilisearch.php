@@ -82,6 +82,16 @@ return [
     'sync' => [
         'chunk_size' => 100,
         'queue' => env('MEILISEARCH_SYNC_QUEUE', false),
+        'queue_name' => env('MEILISEARCH_SYNC_QUEUE_NAME', 'default'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Model Observer 增量同步（D-36）
+    |--------------------------------------------------------------------------
+    */
+    'observer' => [
+        'enabled' => env('MEILISEARCH_OBSERVER_ENABLED', true),
     ],
 
     /*

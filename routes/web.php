@@ -86,7 +86,8 @@ Route::get('/pricing', function () {
 
 // 竞品对比页 (M2-100)
 Route::get('/compare', function () {
-    $config = config('compare-page');
+    $config = app(\App\Services\ComparePageService::class)->rawConfig();
+
     return view('public.compare', [
         'competitors' => $config['competitors'],
         'dimensions' => $config['dimensions'],
@@ -99,18 +100,37 @@ Route::get('/compare', function () {
 Route::get('/products', [\App\Http\Controllers\Public\PublicPageController::class, 'products']);
 Route::get('/products/{slug}', [\App\Http\Controllers\Public\PublicPageController::class, 'products']);
 Route::get('/compare-products', [\App\Http\Controllers\Public\PublicPageController::class, 'compareProducts']);
-Route::post('/contact-seller', [\App\Http\Controllers\Public\PublicPageController::class, 'contactSeller']);
 
-// 公司信息页
-Route::view('/about', 'public.about')->name('about');
-Route::view('/contact', 'public.contact')->name('contact');
-Route::view('/privacy', 'public.privacy')->name('privacy');
-Route::view('/terms', 'public.terms')->name('terms');
+// 微信小程序 → H5 登录桥接页（web-view 内打开，写入 localStorage.auth_token）
+Route::get('/miniprogram/bridge', function () {
+    return view('public.miniprogram-bridge');
+});
+
+// 公司信息页（CMS published+非空 → cms-page；否则静态 Blade；contact 永远静态表单）
+Route::get('/about', fn () => app(\App\Services\LegalCmsPageService::class)->resolve('about'))->name('about');
+Route::get('/contact', fn () => app(\App\Services\LegalCmsPageService::class)->resolve('contact'))->name('contact');
+Route::get('/privacy', fn () => app(\App\Services\LegalCmsPageService::class)->resolve('privacy'))->name('privacy');
+Route::get('/terms', fn () => app(\App\Services\LegalCmsPageService::class)->resolve('terms'))->name('terms');
+Route::get('/page/{slug}', function (string $slug) {
+    if (isset(\App\Services\LegalCmsPageService::STATIC_FALLBACKS[$slug])
+        || in_array($slug, \App\Services\LegalCmsPageService::FORM_RESERVED, true)) {
+        return redirect('/'.$slug, 302);
+    }
+    $page = \App\Models\Page::query()->where('slug', $slug)->where('status', 'published')->firstOrFail();
+
+    return view('public.cms-page', [
+        'page' => $page,
+        'canonicalPath' => '/page/'.$slug,
+        'usesCms' => true,
+    ]);
+})->where('slug', '[A-Za-z0-9\-]+')->name('cms.page');
 
 // 开发者文档
 Route::view('/sdk', 'public.sdk')->name('sdk');
 Route::redirect('/docs/sdk', '/sdk', 301);
-Route::redirect('/docs/sdk/{lang}', '/sdk', 301);
+Route::get('/docs/sdk/{lang}', function (string $lang) {
+    return redirect('/help?search=' . urlencode(strtoupper($lang) . ' SDK'));
+})->where('lang', '[a-z]+');
 Route::view('/docs/quickstart', 'public.quickstart')->name('quickstart');
 
 // 开发者 Blog (M3-57)
@@ -289,6 +309,12 @@ Route::get('/login', function () {
 
 // Vue 管理后台 SPA（开发模式下 Vite base URL 路径）
 // 公开 SPA 页面 - 使用带官网导航的布局
+Route::get('/community', function () {
+    return view('public-spa', ['title' => '社区 - 互物通']);
+});
+Route::get('/community/{path?}', function () {
+    return view('public-spa', ['title' => '社区 - 互物通']);
+})->where('path', '.*');
 Route::get('/build/community', function () {
     return view('public-spa', ['title' => '社区 - 互物通']);
 });
@@ -347,6 +373,7 @@ Route::prefix('api/payment')->group(function () {
     Route::post('/alipay/webhook', [PaymentWebhookController::class, 'alipay'])->name('payment.alipay.webhook');
     Route::post('/paypal/webhook', [PaymentWebhookController::class, 'paypal'])->name('payment.paypal.webhook');
     Route::post('/wechat/webhook', [PaymentWebhookController::class, 'wechat'])->name('payment.wechat.webhook');
+    Route::post('/yipay/webhook', [PaymentWebhookController::class, 'yipay'])->name('payment.yipay.webhook');
 });
 
 // Bug Bounty 漏洞报告提交&政策（公开）

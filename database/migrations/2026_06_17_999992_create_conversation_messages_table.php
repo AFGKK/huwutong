@@ -35,8 +35,14 @@ return new class extends Migration
                 $table->timestamp('expires_at')->nullable();
                 $table->timestamps();
 
-                $table->foreign('conversation_id')->references('id')->on('user_conversations')->cascadeOnDelete();
-                $table->foreign('sender_id')->references('id')->on('users')->nullOnDelete();
+                if (Schema::hasTable('user_conversations')) {
+                    $table->foreign('conversation_id')->references('id')->on('user_conversations')->cascadeOnDelete();
+                } else {
+                    $table->index('conversation_id');
+                }
+                if (Schema::hasTable('users')) {
+                    $table->foreign('sender_id')->references('id')->on('users')->nullOnDelete();
+                }
             });
         }
     }

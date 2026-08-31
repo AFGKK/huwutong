@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\CustomerDataExportController;
 use App\Http\Controllers\Api\EarningsPortalController;
 use App\Http\Controllers\Api\FeedbackController;
 use App\Http\Controllers\Api\GdprComplianceController;
+use App\Http\Controllers\Api\EcommerceAPIController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PortalBrandingController;
 use App\Http\Controllers\Api\PromotionController;
@@ -32,9 +33,10 @@ Route::get('/branding', [PortalBrandingController::class, 'publicBranding']);
 // 公开商品SKU列表
 Route::get('/skus', [OrderController::class, 'skus']);
 Route::get('/products/skus', [OrderController::class, 'skus']);
-Route::get('/products/search-suggest', [OrderController::class, 'skus']);
-Route::get('/products/filter-tags', [OrderController::class, 'skus']);
-Route::get('/products/hot-search-terms', [OrderController::class, 'skus']);
+Route::get('/products/suggest', [EcommerceAPIController::class, 'productSuggest']);
+Route::get('/products/search-suggest', [EcommerceAPIController::class, 'productSuggest']);
+Route::get('/products/filter-tags', [EcommerceAPIController::class, 'filterTags']);
+Route::get('/products/hot-search-terms', [EcommerceAPIController::class, 'hotSearchTerms']);
 
 // 公开产品分类
 Route::get('/product-categories/public', [ProductCategoryController::class, 'publicList']);
@@ -66,6 +68,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::post('/cart/remove-coupon', [CartController::class, 'removeCoupon']);
     Route::post('/cart/checkout', [CartController::class, 'checkout']);
     Route::post('/cart/validate', [CartController::class, 'validateCheckout']);
+    Route::post('/cart/validate-checkout', [CartController::class, 'validateCheckout']);
     Route::post('/cart/quick-buy', [CartController::class, 'quickBuy']);
 
     // ── 订单 ──
@@ -75,6 +78,10 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel'])->whereNumber('id');
     Route::post('/orders/{id}/pay', [OrderController::class, 'pay'])->whereNumber('id');
     Route::get('/orders/{id}/payment-status', [OrderController::class, 'paymentStatus'])->whereNumber('id');
+
+    // ── 退款售后 ──
+    Route::post('/refunds', [EcommerceAPIController::class, 'refundRequest']);
+    Route::get('/refunds', [EcommerceAPIController::class, 'myRefundList']);
 
     // ── License 转移 ──
     Route::get('/portal/transfers', [TransferController::class, 'myRequests']);

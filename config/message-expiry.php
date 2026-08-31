@@ -20,6 +20,8 @@ return [
         'file' => env('MESSAGE_EXPIRY_FILE_DAYS', null),
         // 语音消息保留天数
         'voice' => env('MESSAGE_EXPIRY_VOICE_DAYS', 30),
+        // 贴纸消息保留天数
+        'sticker' => env('MESSAGE_EXPIRY_STICKER_DAYS', null),
     ],
 
     // 清理任务配置

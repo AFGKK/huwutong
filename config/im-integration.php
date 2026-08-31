@@ -37,7 +37,7 @@ return [
         'high' => '#fd7e14',
         'medium' => '#ffc107',
         'low' => '#28a745',
-        'info' => '#409eff',
+        'info' => '#0f172a',
     ],
 
     /*

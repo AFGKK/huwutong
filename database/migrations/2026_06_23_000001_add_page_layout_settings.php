@@ -21,7 +21,7 @@ return new class extends Migration
             [
                 'group' => 'interface',
                 'key' => 'page_primary_color',
-                'value' => '#2563eb',
+                'value' => '#409EFF',
                 'type' => 'color',
                 'options' => null,
                 'description' => '前端页面主题色 (按钮/链接/高亮)',

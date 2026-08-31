@@ -38,7 +38,7 @@ return [
     */
     'homepage' => [
         'featured_count' => 3,
-        'trusted_text' => env('TRUSTED_TEXT', 'Trusted by 500+'),
+        'trusted_text' => env('TRUSTED_TEXT', ''),
         'auto_play_interval_ms' => 3000,
     ],
 

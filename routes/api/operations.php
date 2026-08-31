@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AirGappedController;
-use App\Http\Controllers\Api\AlertingController;
+use App\Http\Controllers\Api\AlertController;
 use App\Http\Controllers\Api\AttackDetectionController;
 use App\Http\Controllers\Api\AutomationRuleController;
 use App\Http\Controllers\Api\BackupController;
@@ -196,28 +196,28 @@ Route::prefix('backups')->group(function () {
 
 // ── 智能告警（前端 /admin/alerting 路径别名） ──
 Route::middleware(['ability:admin,super-admin'])->prefix('admin/alerting')->group(function () {
-    Route::get('/dashboard', [AlertingController::class, 'dashboard']);
-    Route::get('/rules', [AlertingController::class, 'rules']);
-    Route::get('/rules/{id}', [AlertingController::class, 'ruleShow'])->whereNumber('id');
-    Route::post('/rules', [AlertingController::class, 'ruleStore']);
-    Route::put('/rules/{alertRule}', [AlertingController::class, 'ruleUpdate'])->whereNumber('alertRule');
-    Route::delete('/rules/{alertRule}', [AlertingController::class, 'ruleDestroy'])->whereNumber('alertRule');
-    Route::get('/channels', [AlertingController::class, 'channels']);
-    Route::post('/channels', [AlertingController::class, 'channelStore']);
-    Route::put('/channels/{alertChannel}', [AlertingController::class, 'channelUpdate'])->whereNumber('alertChannel');
-    Route::delete('/channels/{alertChannel}', [AlertingController::class, 'channelDestroy'])->whereNumber('alertChannel');
-    Route::post('/channels/{alertChannel}/test', [AlertingController::class, 'testChannel'])->whereNumber('alertChannel');
-    Route::get('/escalations', [AlertingController::class, 'escalations']);
-    Route::post('/escalations', [AlertingController::class, 'escalationStore']);
-    Route::put('/escalations/{alertEscalation}', [AlertingController::class, 'escalationUpdate'])->whereNumber('alertEscalation');
-    Route::delete('/escalations/{id}', [AlertingController::class, 'escalationDestroy'])->whereNumber('id');
-    Route::get('/events', [AlertingController::class, 'events']);
-    Route::get('/events/{id}', [AlertingController::class, 'eventShow'])->whereNumber('id');
-    Route::post('/events/{alertEvent}/acknowledge', [AlertingController::class, 'acknowledgeEvent'])->whereNumber('alertEvent');
-    Route::post('/events/{alertEvent}/resolve', [AlertingController::class, 'resolveEvent'])->whereNumber('alertEvent');
-    Route::get('/event-stats', [AlertingController::class, 'eventStats']);
-    Route::get('/metric-types', [AlertingController::class, 'metricTypes']);
-    Route::get('/severities', [AlertingController::class, 'severities']);
+    Route::get('/dashboard', [AlertController::class, 'dashboard']);
+    Route::get('/rules', [AlertController::class, 'rules']);
+    Route::get('/rules/{id}', [AlertController::class, 'showRule'])->whereNumber('id');
+    Route::post('/rules', [AlertController::class, 'storeRule']);
+    Route::put('/rules/{alertRule}', [AlertController::class, 'updateRule'])->whereNumber('alertRule');
+    Route::delete('/rules/{alertRule}', [AlertController::class, 'destroyRule'])->whereNumber('alertRule');
+    Route::get('/channels', [AlertController::class, 'channels']);
+    Route::post('/channels', [AlertController::class, 'channelStore']);
+    Route::put('/channels/{alertChannel}', [AlertController::class, 'channelUpdate'])->whereNumber('alertChannel');
+    Route::delete('/channels/{alertChannel}', [AlertController::class, 'channelDestroy'])->whereNumber('alertChannel');
+    Route::post('/channels/{alertChannel}/test', [AlertController::class, 'testChannel'])->whereNumber('alertChannel');
+    Route::get('/escalations', [AlertController::class, 'escalations']);
+    Route::post('/escalations', [AlertController::class, 'escalationStore']);
+    Route::put('/escalations/{alertEscalation}', [AlertController::class, 'escalationUpdate'])->whereNumber('alertEscalation');
+    Route::delete('/escalations/{id}', [AlertController::class, 'escalationDestroy'])->whereNumber('id');
+    Route::get('/events', [AlertController::class, 'events']);
+    Route::get('/events/{id}', [AlertController::class, 'showAlertingEvent'])->whereNumber('id');
+    Route::post('/events/{alertEvent}/acknowledge', [AlertController::class, 'acknowledgeEvent'])->whereNumber('alertEvent');
+    Route::post('/events/{alertEvent}/resolve', [AlertController::class, 'resolveEvent'])->whereNumber('alertEvent');
+    Route::get('/event-stats', [AlertController::class, 'eventStats']);
+    Route::get('/metric-types', [AlertController::class, 'metricTypes']);
+    Route::get('/severities', [AlertController::class, 'severities']);
 });
 
 // ── 全局快捷搜索 ──

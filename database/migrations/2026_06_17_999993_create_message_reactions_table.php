@@ -12,6 +12,11 @@ return new class extends Migration
             return;
         }
 
+        // conversation_messages 必须先存在（见 2026_06_17_999992）
+        if (! Schema::hasTable('conversation_messages')) {
+            return;
+        }
+
         Schema::create('message_reactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('message_id')->constrained('conversation_messages')->cascadeOnDelete();

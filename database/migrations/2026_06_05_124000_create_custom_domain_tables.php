@@ -39,7 +39,7 @@ return new class extends Migration
             $table->timestamp('issued_at')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->string('status')->default('pending')
-                ->comment('pending/issued/renewing/failed/expired');
+                ->comment('pending/issued/renewing/failed/expired/revoked');
             $table->string('acme_challenge_token')->nullable()->comment('ACME HTTP-01 验证令牌');
             $table->text('acme_challenge_content')->nullable()->comment('ACME 验证文件内容');
             $table->boolean('auto_renew')->default(true);

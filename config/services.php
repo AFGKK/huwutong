@@ -55,4 +55,37 @@ return [
         'asr_secret_key' => env('TENCENT_ASR_SECRET_KEY', ''),
     ],
 
+    // D-28: Firebase Cloud Messaging 推送
+    'fcm' => [
+        'project_id' => env('FCM_PROJECT_ID'),
+        'credentials_path' => env('FCM_CREDENTIALS_PATH', storage_path('app/fcm-credentials.json')),
+        'dry_run' => env('FCM_DRY_RUN', false),
+    ],
+
+    // D-31: 微信小程序配置
+    'wechat' => [
+        'mini_program_appid' => env('WECHAT_MINI_PROGRAM_APPID'),
+        'mini_program_secret' => env('WECHAT_MINI_PROGRAM_SECRET'),
+    ],
+
+    // 社交登录 OAuth（Login / 账号绑定跳转）
+    'oauth' => [
+        'google' => [
+            'client_id' => env('OAUTH_GOOGLE_CLIENT_ID'),
+            'client_secret' => env('OAUTH_GOOGLE_CLIENT_SECRET'),
+        ],
+        'github' => [
+            'client_id' => env('OAUTH_GITHUB_CLIENT_ID'),
+            'client_secret' => env('OAUTH_GITHUB_CLIENT_SECRET'),
+        ],
+        'wechat' => [
+            'client_id' => env('OAUTH_WECHAT_APPID', env('OAUTH_WECHAT_CLIENT_ID')),
+            'client_secret' => env('OAUTH_WECHAT_SECRET', env('OAUTH_WECHAT_CLIENT_SECRET')),
+        ],
+        'qq' => [
+            'client_id' => env('OAUTH_QQ_CLIENT_ID', env('OAUTH_QQ_APP_ID')),
+            'client_secret' => env('OAUTH_QQ_CLIENT_SECRET', env('OAUTH_QQ_APP_KEY')),
+        ],
+    ],
+
 ];

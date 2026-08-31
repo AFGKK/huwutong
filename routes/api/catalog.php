@@ -60,6 +60,7 @@ use App\Http\Controllers\Api\WebhookFilterController;
 Route::prefix('admin/search')->group(function () {
     Route::get('/', [GlobalSearchController::class, 'search']);
     Route::get('/suggestions', [GlobalSearchController::class, 'suggestions']);
+    Route::get('/engine-status', [GlobalSearchController::class, 'engineStatus']);
     Route::post('/rebuild', [GlobalSearchController::class, 'rebuild']);
     Route::get('/index-status', [GlobalSearchController::class, 'indexStatus']);
     Route::get('/recent', [GlobalSearchController::class, 'recent']);

@@ -46,6 +46,16 @@ return [
             'default' => ['database'],
             'description' => '系统维护、版本更新、服务变更',
         ],
+        'im_message' => [
+            'label' => '私信消息',
+            'default' => ['database'],
+            'description' => '一对一私信与消息请求提醒',
+        ],
+        'interaction' => [
+            'label' => '互动通知',
+            'default' => ['database'],
+            'description' => '点赞、评论、@提及、新增关注',
+        ],
         'promotion' => [
             'label' => '营销推广',
             'default' => ['mail'],

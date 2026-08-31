@@ -32,7 +32,7 @@ return [
     */
     'colors' => [
         'new' => '#67C23A',
-        'expansion' => '#409EFF',
+        'expansion' => '#0f172a',
         'contraction' => '#E6A23C',
         'churned' => '#F56C6C',
         'starting_mrr' => '#909399',

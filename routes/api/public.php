@@ -36,6 +36,28 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\UserChatController;
 use App\Http\Controllers\Api\CloudMarketplaceController;
 use App\Http\Controllers\Api\CiCdController;
+use App\Http\Controllers\Api\LocaleController;
+use App\Http\Controllers\Api\MiniProgramLoginController;
+use App\Http\Controllers\Api\MiniProgramSubscribeController;
+
+// D-31: 微信小程序登录
+Route::post('/miniprogram/login', [MiniProgramLoginController::class, 'login']);
+
+// A4: 订阅配置（公开，便于未登录时展示开关）
+Route::get('/miniprogram/subscribe-config', [MiniProgramSubscribeController::class, 'config']);
+
+// A4: 订阅过期提醒（需登录）
+Route::middleware(['auth:sanctum', 'throttle:30,1'])->group(function () {
+    Route::post('/miniprogram/subscribe-expiry', [MiniProgramSubscribeController::class, 'subscribeExpiry']);
+    Route::get('/miniprogram/profile', [\App\Http\Controllers\Api\MiniProgramProfileController::class, 'profile']);
+    Route::post('/miniprogram/bind-phone', [\App\Http\Controllers\Api\MiniProgramProfileController::class, 'bindPhone']);
+    Route::get('/miniprogram/my-activations', [\App\Http\Controllers\Api\MiniProgramProfileController::class, 'myActivations']);
+    Route::post('/miniprogram/h5-sso', [\App\Http\Controllers\Api\MiniProgramSsoController::class, 'issue']);
+});
+
+// 小程序 → H5 一次性登录兑换（公开，短时 code）
+Route::post('/miniprogram/h5-sso/exchange', [\App\Http\Controllers\Api\MiniProgramSsoController::class, 'exchange'])
+    ->middleware('throttle:20,1');
 
 // CSP 违规报告（公开端点，浏览器可直接 POST）
 Route::post('/csp-violations/report', [CspViolationController::class, 'report']);
@@ -53,6 +75,10 @@ Route::middleware(['nonce', 'signature', 'idempotent', 'body-limit:activate'])->
 
 // 账号申诉（公开 - 被封禁用户无需登录）
 Route::post('/appeal/submit', [AppealController::class, 'submit']);
+Route::get('/appeal/lookup', [AppealController::class, 'lookup']);
+
+// 微信小程序 License 激活（通过 Sanctum Token 认证，绕过签名中间件）
+Route::middleware(['auth:sanctum', 'throttle:30,1'])->post('/license/miniprogram/activate', [ActivateController::class, 'activate']);
 
 // Feature flag check (public - SDK calls)
 Route::post('/license/check-feature', [FeatureFlagController::class, 'checkFeature']);
@@ -242,6 +268,11 @@ Route::get('/meilisearch/trending', [MeilisearchController::class, 'trending']);
 
 // ── 公开定价方案 ──
 Route::get('/public/pricing-plans', [\App\Http\Controllers\Public\PublicPageController::class, 'pricingPlans']);
+Route::get('/public/sdks', [\App\Http\Controllers\Public\PublicPageController::class, 'publicSdks']);
+Route::post('/public/contact', [\App\Http\Controllers\Public\PublicPageController::class, 'submitContact'])
+    ->middleware('throttle:10,1');
+Route::post('/public/enterprise-contact', [\App\Http\Controllers\Public\PublicPageController::class, 'enterpriseContact'])
+    ->middleware('throttle:10,1');
 
 // ── API 版本管理 - 公开端点 ──
 Route::get('/api-version', [\App\Http\Controllers\Api\ApiVersionController::class, 'defaultInfo']);
@@ -314,4 +345,11 @@ Route::prefix('demo')->group(function () {
     Route::post('/extend', [DemoController::class, 'extend']);
     Route::post('/complete', [DemoController::class, 'complete']);
     Route::post('/register', [DemoController::class, 'register']);
+});
+
+// ── D-22: 多语言切换 ──
+Route::prefix('locale')->group(function () {
+    Route::post('/switch', [LocaleController::class, 'switch']);
+    Route::get('/current', [LocaleController::class, 'current']);
+    Route::get('/supported', [LocaleController::class, 'supported']);
 });

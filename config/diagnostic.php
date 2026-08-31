@@ -68,7 +68,7 @@ return [
     'severity' => [
         'critical' => ['color' => '#f56c6c', 'icon' => 'CircleCloseFilled', 'label' => '严重'],
         'high' => ['color' => '#e6a23c', 'icon' => 'WarningFilled', 'label' => '高'],
-        'medium' => ['color' => '#409eff', 'icon' => 'InfoFilled', 'label' => '中'],
+        'medium' => ['color' => '#0f172a', 'icon' => 'InfoFilled', 'label' => '中'],
         'low' => ['color' => '#909399', 'icon' => 'CircleCheck', 'label' => '低'],
     ],
 

@@ -8,10 +8,11 @@ return [
         'prefix' => 'uploads/{tenant_id}/{type}',
         'max_file_size_kb' => 20480, // 20MB
         'allowed_types' => [
-            'logo' => ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'],
-            'brand_asset' => ['image/png', 'image/jpeg', 'image/svg+xml', 'application/pdf'],
-            'document' => ['application/pdf', 'application/msword', 'text/plain'],
-            'screenshot' => ['image/png', 'image/jpeg', 'image/webp'],
+            'image' => ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif', 'image/x-icon', 'image/vnd.microsoft.icon', 'image/bmp', 'image/tiff', 'image/x-ms-bmp'],
+            'audio' => ['audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/x-m4a', 'audio/ogg', 'audio/vnd.wave', 'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/webm', 'audio/aac', 'audio/x-aac', 'audio/flac', 'audio/x-flac', 'audio/x-ms-wma', 'audio/x-pn-realaudio', 'audio/x-realaudio'],
+            'video' => ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo', 'video/x-ms-wmv', 'video/x-matroska', 'video/x-flv', 'video/3gpp', 'video/3gpp2', 'video/mpeg', 'video/x-ms-asf'],
+            'file' => ['application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed', 'application/x-7z-compressed', 'application/x-tar', 'application/gzip', 'application/x-gzip', 'application/x-bzip2', 'application/x-xz', 'application/octet-stream'],
+            'document' => ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/plain', 'text/csv', 'text/markdown', 'application/json', 'application/rtf', 'text/html', 'text/xml', 'application/xml'],
             'other' => ['*'],
         ],
         'url_expiry_minutes' => 60, // 临时URL过期时间
@@ -41,10 +42,11 @@ return [
     ],
 
     'types' => [
-        'logo' => ['max_files' => 5, 'public' => true],
-        'brand_asset' => ['max_files' => 20, 'public' => true],
+        'image' => ['max_files' => 100, 'public' => true],
+        'audio' => ['max_files' => 50, 'public' => false],
+        'video' => ['max_files' => 30, 'public' => false],
+        'file' => ['max_files' => 50, 'public' => false],
         'document' => ['max_files' => 50, 'public' => false],
-        'screenshot' => ['max_files' => 100, 'public' => false],
         'other' => ['max_files' => 50, 'public' => false],
     ],
 ];

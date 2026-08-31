@@ -24,6 +24,9 @@ return [
         'wechat' => [
             'enabled' => env('WECHAT_PAY_ENABLED', false),
         ],
+        'yipay' => [
+            'enabled' => env('YIPAY_ENABLED', false),
+        ],
     ],
 
     /*
@@ -36,6 +39,7 @@ return [
         'alipay' => ['label' => '支付宝', 'icon' => 'Wallet'],
         'wechat_pay' => ['label' => '微信支付', 'icon' => 'Chat'],
         'paypal' => ['label' => 'PayPal', 'icon' => 'Money'],
+        'yipay' => ['label' => '易支付', 'icon' => 'Coin'],
     ],
 
     /*

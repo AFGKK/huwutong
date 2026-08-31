@@ -177,9 +177,96 @@ class DemoDataSeeder extends Seeder
             ]
         );
 
+        $licenseCat = KbCategory::where('slug', 'license-management')->first();
+        KbArticle::firstOrCreate(
+            ['slug' => 'license-activation-guide'],
+            [
+                'category_id' => $licenseCat->id,
+                'author_id' => $admin->id,
+                'title' => 'License 激活与设备绑定',
+                'slug' => 'license-activation-guide',
+                'content' => '<h2>License 激活</h2><p>客户购买后可通过门户或 SDK 完成激活，支持在线/离线验证。</p><h3>设备绑定</h3><p>每个 License 可绑定指定数量的设备，超出上限将拒绝激活。</p>',
+                'status' => 'published',
+                'view_count' => 86,
+                'helpful_count' => 21,
+                'published_at' => now()->subDays(20),
+            ]
+        );
+
+        $apiCat = KbCategory::where('slug', 'api-integration')->first();
+        KbArticle::firstOrCreate(
+            ['slug' => 'sdk-integration-quickstart'],
+            [
+                'category_id' => $apiCat->id,
+                'author_id' => $admin->id,
+                'title' => 'SDK 集成快速入门',
+                'slug' => 'sdk-integration-quickstart',
+                'content' => '<h2>多语言 SDK</h2><p>互物通提供 PHP、Node.js、Python、Go、Java、C# 等 SDK。</p><h3>安装</h3><p>参考 <a href="/sdk">SDK 下载页</a> 获取安装命令。</p><h3>验证 License</h3><p>调用 <code>validate()</code> 方法即可完成授权校验。</p>',
+                'status' => 'published',
+                'view_count' => 142,
+                'helpful_count' => 40,
+                'published_at' => now()->subDays(15),
+            ]
+        );
+
+        $faqCat = KbCategory::where('slug', 'faq')->first();
+        KbArticle::firstOrCreate(
+            ['slug' => 'pricing-and-refund-faq'],
+            [
+                'category_id' => $faqCat->id,
+                'author_id' => $admin->id,
+                'title' => '定价与退款常见问题',
+                'slug' => 'pricing-and-refund-faq',
+                'content' => '<h2>如何升级套餐？</h2><p>在客户门户提交升级申请，或联系销售团队。</p><h2>如何申请退款？</h2><p>已支付订单可在「我的订单」中提交退款申请，审核通过后原路退回。</p>',
+                'status' => 'published',
+                'view_count' => 64,
+                'helpful_count' => 18,
+                'published_at' => now()->subDays(10),
+            ]
+        );
+
+        // ── 博客演示文章 ──
+        if (class_exists(\App\Models\BlogPost::class) && $admin) {
+            \App\Models\BlogPost::firstOrCreate(
+                ['slug' => 'welcome-to-huwutong'],
+                [
+                    'title' => '欢迎使用互物通 License 平台',
+                    'type' => 'blog',
+                    'content' => "<p>互物通为企业软件提供从激活验证到商业运营的一站式授权解决方案。</p><p>本文介绍平台核心能力：Ed25519 签名、离线验证、多平台 SDK 与客户门户。</p>",
+                    'excerpt' => '了解互物通企业级授权管理系统的核心能力与快速上手路径。',
+                    'is_published' => true,
+                    'is_featured' => true,
+                    'author' => $admin->name ?? '互物通',
+                    'author_id' => $admin->id,
+                    'published_at' => now()->subDays(3),
+                    'tags' => ['产品', '入门'],
+                ]
+            );
+            \App\Models\BlogPost::firstOrCreate(
+                ['slug' => 'release-notes-demo'],
+                [
+                    'title' => '产品更新：管理端与前台联动增强',
+                    'type' => 'changelog',
+                    'content' => '<p>本版本优化了站点设置与前台页脚联动、支付/短信配置桥接，以及小程序 H5 SSO 体验。</p>',
+                    'excerpt' => '管理端配置与官网/小程序联动能力更新说明。',
+                    'is_published' => true,
+                    'is_featured' => false,
+                    'author' => $admin->name ?? '互物通',
+                    'author_id' => $admin->id,
+                    'published_at' => now()->subDay(),
+                    'tags' => ['更新日志'],
+                ]
+            );
+        }
+
+        // 前台展示：标记演示产品可售/精选
+        Product::whereIn('slug', ['hwt-license-pro', 'hwt-license-enterprise', 'hwt-cloud-sdk'])
+            ->update(['is_sellable' => true, 'is_featured' => true]);
+
         $this->command->info('演示数据创建成功!');
         $this->command->info("  - License: {$licenseKey}");
         $this->command->info('  - 3 个产品, 2 个客户, 2 个设备, 1 个订阅');
-        $this->command->info('  - 5 个工单分类, 4 个帮助中心分类, 1 篇文章');
+        $this->command->info('  - 5 个工单分类, 4 个帮助中心分类, 4 篇文章');
+        $this->command->info('  - 博客演示文章已写入');
     }
 }

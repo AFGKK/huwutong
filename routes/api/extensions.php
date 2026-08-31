@@ -196,7 +196,7 @@ Route::prefix('ssl-certificates')->group(function () {
     Route::put('/{sslCertificate}', [SslCertificateController::class, 'update']);
     Route::post('/{sslCertificate}/renew', [SslCertificateController::class, 'renew']);
     Route::post('/{sslCertificate}/revoke', [SslCertificateController::class, 'revoke']);
-    Route::get('/{sslCertificate}/content', [SslCertificateController::class, 'certificateContent']);
+    Route::get('/{sslCertificate}/content', [SslCertificateController::class, 'certificateContent'])->middleware('throttle:10,60');
 });
 
 // ── 智能合约 ──
