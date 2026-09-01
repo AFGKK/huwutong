@@ -523,22 +523,28 @@
             }
         });
 
-        document.querySelectorAll('[id^="sticky-price-"]').forEach(function(el) {
-            var slug = el.id.replace('sticky-price-', '');
-            var card = document.querySelector('.plan-card[data-slug="' + slug + '"]');
+        // 粘性栏价格/周期：id 为 sticky-{basic|pro|ent}-price|period，需映射到 plan-card slug
+        ['basic', 'pro', 'ent'].forEach(function(key) {
+            var priceEl = document.getElementById('sticky-' + key + '-price');
+            var periodEl = document.getElementById('sticky-' + key + '-period');
+            if (!priceEl && !periodEl) return;
+            var card = document.querySelector('.plan-card[data-slug="' + key + '"]')
+                || (key === 'ent' ? document.querySelector('.plan-card[data-slug="enterprise"]') : null);
             if (!card) return;
             var monthly = parseFloat(card.dataset.priceMonthly) || 0;
             var yearly = parseFloat(card.dataset.priceYearly) || 0;
-            var resolved = (isYearly && yearly > 0) ? resolvePricingYearly(monthly, yearly) : { display: monthly };
-            el.textContent = '¥' + formatPricingPrice(resolved.display);
-            animatePrice(el);
-        });
-        document.querySelectorAll('[id^="sticky-period-"]').forEach(function(el) {
-            var slug = el.id.replace('sticky-period-', '');
-            var card = document.querySelector('.plan-card[data-slug="' + slug + '"]');
-            if (!card) return;
-            var yearly = parseFloat(card.dataset.priceYearly) || 0;
-            el.textContent = (isYearly && yearly > 0) ? PRICING_I18N.perMonthYearly : PRICING_I18N.perMonth;
+            var resolved = (isYearly && yearly > 0)
+                ? resolvePricingYearly(monthly, yearly)
+                : { display: monthly, period: 'month' };
+            if (priceEl) {
+                priceEl.textContent = '¥' + formatPricingPrice(resolved.display);
+                animatePrice(priceEl);
+            }
+            if (periodEl) {
+                periodEl.textContent = resolved.period === 'month_yearly'
+                    ? PRICING_I18N.perMonthYearly
+                    : PRICING_I18N.perMonth;
+            }
         });
     }
 

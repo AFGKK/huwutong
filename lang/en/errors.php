@@ -50,6 +50,8 @@ return [
     'LICENSE_GRACE_PERIOD' => 'License has expired, currently in grace period (:days days remaining)',
     'LICENSE_IN_MAINTENANCE' => 'License system is under maintenance',
     'LICENSE_ALREADY_ACTIVATED' => 'License already activated',
+    'LICENSE_TIME_RESTRICTED' => 'License is not allowed in the current time window',
+    'LICENSE_IP_RESTRICTED' => 'Current IP is not allowed for this license',
 
     // ─── Activation / Offline ────────────────────────────────
     'ACT_SIGNATURE_INVALID' => 'Activation signature is invalid',

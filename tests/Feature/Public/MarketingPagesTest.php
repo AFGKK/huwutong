@@ -157,12 +157,20 @@ class MarketingPagesTest extends TestCase
 
         $this->assertStringContainsString('data-plan-id="'.$plan->id.'"', $html);
         $this->assertStringContainsString('/build/subscribe/'.$plan->id.'?period=monthly', $html);
-        $this->assertStringNotContainsString('/build/subscribe/482?', $html);
+        $this->assertStringContainsString('class="sticky-cta', $html);
+        $this->assertMatchesRegularExpression('/id="sticky-basic-price"[^>]*data-plan="basic"/', $html);
+        $this->assertStringNotContainsString('data-plan-id=""', $html);
     }
 
     /** @test */
     public function blog_rss_redirects_to_api_rss(): void
     {
         $this->get('/blog/rss')->assertRedirect('/api/rss');
+        $this->get('/blog/rss/latest')->assertRedirect('/api/rss/latest');
+        $this->get('/blog/rss/changelog')->assertRedirect('/api/rss/changelog');
+
+        $html = $this->get('/blog')->assertOk()->getContent();
+        $this->assertStringContainsString('href="/api/rss"', $html);
+        $this->assertStringNotContainsString('href="/blog/rss"', $html);
     }
 }

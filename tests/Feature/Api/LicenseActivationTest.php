@@ -301,6 +301,36 @@ class LicenseActivationTest extends TestCase
             ->assertJsonPath('error.code', 'LICENSE_IP_RESTRICTED');
     }
 
+    public function test_activate_blocks_unknown_geo_when_configured(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            'ip-api.com/*' => \Illuminate\Support\Facades\Http::response(['status' => 'fail'], 200),
+        ]);
+
+        \App\Models\LicenseRestriction::create([
+            'restrictable_type' => 'license',
+            'restrictable_id' => $this->license->id,
+            'type' => 'geo_fence',
+            'is_active' => true,
+            'action' => 'block',
+            'allowed_countries' => ['CN'],
+            'blocked_countries' => [],
+            'unknown_location_action' => 'block',
+        ]);
+
+        $fp = $this->fingerprintService->generate($this->realDeviceComponents);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1']);
+
+        $this->securePostJson('/api/license/activate', [
+            'license_key' => $this->licenseKey,
+            'fingerprint' => $fp,
+            'components' => $this->realDeviceComponents,
+        ])
+            ->assertStatus(403)
+            ->assertJsonPath('error.code', 'DEVICE_REGION_BLOCKED');
+    }
+
     // ─── 安全中间件测试 ───
 
     public function test_rejects_missing_nonce(): void

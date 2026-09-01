@@ -50,6 +50,8 @@ return [
     'LICENSE_GRACE_PERIOD' => 'License 已过期，处于宽限期（剩余 :days 天）',
     'LICENSE_IN_MAINTENANCE' => 'License 系统正在维护中',
     'LICENSE_ALREADY_ACTIVATED' => 'License 已激活，请勿重复操作',
+    'LICENSE_TIME_RESTRICTED' => '当前时段不允许使用该 License',
+    'LICENSE_IP_RESTRICTED' => '当前 IP 不在 License 允许范围',
 
     // ─── 激活 / 离线 ────────────────────────────────────────────
     'ACT_SIGNATURE_INVALID' => '激活签名无效',
