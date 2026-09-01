@@ -16,44 +16,49 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class MaintenanceMiddleware
 {
-    protected MaintenanceModeService $maintenanceService;
-
-    public function __construct(MaintenanceModeService $maintenanceService)
-    {
-        $this->maintenanceService = $maintenanceService;
-    }
+    public function __construct(
+        protected MaintenanceModeService $maintenanceService,
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
-        // 检查是否处于维护模式
         if (! $this->maintenanceService->isActive()) {
             return $next($request);
         }
 
-        $ip = $request->ip();
+        $ip = $request->ip() ?? '';
         $path = $request->path();
 
-        // 白名单绕过
         if ($this->maintenanceService->canBypass($ip, $path)) {
             return $next($request);
         }
 
-        // 返回 503 维护响应
         $data = $this->maintenanceService->getMaintenanceData();
         $config = $this->maintenanceService->getConfig();
+        $retryAfter = (string) ($config?->retry_after ?? $data['retry_after'] ?? 60);
 
-        $response = ApiResponse::error(
-            'MAINTENANCE_MODE',
-            $data['message'] ?? '系统维护中',
-            503,
-            [
-                'maintenance' => $data,
-                'retry_after' => $config?->retry_after ?? 60,
-            ],
-        );
+        if ($request->expectsJson() || $request->is('api/*')) {
+            $response = ApiResponse::error(
+                'MAINTENANCE_MODE',
+                $data['message'] ?? '系统维护中',
+                503,
+                [
+                    'maintenance' => $data,
+                    'retry_after' => (int) $retryAfter,
+                ],
+            );
+            $response->headers->set('Retry-After', $retryAfter);
 
-        $response->headers->set('Retry-After', (string) ($config?->retry_after ?? 60));
+            return $response;
+        }
 
-        return $response;
+        return response()
+            ->view('public.maintenance', [
+                'title' => $data['title'] ?? '系统维护中',
+                'message' => $data['message'] ?? '系统正在进行计划内维护，请稍后再试。',
+                'scheduledEndAt' => $data['scheduled_end_at'] ?? null,
+                'retryAfter' => (int) $retryAfter,
+            ], 503)
+            ->header('Retry-After', $retryAfter);
     }
 }

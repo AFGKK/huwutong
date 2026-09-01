@@ -479,7 +479,7 @@
                     <p class="text-lg text-slate-600 leading-relaxed mb-8">{{ __('app.landing.open_subtitle') }}</p>
                     <div class="flex flex-wrap gap-3">
                         <a href="{{ url('/docs') }}" class="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl font-semibold hover:bg-slate-800 transition">{{ __('app.landing.open_cta') }}</a>
-                        <a href="{{ url('/sdk') }}" class="inline-flex items-center gap-2 border border-slate-300 text-slate-700 px-6 py-3 rounded-xl font-medium hover:border-slate-400 hover:bg-white transition">{{ __('app.landing.open_market') }}</a>
+                        <a href="{{ url('/marketplace') }}" class="inline-flex items-center gap-2 border border-slate-300 text-slate-700 px-6 py-3 rounded-xl font-medium hover:border-slate-400 hover:bg-white transition">{{ __('app.landing.open_market') }}</a>
                     </div>
                 </div>
                 <div class="lg:col-span-7 grid sm:grid-cols-2 gap-4">

@@ -114,6 +114,30 @@ return [
         'blog' => '博客',
     ],
 
+    'maintenance_page' => [
+        'kicker' => 'Maintenance',
+        'eta' => '预计恢复时间：:time',
+        'retry' => '请约 :seconds 秒后重试',
+        'status_link' => '查看维护状态 API',
+    ],
+
+    'marketplace_page' => [
+        'kicker' => 'Marketplace',
+        'title' => '应用市场',
+        'subtitle' => '浏览已上架的第三方应用与扩展，安全接入互物通授权能力。',
+        'search_ph' => '搜索应用名称或描述',
+        'search' => '搜索',
+        'all' => '全部',
+        'empty_title' => '暂无已上架应用',
+        'empty_desc' => '管理端审核发布后将在此展示。也可先查看集成文档。',
+        'docs_cta' => '查看集成文档',
+        'free' => '免费',
+        'unknown_dev' => '独立开发者',
+        'back' => '返回应用市场',
+        'docs' => '查看文档',
+        'install_cta' => '注册后安装',
+    ],
+
     // ─── 官网首页 ───
     'landing' => [
         'hero_title' => '软件授权，一次做对',

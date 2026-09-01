@@ -65,6 +65,11 @@ Route::post('/csp-violations/report', [CspViolationController::class, 'report'])
 // 维护模式检查（公开端点）
 Route::get('/maintenance/status', [MaintenanceModeController::class, 'status']);
 
+// 公开应用市场
+Route::get('/public/marketplace/apps', [\App\Http\Controllers\Public\PublicMarketplaceController::class, 'apiIndex']);
+Route::get('/public/marketplace/apps/{slug}', [\App\Http\Controllers\Public\PublicMarketplaceController::class, 'apiShow'])
+    ->where('slug', '[A-Za-z0-9\-]+');
+
 // License activation and validation (public - SDK calls)
 Route::middleware(['nonce', 'signature', 'idempotent', 'body-limit:activate'])->group(function () {
     Route::post('/license/activate', [ActivateController::class, 'activate'])

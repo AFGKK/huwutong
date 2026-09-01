@@ -21,6 +21,32 @@ class MaintenanceModeService
     const CACHE_TTL = 60; // 60 秒，保持新鲜
 
     /**
+     * 维护模式下始终放行的路径（健康检查、关维护、登录），避免管理员把自己锁死。
+     *
+     * @return list<string>
+     */
+    public function defaultBypassPaths(): array
+    {
+        return [
+            'up',
+            'api/health',
+            'api/health/*',
+            'api/maintenance/*',
+            'api/login',
+            'api/phone/login',
+            'api/oauth/login',
+            'api/mfa/login',
+            'api/auth/webauthn/login/*',
+            'sanctum/csrf-cookie',
+            'build',
+            'build/login',
+            'build/register',
+            'auth',
+            'auth/*',
+        ];
+    }
+
+    /**
      * 获取当前维护模式配置
      */
     public function getConfig(): ?MaintenanceConfig
@@ -57,11 +83,15 @@ class MaintenanceModeService
      */
     public function isSiteSettingMaintenanceEnabled(): bool
     {
-        if (! function_exists('site_setting')) {
+        try {
+            if (! function_exists('site_setting')) {
+                return false;
+            }
+
+            return (string) site_setting('maintenance_enabled', '0') === '1';
+        } catch (\Throwable $e) {
             return false;
         }
-
-        return (string) site_setting('maintenance_enabled', '0') === '1';
     }
 
     /**
@@ -69,6 +99,12 @@ class MaintenanceModeService
      */
     public function canBypass(string $ip, string $path): bool
     {
+        $path = ltrim($path, '/');
+
+        if ($this->matchesPathPatterns($path, $this->defaultBypassPaths())) {
+            return true;
+        }
+
         $config = $this->getConfig();
 
         if ($config) {
@@ -79,10 +115,41 @@ class MaintenanceModeService
             return false;
         }
 
-        $allowed = (string) site_setting('maintenance_allowed_ips', '');
+        $allowed = $this->safeSiteSetting('maintenance_allowed_ips', '');
         $ips = array_filter(array_map('trim', preg_split('/[\r\n,]+/', $allowed) ?: []));
 
         return $ips !== [] && in_array($ip, $ips, true);
+    }
+
+    protected function safeSiteSetting(string $key, string $default = ''): string
+    {
+        try {
+            if (! function_exists('site_setting')) {
+                return $default;
+            }
+
+            return (string) site_setting($key, $default);
+        } catch (\Throwable $e) {
+            return $default;
+        }
+    }
+
+    /**
+     * @param  list<string>  $patterns
+     */
+    public function matchesPathPatterns(string $path, array $patterns): bool
+    {
+        $path = ltrim($path, '/');
+
+        foreach ($patterns as $pattern) {
+            $pattern = ltrim((string) $pattern, '/');
+            $regex = str_replace(['*', '/'], ['.*', '\/'], $pattern);
+            if ($regex !== '' && preg_match('/^'.$regex.'$/', $path)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -105,7 +172,7 @@ class MaintenanceModeService
 
         return [
             'title' => '系统维护中',
-            'message' => (string) site_setting('maintenance_message', '系统维护中，请稍后再试。'),
+            'message' => $this->safeSiteSetting('maintenance_message', '系统维护中，请稍后再试。'),
             'scheduled_end_at' => null,
             'retry_after' => 60,
             'timestamp' => now()->toIso8601String(),

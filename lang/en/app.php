@@ -114,6 +114,30 @@ return [
         'blog' => 'Blog',
     ],
 
+    'maintenance_page' => [
+        'kicker' => 'Maintenance',
+        'eta' => 'Estimated recovery: :time',
+        'retry' => 'Please retry in about :seconds seconds',
+        'status_link' => 'Check maintenance status API',
+    ],
+
+    'marketplace_page' => [
+        'kicker' => 'Marketplace',
+        'title' => 'App Marketplace',
+        'subtitle' => 'Browse published third-party apps and extensions that plug into Huwutong licensing.',
+        'search_ph' => 'Search apps by name or description',
+        'search' => 'Search',
+        'all' => 'All',
+        'empty_title' => 'No published apps yet',
+        'empty_desc' => 'Apps appear here after admin review. You can also read the integration docs.',
+        'docs_cta' => 'View integration docs',
+        'free' => 'Free',
+        'unknown_dev' => 'Independent developer',
+        'back' => 'Back to marketplace',
+        'docs' => 'Documentation',
+        'install_cta' => 'Register to install',
+    ],
+
     // ─── Landing ───
     'landing' => [
         'hero_title' => 'Software licensing, done right',

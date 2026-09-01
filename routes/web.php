@@ -138,6 +138,12 @@ Route::get('/api-docs', [\App\Http\Controllers\Public\IntegrationDocsController:
 Route::get('/docs/error-codes', [\App\Http\Controllers\Public\IntegrationDocsController::class, 'errorCodes'])->name('docs.error-codes');
 Route::get('/docs/webhooks', [\App\Http\Controllers\Public\IntegrationDocsController::class, 'webhooks'])->name('docs.webhooks');
 
+// 公开应用市场（管理端 MarketplaceApp published）
+Route::get('/marketplace', [\App\Http\Controllers\Public\PublicMarketplaceController::class, 'index'])->name('marketplace');
+Route::get('/marketplace/{slug}', [\App\Http\Controllers\Public\PublicMarketplaceController::class, 'show'])
+    ->where('slug', '[A-Za-z0-9\-]+')
+    ->name('marketplace.show');
+
 // 开发者 Blog (M3-57)
 Route::get('/blog', function () {
     return view('public.blog');

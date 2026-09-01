@@ -342,7 +342,7 @@
               <a href="/sdk" class="footer-link">{{ $t('nav.sdk') }}</a>
               <a href="/blog" class="footer-link">{{ $t('nav.blog') }}</a>
               <a href="/license/query" class="footer-link">{{ $t('nav.license_query') }}</a>
-              <a href="/docs" class="footer-link">{{ $t('footer.open_platform') }}</a>
+              <a href="/marketplace" class="footer-link">{{ $t('footer.open_platform') }}</a>
             </div>
             <div class="footer-col">
               <h4 class="footer-col-title">{{ $t('footer.company') }}</h4>
