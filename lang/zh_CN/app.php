@@ -1907,6 +1907,8 @@ return [
             'not_activatable' => 'License 当前状态「:status」不允许激活',
             'expired' => 'License 已过期',
             'device_limit' => '设备数量已达上限 (:max)',
+            'ip_restricted' => '当前 IP 不在 License 允许范围',
+            'region_blocked' => '当前地区不允许激活该 License',
         ],
         'order' => [
             'sku_created' => 'SKU 创建成功',

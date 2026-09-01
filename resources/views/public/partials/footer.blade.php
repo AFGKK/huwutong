@@ -112,7 +112,7 @@
                     <li><a href="{{ url('/api-docs') }}" class="footer-nav-link">{{ __('app.api_docs_page.title') }}</a></li>
                     <li><a href="{{ url('/blog') }}" class="footer-nav-link">{{ __('app.footer.blog') }}</a></li>
                     <li><a href="{{ url('/license/query') }}" class="footer-nav-link">{{ __('app.nav.license_query') }}</a></li>
-                    <li><a href="/build/open-platform" class="footer-nav-link">{{ __('app.footer.open_platform') }}</a></li>
+                    <li><a href="{{ url('/docs') }}" class="footer-nav-link">{{ __('app.footer.open_platform') }}</a></li>
                 </ul>
             </div>
 

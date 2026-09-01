@@ -112,22 +112,22 @@ class SdkConfigGeneratorAiService
     {
         $codeExamples = [
             'php' => [
-                'install_command' => "composer require huwutong/license-sdk",
-                'init_code' => "<?php\n\nuse Huwutong\\LicenseSDK\\Client;\n\n\$client = new Client([\n    'api_url' => '{$url}',\n    'license_key' => '{$key}',\n    'timeout' => 10,\n]);",
-                'activate_code' => "\$client->activate([\n    'device_fingerprint' => \$fingerprint,\n    'platform' => PHP_OS,\n]);",
-                'validate_code' => "\$result = \$client->validate();\nif (\$result->isValid()) {\n    echo 'License 有效';\n}",
+                'install_command' => 'composer require huwutong/huwutong-sdk-php',
+                'init_code' => "<?php\n\nuse Huwutong\\Client;\n\n\$client = new Client('{$key}', '{$url}');",
+                'activate_code' => "\$client->activate('LICENSE-KEY', [\n    'machine_id' => \$fingerprint,\n    'platform' => PHP_OS,\n]);",
+                'validate_code' => "\$result = \$client->validate('LICENSE-KEY');\nif (\$result->isValid) {\n    echo 'License 有效';\n}",
             ],
             'javascript' => [
-                'install_command' => "npm install @huwutong/license-sdk",
-                'init_code' => "const { LicenseClient } = require('@huwutong/license-sdk');\n\nconst client = new LicenseClient({\n  apiUrl: '{$url}',\n  licenseKey: '{$key}',\n});",
-                'activate_code' => "await client.activate({ deviceFingerprint, platform: process.platform });",
-                'validate_code' => "const { valid, expiresAt } = await client.validate();",
+                'install_command' => 'npm install huwutong-sdk',
+                'init_code' => "const { Client } = require('huwutong-sdk');\n\nconst client = new Client('{$key}', '{$url}');",
+                'activate_code' => "await client.activate('LICENSE-KEY', { machine_id: deviceFingerprint, platform: process.platform });",
+                'validate_code' => "const result = await client.validate('LICENSE-KEY');\nif (result.isValid) {\n  console.log('License 有效');\n}",
             ],
             'python' => [
-                'install_command' => "pip install huwutong-license-sdk",
-                'init_code' => "from huwutong_license import Client\n\nclient = Client(api_url='{$url}', license_key='{$key}')",
-                'activate_code' => "client.activate(device_fingerprint=fingerprint, platform='linux')",
-                'validate_code' => "status = client.validate()\nif status['valid']:\n    print('License 有效')",
+                'install_command' => 'pip install huwutong-sdk',
+                'init_code' => "from huwutong_sdk import HWTClient\n\nclient = HWTClient(api_key='{$key}', host='{$url}')",
+                'activate_code' => "client.activate('LICENSE-KEY', {'machine_id': fingerprint, 'platform': 'linux'})",
+                'validate_code' => "status = client.validate('LICENSE-KEY')\nif status.is_valid:\n    print('License 有效')",
             ],
         ];
 

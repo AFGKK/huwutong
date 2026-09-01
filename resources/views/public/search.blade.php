@@ -184,7 +184,7 @@ function fetchSuggestions(val) {
                     else if (s.type === 'blog_posts') directLink = '/blog/' + (s.slug || s.id);
                     else if (s.type === 'oa_articles') directLink = '/build/oa-article/' + s.id;
                     else if (s.type === 'forum_posts') directLink = '/build/plaza/' + s.id;
-                    else if (s.type === 'marketplace_apps') directLink = '/build/app-marketplace/' + s.id;
+                    else if (s.type === 'marketplace_apps') directLink = '/docs';
                     else if (s.type === 'official_accounts') directLink = '/build/channels?account=' + s.id;
                     apiHtml += '<a href="' + directLink + '" class="s-item px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm flex items-center gap-3 no-underline" onmousedown="event.preventDefault();selectSuggestion(\'' + displayTitle.replace(/'/g, "\\'") + '\');window.location=this.getAttribute(\'href\')">';
                     if (s.avatar) {
@@ -493,7 +493,7 @@ async function execSearch(q) {
                         else if (t.type === 'blog_posts') tLink = '/blog/' + (t.slug || t.id);
                         else if (t.type === 'oa_articles') tLink = '/build/oa-article/' + t.id;
                         else if (t.type === 'forum_posts') tLink = '/build/plaza/' + t.id;
-                        else if (t.type === 'marketplace_apps') tLink = '/build/app-marketplace/' + t.id;
+                        else if (t.type === 'marketplace_apps') tLink = '/docs';
                         else if (t.type === 'official_accounts') tLink = '/build/channels?account=' + t.id;
                         th += '<a href="' + tLink + '" class="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all no-underline group">';
                         if (t.image) {
@@ -579,7 +579,7 @@ function renderResults() {
     var html = '<div class="space-y-3">';
     // 安全截断 HTML 文本，防止 <em> 标签被截断导致 DOM 结构损坏
     function safeDesc(d, maxlen) { return (d||'').replace(/<[^>]+>/g,'').substring(0, maxlen); }
-    var links = {products:function(h){return '/products/'+(h.slug||h.id);},kb_articles:function(h){return '/help/'+h.id;},marketplace_apps:function(h){return '/build/app-marketplace/'+h.id;},forum_posts:function(h){return '/build/plaza/'+h.id;},blog_posts:function(h){return '/blog/'+(h.slug||h.id);},oa_articles:function(h){return '/build/oa-article/'+h.id;},users:function(){return '#';},official_accounts:function(h){return '/build/channels?account='+h.id;}};
+    var links = {products:function(h){return '/products/'+(h.slug||h.id);},kb_articles:function(h){return '/help/'+h.id;},marketplace_apps:function(h){return '/docs';},forum_posts:function(h){return '/build/plaza/'+h.id;},blog_posts:function(h){return '/blog/'+(h.slug||h.id);},oa_articles:function(h){return '/build/oa-article/'+h.id;},users:function(){return '#';},official_accounts:function(h){return '/build/channels?account='+h.id;}};
     for (var i = 0; i < pageItems.length; i++) {
         var h = pageItems[i], type = h._content_type || 'other', icon = icons[type] || '📄';
         var title = (h._formatted && (h._formatted.title || h._formatted.name)) || h.title || h.name || SEARCH_I18N.untitled;

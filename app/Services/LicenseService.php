@@ -13,6 +13,8 @@ class LicenseService
 {
     public function __construct(
         protected TimeRestrictionService $timeRestriction,
+        protected IpRestrictionService $ipRestriction,
+        protected GeoFenceService $geoFence,
     ) {}
 
     /**
@@ -174,6 +176,34 @@ class LicenseService
             $result['error_code'] = 'LICENSE_TIME_RESTRICTED';
             $result['time_restriction'] = $timeCheck;
             return $result;
+        }
+
+        $clientIp = (string) (request()->ip() ?? '');
+
+        // M2-92 IP 范围限制
+        if ($clientIp !== ''
+            && config('license-restrictions.ip_restriction.enabled', true)
+            && config('license-restrictions.ip_restriction.check_on_validate', true)) {
+            $ipCheck = $this->ipRestriction->check((int) $license->id, $clientIp, 'validate');
+            if (! ($ipCheck['allowed'] ?? true)) {
+                $result['message'] = $ipCheck['reason'] ?? 'IP 不在允许范围';
+                $result['error_code'] = 'LICENSE_IP_RESTRICTED';
+                $result['ip_restriction'] = $ipCheck;
+                return $result;
+            }
+        }
+
+        // M2-93 地理围栏
+        if ($clientIp !== ''
+            && config('license-restrictions.geo_fence.enabled', true)
+            && config('license-restrictions.geo_fence.check_on_validate', true)) {
+            $geoCheck = $this->geoFence->check((int) $license->id, $clientIp, 'validate');
+            if (! ($geoCheck['allowed'] ?? true)) {
+                $result['message'] = $geoCheck['reason'] ?? '当前地区不允许使用';
+                $result['error_code'] = 'DEVICE_REGION_BLOCKED';
+                $result['geo_fence'] = $geoCheck;
+                return $result;
+            }
         }
 
         // 检查设备数量是否超限

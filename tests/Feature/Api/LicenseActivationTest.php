@@ -275,6 +275,32 @@ class LicenseActivationTest extends TestCase
             ->assertJsonPath('error.code', 'LICENSE_NOT_ACTIVATABLE');
     }
 
+    public function test_activate_blocks_ip_outside_whitelist(): void
+    {
+        \App\Models\LicenseRestriction::create([
+            'restrictable_type' => 'license',
+            'restrictable_id' => $this->license->id,
+            'type' => 'ip_range',
+            'is_active' => true,
+            'action' => 'block',
+            'ip_ranges' => ['10.0.0.0/8'],
+            'ip_whitelist' => [],
+            'ip_blacklist' => [],
+        ]);
+
+        $fp = $this->fingerprintService->generate($this->realDeviceComponents);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1']);
+
+        $this->securePostJson('/api/license/activate', [
+            'license_key' => $this->licenseKey,
+            'fingerprint' => $fp,
+            'components' => $this->realDeviceComponents,
+        ])
+            ->assertStatus(403)
+            ->assertJsonPath('error.code', 'LICENSE_IP_RESTRICTED');
+    }
+
     // ─── 安全中间件测试 ───
 
     public function test_rejects_missing_nonce(): void

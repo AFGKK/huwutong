@@ -11,7 +11,9 @@ use App\Models\LicenseActivation;
 use App\Services\DeviceLimiter;
 use App\Services\FingerprintMatcher;
 use App\Services\FingerprintService;
+use App\Services\GeoFenceService;
 use App\Services\HoneypotService;
+use App\Services\IpRestrictionService;
 use App\Services\LicenseService;
 use App\Services\TimeRestrictionService;
 use Illuminate\Http\JsonResponse;
@@ -26,6 +28,8 @@ class ActivateController extends Controller
         protected FingerprintMatcher  $fingerprintMatcher,
         protected DeviceLimiter       $deviceLimiter,
         protected TimeRestrictionService $timeRestriction,
+        protected IpRestrictionService $ipRestriction,
+        protected GeoFenceService     $geoFence,
         protected HoneypotService     $honeypotService,
     ) {}
 
@@ -140,6 +144,34 @@ class ActivateController extends Controller
                 403,
                 ['time_restriction' => $timeCheck]
             );
+        }
+
+        // M2-92 IP 范围限制
+        if (config('license-restrictions.ip_restriction.enabled', true)
+            && config('license-restrictions.ip_restriction.check_on_activate', true)) {
+            $ipCheck = $this->ipRestriction->check((int) $license->id, (string) $request->ip(), 'activate');
+            if (! ($ipCheck['allowed'] ?? true)) {
+                return ApiResponse::error(
+                    'LICENSE_IP_RESTRICTED',
+                    $ipCheck['reason'] ?? __('app.api.activate.ip_restricted'),
+                    403,
+                    ['ip_restriction' => $ipCheck]
+                );
+            }
+        }
+
+        // M2-93 地理围栏
+        if (config('license-restrictions.geo_fence.enabled', true)
+            && config('license-restrictions.geo_fence.check_on_activate', true)) {
+            $geoCheck = $this->geoFence->check((int) $license->id, (string) $request->ip(), 'activate');
+            if (! ($geoCheck['allowed'] ?? true)) {
+                return ApiResponse::error(
+                    'DEVICE_REGION_BLOCKED',
+                    $geoCheck['reason'] ?? __('app.api.activate.region_blocked'),
+                    403,
+                    ['geo_fence' => $geoCheck]
+                );
+            }
         }
 
         // 先将 License 从 pending 转为 active

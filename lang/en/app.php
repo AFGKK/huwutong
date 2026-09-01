@@ -1908,6 +1908,8 @@ return [
             'not_activatable' => 'License status ":status" cannot be activated',
             'expired' => 'License expired',
             'device_limit' => 'Device limit reached (:max)',
+            'ip_restricted' => 'Current IP is not allowed for this license',
+            'region_blocked' => 'Current region is not allowed to activate this license',
         ],
         'order' => [
             'sku_created' => 'SKU created',

@@ -12,9 +12,9 @@
     <link rel="canonical" href="{{ url('/blog') }}">
     @include('public.partials.tracking')
     <script>window.BLOG_I18N = @json(__('app.blog_page'));</script>
-    <link rel="alternate" type="application/rss+xml" title="{{ __('app.blog_page.rss_latest') }}" href="/blog/rss/latest">
-    <link rel="alternate" type="application/rss+xml" title="{{ __('app.blog_page.rss_blog') }}" href="/blog/rss">
-    <link rel="alternate" type="application/rss+xml" title="{{ __('app.blog_page.rss_changelog') }}" href="/blog/rss/changelog">
+    <link rel="alternate" type="application/rss+xml" title="{{ __('app.blog_page.rss_latest') }}" href="/api/rss/latest">
+    <link rel="alternate" type="application/rss+xml" title="{{ __('app.blog_page.rss_blog') }}" href="/api/rss">
+    <link rel="alternate" type="application/rss+xml" title="{{ __('app.blog_page.rss_changelog') }}" href="/api/rss/changelog">
     @vite('resources/css/public.css')
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <style>
@@ -169,7 +169,7 @@
                         <button onclick="switchView('changelog')" id="tab-changelog" class="px-5 py-2 rounded-full font-medium text-sm transition bg-white text-gray-600 hover:bg-gray-100 border border-gray-200">{{ __('app.blog_page.tab_changelog') }}</button>
                         <span class="mx-2 text-gray-200">|</span>
                         <button onclick="toggleSubscribe()" class="text-xs text-gray-400 hover:text-slate-900 transition">📬 {{ __('app.blog_page.subscribe') }}</button>
-                        <a href="/blog/rss" class="text-xs text-gray-400 hover:text-slate-900 transition">📡 RSS</a>
+                        <a href="/api/rss" class="text-xs text-gray-400 hover:text-slate-900 transition">📡 RSS</a>
                     </div>
                 </div>
 

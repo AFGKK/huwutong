@@ -68,6 +68,7 @@ Route::get('/pricing', function () {
         ->orderBy('sort_order')
         ->get()
         ->map(fn ($plan) => [
+            'id' => $plan->id,
             'slug' => $plan->slug,
             'name' => $plan->name,
             'description' => $plan->description,
@@ -141,9 +142,12 @@ Route::get('/docs/webhooks', [\App\Http\Controllers\Public\IntegrationDocsContro
 Route::get('/blog', function () {
     return view('public.blog');
 });
+Route::redirect('/blog/rss', '/api/rss', 301);
+Route::redirect('/blog/rss/latest', '/api/rss/latest', 301);
+Route::redirect('/blog/rss/changelog', '/api/rss/changelog', 301);
 Route::get('/blog/{slug}', function ($slug) {
     return view('public.blog', ['slug' => $slug]);
-});
+})->where('slug', '^(?!rss$).+');
 // 帮助中心/知识库 (M2-107)
 Route::get('/help', function () {
     return view('public.help');

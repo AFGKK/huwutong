@@ -137,4 +137,32 @@ class MarketingPagesTest extends TestCase
                 ],
             ]);
     }
+
+    /** @test */
+    public function pricing_page_exposes_plan_ids_in_subscribe_links(): void
+    {
+        $tenant = \App\Models\Tenant::factory()->create();
+        $plan = \App\Models\PricingPlan::factory()->create([
+            'tenant_id' => $tenant->id,
+            'slug' => 'basic',
+            'name' => '基础版',
+            'price_monthly' => 99,
+            'price_yearly' => 990,
+            'is_active' => true,
+            'is_public' => true,
+            'sort_order' => 2,
+        ]);
+
+        $html = $this->get('/pricing')->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-plan-id="'.$plan->id.'"', $html);
+        $this->assertStringContainsString('/build/subscribe/'.$plan->id.'?period=monthly', $html);
+        $this->assertStringNotContainsString('/build/subscribe/482?', $html);
+    }
+
+    /** @test */
+    public function blog_rss_redirects_to_api_rss(): void
+    {
+        $this->get('/blog/rss')->assertRedirect('/api/rss');
+    }
 }

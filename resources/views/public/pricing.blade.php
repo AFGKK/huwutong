@@ -260,6 +260,14 @@
     <section id="comparison" class="py-16 md:py-20 bg-gray-50">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 class="text-3xl font-bold text-gray-900 text-center mb-12">{{ __('app.pricing.compare_title') }}</h2>
+            @php
+                $plansBySlug = collect($plans)->keyBy('slug');
+                $stickyBasicId = $plansBySlug->get('basic')['id'] ?? null;
+                $stickyProId = $plansBySlug->get('pro')['id'] ?? null;
+                $stickyEntId = $plansBySlug->get('enterprise')['id']
+                    ?? $plansBySlug->get('ent')['id']
+                    ?? null;
+            @endphp
             <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <table id="comparison-table" class="w-full text-sm" style="table-layout:fixed">
                     <thead>
@@ -275,19 +283,31 @@
                                 <div class="font-semibold text-gray-600 text-xs">{{ __('app.pricing.plan_basic') }}</div>
                                 <div class="text-base font-bold text-gray-900 mt-0.5 price-display" id="sticky-basic-price" data-plan="basic">¥99</div>
                                 <div class="text-[10px] text-gray-400" id="sticky-basic-period">{{ __('app.pricing.per_month') }}</div>
-                                <a href="/build/subscribe/482?period=monthly" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.subscribe_short') }}</a>
+                                @if($stickyBasicId)
+                                <a href="/build/subscribe/{{ $stickyBasicId }}?period=monthly" class="sticky-cta mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium" data-plan-id="{{ $stickyBasicId }}">{{ __('app.pricing.subscribe_short') }}</a>
+                                @else
+                                <a href="/build/register" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.start_free') }}</a>
+                                @endif
                             </th>
                             <th class="text-center" style="width:auto;padding:14px 8px;background:#eff6ff;position:sticky;top:80px;z-index:20">
                                 <div class="font-semibold" style="color:var(--pg-primary);font-size:12px">{{ __('app.pricing.plan_pro') }}</div>
                                 <div class="text-base font-bold text-gray-900 mt-0.5 price-display" id="sticky-pro-price" data-plan="pro">¥299</div>
                                 <div class="text-[10px]" style="color:#6b7280" id="sticky-pro-period">{{ __('app.pricing.per_month') }}</div>
-                                <a href="/build/subscribe/483?period=monthly" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.subscribe_short') }}</a>
+                                @if($stickyProId)
+                                <a href="/build/subscribe/{{ $stickyProId }}?period=monthly" class="sticky-cta mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium" data-plan-id="{{ $stickyProId }}">{{ __('app.pricing.subscribe_short') }}</a>
+                                @else
+                                <a href="/contact" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.subscribe_short') }}</a>
+                                @endif
                             </th>
                             <th class="text-center" style="width:auto;padding:14px 8px;background:#fff;position:sticky;top:80px;z-index:20">
                                 <div class="font-semibold text-gray-600 text-xs">{{ __('app.pricing.plan_ent') }}</div>
                                 <div class="text-base font-bold text-gray-900 mt-0.5 price-display" id="sticky-ent-price" data-plan="ent">¥999</div>
                                 <div class="text-[10px] text-gray-400" id="sticky-ent-period">{{ __('app.pricing.per_month') }}</div>
-                                <a href="/build/subscribe/484?period=monthly" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.subscribe_short') }}</a>
+                                @if($stickyEntId)
+                                <a href="/build/subscribe/{{ $stickyEntId }}?period=monthly" class="sticky-cta mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium" data-plan-id="{{ $stickyEntId }}">{{ __('app.pricing.subscribe_short') }}</a>
+                                @else
+                                <a href="/contact" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.subscribe_short') }}</a>
+                                @endif
                             </th>
                         </tr>
                     </thead>
@@ -494,6 +514,13 @@
                 }
             }
             animatePrice(priceEl);
+        });
+
+        document.querySelectorAll('.sticky-cta[data-plan-id]').forEach(function(el) {
+            var planId = el.dataset.planId || '';
+            if (planId) {
+                el.setAttribute('href', '/build/subscribe/' + planId + '?period=' + (isYearly ? 'yearly' : 'monthly'));
+            }
         });
 
         document.querySelectorAll('[id^="sticky-price-"]').forEach(function(el) {

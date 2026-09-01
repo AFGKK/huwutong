@@ -197,7 +197,7 @@ class GeoFenceService
         }
 
         return [
-            'allowed' => $result === 'allowed',
+            'allowed' => in_array($result, ['allowed', 'audited'], true),
             'reason' => $reason,
             'result' => $result,
             'country' => $country,
