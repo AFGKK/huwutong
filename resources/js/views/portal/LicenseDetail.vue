@@ -409,9 +409,24 @@ async function handleUpgrade() {
             t('portal.upgrade_confirm_title'),
             { confirmButtonText: t('portal.confirm_upgrade'), cancelButtonText: t('actions.cancel'), type: 'info' }
         );
-        await licenseApi.update(license.value.id, { type: 'enterprise' });
-        ElMessage.success(t('portal.upgrade_ok'));
-        await fetchDetail();
+
+        let targetId = null;
+        try {
+            const res = await fetch('/api/public/pricing-plans', { headers: { Accept: 'application/json' } });
+            const json = await res.json();
+            const plans = Array.isArray(json?.data) ? json.data : [];
+            const paid = plans
+                .filter((p) => Number(p.price_monthly || 0) > 0)
+                .sort((a, b) => Number(b.price_monthly || 0) - Number(a.price_monthly || 0));
+            const preferred = paid.find((p) => ['enterprise', 'ent', 'pro'].includes(String(p.slug || '')));
+            targetId = (preferred || paid[0])?.id || null;
+        } catch (_) {
+            targetId = null;
+        }
+
+        window.location.href = targetId
+            ? `/build/subscribe/${targetId}?period=monthly`
+            : '/pricing';
     } catch (e) {
         if (e !== 'cancel') {
             ElMessage.error(e.response?.data?.message || t('portal.upgrade_failed'));

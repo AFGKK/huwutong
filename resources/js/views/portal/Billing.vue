@@ -5,6 +5,7 @@
                 <h2>{{ $t('portal.billing_title') }}</h2>
                 <p class="text-muted">{{ $t('portal.billing_subtitle') }}</p>
             </div>
+            <el-button type="primary" @click="goSubscribe">{{ $t('portal.subscribe_cta') }}</el-button>
         </div>
 
         <el-card class="mb-4" shadow="never">
@@ -207,6 +208,10 @@ function formatDate(v) {
     if (!v) return '-';
     const loc = locale.value === 'en' ? 'en-US' : 'zh-CN';
     return new Date(v).toLocaleString(loc);
+}
+
+function goSubscribe() {
+    window.location.href = '/pricing';
 }
 
 async function fetchSubscriptions() {

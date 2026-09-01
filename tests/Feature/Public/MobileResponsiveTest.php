@@ -32,7 +32,8 @@ class MobileResponsiveTest extends TestCase
         $response->assertOk();
 
         $content = $response->getContent();
-        $this->assertStringContainsString('plans-scroll-wrapper', $content);
+        $this->assertStringContainsString('id="plans-container"', $content);
+        $this->assertStringContainsString('overflow-x-auto', $content);
         $this->assertStringContainsString('table-scroll-wrap', $content);
         $this->assertStringContainsString('id="comparison-table"', $content);
     }

@@ -188,7 +188,10 @@
                      data-price-monthly="{{ $monthlyPrice }}"
                      data-price-quarterly="{{ (float)($plan['price_quarterly'] ?? 0) }}"
                      data-price-semi-annually="{{ (float)($plan['price_semi_annually'] ?? 0) }}"
-                     data-price-yearly="{{ $yearlyPrice }}">
+                     data-price-yearly="{{ $yearlyPrice }}"
+                     data-max-products="{{ $limits['max_products'] ?? '' }}"
+                     data-max-activations="{{ $limits['max_activations'] ?? '' }}"
+                     data-plan-name="{{ $plan['name'] }}">
                     @if($isPopular)
                     <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs font-bold px-5 py-1 rounded-full shadow-lg flex items-center gap-1">
                         <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
@@ -261,80 +264,69 @@
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 class="text-3xl font-bold text-gray-900 text-center mb-12">{{ __('app.pricing.compare_title') }}</h2>
             @php
-                $plansBySlug = collect($plans)->keyBy('slug');
-                $stickyBasicId = $plansBySlug->get('basic')['id'] ?? null;
-                $stickyProId = $plansBySlug->get('pro')['id'] ?? null;
-                $stickyEntId = $plansBySlug->get('enterprise')['id']
-                    ?? $plansBySlug->get('ent')['id']
-                    ?? null;
+                $comparePlans = collect($plans)->values();
+                $matrixRows = __('pricing_matrix');
+                if (! is_array($matrixRows)) {
+                    $matrixRows = [];
+                }
+                $matrixSlugAliases = [
+                    'enterprise' => 'ent',
+                    'ent' => 'enterprise',
+                ];
+                $matrixCell = static function (array $row, string $slug) use ($matrixSlugAliases): string {
+                    if (array_key_exists($slug, $row) && $row[$slug] !== null && $row[$slug] !== '') {
+                        return (string) $row[$slug];
+                    }
+                    $alias = $matrixSlugAliases[$slug] ?? null;
+                    if ($alias && array_key_exists($alias, $row) && $row[$alias] !== null && $row[$alias] !== '') {
+                        return (string) $row[$alias];
+                    }
+
+                    return '—';
+                };
             @endphp
-            <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div class="table-scroll-wrap overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <table id="comparison-table" class="w-full text-sm" style="table-layout:fixed">
                     <thead>
                         <tr>
                             <th class="text-left font-semibold text-gray-700" style="width:240px;padding:14px 16px;background:#fff;position:sticky;top:80px;z-index:21">{{ __('app.pricing.compare_feature') }}</th>
-                            <th class="text-center" style="width:auto;padding:14px 8px;background:#fff;position:sticky;top:80px;z-index:20">
-                                <div class="font-semibold text-gray-600 text-xs">{{ __('app.pricing.plan_free') }}</div>
-                                <div class="text-base font-bold text-gray-900 price-display" data-plan="free">¥0</div>
-                                <div class="text-[10px] text-gray-400">{{ __('app.pricing.forever_free') }}</div>
-                                <a href="/build/register" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.start_free') }}</a>
-                            </th>
-                            <th class="text-center" style="width:auto;padding:14px 8px;background:#fff;position:sticky;top:80px;z-index:20">
-                                <div class="font-semibold text-gray-600 text-xs">{{ __('app.pricing.plan_basic') }}</div>
-                                <div class="text-base font-bold text-gray-900 mt-0.5 price-display" id="sticky-basic-price" data-plan="basic">¥99</div>
-                                <div class="text-[10px] text-gray-400" id="sticky-basic-period">{{ __('app.pricing.per_month') }}</div>
-                                @if($stickyBasicId)
-                                <a href="/build/subscribe/{{ $stickyBasicId }}?period=monthly" class="sticky-cta mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium" data-plan-id="{{ $stickyBasicId }}">{{ __('app.pricing.subscribe_short') }}</a>
-                                @else
-                                <a href="/build/register" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.start_free') }}</a>
-                                @endif
-                            </th>
-                            <th class="text-center" style="width:auto;padding:14px 8px;background:#eff6ff;position:sticky;top:80px;z-index:20">
-                                <div class="font-semibold" style="color:var(--pg-primary);font-size:12px">{{ __('app.pricing.plan_pro') }}</div>
-                                <div class="text-base font-bold text-gray-900 mt-0.5 price-display" id="sticky-pro-price" data-plan="pro">¥299</div>
-                                <div class="text-[10px]" style="color:#6b7280" id="sticky-pro-period">{{ __('app.pricing.per_month') }}</div>
-                                @if($stickyProId)
-                                <a href="/build/subscribe/{{ $stickyProId }}?period=monthly" class="sticky-cta mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium" data-plan-id="{{ $stickyProId }}">{{ __('app.pricing.subscribe_short') }}</a>
-                                @else
-                                <a href="/contact" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.subscribe_short') }}</a>
-                                @endif
-                            </th>
-                            <th class="text-center" style="width:auto;padding:14px 8px;background:#fff;position:sticky;top:80px;z-index:20">
-                                <div class="font-semibold text-gray-600 text-xs">{{ __('app.pricing.plan_ent') }}</div>
-                                <div class="text-base font-bold text-gray-900 mt-0.5 price-display" id="sticky-ent-price" data-plan="ent">¥999</div>
-                                <div class="text-[10px] text-gray-400" id="sticky-ent-period">{{ __('app.pricing.per_month') }}</div>
-                                @if($stickyEntId)
-                                <a href="/build/subscribe/{{ $stickyEntId }}?period=monthly" class="sticky-cta mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium" data-plan-id="{{ $stickyEntId }}">{{ __('app.pricing.subscribe_short') }}</a>
-                                @else
-                                <a href="/contact" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.subscribe_short') }}</a>
-                                @endif
-                            </th>
+                            @foreach($comparePlans as $plan)
+                                @php
+                                    $stickyPrice = (float) ($plan['price_monthly'] ?? 0);
+                                    $isPopularCol = ($plan['badge'] ?? '') === 'popular';
+                                @endphp
+                                <th class="text-center" style="width:auto;padding:14px 8px;background:{{ $isPopularCol ? '#eff6ff' : '#fff' }};position:sticky;top:80px;z-index:20">
+                                    <div class="font-semibold text-xs" style="{{ $isPopularCol ? 'color:var(--pg-primary)' : 'color:#4b5563' }}">{{ $plan['name'] }}</div>
+                                    <div class="text-base font-bold text-gray-900 mt-0.5 price-display" id="sticky-price-{{ $plan['slug'] }}" data-plan="{{ $plan['slug'] }}">¥{{ number_format($stickyPrice, $stickyPrice == floor($stickyPrice) ? 0 : 2) }}</div>
+                                    <div class="text-[10px] text-gray-400" id="sticky-period-{{ $plan['slug'] }}">{{ $stickyPrice > 0 ? __('app.pricing.per_month') : __('app.pricing.forever_free') }}</div>
+                                    @if($stickyPrice > 0 && !empty($plan['id']))
+                                        <a href="/build/subscribe/{{ $plan['id'] }}?period=monthly" class="sticky-cta mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium" data-plan-id="{{ $plan['id'] }}">{{ __('app.pricing.subscribe_short') }}</a>
+                                    @else
+                                        <a href="/build/register" class="mt-1.5 inline-block text-xs bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-slate-800 transition font-medium">{{ __('app.pricing.start_free') }}</a>
+                                    @endif
+                                </th>
+                            @endforeach
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @php
-                        $features = __('pricing_matrix');
-                        if (! is_array($features)) {
-                            $features = [];
-                        }
-                        @endphp
-                        @foreach($features as $index => $f)
+                        @foreach($matrixRows as $index => $f)
                         <tr class="feature-row" @if($index % 2 === 0) style="background:#f8fafc" @endif>
                             <td class="py-3 px-4 font-medium text-gray-700" style="min-width:240px;overflow:hidden">
                                 <span class="inline-flex items-center gap-1 group relative cursor-help">
-                                    {{ $f['label'] }}
+                                    {{ $f['label'] ?? '' }}
                                     <svg class="w-3.5 h-3.5 text-gray-300 group-hover:text-slate-500 transition shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    <!-- Tooltip -->
-                                    <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-[260px] whitespace-normal">
-                                        {{ $f['tip'] }}
+                                    <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-[260px] whitespace-normal">
+                                        {{ $f['tip'] ?? '' }}
                                         <span class="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-gray-900"></span>
                                     </span>
                                 </span>
                             </td>
-                            <td class="text-center py-3 px-3 text-sm text-gray-600">{{ $f['free'] }}</td>
-                            <td class="text-center py-3 px-3 text-sm text-gray-600">{{ $f['basic'] }}</td>
-                            <td class="text-center py-3 px-3 text-sm font-medium" style="background:#eff6ff;color:#1e40af">{{ $f['pro'] }}</td>
-                            <td class="text-center py-3 px-3 text-sm text-gray-600">{{ $f['ent'] }}</td>
+                            @foreach($comparePlans as $plan)
+                                @php $isPopularCol = ($plan['badge'] ?? '') === 'popular'; @endphp
+                                <td class="text-center py-3 px-3 text-sm {{ $isPopularCol ? 'font-medium' : 'text-gray-600' }}" @if($isPopularCol) style="background:#eff6ff;color:#1e40af" @endif>
+                                    {{ $matrixCell($f, (string) ($plan['slug'] ?? '')) }}
+                                </td>
+                            @endforeach
                         </tr>
                         @endforeach
                     </tbody>
@@ -418,6 +410,7 @@
         perMonth: @json(__('app.pricing.per_month')),
         perMonthYearly: @json(__('app.landing.pricing_per_month_yearly')),
         yearlyHint: @json(__('app.landing.pricing_yearly_hint')),
+        foreverFree: @json(__('app.pricing.forever_free')),
         freeLabel: @json(__('app.pricing.free_label')),
         planFree: @json(__('app.pricing.plan_free')),
         planBasic: @json(__('app.pricing.plan_basic')),
@@ -429,6 +422,7 @@
         calcEntDesc: @json(__('app.pricing.calc_ent_desc')),
         calcYearlySave: @json(__('app.pricing.calc_yearly_save')),
         enterpriseSubmitFail: @json(__('app.pricing.enterprise_submit_fail')),
+        calcRecommendPrefix: @json(__('app.pricing.calc_recommend_prefix')),
     };
 
     function formatPricingPrice(n) {
@@ -523,27 +517,22 @@
             }
         });
 
-        // 粘性栏价格/周期：id 为 sticky-{basic|pro|ent}-price|period，需映射到 plan-card slug
-        ['basic', 'pro', 'ent'].forEach(function(key) {
-            var priceEl = document.getElementById('sticky-' + key + '-price');
-            var periodEl = document.getElementById('sticky-' + key + '-period');
-            if (!priceEl && !periodEl) return;
-            var card = document.querySelector('.plan-card[data-slug="' + key + '"]')
-                || (key === 'ent' ? document.querySelector('.plan-card[data-slug="enterprise"]') : null);
+        document.querySelectorAll('[id^="sticky-price-"]').forEach(function(el) {
+            var slug = el.id.replace('sticky-price-', '');
+            var card = document.querySelector('.plan-card[data-slug="' + slug + '"]');
             if (!card) return;
             var monthly = parseFloat(card.dataset.priceMonthly) || 0;
             var yearly = parseFloat(card.dataset.priceYearly) || 0;
             var resolved = (isYearly && yearly > 0)
                 ? resolvePricingYearly(monthly, yearly)
                 : { display: monthly, period: 'month' };
-            if (priceEl) {
-                priceEl.textContent = '¥' + formatPricingPrice(resolved.display);
-                animatePrice(priceEl);
-            }
+            el.textContent = '¥' + formatPricingPrice(resolved.display);
+            animatePrice(el);
+            var periodEl = document.getElementById('sticky-period-' + slug);
             if (periodEl) {
-                periodEl.textContent = resolved.period === 'month_yearly'
-                    ? PRICING_I18N.perMonthYearly
-                    : PRICING_I18N.perMonth;
+                periodEl.textContent = monthly <= 0
+                    ? (PRICING_I18N.foreverFree || PRICING_I18N.perMonth)
+                    : (resolved.period === 'month_yearly' ? PRICING_I18N.perMonthYearly : PRICING_I18N.perMonth);
             }
         });
     }
@@ -561,62 +550,59 @@
     function updateCalculator() {
         var products = parseInt(document.getElementById('calc-products').value) || 1;
         var activations = parseInt(document.getElementById('calc-activations').value) || 100;
-        
+
         document.getElementById('calc-products-display').textContent = products;
         document.getElementById('calc-activations-display').textContent = activations.toLocaleString();
-        
-        // Determine recommended plan — 价格从卡片 data 读取，与真实套餐一致
-        var plan = 'free', planName = PRICING_I18N.planFree, planDesc = PRICING_I18N.calcFreeDesc, unitPrice = 0;
-        var card = null;
-        if (products <= 1 && activations <= 100) {
-            plan = 'free'; planName = PRICING_I18N.planFree; planDesc = PRICING_I18N.calcFreeDesc;
-        } else if (products <= 5 && activations <= 1000) {
-            plan = 'basic'; planName = PRICING_I18N.planBasic; planDesc = PRICING_I18N.calcBasicDesc;
-            card = document.querySelector('.plan-card[data-slug="basic"]');
-        } else if (products <= 50 && activations <= 10000) {
-            plan = 'pro'; planName = PRICING_I18N.planPro; planDesc = PRICING_I18N.calcProDesc;
-            card = document.querySelector('.plan-card[data-slug="pro"]');
-        } else {
-            plan = 'ent'; planName = PRICING_I18N.planEnt; planDesc = PRICING_I18N.calcEntDesc;
-            card = document.querySelector('.plan-card[data-slug="enterprise"]')
-                || document.querySelector('.plan-card[data-slug="ent"]');
+
+        function fits(card) {
+            var maxP = parseFloat(card.dataset.maxProducts);
+            var maxA = parseFloat(card.dataset.maxActivations);
+            var okP = isNaN(maxP) || maxP < 0 || products <= maxP;
+            var okA = isNaN(maxA) || maxA < 0 || activations <= maxA;
+            return okP && okA;
         }
-        if (card) {
-            var m = parseFloat(card.dataset.priceMonthly) || 0;
-            var y = parseFloat(card.dataset.priceYearly) || 0;
-            unitPrice = _isYearly && y > 0 ? resolvePricingYearly(m, y).display : m;
+
+        var cards = Array.prototype.slice.call(document.querySelectorAll('.plan-card[data-slug]'))
+            .sort(function(a, b) {
+                return (parseFloat(a.dataset.priceMonthly) || 0) - (parseFloat(b.dataset.priceMonthly) || 0);
+            });
+
+        var card = cards.find(fits) || cards[cards.length - 1] || null;
+        var planName = card ? (card.dataset.planName || card.dataset.slug || '') : PRICING_I18N.planFree;
+        var monthly = card ? (parseFloat(card.dataset.priceMonthly) || 0) : 0;
+        var yearly = card ? (parseFloat(card.dataset.priceYearly) || 0) : 0;
+        var unitPrice = _isYearly && yearly > 0 ? resolvePricingYearly(monthly, yearly).display : monthly;
+        var planDesc = (PRICING_I18N.calcRecommendPrefix || '') + planName;
+        if (!planDesc || planDesc === 'null') {
+            planDesc = planName;
         }
-        
+
         document.getElementById('calc-plan-name').textContent = planName;
         document.getElementById('calc-plan-desc').textContent = planDesc;
         document.getElementById('calc-plan-price').textContent = '¥' + formatPricingPrice(unitPrice);
-        document.getElementById('calc-plan-period').textContent = _isYearly ? PRICING_I18N.perMonthYearly : PRICING_I18N.perMonth;
-        
+        document.getElementById('calc-plan-period').textContent = monthly <= 0
+            ? (PRICING_I18N.foreverFree || PRICING_I18N.perMonth)
+            : (_isYearly ? PRICING_I18N.perMonthYearly : PRICING_I18N.perMonth);
+
         var yearlyHint = document.getElementById('calc-plan-yearly');
         if (yearlyHint) {
             var savings = 0;
-            if (card) {
-                var cm = parseFloat(card.dataset.priceMonthly) || 0;
-                var cy = parseFloat(card.dataset.priceYearly) || 0;
-                if (cy > 0 && cm > 0) {
-                    savings = cy < cm ? Math.max(0, (cm - cy) * 12) : Math.max(0, cm * 12 - cy);
-                }
+            if (card && yearly > 0 && monthly > 0) {
+                savings = yearly < monthly ? Math.max(0, (monthly - yearly) * 12) : Math.max(0, monthly * 12 - yearly);
             }
-            yearlyHint.textContent = savings > 0 ? (PRICING_I18N.calcYearlySave ||'').replace(':amount', formatPricingPrice(savings)) : '';
-            yearlyHint.classList.toggle('hidden', !_isYearly || plan === 'free' || savings <= 0);
+            yearlyHint.textContent = savings > 0 ? (PRICING_I18N.calcYearlySave || '').replace(':amount', formatPricingPrice(savings)) : '';
+            yearlyHint.classList.toggle('hidden', !_isYearly || monthly <= 0 || savings <= 0);
         }
-        
+
         document.getElementById('calc-p-products').textContent = products;
         document.getElementById('calc-p-activations').textContent = activations.toLocaleString();
-        
+
         var annualTotal = 0;
-        if (card) {
-            var am = parseFloat(card.dataset.priceMonthly) || 0;
-            var ay = parseFloat(card.dataset.priceYearly) || 0;
-            if (_isYearly && ay > 0) {
-                annualTotal = ay < am ? Math.round(ay * 12) : ay;
+        if (card && monthly > 0) {
+            if (_isYearly && yearly > 0) {
+                annualTotal = yearly < monthly ? Math.round(yearly * 12) : yearly;
             } else {
-                annualTotal = Math.round(am * 12);
+                annualTotal = Math.round(monthly * 12);
             }
         }
         document.getElementById('calc-p-total').textContent = annualTotal > 0 ? '¥' + formatPricingPrice(annualTotal) : PRICING_I18N.freeLabel;

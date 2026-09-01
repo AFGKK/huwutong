@@ -737,6 +737,7 @@ return [
         'forever_free' => 'Free forever',
         'free_label' => 'Free',
         'calc_free_desc' => 'For individuals getting started',
+        'calc_recommend_prefix' => 'Recommended: ',
         'calc_basic_desc' => 'For small teams',
         'calc_pro_desc' => 'For growing teams',
         'calc_ent_desc' => 'For large organizations',

@@ -158,7 +158,8 @@ class MarketingPagesTest extends TestCase
         $this->assertStringContainsString('data-plan-id="'.$plan->id.'"', $html);
         $this->assertStringContainsString('/build/subscribe/'.$plan->id.'?period=monthly', $html);
         $this->assertStringContainsString('class="sticky-cta', $html);
-        $this->assertMatchesRegularExpression('/id="sticky-basic-price"[^>]*data-plan="basic"/', $html);
+        $this->assertStringContainsString('id="sticky-price-'.$plan->slug.'"', $html);
+        $this->assertStringContainsString('table-scroll-wrap', $html);
         $this->assertStringNotContainsString('data-plan-id=""', $html);
     }
 

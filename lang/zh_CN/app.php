@@ -715,6 +715,7 @@ return [
         'forever_free' => '永久免费',
         'free_label' => '免费',
         'calc_free_desc' => '适合个人入门',
+        'calc_recommend_prefix' => '推荐：',
         'calc_basic_desc' => '适合小型团队',
         'calc_pro_desc' => '适合成长型团队',
         'calc_ent_desc' => '适合大型组织',
