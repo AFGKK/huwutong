@@ -14,7 +14,7 @@
             </div>
             <div class="header-right">
               <el-button @click="a1_fetchAll"><el-icon><Refresh /></el-icon>{{ t(`${P1}.refresh`) }}</el-button>
-              <el-button type="primary" @click="a1_showCreate = true"><el-icon><Plus /></el-icon>{{ t(`${P1}.create_key`) }}</el-button>
+              <el-button type="primary" @click="a1_openCreate"><el-icon><Plus /></el-icon>{{ t(`${P1}.create_key`) }}</el-button>
             </div>
           </div>
 
@@ -41,7 +41,9 @@
               <el-table-column :label="t(`${P1}.columns.key_id`)" min-width="160"><template #default="{ row }"><code class="key-id-text">{{ row.key_id }}</code></template></el-table-column>
               <el-table-column :label="t(`${P1}.columns.tier`)" width="100"><template #default="{ row }"><el-tag :type="a1_tierType(row.tier)" size="small">{{ a1_tierLabel(row.tier) }}</el-tag></template></el-table-column>
               <el-table-column :label="t(`${P1}.columns.permissions`)" width="90"><template #default="{ row }"><el-tag :type="a1_permType(row.permissions)" size="small">{{ a1_permLabel(row.permissions) }}</el-tag></template></el-table-column>
-              <el-table-column :label="t(`${P1}.columns.rate_limit`)" width="70">{{ row.rate_limit || a1_emDash }}</el-table-column>
+              <el-table-column :label="t(`${P1}.columns.rate_limit`)" width="70">
+                <template #default="{ row }">{{ row.rate_limit || a1_emDash }}</template>
+              </el-table-column>
               <el-table-column :label="t(`${P1}.columns.quota`)" width="100">
                 <template #default="{ row }">
                   <span v-if="row.usage_quota">{{ row.usage_count }}/{{ row.usage_quota }}</span>
@@ -61,7 +63,9 @@
                   <span v-else class="text-muted">{{ t(`${P1}.unlimited`) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column :label="t(`${P1}.columns.last_used`)" width="140">{{ row.last_used_at ? a1_formatTime(row.last_used_at) : t(`${P1}.never_used`) }}</el-table-column>
+              <el-table-column :label="t(`${P1}.columns.last_used`)" width="140">
+                <template #default="{ row }">{{ row.last_used_at ? a1_formatTime(row.last_used_at) : t(`${P1}.never_used`) }}</template>
+              </el-table-column>
               <el-table-column :label="t(`${P1}.columns.expires`)" width="130">
                 <template #default="{ row }">
                   <span v-if="row.expires_at" :class="a1_isExpired(row.expires_at) ? 'text-danger' : ''">{{ a1_formatTime(row.expires_at) }}</span>
@@ -82,6 +86,197 @@
             </el-table>
             <el-empty v-if="!a1_loading && a1_keys.length === 0" :image-size="80" :description="t(`${P1}.empty`)" />
           </el-card>
+
+          <!-- 创建密钥 -->
+          <el-dialog v-model="a1_showCreate" :title="t(`${P1}.create_dialog.title`)" width="580px" :close-on-click-modal="false" @close="a1_resetForm">
+            <el-form ref="a1_createFormRef" :model="a1_createForm" :rules="a1_createRules" label-position="top">
+              <el-form-item :label="t(`${P1}.columns.name`)" prop="name">
+                <el-input v-model="a1_createForm.name" :placeholder="t(`${P1}.form.name_ph`)" maxlength="100" show-word-limit />
+              </el-form-item>
+              <el-form-item :label="t(`${P1}.form.description`)">
+                <el-input v-model="a1_createForm.description" type="textarea" :rows="2" :placeholder="t(`${P1}.form.description_ph`)" maxlength="500" />
+              </el-form-item>
+              <el-row :gutter="16">
+                <el-col :span="12">
+                  <el-form-item :label="t(`${P1}.columns.tier`)">
+                    <el-select v-model="a1_createForm.tier" class="w-full">
+                      <el-option value="free" :label="t(`${P1}.tier.free`)" />
+                      <el-option value="standard" :label="t(`${P1}.tier.standard`)" />
+                      <el-option value="enterprise" :label="t(`${P1}.tier.enterprise`)" />
+                      <el-option value="custom" :label="t(`${P1}.tier.custom`)" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item :label="t(`${P1}.columns.permissions`)">
+                    <el-select v-model="a1_createForm.permissions" class="w-full">
+                      <el-option value="read-only" :label="t(`${P1}.form.perm_read_only`)" />
+                      <el-option value="read-write" :label="t(`${P1}.form.perm_read_write`)" />
+                      <el-option value="admin" :label="t(`${P1}.form.perm_admin`)" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-form-item :label="t(`${P1}.form.endpoints`)">
+                <el-select v-model="a1_createForm.allowed_endpoints" multiple filterable allow-create default-first-option :placeholder="t(`${P1}.form.endpoints_ph`)" class="w-full">
+                  <el-option value="api/license/*" label="api/license/*" />
+                  <el-option value="api/licenses/*" label="api/licenses/*" />
+                  <el-option value="api/devices/*" label="api/devices/*" />
+                  <el-option value="api/customers/*" label="api/customers/*" />
+                </el-select>
+              </el-form-item>
+              <el-row :gutter="16">
+                <el-col :span="8">
+                  <el-form-item :label="t(`${P1}.columns.rate_limit`)">
+                    <el-input-number v-model="a1_createForm.rate_limit" :min="1" :max="10000" class="w-full" />
+                    <div class="form-tip">{{ t(`${P1}.form.rate_limit_hint`) }}</div>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item :label="t(`${P1}.form.usage_quota`)">
+                    <el-input-number v-model="a1_createForm.usage_quota" :min="1" :max="99999999" class="w-full" />
+                    <div class="form-tip">{{ t(`${P1}.form.usage_quota_hint`) }}</div>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item :label="t(`${P1}.columns.daily`)">
+                    <el-input-number v-model="a1_createForm.daily_quota" :min="1" :max="99999999" class="w-full" />
+                    <div class="form-tip">{{ t(`${P1}.form.daily_quota_hint`) }}</div>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-form-item :label="t(`${P1}.columns.allowed_ip`)">
+                <el-input v-model="a1_createForm.allowed_ip" :placeholder="t(`${P1}.form.allowed_ip_ph`)" />
+              </el-form-item>
+              <el-form-item :label="t(`${P1}.columns.expires`)">
+                <el-date-picker
+                  v-model="a1_createForm.expires_at"
+                  type="datetime"
+                  :placeholder="t(`${P1}.form.expires_ph`)"
+                  clearable
+                  class="w-full"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                  :disabled-date="d => d <= new Date()"
+                />
+              </el-form-item>
+            </el-form>
+            <template #footer>
+              <el-button @click="a1_showCreate = false">{{ t('actions.cancel') }}</el-button>
+              <el-button type="primary" :loading="a1_creating" @click="a1_handleCreate">{{ t('actions.create') }}</el-button>
+            </template>
+          </el-dialog>
+
+          <!-- 创建/重生成功 — 展示 Secret -->
+          <el-dialog v-model="a1_showSecret" :title="t(`${P1}.secret_dialog.title`)" width="550px" :close-on-click-modal="false">
+            <el-alert
+              :title="t(`${P1}.secret_dialog.alert_title`)"
+              type="warning"
+              :closable="false"
+              show-icon
+              :description="t(`${P1}.secret_dialog.alert_desc`)"
+              class="mb-4"
+            />
+            <div class="secret-display">
+              <div class="secret-label">{{ t(`${P1}.columns.key_id`) }}</div>
+              <div class="secret-row">
+                <code class="secret-text">{{ a1_newKeyData.key_id }}</code>
+                <el-button text @click="a1_copyText(a1_newKeyData.key_id)"><el-icon><CopyDocument /></el-icon></el-button>
+              </div>
+              <div class="secret-label mt-3">{{ t(`${P1}.secret_dialog.secret_key`) }}</div>
+              <div class="secret-row">
+                <code class="secret-text secret-value">{{ a1_showSecretText ? a1_newKeyData.secret : t(`${P1}.secret_dialog.masked`) }}</code>
+                <el-button text @click="a1_copyText(a1_newKeyData.secret)"><el-icon><CopyDocument /></el-icon></el-button>
+                <el-button text @click="a1_showSecretText = !a1_showSecretText">
+                  <el-icon><View v-if="!a1_showSecretText" /><Hide v-else /></el-icon>
+                </el-button>
+              </div>
+              <div class="secret-info mt-3">
+                <div>{{ t(`${P1}.columns.name`) }}: {{ a1_newKeyData.name }}</div>
+                <div>{{ t(`${P1}.columns.permissions`) }}: {{ a1_permLabel(a1_newKeyData.permissions) }}</div>
+                <div v-if="a1_newKeyData.tier">{{ t(`${P1}.columns.tier`) }}: {{ a1_tierLabel(a1_newKeyData.tier) }}</div>
+                <div v-if="a1_newKeyData.expires_at">{{ t(`${P1}.columns.expires`) }}: {{ a1_formatTime(a1_newKeyData.expires_at) }}</div>
+                <div v-if="a1_newKeyData.created_at">{{ t(`${P1}.secret_dialog.created_at`) }}: {{ a1_formatTime(a1_newKeyData.created_at) }}</div>
+              </div>
+            </div>
+            <template #footer>
+              <el-button type="primary" @click="a1_closeSecret">{{ t(`${P1}.secret_dialog.saved_btn`) }}</el-button>
+            </template>
+          </el-dialog>
+
+          <!-- 编辑密钥 -->
+          <el-dialog v-model="a1_showEditDialog" :title="t(`${P1}.edit_dialog.title`)" width="580px" :close-on-click-modal="false">
+            <el-form ref="a1_editFormRef" :model="a1_editForm" label-position="top">
+              <el-form-item :label="t(`${P1}.columns.name`)">
+                <el-input v-model="a1_editForm.name" maxlength="100" show-word-limit />
+              </el-form-item>
+              <el-form-item :label="t(`${P1}.form.description`)">
+                <el-input v-model="a1_editForm.description" type="textarea" :rows="2" maxlength="500" />
+              </el-form-item>
+              <el-row :gutter="16">
+                <el-col :span="12">
+                  <el-form-item :label="t(`${P1}.columns.tier`)">
+                    <el-select v-model="a1_editForm.tier" class="w-full">
+                      <el-option value="free" :label="t(`${P1}.tier.free`)" />
+                      <el-option value="standard" :label="t(`${P1}.tier.standard`)" />
+                      <el-option value="enterprise" :label="t(`${P1}.tier.enterprise`)" />
+                      <el-option value="custom" :label="t(`${P1}.tier.custom`)" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item :label="t(`${P1}.columns.permissions`)">
+                    <el-select v-model="a1_editForm.permissions" class="w-full">
+                      <el-option value="read-only" :label="t(`${P1}.form.perm_read_only`)" />
+                      <el-option value="read-write" :label="t(`${P1}.form.perm_read_write`)" />
+                      <el-option value="admin" :label="t(`${P1}.form.perm_admin`)" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-form-item :label="t(`${P1}.form.endpoints`)">
+                <el-select v-model="a1_editForm.allowed_endpoints" multiple filterable allow-create default-first-option :placeholder="t(`${P1}.form.endpoints_ph`)" class="w-full">
+                  <el-option value="api/license/*" label="api/license/*" />
+                  <el-option value="api/licenses/*" label="api/licenses/*" />
+                  <el-option value="api/devices/*" label="api/devices/*" />
+                  <el-option value="api/customers/*" label="api/customers/*" />
+                </el-select>
+              </el-form-item>
+              <el-row :gutter="16">
+                <el-col :span="8">
+                  <el-form-item :label="t(`${P1}.columns.rate_limit`)">
+                    <el-input-number v-model="a1_editForm.rate_limit" :min="1" :max="10000" class="w-full" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item :label="t(`${P1}.form.usage_quota`)">
+                    <el-input-number v-model="a1_editForm.usage_quota" :min="1" :max="99999999" class="w-full" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item :label="t(`${P1}.columns.daily`)">
+                    <el-input-number v-model="a1_editForm.daily_quota" :min="1" :max="99999999" class="w-full" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-form-item :label="t(`${P1}.columns.allowed_ip`)">
+                <el-input v-model="a1_editForm.allowed_ip" :placeholder="t(`${P1}.form.allowed_ip_ph`)" />
+              </el-form-item>
+              <el-form-item :label="t(`${P1}.columns.expires`)">
+                <el-date-picker
+                  v-model="a1_editForm.expires_at"
+                  type="datetime"
+                  :placeholder="t(`${P1}.form.expires_ph`)"
+                  clearable
+                  class="w-full"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                />
+              </el-form-item>
+            </el-form>
+            <template #footer>
+              <el-button @click="a1_showEditDialog = false">{{ t('actions.cancel') }}</el-button>
+              <el-button type="primary" :loading="a1_updating" @click="a1_handleUpdate">{{ t('actions.save') }}</el-button>
+            </template>
+          </el-dialog>
 
           <!-- 端点权限配置对话框 (M2-138) -->
           <el-dialog v-model="a1_showPermissionDialog" :title="t(`${P1}.perm_dialog.title`)" width="700px" :close-on-click-modal="false">
@@ -577,6 +772,16 @@ function a1_showEdit(row) {
   a1_showEditDialog.value = true
 }
 
+function a1_openCreate() {
+  a1_resetForm()
+  a1_showCreate.value = true
+}
+
+function a1_closeSecret() {
+  a1_showSecret.value = false
+  a1_resetAndRefresh()
+}
+
 function a1_resetForm() {
   a1_createForm.value = {
     name: '', description: '', permissions: 'read-write', tier: 'standard',
@@ -584,6 +789,7 @@ function a1_resetForm() {
     rate_limit: null, usage_quota: null, daily_quota: null,
     allowed_ip: '', allowed_ips: null, expires_at: null,
   }
+  a1_createFormRef.value?.resetFields()
 }
 
 function a1_resetAndRefresh() { a1_resetForm(); a1_fetchAll() }
@@ -1063,4 +1269,12 @@ onMounted(() => {
   background: var(--el-bg-color-page); padding: 12px 16px; border-radius: 6px;
 }
 .key-result-box code { flex: 1; word-break: break-all; font-size: 14px; }
+
+.secret-display { margin-top: 16px; }
+.secret-label { font-size: 13px; font-weight: 600; color: var(--el-text-color-secondary); margin-bottom: 6px; }
+.secret-row { display: flex; align-items: center; gap: 6px; background: var(--el-color-info-light-9); padding: 8px 12px; border-radius: 6px; }
+.secret-text { flex: 1; font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; font-size: 13px; word-break: break-all; user-select: all; }
+.secret-value { letter-spacing: 1px; }
+.secret-info { font-size: 13px; color: var(--el-text-color-secondary); line-height: 1.8; }
+.mt-3 { margin-top: 12px; }
 </style>
