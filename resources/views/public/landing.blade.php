@@ -671,7 +671,7 @@
                     </div>
                 @endforelse
             </div>
-            <div class="mt-10">
+            <div class="mt-10 text-center">
                 <a href="/products" class="inline-flex items-center gap-2 border border-slate-300 bg-white text-slate-800 px-7 py-3 rounded-xl font-semibold hover:border-slate-400 transition">
                     {{ __('app.landing.catalog_all') }}
                 </a>
