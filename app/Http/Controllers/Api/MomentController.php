@@ -45,10 +45,15 @@ class MomentController extends Controller
             ->with('user:id,name,avatar')
             ->with('tags')
             ->with('reactions')
+            ->withCount('favorites')
             ->with([
                 'likes' => fn($q) => $q->where('user_id', $myId),
                 'favorites' => fn($q) => $q->where('user_id', $myId),
             ]);
+
+        if ($userId = $request->input('user_id')) {
+            $query->where('user_id', (int) $userId);
+        }
 
         if ($tag) {
             $query->whereHas('tags', fn($t) => $t->where('slug', $tag));
@@ -77,7 +82,10 @@ class MomentController extends Controller
                 ->orderBy('replies_count', 'desc');
         } elseif ($tab === 'smart' && $myId) {
             // ── 智能推荐：标签匹配 + 热度（合并 AI + 序列预测） ──
-            $interactedIds = ForumLike::where('user_id', $myId)->pluck('post_id')
+            $likedIds = ForumLike::where('user_id', $myId)
+                ->where('likeable_type', ForumPost::class)
+                ->pluck('likeable_id');
+            $interactedIds = $likedIds
                 ->merge(ForumReply::where('user_id', $myId)->pluck('post_id'))
                 ->unique()->values()->toArray();
 
@@ -116,26 +124,31 @@ class MomentController extends Controller
 
         } elseif ($tab === 'recommended' && $myId) {
             // ── 协同推荐：兴趣相似用户的热门帖子 ──
-            $likedIds = ForumLike::where('user_id', $myId)->pluck('post_id');
+            $likedIds = ForumLike::where('user_id', $myId)
+                ->where('likeable_type', ForumPost::class)
+                ->pluck('likeable_id');
             $repliedIds = ForumReply::where('user_id', $myId)->pluck('post_id');
             $interactedIds = $likedIds->merge($repliedIds)->unique()->values()->toArray();
 
             if (!empty($interactedIds)) {
-                $neighborIds = ForumLike::whereIn('post_id', $interactedIds)
+                $neighborIds = ForumLike::where('likeable_type', ForumPost::class)
+                    ->whereIn('likeable_id', $interactedIds)
                     ->where('user_id', '!=', $myId)
-                    ->distinct('user_id')
+                    ->distinct()
                     ->pluck('user_id')
                     ->merge(
                         ForumReply::whereIn('post_id', $interactedIds)
                             ->where('user_id', '!=', $myId)
-                            ->distinct('user_id')
+                            ->distinct()
                             ->pluck('user_id')
                     )->unique()->take(100)->values()->toArray();
 
                 if (!empty($neighborIds)) {
-                    $neighborStr = implode(',', $neighborIds);
-                    $query->whereIn('user_id', $neighborIds)
+                    $neighborStr = implode(',', array_map('intval', $neighborIds));
+                    $query->where(function ($q) use ($neighborIds) {
+                        $q->whereIn('user_id', $neighborIds)
                           ->orWhere('likes_count', '>', 0);
+                    });
                     $query->orderByRaw("CASE WHEN user_id IN ({$neighborStr}) THEN 0 ELSE 1 END");
                 }
             }
@@ -1083,6 +1096,72 @@ class MomentController extends Controller
         ]);
     }
 
+    // ── 用户主页资料 ──
+    public function showUser(int $targetUserId): JsonResponse
+    {
+        $user = \App\Models\User::select('id', 'name', 'avatar')->findOrFail($targetUserId);
+        $myId = auth()->id();
+
+        $avatar = $user->avatar
+            ? (str_starts_with($user->avatar, 'http') ? $user->avatar : url('storage/' . $user->avatar))
+            : null;
+
+        $postsCount = ForumPost::where('user_id', $targetUserId)
+            ->where(fn($q) => $q->where('status', 'published')->orWhereNull('status'))
+            ->count();
+        $likesCount = (int) ForumPost::where('user_id', $targetUserId)
+            ->where(fn($q) => $q->where('status', 'published')->orWhereNull('status'))
+            ->sum('likes_count');
+        $favoritesCount = ForumFavorite::whereHas('post', fn($q) => $q->where('user_id', $targetUserId))->count();
+
+        return ApiResponse::success([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'avatar' => $avatar,
+                'bio' => null,
+            ],
+            'stats' => [
+                'posts_count' => $postsCount,
+                'likes_count' => $likesCount,
+                'favorites_count' => $favoritesCount,
+                'follower_count' => ForumFollow::where('target_user_id', $targetUserId)->count(),
+                'following_count' => ForumFollow::where('user_id', $targetUserId)->count(),
+            ],
+            'is_following' => $myId
+                ? ForumFollow::where('user_id', $myId)->where('target_user_id', $targetUserId)->exists()
+                : false,
+        ]);
+    }
+
+    // ── 用户点赞过的帖子 ──
+    public function userLikes(Request $request, int $targetUserId): JsonResponse
+    {
+        $myId = auth()->id();
+
+        $posts = ForumPost::query()
+            ->select('forum_posts.*')
+            ->join('likes', function ($join) use ($targetUserId) {
+                $join->on('likes.likeable_id', '=', 'forum_posts.id')
+                    ->where('likes.likeable_type', '=', ForumPost::class)
+                    ->where('likes.user_id', '=', $targetUserId);
+            })
+            ->where(fn($q) => $q->where('forum_posts.status', 'published')->orWhereNull('forum_posts.status'))
+            ->with('user:id,name,avatar')
+            ->with('tags')
+            ->withCount('favorites')
+            ->with([
+                'likes' => fn($q) => $q->where('user_id', $myId),
+                'favorites' => fn($q) => $q->where('user_id', $myId),
+            ])
+            ->orderByDesc('likes.id')
+            ->paginate((int) $request->input('per_page', 20));
+
+        $posts->getCollection()->transform(fn($p) => $this->transformPost($p, $myId));
+
+        return ApiResponse::paginated($posts);
+    }
+
     // ── 推荐关注用户 ──
     public function suggestedUsers(): JsonResponse
     {
@@ -1157,19 +1236,22 @@ class MomentController extends Controller
         }
 
         // 获取我点赞过的帖子作者ID
-        $likedPostIds = \App\Models\ForumLike::where('user_id', $myId)->pluck('post_id');
+        $likedPostIds = ForumLike::where('user_id', $myId)
+            ->where('likeable_type', ForumPost::class)
+            ->pluck('likeable_id');
         $likedUserIds = ForumPost::whereIn('id', $likedPostIds)->pluck('user_id')->unique();
 
         if ($likedPostIds->isEmpty()) {
             // 没有点赞记录：返回热门帖子
             $posts = ForumPost::where('status', 'published')
-                ->with('user:id,name,avatar')->withCount('replies')
+                ->with('user:id,name,avatar')->withCount('replies')->withCount('favorites')
                 ->orderBy('likes_count', 'desc')->limit($limit)->get();
             return ApiResponse::success($posts->map(fn($p) => $this->transformPost($p, $myId)));
         }
 
         // 找同样点赞过这些帖子的其他用户
-        $similarUserIds = \App\Models\ForumLike::whereIn('post_id', $likedPostIds)
+        $similarUserIds = ForumLike::where('likeable_type', ForumPost::class)
+            ->whereIn('likeable_id', $likedPostIds)
             ->where('user_id', '!=', $myId)
             ->pluck('user_id')
             ->unique();

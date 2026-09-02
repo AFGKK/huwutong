@@ -1522,6 +1522,8 @@ Route::prefix('moments')->middleware(['auth:sanctum'])->group(function () {
     Route::post('/users/{user}/follow', [MomentController::class, 'followUser'])->whereNumber('user');
     Route::post('/users/{user}/unfollow', [MomentController::class, 'unfollowUser'])->whereNumber('user');
     Route::get('/users/{user}/follow-status', [MomentController::class, 'followStatus'])->whereNumber('user');
+    Route::get('/users/{user}', [MomentController::class, 'showUser'])->whereNumber('user');
+    Route::get('/users/{user}/likes', [MomentController::class, 'userLikes'])->whereNumber('user');
     Route::get('/{id}', [MomentController::class, 'show'])->whereNumber('id');
     Route::post('/upload', [MomentController::class, 'uploadImage']);
     Route::post('/upload-video', [MomentController::class, 'uploadVideo']);

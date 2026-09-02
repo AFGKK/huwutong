@@ -319,6 +319,8 @@ Route::prefix('moments')->group(function () {
     Route::get('/public/top-contributors', [\App\Http\Controllers\Api\MomentController::class, 'topContributors']);
     Route::get('/public/suggested-users', [\App\Http\Controllers\Api\MomentController::class, 'suggestedUsers']);
     Route::get('/public/tag-suggestions', [\App\Http\Controllers\Api\MomentController::class, 'tagSuggestions']);
+    Route::get('/public/users/{user}', [\App\Http\Controllers\Api\MomentController::class, 'showUser'])->whereNumber('user');
+    Route::get('/public/users/{user}/likes', [\App\Http\Controllers\Api\MomentController::class, 'userLikes'])->whereNumber('user');
     Route::get('/public/{id}', [\App\Http\Controllers\Api\MomentController::class, 'showPublic'])->whereNumber('id');
     Route::get('/public/{id}/comments', [\App\Http\Controllers\Api\MomentController::class, 'commentsPublic'])->whereNumber('id');
 });

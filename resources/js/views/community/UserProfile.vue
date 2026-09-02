@@ -111,7 +111,8 @@ function timeAgo(time) {
 async function loadUser() {
   try {
     const headers = isLoggedIn ? { Authorization: 'Bearer ' + localStorage.getItem('auth_token') } : {}
-    const res = await apiClient.get(`/moments/users/${userId}`, { headers })
+    const endpoint = isLoggedIn ? `/moments/users/${userId}` : `/moments/public/users/${userId}`
+    const res = await apiClient.get(endpoint, { headers })
     const data = res.data?.data || {}
     user.value = data.user || data
     stats.value = data.stats || {}
@@ -124,7 +125,9 @@ async function loadUserPosts() {
   page.value = 1
   try {
     const headers = isLoggedIn ? { Authorization: 'Bearer ' + localStorage.getItem('auth_token') } : {}
-    const endpoint = activeTab.value === 'liked' ? `/moments/users/${userId}/likes` : `/moments?user_id=${userId}`
+    const endpoint = activeTab.value === 'liked'
+      ? (isLoggedIn ? `/moments/users/${userId}/likes` : `/moments/public/users/${userId}/likes`)
+      : (isLoggedIn ? `/moments?user_id=${userId}` : `/moments/public?user_id=${userId}`)
     const res = await apiClient.get(endpoint, {
       params: { per_page: 20 },
       headers,
@@ -141,7 +144,9 @@ async function loadMore() {
   page.value++
   try {
     const headers = isLoggedIn ? { Authorization: 'Bearer ' + localStorage.getItem('auth_token') } : {}
-    const endpoint = activeTab.value === 'liked' ? `/moments/users/${userId}/likes` : `/moments?user_id=${userId}`
+    const endpoint = activeTab.value === 'liked'
+      ? (isLoggedIn ? `/moments/users/${userId}/likes` : `/moments/public/users/${userId}/likes`)
+      : (isLoggedIn ? `/moments?user_id=${userId}` : `/moments/public?user_id=${userId}`)
     const res = await apiClient.get(endpoint, {
       params: { per_page: 20, page: page.value },
       headers,
