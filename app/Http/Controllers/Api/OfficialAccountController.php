@@ -2409,4 +2409,547 @@ class OfficialAccountController extends Controller
             'share_url' => $shareUrl,
         ]);
     }
+
+    public function articleCommentsPublic(int $id): JsonResponse
+    {
+        $article = OaArticle::where('status', 'published')->findOrFail($id);
+
+        $comments = OaComment::with(['user:id,name,avatar,region', 'replies.user:id,name,avatar,region'])
+            ->where('article_id', $id)
+            ->whereNull('parent_id')
+            ->where('status', 'approved')
+            ->orderBy('is_pinned', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate(20);
+
+        // 处理头像URL
+        $comments->getCollection()->transform(function ($c) {
+            $c->user && $c->user->avatar && $c->user->avatar = (str_starts_with($c->user->avatar, 'http') ? $c->user->avatar : asset('storage/' . $c->user->avatar));
+            $c->replies && $c->replies->each(fn($r) => $r->user && $r->user->avatar && $r->user->avatar = (str_starts_with($r->user->avatar, 'http') ? $r->user->avatar : asset('storage/' . $r->user->avatar)));
+            $c->likes_count = $c->likes()->count();
+            $c->is_liked = false; // 游客无点赞状态
+            return $c;
+        });
+
+        return ApiResponse::paginated($comments);
+    }
+
+    public function addComment(int $articleId, Request $request): JsonResponse
+    {
+        $request->validate(['content' => 'required|string|max:1000', 'image' => 'nullable|string|max:500']);
+        $article = OaArticle::with('account')->where('status', 'published')->findOrFail($articleId);
+        // 号主评论自动通过，其余需要审核
+        $isOwner = $article->account->owner_id === auth()->id();
+        $comment = OaComment::create([
+            'article_id' => $articleId,
+            'user_id' => auth()->id(),
+            'content' => $request->input('content'),
+            'image' => $request->input('image'),
+            'status' => $isOwner ? 'approved' : 'pending',
+        ]);
+        return ApiResponse::success($comment->load('user:id,name,avatar'), $isOwner ? '评论成功' : '评论已提交，等待审核', 201);
+    }
+
+    public function toggleCommentLike(int $commentId): JsonResponse
+    {
+        $comment = OaComment::findOrFail($commentId);
+        $myId = auth()->id();
+        $existing = OaCommentLike::where('comment_id', $commentId)->where('user_id', $myId)->first();
+        if ($existing) {
+            $existing->delete();
+            return ApiResponse::success(['liked' => false, 'likes_count' => $comment->likes()->count()]);
+        }
+        OaCommentLike::create(['comment_id' => $commentId, 'user_id' => $myId]);
+        return ApiResponse::success(['liked' => true, 'likes_count' => $comment->likes()->count()]);
+    }
+
+    public function submitArticle(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'account_id' => 'required|integer|exists:official_accounts,id',
+            'title' => 'required|string|max:200',
+            'content' => 'required|string',
+            'cover_image' => 'nullable|string|max:500',
+            'images' => 'nullable|array',
+            'summary' => 'nullable|string|max:300',
+            'is_original' => 'boolean',
+            'allow_comments' => 'boolean',
+            'tags' => 'nullable|array',
+            'seo_title' => 'nullable|string|max:70',
+            'seo_description' => 'nullable|string|max:160',
+        ]);
+
+        $submission = OaSubmission::create([
+            'account_id' => $validated['account_id'],
+            'user_id' => auth()->id(),
+            'title' => $validated['title'],
+            'content' => $validated['content'],
+            'cover_image' => $validated['cover_image'] ?? null,
+            'summary' => $validated['summary'] ?? null,
+        ]);
+
+        // 触发 AI 自动审核
+        OaSubmissionCreated::dispatch($submission);
+
+        return ApiResponse::success($submission, '投稿已提交，等待审核', 201);
+    }
+
+    public function mySubmissions(): JsonResponse
+    {
+        $submissions = OaSubmission::with('account:id,name,avatar')
+            ->where('user_id', auth()->id())
+            ->orderBy('id', 'desc')
+            ->paginate(20);
+        return ApiResponse::paginated($submissions);
+    }
+
+    public function pendingSubmissions(int $accountId): JsonResponse
+    {
+        $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($accountId);
+        $submissions = OaSubmission::with('user:id,name,avatar')
+            ->where('account_id', $accountId)
+            ->where('status', 'pending')
+            ->orderBy('id', 'desc')
+            ->paginate(20);
+        $stats = [
+            'pending' => OaSubmission::where('account_id', $accountId)->where('status', 'pending')->count(),
+            'approved' => OaSubmission::where('account_id', $accountId)->where('status', 'approved')->count(),
+            'rejected' => OaSubmission::where('account_id', $accountId)->where('status', 'rejected')->count(),
+        ];
+        return ApiResponse::success([
+            'submissions' => $submissions->items(),
+            'stats' => $stats,
+            'pagination' => [
+                'current_page' => $submissions->currentPage(),
+                'last_page' => $submissions->lastPage(),
+                'total' => $submissions->total(),
+                'per_page' => $submissions->perPage(),
+            ],
+        ]);
+    }
+
+    public function reviewSubmission(int $id, Request $request): JsonResponse
+    {
+        $submission = OaSubmission::with('account')->findOrFail($id);
+        $account = $submission->account;
+
+        if ($account->owner_id !== auth()->id()) {
+            return ApiResponse::error('FORBIDDEN', '你不是该公众号的所有者', 403);
+        }
+
+        $action = $request->input('action');
+
+        if ($action === 'approve') {
+            $submission->update(['status' => 'approved', 'reviewer_id' => auth()->id(), 'reviewed_at' => now()]);
+
+            // 创建正式文章
+            $article = OaArticle::create([
+                'account_id' => $submission->account_id,
+                'author_id' => $submission->user_id,
+                'title' => $submission->title,
+                'content' => $submission->content,
+                'cover_image' => $submission->cover_image,
+                'summary' => $submission->summary,
+                'status' => 'published',
+                'source_submission_id' => $submission->id,
+                'published_at' => now(),
+            ]);
+
+            // 触发 AI 自动评论
+            OaArticlePublished::dispatch($article);
+
+            return ApiResponse::success($article, '投稿已通过并发布');
+        }
+
+        if ($action === 'reject') {
+            $submission->update([
+                'status' => 'rejected',
+                'reviewer_id' => auth()->id(),
+                'reviewed_at' => now(),
+                'reject_reason' => $request->input('reject_reason', '未通过审核'),
+            ]);
+            return ApiResponse::success($submission, '已拒绝投稿');
+        }
+
+        return ApiResponse::error('INVALID_ACTION', '无效操作', 400);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'description' => 'nullable|string|max:500',
+            'avatar' => 'nullable',
+            'cover_image' => 'nullable',
+            'category_id' => 'nullable|integer|exists:oa_categories,id',
+        ]);
+
+        if ($request->hasFile('avatar')) {
+            $path = $request->file('avatar')->store('oa-avatars', 'public');
+            $validated['avatar'] = asset('storage/' . $path);
+        } elseif (isset($validated['avatar']) && ! is_string($validated['avatar'])) {
+            unset($validated['avatar']);
+        }
+
+        if ($request->hasFile('cover_image')) {
+            $path = $request->file('cover_image')->store('oa-covers', 'public');
+            $validated['cover_image'] = asset('storage/' . $path);
+        } elseif (isset($validated['cover_image']) && ! is_string($validated['cover_image'])) {
+            unset($validated['cover_image']);
+        }
+
+        $slug = Str::slug($validated['name']);
+        $baseSlug = $slug ?: ('oa-' . Str::random(6));
+        $counter = 1;
+        while (OfficialAccount::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $counter++;
+        }
+
+        $account = OfficialAccount::create([
+            'name' => $validated['name'],
+            'slug' => $slug,
+            'description' => $validated['description'] ?? '',
+            'avatar' => $validated['avatar'] ?? null,
+            'cover_image' => $validated['cover_image'] ?? null,
+            'category_id' => $validated['category_id'] ?? null,
+            'owner_id' => auth()->id(),
+            'status' => 'active',
+        ]);
+
+        // 创建者自动关注
+        Follow::firstOrCreate([
+            'user_id' => auth()->id(),
+            'followable_type' => OfficialAccount::class,
+            'followable_id' => $account->id,
+        ]);
+
+        return ApiResponse::success($account->load('category'), '公众号已创建', 201);
+    }
+
+    public function update(int $id, Request $request): JsonResponse
+    {
+        $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($id);
+
+        $data = $request->only(['description', 'avatar', 'cover_image']);
+
+        if ($request->hasFile('avatar')) {
+            $path = $request->file('avatar')->store('oa-avatars', 'public');
+            $data['avatar'] = asset('storage/' . $path);
+        }
+        if ($request->hasFile('cover_image')) {
+            $path = $request->file('cover_image')->store('oa-covers', 'public');
+            $data['cover_image'] = asset('storage/' . $path);
+        }
+        if ($request->filled('category_id')) {
+            $data['category_id'] = (int) $request->input('category_id');
+        }
+
+        // 名称修改：每年最多3次
+        if ($request->has('name') && $request->input('name') !== $account->name) {
+            $settings = $account->settings ?? [];
+            $nameUpdates = $settings['name_updates'] ?? [];
+            // 过滤出本年内的修改记录
+            $yearAgo = now()->subYear();
+            $recentUpdates = array_filter($nameUpdates, fn($ts) => $ts >= $yearAgo->timestamp);
+            if (count($recentUpdates) >= 3) {
+                return ApiResponse::error('ERROR', '公众号名称每年仅能修改3次', 422);
+            }
+            $data['name'] = $request->input('name');
+            $recentUpdates[] = now()->timestamp;
+            $settings['name_updates'] = $recentUpdates;
+            $data['settings'] = $settings;
+        }
+
+        $account->update($data);
+        return ApiResponse::success($account->fresh()->load('category'), '已更新');
+    }
+
+    public function editInfo(int $id): JsonResponse
+    {
+        $account = OfficialAccount::where('owner_id', auth()->id())->with('category')->findOrFail($id);
+        $settings = $account->settings ?? [];
+        $nameUpdates = $settings['name_updates'] ?? [];
+        $yearAgo = now()->subYear();
+        $recentUpdates = array_filter($nameUpdates, fn($ts) => $ts >= $yearAgo->timestamp);
+        return ApiResponse::success([
+            'id' => $account->id,
+            'name' => $account->name,
+            'slug' => $account->slug,
+            'description' => $account->description,
+            'avatar' => $account->avatar,
+            'cover_image' => $account->cover_image,
+            'category' => $account->category,
+            'category_id' => $account->category_id,
+            'name_change_count' => count($recentUpdates),
+            'name_change_limit' => 3,
+        ]);
+    }
+
+    public function dashboard(int $id): JsonResponse
+    {
+        $account = OfficialAccount::withCount([
+            'followers',
+            'articles' => fn($q) => $q->where('status', 'published'),
+        ])->findOrFail($id);
+
+        $totalLikes = \App\Models\Like::where('likeable_type', 'App\Models\OaArticle')
+            ->whereHasMorph('likeable', [\App\Models\OaArticle::class], fn($q) => $q->where('account_id', $id))->count();
+        $totalReads = OaArticleRead::whereHas('article', fn($q) => $q->where('account_id', $id))->count();
+        $totalShares = OaArticleShare::whereHas('article', fn($q) => $q->where('account_id', $id))->count();
+        $totalComments = OaComment::whereHas('article', fn($q) => $q->where('account_id', $id))
+            ->whereNull('parent_id')->count();
+
+        $pendingSubmissions = OaSubmission::where('account_id', $id)
+            ->where('status', 'pending')->count();
+
+        $todayFollowers = \App\Models\Follow::where('followable_type', 'App\Models\OfficialAccount')
+            ->where('followable_id', $id)
+            ->whereDate('created_at', today())->count();
+
+        $isOwner = auth()->id() === $account->owner_id;
+
+        // ── 增长趋势数据 ──
+        $articleIds = OaArticle::where('account_id', $id)->pluck('id');
+        $days = 14;
+        $followerTrend = [];
+        $readTrend = [];
+        $shareTrend = [];
+        $likeTrend = [];
+
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = today()->subDays($i);
+            $dateStr = $date->format('Y-m-d');
+
+            $followerTrend[] = [
+                'date' => $dateStr,
+                'count' => \App\Models\Follow::where('followable_type', 'App\Models\OfficialAccount')
+                    ->where('followable_id', $id)
+                    ->whereDate('created_at', $date)->count(),
+                'cumulative' => \App\Models\Follow::where('followable_type', 'App\Models\OfficialAccount')
+                    ->where('followable_id', $id)
+                    ->whereDate('created_at', '<=', $date)->count(),
+            ];
+
+            $readTrend[] = [
+                'date' => $dateStr,
+                'count' => OaArticleRead::whereIn('article_id', $articleIds)
+                    ->whereDate('created_at', $date)->count(),
+            ];
+
+            $shareTrend[] = [
+                'date' => $dateStr,
+                'count' => OaArticleShare::whereIn('article_id', $articleIds)
+                    ->whereDate('created_at', $date)->count(),
+            ];
+
+            $likeTrend[] = [
+                'date' => $dateStr,
+                'count' => \App\Models\Like::where('likeable_type', 'App\Models\OaArticle')
+                    ->whereIn('likeable_id', $articleIds)
+                    ->whereDate('created_at', $date)->count(),
+            ];
+        }
+
+        $yesterdayReads = $readTrend[count($readTrend) - 2]['count'] ?? 0;
+        $readChangeRate = $yesterdayReads > 0
+            ? round((($todayFollowers - $yesterdayReads) / $yesterdayReads) * 100, 1)
+            : 0;
+
+        return ApiResponse::success([
+            'followers_count' => $account->followers_count,
+            'articles_count' => $account->articles_count,
+            'total_likes' => $totalLikes,
+            'total_reads' => $totalReads,
+            'total_shares' => $totalShares,
+            'total_comments' => $totalComments,
+            'pending_submissions' => $pendingSubmissions,
+            'today_new_followers' => $todayFollowers,
+            'yesterday_reads' => $yesterdayReads,
+            'read_change_rate' => $readChangeRate,
+            'trends' => [
+                'followers' => $followerTrend,
+                'reads' => $readTrend,
+                'shares' => $shareTrend,
+                'likes' => $likeTrend,
+            ],
+            'is_owner' => $isOwner,
+        ]);
+    }
+
+    public function comments(int $id): JsonResponse
+    {
+        $account = OfficialAccount::findOrFail($id);
+        $articleIds = OaArticle::where('account_id', $id)->pluck('id');
+
+        $comments = OaComment::with(['user:id,name,avatar,region', 'article:id,title', 'replies.user:id,name,avatar,region'])
+            ->whereIn('article_id', $articleIds)
+            ->whereNull('parent_id')
+            ->orderBy('id', 'desc')
+            ->paginate(20)
+            ->through(function ($c) {
+                $c->user && $c->user->avatar && $c->user->avatar = (str_starts_with($c->user->avatar, 'http') ? $c->user->avatar : asset('storage/' . $c->user->avatar));
+                $c->replies && $c->replies->each(fn($r) => $r->user && $r->user->avatar && $r->user->avatar = (str_starts_with($r->user->avatar, 'http') ? $r->user->avatar : asset('storage/' . $r->user->avatar)));
+                return $c;
+            });
+
+        return ApiResponse::paginated($comments);
+    }
+
+    public function replyComment(int $commentId, Request $request): JsonResponse
+    {
+        $request->validate(['content' => 'required|string|max:1000']);
+        $parent = OaComment::with('article')->findOrFail($commentId);
+        $reply = OaComment::create([
+            'article_id' => $parent->article_id,
+            'user_id' => auth()->id(),
+            'content' => $request->input('content'),
+            'parent_id' => $parent->id,
+            'status' => 'approved',
+        ]);
+        return ApiResponse::success($reply->load('user:id,name,avatar'), '回复成功', 201);
+    }
+
+    public function deleteComment(int $commentId): JsonResponse
+    {
+        $comment = OaComment::with('article')->findOrFail($commentId);
+        // 号主可删除，作者可删除自己的
+        $account = OfficialAccount::where('owner_id', auth()->id())
+            ->where('id', $comment->article->account_id)->first();
+        if (!$account && $comment->user_id !== auth()->id()) {
+            return ApiResponse::error('ERROR', '无权删除', 403);
+        }
+        $comment->replies()->delete();
+        $comment->delete();
+        return ApiResponse::success(null, '已删除');
+    }
+
+    public function approveComment(int $commentId): JsonResponse
+    {
+        $comment = OaComment::with('article.account')->findOrFail($commentId);
+        if ($comment->article->account->owner_id !== auth()->id()) {
+            return ApiResponse::error('ERROR', '无权操作', 403);
+        }
+        $comment->update(['status' => 'approved']);
+        return ApiResponse::success($comment->fresh(), '评论已通过');
+    }
+
+    public function rejectComment(int $commentId): JsonResponse
+    {
+        $comment = OaComment::with('article.account')->findOrFail($commentId);
+        if ($comment->article->account->owner_id !== auth()->id()) {
+            return ApiResponse::error('ERROR', '无权操作', 403);
+        }
+        $comment->update(['status' => 'rejected']);
+        return ApiResponse::success($comment->fresh(), '评论已拒绝');
+    }
+
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        $request->validate(['file' => 'required|image|max:2048']);
+        $path = $request->file('file')->store('oa-avatars', 'public');
+        $url = asset('storage/' . $path);
+        return ApiResponse::success(['url' => $url], '上传成功');
+    }
+
+    public function allCategories(): JsonResponse
+    {
+        $categories = OaCategory::withCount('accounts')->orderBy('sort_order')->get();
+        return ApiResponse::success($categories);
+    }
+
+    public function createCategory(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:50',
+            'icon' => 'nullable|string|max:50',
+            'sort_order' => 'nullable|integer|min:0',
+        ]);
+        $cat = OaCategory::create($validated);
+        return ApiResponse::success($cat, '分类已创建', 201);
+    }
+
+    public function updateCategory(int $id, Request $request): JsonResponse
+    {
+        $cat = OaCategory::findOrFail($id);
+        $cat->update($request->only(['name', 'icon', 'sort_order', 'is_active']));
+        return ApiResponse::success($cat->fresh(), '已更新');
+    }
+
+    public function deleteCategory(int $id): JsonResponse
+    {
+        $cat = OaCategory::findOrFail($id);
+        if ($cat->accounts()->count() > 0) {
+            return ApiResponse::error('ERROR', '该分类下有公众号，无法删除', 422);
+        }
+        $cat->delete();
+        return ApiResponse::success(null, '已删除');
+    }
+
+
+    public function toggleArticleStatus(int $articleId): JsonResponse
+    {
+        $article = OaArticle::with('account')->findOrFail($articleId);
+        if ($article->account->owner_id !== auth()->id()) {
+            return ApiResponse::error('FORBIDDEN', '无权操作', 403);
+        }
+
+        if ($article->status === 'published') {
+            $article->update(['status' => 'draft']);
+            return ApiResponse::success($article->fresh(), '已下架');
+        }
+
+        $article->update([
+            'status' => 'published',
+            'published_at' => $article->published_at ?: now(),
+        ]);
+
+        return ApiResponse::success($article->fresh(), '已发布');
+    }
+
+    public function appeal(int $id, Request $request): JsonResponse
+    {
+        $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($id);
+        if ($account->status !== 'suspended') {
+            return ApiResponse::error('INVALID_STATUS', '仅被封禁的互物号可申诉', 422);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $settings = $account->settings ?? [];
+        $settings['appeal_reason'] = $validated['reason'];
+        $settings['appealed_at'] = now()->toDateTimeString();
+        unset($settings['appeal_rejected_reason']);
+        $account->update(['settings' => $settings]);
+
+        return ApiResponse::success($account->fresh(), '申诉已提交');
+    }
+
+    public function applyVerify(int $id, Request $request): JsonResponse
+    {
+        $account = OfficialAccount::where('owner_id', auth()->id())->findOrFail($id);
+        if ($account->verified_at) {
+            return ApiResponse::error('ALREADY_VERIFIED', '该互物号已认证', 422);
+        }
+
+        $validated = $request->validate([
+            'type' => 'required|in:enterprise,personal',
+            'name' => 'required|string|max:100',
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $settings = $account->settings ?? [];
+        $settings['verify_request'] = [
+            'type' => $validated['type'],
+            'name' => $validated['name'],
+            'reason' => $validated['reason'],
+            'submitted_at' => now()->toDateTimeString(),
+            'rejected' => false,
+        ];
+        $account->update(['settings' => $settings]);
+
+        return ApiResponse::success($account->fresh(), '认证申请已提交');
+    }
+
 }

@@ -324,4 +324,90 @@ class OaAdminController extends Controller
         $category->delete();
         return ApiResponse::success(null, __('app.api.oa_admin.deleted'));
     }
+
+
+    public function adminReviewAppeal(int $id, Request $request): JsonResponse
+    {
+        $account = OfficialAccount::findOrFail($id);
+        $action = $request->input('action');
+        $settings = $account->settings ?? [];
+
+        if ($action === 'approve') {
+            unset($settings['appeal_reason'], $settings['appealed_at'], $settings['appeal_rejected_reason']);
+            $account->update(['status' => 'active', 'settings' => $settings]);
+            return ApiResponse::success($account->fresh(), '申诉已通过');
+        }
+
+        if ($action === 'reject') {
+            $settings['appeal_rejected_reason'] = $request->input('reason', '');
+            unset($settings['appeal_reason'], $settings['appealed_at']);
+            $account->update(['settings' => $settings]);
+            return ApiResponse::success($account->fresh(), '申诉已拒绝');
+        }
+
+        return ApiResponse::error('INVALID_ACTION', '无效操作', 400);
+    }
+
+    public function adminVerify(int $id): JsonResponse
+    {
+        $account = OfficialAccount::findOrFail($id);
+        if ($account->verified_at) {
+            $settings = $account->settings ?? [];
+            unset($settings['verified_info']);
+            $account->update([
+                'verified_at' => null,
+                'verified_by' => null,
+                'settings' => $settings,
+            ]);
+            return ApiResponse::success($account->fresh(), '已取消认证');
+        }
+
+        $settings = $account->settings ?? [];
+        $settings['verified_info'] = $settings['verify_request'] ?? [
+            'type' => 'enterprise',
+            'name' => $account->name,
+        ];
+        unset($settings['verify_request']);
+        $account->update([
+            'verified_at' => now(),
+            'verified_by' => auth()->id(),
+            'settings' => $settings,
+        ]);
+
+        return ApiResponse::success($account->fresh(), '已认证');
+    }
+
+    public function adminReviewVerify(int $id, Request $request): JsonResponse
+    {
+        $account = OfficialAccount::findOrFail($id);
+        $action = $request->input('action');
+        $settings = $account->settings ?? [];
+
+        if ($action === 'approve') {
+            $req = $settings['verify_request'] ?? [];
+            $settings['verified_info'] = [
+                'type' => $req['type'] ?? 'enterprise',
+                'name' => $req['name'] ?? $account->name,
+            ];
+            unset($settings['verify_request']);
+            $account->update([
+                'verified_at' => now(),
+                'verified_by' => auth()->id(),
+                'settings' => $settings,
+            ]);
+            return ApiResponse::success($account->fresh(), '认证已通过');
+        }
+
+        if ($action === 'reject') {
+            if (isset($settings['verify_request'])) {
+                $settings['verify_request']['rejected'] = true;
+                $settings['verify_request']['reject_reason'] = $request->input('reason', '');
+            }
+            $account->update(['settings' => $settings]);
+            return ApiResponse::success($account->fresh(), '认证已拒绝');
+        }
+
+        return ApiResponse::error('INVALID_ACTION', '无效操作', 400);
+    }
+
 }

@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 class OfficialAccount extends Model
 {
-    protected $fillable = ['name', 'slug', 'description', 'avatar', 'cover_image', 'owner_id', 'category_id', 'status', 'settings'];
+    protected $fillable = ['name', 'slug', 'description', 'avatar', 'cover_image', 'owner_id', 'category_id', 'status', 'settings', 'verified_at', 'verified_by'];
     protected $casts = ['settings' => 'array'];
     protected $appends = ['is_verified'];
 
