@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Support\SdkPackageCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -23,63 +24,63 @@ class AiIntegrationWizardController extends Controller
                 'name' => 'PHP',
                 'icon' => 'php',
                 'description' => __('app.api.integr_wizard.desc_php'),
-                'docs_url' => 'https://docs.huwutong.com/sdk/php',
-                'steps' => ['composer require huwutong/license-sdk', __('app.api.integr_wizard.step_install_sdk'), __('app.api.integr_wizard.step_activate')],
+                'docs_url' => SdkPackageCatalog::publicDocsUrl('php'),
+                'steps' => [SdkPackageCatalog::installCommand('php') ?? 'composer require huwutong/huwutong-sdk-php', __('app.api.integr_wizard.step_install_sdk'), __('app.api.integr_wizard.step_activate')],
             ],
             [
                 'id' => 'node',
                 'name' => 'Node.js',
                 'icon' => 'nodejs',
                 'description' => __('app.api.integr_wizard.desc_node'),
-                'docs_url' => 'https://docs.huwutong.com/sdk/node',
-                'steps' => ['npm install huwutong-license-sdk', __('app.api.integr_wizard.step_init_client'), __('app.api.integr_wizard.step_call_api')],
+                'docs_url' => SdkPackageCatalog::publicDocsUrl('node'),
+                'steps' => [SdkPackageCatalog::installCommand('node') ?? 'npm install huwutong-sdk', __('app.api.integr_wizard.step_init_client'), __('app.api.integr_wizard.step_call_api')],
             ],
             [
                 'id' => 'python',
                 'name' => 'Python',
                 'icon' => 'python',
                 'description' => __('app.api.integr_wizard.desc_python'),
-                'docs_url' => 'https://docs.huwutong.com/sdk/python',
-                'steps' => ['pip install huwutong-license-sdk', __('app.api.integr_wizard.step_config_creds'), __('app.api.integr_wizard.step_verify')],
+                'docs_url' => SdkPackageCatalog::publicDocsUrl('python'),
+                'steps' => [SdkPackageCatalog::installCommand('python') ?? 'pip install huwutong-sdk', __('app.api.integr_wizard.step_config_creds'), __('app.api.integr_wizard.step_verify')],
             ],
             [
                 'id' => 'java',
                 'name' => 'Java',
                 'icon' => 'java',
                 'description' => __('app.api.integr_wizard.desc_java'),
-                'docs_url' => 'https://docs.huwutong.com/sdk/java',
-                'steps' => [__('app.api.integr_wizard.step_add_dep'), __('app.api.integr_wizard.step_config_client'), __('app.api.integr_wizard.step_verify_license')],
+                'docs_url' => SdkPackageCatalog::publicDocsUrl('java'),
+                'steps' => [SdkPackageCatalog::installCommand('java') ?? 'implementation "com.huwutong:huwutong-sdk:1.0.0"', __('app.api.integr_wizard.step_add_dep'), __('app.api.integr_wizard.step_config_client'), __('app.api.integr_wizard.step_verify_license')],
             ],
             [
                 'id' => 'go',
                 'name' => 'Go',
                 'icon' => 'go',
                 'description' => __('app.api.integr_wizard.desc_go'),
-                'docs_url' => 'https://docs.huwutong.com/sdk/go',
-                'steps' => ['go get github.com/huwutong/license-sdk', __('app.api.integr_wizard.step_go_get'), __('app.api.integr_wizard.step_verify')],
+                'docs_url' => SdkPackageCatalog::publicDocsUrl('go'),
+                'steps' => [SdkPackageCatalog::installCommand('go') ?? 'go get github.com/huwutong/huwutong-sdk-go', __('app.api.integr_wizard.step_go_get'), __('app.api.integr_wizard.step_verify')],
             ],
             [
                 'id' => 'dotnet',
                 'name' => '.NET',
                 'icon' => 'dotnet',
                 'description' => __('app.api.integr_wizard.desc_dotnet'),
-                'docs_url' => 'https://docs.huwutong.com/sdk/dotnet',
-                'steps' => ['dotnet add package Huwutong.LicenseSDK', __('app.api.integr_wizard.step_dotnet_add'), __('app.api.integr_wizard.step_verify')],
+                'docs_url' => SdkPackageCatalog::publicDocsUrl('dotnet'),
+                'steps' => [SdkPackageCatalog::installCommand('dotnet') ?? 'dotnet add package Huwutong.Sdk', __('app.api.integr_wizard.step_dotnet_add'), __('app.api.integr_wizard.step_verify')],
             ],
             [
                 'id' => 'rust',
                 'name' => 'Rust',
                 'icon' => 'rust',
                 'description' => __('app.api.integr_wizard.desc_rust'),
-                'docs_url' => 'https://docs.huwutong.com/sdk/rust',
-                'steps' => ['cargo add huwutong-license-sdk', __('app.api.integr_wizard.step_cargo_add'), __('app.api.integr_wizard.step_integrate')],
+                'docs_url' => SdkPackageCatalog::publicDocsUrl('tauri'),
+                'steps' => [SdkPackageCatalog::installCommand('rust') ?? 'cargo add huwutong-sdk', __('app.api.integr_wizard.step_cargo_add'), __('app.api.integr_wizard.step_integrate')],
             ],
             [
                 'id' => 'curl',
                 'name' => 'cURL / REST API',
                 'icon' => 'api',
                 'description' => __('app.api.integr_wizard.desc_http'),
-                'docs_url' => 'https://docs.huwutong.com/api',
+                'docs_url' => url('/api-docs'),
                 'steps' => [__('app.api.integr_wizard.step_select_product'), __('app.api.integr_wizard.step_get_key'), __('app.api.integr_wizard.step_call_activate')],
             ],
         ];
@@ -262,39 +263,33 @@ class AiIntegrationWizardController extends Controller
 
         switch ($language) {
             case 'php':
-                $composerRequire = 'composer require huwutong/license-sdk';
+                $composerRequire = SdkPackageCatalog::installCommand('php') ?? 'composer require huwutong/huwutong-sdk-php';
                 $activateCode = <<<PHP
-use Huwutong\\LicenseSDK\\LicenseClient;
+use Huwutong\\Client;
 
-\$client = new LicenseClient([
-    'api_url' => '{$apiUrl}',
-    'license_key' => '{$licenseKey}',
-    'timeout' => 10,
-]);
+\$client = new Client('YOUR_API_KEY', '{$apiUrl}');
 
 // 激活 License
-\$result = \$client->activate([
-    'fingerprint' => hash('sha256', gethostname() . php_uname()),
-    'components' => [
-        'hostname' => gethostname(),
-        'os' => php_uname('s'),
-        'os_version' => php_uname('r'),
-    ],
+\$result = \$client->activate('{$licenseKey}', [
+    'machine_id' => hash('sha256', gethostname() . php_uname()),
+    'hostname' => gethostname(),
+    'platform' => php_uname('s'),
 ]);
 
-if (\$result['success']) {
-    echo "激活成功！License: {\$result['data']['license_key']}";
+if (\$result->success) {
+    echo "激活成功！License: {\$result->licenseKey}";
 }
 PHP;
                 $snippets['activate'] = $activateCode;
 
                 $validateCode = <<<PHP
 // 验证 License
-\$result = \$client->validate();
+\$result = \$client->validate('{$licenseKey}', [
+    'machine_id' => hash('sha256', gethostname() . php_uname()),
+]);
 
-if (\$result['success']) {
-    echo "License 状态: " . \$result['data']['status'];
-    echo "过期时间: " . \$result['data']['expires_at'];
+if (\$result->isValid) {
+    echo "License 有效，过期时间: " . (\$result->expiresAt ?? 'N/A');
 }
 PHP;
                 $snippets['validate'] = $validateCode;
@@ -308,31 +303,27 @@ PHP;
                 break;
 
             case 'node':
-                $npmInstall = 'npm install huwutong-license-sdk';
+                $npmPackage = SdkPackageCatalog::packageName('node') ?? 'huwutong-sdk';
+                $npmInstall = SdkPackageCatalog::installCommand('node') ?? "npm install {$npmPackage}";
                 $activateCode = <<<JS
-const { LicenseClient } = require('huwutong-license-sdk');
-// ESM: import { LicenseClient } from 'huwutong-license-sdk';
+const { Client } = require('{$npmPackage}');
+// ESM: import { Client } from '{$npmPackage}';
 
-const client = new LicenseClient({
-    apiUrl: '{$apiUrl}',
-    licenseKey: '{$licenseKey}',
-});
+const client = new Client('YOUR_API_KEY', '{$apiUrl}');
 
 // 激活 License
 async function activate() {
-    const result = await client.activate({
-        fingerprint: require('crypto')
+    const result = await client.activate('{$licenseKey}', {
+        machine_id: require('crypto')
             .createHash('sha256')
             .update(require('os').hostname())
             .digest('hex'),
-        components: {
-            hostname: require('os').hostname(),
-            platform: require('os').platform(),
-        },
+        hostname: require('os').hostname(),
+        platform: require('os').platform(),
     });
 
     if (result.success) {
-        console.log('激活成功！', result.data);
+        console.log('激活成功！', result.licenseKey);
     }
 }
 
@@ -343,10 +334,14 @@ JS;
                 $validateCode = <<<JS
 // 验证 License
 async function validate() {
-    const result = await client.validate();
-    if (result.success) {
-        console.log('License 状态:', result.data.status);
-        console.log('过期时间:', result.data.expires_at);
+    const result = await client.validate('{$licenseKey}', {
+        machine_id: require('crypto')
+            .createHash('sha256')
+            .update(require('os').hostname())
+            .digest('hex'),
+    });
+    if (result.isValid) {
+        console.log('License 有效，过期时间:', result.expiresAt);
     }
 }
 validate();

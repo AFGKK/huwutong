@@ -6369,7 +6369,7 @@ return [
             'step_config_creds' => '配置凭据',
             'step_verify' => '调用验证',
             'step_add_dep' => 'Maven/Gradle 添加依赖',
-            'step_config_client' => '配置 LicenseClient',
+            'step_config_client' => '配置 SDK 客户端',
             'step_verify_license' => '验证许可证',
             'step_go_get' => '创建客户端',
             'step_dotnet_add' => '注册服务',

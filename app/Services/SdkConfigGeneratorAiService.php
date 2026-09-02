@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ApiDocEndpoint;
+use App\Support\SdkPackageCatalog;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -110,30 +111,59 @@ class SdkConfigGeneratorAiService
      */
     protected function generateFromTemplate(string $language, string $framework, string $pm, string $key, string $url): array
     {
+        $catalogKey = SdkPackageCatalog::resolveKey($language) ?? 'php';
+        $install = SdkPackageCatalog::installCommand($language) ?? 'composer require huwutong/huwutong-sdk-php';
+        $package = SdkPackageCatalog::packageName($language);
+
         $codeExamples = [
             'php' => [
-                'install_command' => 'composer require huwutong/huwutong-sdk-php',
+                'install_command' => $install,
                 'init_code' => "<?php\n\nuse Huwutong\\Client;\n\n\$client = new Client('{$key}', '{$url}');",
                 'activate_code' => "\$client->activate('LICENSE-KEY', [\n    'machine_id' => \$fingerprint,\n    'platform' => PHP_OS,\n]);",
                 'validate_code' => "\$result = \$client->validate('LICENSE-KEY');\nif (\$result->isValid) {\n    echo 'License 有效';\n}",
             ],
             'javascript' => [
-                'install_command' => 'npm install huwutong-sdk',
-                'init_code' => "const { Client } = require('huwutong-sdk');\n\nconst client = new Client('{$key}', '{$url}');",
+                'install_command' => $install,
+                'init_code' => "const { Client } = require('".($package ?? 'huwutong-sdk')."');\n\nconst client = new Client('{$key}', '{$url}');",
                 'activate_code' => "await client.activate('LICENSE-KEY', { machine_id: deviceFingerprint, platform: process.platform });",
                 'validate_code' => "const result = await client.validate('LICENSE-KEY');\nif (result.isValid) {\n  console.log('License 有效');\n}",
             ],
             'python' => [
-                'install_command' => 'pip install huwutong-sdk',
+                'install_command' => $install,
                 'init_code' => "from huwutong_sdk import HWTClient\n\nclient = HWTClient(api_key='{$key}', host='{$url}')",
                 'activate_code' => "client.activate('LICENSE-KEY', {'machine_id': fingerprint, 'platform': 'linux'})",
                 'validate_code' => "status = client.validate('LICENSE-KEY')\nif status.is_valid:\n    print('License 有效')",
             ],
+            'go' => [
+                'install_command' => $install,
+                'init_code' => "import \"github.com/huwutong/huwutong-sdk-go/huwutong\"\n\nclient := huwutong.NewClient(\"{$key}\", \"{$url}\")",
+                'activate_code' => "_, err := client.Activate(\"LICENSE-KEY\", huwutong.MachineInfo{MachineID: fingerprint})",
+                'validate_code' => "valid, err := client.Validate(\"LICENSE-KEY\")",
+            ],
+            'java' => [
+                'install_command' => $install,
+                'init_code' => "HWTClient client = new HWTClient(\"{$key}\", \"{$url}\");",
+                'activate_code' => "client.activate(\"LICENSE-KEY\", machineInfo);",
+                'validate_code' => "ValidationResult result = client.validate(\"LICENSE-KEY\");",
+            ],
+            'csharp' => [
+                'install_command' => $install,
+                'init_code' => "var client = new HwtClient(\"{$key}\", \"{$url}\");",
+                'activate_code' => "await client.ActivateAsync(\"LICENSE-KEY\", machineInfo);",
+                'validate_code' => "var result = await client.ValidateAsync(\"LICENSE-KEY\");",
+            ],
         ];
 
-        $examples = $codeExamples[$language] ?? $codeExamples['php'];
+        $lookupKey = match ($catalogKey) {
+            'node' => 'javascript',
+            default => $catalogKey,
+        };
+
+        $examples = $codeExamples[$lookupKey] ?? $codeExamples['php'];
         $examples['language'] = $language;
         $examples['framework'] = $framework;
+        $examples['package'] = $package;
+        $examples['docs_url'] = SdkPackageCatalog::publicDocsUrl($language);
         $examples['setup_guide'] = "## {$language}/{$framework} SDK 集成指南\n\n### 安装\n```bash\n{$examples['install_command']}\n```\n\n### 初始化\n```{$language}\n{$examples['init_code']}\n```";
 
         return $examples;

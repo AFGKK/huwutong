@@ -35,6 +35,13 @@ class AiIntegrationWizardApiTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonPath('success', true);
+
+        $json = $response->json('data');
+        $this->assertIsArray($json);
+        $php = collect($json)->firstWhere('id', 'php');
+        $this->assertNotNull($php);
+        $this->assertStringContainsString('huwutong/huwutong-sdk-php', $php['steps'][0] ?? '');
+        $this->assertStringNotContainsString('license-sdk', json_encode($json, JSON_UNESCAPED_UNICODE));
     }
 
     public function test_products_returns_list(): void
