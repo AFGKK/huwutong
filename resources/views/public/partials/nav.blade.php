@@ -1,4 +1,5 @@
-<nav class="fixed top-0 w-full bg-white/90 backdrop-blur-xl z-50 border-b border-gray-200/80 shadow-[0_2px_12px_-6px_rgba(0,0,0,0.12)]" role="navigation" aria-label="{{ __('app.nav.home') }}">
+{{-- z-[100]：高于社区/互物号等 sticky 页头(z-30)，避免「更多」下拉被盖住只露出一项 --}}
+<nav class="fixed top-0 w-full bg-white/90 backdrop-blur-xl z-[100] border-b border-gray-200/80 shadow-[0_2px_12px_-6px_rgba(0,0,0,0.12)]" role="navigation" aria-label="{{ __('app.nav.home') }}">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16 md:h-20">
             <a href="{{ url('/') }}" class="flex items-center gap-2 group">
@@ -95,7 +96,7 @@
         </div>
     </div>
     {{-- 平板/移动端共用语言下拉（挂在 nav 根级，避免被 display:none 父级裁切） --}}
-    <div id="lang-dropdown-mobile" class="hidden fixed right-4 top-16 w-36 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-[60]">
+    <div id="lang-dropdown-mobile" class="hidden fixed right-4 top-16 w-36 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-[110]">
         @foreach(['zh_CN', 'en'] as $langCode)
         <a href="?lang={{ $langCode }}"
            class="block px-3 py-2 text-sm {{ app()->getLocale() === $langCode ? 'text-slate-900 bg-slate-100 font-medium' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50' }} transition rounded-lg mx-1"

@@ -1195,6 +1195,7 @@ const tp = (key, params) => t('oa_article_editor_page.' + key, params);
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
 const isEdit = ref(!!route.query.id);
+const editingArticleId = ref(route.query.id ? Number(route.query.id) : null);
 const previewVisible = ref(false);
 const previewDevice = ref('desktop');
 const showHighlightPicker = ref(false);
@@ -1491,7 +1492,7 @@ function onPaidToggle() {
     }
 }
 
-const draftKey = computed(() => `oa_editor_draft_${route.query.id || 'new'}`);
+const draftKey = computed(() => `oa_editor_draft_${editingArticleId.value || route.query.id || 'new'}`);
 
 const wordCount = computed(() => {
     const html = articleForm.content || '';
@@ -1643,7 +1644,7 @@ async function loadDistributePlatforms() {
 }
 
 async function loadArticleDistributions() {
-    const articleId = route.query.id;
+    const articleId = editingArticleId.value || route.query.id;
     if (!articleId) { distDistributionRecords.value = []; return; }
     const h = { Authorization: 'Bearer ' + localStorage.getItem('auth_token') };
     try {
@@ -1663,7 +1664,7 @@ async function loadArticleDistributions() {
 async function distributeToSelected() {
     const selected = distPlatforms.value.filter(p => p._selected && p._status !== 'success');
     if (!selected.length) { ElMessage.warning(tp('select_platform')); return; }
-    const articleId = route.query.id;
+    const articleId = editingArticleId.value || route.query.id;
     if (!articleId) { ElMessage.warning(tp('save_before_distribute')); return; }
 
     distributing.value = true;
@@ -1835,9 +1836,12 @@ async function loadMyAccounts() {
 
 async function loadArticle(id) {
     try {
-        const r = await apiClient.get('/official-accounts/articles/' + id);
+        // 所有者编辑接口：草稿/定时/已发布均可加载（公开 detail 只返回已发布）
+        const r = await apiClient.get('/official-accounts/articles/' + id + '/edit');
         const data = r.data?.data;
         if (data) {
+            editingArticleId.value = data.id || Number(id);
+            isEdit.value = true;
             articleForm.title = data.title || '';
             articleForm.content = data.content || '';
             articleForm.summary = data.summary || '';
@@ -1850,9 +1854,17 @@ async function loadArticle(id) {
             articleTags.value = data.tags || [];
             seoMetaTitle.value = data.seo_title || '';
             seoMetaDescription.value = data.seo_description || '';
-            // 更新编辑器内容
-            if (editor.value && data.content) {
-                editor.value.commands.setContent(data.content);
+            // 更新编辑器内容（编辑器可能尚未就绪，稍后重试）
+            const applyContent = () => {
+                if (editor.value && data.content) {
+                    editor.value.commands.setContent(data.content);
+                    return true;
+                }
+                return false;
+            };
+            if (!applyContent()) {
+                setTimeout(applyContent, 100);
+                setTimeout(applyContent, 400);
             }
         }
     } catch {
@@ -1861,6 +1873,7 @@ async function loadArticle(id) {
 }
 
 async function saveDraft() {
+    if (editor.value) articleForm.content = editor.value.getHTML();
     if (!articleForm.account_id) { ElMessage.warning(tp('select_account')); return; }
     if (!articleForm.title.trim()) { ElMessage.warning(tp('title_required')); return; }
 
@@ -1877,14 +1890,20 @@ async function saveDraft() {
     };
 
     try {
-        if (isEdit.value) {
-            await apiClient.put('/official-accounts/articles/' + route.query.id, { ...payload, status: 'draft' });
+        if (isEdit.value && editingArticleId.value) {
+            await apiClient.put('/official-accounts/articles/' + editingArticleId.value, { ...payload, status: 'draft' });
             ElMessage.success(tp('draft_updated'));
         } else {
-            await apiClient.post('/official-accounts/' + articleForm.account_id + '/articles', payload);
+            const res = await apiClient.post('/official-accounts/' + articleForm.account_id + '/articles', payload);
+            const created = res.data?.data;
+            if (created?.id) {
+                editingArticleId.value = created.id;
+                isEdit.value = true;
+                // 同步 URL，刷新后仍可继续编辑
+                router.replace({ query: { ...route.query, id: String(created.id), account_id: String(articleForm.account_id) } });
+            }
             ElMessage.success(tp('draft_saved'));
         }
-        isEdit.value = true;
     } catch (e) {
         ElMessage.error(e.response?.data?.message || tp('save_failed'));
     }
@@ -1897,6 +1916,7 @@ function handlePublishAction(cmd) {
 }
 
 async function doSchedule() {
+    if (editor.value) articleForm.content = editor.value.getHTML();
     if (!articleForm.account_id) { ElMessage.warning(tp('select_account')); return; }
     if (!articleForm.title.trim()) { ElMessage.warning(tp('title_required')); return; }
     if (!articleForm.content || articleForm.content.length < 20) { ElMessage.warning(tp('content_required')); return; }
@@ -1922,14 +1942,19 @@ async function doSchedule() {
     };
 
     try {
-        if (isEdit.value) {
-            await apiClient.put('/official-accounts/articles/' + route.query.id, payload);
+        if (isEdit.value && editingArticleId.value) {
+            await apiClient.put('/official-accounts/articles/' + editingArticleId.value, payload);
             ElMessage.success(tp('schedule_updated'));
         } else {
-            await apiClient.post('/official-accounts/' + articleForm.account_id + '/articles', {
+            const res = await apiClient.post('/official-accounts/' + articleForm.account_id + '/articles', {
                 ...payload,
                 account_id: articleForm.account_id,
             });
+            const created = res.data?.data;
+            if (created?.id) {
+                editingArticleId.value = created.id;
+                isEdit.value = true;
+            }
             ElMessage.success(tp('schedule_set', { time: articleForm.scheduled_at }));
         }
         router.push(`/channels?account_id=${articleForm.account_id}`);
@@ -1939,6 +1964,7 @@ async function doSchedule() {
 }
 
 async function doPublish() {
+    if (editor.value) articleForm.content = editor.value.getHTML();
     if (!articleForm.account_id) { ElMessage.warning(tp('select_account_submit')); return; }
     if (!articleForm.title.trim()) { ElMessage.warning(tp('title_required')); return; }
     if (!articleForm.content || articleForm.content.length < 20) { ElMessage.warning(tp('content_required')); return; }
@@ -1963,20 +1989,25 @@ async function doPublish() {
     };
 
     try {
-        if (isEdit.value) {
-            await apiClient.put('/official-accounts/articles/' + route.query.id, { ...payload, status: 'published' });
+        if (isEdit.value && editingArticleId.value) {
+            await apiClient.put('/official-accounts/articles/' + editingArticleId.value, { ...payload, status: 'published' });
             ElMessage.success(tp('article_updated'));
         } else {
-            await apiClient.post('/official-accounts/' + articleForm.account_id + '/articles', {
+            const res = await apiClient.post('/official-accounts/' + articleForm.account_id + '/articles', {
                 ...payload,
                 account_id: articleForm.account_id,
                 status: 'published',
             });
+            const created = res.data?.data;
+            if (created?.id) {
+                editingArticleId.value = created.id;
+                isEdit.value = true;
+            }
             ElMessage.success(tp('article_published'));
         }
         router.push(`/channels?account_id=${articleForm.account_id}`);
     } catch (e) {
-        ElMessage.error(e.response?.data?.message || tp('submit_failed'));
+        ElMessage.error(e.response?.data?.message || e.response?.data?.error?.message || tp('submit_failed'));
     }
 }
 

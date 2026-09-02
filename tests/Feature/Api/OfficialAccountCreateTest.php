@@ -70,4 +70,40 @@ class OfficialAccountCreateTest extends TestCase
         $this->assertNotEmpty($account->avatar);
         $this->assertNotSame('', $account->slug);
     }
+
+    /** @test */
+    public function fake_string_category_id_is_ignored_and_create_succeeds(): void
+    {
+        $response = $this->postJson('/api/official-accounts', [
+            'name' => '伪分类创建',
+            'description' => 'should ignore tech',
+            'category_id' => 'tech',
+        ]);
+
+        $response->assertCreated();
+        $account = OfficialAccount::where('name', '伪分类创建')->first();
+        $this->assertNotNull($account);
+        $this->assertNull($account->category_id);
+    }
+
+    /** @test */
+    public function valid_category_id_is_persisted(): void
+    {
+        $category = \App\Models\OaCategory::create([
+            'name' => '技术',
+            'icon' => '',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        $response = $this->postJson('/api/official-accounts', [
+            'name' => '带真实分类',
+            'category_id' => $category->id,
+        ]);
+
+        $response->assertCreated();
+        $account = OfficialAccount::where('name', '带真实分类')->first();
+        $this->assertNotNull($account);
+        $this->assertSame($category->id, $account->category_id);
+    }
 }

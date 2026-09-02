@@ -2078,7 +2078,9 @@ async function handleArticleAction(cmd, art) {
             }
         }
     } else if (cmd === 'edit') {
-        window.open(`/build/oa-editor?id=${art.id}&account_id=${selectedChannel.value?.id}`, '_blank')
+        const url = `/build/oa-editor?id=${art.id}&account_id=${selectedChannel.value?.id}`
+        const win = window.open(url, '_blank')
+        if (!win) window.location.href = url
     } else if (cmd === 'collection') {
         await showSetCollectionDialogForArticle(art)
     }
@@ -2110,7 +2112,9 @@ async function handleManageArticleAction(cmd, art) {
             }
         }
     } else if (cmd === 'edit') {
-        window.open(`/build/oa-editor?id=${art.id}&account_id=${articleManageAccountId.value}`, '_blank')
+        const url = `/build/oa-editor?id=${art.id}&account_id=${articleManageAccountId.value}`
+        const win = window.open(url, '_blank')
+        if (!win) window.location.href = url
     }
 }
 
@@ -2832,7 +2836,9 @@ async function saveChannel() {
         const fd = new FormData()
         fd.append('name', channelForm.value.name)
         fd.append('description', channelForm.value.description)
-        if (channelForm.value.category_id) fd.append('category_id', channelForm.value.category_id)
+        if (channelForm.value.category_id && channelForm.value.category_id !== 'all' && Number.isFinite(Number(channelForm.value.category_id))) {
+            fd.append('category_id', String(channelForm.value.category_id))
+        }
         if (avatarFile.value) fd.append('avatar', avatarFile.value)
         if (coverFile.value) fd.append('cover_image', coverFile.value)
 
@@ -2876,7 +2882,9 @@ function editChannel(ch) {
 }
 
 function createArticle(ch) {
-    window.open(`/build/oa-editor?account_id=${ch.id}`, '_blank')
+    const url = `/build/oa-editor?account_id=${ch.id}`
+    const win = window.open(url, '_blank')
+    if (!win) window.location.href = url
 }
 
 function openChat(ch) {
@@ -2948,21 +2956,19 @@ async function loadCategories() {
     try {
         const res = await apiClient.get('/official-accounts/public/categories')
         const list = res.data?.data || []
+        // 后端 category_id 是 oa_categories.id（整数），不能再用 tech/product 等伪值
+        const mapped = (Array.isArray(list) ? list : []).map((c) => ({
+            value: c.id,
+            label: c.name || String(c.id),
+        })).filter((c) => c.value != null)
         categories.value = [
             { value: 'all', label: cp('categories.all') },
-            { value: 'tech', label: cp('categories.tech') },
-            { value: 'product', label: cp('categories.product') },
-            { value: 'news', label: cp('categories.news') },
-            { value: 'tutorial', label: cp('categories.tutorial') },
+            ...mapped,
         ]
     } catch {
-        // 离线回退：使用默认分类
+        // 离线回退：仅保留「全部」，避免提交非法 category_id 导致创建失败
         categories.value = [
             { value: 'all', label: cp('categories.all') },
-            { value: 'tech', label: cp('categories.tech') },
-            { value: 'product', label: cp('categories.product') },
-            { value: 'news', label: cp('categories.news') },
-            { value: 'tutorial', label: cp('categories.tutorial') },
         ]
     } finally { categoriesLoading.value = false }
 }
@@ -3032,7 +3038,8 @@ onMounted(() => {
     border-bottom: 1px solid #e5e7eb;
     position: sticky;
     top: 80px;
-    z-index: 50;
+    /* 低于公共导航 z-[100]，避免盖住「更多」下拉 */
+    z-index: 30;
 }
 .wx-follow-btn {
     display: inline-flex;

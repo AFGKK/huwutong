@@ -1146,7 +1146,8 @@ onUnmounted(() => {
     border-bottom: 1px solid #eee;
     position: sticky;
     top: 80px;
-    z-index: 50;
+    /* 低于公共导航 z-[100]，否则会盖住「更多」下拉 */
+    z-index: 30;
 }
 
 /* ── 两栏布局 ── */

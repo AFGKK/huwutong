@@ -249,8 +249,8 @@ class OfficialAccountController extends Controller
             'summary' => 'nullable|string|max:300',
             'tags' => 'nullable|array',
             'is_pinned' => 'nullable|boolean',
-            'is_original' => 'boolean',
-            'allow_comments' => 'boolean',
+            'is_original' => 'nullable|boolean',
+            'allow_comments' => 'nullable|boolean',
             'status' => 'nullable|in:draft,published,scheduled',
             'scheduled_at' => 'nullable|date|after:now',
         ]);
@@ -288,16 +288,19 @@ class OfficialAccountController extends Controller
 
     public function updateArticle(int $id, Request $request): JsonResponse
     {
-        $article = OaArticle::whereHas('account', fn($q) => $q->where('owner_id', auth()->id()))
+        $article = OaArticle::whereHas('account', fn ($q) => $q->where('owner_id', auth()->id()))
             ->findOrFail($id);
 
-        // 只能修改一次
-        if ($article->edited_at) {
-            return ApiResponse::error(__('app.api.oa.edit_once'), 422);
+        // 仅「已发布」文章限制修改一次；草稿/定时稿可反复保存
+        $wasPublished = $article->status === 'published';
+        if ($wasPublished && $article->edited_at) {
+            return ApiResponse::error('EDIT_ONCE', __('app.api.oa.edit_once'), 422);
         }
 
         $updateData = $request->only(['title', 'content', 'cover_image', 'images', 'summary', 'tags', 'is_pinned', 'is_original', 'allow_comments']);
-        $updateData['edited_at'] = now();
+        if ($wasPublished) {
+            $updateData['edited_at'] = now();
+        }
 
         if ($request->has('scheduled_at')) {
             $updateData['scheduled_at'] = $request->input('scheduled_at');
@@ -306,15 +309,37 @@ class OfficialAccountController extends Controller
             }
         }
 
+        // 草稿状态显式回写
+        if ($request->input('status') === 'draft') {
+            $updateData['status'] = 'draft';
+            $updateData['scheduled_at'] = null;
+        }
+
         $article->update($updateData);
 
-        if ($request->has('status') && $request->input('status') === 'published' && $article->status !== 'published') {
+        if ($request->has('status') && $request->input('status') === 'published' && $article->fresh()->status !== 'published') {
             $article->update(['status' => 'published', 'published_at' => now(), 'scheduled_at' => null]);
-            // 触发 AI 自动评论
             OaArticlePublished::dispatch($article->fresh());
         }
 
         return ApiResponse::success($article->fresh(), __('app.api.oa.updated'));
+    }
+
+    /**
+     * 所有者编辑：可加载草稿/定时/已发布文章
+     * GET /api/official-accounts/articles/{articleId}/edit
+     */
+    public function editArticle(int $articleId): JsonResponse
+    {
+        $article = OaArticle::whereHas('account', fn ($q) => $q->where('owner_id', auth()->id()))
+            ->with('account:id,name,slug,avatar')
+            ->find($articleId);
+
+        if (! $article) {
+            return ApiResponse::notFound(__('app.api.oa.article_missing'));
+        }
+
+        return ApiResponse::success($article);
     }
 
     public function deleteArticle(int $id): JsonResponse
@@ -2576,6 +2601,11 @@ class OfficialAccountController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        // 前端曾传 tech/product 等伪分类值，直接校验会 422；非数字统一视为未选分类
+        if ($request->has('category_id') && $request->input('category_id') !== null && $request->input('category_id') !== '' && ! is_numeric($request->input('category_id'))) {
+            $request->merge(['category_id' => null]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'description' => 'nullable|string|max:500',

@@ -352,6 +352,9 @@ Route::get('/build/oa-article/{id}', function (int $id) {
         'title' => ($article?->title ?? '文章') . ' - ' . ($article?->account?->name ?? '互物号'),
     ]);
 })->whereNumber('id');
+Route::get('/build/oa-editor', function () {
+    return view('public-spa', ['title' => '文章编辑器 - 互物通']);
+});
 Route::get('/build/plaza/{path?}', function () {
     return view('public-spa', ['title' => '广场 - 互物通']);
 })->where('path', '.*');

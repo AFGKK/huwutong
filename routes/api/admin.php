@@ -1615,6 +1615,7 @@ Route::prefix('official-accounts')->middleware(['auth:sanctum'])->group(function
     Route::post('/sellers/{id}/unfollow', [SellerFollowController::class, 'unfollow'])->whereNumber('id');
     Route::get('/sellers/{id}/follow-status', [SellerFollowController::class, 'status'])->whereNumber('id');
     Route::post('/{id}/articles', [OfficialAccountController::class, 'createArticle'])->whereNumber('id');
+    Route::get('/articles/{articleId}/edit', [OfficialAccountController::class, 'editArticle'])->whereNumber('articleId');
     Route::post('/articles/{articleId}/like', [OfficialAccountController::class, 'toggleLike'])->whereNumber('articleId');
     Route::post('/articles/{articleId}/share', [OfficialAccountController::class, 'share'])->whereNumber('articleId');
     Route::post('/articles/{articleId}/comment', [OfficialAccountController::class, 'addComment'])->whereNumber('articleId');
