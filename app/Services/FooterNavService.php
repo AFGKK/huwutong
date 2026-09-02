@@ -106,11 +106,23 @@ class FooterNavService
         $count = 0;
 
         foreach ($defaults as $link) {
-            $exists = FooterNavItem::where('label', $link['label'])->exists();
-            if (!$exists) {
-                $this->create($link);
-                $count++;
+            $existing = FooterNavItem::where('label', $link['label'])->first();
+            if ($existing) {
+                $legalPaths = collect($defaults)
+                    ->filter(fn (array $item): bool => in_array($item['url'] ?? '', ['/terms', '/privacy', '/security-policy', '/cookie-policy'], true))
+                    ->pluck('url')
+                    ->all();
+                if (in_array($existing->url, $legalPaths, true) && ($existing->group ?? '') !== ($link['group'] ?? '')) {
+                    $existing->update([
+                        'group' => $link['group'],
+                        'sort_order' => $link['sort_order'] ?? $existing->sort_order,
+                    ]);
+                }
+
+                continue;
             }
+            $this->create($link);
+            $count++;
         }
 
         return $count;

@@ -23,6 +23,54 @@
     $navFooter = $footerNav['footer'] ?? [];
     $navSocial = $footerNav['social'] ?? [];
     $navBottom = $footerNav['bottom'] ?? [];
+
+    $legalLinkDefs = [
+        ['url' => '/terms', 'label' => __('app.footer.terms_of_service'), 'target' => '_self'],
+        ['url' => '/privacy', 'label' => __('app.footer.privacy_policy'), 'target' => '_self'],
+        ['url' => '/security-policy', 'label' => __('app.footer.security_policy'), 'target' => '_self'],
+        ['url' => '/cookie-policy', 'label' => __('app.footer.cookie_policy'), 'target' => '_self'],
+    ];
+    $legalPaths = collect($legalLinkDefs)->pluck('url')->all();
+    $isLegalNavItem = static function (array $item) use ($legalPaths): bool {
+        $path = parse_url((string) ($item['url'] ?? ''), PHP_URL_PATH) ?: '';
+
+        return in_array($path, $legalPaths, true);
+    };
+    $dedupeNavItems = static function (array $items): array {
+        $seen = [];
+        $result = [];
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $url = (string) ($item['url'] ?? '');
+            if ($url === '' || isset($seen[$url])) {
+                continue;
+            }
+            $seen[$url] = true;
+            $result[] = $item;
+        }
+
+        return $result;
+    };
+
+    $hasConfiguredNav = count($navFooter) > 0 || count($navBottom) > 0;
+    if ($hasConfiguredNav) {
+        $companyPrimaryLinks = array_values(array_filter($navFooter, fn (array $item): bool => ! $isLegalNavItem($item)));
+        $companyLegalLinks = $dedupeNavItems(array_values(array_filter(
+            array_merge($navFooter, $navBottom),
+            fn (array $item): bool => $isLegalNavItem($item)
+        )));
+        $bottomBarLinks = array_values(array_filter($navBottom, fn (array $item): bool => ! $isLegalNavItem($item)));
+    } else {
+        $companyPrimaryLinks = [
+            ['url' => '/about', 'label' => __('app.nav.about'), 'target' => '_self'],
+            ['url' => '/contact', 'label' => __('app.nav.contact'), 'target' => '_self'],
+            ['url' => '/build/status', 'label' => __('app.footer.status_page'), 'target' => '_self'],
+        ];
+        $companyLegalLinks = $legalLinkDefs;
+        $bottomBarLinks = [];
+    }
 @endphp
 <footer class="bg-gray-900 text-gray-400 pt-14 pb-8 relative overflow-hidden">
     <div class="absolute inset-0 bg-gradient-to-b from-gray-800/20 to-transparent pointer-events-none"></div>
@@ -116,24 +164,26 @@
                 </ul>
             </div>
 
-            {{-- 公司 / 可配置页脚主区 --}}
+            {{-- 公司 / 可配置页脚主区（含法务链接） --}}
             <div>
                 <h4 class="font-semibold text-white mb-5 text-sm tracking-wide">{{ __('app.footer.company') }}</h4>
                 <ul class="space-y-3 text-sm">
-                    @if(count($navFooter) > 0)
-                        @foreach($navFooter as $item)
-                        <li>
-                            <a href="{{ $item['url'] ?? '#' }}"
-                               target="{{ $item['target'] ?? '_self' }}"
-                               @if(($item['target'] ?? '_self') === '_blank') rel="noopener noreferrer" @endif
-                               class="footer-nav-link">{{ $item['label'] ?? '' }}</a>
-                        </li>
-                        @endforeach
-                    @else
-                        <li><a href="{{ url('/about') }}" class="footer-nav-link">{{ __('app.nav.about') }}</a></li>
-                        <li><a href="{{ url('/contact') }}" class="footer-nav-link">{{ __('app.nav.contact') }}</a></li>
-                        <li><a href="{{ url('/build/status') }}" class="footer-nav-link">{{ __('app.footer.status_page') }}</a></li>
-                    @endif
+                    @foreach($companyPrimaryLinks as $item)
+                    <li>
+                        <a href="{{ url($item['url'] ?? '#') }}"
+                           target="{{ $item['target'] ?? '_self' }}"
+                           @if(($item['target'] ?? '_self') === '_blank') rel="noopener noreferrer" @endif
+                           class="footer-nav-link">{{ $item['label'] ?? '' }}</a>
+                    </li>
+                    @endforeach
+                    @foreach($companyLegalLinks as $item)
+                    <li>
+                        <a href="{{ url($item['url'] ?? '#') }}"
+                           target="{{ $item['target'] ?? '_self' }}"
+                           @if(($item['target'] ?? '_self') === '_blank') rel="noopener noreferrer" @endif
+                           class="footer-nav-link">{{ $item['label'] ?? '' }}</a>
+                    </li>
+                    @endforeach
                 </ul>
             </div>
         </div>
@@ -145,19 +195,12 @@
                     {{ site_setting('footer_copyright', __('app.footer.copyright', ['year' => date('Y')])) }}
                 </p>
                 <div class="flex flex-wrap items-center justify-center lg:justify-end gap-x-5 gap-y-2 text-xs text-gray-500">
-                    @if(count($navBottom) > 0)
-                        @foreach($navBottom as $item)
-                        <a href="{{ $item['url'] ?? '#' }}"
-                           target="{{ $item['target'] ?? '_self' }}"
-                           @if(($item['target'] ?? '_self') === '_blank') rel="noopener noreferrer" @endif
-                           class="hover:text-gray-300 transition">{{ $item['label'] ?? '' }}</a>
-                        @endforeach
-                    @else
-                        <a href="{{ url('/privacy') }}" class="hover:text-gray-300 transition">{{ __('app.footer.privacy_policy') }}</a>
-                        <a href="{{ url('/terms') }}" class="hover:text-gray-300 transition">{{ __('app.footer.terms_of_service') }}</a>
-                        <a href="{{ url('/security-policy') }}" class="hover:text-gray-300 transition">{{ __('app.footer.security_policy') }}</a>
-                        <a href="{{ url('/cookie-policy') }}" class="hover:text-gray-300 transition">{{ __('app.footer.cookie_policy') }}</a>
-                    @endif
+                    @foreach($bottomBarLinks as $item)
+                    <a href="{{ url($item['url'] ?? '#') }}"
+                       target="{{ $item['target'] ?? '_self' }}"
+                       @if(($item['target'] ?? '_self') === '_blank') rel="noopener noreferrer" @endif
+                       class="hover:text-gray-300 transition">{{ $item['label'] ?? '' }}</a>
+                    @endforeach
                     @if(site_beian_public('icp_beian'))
                     <a href="{{ site_setting('icp_beian_url', 'https://beian.miit.gov.cn/') }}" target="_blank" rel="noopener noreferrer" class="hover:text-gray-300 transition">
                         {{ site_beian_public('icp_beian') }}
