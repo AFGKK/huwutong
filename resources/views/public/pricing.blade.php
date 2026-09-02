@@ -265,25 +265,7 @@
             <h2 class="text-3xl font-bold text-gray-900 text-center mb-12">{{ __('app.pricing.compare_title') }}</h2>
             @php
                 $comparePlans = collect($plans)->values();
-                $matrixRows = __('pricing_matrix');
-                if (! is_array($matrixRows)) {
-                    $matrixRows = [];
-                }
-                $matrixSlugAliases = [
-                    'enterprise' => 'ent',
-                    'ent' => 'enterprise',
-                ];
-                $matrixCell = static function (array $row, string $slug) use ($matrixSlugAliases): string {
-                    if (array_key_exists($slug, $row) && $row[$slug] !== null && $row[$slug] !== '') {
-                        return (string) $row[$slug];
-                    }
-                    $alias = $matrixSlugAliases[$slug] ?? null;
-                    if ($alias && array_key_exists($alias, $row) && $row[$alias] !== null && $row[$alias] !== '') {
-                        return (string) $row[$alias];
-                    }
-
-                    return '—';
-                };
+                $matrixRows = $matrixRows ?? [];
             @endphp
             <div class="table-scroll-wrap overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <table id="comparison-table" class="w-full text-sm" style="table-layout:fixed">
@@ -309,22 +291,22 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @foreach($matrixRows as $index => $f)
+                        @foreach($matrixRows as $index => $row)
                         <tr class="feature-row" @if($index % 2 === 0) style="background:#f8fafc" @endif>
                             <td class="py-3 px-4 font-medium text-gray-700" style="min-width:240px;overflow:hidden">
                                 <span class="inline-flex items-center gap-1 group relative cursor-help">
-                                    {{ $f['label'] ?? '' }}
+                                    {{ $row['label'] ?? '' }}
                                     <svg class="w-3.5 h-3.5 text-gray-300 group-hover:text-slate-500 transition shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-[260px] whitespace-normal">
-                                        {{ $f['tip'] ?? '' }}
+                                        {{ $row['tip'] ?? '' }}
                                         <span class="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-gray-900"></span>
                                     </span>
                                 </span>
                             </td>
-                            @foreach($comparePlans as $plan)
-                                @php $isPopularCol = ($plan['badge'] ?? '') === 'popular'; @endphp
+                            @foreach($row['cells'] ?? [] as $cellIndex => $cell)
+                                @php $isPopularCol = ($comparePlans[$cellIndex]['badge'] ?? '') === 'popular'; @endphp
                                 <td class="text-center py-3 px-3 text-sm {{ $isPopularCol ? 'font-medium' : 'text-gray-600' }}" @if($isPopularCol) style="background:#eff6ff;color:#1e40af" @endif>
-                                    {{ $matrixCell($f, (string) ($plan['slug'] ?? '')) }}
+                                    {{ $cell }}
                                 </td>
                             @endforeach
                         </tr>

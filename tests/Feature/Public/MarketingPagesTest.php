@@ -139,6 +139,41 @@ class MarketingPagesTest extends TestCase
     }
 
     /** @test */
+    public function pricing_comparison_matrix_uses_plan_limits(): void
+    {
+        $tenant = \App\Models\Tenant::factory()->create();
+        \App\Models\PricingPlan::factory()->create([
+            'tenant_id' => $tenant->id,
+            'slug' => 'starter',
+            'name' => 'Starter',
+            'price_monthly' => 49,
+            'is_active' => true,
+            'is_public' => true,
+            'sort_order' => 1,
+            'limits' => [
+                'max_products' => 2,
+                'max_activations' => 500,
+                'api_rate_limit' => 120,
+                'max_api_keys' => 3,
+                'team_members' => 2,
+            ],
+            'metadata' => [
+                'comparison' => [
+                    'webhook' => true,
+                    'trial_management' => '14',
+                ],
+            ],
+        ]);
+
+        $html = $this->get('/pricing')->assertOk()->getContent();
+
+        $this->assertStringContainsString('id="comparison-table"', $html);
+        $this->assertStringContainsString('Starter', $html);
+        $this->assertStringContainsString('2', $html);
+        $this->assertStringContainsString('120', $html);
+    }
+
+    /** @test */
     public function pricing_page_exposes_plan_ids_in_subscribe_links(): void
     {
         $tenant = \App\Models\Tenant::factory()->create();

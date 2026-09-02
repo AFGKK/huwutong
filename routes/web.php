@@ -79,10 +79,15 @@ Route::get('/pricing', function () {
             'currency' => $plan->currency,
             'features' => $plan->features ?? [],
             'limits' => $plan->limits ?? [],
+            'metadata' => $plan->metadata ?? [],
             'badge' => $plan->badge,
             'trial_days' => $plan->trial_days,
-        ]);
-    return view('public.pricing', compact('plans'));
+        ])
+        ->values()
+        ->all();
+    $matrixRows = app(\App\Support\PricingMatrixBuilder::class)->build($plans);
+
+    return view('public.pricing', compact('plans', 'matrixRows'));
 });
 
 // 竞品对比页 (M2-100)

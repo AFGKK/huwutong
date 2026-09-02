@@ -8,6 +8,78 @@ use Illuminate\Database\Seeder;
 
 class PricingPlanSeeder extends Seeder
 {
+    /** @return array<string, mixed> */
+    private function comparisonFor(string $slug): array
+    {
+        return match ($slug) {
+            'free' => [
+                'sdk_languages' => 3,
+                'live_chat' => true,
+                'trial_management' => '7',
+            ],
+            'basic' => [
+                'webhook' => true,
+                'sdk_languages' => 6,
+                'offline_licensing' => true,
+                'device_fingerprint' => true,
+                'live_chat' => true,
+                'canned_replies' => 10,
+                'sla_options' => 'negotiable',
+                'trial_management' => '14',
+            ],
+            'pro' => [
+                'rbac' => true,
+                'webhook' => true,
+                'webhook_retry_filter' => 'retry_filter',
+                'customer_portal' => true,
+                'multi_currency' => true,
+                'custom_domain' => true,
+                'sdk_languages' => 6,
+                'offline_licensing' => true,
+                'device_fingerprint' => true,
+                'floating_seats' => true,
+                'ai_insights' => true,
+                'live_chat' => true,
+                'ai_support' => true,
+                'human_handoff' => true,
+                'canned_replies' => 100,
+                'agent_groups' => 5,
+                'im_notifications' => true,
+                'sla_options' => 'negotiable',
+                'data_export' => 'csv',
+                'trial_management' => '30',
+            ],
+            'enterprise' => [
+                'rbac' => true,
+                'webhook' => true,
+                'webhook_retry_filter' => 'full',
+                'customer_portal' => true,
+                'multi_currency' => true,
+                'custom_domain' => true,
+                'sdk_languages' => 6,
+                'offline_licensing' => true,
+                'device_fingerprint' => true,
+                'floating_seats' => true,
+                'oem_whitelabel' => true,
+                'sso_saml' => true,
+                'audit_logs' => true,
+                'ai_insights' => true,
+                'live_chat' => true,
+                'ai_support' => true,
+                'human_handoff' => true,
+                'canned_replies' => 500,
+                'agent_groups' => -1,
+                'im_notifications' => true,
+                'sla_options' => 'written',
+                'data_export' => 'csv_json',
+                'trial_management' => 'custom',
+                'dedicated_csm' => true,
+                'private_deploy' => true,
+            ],
+            default => [],
+        };
+    }
+
     public function run(): void
     {
         // 默认租户（假设 tenant_id=1）
@@ -144,6 +216,9 @@ class PricingPlanSeeder extends Seeder
         foreach ($plans as $plan) {
             $plan['billing_period'] = $plan['billing_period'] ?? 'monthly';
             $plan['is_active'] = $plan['is_active'] ?? true;
+            $plan['metadata'] = [
+                'comparison' => $this->comparisonFor($plan['slug']),
+            ];
             PricingPlan::updateOrCreate(
                 ['slug' => $plan['slug']],
                 $plan
