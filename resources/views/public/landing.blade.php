@@ -166,6 +166,7 @@
             background: #fff;
             border-radius: 1rem;
             padding: 1.1rem 1.25rem;
+            text-align: center;
         }
         .trust-proof-value {
             font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -249,7 +250,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 1.1rem;
+            margin: 0 auto 1.1rem;
+        }
+        .feature-card-centered {
+            text-align: center;
+        }
+        .how-step {
+            text-align: center;
+        }
+        .how-step-number {
+            line-height: 1;
         }
         @media (prefers-reduced-motion: reduce) {
             .hero-anim-1, .hero-anim-2, .hero-anim-3, .hero-anim-4, .hero-panel, .hero-glow, .logo-slide {
@@ -334,7 +344,7 @@
                 <p class="text-slate-600 mt-2">{{ __('app.landing.trust_subtitle') }}</p>
             </div>
 
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10 max-w-6xl mx-auto">
                 <div class="trust-proof">
                     <div class="trust-proof-value">{{ __('app.landing.trust_proof_1_value') }}</div>
                     <div class="text-sm font-semibold text-slate-900 mt-1">{{ __('app.landing.trust_proof_1_label') }}</div>
@@ -377,43 +387,43 @@
                 <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4 tracking-tight">{{ __('app.landing.features_title') }}</h2>
                 <p class="text-lg text-slate-600 leading-relaxed">{{ __('app.landing.features_subtitle') }}</p>
             </div>
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-                <div class="feature-card p-7 rounded-2xl border transition-all">
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 max-w-6xl mx-auto">
+                <div class="feature-card feature-card-centered p-7 rounded-2xl border transition-all">
                     <div class="feature-icon">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                     </div>
                     <h3 class="text-lg font-semibold text-slate-900 mb-2">{{ __('app.landing.feat_secure_title') }}</h3>
                     <p class="text-slate-600 leading-relaxed text-[15px]">{{ __('app.landing.feat_secure_desc') }}</p>
                 </div>
-                <div class="feature-card p-7 rounded-2xl border transition-all">
+                <div class="feature-card feature-card-centered p-7 rounded-2xl border transition-all">
                     <div class="feature-icon">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                     </div>
                     <h3 class="text-lg font-semibold text-slate-900 mb-2">{{ __('app.landing.feat_perf_title') }}</h3>
                     <p class="text-slate-600 leading-relaxed text-[15px]">{{ __('app.landing.feat_perf_desc') }}</p>
                 </div>
-                <div class="feature-card p-7 rounded-2xl border transition-all">
+                <div class="feature-card feature-card-centered p-7 rounded-2xl border transition-all">
                     <div class="feature-icon">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                     </div>
                     <h3 class="text-lg font-semibold text-slate-900 mb-2">{{ __('app.landing.feat_sdk_title') }}</h3>
                     <p class="text-slate-600 leading-relaxed text-[15px]">{{ __('app.landing.feat_sdk_desc') }}</p>
                 </div>
-                <div class="feature-card p-7 rounded-2xl border transition-all">
+                <div class="feature-card feature-card-centered p-7 rounded-2xl border transition-all">
                     <div class="feature-icon">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
                     </div>
                     <h3 class="text-lg font-semibold text-slate-900 mb-2">{{ __('app.landing.feat_deploy_title') }}</h3>
                     <p class="text-slate-600 leading-relaxed text-[15px]">{{ __('app.landing.feat_deploy_desc') }}</p>
                 </div>
-                <div class="feature-card p-7 rounded-2xl border transition-all">
+                <div class="feature-card feature-card-centered p-7 rounded-2xl border transition-all">
                     <div class="feature-icon">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                     </div>
                     <h3 class="text-lg font-semibold text-slate-900 mb-2">{{ __('app.landing.feat_ops_title') }}</h3>
                     <p class="text-slate-600 leading-relaxed text-[15px]">{{ __('app.landing.feat_ops_desc') }}</p>
                 </div>
-                <div class="feature-card p-7 rounded-2xl border transition-all">
+                <div class="feature-card feature-card-centered p-7 rounded-2xl border transition-all">
                     <div class="feature-icon">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     </div>
@@ -432,21 +442,21 @@
                 <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4 tracking-tight">{{ __('app.landing.how_title') }}</h2>
                 <p class="text-lg text-slate-600 leading-relaxed">{{ __('app.landing.how_subtitle') }}</p>
             </div>
-            <div class="grid md:grid-cols-3 gap-8 md:gap-10">
-                <div class="relative">
-                    <div class="text-5xl font-extrabold text-slate-100 mb-3 select-none">01</div>
+            <div class="grid md:grid-cols-3 gap-8 md:gap-10 max-w-5xl mx-auto">
+                <div class="how-step relative">
+                    <div class="how-step-number text-5xl font-extrabold text-slate-100 mb-3 select-none">01</div>
                     <h3 class="text-xl font-semibold text-slate-900 mb-2">{{ __('app.landing.how_1_title') }}</h3>
-                    <p class="text-slate-600 leading-relaxed">{{ __('app.landing.how_1_desc') }}</p>
+                    <p class="text-slate-600 leading-relaxed max-w-xs mx-auto">{{ __('app.landing.how_1_desc') }}</p>
                 </div>
-                <div class="relative">
-                    <div class="text-5xl font-extrabold text-slate-100 mb-3 select-none">02</div>
+                <div class="how-step relative">
+                    <div class="how-step-number text-5xl font-extrabold text-slate-100 mb-3 select-none">02</div>
                     <h3 class="text-xl font-semibold text-slate-900 mb-2">{{ __('app.landing.how_2_title') }}</h3>
-                    <p class="text-slate-600 leading-relaxed">{{ __('app.landing.how_2_desc') }}</p>
+                    <p class="text-slate-600 leading-relaxed max-w-xs mx-auto">{{ __('app.landing.how_2_desc') }}</p>
                 </div>
-                <div class="relative">
-                    <div class="text-5xl font-extrabold text-slate-100 mb-3 select-none">03</div>
+                <div class="how-step relative">
+                    <div class="how-step-number text-5xl font-extrabold text-slate-100 mb-3 select-none">03</div>
                     <h3 class="text-xl font-semibold text-slate-900 mb-2">{{ __('app.landing.how_3_title') }}</h3>
-                    <p class="text-slate-600 leading-relaxed">{{ __('app.landing.how_3_desc') }}</p>
+                    <p class="text-slate-600 leading-relaxed max-w-xs mx-auto">{{ __('app.landing.how_3_desc') }}</p>
                 </div>
             </div>
             <div class="mt-14 how-code-panel rounded-2xl p-6 md:p-8 max-w-3xl mx-auto">
