@@ -2599,10 +2599,14 @@ class OfficialAccountController extends Controller
         }
 
         $slug = Str::slug($validated['name']);
-        $baseSlug = $slug ?: ('oa-' . Str::random(6));
+        // 中文等非 ASCII 名称 Str::slug 会得到空串，需生成可用 slug，否则唯一索引会挡住后续创建
+        if ($slug === '') {
+            $slug = 'oa-'.Str::lower(Str::random(10));
+        }
+        $baseSlug = $slug;
         $counter = 1;
         while (OfficialAccount::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $counter++;
+            $slug = $baseSlug.'-'.$counter++;
         }
 
         $account = OfficialAccount::create([

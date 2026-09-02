@@ -439,65 +439,108 @@ class MomentController extends Controller
     // ── 发布帖子 ──
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        // 前端用 FormData 上传图片文件时，不能按 URL 字符串校验 images.*
+        $rules = [
             'content' => 'required|string|max:5000',
-            'images' => 'nullable|array',
-            'images.*' => 'string|max:500',
             'category_id' => 'nullable|integer|exists:forum_categories,id',
             'poll' => 'nullable|array',
             'poll.question' => 'required_with:poll|string|max:500',
             'poll.options' => 'required_with:poll|array|min:2|max:20',
             'poll.options.*' => 'required|string|max:200',
             'poll.is_multiple' => 'nullable|boolean',
+            'poll_options' => 'nullable|string', // 前端兼容：JSON 数组字符串
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:30',
             'status' => 'nullable|in:draft,published,scheduled',
             'scheduled_at' => 'nullable|date|after:now',
             'template' => 'nullable|in:discuss,poll,qa,checkin,announce',
             'is_paid' => 'nullable|boolean',
-            'price' => 'required_if:is_paid,true|nullable|numeric|min:1|max:99999',
+            'price' => 'required_if:is_paid,true,1,"1"|nullable|numeric|min:1|max:99999',
             'price_type' => 'nullable|in:points,money',
             'content_preview' => 'nullable|string|max:500',
-        ]);
+            'video' => 'nullable',
+        ];
+
+        if ($request->hasFile('images')) {
+            $rules['images'] = 'nullable|array';
+            $rules['images.*'] = 'file|image|max:10240';
+        } else {
+            $rules['images'] = 'nullable|array';
+            $rules['images.*'] = 'string|max:500';
+        }
+
+        $validated = $request->validate($rules);
+
+        // 兼容前端 poll_options JSON
+        if (empty($validated['poll']) && $request->filled('poll_options')) {
+            $options = json_decode($request->input('poll_options'), true);
+            if (is_array($options) && count(array_filter($options, fn ($o) => trim((string) $o) !== '')) >= 2) {
+                $validated['poll'] = [
+                    'question' => mb_substr(strip_tags($validated['content']), 0, 200) ?: '投票',
+                    'options' => array_values(array_filter(array_map('trim', $options))),
+                    'is_multiple' => false,
+                ];
+            }
+        }
 
         $status = $validated['status'] ?? 'published';
 
         $content = $validated['content'];
+        $images = $this->handleImageUploads($request);
+        if ($images === null && ! empty($validated['images']) && ! $request->hasFile('images')) {
+            $images = array_values(array_filter($validated['images'], 'is_string'));
+        }
+
+        $videoUrl = null;
+        if ($request->hasFile('video')) {
+            $request->validate(['video' => 'file|mimes:mp4,webm,ogg,mov|max:102400']);
+            $path = $request->file('video')->store('moments/videos', 'public');
+            $videoUrl = url('storage/'.$path);
+        } elseif (! empty($validated['video']) && is_string($validated['video'])) {
+            $videoUrl = $validated['video'];
+        }
+
         $post = ForumPost::create([
             'user_id' => auth()->id(),
             'content' => $content,
-            'images' => $this->handleImageUploads($request),
+            'images' => $images,
+            'video' => $videoUrl,
             'category_id' => $validated['category_id'] ?? null,
             'title' => mb_substr(strip_tags($content), 0, 200),
             'status' => $status,
             'scheduled_at' => $validated['scheduled_at'] ?? null,
             'template' => $validated['template'] ?? 'discuss',
-            'is_paid' => $validated['is_paid'] ?? false,
-            'price' => ($validated['is_paid'] ?? false) ? ($validated['price'] ?? 0) : null,
+            'is_paid' => filter_var($validated['is_paid'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'price' => filter_var($validated['is_paid'] ?? false, FILTER_VALIDATE_BOOLEAN) ? ($validated['price'] ?? 0) : null,
             'price_type' => $validated['price_type'] ?? 'points',
             'content_preview' => $validated['content_preview'] ?? null,
         ]);
 
         // 处理标签
-        if ($request->has('tags') && is_array($validated['tags'])) {
+        if (! empty($validated['tags']) && is_array($validated['tags'])) {
             $tagIds = [];
             foreach ($validated['tags'] as $tagName) {
                 $tagName = trim($tagName);
-                if (empty($tagName)) continue;
+                if ($tagName === '') {
+                    continue;
+                }
                 $slug = \Illuminate\Support\Str::slug($tagName);
+                if ($slug === '') {
+                    $slug = 'tag-'.substr(md5($tagName), 0, 10);
+                }
                 $tag = ForumTag::firstOrCreate(
                     ['slug' => $slug],
                     ['name' => $tagName]
                 );
                 $tagIds[] = $tag->id;
             }
-            if (!empty($tagIds)) {
+            if (! empty($tagIds)) {
                 $post->tags()->sync($tagIds);
             }
         }
 
         // 创建投票
-        if ($request->has('poll') && !empty($validated['poll']['question']) && !empty($validated['poll']['options'])) {
+        if (! empty($validated['poll']['question']) && ! empty($validated['poll']['options'])) {
             $poll = ForumPoll::create([
                 'post_id' => $post->id,
                 'question' => $validated['poll']['question'],
@@ -517,14 +560,14 @@ class MomentController extends Controller
             try {
                 $moderation = app(PostModerationService::class);
                 $result = $moderation->inspectPost($post);
-                if (!$result['passed']) {
+                if (! $result['passed']) {
                     \Illuminate\Support\Facades\Log::info('[Moment] AI审核拦截', [
                         'post_id' => $post->id,
                         'reason' => $result['reason'],
                     ]);
                 }
             } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('[Moment] AI审核异常: ' . $e->getMessage());
+                \Illuminate\Support\Facades\Log::warning('[Moment] AI审核异常: '.$e->getMessage());
             }
         }
 

@@ -829,12 +829,12 @@ async function submitPost() {
                 fd.append('removed_images', JSON.stringify(removedImages.value))
             }
             await apiClient.post(`/moments/${editingPost.value.id}`, fd, {
-                headers: { 'Content-Type': 'multipart/form-data', Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
+                headers: { Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
             })
             ElMessage.success(t('community_page.update_ok'))
         } else {
             await apiClient.post('/moments', fd, {
-                headers: { 'Content-Type': 'multipart/form-data', Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
+                headers: { Authorization: 'Bearer ' + localStorage.getItem('auth_token') }
             })
             clearAutoDraft() // 发布成功清除自动草稿
             ElMessage.success(t('community_page.publish_ok'))
@@ -842,7 +842,16 @@ async function submitPost() {
 
         resetPostForm()
         await loadPosts()
-    } catch (e) { ElMessage.error(e.response?.data?.message || t('community_page.operation_failed')) }
+    } catch (e) {
+        const errData = e.response?.data
+        if (errData?.error?.details) {
+            const details = errData.error.details
+            const firstField = Object.keys(details)[0]
+            const msg = details[firstField]?.[0]
+            if (msg) { ElMessage.error(msg); return }
+        }
+        ElMessage.error(errData?.message || errData?.error?.message || t('community_page.operation_failed'))
+    }
     finally { submitting.value = false }
 }
 
