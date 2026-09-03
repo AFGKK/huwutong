@@ -277,7 +277,7 @@
                                 {{ cp('send_message') }}
                             </a>
                             <button v-if="isLoggedIn && selectedChannel.is_owner && selectedChannel.status === 'active'"
-                                class="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all shadow-sm hover:shadow-md"
+                                class="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all shadow-sm hover:shadow-md"
                                 @click="createArticle(selectedChannel)">
                                 {{ cp('write_article') }}
                             </button>
@@ -444,10 +444,10 @@
                                 </template>
                                 <template v-else-if="ch.status === 'active' && !ch.is_verified">
                                     <button class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition" @click="applyVerifyChannel(ch)">{{ cp('apply_verify') }}</button>
-                                    <button class="px-3 py-1.5 text-xs font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition shadow-sm" @click="createArticle(ch)">{{ cp('write_article') }}</button>
+                                    <button class="px-3 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition shadow-sm" @click="createArticle(ch)">{{ cp('write_article') }}</button>
                                 </template>
                                 <template v-else>
-                                    <button class="px-3 py-1.5 text-xs font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition shadow-sm" @click="createArticle(ch)">{{ cp('write_article') }}</button>
+                                    <button class="px-3 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition shadow-sm" @click="createArticle(ch)">{{ cp('write_article') }}</button>
                                 </template>
                             </div>
                         </div>
@@ -753,7 +753,7 @@
                             <div v-else class="text-center py-12">
                                 <div class="text-3xl mb-2">📝</div>
                                 <p class="text-sm text-gray-400">{{ cp('empty_articles') }}</p>
-                                <button class="mt-3 px-4 py-2 text-xs font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition" @click="createArticle(selectedChannel)">{{ cp('write_first') }}</button>
+                                <button class="mt-3 px-4 py-2 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition" @click="createArticle(selectedChannel)">{{ cp('write_first') }}</button>
                             </div>
                         </div>
                     </div>
