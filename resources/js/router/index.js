@@ -1900,6 +1900,12 @@ const routes = [
                 component: () => import('@/views/update-manager/Index.vue'),
                 meta: { titleKey: 'admin.menu.update_manager', icon: 'Upload' },
             },
+            {
+                path: 'updates',
+                name: 'Updates',
+                component: () => import('@/views/updates/Index.vue'),
+                meta: { titleKey: 'admin.menu.updates', icon: 'Upload' },
+            },
             // ── 审计治理中心 ──
             {
                 path: 'audit',
