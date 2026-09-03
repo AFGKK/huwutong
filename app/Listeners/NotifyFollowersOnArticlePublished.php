@@ -5,9 +5,10 @@ namespace App\Listeners;
 use App\Events\OaArticlePublished;
 use App\Models\OaFollower;
 use App\Services\UserChatConversationService;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 
-class NotifyFollowersOnArticlePublished
+class NotifyFollowersOnArticlePublished implements ShouldQueue
 {
     public function __construct(
         protected UserChatConversationService $chatConversations,

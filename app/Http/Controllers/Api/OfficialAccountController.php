@@ -259,8 +259,8 @@ class OfficialAccountController extends Controller
         $scheduledAt = $validated['scheduled_at'] ?? null;
 
         // 定时发布必须同时设置 scheduled_at
-        if ($status === 'scheduled' && !$scheduledAt) {
-            return ApiResponse::error(__('app.api.oa.schedule_required'), 422);
+        if ($status === 'scheduled' && ! $scheduledAt) {
+            return ApiResponse::error('SCHEDULE_REQUIRED', __('app.api.oa.schedule_required'), 422);
         }
 
         $article = OaArticle::create([
@@ -272,6 +272,8 @@ class OfficialAccountController extends Controller
             'summary' => $validated['summary'] ?? null,
             'tags' => $validated['tags'] ?? null,
             'is_pinned' => $validated['is_pinned'] ?? false,
+            'is_original' => $validated['is_original'] ?? false,
+            'allow_comments' => $validated['allow_comments'] ?? true,
             'status' => $status,
             'published_at' => $status === 'published' ? now() : null,
             'scheduled_at' => $status === 'scheduled' ? $scheduledAt : null,
