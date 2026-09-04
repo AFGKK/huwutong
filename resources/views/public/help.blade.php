@@ -162,8 +162,8 @@
         <div class="{{ site_setting('page_width', 'max-w-6xl') }} mx-auto px-4 sm:px-6 lg:px-8" id="kb-app">
             <!-- 加载 -->
             <div id="loading-state" class="text-center py-20">
-                <div class="animate-spin w-8 h-8 border-4 border-slate-900 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p class="text-slate-500">...</p>
+                <div class="animate-spin w-8 h-8 border-4 border-slate-900 border-t-transparent rounded-full mx-auto mb-4" aria-hidden="true"></div>
+                <p class="text-slate-500">{{ __('app.help_page.loading') }}</p>
             </div>
 
             <!-- 搜索首页 -->
@@ -306,6 +306,16 @@
     let _sessionId = 'kb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     let _currentArticleId = null;
 
+    function hideLoading() {
+        var el = document.getElementById('loading-state');
+        if (el) el.classList.add('hidden');
+    }
+
+    function showLoading() {
+        var el = document.getElementById('loading-state');
+        if (el) el.classList.remove('hidden');
+    }
+
     function renderPopularTags() {
         var tags = [HELP_I18N.tag_quickstart||'', HELP_I18N.tag_sdk||'', HELP_I18N.tag_activate||'', HELP_I18N.tag_api||'', HELP_I18N.tag_device||''];
         var el = document.getElementById('popular-tags');
@@ -326,7 +336,7 @@
     async function loadHome() {
         try {
             // 隐藏加载状态，显示首页
-            document.getElementById('loading-state').classList.add('hidden');
+            hideLoading();
             document.getElementById('kb-home').classList.remove('hidden');
             renderPopularTags();
             const res = await fetch(API + '/kb/categories?locale=zh-CN');
@@ -382,6 +392,7 @@
                     '</div>';
             }).join('');
         } catch(e) {
+            hideLoading();
             document.getElementById('category-sections').innerHTML = '<div class="text-center py-16 text-gray-400"><p>'+(HELP_I18N.load_fail||'')+'</p></div>';
         }
     }
@@ -421,7 +432,8 @@
         _currentArticleId = id;
         document.getElementById('kb-home').classList.add('hidden');
         document.getElementById('kb-search-results').classList.add('hidden');
-        document.getElementById('kb-article').classList.remove('hidden');
+        document.getElementById('kb-article').classList.add('hidden');
+        showLoading();
 
         try {
             var res = await fetch(API + '/kb/articles/' + id);
@@ -443,7 +455,7 @@
             embedVideos();
             // 📑 生成目录
             buildArticleToc();
-            // ⭀收藏状态
+            // 收藏状态
             loadKbFavStatus();
 
             // 相关文章
@@ -483,7 +495,14 @@
             }
 
             document.getElementById('feedback-msg').classList.add('hidden');
+            document.getElementById('kb-article').classList.remove('hidden');
+            hideLoading();
+            if (window.history && window.location.pathname !== '/help/' + id) {
+                window.history.pushState({}, '', '/help/' + id);
+            }
         } catch(e) {
+            document.getElementById('kb-article').classList.remove('hidden');
+            hideLoading();
             document.getElementById('article-content').innerHTML = '<p class="text-center text-gray-400 py-10">'+(HELP_I18N.article_fail||'')+'</p>';
         }
     }
@@ -510,9 +529,13 @@
     }
 
     function showHome() {
+        hideLoading();
         document.getElementById('kb-home').classList.remove('hidden');
         document.getElementById('kb-search-results').classList.add('hidden');
         document.getElementById('kb-article').classList.add('hidden');
+        if (window.history && window.location.pathname !== '/help') {
+            window.history.pushState({}, '', '/help');
+        }
     }
 
     // ─── ⭐收藏文章 ───
@@ -809,7 +832,7 @@
         var pathParts = window.location.pathname.split('/');
         var lastPart = pathParts[pathParts.length - 1];
         if (lastPart && /^\d+$/.test(lastPart) && parseInt(lastPart) > 0) {
-            document.getElementById('loading-state').classList.remove('hidden');
+            showLoading();
             document.getElementById('kb-home').classList.add('hidden');
             loadArticle(parseInt(lastPart));
         } else {

@@ -935,6 +935,7 @@ return [
         'subtitle' => '查找常见问题、集成指南与产品文档',
         'meta_desc' => '互物通帮助中心——常见问题、集成指南、最佳实践与产品文档。',
         'search_placeholder' => '搜索帮助文档…',
+        'loading' => '加载中…',
         'back' => '返回帮助中心',
         'popular' => '热门搜索：',
         'immersion' => '沉浸阅读',

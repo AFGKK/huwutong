@@ -936,6 +936,7 @@ return [
         'subtitle' => 'FAQs, integration guides, and product docs',
         'meta_desc' => 'Huwutong Help Center — FAQs, guides, best practices, and documentation.',
         'search_placeholder' => 'Search help articles…',
+        'loading' => 'Loading…',
         'back' => 'Back to help center',
         'popular' => 'Popular:',
         'immersion' => 'Focus mode',
