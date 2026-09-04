@@ -240,6 +240,7 @@ return [
         'eco_empty' => '暂无内容',
         'eco_failed' => '加载失败',
         'eco_official' => '官方动态',
+        'eco_community_label' => '社区动态',
         'eco_followers' => ':count 关注者',
         'faq_kicker' => 'FAQ',
         'faq_title' => '常见问题',

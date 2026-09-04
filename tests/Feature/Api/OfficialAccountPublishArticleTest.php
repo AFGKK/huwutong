@@ -122,4 +122,73 @@ class OfficialAccountPublishArticleTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.title', '公开可见');
     }
+
+    /** @test */
+    public function public_articles_feed_returns_flat_paginated_list(): void
+    {
+        OaArticle::create([
+            'account_id' => $this->account->id,
+            'author_id' => $this->user->id,
+            'title' => '信息流可见文章',
+            'content' => '信息流正文内容足够长',
+            'status' => 'published',
+            'published_at' => now(),
+        ]);
+
+        OaArticle::create([
+            'account_id' => $this->account->id,
+            'author_id' => $this->user->id,
+            'title' => '草稿不应出现在信息流',
+            'content' => '草稿正文内容足够长',
+            'status' => 'draft',
+        ]);
+
+        $response = $this->getJson('/api/official-accounts/public/articles');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true);
+
+        $data = $response->json('data');
+        $this->assertIsArray($data);
+        $this->assertTrue(array_is_list($data), 'data 必须是文章列表数组，不能是 Laravel 分页对象');
+        $this->assertNotEmpty($data);
+        $this->assertSame('信息流可见文章', $data[0]['title']);
+        $this->assertArrayHasKey('meta', $response->json());
+        $this->assertGreaterThanOrEqual(1, $response->json('meta.total'));
+    }
+
+    /** @test */
+    public function owner_can_list_draft_articles_via_status_filter(): void
+    {
+        OaArticle::create([
+            'account_id' => $this->account->id,
+            'author_id' => $this->user->id,
+            'title' => '管理端草稿',
+            'content' => '管理端草稿正文足够长',
+            'status' => 'draft',
+        ]);
+
+        OaArticle::create([
+            'account_id' => $this->account->id,
+            'author_id' => $this->user->id,
+            'title' => '管理端已发布',
+            'content' => '管理端已发布正文足够长',
+            'status' => 'published',
+            'published_at' => now(),
+        ]);
+
+        $drafts = $this->getJson('/api/official-accounts/'.$this->account->id.'/articles?status=draft')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertTrue(array_is_list($drafts));
+        $this->assertCount(1, $drafts);
+        $this->assertSame('管理端草稿', $drafts[0]['title']);
+
+        $all = $this->getJson('/api/official-accounts/'.$this->account->id.'/articles')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertCount(2, $all);
+    }
 }

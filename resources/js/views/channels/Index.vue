@@ -1549,6 +1549,27 @@ const distStatusLabel = (st) => ({ success: cp('dist_success'), pending: cp('dis
 const commentStatusLabel = (st) => ({ approved: cp('comment_approved'), pending: cp('comment_pending'), rejected: cp('comment_rejected') })[st] || st
 const autoReplyTypeLabel = (type) => ({ welcome: cp('reply_welcome'), keyword: cp('reply_keyword'), default: cp('reply_default') })[type] || type
 const articleStatusLabel = (st) => ({ published: cp('status_published'), draft: cp('status_draft'), pending: cp('status_pending') })[st] || st
+
+/** 兼容 ApiResponse::paginated({data, meta}) 与 Laravel 分页包在 data 内的两种结构 */
+function unwrapPaginated(body) {
+    const raw = body?.data
+    if (Array.isArray(raw)) {
+        return { list: raw, meta: body?.meta || null }
+    }
+    if (raw && Array.isArray(raw.data)) {
+        return {
+            list: raw.data,
+            meta: body?.meta || {
+                current_page: raw.current_page,
+                last_page: raw.last_page,
+                total: raw.total,
+                per_page: raw.per_page,
+            },
+        }
+    }
+    return { list: [], meta: body?.meta || null }
+}
+
 const route = useRoute()
 const router = useRouter()
 const isLoggedIn = ref(!!localStorage.getItem('auth_token'))
@@ -1669,10 +1690,9 @@ async function loadManageArticles() {
         const params = { per_page: 50 }
         if (articleStatusFilter.value !== 'all') params.status = articleStatusFilter.value
         const res = await apiClient.get(`/official-accounts/${accountId}/articles`, { params, headers: h })
-        const body = res.data
-        const list = body?.data || body?.data?.data || []
+        const { list, meta } = unwrapPaginated(res.data)
         articles.value = list
-        totalArticles.value = body?.meta?.total || list.length
+        totalArticles.value = meta?.total || list.length
     } catch { articles.value = [] }
     finally { articlesLoading.value = false }
 }
@@ -1907,9 +1927,7 @@ async function loadFeed(page = 1, append = false) {
         if (searchQuery.value) params.q = searchQuery.value
         if (selectedFeedTag.value) params.tag = selectedFeedTag.value
         const res = await apiClient.get('/official-accounts/public/articles', { params })
-        const body = res.data
-        const list = body?.data || []
-        const meta = body?.meta
+        const { list, meta } = unwrapPaginated(res.data)
         if (append) {
             feedArticles.value = [...feedArticles.value, ...list]
         } else {
@@ -2012,9 +2030,7 @@ async function loadArticles(channelId, page = 1, append = false) {
         const params = { per_page: 10, page }
         if (articleSearch.value) params.q = articleSearch.value
         const res = await apiClient.get(`/official-accounts/public/${channelId}/articles`, { params, headers })
-        const body = res.data
-        const list = body?.data || body?.data?.data || []
-        const meta = body?.meta
+        const { list, meta } = unwrapPaginated(res.data)
         if (append) {
             articles.value = [...articles.value, ...list]
         } else {

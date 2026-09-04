@@ -158,7 +158,8 @@ class MomentController extends Controller
             $query->orderBy('is_pinned', 'desc')->orderBy('created_at', 'desc');
         }
 
-        $posts = $query->paginate(20);
+        $perPage = max(1, min((int) $request->input('per_page', 20), 50));
+        $posts = $query->paginate($perPage);
         $posts->getCollection()->transform(fn($p) => $this->transformPost($p, $myId));
 
         return ApiResponse::paginated($posts);

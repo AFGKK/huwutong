@@ -742,27 +742,91 @@
             empty: @json(__('app.landing.eco_empty')),
             failed: @json(__('app.landing.eco_failed')),
             official: @json(__('app.landing.eco_official')),
+            community: @json(__('app.landing.eco_community_label')),
             followers: @json(__('app.landing.eco_followers')),
         };
+
+        function unwrapList(payload) {
+            var raw = payload && payload.data;
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
+        }
+
+        function escapeHtml(text) {
+            return String(text == null ? '' : text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function plainText(html, maxLen) {
+            var tmp = document.createElement('div');
+            tmp.innerHTML = html || '';
+            var text = (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+            if (text.length > maxLen) return text.slice(0, maxLen) + '…';
+            return text;
+        }
+
+        function channelCard(a) {
+            var initial = escapeHtml((a.name || '?').charAt(0));
+            var avatar = a.avatar
+                ? '<img src="' + escapeHtml(a.avatar) + '" class="w-full h-full object-cover" alt="" />'
+                : '<span class="text-sm font-bold">' + initial + '</span>';
+            var followers = i18n.followers.replace(':count', a.followers_count || 0);
+            var desc = escapeHtml(a.description || followers);
+            return '<a href="/build/channels" class="bg-white rounded-xl border border-slate-200 p-4 hover:border-slate-300 transition block">'
+                + '<div class="text-[10px] uppercase tracking-wide text-slate-400 mb-2">' + escapeHtml(i18n.official) + '</div>'
+                + '<div class="flex items-center gap-3">'
+                + '<div class="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-700 overflow-hidden shrink-0">' + avatar + '</div>'
+                + '<div class="flex-1 min-w-0">'
+                + '<div class="text-sm font-semibold text-slate-900 truncate">' + escapeHtml(a.name || i18n.official) + '</div>'
+                + '<div class="text-xs text-slate-400 truncate">' + desc + '</div>'
+                + '</div></div></a>';
+        }
+
+        function momentCard(m) {
+            var author = (m.user && m.user.name) ? m.user.name : i18n.community;
+            var snippet = plainText(m.content || m.title || '', 72);
+            var href = m.id ? ('/build/community?post=' + encodeURIComponent(m.id)) : '/build/community';
+            return '<a href="' + href + '" class="bg-white rounded-xl border border-slate-200 p-4 hover:border-slate-300 transition block">'
+                + '<div class="text-[10px] uppercase tracking-wide text-slate-400 mb-2">' + escapeHtml(i18n.community) + '</div>'
+                + '<div class="text-sm font-semibold text-slate-900 truncate mb-1">' + escapeHtml(author) + '</div>'
+                + '<div class="text-xs text-slate-500 line-clamp-2">' + escapeHtml(snippet || i18n.empty) + '</div>'
+                + '</a>';
+        }
+
         try {
-            var r = await fetch('/api/official-accounts?per_page=4&sort=followers');
-            var d = await r.json();
-            var accounts = d.data?.data || d.data || [];
+            var results = await Promise.all([
+                fetch('/api/official-accounts/public?per_page=4&sort=followers').then(function (r) { return r.json(); }),
+                fetch('/api/moments/public?per_page=4').then(function (r) { return r.json(); }),
+            ]);
+            var accounts = unwrapList(results[0]).slice(0, 2);
+            var moments = unwrapList(results[1]).slice(0, 2);
+            var cards = [];
+            moments.forEach(function (m) { cards.push(momentCard(m)); });
+            accounts.forEach(function (a) { cards.push(channelCard(a)); });
+            // 任一侧不足时用另一侧补齐到最多 4 张
+            if (cards.length < 4) {
+                unwrapList(results[0]).slice(accounts.length, 4).forEach(function (a) {
+                    if (cards.length < 4) cards.push(channelCard(a));
+                });
+            }
+            if (cards.length < 4) {
+                unwrapList(results[1]).slice(moments.length, 4).forEach(function (m) {
+                    if (cards.length < 4) cards.push(momentCard(m));
+                });
+            }
             var container = document.getElementById('channels-grid');
-            if (!accounts.length) { container.innerHTML = '<div class="text-center text-slate-300 py-6 col-span-full text-sm">'+i18n.empty+'</div>'; return; }
-            container.innerHTML = accounts.map(function(a) {
-                var initial = (a.name||'?').charAt(0);
-                var avatar = a.avatar ? '<img src="'+a.avatar+'" class="w-full h-full object-cover" alt="" />' : '<span class="text-sm font-bold">'+initial+'</span>';
-                var followers = i18n.followers.replace(':count', a.followers_count||0);
-                return '<div class="bg-white rounded-xl border border-slate-200 p-4 hover:border-slate-300 transition cursor-pointer" onclick="window.open(\'/build/channels\',\'_blank\')" role="link" tabindex="0">'
-                    +'<div class="flex items-center gap-3">'
-                    +'<div class="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-700 overflow-hidden shrink-0">'+avatar+'</div>'
-                    +'<div class="flex-1 min-w-0">'
-                    +'<div class="text-sm font-semibold text-slate-900 truncate">'+(a.name||i18n.official)+'</div>'
-                    +'<div class="text-xs text-slate-400 truncate">'+(a.description||followers)+'</div>'
-                    +'</div></div></div>';
-            }).join('');
-        } catch(e) { document.getElementById('channels-grid').innerHTML = '<div class="text-center text-slate-300 py-6 col-span-full text-sm">'+i18n.failed+'</div>'; }
+            if (!cards.length) {
+                container.innerHTML = '<div class="text-center text-slate-300 py-6 col-span-full text-sm">' + i18n.empty + '</div>';
+                return;
+            }
+            container.innerHTML = cards.join('');
+        } catch (e) {
+            document.getElementById('channels-grid').innerHTML = '<div class="text-center text-slate-300 py-6 col-span-full text-sm">' + i18n.failed + '</div>';
+        }
     })();
     </script>
 

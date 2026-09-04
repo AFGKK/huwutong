@@ -81,9 +81,7 @@ class OfficialAccountController extends Controller
             $query->withCount('followers')->orderBy('followers_count', 'desc');
         }
 
-        $accounts = $query->paginate($perPage);
-
-        return ApiResponse::success($accounts);
+        return ApiResponse::paginated($query->paginate(max(1, min($perPage, 50))));
     }
 
     /**
@@ -134,12 +132,30 @@ class OfficialAccountController extends Controller
     {
         $perPage = (int) $request->input('per_page', 20);
 
-        $articles = OaArticle::where('status', 'published')
-            ->with('account:id,name,slug,avatar,description')
-            ->latest()
-            ->paginate($perPage);
+        $query = OaArticle::where('status', 'published')
+            ->whereHas('account', fn ($q) => $q->where('status', 'active'))
+            ->with('account:id,name,slug,avatar,description');
 
-        return ApiResponse::success($articles);
+        $q = trim((string) $request->input('q', ''));
+        if ($q !== '') {
+            $query->where(function ($builder) use ($q) {
+                $builder->where('title', 'like', "%{$q}%")
+                    ->orWhere('summary', 'like', "%{$q}%");
+            });
+        }
+
+        $tag = trim((string) $request->input('tag', ''));
+        if ($tag !== '') {
+            $query->whereJsonContains('tags', $tag);
+        }
+
+        if ($request->input('sort') === 'hot') {
+            $query->withCount('likes')->orderByDesc('likes_count')->orderByDesc('id');
+        } else {
+            $query->orderByDesc('is_global_pinned')->orderByDesc('is_pinned')->orderByDesc('published_at')->orderByDesc('id');
+        }
+
+        return ApiResponse::paginated($query->paginate($perPage));
     }
 
     /**
@@ -2219,11 +2235,35 @@ class OfficialAccountController extends Controller
 
     public function articles(int $id, Request $request): JsonResponse
     {
-        $account = OfficialAccount::where('status', 'active')->findOrFail($id);
+        $account = OfficialAccount::findOrFail($id);
+        $isOwner = auth()->check() && (int) $account->owner_id === (int) auth()->id();
+
+        // 非所有者只能看已激活互物号的已发布文章
+        if (! $isOwner) {
+            if ($account->status !== 'active') {
+                abort(404);
+            }
+        }
 
         $query = OaArticle::where('account_id', $account->id)
-            ->where('status', 'published')
             ->with('account:id,name,slug,avatar');
+
+        if ($isOwner) {
+            $status = (string) $request->input('status', '');
+            if ($status !== '' && $status !== 'all') {
+                $query->where('status', $status);
+            }
+        } else {
+            $query->where('status', 'published');
+        }
+
+        $q = trim((string) $request->input('q', ''));
+        if ($q !== '') {
+            $query->where(function ($builder) use ($q) {
+                $builder->where('title', 'like', "%{$q}%")
+                    ->orWhere('summary', 'like', "%{$q}%");
+            });
+        }
 
         if ($request->input('sort') === 'hot') {
             $query->withCount('likes')->orderByDesc('likes_count')->orderByDesc('id');

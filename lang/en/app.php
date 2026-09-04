@@ -240,6 +240,7 @@ return [
         'eco_empty' => 'No content yet',
         'eco_failed' => 'Failed to load',
         'eco_official' => 'Official updates',
+        'eco_community_label' => 'Community',
         'eco_followers' => ':count followers',
         'faq_kicker' => 'FAQ',
         'faq_title' => 'Frequently asked questions',
