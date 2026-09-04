@@ -25,6 +25,9 @@ class MeilisearchService
     protected ?\Meilisearch\Client $client = null;
     protected bool $available = false;
 
+    /** @var array<string, true> 本进程内已确保配置过的索引 */
+    protected array $configuredIndexes = [];
+
     public function __construct()
     {
         $this->boot();
@@ -144,7 +147,7 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
                 $this->client->index($indexUid)->updateSortableAttributes($config['sortable_attributes']);
                 return ['uid' => $indexUid, 'status' => 'updated'];
             } catch (\Throwable $e2) {
-                throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_6c06f88c61') . $e2->getMessage());
+                throw new \RuntimeException(__('app.api.services_misc2.meilisearch_service_6c06f88c61') . $e2->getMessage());
             }
         }
     }
@@ -209,6 +212,7 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
                 'indexes' => $this->getIndexes(),
                 'host' => config('meilisearch.host'),
                 'meilisearch_available' => true,
+                'auto_sync' => $this->autoSyncStatus(),
             ];
         } catch (\Throwable $e) {
             return array_merge($this->unavailableHealthPayload(), [
@@ -246,13 +250,28 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
             'version' => null,
             'host' => config('meilisearch.host'),
             'meilisearch_available' => false,
-            'message' => __('app.meilisearch_service.meilisearch_service_ea54767b0c'),
-            'hint' => __('app.meilisearch_service.meilisearch_service_9397b0a037'),
+            'message' => __('app.api.services_misc2.meilisearch_service_ea54767b0c'),
+            'hint' => __('app.api.services_misc2.meilisearch_service_9397b0a037'),
             'start_commands' => [
                 'windows' => 'powershell -ExecutionPolicy Bypass -File scripts/start-meilisearch.ps1',
                 'docker' => 'docker compose -f deploy/meilisearch/docker-compose.yml up -d',
             ],
             'rebuild_command' => 'php artisan meilisearch:sync --rebuild',
+            'auto_sync' => $this->autoSyncStatus(),
+        ];
+    }
+
+    /**
+     * 自动同步能力说明（供管理后台展示）
+     */
+    public function autoSyncStatus(): array
+    {
+        return [
+            'observer_enabled' => (bool) config('meilisearch.observer.enabled', true),
+            'queue' => (bool) config('meilisearch.sync.queue', false),
+            'queue_name' => config('meilisearch.sync.queue_name', 'default'),
+            'scheduled' => (bool) config('meilisearch.sync.scheduled', true),
+            'mode' => (bool) config('meilisearch.observer.enabled', true) ? 'incremental' : 'manual',
         ];
     }
 
@@ -300,7 +319,7 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步商品到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_e3d9f68a65') . $e->getMessage());
+            throw new \RuntimeException(__('app.api.services_misc2.meilisearch_service_e3d9f68a65') . $e->getMessage());
         }
     }
 
@@ -344,7 +363,7 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步知识库到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_dd31ddc1a9') . $e->getMessage());
+            throw new \RuntimeException(__('app.api.services_misc2.meilisearch_service_dd31ddc1a9') . $e->getMessage());
         }
     }
 
@@ -413,7 +432,7 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步应用市场到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_1cc1876555') . $e->getMessage());
+            throw new \RuntimeException(__('app.api.services_misc2.meilisearch_service_1cc1876555') . $e->getMessage());
         }
     }
 
@@ -462,7 +481,7 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步广场到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_be2f002dfb') . $e->getMessage());
+            throw new \RuntimeException(__('app.api.services_misc2.meilisearch_service_be2f002dfb') . $e->getMessage());
         }
     }
 
@@ -501,7 +520,7 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步博客到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_69cf325279') . $e->getMessage());
+            throw new \RuntimeException(__('app.api.services_misc2.meilisearch_service_69cf325279') . $e->getMessage());
         }
     }
 
@@ -543,7 +562,7 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步互物号到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_3e74aac5e2') . $e->getMessage());
+            throw new \RuntimeException(__('app.api.services_misc2.meilisearch_service_3e74aac5e2') . $e->getMessage());
         }
     }
 
@@ -576,7 +595,7 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步用户到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_4237223196') . $e->getMessage());
+            throw new \RuntimeException(__('app.api.services_misc2.meilisearch_service_4237223196') . $e->getMessage());
         }
     }
 
@@ -623,7 +642,7 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
             return ['index' => $indexUid, 'synced' => $total];
         } catch (\Throwable $e) {
             Log::error('同步互物号账号到 Meilisearch 失败: ' . $e->getMessage());
-            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_68710322ab') . $e->getMessage());
+            throw new \RuntimeException(__('app.api.services_misc2.meilisearch_service_68710322ab') . $e->getMessage());
         }
     }
 
@@ -639,9 +658,9 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
         $results = [];
         $rankedHits = [];
         $labelMap = [
-            'products' => __('app.meilisearch_service.meilisearch_service_9897d88453'), 'kb_articles' => __('app.meilisearch_service.meilisearch_service_fe4416f2f8'), 'marketplace_apps' => __('app.meilisearch_service.meilisearch_service_09a5dd13f6'),
-            'forum_posts' => __('app.meilisearch_service.meilisearch_service_888af1f2ce'), 'blog_posts' => __('app.meilisearch_service.meilisearch_service_c50d13646e'), 'oa_articles' => __('app.meilisearch_service.meilisearch_service_c595c43f36'), 'users' => __('app.meilisearch_service.meilisearch_service_1fd02a90c3'),
-            'official_accounts' => __('app.meilisearch_service.meilisearch_service_a575c6a092'),
+            'products' => __('app.api.services_misc2.meilisearch_service_9897d88453'), 'kb_articles' => __('app.api.services_misc2.meilisearch_service_fe4416f2f8'), 'marketplace_apps' => __('app.api.services_misc2.meilisearch_service_09a5dd13f6'),
+            'forum_posts' => __('app.api.services_misc2.meilisearch_service_888af1f2ce'), 'blog_posts' => __('app.api.services_misc2.meilisearch_service_c50d13646e'), 'oa_articles' => __('app.api.services_misc2.meilisearch_service_c595c43f36'), 'users' => __('app.api.services_misc2.meilisearch_service_1fd02a90c3'),
+            'official_accounts' => __('app.api.services_misc2.meilisearch_service_a575c6a092'),
         ];
 
         foreach ($indexes as $indexKey) {
@@ -866,14 +885,14 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
     {
         $indexes = array_keys(config('meilisearch.indexes', []));
         $labelMap = [
-            'products' => __('app.meilisearch_service.meilisearch_service_2e94c5bdba'), 'kb_articles' => __('app.meilisearch_service.meilisearch_service_358499d513'), 'marketplace_apps' => __('app.meilisearch_service.meilisearch_service_4acd9fc5d4'),
-            'forum_posts' => __('app.meilisearch_service.meilisearch_service_ce9e642efe'), 'blog_posts' => __('app.meilisearch_service.meilisearch_service_eaf68eaf19'), 'oa_articles' => __('app.meilisearch_service.meilisearch_service_bf6af8a70e'), 'users' => __('app.meilisearch_service.meilisearch_service_494f9d8ed3'),
-            'official_accounts' => __('app.meilisearch_service.meilisearch_service_de591a9747'),
+            'products' => __('app.api.services_misc2.meilisearch_service_2e94c5bdba'), 'kb_articles' => __('app.api.services_misc2.meilisearch_service_358499d513'), 'marketplace_apps' => __('app.api.services_misc2.meilisearch_service_4acd9fc5d4'),
+            'forum_posts' => __('app.api.services_misc2.meilisearch_service_ce9e642efe'), 'blog_posts' => __('app.api.services_misc2.meilisearch_service_eaf68eaf19'), 'oa_articles' => __('app.api.services_misc2.meilisearch_service_bf6af8a70e'), 'users' => __('app.api.services_misc2.meilisearch_service_494f9d8ed3'),
+            'official_accounts' => __('app.api.services_misc2.meilisearch_service_de591a9747'),
         ];
         $typeLabelMap = [
-            'products' => __('app.meilisearch_service.meilisearch_service_9897d88453'), 'kb_articles' => __('app.meilisearch_service.meilisearch_service_fe4416f2f8'), 'marketplace_apps' => __('app.meilisearch_service.meilisearch_service_09a5dd13f6'),
-            'forum_posts' => __('app.meilisearch_service.meilisearch_service_888af1f2ce'), 'blog_posts' => __('app.meilisearch_service.meilisearch_service_c50d13646e'), 'oa_articles' => __('app.meilisearch_service.meilisearch_service_c595c43f36'), 'users' => __('app.meilisearch_service.meilisearch_service_1fd02a90c3'),
-            'official_accounts' => __('app.meilisearch_service.meilisearch_service_a575c6a092'),
+            'products' => __('app.api.services_misc2.meilisearch_service_9897d88453'), 'kb_articles' => __('app.api.services_misc2.meilisearch_service_fe4416f2f8'), 'marketplace_apps' => __('app.api.services_misc2.meilisearch_service_09a5dd13f6'),
+            'forum_posts' => __('app.api.services_misc2.meilisearch_service_888af1f2ce'), 'blog_posts' => __('app.api.services_misc2.meilisearch_service_c50d13646e'), 'oa_articles' => __('app.api.services_misc2.meilisearch_service_c595c43f36'), 'users' => __('app.api.services_misc2.meilisearch_service_1fd02a90c3'),
+            'official_accounts' => __('app.api.services_misc2.meilisearch_service_a575c6a092'),
         ];
         $suggestions = [];
 
@@ -922,9 +941,9 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
     {
         $indexes = array_keys(config('meilisearch.indexes', []));
         $labelMap = [
-            'products' => __('app.meilisearch_service.meilisearch_service_9897d88453'), 'kb_articles' => __('app.meilisearch_service.meilisearch_service_fe4416f2f8'), 'marketplace_apps' => __('app.meilisearch_service.meilisearch_service_09a5dd13f6'),
-            'forum_posts' => __('app.meilisearch_service.meilisearch_service_888af1f2ce'), 'blog_posts' => __('app.meilisearch_service.meilisearch_service_c50d13646e'), 'oa_articles' => __('app.meilisearch_service.meilisearch_service_c595c43f36'), 'users' => __('app.meilisearch_service.meilisearch_service_1fd02a90c3'),
-            'official_accounts' => __('app.meilisearch_service.meilisearch_service_a575c6a092'),
+            'products' => __('app.api.services_misc2.meilisearch_service_9897d88453'), 'kb_articles' => __('app.api.services_misc2.meilisearch_service_fe4416f2f8'), 'marketplace_apps' => __('app.api.services_misc2.meilisearch_service_09a5dd13f6'),
+            'forum_posts' => __('app.api.services_misc2.meilisearch_service_888af1f2ce'), 'blog_posts' => __('app.api.services_misc2.meilisearch_service_c50d13646e'), 'oa_articles' => __('app.api.services_misc2.meilisearch_service_c595c43f36'), 'users' => __('app.api.services_misc2.meilisearch_service_1fd02a90c3'),
+            'official_accounts' => __('app.api.services_misc2.meilisearch_service_a575c6a092'),
         ];
         $iconMap = [
             'products' => '📦', 'kb_articles' => '📖', 'marketplace_apps' => '🧩',
@@ -996,7 +1015,7 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
     public function search(string $indexUid, string $query, array $options = []): array
     {
         if (!$this->available) {
-            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_547b6e4e4b'));
+            throw new \RuntimeException(__('app.api.services_misc2.meilisearch_service_547b6e4e4b'));
         }
 
         $limit = $options['limit'] ?? config('meilisearch.search.limit', 20);
@@ -1039,7 +1058,7 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
             ];
         } catch (\Throwable $e) {
             Log::error("Meilisearch 搜索失败 [{$indexUid}]: " . $e->getMessage());
-            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_744893f8bc') . $e->getMessage());
+            throw new \RuntimeException(__('app.api.services_misc2.meilisearch_service_744893f8bc') . $e->getMessage());
         }
     }
 
@@ -1235,7 +1254,7 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
 
     public function upsertModel(Model $model): bool
     {
-        if (! $this->available) {
+        if (! $this->available && ! $this->recheckAvailability()) {
             return false;
         }
 
@@ -1253,6 +1272,9 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
             return $this->deleteDocument($indexUid, $model->getKey());
         }
 
+        // 增量写入前自动确保索引存在并配置好 searchable/filterable（无需手动点「初始化」）
+        $this->ensureIndexConfigured($indexKey);
+
         $this->prepareModelForIndexing($indexKey, $model);
         $document = $this->toDocument($indexKey, $model);
         if ($document === null) {
@@ -1262,9 +1284,34 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
         return $this->addDocument($indexUid, $document);
     }
 
+    /**
+     * 懒加载：首次写入某索引时自动 setup（进程内缓存，避免重复请求）
+     */
+    public function ensureIndexConfigured(string $indexKey): void
+    {
+        if (isset($this->configuredIndexes[$indexKey])) {
+            return;
+        }
+
+        if (! $this->available && ! $this->recheckAvailability()) {
+            return;
+        }
+
+        if (! config("meilisearch.indexes.{$indexKey}")) {
+            return;
+        }
+
+        try {
+            $this->setupIndex($indexKey);
+            $this->configuredIndexes[$indexKey] = true;
+        } catch (\Throwable $e) {
+            Log::warning("Meilisearch 自动配置索引失败 [{$indexKey}]: ".$e->getMessage());
+        }
+    }
+
     public function removeModel(Model $model): bool
     {
-        if (! $this->available) {
+        if (! $this->available && ! $this->recheckAvailability()) {
             return false;
         }
 
@@ -1473,12 +1520,16 @@ throw new \RuntimeException(__("app.meilisearch.unknown_index", ['index' => $ind
     }
 
     /**
-     * 确保 Meilisearch 客户端可用
+     * 确保 Meilisearch 客户端可用（支持服务晚于 PHP 进程启动后自动重连）
      */
     protected function ensureAvailable(): void
     {
-        if (!$this->available) {
-            throw new \RuntimeException(__('app.meilisearch_service.meilisearch_service_1d518fa57f'));
+        if (! $this->available) {
+            $this->recheckAvailability();
+        }
+
+        if (! $this->available) {
+            throw new \RuntimeException(__('app.api.services_misc2.meilisearch_service_1d518fa57f'));
         }
     }
 }

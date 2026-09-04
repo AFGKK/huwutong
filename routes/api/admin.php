@@ -932,7 +932,7 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
             Route::get('/stats', [VectorSearchController::class, 'stats']);
         });
 
-        // 🆕 Meilisearch 全文搜索
+        // 🆕 Meilisearch 全文搜索（管理运维；公开搜索见 routes/api/public.php）
         Route::prefix('meilisearch')->group(function () {
             Route::get('/health', [MeilisearchController::class, 'health']);
             Route::get('/indexes', [MeilisearchController::class, 'indexes']);
@@ -941,9 +941,6 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
             Route::post('/sync', [MeilisearchController::class, 'sync']);
             Route::post('/rebuild', [MeilisearchController::class, 'rebuild']);
             Route::get('/search', [MeilisearchController::class, 'search']);
-            Route::get('/suggest', [MeilisearchController::class, 'suggest']);
-            Route::get('/trending', [MeilisearchController::class, 'trending']);
-            Route::get('/unified-search', [MeilisearchController::class, 'unifiedSearch']);
             Route::post('/clear', [MeilisearchController::class, 'clear']);
             Route::get('/stats', [MeilisearchController::class, 'stats']);
         });

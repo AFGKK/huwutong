@@ -28182,7 +28182,7 @@ kubectl get service hwt-api \\
 
     meilisearch_page: {
         title: 'Meilisearch 全文搜索',
-        subtitle: '全文搜索引擎，覆盖商品、知识库、应用市场、社区、博客、互物号、用户等内容类型',
+        subtitle: '服务连通后，内容增删改会自动增量入索引；下方按钮用于首次全量同步与运维重建',
         health: {
             checking: '检查中',
             connected: '已连接（{version}）',
@@ -28191,8 +28191,13 @@ kubectl get service hwt-api \\
         },
         alert: {
             disconnected_title: 'Meilisearch 未连接',
-            disconnected_hint: '请启动 Meilisearch 服务后刷新本页',
+            disconnected_hint: '请启动 Meilisearch 服务后刷新本页。未连接时无法自动索引，搜索会降级为数据库查询',
             rebuild_label: '重建索引',
+            auto_sync_title: '增量自动同步已开启',
+            auto_sync_hint: '商品/知识库/社区/博客/互物号/用户等模型在创建、更新、删除时会自动写入索引。首次部署或长期离线后请点「同步全部」做一次全量补齐；定时任务每天 02:30 也会自动全量同步',
+            auto_sync_off_title: '增量自动同步已关闭',
+            auto_sync_off_hint: '当前 MEILISEARCH_OBSERVER_ENABLED=false，需手动同步索引',
+            queue_hint: '增量同步已走队列（{queue}），请确保 queue worker 在运行',
         },
         stats: {
             products_db: '商品总数（DB）',

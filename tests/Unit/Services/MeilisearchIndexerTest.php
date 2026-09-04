@@ -80,4 +80,20 @@ class MeilisearchIndexerTest extends TestCase
 
         $this->assertFalse($meili->shouldIndex('users', $user));
     }
+
+    public function test_auto_sync_status_reflects_config(): void
+    {
+        config([
+            'meilisearch.observer.enabled' => true,
+            'meilisearch.sync.queue' => false,
+            'meilisearch.sync.scheduled' => true,
+        ]);
+
+        $status = app(MeilisearchService::class)->autoSyncStatus();
+
+        $this->assertTrue($status['observer_enabled']);
+        $this->assertFalse($status['queue']);
+        $this->assertTrue($status['scheduled']);
+        $this->assertSame('incremental', $status['mode']);
+    }
 }

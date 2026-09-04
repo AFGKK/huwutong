@@ -67,7 +67,11 @@ class MeilisearchApiTest extends TestCase
 
     public function test_health_returns_setup_hints_when_unavailable(): void
     {
-        config(['meilisearch.host' => 'http://127.0.0.1:1']);
+        config([
+            'meilisearch.host' => 'http://127.0.0.1:1',
+            'meilisearch.observer.enabled' => true,
+            'meilisearch.sync.scheduled' => true,
+        ]);
         $this->app->forgetInstance(MeilisearchService::class);
 
         $response = $this->getJson('/api/meilisearch/health', $this->authHeaders());
@@ -75,8 +79,9 @@ class MeilisearchApiTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('data.status', 'unavailable')
             ->assertJsonPath('data.meilisearch_available', false)
+            ->assertJsonPath('data.auto_sync.observer_enabled', true)
             ->assertJsonStructure([
-                'data' => ['hint', 'start_commands', 'rebuild_command'],
+                'data' => ['hint', 'start_commands', 'rebuild_command', 'auto_sync'],
             ]);
     }
 

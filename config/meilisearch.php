@@ -83,6 +83,8 @@ return [
         'chunk_size' => 100,
         'queue' => env('MEILISEARCH_SYNC_QUEUE', false),
         'queue_name' => env('MEILISEARCH_SYNC_QUEUE_NAME', 'default'),
+        // 定时全量补齐（依赖 schedule:run）；增量仍由 Observer 自动完成
+        'scheduled' => env('MEILISEARCH_SCHEDULED_SYNC', true),
     ],
 
     /*

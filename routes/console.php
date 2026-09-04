@@ -470,3 +470,12 @@ Schedule::command('nps:expire-surveys')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/scheduler-nps.log'));
+
+// ── Meilisearch 全量补齐（增量由 Observer 自动完成）──
+if (config('meilisearch.sync.scheduled', true)) {
+    Schedule::command('meilisearch:sync')
+        ->dailyAt('02:30')
+        ->withoutOverlapping()
+        ->runInBackground()
+        ->appendOutputTo(storage_path('logs/scheduler-meilisearch.log'));
+}

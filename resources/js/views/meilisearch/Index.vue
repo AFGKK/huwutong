@@ -32,6 +32,33 @@
             </template>
         </el-alert>
 
+        <el-alert
+            v-else-if="healthInfo && healthInfo.status === 'available' && autoSync.observer_enabled"
+            type="success"
+            show-icon
+            :closable="false"
+            class="mb-4"
+            :title="t('meilisearch_page.alert.auto_sync_title')"
+        >
+            <template #default>
+                <p>{{ t('meilisearch_page.alert.auto_sync_hint') }}</p>
+                <p v-if="autoSync.queue" class="mt-1">{{ t('meilisearch_page.alert.queue_hint', { queue: autoSync.queue_name || 'default' }) }}</p>
+            </template>
+        </el-alert>
+
+        <el-alert
+            v-else-if="healthInfo && healthInfo.status === 'available' && !autoSync.observer_enabled"
+            type="info"
+            show-icon
+            :closable="false"
+            class="mb-4"
+            :title="t('meilisearch_page.alert.auto_sync_off_title')"
+        >
+            <template #default>
+                <p>{{ t('meilisearch_page.alert.auto_sync_off_hint') }}</p>
+            </template>
+        </el-alert>
+
         <!-- 统计卡片 -->
         <el-row :gutter="16" class="mb-4">
             <el-col :span="6">
@@ -173,6 +200,13 @@ const loading = ref(false);
 const activeTab = ref('indexes');
 const healthInfo = ref(null);
 const indexList = ref([]);
+const autoSync = reactive({
+    observer_enabled: true,
+    queue: false,
+    queue_name: 'default',
+    scheduled: true,
+    mode: 'incremental',
+});
 const setupLoading = ref(false);
 const syncLoading = ref(false);
 const rebuildLoading = ref(false);
@@ -209,6 +243,9 @@ async function refreshHealth() {
         healthInfo.value = h;
         versionInfo.value = h;
         indexList.value = h.indexes || [];
+        if (h.auto_sync && typeof h.auto_sync === 'object') {
+            Object.assign(autoSync, h.auto_sync);
+        }
         const s = statsRes.data?.data || statsRes.data;
         Object.assign(stats, s);
     } catch { healthInfo.value = { status: 'error' }; }

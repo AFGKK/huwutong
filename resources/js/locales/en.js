@@ -29156,7 +29156,7 @@ kubectl get service hwt-api \\
 
     meilisearch_page: {
         title: "Meilisearch Full-Text Search",
-        subtitle: "Full-text search engine covering products, knowledge base, marketplace, community, blogs, official accounts, users",
+        subtitle: "After the service is online, create/update/delete events index automatically; use the buttons below for the first full sync or rebuilds",
         health: {
             checking: "Checking...",
             connected: "Connected ({version})",
@@ -29165,8 +29165,13 @@ kubectl get service hwt-api \\
         },
         alert: {
             disconnected_title: "Meilisearch is not connected",
-            disconnected_hint: "Start the Meilisearch service, then refresh this page.",
+            disconnected_hint: "Start Meilisearch, then refresh. While offline, auto-indexing is paused and search falls back to the database.",
             rebuild_label: "Rebuild indexes:",
+            auto_sync_title: "Incremental auto-sync is on",
+            auto_sync_hint: "Products, KB, community, blog, OA, and users are indexed on create/update/delete. Run Sync all once after first deploy; a scheduled full sync also runs daily at 02:30.",
+            auto_sync_off_title: "Incremental auto-sync is off",
+            auto_sync_off_hint: "MEILISEARCH_OBSERVER_ENABLED=false — indexes must be synced manually.",
+            queue_hint: "Incremental sync uses the queue ({queue}). Keep a queue worker running.",
         },
         stats: {
             products_db: "Products (DB)",
