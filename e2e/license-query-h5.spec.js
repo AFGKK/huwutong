@@ -124,10 +124,54 @@ test.describe('T-18 License 查询页 H5', () => {
         await expect(page.locator('#activationGuide')).toBeVisible();
         await expect(page.locator('#guideActive')).toBeVisible();
 
+        // 分享 Toast 应为底部水平居中（非右上角）
+        const toastClass = await page.locator('#shareToast').getAttribute('class');
+        expect(toastClass).toContain('left-1/2');
+        expect(toastClass).toContain('-translate-x-1/2');
+        expect(toastClass).toContain('bottom-6');
+        expect(toastClass).not.toMatch(/top-4\s+right-4/);
+
+        // 桌面降级：无 Web Share 时点击分享应居中弹出「已复制」提示
+        await page.evaluate(() => { try { delete navigator.share; } catch (e) { /* ignore */ } });
+        await page.locator('#shareBtn').click();
+        await expect(page.locator('#shareToast')).toBeVisible({ timeout: 3000 });
+        const box = await page.locator('#shareToast').boundingBox();
+        const vp = page.viewportSize();
+        expect(box).toBeTruthy();
+        expect(vp).toBeTruthy();
+        const toastCenterX = box.x + box.width / 2;
+        expect(Math.abs(toastCenterX - vp.width / 2)).toBeLessThan(24);
+
+        // 查询成功后地址栏应带 key，分享链接可深链打开
+        await expect(page).toHaveURL(/[?&]key=HWT-VALID-TEST-0001/);
+        const shareUrl = await page.evaluate(() => window.buildShareUrl(window.currentResultKey || 'HWT-VALID-TEST-0001'));
+        expect(shareUrl).toContain('/license/query?key=HWT-VALID-TEST-0001');
+
         // 仍无横滚
         const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
         const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
         expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
+    });
+
+    test('Q4b. 分享深链 ?key= 自动填入并查询', async ({ page }) => {
+        await page.route('**/api/license/public-lookup', async (route) => {
+            const post = route.request().postDataJSON() || {};
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    ...mockFound,
+                    data: { ...mockFound.data, license_key: post.license_key || mockFound.data.license_key },
+                }),
+            });
+        });
+
+        await page.goto('/license/query?key=HWT-VALID-TEST-0001', { waitUntil: 'domcontentloaded' });
+        await dismissCookieIfPresent(page);
+
+        await expect(page.locator('#licenseKey')).toHaveValue('HWT-VALID-TEST-0001');
+        await expect(page.locator('#result')).toBeVisible({ timeout: 8000 });
+        await expect(page.locator('#resultKey')).toContainText('HWT-VALID-TEST-0001');
     });
 
     test('Q5. 示例 Key 可填入并查询', async ({ page }) => {

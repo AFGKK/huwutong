@@ -212,8 +212,10 @@ async function loadNotifications() {
         if (filters.is_read !== '') params['filter.is_read'] = filters.is_read;
 
         const { data: res } = await notificationApi.list(params);
-        notifications.value = (res.data?.data || []).map(n => ({ ...n, _checked: false }));
-        total.value = res.data?.total || 0;
+        // ApiResponse::paginated → { data: [...items], meta: { total } }
+        const rows = Array.isArray(res.data) ? res.data : [];
+        notifications.value = rows.map(n => ({ ...n, _checked: false }));
+        total.value = res.meta?.total || 0;
     } catch {
         notifications.value = [];
     } finally {

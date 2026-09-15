@@ -9,7 +9,8 @@ vi.mock('@/api/notification', () => ({
         list: vi.fn().mockResolvedValue({
             data: {
                 success: true,
-                data: { data: [] },
+                data: [],
+                meta: { total: 0 },
             },
         }),
         unreadCount: vi.fn().mockResolvedValue({

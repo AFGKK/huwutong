@@ -141,7 +141,8 @@ async function loadNotifications() {
     try {
         const { data: res } = await notificationApi.list({ per_page: 10 });
         if (res.success) {
-            notifications.value = res.data?.data || [];
+            // ApiResponse::paginated → { data: [...items], meta }
+            notifications.value = Array.isArray(res.data) ? res.data : [];
         }
     } catch {
         // ignore

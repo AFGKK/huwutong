@@ -38,6 +38,14 @@ class LicenseQueryTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('分享');
+        $response->assertSee('buildShareUrl', false);
+        $response->assertSee('syncQueryUrl', false);
+        $response->assertSee("params.get('key')", false);
+        // 分享/复制提示需底部水平居中，避免贴右上角
+        $response->assertSee('id="shareToast"', false);
+        $response->assertSee('left-1/2 -translate-x-1/2', false);
+        $response->assertSee('text-center', false);
+        $response->assertDontSee('id="shareToast" class="hidden fixed top-4 right-4', false);
     }
 
     /** @test */

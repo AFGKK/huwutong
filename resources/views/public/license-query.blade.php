@@ -110,8 +110,8 @@
                                     </svg>
                                     {{ __('app.license_query_page.share') }}
                                 </button>
-                                <!-- Toast 提示 -->
-                                <div id="shareToast" class="hidden fixed top-4 right-4 z-50 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg animate-fade-in"></div>
+                                <!-- Toast 提示：底部水平居中（与帮助中心/博客等公开页一致） -->
+                                <div id="shareToast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] max-w-sm px-6 py-3 rounded-xl bg-gray-900 text-white text-sm text-center shadow-xl animate-fade-in"></div>
                                 <div id="statusBadge" class="px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap"></div>
                             </div>
                         </div>
@@ -305,6 +305,7 @@ function doSearch() {
 
         var d = res.data;
         currentResultKey = d.license_key;
+        syncQueryUrl(d.license_key);
 
         // 填充结果
         document.getElementById('resultKey').textContent = d.license_key;
@@ -395,21 +396,38 @@ function hideAllGuides() {
 
 /* ====== 分享功能 ====== */
 
-function shareResult() {
-    var url = window.location.href;
-    var title = ((window.LQ_I18N&&LQ_I18N.share_result_title)||'').replace(':product', document.getElementById('resultProduct').textContent);
-    var text = ((window.LQ_I18N&&LQ_I18N.share_result_text)||'').replace(':status', document.getElementById('statusBadge').textContent).replace(':expires', document.getElementById('resultExpires').textContent);
+/** 生成可打开并自动查询的分享链接 */
+function buildShareUrl(key) {
+    var base = window.location.origin + window.location.pathname;
+    if (!key) return base;
+    return base + '?key=' + encodeURIComponent(key);
+}
 
-    // 使用 Web Share API（移动端优先）
-    if (navigator.share) {
-        navigator.share({ title: title, text: text, url: url })
-            .catch(function() { /* 用户取消分享，静默处理 */ });
-        return;
+/** 查询成功后把 Key 写入地址栏，便于刷新/分享 */
+function syncQueryUrl(key) {
+    if (!key || !window.history || !window.history.replaceState) return;
+    var next = buildShareUrl(key);
+    if (window.location.href === next) return;
+    try {
+        window.history.replaceState(null, '', next);
+    } catch (e) { /* ignore */ }
+}
+
+function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).then(function() {
+            showToast((window.LQ_I18N&&LQ_I18N.copy_ok)||'');
+        }).catch(function() {
+            fallbackCopyText(text);
+        });
     }
+    fallbackCopyText(text);
+    return Promise.resolve();
+}
 
-    // 降级：复制链接
+function fallbackCopyText(text) {
     var temp = document.createElement('input');
-    temp.value = url;
+    temp.value = text;
     document.body.appendChild(temp);
     temp.select();
     try {
@@ -419,6 +437,25 @@ function shareResult() {
         showToast((window.LQ_I18N&&LQ_I18N.copy_fail)||'');
     }
     document.body.removeChild(temp);
+}
+
+function shareResult() {
+    var key = currentResultKey || (document.getElementById('licenseKey') || {}).value || '';
+    var url = buildShareUrl(key.trim());
+    var title = ((window.LQ_I18N&&LQ_I18N.share_result_title)||'').replace(':product', document.getElementById('resultProduct').textContent);
+    var text = ((window.LQ_I18N&&LQ_I18N.share_result_text)||'').replace(':status', document.getElementById('statusBadge').textContent).replace(':expires', document.getElementById('resultExpires').textContent);
+
+    // 使用 Web Share API（移动端优先）；取消静默，其它失败降级复制链接
+    if (navigator.share) {
+        navigator.share({ title: title, text: text, url: url })
+            .catch(function(err) {
+                if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) return;
+                copyText(url);
+            });
+        return;
+    }
+
+    copyText(url);
 }
 
 /* ====== 复制 License Key ====== */
@@ -480,6 +517,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 doSearch();
             }
         });
+
+        // 支持分享链接 /license/query?key=XXX 自动填入并查询
+        try {
+            var params = new URLSearchParams(window.location.search);
+            var sharedKey = (params.get('key') || params.get('license_key') || '').trim();
+            if (sharedKey) {
+                input.value = sharedKey;
+                doSearch();
+            }
+        } catch (e) { /* ignore */ }
     }
 });
 </script>

@@ -218,6 +218,74 @@ class NotificationApiTest extends TestCase
         $response->assertStatus(404);
     }
 
+    public function test_mark_read_fails_for_other_users_personal_notification(): void
+    {
+        $otherUser = User::factory()->create(['tenant_id' => $this->tenant->id]);
+        $notification = Notification::create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $otherUser->id,
+            'type' => 'system',
+            'title' => '他人私有通知',
+            'content' => '内容',
+            'is_read' => false,
+        ]);
+
+        $response = $this->postJson("/api/notifications/{$notification->id}/read", [], $this->authHeaders());
+
+        $response->assertStatus(404);
+        $this->assertDatabaseHas('notifications', [
+            'id' => $notification->id,
+            'is_read' => false,
+        ]);
+    }
+
+    public function test_batch_cannot_delete_other_users_personal_notification(): void
+    {
+        $otherUser = User::factory()->create(['tenant_id' => $this->tenant->id]);
+        $mine = Notification::create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->user->id,
+            'type' => 'system',
+            'title' => '我的',
+            'content' => '内容',
+        ]);
+        $others = Notification::create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $otherUser->id,
+            'type' => 'system',
+            'title' => '他人的',
+            'content' => '内容',
+        ]);
+
+        $response = $this->postJson('/api/notifications/batch', [
+            'ids' => [$mine->id, $others->id],
+            'action' => 'delete',
+        ], $this->authHeaders());
+
+        $response->assertStatus(200);
+        $this->assertDatabaseMissing('notifications', ['id' => $mine->id]);
+        $this->assertDatabaseHas('notifications', ['id' => $others->id]);
+    }
+
+    public function test_interactions_endpoint_returns_groups(): void
+    {
+        Notification::create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->user->id,
+            'type' => 'interaction_like',
+            'title' => '赞',
+            'content' => '有人赞了你',
+            'is_read' => false,
+        ]);
+
+        $response = $this->getJson('/api/notifications/interactions?group=all', $this->authHeaders());
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $this->assertNotEmpty($response->json('data'));
+        $this->assertIsArray($response->json('meta.groups'));
+    }
+
     // ─── 偏好设置 ───
 
     public function test_preferences_returns_defaults(): void

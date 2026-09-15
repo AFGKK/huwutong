@@ -182,10 +182,15 @@ class NotificationController extends Controller
      */
     public function markRead(int $notification, Request $request): JsonResponse
     {
+        $user = $request->user();
         $row = Notification::where('id', $notification)
-            ->where(function ($q) use ($request) {
-                $q->where('user_id', $request->user()->id)
-                  ->orWhere('tenant_id', $request->user()->tenant_id);
+            ->where(function ($q) use ($user) {
+                // 仅本人通知，或租户广播（user_id 为空）
+                $q->where('user_id', $user->id)
+                  ->orWhere(function ($sub) use ($user) {
+                      $sub->whereNull('user_id')
+                          ->where('tenant_id', $user->tenant_id);
+                  });
             })
             ->firstOrFail();
 
@@ -241,8 +246,12 @@ class NotificationController extends Controller
         $user = $request->user();
         $query = Notification::whereIn('id', $validated['ids'])
             ->where(function ($q) use ($user) {
+                // 仅本人通知，或租户广播（user_id 为空）
                 $q->where('user_id', $user->id)
-                  ->orWhere('tenant_id', $user->tenant_id);
+                  ->orWhere(function ($sub) use ($user) {
+                      $sub->whereNull('user_id')
+                          ->where('tenant_id', $user->tenant_id);
+                  });
             });
 
         match ($validated['action']) {
