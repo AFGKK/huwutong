@@ -356,7 +356,8 @@ async function fetchFeatureUsage() {
 async function fetchQuotaUsage() {
     try {
         const { data: res } = await licenseApi.list({ per_page: 10, sort: '-created_at' });
-        const licenses = res.data?.data || [];
+        // ApiResponse::paginated → { data: [...items], meta }
+        const licenses = Array.isArray(res.data) ? res.data : [];
         quotaData.value = licenses.map(l => ({
             license_key: l.license_key,
             usage_percent: l.max_devices ? Math.min(Math.round((l.active_devices_count || 0) / l.max_devices * 100), 100) : 0,

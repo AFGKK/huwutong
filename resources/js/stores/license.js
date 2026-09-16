@@ -26,7 +26,8 @@ export const useLicenseStore = defineStore('license', () => {
         try {
             const { data: res } = await licenseApi.list(params);
             if (res.success) {
-                licenses.value = res.data?.data || res.data || [];
+                // ApiResponse::paginated → { data: [...items], meta }
+                licenses.value = Array.isArray(res.data) ? res.data : [];
                 if (res.meta) {
                     currentPage.value = res.meta.current_page || 1;
                     lastPage.value = res.meta.last_page || 1;

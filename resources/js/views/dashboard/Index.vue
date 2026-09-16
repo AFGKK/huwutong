@@ -436,7 +436,8 @@ async function refreshAll() {
 
         const params = { per_page: 8, sort: '-created_at' };
         const { data: listRes } = await licenseApi.list(params);
-        recentLicenses.value = listRes.data?.data || [];
+        // ApiResponse::paginated → { data: [...items], meta }
+        recentLicenses.value = Array.isArray(listRes.data) ? listRes.data : [];
     } catch {
         ElMessage.error(t('admin_dash.load_fail'));
     } finally {

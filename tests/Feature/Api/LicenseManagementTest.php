@@ -61,6 +61,14 @@ class LicenseManagementTest extends TestCase
             ->assertJsonStructure([
                 'data', 'meta' => ['current_page', 'per_page', 'total', 'last_page'],
             ]);
+
+        // 仪表盘等前端解构 axios 后应直接读 res.data（数组），而非 res.data.data
+        $data = $response->json('data');
+        $this->assertIsArray($data);
+        $this->assertCount(3, $data);
+        $this->assertArrayHasKey('license_key', $data[0]);
+        $this->assertArrayNotHasKey('data', $data); // 防止误当成嵌套分页对象
+        $this->assertEquals(6, $response->json('meta.total'));
     }
 
     public function test_index_filters_by_status(): void

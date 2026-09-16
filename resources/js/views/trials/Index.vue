@@ -265,7 +265,8 @@ async function loadRecentTrials() {
     try {
         const { data: res } = await licenseApi.list({ type: 'trial', per_page: 10, sort: '-created_at' })
         if (res.success) {
-            recentTrials.value = res.data?.data || []
+            // ApiResponse::paginated → { data: [...items], meta }
+            recentTrials.value = Array.isArray(res.data) ? res.data : []
         }
     } catch { /* ignore */ }
 }

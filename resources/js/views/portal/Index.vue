@@ -315,18 +315,19 @@ async function refreshAll() {
 
         // 我的 License 列表
         const { data: listRes } = await licenseApi.list({ per_page: 5, sort: '-created_at' });
-        licenses.value = listRes.data?.data || [];
+        // ApiResponse::paginated → { data: [...items], meta }
+        licenses.value = Array.isArray(listRes.data) ? listRes.data : [];
 
         // 即将到期
         const { data: expRes } = await licenseApi.list({ per_page: 5, expiring: true, sort: 'expires_at' });
-        expiringLicenses.value = expRes.data?.data || [];
+        expiringLicenses.value = Array.isArray(expRes.data) ? expRes.data : [];
 
         // 设备统计 & 最近设备
         const { data: devStatsRes } = await deviceApi.stats();
         deviceCount.value = Number(devStatsRes.data?.active ?? devStatsRes.data?.total ?? 0);
 
         const { data: devRes } = await deviceApi.list({ per_page: 5, sort: '-last_seen_at' });
-        devices.value = devRes.data?.data || [];
+        devices.value = Array.isArray(devRes.data) ? devRes.data : (devRes.data?.data || []);
     } catch (e) {
         ElMessage.error(t('portal.load_failed'));
     } finally {
