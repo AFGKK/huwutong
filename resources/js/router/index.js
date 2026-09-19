@@ -317,7 +317,7 @@ const routes = [
                 path: 'blog',
                 name: 'BlogManager',
                 component: () => import('@/views/blog/Index.vue'),
-                meta: { titleKey: 'admin.menu.blog_changelog', icon: 'Document' },
+                meta: { titleKey: 'admin.menu.blog', icon: 'Document' },
             },
             {
                 path: 'prompt-templates',

@@ -63,12 +63,17 @@
                         <li
                             v-if="!sidebarStore.sidebarCollapsed && visibleItems(group.items).length > 1"
                             class="sidebar-group-header"
-                            role="none"
+                            role="button"
+                            tabindex="0"
+                            :aria-expanded="!isGroupCollapsed(group.label)"
+                            :aria-label="group.label"
                             @click="toggleGroup(group.label)"
+                            @keydown.enter.prevent="toggleGroup(group.label)"
+                            @keydown.space.prevent="toggleGroup(group.label)"
                         >
                             <el-icon aria-hidden="true"><component :is="group.icon" /></el-icon>
                             <span>{{ group.label }}</span>
-                            <el-icon class="group-arrow" :class="{ collapsed: collapsedGroups[group.label] }" aria-hidden="true">
+                            <el-icon class="group-arrow" :class="{ collapsed: isGroupCollapsed(group.label) }" aria-hidden="true">
                                 <ArrowDown />
                             </el-icon>
                         </li>
@@ -256,6 +261,7 @@ import CriticalNotificationDialog from '@/components/CriticalNotificationDialog.
 import AnnounceBanner from '@/components/AnnounceBanner.vue';
 import CookieConsent from '@/components/CookieConsent.vue';
 import errorReporter from '@/utils/errorReporter';
+import { isGroupCollapsed as sidebarGroupIsCollapsed, toggleGroupCollapsed as sidebarGroupToggle, expandGroupForPath } from '@/utils/sidebarGroupCollapse';
 import { getImpersonateSession, stopImpersonate } from '@/api/impersonate';
 import apiClient from '@/utils/request';
 import { ElMessage } from 'element-plus';
@@ -340,7 +346,7 @@ function visibleItems(items) {
 function visibleGroupItems(group) {
     const items = visibleItems(group.items)
     if (sidebarStore.sidebarCollapsed || items.length <= 1) return items
-    if (collapsedGroups[group.label]) return []
+    if (isGroupCollapsed(group.label)) return []
     return items
 }
 
@@ -351,10 +357,16 @@ function handleMenuClick(path) {
     }
 }
 
-/** 分组折叠状态 — 默认全部展开 */
+/**
+ * 分组折叠状态 — 默认全部收起（不点不展开）
+ * collapsedGroups[label] === false 表示已展开；其余（含未设置）均为收起
+ */
 const collapsedGroups = reactive({})
+function isGroupCollapsed(label) {
+    return sidebarGroupIsCollapsed(collapsedGroups, label)
+}
 function toggleGroup(label) {
-    collapsedGroups[label] = !collapsedGroups[label]
+    sidebarGroupToggle(collapsedGroups, label)
 }
 
 async function handleStopImpersonate() {
@@ -489,7 +501,7 @@ const menuGroups = [
             { path: '/moments', title: '社区管理', icon: ChatDotSquare },
             { path: '/official-accounts', title: '互物号管理', icon: Monitor },
             { path: '/articles/manage', title: '文章审核', icon: Document },
-            { path: '/blog', title: '变更日志', icon: Document },
+            { path: '/blog', title: '博客日志', icon: Document },
             { path: '/certification', title: '开发者认证', icon: CollectionTag },
             { path: '/knowledge-base', title: '帮助文档中心', icon: Reading },
             { path: '/crm-integration', title: 'CRM 集成', icon: Connection },
@@ -677,6 +689,12 @@ const menuGroups = [
     },
 ];
 
+/** 进入页面 / 路由变化时：仅展开当前页所在分组，其余默认收起 */
+function expandActiveGroup(path = route.path) {
+    expandGroupForPath(collapsedGroups, menuGroups, path);
+}
+expandActiveGroup();
+
 async function handleTenantSwitch(tenantId) {
     if (!tenantId || tenantId === 'manage') {
         router.push('/tenant-select');
@@ -784,6 +802,7 @@ function startUserChatUnreadPolling() {
 onMounted(() => {
     window.addEventListener('resize', onResize);
     startUserChatUnreadPolling();
+    expandActiveGroup();
 });
 onUnmounted(() => {
     window.removeEventListener('resize', onResize);
@@ -799,6 +818,7 @@ onUnmounted(() => {
 });
 
 watch(() => route.path, (path, prev) => {
+    expandActiveGroup(path);
     if (path === '/user-chat' || prev === '/user-chat' || path.startsWith('/user-chat')) {
         refreshUserChatUnread();
     }
