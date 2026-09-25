@@ -60,7 +60,7 @@ export default defineConfig(({ mode }) => {
             },
         },
         build: {
-            sourcemap: mode !== 'production',
+            sourcemap: false,
             chunkSizeWarningLimit: 400,
             target: 'es2020',
             cssMinify: 'esbuild',

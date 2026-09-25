@@ -355,27 +355,34 @@ class AuthController extends Controller
 
     /**
      * 发送忘记密码验证码
+     *
+     * 防用户枚举：无论邮箱是否注册，均返回相同成功文案（不触发 exists 校验差异）。
      */
     public function forgotPassword(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email|max:255',
         ]);
 
-        $token = $this->authService->generatePasswordResetToken($data['email']);
+        $email = strtolower(trim($data['email']));
+        $userExists = User::where('email', $email)->exists();
 
-        if (! $token) {
-            return ApiResponse::notFound(__('app.auth.api.email_not_registered'));
-        }
+        if ($userExists) {
+            $token = $this->authService->generatePasswordResetToken($email);
 
-        // 发送密码重置邮件
-        try {
-            Mail::to($data['email'])->send(new \App\Mail\PasswordReset($data['email'], $token));
-        } catch (\Throwable $e) {
-            Log::error('发送密码重置邮件失败', [
-                'email' => $data['email'],
-                'error' => $e->getMessage(),
-            ]);
+            if ($token) {
+                try {
+                    Mail::to($email)->send(new \App\Mail\PasswordReset($email, $token));
+                } catch (\Throwable $e) {
+                    Log::error('发送密码重置邮件失败', [
+                        'email' => $email,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        } else {
+            // 轻微延迟，降低时序侧信道差异
+            usleep(random_int(80_000, 180_000));
         }
 
         return ApiResponse::success(null, __('app.auth.api.code_sent_email'));
@@ -383,11 +390,13 @@ class AuthController extends Controller
 
     /**
      * 重置密码
+     *
+     * 防用户枚举：邮箱不存在或 token 错误均返回统一失败文案。
      */
     public function resetPassword(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email|max:255',
             'token' => 'required|string|size:6',
             'password' => 'required|string|min:8|confirmed',
         ]);
@@ -398,7 +407,14 @@ class AuthController extends Controller
             return ApiResponse::validationError($passwordError);
         }
 
-        if ($this->authService->resetPassword($data['email'], $data['token'], $data['password'])) {
+        $email = strtolower(trim($data['email']));
+        if (! User::where('email', $email)->exists()) {
+            usleep(random_int(80_000, 180_000));
+
+            return ApiResponse::error('INVALID_TOKEN', __('app.auth.api.invalid_token'), 422);
+        }
+
+        if ($this->authService->resetPassword($email, $data['token'], $data['password'])) {
             return ApiResponse::success(null, __('app.auth.api.password_reset_ok'));
         }
 

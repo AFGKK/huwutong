@@ -16,6 +16,15 @@ if (php_sapi_name() === 'cli-server') {
     $publicDir = __DIR__ . '/public';
     $file = $publicDir . $path;
 
+    // 禁止 sourcemap 下载（artisan serve 不读 .htaccess）
+    if (is_string($path) && str_ends_with(strtolower($path), '.map')) {
+        http_response_code(403);
+        header('Content-Type: text/plain; charset=UTF-8');
+        header('X-Content-Type-Options: nosniff');
+        echo 'Forbidden';
+        return true;
+    }
+
     // 如果请求的是真实存在的静态文件，直接返回让 PHP 内置服务器处理
     if (is_file($file)) {
         return false;
