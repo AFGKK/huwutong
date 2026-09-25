@@ -91,7 +91,8 @@ Route::post('/license/check-features', [FeatureFlagController::class, 'checkFeat
 Route::post('/license/features', [FeatureFlagController::class, 'licenseFeatures']);
 
 // 公开 License 查询（无需认证 - 官网前台用）
-Route::post('/license/public-lookup', [LicenseController::class, 'publicLookup']);
+Route::post('/license/public-lookup', [LicenseController::class, 'publicLookup'])
+    ->middleware('throttle:60,1');
 
 // ── SDK Telemetry 心跳/事件上报 (M2-32) ──
 // SDK 端调用，通过 license_key + fingerprint 验证身份
