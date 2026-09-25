@@ -12,13 +12,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * MFA 中间件
  *
- * 功能：
- * - 检查用户是否已启用 MFA（首次登录时要求配置）
- * - 检查请求是否包含有效的 MFA 验证码
- * - 检查 IP 是否在白名单内
- *
- * 使用方式：
- *   Route::middleware('auth:sanctum')->middleware('mfa')->get(...);
+ * - 策略要求但未绑定：仅放行 setup/confirm，其余返回 MFA_SETUP_REQUIRED
+ * - 已绑定：要求 X-MFA-Code / mfa_code（管理类接口）
  */
 class MfaMiddleware
 {
@@ -47,8 +42,29 @@ class MfaMiddleware
             return $next($request);
         }
 
-        // 3. 如果用户启用 MFA 但没有配置设备—返回需要配置
-        if ($user->mfa_enabled && $user->mfa_secret === null) {
+        $path = trim($request->path(), '/');
+        $isBootstrap = in_array($path, ['api/mfa/setup', 'api/mfa/confirm'], true);
+
+        // 3. 策略要求但尚未启用：只允许绑定向导
+        if (! $user->mfa_enabled) {
+            if ($isBootstrap) {
+                return $next($request);
+            }
+
+            return ApiResponse::error(
+                'MFA_SETUP_REQUIRED',
+                __('app.auth.api.mfa_setup_required'),
+                403,
+                ['mfa_setup_required' => true, 'mfa_setup_url' => url('/api/mfa/setup')],
+            );
+        }
+
+        // 4. 已启用但密钥缺失
+        if ($user->mfa_secret === null) {
+            if ($isBootstrap) {
+                return $next($request);
+            }
+
             return ApiResponse::error(
                 'MFA_NOT_CONFIGURED',
                 '请先配置 MFA 认证',
@@ -57,7 +73,12 @@ class MfaMiddleware
             );
         }
 
-        // 4. 用户启用了 MFA，检查请求是否包含 MFA 码
+        // 5. 绑定接口本身不需要再验码
+        if ($isBootstrap) {
+            return $next($request);
+        }
+
+        // 6. 已启用 MFA，检查请求是否包含 MFA 码
         $mfaCode = $request->header('X-MFA-Code') ?? $request->input('mfa_code');
 
         if (! $mfaCode) {
@@ -69,7 +90,7 @@ class MfaMiddleware
             );
         }
 
-        // 5. 验证 MFA 码
+        // 7. 验证 MFA 码
         $result = $mfaService->verifyMfa($user, $mfaCode);
 
         if (! $result['verified']) {
@@ -80,7 +101,6 @@ class MfaMiddleware
             );
         }
 
-        // 6. 标记 MFA 已验证（可用于下次请求的缓存—但不在此实现）
         $request->attributes->set('mfa_verified', true);
         $request->attributes->set('mfa_method', $result['method']);
 

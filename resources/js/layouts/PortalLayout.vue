@@ -218,6 +218,7 @@
                 <span v-if="branding.footer_text" class="footer-text">{{ branding.footer_text }}</span>
             </div>
         </footer>
+        <PwaInstallPrompt />
     </div>
 </template>
 
@@ -228,6 +229,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useResponsive } from '@/composables/useResponsive';
 import apiClient from '@/api/client';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import PwaInstallPrompt from '@/components/PwaInstallPrompt.vue';
 import { refreshDocumentTitle, resolveDocumentTitle } from '@/utils/resolveDocumentTitle';
 import {
     Fold, Expand, Key, ArrowDown, Setting, SwitchButton,

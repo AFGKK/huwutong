@@ -1243,6 +1243,14 @@ export default {
         appeal: "Account appeal",
         login_success: "Login successful",
         login_fail: "Sign-in failed. Check your email and password.",
+        mfa_setup_required: "Admins must enable MFA before accessing the console",
+        mfa_required: "Multi-factor authentication is required",
+        mfa_verify_fail: "MFA verification failed",
+        mfa_dialog_title: "Multi-factor authentication",
+        mfa_dialog_hint: "Enter the 6-digit code from your authenticator app",
+        mfa_code_ph: "6-digit code",
+        mfa_code_required: "Please enter the MFA code",
+        mfa_verify_btn: "Verify and sign in",
         tenant_switched: "Switched to: {name}",
         oauth_login_ok: "Signed in with third-party account",
         oauth_bound_ok: "Third-party account linked",
@@ -37517,8 +37525,9 @@ kubectl get service hwt-api \\
     },
 
     not_found: {
-        subtitle: "Manage settings and configurations",
+        subtitle: "Page not found",
         back_home: "Back to home",
+        back_dashboard: "Back to dashboard",
     },
 
     qr_confirm: {

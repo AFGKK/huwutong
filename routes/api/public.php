@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ActivateController;
 use App\Http\Controllers\Api\AppealController;
 use App\Http\Controllers\Api\FeatureFlagController;
 use App\Http\Controllers\Api\LicenseController;
+use App\Http\Controllers\Api\PortalSelfServiceController;
 use App\Http\Controllers\Api\TelemetryController;
 use App\Http\Controllers\Api\OpenFeatureController;
 use App\Http\Controllers\Api\HealthController;
@@ -92,6 +93,13 @@ Route::post('/license/features', [FeatureFlagController::class, 'licenseFeatures
 
 // 公开 License 查询（无需认证 - 官网前台用）
 Route::post('/license/public-lookup', [LicenseController::class, 'publicLookup'])
+    ->middleware('throttle:public-lookup');
+// 文档兼容别名（历史文档写作 /api/license/query）
+Route::post('/license/query', [LicenseController::class, 'publicLookup'])
+    ->middleware('throttle:public-lookup');
+
+// 下载中心（门户 / 官网公开列表）
+Route::get('/downloads', [PortalSelfServiceController::class, 'downloads'])
     ->middleware('throttle:60,1');
 
 // ── SDK Telemetry 心跳/事件上报 (M2-32) ──

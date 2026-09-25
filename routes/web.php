@@ -316,14 +316,17 @@ Route::get('/impression/{creative}', function (\App\Models\AffiliateCreative $cr
     ]);
 });
 
-// Vue 管理后台 SPA（所有 /admin/* 路由指向 admin Blade 模板）
-Route::get('/admin/{path?}', function () {
-    return view('admin');
+// Vue 管理后台 SPA：/admin/* → /build/*（Vite base=/build/，避免客户端路由 404）
+Route::get('/admin/{path?}', function (?string $path = '') {
+    $suffix = trim((string) $path, '/');
+    $target = $suffix === '' ? '/build/dashboard' : '/build/' . $suffix;
+
+    return redirect($target, 301);
 })->where('path', '.*');
 
 // 登录页（供 auth 中间件重定向）
 Route::get('/login', function () {
-    return redirect('/admin/login');
+    return redirect('/build/login');
 })->name('login');
 
 // Vue 管理后台 SPA（开发模式下 Vite base URL 路径）

@@ -59,6 +59,8 @@
                         aria-orientation="vertical"
                     >
                     <template v-for="group in menuGroups" :key="group.label">
+                        <!-- MVP 模式下隐藏空分组 -->
+                        <template v-if="visibleItems(group.items).length > 0">
                         <!-- 自定义分组头 — 替代 el-sub-menu，消除路由 bug -->
                         <li
                             v-if="!sidebarStore.sidebarCollapsed && visibleItems(group.items).length > 1"
@@ -103,6 +105,7 @@
                                 />
                             </template>
                         </el-menu-item>
+                        </template>
                     </template>
                 </el-menu>
                 </div><!-- sidebar-menu-wrapper -->
@@ -244,14 +247,12 @@
         </el-container>
         <FeedbackButton v-if="false" />
         <CookieConsent v-if="false" />
-        <PwaInstallPrompt />
     </div>
 </template>
 
 <script setup>
 import FeedbackButton from '@/components/FeedbackButton.vue';
 import GlobalSearchBar from '@/components/GlobalSearchBar.vue';
-import PwaInstallPrompt from '@/components/PwaInstallPrompt.vue';
 import { ref, reactive, computed, watch, onErrorCaptured, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
@@ -336,10 +337,30 @@ function clearImpersonateState() {
     localStorage.removeItem('impersonate_target');
 }
 
-/** 根据用户角色过滤菜单项 */
+import features from '@/config/features'
+
+/** MVP 核心入口（License 生命周期 + 客户/租户 + 订单 + 计费 + 基础系统） */
+const MVP_PATHS = new Set([
+    '/dashboard',
+    '/licenses', '/license-templates', '/license-trash', '/transfers',
+    '/customers', '/products', '/devices', '/license-files',
+    '/user-chat', '/tickets',
+    '/billing', '/payment', '/payment/transactions', '/plans', '/refunds', '/renewal',
+    '/reports', '/orders',
+    '/account/profile', '/mfa',
+    '/rbac', '/users', '/notifications', '/settings', '/tenants', '/announce-banners',
+    '/sessions', '/password-policy', '/audit', '/security',
+    '/system-health', '/alerts',
+    '/webhooks', '/api-docs', '/api-key-center', '/knowledge-base',
+])
+
+/** 根据用户角色 + MVP 开关过滤菜单项 */
 function visibleItems(items) {
-    if (authStore.isAdmin) return items
-    return items.filter(item => !item.adminOnly)
+    let list = authStore.isAdmin ? items : items.filter(item => !item.adminOnly)
+    if (features.mvpMode) {
+        list = list.filter(item => MVP_PATHS.has(item.path))
+    }
+    return list
 }
 
 /** 分组展开时才显示子项；侧边栏收起时始终显示图标列表 */
@@ -361,7 +382,7 @@ function handleMenuClick(path) {
  * 分组折叠状态 — 默认全部收起；仅点击分类标题后展开
  * collapsedGroups[label] === false 表示已展开；其余（含未设置）均为收起
  */
-const collapsedGroups = reactive({})
+const collapsedGroups = reactive({ '常用入口': false })
 function isGroupCollapsed(label) {
     return sidebarGroupIsCollapsed(collapsedGroups, label)
 }
@@ -384,6 +405,19 @@ async function handleStopImpersonate() {
 }
 
 const menuGroups = [
+    {
+        label: '常用入口', icon: Odometer,
+        items: [
+            { path: '/dashboard', title: '仪表盘', icon: Odometer },
+            { path: '/licenses', title: 'License 管理', icon: Key },
+            { path: '/customers', title: '客户管理', icon: User },
+            { path: '/orders', title: '订单管理', icon: List },
+            { path: '/billing', title: '订阅计费', icon: Coin },
+            { path: '/devices', title: '设备管理', icon: Monitor },
+            { path: '/tickets', title: '工单管理', icon: Tickets },
+            { path: '/settings', title: '系统设置', icon: Setting },
+        ],
+    },
     {
         label: '核心业务', icon: Odometer,
         items: [

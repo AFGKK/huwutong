@@ -32,8 +32,8 @@ class SecurityV6RegressionTest extends TestCase
 
         $this->assertTrue($hasThrottle, 'public-lookup must use throttle middleware');
         $this->assertTrue(
-            collect($middleware)->contains('throttle:60,1'),
-            'expected throttle:60,1 on public-lookup'
+            collect($middleware)->contains('throttle:public-lookup'),
+            'expected throttle:public-lookup on public-lookup'
         );
     }
 

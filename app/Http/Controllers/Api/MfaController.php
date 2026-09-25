@@ -67,9 +67,20 @@ class MfaController extends Controller
         // 生成恢复码
         $recoveryCodes = $this->mfaService->generateRecoveryCodes($user);
 
+        // 绑定完成后：吊销 setup token，签发完整会话
+        $user->tokens()->where('name', 'mfa-setup')->delete();
+        $fullToken = $user->createToken('auth-token', ['*'])->plainTextToken;
+
+        $user->update([
+            'last_login_at' => now(),
+            'last_login_ip' => $request->ip(),
+        ]);
+
         return ApiResponse::success([
             'device' => $device,
             'recovery_codes' => $recoveryCodes,
+            'token' => $fullToken,
+            'user' => $user->fresh(),
             'message' => __('app.api.mfa.save_recovery'),
         ], __('app.api.mfa.enabled'));
     }

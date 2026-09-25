@@ -851,6 +851,14 @@ export default {
         appeal: '账号申诉',
         login_success: '登录成功',
         login_fail: '登录失败，请检查邮箱和密码',
+        mfa_setup_required: '管理员需先绑定 MFA，请完成设置后重新登录',
+        mfa_required: '需要多因素认证，请输入验证码',
+        mfa_verify_fail: 'MFA 验证失败',
+        mfa_dialog_title: '多因素认证',
+        mfa_dialog_hint: '请输入认证器中的 6 位验证码',
+        mfa_code_ph: '6 位验证码',
+        mfa_code_required: '请输入 MFA 验证码',
+        mfa_verify_btn: '验证并登录',
         tenant_switched: '已切换到: {name}',
         oauth_login_ok: '第三方登录成功',
         oauth_bound_ok: '第三方账号绑定成功',
@@ -36564,8 +36572,9 @@ kubectl get service hwt-api \\
     },
 
     not_found: {
-        subtitle: '页面不存',
+        subtitle: '页面不存在',
         back_home: '返回首页',
+        back_dashboard: '返回仪表盘',
     },
 
     qr_confirm: {

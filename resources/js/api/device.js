@@ -1,8 +1,13 @@
 import apiClient from './client';
 
 export default {
+    /** 管理后台设备列表 */
     list(params) {
         return apiClient.get('/devices', { params });
+    },
+    /** 门户：当前用户设备（优化方案 2.2） */
+    myList(params) {
+        return apiClient.get('/user/devices', { params });
     },
     show(id) {
         return apiClient.get(`/devices/${id}`);
@@ -16,7 +21,6 @@ export default {
     batch(ids, action) {
         return apiClient.post('/devices/batch', { ids, action });
     },
-    // Device Lifecycle Profile (M3-24)
     profile(id) {
         return apiClient.get(`/devices/${id}/profile`);
     },

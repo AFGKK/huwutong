@@ -197,6 +197,12 @@ async function confirmSetup() {
         recoveryCodes.value = res.data.recovery_codes;
         setupConfirmed.value = true;
         mfaEnabled.value = true;
+        // 绑定成功后升级为完整会话 token
+        if (res.data?.token) {
+            const { useAuthStore } = await import('@/stores/auth');
+            const authStore = useAuthStore();
+            authStore.applySession(res.data.user || authStore.user, res.data.token);
+        }
     } catch {
         ElMessage.error(t('mfa_page.messages.verify_failed'));
     } finally {

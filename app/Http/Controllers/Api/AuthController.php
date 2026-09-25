@@ -12,6 +12,7 @@ use App\Models\LegalConsent;
 use App\Models\TrustedDevice;
 use App\Models\User;
 use App\Services\AuthService;
+use App\Services\MfaService;
 use App\Services\NotificationService;
 use App\Services\StoreAffiliateService;
 use App\Services\TokenIntrospectionService;
@@ -34,6 +35,7 @@ class AuthController extends Controller
         protected NotificationService $notificationService,
         protected TokenIntrospectionService $tokenIntrospection,
         protected StoreAffiliateService $storeAffiliateService,
+        protected MfaService $mfaService,
     ) {}
 
     // ─── 注册 / 登录 ───
@@ -177,11 +179,66 @@ class AuthController extends Controller
             return ApiResponse::error('ACCOUNT_DISABLED', $msg, 403);
         }
 
+        // 特权账号禁止弱密码登录（优化方案 1.1）
+        if ($this->isPrivilegedUser($user) && $this->isKnownWeakPassword($request->password)) {
+            return ApiResponse::error(
+                'WEAK_PASSWORD_FORBIDDEN',
+                __('app.auth.api.weak_password_forbidden'),
+                403,
+                ['must_change_password' => true],
+            );
+        }
+
         // 清除失败记录
         $this->authService->clearFailedAttempts($email ?? $phone);
 
         // 检查密码是否需要更改
         $passwordExpiring = $this->authService->isPasswordExpiringSoon($user);
+        $mustChangePassword = $passwordExpiring && $this->isPrivilegedUser($user)
+            && empty($user->password_changed_at);
+
+        // MFA：已开启 → 必须走 /api/mfa/login；策略要求但未绑定 → 仅发 mfa-setup 临时 token
+        $requiresMfa = $this->mfaService->requiresMfa($user);
+        if ($requiresMfa && $user->mfa_enabled) {
+            return ApiResponse::error(
+                'MFA_REQUIRED',
+                __('app.auth.api.mfa_required'),
+                403,
+                [
+                    'mfa_required' => true,
+                    'mfa_setup_required' => false,
+                    'password_expiring' => $passwordExpiring,
+                    'must_change_password' => $mustChangePassword,
+                ],
+            );
+        }
+
+        if ($mustChangePassword) {
+            return ApiResponse::error(
+                'PASSWORD_CHANGE_REQUIRED',
+                __('app.auth.api.password_change_required'),
+                403,
+                ['must_change_password' => true, 'password_expiring' => true],
+            );
+        }
+
+        if ($requiresMfa && ! $user->mfa_enabled) {
+            // 吊销旧的 setup token，避免堆积
+            $user->tokens()->where('name', 'mfa-setup')->delete();
+            $setupToken = $user->createToken('mfa-setup', ['mfa-setup'])->plainTextToken;
+
+            return ApiResponse::error(
+                'MFA_SETUP_REQUIRED',
+                __('app.auth.api.mfa_setup_required'),
+                403,
+                [
+                    'mfa_required' => true,
+                    'mfa_setup_required' => true,
+                    'setup_token' => $setupToken,
+                    'user' => $this->formatUser($user),
+                ],
+            );
+        }
 
         $token = $user->createToken('auth-token', ['*'])->plainTextToken;
 
@@ -209,6 +266,7 @@ class AuthController extends Controller
             'user' => $this->formatUser($user),
             'token' => $token,
             'password_expiring' => $passwordExpiring,
+            'mfa_setup_required' => false,
         ];
 
         if ($isTrustedDevice === false) {
@@ -217,6 +275,21 @@ class AuthController extends Controller
         }
 
         return ApiResponse::success($response, __('app.auth.api.login_ok'));
+    }
+
+    protected function isPrivilegedUser(User $user): bool
+    {
+        return $user->hasRole('super-admin') || $user->hasRole('admin') || $user->hasRole('tenant-admin');
+    }
+
+    protected function isKnownWeakPassword(string $password): bool
+    {
+        $weak = [
+            'admin123', 'admin1234', 'password', 'password123',
+            '12345678', '123456789', 'huwutong', 'huwutong123',
+        ];
+
+        return in_array(strtolower($password), $weak, true);
     }
 
     public function user(Request $request): JsonResponse

@@ -127,16 +127,15 @@ const stats = reactive({
 async function fetchDevices() {
     loading.value = true;
     try {
-        const params = { page: page.value, per_page: perPage.value, sort: '-last_seen_at' };
-        const { data: res } = await deviceApi.list(params);
-        devices.value = res.data?.data || [];
-        total.value = res.data?.total || 0;
-
-        const { data: statsRes } = await deviceApi.stats();
-        const s = statsRes.data || {};
-        stats.total = s.total || 0;
-        stats.active = s.active || 0;
-        stats.inactive = (s.total || 0) - (s.active || 0);
+        const params = { page: page.value, per_page: perPage.value };
+        const { data: res } = await deviceApi.myList(params);
+        const payload = res.data || {};
+        devices.value = payload.data || [];
+        total.value = payload.total || 0;
+        const s = payload.stats || {};
+        stats.total = s.total ?? total.value;
+        stats.active = s.active ?? 0;
+        stats.inactive = s.inactive ?? Math.max(0, stats.total - stats.active);
     } catch {
         ElMessage.error(t('portal.devices_load_failed'));
     } finally {

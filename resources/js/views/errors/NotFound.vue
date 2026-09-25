@@ -2,7 +2,12 @@
     <div class="not-found">
         <el-result icon="warning" title="404" :sub-title="t('not_found.subtitle')">
             <template #extra>
-                <el-button type="primary" @click="$router.push('/dashboard')">{{ t('not_found.back_home') }}</el-button>
+                <el-button type="primary" @click="$router.push('/dashboard')">
+                    {{ t('not_found.back_dashboard') }}
+                </el-button>
+                <el-button @click="$router.push('/')">
+                    {{ t('not_found.back_home') }}
+                </el-button>
             </template>
         </el-result>
     </div>

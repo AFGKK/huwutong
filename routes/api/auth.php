@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeviceTrustController;
 use App\Http\Controllers\Api\MfaController;
+use App\Http\Controllers\Api\PortalSelfServiceController;
 use App\Http\Controllers\Api\SSOController;
 use App\Http\Controllers\Api\LegalConsentController;
 use App\Http\Controllers\Api\PasswordPolicyController;
@@ -65,6 +66,7 @@ Route::post('/sso/callback', [SSOController::class, 'callback'])->name('sso.logi
 
 Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
+    Route::get('/user/devices', [PortalSelfServiceController::class, 'userDevices']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/token/refresh', [AuthController::class, 'refreshToken']);
     Route::post('/token/revoke', [TokenController::class, 'revokeCurrent']);

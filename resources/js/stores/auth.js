@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import authApi from '@/api/auth';
 import tenantApi from '@/api/tenant';
+import apiClient from '@/api/client';
 import { ElMessage } from 'element-plus';
 import i18n from '@/i18n';
 
@@ -49,15 +50,48 @@ export const useAuthStore = defineStore('auth', {
                 const { user, token } = res.data;
                 this.applySession(user, token);
                 ElMessage.success(i18n.global.t('auth.login_success'));
-                return true;
+                return { ok: true };
             } catch (e) {
                 const errData = e?.response?.data?.error;
-                if (errData?.details) {
-                    const firstMsg = Object.values(errData.details)[0]?.[0];
-                    if (firstMsg) ElMessage.error(firstMsg);
-                } else {
-                    ElMessage.error(errData?.message || i18n.global.t('auth.login_fail'));
+                const code = errData?.code;
+                const details = errData?.details || {};
+
+                if (code === 'MFA_SETUP_REQUIRED' && details.setup_token) {
+                    this.applySession(details.user || this.user, details.setup_token);
+                    ElMessage.warning(errData?.message || i18n.global.t('auth.mfa_setup_required'));
+                    return { ok: false, mfaSetupRequired: true };
                 }
+
+                if (code === 'MFA_REQUIRED') {
+                    ElMessage.warning(errData?.message || i18n.global.t('auth.mfa_required'));
+                    return { ok: false, mfaRequired: true };
+                }
+
+                if (details && !Array.isArray(details) && typeof details === 'object') {
+                    const firstField = Object.values(details).find((v) => Array.isArray(v) && v[0]);
+                    if (firstField?.[0]) {
+                        ElMessage.error(firstField[0]);
+                        return { ok: false };
+                    }
+                }
+
+                ElMessage.error(errData?.message || i18n.global.t('auth.login_fail'));
+                return { ok: false };
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async mfaLogin(credentials) {
+            this.loading = true;
+            try {
+                const { data: res } = await apiClient.post('/mfa/login', credentials);
+                const { user, token } = res.data;
+                this.applySession(user, token);
+                ElMessage.success(i18n.global.t('auth.login_success'));
+                return true;
+            } catch (e) {
+                ElMessage.error(e?.response?.data?.error?.message || i18n.global.t('auth.mfa_verify_fail'));
                 return false;
             } finally {
                 this.loading = false;

@@ -200,6 +200,23 @@
       </div>
     </div>
 
+    <el-dialog v-model="mfaDialogVisible" :title="$t('auth.mfa_dialog_title')" width="400px" append-to-body>
+      <p class="mb-3">{{ $t('auth.mfa_dialog_hint') }}</p>
+      <el-input
+        v-model="mfaCode"
+        :placeholder="$t('auth.mfa_code_ph')"
+        maxlength="8"
+        size="large"
+        @keyup.enter="submitMfaLogin"
+      />
+      <template #footer>
+        <el-button @click="mfaDialogVisible = false">{{ $t('actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="authStore.loading" @click="submitMfaLogin">
+          {{ $t('auth.mfa_verify_btn') }}
+        </el-button>
+      </template>
+    </el-dialog>
+
     <!-- 加载品牌配置 -->
     <div v-if="loadingBranding" class="branding-loading">
       <el-icon class="is-loading" :size="24"><Loading /></el-icon>
@@ -260,6 +277,9 @@ const form = reactive({
   email: '',
   password: '',
 });
+
+const mfaDialogVisible = ref(false);
+const mfaCode = ref('');
 
 const phoneForm = reactive({
   phone: '',
@@ -370,8 +390,33 @@ async function handleLogin() {
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) return;
 
-  const success = await authStore.login(form);
-  if (success) {
+  const result = await authStore.login(form);
+  if (result?.ok) {
+    router.push(loginRedirectPath());
+    return;
+  }
+  if (result?.mfaSetupRequired) {
+    router.push('/mfa');
+    return;
+  }
+  if (result?.mfaRequired) {
+    mfaDialogVisible.value = true;
+    mfaCode.value = '';
+  }
+}
+
+async function submitMfaLogin() {
+  if (!mfaCode.value || mfaCode.value.length < 6) {
+    ElMessage.warning(t('auth.mfa_code_required'));
+    return;
+  }
+  const ok = await authStore.mfaLogin({
+    email: form.email,
+    password: form.password,
+    mfa_code: mfaCode.value,
+  });
+  if (ok) {
+    mfaDialogVisible.value = false;
     router.push(loginRedirectPath());
   }
 }

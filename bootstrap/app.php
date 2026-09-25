@@ -55,6 +55,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'circuit-breaker' => \App\Http\Middleware\CircuitBreakerMiddleware::class,
             'brute-force' => \App\Http\Middleware\BruteForceMiddleware::class,
             'mfa' => \App\Http\Middleware\MfaMiddleware::class,
+            'mfa-setup-token' => \App\Http\Middleware\RestrictMfaSetupToken::class,
             'global-resource' => \App\Http\Middleware\GlobalResourceWhitelist::class,
             'global-resource.write' => \App\Http\Middleware\GlobalResourceWriteProtection::class,
             'security-headers' => \App\Http\Middleware\SecurityHeadersMiddleware::class,
@@ -92,6 +93,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(append: [
             \App\Http\Middleware\ApiVersionMiddleware::class, // API 版本管理 — 在路由处理之后添加版本响应头
+            \App\Http\Middleware\RestrictMfaSetupToken::class, // 限制 mfa-setup 临时 token 不得访问业务 API
         ]);
 
         // Webhook + 广播认证路由排除 CSRF 保护

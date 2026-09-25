@@ -1,6 +1,6 @@
 <template>
   <div>
-    <!-- 安装提示横幅 -->
+    <!-- 安装提示横幅：仅门户路由显示 -->
     <div v-if="showInstallPrompt" class="pwa-install-banner" role="alert">
       <div class="pwa-install-content">
         <div class="pwa-install-icon">
@@ -39,42 +39,74 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { WarningFilled, WarnTriangleFilled } from '@element-plus/icons-vue';
 
+const DISMISS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 天
+const DISMISS_KEY = 'pwa-install-dismissed';
+
 const { t } = useI18n();
+const route = useRoute();
 const showInstallPrompt = ref(false);
 const showUpdatePrompt = ref(false);
 const isOnline = ref(navigator.onLine);
 let deferredPrompt = null;
 let onlineHandler = null;
 let offlineHandler = null;
+let beforeInstallHandler = null;
+let appInstalledHandler = null;
+let updateHandler = null;
+
+function isPortalRoute(path = route.path) {
+  return path === '/portal' || path.startsWith('/portal/');
+}
+
+function isDismissedRecently() {
+  const raw = localStorage.getItem(DISMISS_KEY);
+  if (!raw) return false;
+  const ts = Number(raw);
+  if (!Number.isFinite(ts)) return false;
+  return Date.now() - ts < DISMISS_TTL_MS;
+}
+
+function maybeShowInstall() {
+  if (!deferredPrompt) return;
+  if (!isPortalRoute()) {
+    showInstallPrompt.value = false;
+    return;
+  }
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    showInstallPrompt.value = false;
+    return;
+  }
+  if (isDismissedRecently()) {
+    showInstallPrompt.value = false;
+    return;
+  }
+  showInstallPrompt.value = true;
+}
 
 onMounted(() => {
-  // 安装提示 (beforeinstallprompt)
-  window.addEventListener('beforeinstallprompt', (e) => {
+  beforeInstallHandler = (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    // 检查是否已安装
-    if (!window.matchMedia('(display-mode: standalone)').matches) {
-      showInstallPrompt.value = true;
-    }
-  });
+    maybeShowInstall();
+  };
+  window.addEventListener('beforeinstallprompt', beforeInstallHandler);
 
-  // 安装成功
-  window.addEventListener('appinstalled', () => {
+  appInstalledHandler = () => {
     showInstallPrompt.value = false;
     deferredPrompt = null;
-    // PWA installed
-  });
+  };
+  window.addEventListener('appinstalled', appInstalledHandler);
 
-  // 更新提示
-  window.addEventListener('pwa-update-available', () => {
+  updateHandler = () => {
     showUpdatePrompt.value = true;
-  });
+  };
+  window.addEventListener('pwa-update-available', updateHandler);
 
-  // 网络状态
   onlineHandler = () => { isOnline.value = true; };
   offlineHandler = () => { isOnline.value = false; };
   window.addEventListener('online', onlineHandler);
@@ -82,16 +114,20 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  if (beforeInstallHandler) window.removeEventListener('beforeinstallprompt', beforeInstallHandler);
+  if (appInstalledHandler) window.removeEventListener('appinstalled', appInstalledHandler);
+  if (updateHandler) window.removeEventListener('pwa-update-available', updateHandler);
   window.removeEventListener('online', onlineHandler);
   window.removeEventListener('offline', offlineHandler);
 });
+
+watch(() => route.path, () => maybeShowInstall());
 
 async function install() {
   if (!deferredPrompt) return;
 
   deferredPrompt.prompt();
   const result = await deferredPrompt.userChoice;
-  // PWA install result tracked
 
   if (result.outcome === 'accepted') {
     showInstallPrompt.value = false;
@@ -102,8 +138,7 @@ async function install() {
 
 function dismiss() {
   showInstallPrompt.value = false;
-  // 24小时内不再提示
-  localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+  localStorage.setItem(DISMISS_KEY, Date.now().toString());
 }
 
 function update() {
