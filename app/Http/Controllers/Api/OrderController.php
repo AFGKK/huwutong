@@ -306,6 +306,19 @@ class OrderController extends Controller
     }
 
     /**
+     * 订单不支持物理删除（审计留痕）；请改用 cancel。
+     * 见功能测试报告 P3-4。
+     */
+    public function destroy(int $id, Request $request): JsonResponse
+    {
+        return ApiResponse::error(
+            'METHOD_NOT_ALLOWED',
+            __('app.api.order.delete_not_supported'),
+            405
+        );
+    }
+
+    /**
      * 支付跳转（生成支付链接）
      */
     public function pay(int $id, Request $request): JsonResponse

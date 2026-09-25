@@ -19,7 +19,14 @@ class TenantController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Tenant::class);
+
         $query = Tenant::withCount('users', 'customers', 'licenses');
+
+        // 非 super-admin 仅可见本租户
+        if (! $request->user()->hasRole('super-admin')) {
+            $query->where('id', $request->user()->tenant_id);
+        }
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
@@ -48,6 +55,8 @@ class TenantController extends Controller
      */
     public function show(Tenant $tenant): JsonResponse
     {
+        $this->authorize('view', $tenant);
+
         $tenant->loadCount('users', 'customers', 'licenses', 'devices', 'invoices');
         $tenant->load('members.user:id,name,email');
 
@@ -59,6 +68,7 @@ class TenantController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $this->authorize('create', Tenant::class);
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'slug' => 'nullable|string|max:100|unique:tenants,slug',
@@ -100,6 +110,8 @@ class TenantController extends Controller
      */
     public function update(Request $request, Tenant $tenant): JsonResponse
     {
+        $this->authorize('update', $tenant);
+
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
             'slug' => 'nullable|string|max:100|unique:tenants,slug,' . $tenant->id,
@@ -128,6 +140,8 @@ class TenantController extends Controller
      */
     public function destroy(Tenant $tenant): JsonResponse
     {
+        $this->authorize('delete', $tenant);
+
         // 安全：不允许删除有关联数据的租户（有用户或客户）
         if ($tenant->users()->count() > 0) {
             return ApiResponse::error('FORBIDDEN', __('app.api.tenant.has_users'), 409);
@@ -146,6 +160,8 @@ class TenantController extends Controller
      */
     public function toggleStatus(Tenant $tenant): JsonResponse
     {
+        $this->authorize('toggleStatus', $tenant);
+
         $newStatus = $tenant->status === 'active' ? 'inactive' : 'active';
         $tenant->status = $newStatus;
         $tenant->save();
@@ -244,14 +260,23 @@ class TenantController extends Controller
     /**
      * 租户统计
      */
-    public function stats(): JsonResponse
+    public function stats(Request $request): JsonResponse
     {
-        $total = Tenant::count();
-        $active = Tenant::where('status', 'active')->count();
-        $inactive = Tenant::where('status', 'inactive')->count();
-        $suspended = Tenant::where('status', 'suspended')->count();
+        $this->authorize('viewAny', Tenant::class);
 
-        $totalUsers = User::count();
+        $query = Tenant::query();
+        if (! $request->user()->hasRole('super-admin')) {
+            $query->where('id', $request->user()->tenant_id);
+        }
+
+        $total = (clone $query)->count();
+        $active = (clone $query)->where('status', 'active')->count();
+        $inactive = (clone $query)->where('status', 'inactive')->count();
+        $suspended = (clone $query)->where('status', 'suspended')->count();
+
+        $totalUsers = $request->user()->hasRole('super-admin')
+            ? User::count()
+            : User::where('tenant_id', $request->user()->tenant_id)->count();
         $avgUsersPerTenant = $total > 0 ? round($totalUsers / $total, 1) : 0;
 
         return ApiResponse::success([

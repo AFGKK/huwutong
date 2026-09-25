@@ -112,6 +112,92 @@ class SignatureMiddlewareTest extends TestCase
             ->assertJsonPath('error.code', 'SIGNATURE_MISMATCH');
     }
 
+    /**
+     * P0 回归：无 metadata.signature_secret 时也不得跳过校验（伪造签名必须失败）
+     */
+    public function test_rejects_forged_signature_when_license_has_no_explicit_secret(): void
+    {
+        $license = License::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'product_id' => $this->product->id,
+            'status' => 'pending',
+            'metadata' => null,
+        ]);
+
+        $timestamp = (string) time();
+        $body = json_encode([
+            'license_key' => $license->license_key,
+            'fingerprint' => 'fp-test-device-001',
+        ]);
+        $forged = str_repeat('a', 64);
+
+        $response = $this->call(
+            'POST',
+            '/_test/signature',
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+                'HTTP_X_SIGNATURE' => $forged,
+                'HTTP_X_SIGNATURE_TIMESTAMP' => $timestamp,
+            ],
+            $body
+        );
+
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertStringContainsString('SIGNATURE_MISMATCH', $response->getContent());
+    }
+
+    public function test_rejects_forged_signature_on_real_activate_route(): void
+    {
+        $license = License::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'product_id' => $this->product->id,
+            'status' => 'pending',
+            'metadata' => null,
+        ]);
+
+        $timestamp = (string) time();
+        $nonce = (string) \Illuminate\Support\Str::uuid();
+        $payload = [
+            'license_key' => $license->license_key,
+            'fingerprint' => 'fp-idor-test-' . uniqid(),
+            'platform' => 'linux',
+        ];
+        $body = json_encode($payload);
+
+        $response = $this->call(
+            'POST',
+            '/api/license/activate',
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+                'HTTP_X_SIGNATURE' => str_repeat('b', 64),
+                'HTTP_X_SIGNATURE_TIMESTAMP' => $timestamp,
+                'HTTP_X_NONCE' => $nonce,
+                'HTTP_X_TIMESTAMP' => $timestamp,
+            ],
+            $body
+        );
+
+        $this->assertSame(401, $response->getStatusCode(), $response->getContent());
+        $this->assertTrue(
+            str_contains($response->getContent(), 'SIGNATURE_MISMATCH')
+            || str_contains($response->getContent(), 'MISSING_SIGNATURE')
+            || str_contains($response->getContent(), 'SIGNATURE'),
+            $response->getContent()
+        );
+        $this->assertDatabaseMissing('licenses', [
+            'id' => $license->id,
+            'status' => 'active',
+        ]);
+    }
+
     public function test_allows_get_requests(): void
     {
         Route::get('/_test/signature-get', function () {

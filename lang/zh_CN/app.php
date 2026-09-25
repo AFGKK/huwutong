@@ -1867,6 +1867,10 @@ return [
 
     // ─── API 响应文案 ───
     'api' => [
+        'validation' => [
+            'malformed_utf8' => '请求体不是有效的 UTF-8 编码，请改用 UTF-8（JSON 建议 Content-Type: application/json; charset=utf-8）',
+            'malformed_utf8_field' => '字段 :field 包含非法 UTF-8 字符，请检查编码后重试',
+        ],
         'license' => [
             'forbidden_view' => '无权访问此 License',
             'forbidden_op' => '无权操作此 License',
@@ -1946,6 +1950,7 @@ return [
             'cancelled' => '订单已取消',
             'pay_created' => '支付请求已创建',
             'paid' => '支付成功',
+            'delete_not_supported' => '订单不支持物理删除，请使用 POST /api/orders/{id}/cancel 取消订单',
         ],
         'cart' => [
             'added' => '已添加到购物车',
@@ -4588,6 +4593,15 @@ return [
             'msg_da0c848a' => '密码重置成功',
             'msg_2763cffb' => '用户已封禁',
             'msg_c44e531b' => '用户已解封',
+            'attr_name' => '姓名',
+            'attr_email' => '邮箱',
+            'attr_password' => '密码',
+            'name_required' => '姓名不能为空（请使用 UTF-8 编码提交中文姓名）',
+            'name_invalid' => '姓名仅支持文字、数字、空格及 ·._-',
+            'email_required' => '邮箱不能为空',
+            'email_taken' => '该邮箱已被注册',
+            'password_required' => '密码不能为空',
+            'password_min' => '密码至少 8 位',
         ],
         'affiliate_enhanced' => [
             'msg_ac3a7078' => '推广链接已生成',

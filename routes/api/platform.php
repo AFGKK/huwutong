@@ -555,6 +555,7 @@ $shopRoutes = function () {
     Route::get('/orders/{id}', [EcommerceAPIController::class, 'orderDetail'])->whereNumber('id');
     Route::post('/orders/{id}/pay', [EcommerceAPIController::class, 'orderPay'])->whereNumber('id');
     Route::post('/orders/{id}/cancel', [EcommerceAPIController::class, 'orderCancel'])->whereNumber('id');
+    Route::delete('/orders/{id}', [\App\Http\Controllers\Api\OrderController::class, 'destroy'])->whereNumber('id');
     Route::get('/orders/{id}/payment-status', [EcommerceAPIController::class, 'orderPaymentStatus'])->whereNumber('id');
     Route::get('/deliveries', [EcommerceAPIController::class, 'deliveryList']);
     Route::get('/deliveries/{id}', [EcommerceAPIController::class, 'deliveryDetail'])->whereNumber('id');

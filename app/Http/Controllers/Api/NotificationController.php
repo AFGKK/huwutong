@@ -223,6 +223,9 @@ class NotificationController extends Controller
         if ($request->boolean('interactions_only')) {
             $query->whereIn('type', Notification::INTERACTION_TYPES);
         }
+        if ($request->boolean('system_only')) {
+            $query->whereNotIn('type', array_merge(Notification::INTERACTION_TYPES, Notification::IM_TYPES));
+        }
 
         $count = $query->update([
             'is_read' => true,

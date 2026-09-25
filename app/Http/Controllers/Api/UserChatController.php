@@ -1367,7 +1367,7 @@ class UserChatController extends Controller
     public function myFavorites(): JsonResponse
     {
         $favorites = MessageFavorite::where('user_id', auth()->id())
-            ->with('message.sender:id,name', 'message.conversation:id,type')
+            ->with('message.sender:id,name', 'message.conversation:id,name,type')
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(fn($f) => [
@@ -1375,6 +1375,7 @@ class UserChatController extends Controller
                 'message_id' => $f->message_id,
                 'content' => $f->message->content,
                 'sender_name' => $f->message->sender?->name ?? '',
+                'conversation_id' => $f->message->conversation_id,
                 'conversation_name' => $f->message->conversation?->name ?? '',
                 'created_at' => $f->created_at,
             ]);
@@ -2577,7 +2578,7 @@ class UserChatController extends Controller
     }
 
     // ── AI-010: 流式 AI 对话（SSE） ──
-    public function chatStreamSSE(int $convId, Request $request, LlmService $llm): StreamedResponse
+    public function chatStreamSSE(int $convId, Request $request, LlmService $llm): StreamedResponse|\Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'message' => 'required|string|max:500',
@@ -2587,6 +2588,15 @@ class UserChatController extends Controller
         $mode = $validated['mode'] ?? 'chat';
         $userMessage = $validated['message'];
         $saveMessage = $validated['save_message'] ?? ($mode === 'chat');
+        $myId = auth()->id();
+
+        $participant = ConversationParticipant::where('conversation_id', $convId)
+            ->where('user_id', $myId)
+            ->whereNull('deleted_at')
+            ->first();
+        if (! $participant) {
+            return ApiResponse::error('FORBIDDEN', __('app.api.chat.not_participant'), 403);
+        }
 
         // 获取最近上下文
         $recentMessages = ConversationMessage::where('conversation_id', $convId)
@@ -2612,8 +2622,6 @@ class UserChatController extends Controller
             $messages[] = ['role' => 'assistant', 'content' => '好的，我已了解上下文。'];
         }
         $messages[] = ['role' => 'user', 'content' => $userMessage];
-
-        $myId = auth()->id();
 
         return response()->stream(function () use ($llm, $messages, $convId, $myId, $userMessage, $saveMessage) {
             header('Content-Type: text/event-stream');
@@ -2653,10 +2661,15 @@ class UserChatController extends Controller
                         'client_msg_id' => 'ai-bot-'.uniqid(),
                     ]);
 
-                    // 更新会话最后消息时间
-                    UserConversation::where('conversation_id', $convId)
+                    // user_conversations 主键为 id；已读进度在 conversation_participants
+                    UserConversation::where('id', $convId)->update([
+                        'last_message_id' => $msg->id,
+                        'last_message_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    ConversationParticipant::where('conversation_id', $convId)
                         ->where('user_id', $myId)
-                        ->update(['last_message_at' => now(), 'last_read_at' => now()]);
+                        ->update(['last_read_at' => now()]);
 
                     echo "data: " . json_encode(['type' => 'done', 'content' => $fullContent, 'message_id' => $msg->id]) . "\n\n";
                 } else {
@@ -2979,7 +2992,15 @@ class UserChatController extends Controller
             'client_msg_id' => 'ai-'.uniqid(),
         ]);
 
-        \App\Models\UserConversation::where('conversation_id', $convId)->increment('unread_count');
+        UserConversation::where('id', $convId)->update([
+            'last_message_id' => $msg->id,
+            'last_message_at' => now(),
+            'updated_at' => now(),
+        ]);
+        ConversationParticipant::where('conversation_id', $convId)
+            ->where('user_id', '!=', $myId)
+            ->whereNull('deleted_at')
+            ->increment('unread_count');
 
         return ApiResponse::success([
             'reply' => $reply,
@@ -3056,9 +3077,14 @@ class UserChatController extends Controller
             'client_msg_id' => 'ai-save-'.uniqid(),
         ]);
 
-        \App\Models\UserConversation::where('conversation_id', $convId)
+        UserConversation::where('id', $convId)->update([
+            'last_message_id' => $msg->id,
+            'last_message_at' => now(),
+            'updated_at' => now(),
+        ]);
+        ConversationParticipant::where('conversation_id', $convId)
             ->where('user_id', auth()->id())
-            ->update(['last_message_at' => now(), 'last_read_at' => now()]);
+            ->update(['last_read_at' => now()]);
 
         return ApiResponse::success($msg->load('sender:id,name'), __('app.api.chat.saved'), 201);
     }

@@ -58,7 +58,16 @@ class BlogController extends Controller
             return ApiResponse::error(__('app.api.blog.validation_failed'), 422, $validator->errors()->toArray());
         }
 
-        return ApiResponse::created($this->blogService->createPost($request->all()), __('app.api.blog.post_created'));
+        $data = $request->all();
+        $data['author_id'] = $data['author_id'] ?? auth()->id();
+        if (empty($data['author'])) {
+            $data['author'] = auth()->user()?->name;
+        }
+        if ($request->user()?->tenant_id && empty($data['tenant_id'])) {
+            $data['tenant_id'] = $request->user()->tenant_id;
+        }
+
+        return ApiResponse::created($this->blogService->createPost($data), __('app.api.blog.post_created'));
     }
 
     public function update(Request $request, int $id): JsonResponse

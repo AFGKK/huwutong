@@ -15,8 +15,6 @@ class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
      */
     public function register(): void
     {
-        // Telescope::night();
-
         $this->hideSensitiveRequestDetails();
 
         $isLocal = $this->app->environment('local');
@@ -46,19 +44,45 @@ class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
             'cookie',
             'x-csrf-token',
             'x-xsrf-token',
+            'authorization',
+            'x-api-key',
         ]);
     }
 
     /**
+     * 始终要求已登录且通过 gate（local 也不再匿名开放）。
+     * 见整体测试报告 v4 P2：未登录可访问 /telescope。
+     */
+    protected function authorization(): void
+    {
+        $this->gate();
+
+        Telescope::auth(function ($request) {
+            $user = $request->user();
+
+            return $user !== null && Gate::forUser($user)->allows('viewTelescope');
+        });
+    }
+
+    /**
      * Register the Telescope gate.
-     *
-     * This gate determines who can access Telescope in non-local environments.
      */
     protected function gate(): void
     {
-        Gate::define('viewTelescope', function (User $user) {
-            return $user->hasPermissionTo('telescope.view') ||
-                   $this->app->environment('local');
+        Gate::define('viewTelescope', function (?User $user) {
+            if (! $user) {
+                return false;
+            }
+
+            if (method_exists($user, 'hasRole') && ($user->hasRole('super-admin') || $user->hasRole('admin'))) {
+                return true;
+            }
+
+            try {
+                return $user->hasPermissionTo('telescope.view');
+            } catch (\Throwable) {
+                return false;
+            }
         });
     }
 }

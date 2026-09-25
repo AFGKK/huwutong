@@ -81,7 +81,8 @@ class AdminUserController extends Controller
         $this->authorize('create', User::class);
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            // 显式支持 Unicode（中文等），避免客户端编码异常后字段变空被误报为 missing
+            'name' => ['required', 'string', 'max:255', 'regex:/^[\p{L}\p{N}\p{M}\s·._\-]+$/u'],
             'email' => 'required|email|max:255|unique:users,email',
             'phone' => 'nullable|string|max:20',
             'password' => 'required|string|min:8|max:128',
@@ -89,15 +90,26 @@ class AdminUserController extends Controller
             'roles' => 'nullable|array',
             'roles.*' => 'integer|exists:roles,id',
             'tenant_id' => 'nullable|integer|exists:tenants,id',
+        ], [
+            'name.required' => __('app.api.admin_user.name_required'),
+            'name.regex' => __('app.api.admin_user.name_invalid'),
+            'email.required' => __('app.api.admin_user.email_required'),
+            'email.unique' => __('app.api.admin_user.email_taken'),
+            'password.required' => __('app.api.admin_user.password_required'),
+            'password.min' => __('app.api.admin_user.password_min'),
+        ], [
+            'name' => __('app.api.admin_user.attr_name'),
+            'email' => __('app.api.admin_user.attr_email'),
+            'password' => __('app.api.admin_user.attr_password'),
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', $validator->errors()->first(), 422);
+            return ApiResponse::error('VALIDATION_ERROR', $validator->errors()->first(), 422, $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
 
-        // �?super-admin 不能指定 tenant_id，只能创建到自己的租�?
+        // 非 super-admin 不能指定 tenant_id，只能创建到自己的租户
         if (!$request->user()->hasRole('super-admin')) {
             $data['tenant_id'] = $request->user()->tenant_id;
         }
@@ -122,7 +134,7 @@ class AdminUserController extends Controller
 
         $user->load('roles:id,name');
 
-        return ApiResponse::created($user, __("app.admin_user.msg_a7499d82"));
+        return ApiResponse::created($user, __('app.api.admin_user.msg_a7499d82'));
     }
 
     /**
@@ -133,28 +145,33 @@ class AdminUserController extends Controller
         $this->authorize('update', $user);
 
         $rules = [
-            'name' => 'sometimes|string|max:255',
+            'name' => ['sometimes', 'string', 'max:255', 'regex:/^[\p{L}\p{N}\p{M}\s·._\-]+$/u'],
             'phone' => 'nullable|string|max:20',
             'status' => 'sometimes|string|in:active,inactive,locked',
             'roles' => 'nullable|array',
             'roles.*' => 'integer|exists:roles,id',
         ];
 
-        // 只有 super-admin 可以修改 email �?tenant_id
+        // 只有 super-admin 可以修改 email / tenant_id
         if ($request->user()->hasRole('super-admin')) {
             $rules['email'] = 'sometimes|email|max:255|unique:users,email,' . $user->id;
             $rules['tenant_id'] = 'nullable|integer|exists:tenants,id';
         }
 
-        $validator = Validator::make($request->all(), $rules);
+        $validator = Validator::make($request->all(), $rules, [
+            'name.regex' => __('app.api.admin_user.name_invalid'),
+        ], [
+            'name' => __('app.api.admin_user.attr_name'),
+            'email' => __('app.api.admin_user.attr_email'),
+        ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', $validator->errors()->first(), 422);
+            return ApiResponse::error('VALIDATION_ERROR', $validator->errors()->first(), 422, $validator->errors()->toArray());
         }
 
         $data = $validator->validated();
 
-        // �?super-admin 不能修改敏感字段
+        // 非 super-admin 不能修改敏感字段
         if (!$request->user()->hasRole('super-admin')) {
             unset($data['email'], $data['tenant_id']);
         }
@@ -169,11 +186,11 @@ class AdminUserController extends Controller
 
         $user->load('roles:id,name');
 
-        return ApiResponse::success($user, __("app.admin_user.msg_e58a7585"));
+        return ApiResponse::success($user, __('app.api.admin_user.msg_e58a7585'));
     }
 
     /**
-     * 删除用户（软删除�?
+     * 删除用户（软删除）
      */
     public function destroy(Request $request, User $user): JsonResponse
     {
@@ -183,7 +200,7 @@ class AdminUserController extends Controller
         $user->save();
         $user->delete(); // soft delete
 
-        return ApiResponse::success(null, __("app.admin_user.msg_ce10fc1a"));
+        return ApiResponse::success(null, __('app.api.admin_user.msg_ce10fc1a'));
     }
 
     /**
@@ -198,13 +215,13 @@ class AdminUserController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return ApiResponse::error('VALIDATION_ERROR', $validator->errors()->first(), 422);
+            return ApiResponse::error('VALIDATION_ERROR', $validator->errors()->first(), 422, $validator->errors()->toArray());
         }
 
         $user->password = Hash::make($validator->validated()['password']);
         $user->save();
 
-        return ApiResponse::success(null, __("app.admin_user.msg_da0c848a"));
+        return ApiResponse::success(null, __('app.api.admin_user.msg_da0c848a'));
     }
 
     /**
@@ -226,7 +243,7 @@ class AdminUserController extends Controller
             } catch (\RuntimeException $e) {
                 return ApiResponse::error('BAN_FAILED', $e->getMessage(), 422);
             }
-            return ApiResponse::success(['status' => 'inactive'], __("app.admin_user.msg_2763cffb"));
+            return ApiResponse::success(['status' => 'inactive'], __('app.api.admin_user.msg_2763cffb'));
         } else {
             // 解封
             try {
@@ -237,7 +254,7 @@ class AdminUserController extends Controller
             } catch (\RuntimeException $e) {
                 return ApiResponse::error('UNBAN_FAILED', $e->getMessage(), 422);
             }
-            return ApiResponse::success(['status' => 'active'], __("app.admin_user.msg_c44e531b"));
+            return ApiResponse::success(['status' => 'active'], __('app.api.admin_user.msg_c44e531b'));
         }
     }
 

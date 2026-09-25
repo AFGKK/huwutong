@@ -6,9 +6,11 @@ use App\Models\CorsConfig;
 use App\Models\Customer;
 use App\Models\Device;
 use App\Models\Invoice;
+use App\Models\License;
 use App\Models\Product;
 use App\Models\Subscription;
 use App\Models\Tag;
+use App\Models\Tenant;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Models\LicenseTemplate;
@@ -18,9 +20,11 @@ use App\Policies\CustomerPolicy;
 use App\Policies\DevicePolicy;
 use App\Policies\HandoffRequestPolicy;
 use App\Policies\InvoicePolicy;
+use App\Policies\LicensePolicy;
 use App\Policies\ProductPolicy;
 use App\Policies\SubscriptionPolicy;
 use App\Policies\TagPolicy;
+use App\Policies\TenantPolicy;
 use App\Policies\TicketPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\LicenseTemplatePolicy;
@@ -45,6 +49,8 @@ class AuthServiceProvider extends ServiceProvider
         LicenseTemplate::class => LicenseTemplatePolicy::class,
         Refund::class => RefundPolicy::class,
         KbCategory::class => KbCategoryPolicy::class,
+        Tenant::class => TenantPolicy::class,
+        License::class => LicensePolicy::class,
     ];
 
     public function boot(): void

@@ -1868,6 +1868,10 @@ return [
 
     // ─── API response copy ───
     'api' => [
+        'validation' => [
+            'malformed_utf8' => 'Request body is not valid UTF-8. Please submit with UTF-8 encoding (JSON: Content-Type application/json; charset=utf-8)',
+            'malformed_utf8_field' => 'Field :field contains invalid UTF-8 characters',
+        ],
         'license' => [
             'forbidden_view' => 'You do not have access to this license',
             'forbidden_op' => 'You cannot modify this license',
@@ -1947,6 +1951,7 @@ return [
             'cancelled' => 'Order cancelled',
             'pay_created' => 'Payment request created',
             'paid' => 'Payment successful',
+            'delete_not_supported' => 'Orders cannot be hard-deleted. Use POST /api/orders/{id}/cancel to cancel an order',
         ],
         'cart' => [
             'added' => 'Added to cart',
@@ -4631,12 +4636,21 @@ Time: :time',
             'msg_d73c8c30' => 'Error.',
         ],
         'admin_user' => [
-            'msg_a7499d82' => 'Error.',
-            'msg_e58a7585' => 'Error.',
-            'msg_ce10fc1a' => 'Error.',
-            'msg_da0c848a' => 'Error.',
-            'msg_2763cffb' => 'Error.',
-            'msg_c44e531b' => 'Error.',
+            'msg_a7499d82' => 'User created successfully',
+            'msg_e58a7585' => 'User updated successfully',
+            'msg_ce10fc1a' => 'User deactivated',
+            'msg_da0c848a' => 'Password reset successfully',
+            'msg_2763cffb' => 'User banned',
+            'msg_c44e531b' => 'User unbanned',
+            'attr_name' => 'name',
+            'attr_email' => 'email',
+            'attr_password' => 'password',
+            'name_required' => 'The name field is required (submit Chinese names with UTF-8 encoding)',
+            'name_invalid' => 'Name may only contain letters, numbers, spaces, and ·._-',
+            'email_required' => 'The email field is required',
+            'email_taken' => 'The email has already been taken',
+            'password_required' => 'The password field is required',
+            'password_min' => 'The password must be at least 8 characters',
         ],
         'affiliate_enhanced' => [
             'msg_ac3a7078' => 'Error.',

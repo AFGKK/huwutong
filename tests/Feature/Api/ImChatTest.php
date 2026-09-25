@@ -182,6 +182,103 @@ class ImChatTest extends TestCase
         $this->assertEquals('ai', $ai->json('data.type'));
     }
 
+    /** @test */
+    public function ai_conversation_is_reused_for_same_user()
+    {
+        $first = $this->postJson('/api/user-chat/ai-conversation', [], $this->headers($this->tokenA));
+        $first->assertSuccessful();
+        $second = $this->postJson('/api/user-chat/ai-conversation', [], $this->headers($this->tokenA));
+        $second->assertSuccessful();
+        $this->assertSame($first->json('data.id'), $second->json('data.id'));
+    }
+
+    /** @test */
+    public function ai_chat_stream_persists_messages_and_updates_conversation()
+    {
+        $ai = $this->postJson('/api/user-chat/ai-conversation', [], $this->headers($this->tokenA));
+        $ai->assertSuccessful();
+        $convId = (int) $ai->json('data.id');
+
+        $llm = \Mockery::mock(\App\Services\LlmService::class);
+        $llm->shouldReceive('chatStream')->once()->andReturn((function () {
+            yield ['content' => '你好'];
+            yield ['content' => '，我是助手'];
+        })());
+        $this->app->instance(\App\Services\LlmService::class, $llm);
+
+        $response = $this->postJson(
+            "/api/user-chat/conversations/{$convId}/chat-stream",
+            ['message' => '打个招呼', 'mode' => 'chat'],
+            $this->headers($this->tokenA)
+        );
+        $response->assertOk();
+        $body = $response->streamedContent();
+        $this->assertStringContainsString('"type":"chunk"', $body);
+        $this->assertStringContainsString('"type":"done"', $body);
+
+        $this->assertDatabaseHas('conversation_messages', [
+            'conversation_id' => $convId,
+            'sender_id' => $this->userA->id,
+            'content' => '打个招呼',
+            'message_type' => 'text',
+        ]);
+        $this->assertDatabaseHas('conversation_messages', [
+            'conversation_id' => $convId,
+            'content' => '你好，我是助手',
+            'message_type' => 'ai_reply',
+        ]);
+        $this->assertDatabaseHas('user_conversations', [
+            'id' => $convId,
+            'type' => 'ai',
+        ]);
+        $this->assertNotNull(UserConversation::find($convId)?->last_message_at);
+        $this->assertNotNull(UserConversation::find($convId)?->last_message_id);
+    }
+
+    /** @test */
+    public function ai_chat_stream_rejects_non_participant()
+    {
+        $ai = $this->actingAs($this->userA, 'sanctum')
+            ->postJson('/api/user-chat/ai-conversation', []);
+        $ai->assertSuccessful();
+        $convId = (int) $ai->json('data.id');
+
+        $this->assertDatabaseMissing('conversation_participants', [
+            'conversation_id' => $convId,
+            'user_id' => $this->userB->id,
+        ]);
+
+        $response = $this->actingAs($this->userB, 'sanctum')
+            ->postJson(
+                "/api/user-chat/conversations/{$convId}/chat-stream",
+                ['message' => '你好', 'mode' => 'chat']
+            );
+
+        $response->assertForbidden();
+        $response->assertJsonPath('success', false);
+    }
+
+    /** @test */
+    public function ai_save_message_updates_conversation_last_message()
+    {
+        $ai = $this->postJson('/api/user-chat/ai-conversation', [], $this->headers($this->tokenA));
+        $ai->assertSuccessful();
+        $convId = (int) $ai->json('data.id');
+
+        $r = $this->postJson(
+            "/api/user-chat/conversations/{$convId}/ai-save",
+            ['content' => '润色后的文本'],
+            $this->headers($this->tokenA)
+        );
+        $r->assertSuccessful();
+        $this->assertDatabaseHas('conversation_messages', [
+            'conversation_id' => $convId,
+            'content' => '润色后的文本',
+            'message_type' => 'ai_reply',
+        ]);
+        $this->assertNotNull(UserConversation::find($convId)?->last_message_at);
+    }
+
     // ─────────────────────────────────────────
     // 3. 好友系统
     // ─────────────────────────────────────────
@@ -366,7 +463,53 @@ class ImChatTest extends TestCase
         $cid = $this->setupFriendsAndConversation();
         $msg = ConversationMessage::create(['conversation_id' => $cid, 'sender_id' => $this->userA->id, 'message_type' => 'text', 'content' => '收藏']);
         $r = $this->postJson("/api/user-chat/messages/{$msg->id}/favorite", [], $this->headers($this->tokenB));
-        $this->assertTrue(in_array($r->status(), [200, 201, 500]), 'Status was: ' . $r->status() . ' body: ' . substr($r->getContent(), 0, 200));
+        $r->assertSuccessful();
+        $this->assertTrue((bool) $r->json('data.favorited'));
+        $this->assertDatabaseHas('message_favorites', [
+            'user_id' => $this->userB->id,
+            'message_id' => $msg->id,
+        ]);
+    }
+
+    /** @test */
+    public function favorites_list_includes_conversation_id_for_jump()
+    {
+        $cid = $this->setupFriendsAndConversation();
+        $msg = ConversationMessage::create([
+            'conversation_id' => $cid,
+            'sender_id' => $this->userA->id,
+            'message_type' => 'text',
+            'content' => '收藏跳转',
+        ]);
+        $this->postJson("/api/user-chat/messages/{$msg->id}/favorite", [], $this->headers($this->tokenB))
+            ->assertSuccessful();
+
+        $list = $this->getJson('/api/user-chat/favorites', $this->headers($this->tokenB));
+        $list->assertOk();
+        $row = collect($list->json('data'))->firstWhere('message_id', $msg->id);
+        $this->assertNotNull($row);
+        $this->assertSame($cid, $row['conversation_id']);
+        $this->assertSame('收藏跳转', $row['content']);
+    }
+
+    /** @test */
+    public function pending_list_includes_conversation_id_for_jump()
+    {
+        $cid = $this->setupFriendsAndConversation();
+        $msg = ConversationMessage::create([
+            'conversation_id' => $cid,
+            'sender_id' => $this->userA->id,
+            'message_type' => 'text',
+            'content' => '稍后处理',
+        ]);
+        $this->postJson("/api/user-chat/messages/{$msg->id}/pending", [], $this->headers($this->tokenB))
+            ->assertSuccessful();
+
+        $list = $this->getJson('/api/user-chat/messages/pending', $this->headers($this->tokenB));
+        $list->assertOk();
+        $row = collect($list->json('data'))->firstWhere('message_id', $msg->id);
+        $this->assertNotNull($row);
+        $this->assertSame($cid, $row['conversation_id']);
     }
 
     /** @test */

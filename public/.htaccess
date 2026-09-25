@@ -5,6 +5,9 @@
 
     RewriteEngine On
 
+    # 禁止访问前端 sourcemap（生产构建即使残留 .map 也不应被下载）
+    RewriteRule \.map$ - [F,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

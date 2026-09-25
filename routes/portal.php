@@ -76,6 +76,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/{id}', [OrderController::class, 'show'])->whereNumber('id');
     Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel'])->whereNumber('id');
+    Route::delete('/orders/{id}', [OrderController::class, 'destroy'])->whereNumber('id');
     Route::post('/orders/{id}/pay', [OrderController::class, 'pay'])->whereNumber('id');
     Route::get('/orders/{id}/payment-status', [OrderController::class, 'paymentStatus'])->whereNumber('id');
 

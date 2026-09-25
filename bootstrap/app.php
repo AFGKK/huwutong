@@ -76,11 +76,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // 应用层中间件统一注册（按 M0-11 ADR：这些由应用层处理，网关层不应重复）
         $middleware->web(prepend: [
             \App\Http\Middleware\SetLocale::class, // D-22: 自动语言检测 — web 路由组首页/公共页面
+            \App\Http\Middleware\SecurityHeadersMiddleware::class, // P2: HTML 页面安全响应头
             \App\Http\Middleware\MaintenanceMiddleware::class,
         ]);
         $middleware->api(prepend: [
             \App\Http\Middleware\ResolveDomainTenant::class,
             \App\Http\Middleware\SecurityHeadersMiddleware::class, // CORS/CSP/安全头 — 应用层统一处理
+            \App\Http\Middleware\EnsureUtf8Request::class, // 非法 UTF-8 明确报错，避免中文字段静默丢失
             \App\Http\Middleware\ImpersonateMiddleware::class, // 模拟登录 — 在所有认证路由之前检查
             \App\Http\Middleware\SetLocale::class, // D-22: 自动语言检测
             \App\Http\Middleware\MaintenanceMiddleware::class,

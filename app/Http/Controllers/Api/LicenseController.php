@@ -40,18 +40,63 @@ class LicenseController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', License::class);
+
+        $user = $request->user();
         $query = License::query()->with(['product', 'customer', 'tenant', 'tags']);
 
-        // 租户隔离
-        if ($tenantId = $request->user()->tenant_id) {
-            $query->where('tenant_id', $tenantId);
+        $isAdmin = $user->hasRole('super-admin') || $user->hasRole('admin');
+
+        if ($user->hasRole('super-admin')) {
+            // 超管可看全部，可选按租户筛选
+            if ($tenantFilter = $request->input('filter.tenant_id')) {
+                $query->where('tenant_id', $tenantFilter);
+            }
+        } elseif ($isAdmin) {
+            // 租户管理员：仅本租户
+            $query->where('tenant_id', $user->tenant_id);
+        } else {
+            // 普通用户：仅本人关联客户的 license
+            $customerId = $user->customer?->id;
+            if (! $customerId) {
+                return ApiResponse::paginated(
+                    new \Illuminate\Pagination\LengthAwarePaginator([], 0, min((int) $request->input('per_page', 20), 100))
+                );
+            }
+            $query->where('customer_id', $customerId);
+            if ($user->tenant_id) {
+                $query->where('tenant_id', $user->tenant_id);
+            }
         }
 
         $paginator = (new class {
             use \App\Http\Concerns\QueryBuilder;
         })->buildPaginatedQuery($query, $request);
 
+        // 非管理员脱敏 license_key
+        if (! $isAdmin) {
+            $paginator->getCollection()->transform(function (License $license) {
+                $license->setAttribute('license_key', self::maskLicenseKey($license->license_key));
+                return $license;
+            });
+        }
+
         return ApiResponse::paginated($paginator);
+    }
+
+    /**
+     * 脱敏 License Key：保留前缀与末 4 位
+     */
+    public static function maskLicenseKey(?string $key): string
+    {
+        if ($key === null || $key === '') {
+            return '';
+        }
+        $len = strlen($key);
+        if ($len <= 8) {
+            return str_repeat('*', $len);
+        }
+        return substr($key, 0, 4) . str_repeat('*', max($len - 8, 4)) . substr($key, -4);
     }
 
     /**
@@ -67,9 +112,12 @@ class LicenseController extends Controller
             'activations' => fn($q) => $q->latest()->limit(10),
         ])->findOrFail($id);
 
-        // 安全：检查租户归属
-        if (! $this->isOwnTenant($license)) {
-            return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_view'), 403);
+        $this->authorize('view', $license);
+
+        $user = request()->user();
+        $isAdmin = $user->hasRole('super-admin') || $user->hasRole('admin');
+        if (! $isAdmin) {
+            $license->setAttribute('license_key', self::maskLicenseKey($license->license_key));
         }
 
         // 分析当前状态
@@ -179,12 +227,29 @@ class LicenseController extends Controller
      */
     public function store(CreateLicenseRequest $request): JsonResponse
     {
+        $this->authorize('create', License::class);
+
         $data = $request->validated();
+        $user = $request->user();
+
+        $tenantId = $user->tenant_id ?? ($data['tenant_id'] ?? null);
+        if (! $tenantId) {
+            return ApiResponse::error(
+                'TENANT_REQUIRED',
+                __('app.api.license.tenant_required'),
+                422
+            );
+        }
+
+        // 非超管不得指定其他租户
+        if (! $user->hasRole('super-admin')) {
+            $tenantId = $user->tenant_id;
+        }
 
         $licenseKey = $this->keyGenerator->generate($data['type'] ?? 'standard');
 
         $license = $this->licenseService->create([
-            'tenant_id' => $request->user()->tenant_id ?? $data['tenant_id'],
+            'tenant_id' => $tenantId,
             'product_id' => $data['product_id'],
             'customer_id' => $data['customer_id'] ?? null,
             'license_key' => $licenseKey,
@@ -205,7 +270,18 @@ class LicenseController extends Controller
      */
     public function batchStore(CreateLicenseRequest $request): JsonResponse
     {
+        $this->authorize('create', License::class);
+
         $data = $request->validated();
+        $user = $request->user();
+        $tenantId = $user->tenant_id ?? ($data['tenant_id'] ?? null);
+        if (! $tenantId) {
+            return ApiResponse::error('TENANT_REQUIRED', __('app.api.license.tenant_required'), 422);
+        }
+        if (! $user->hasRole('super-admin')) {
+            $tenantId = $user->tenant_id;
+        }
+
         $count = min($data['count'] ?? 10, 100);
 
         $keys = $this->keyGenerator->generateBatch($data['type'] ?? 'standard', $count);
@@ -213,7 +289,7 @@ class LicenseController extends Controller
         $licenses = [];
         foreach ($keys as $key) {
             $licenses[] = $this->licenseService->create([
-                'tenant_id' => $request->user()->tenant_id ?? $data['tenant_id'],
+                'tenant_id' => $tenantId,
                 'product_id' => $data['product_id'],
                 'customer_id' => $data['customer_id'] ?? null,
                 'license_key' => $key,
@@ -596,11 +672,17 @@ class LicenseController extends Controller
      */
     public function export(Request $request): StreamedResponse
     {
+        $this->authorize('create', License::class); // 仅管理员可导出明文 key
+
+        $user = $request->user();
         $query = License::query()->with(['product:id,name', 'customer:id,name', 'tenant:id,name']);
 
-        // 租户隔离
-        if ($tenantId = $request->user()->tenant_id) {
-            $query->where('tenant_id', $tenantId);
+        if ($user->hasRole('super-admin')) {
+            if ($tenantFilter = $request->input('filter.tenant_id')) {
+                $query->where('tenant_id', $tenantFilter);
+            }
+        } else {
+            $query->where('tenant_id', $user->tenant_id);
         }
 
         // 应用筛选

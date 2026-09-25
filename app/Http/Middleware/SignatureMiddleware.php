@@ -93,27 +93,35 @@ class SignatureMiddleware
             );
         }
 
-        // 3. 获取密钥
+        // 3. 获取密钥（失败关闭：无法解析密钥则拒绝，禁止跳过）
         $secretKey = $this->resolveSecretKey($request, $keyId);
 
         if (empty($secretKey)) {
-            Log::info('签名校验: 无法解析密钥，跳过签名校验', [
+            Log::warning('签名校验: 无法解析密钥，拒绝请求', [
                 'key_id' => $keyId,
                 'client_ip' => $request->ip(),
                 'path' => $request->path(),
+                'has_license_key' => filled($request->input('license_key')),
             ]);
 
-            // 无密钥时跳过签名校验（兼容 SDK 无签名模式）
-            return $next($request);
+            return ApiResponse::error(
+                'SIGNATURE_KEY_UNAVAILABLE',
+                '无法校验签名：缺少有效签名密钥',
+                401,
+            );
         }
 
         // 4. 计算规范字符串
         $canonicalString = $this->buildCanonicalString($request, $timestamp);
 
-        // 5. 验证签名
+        // 5. 验证签名（支持 raw base64 与 hex 两种客户端输出）
         $expectedSignature = $this->computeSignature($secretKey, $canonicalString);
+        $expectedHex = hash_hmac(self::ALGORITHM, $canonicalString, $secretKey);
 
-        if (! hash_equals($expectedSignature, $signature)) {
+        $valid = hash_equals($expectedSignature, $signature)
+            || hash_equals($expectedHex, strtolower($signature));
+
+        if (! $valid) {
             Log::warning('签名校验: 签名不匹配', [
                 'path' => $request->path(),
                 'method' => $request->method(),
@@ -183,30 +191,66 @@ class SignatureMiddleware
                 ->where('is_active', true)
                 ->first();
 
-            if ($apiKey) {
+            if ($apiKey && ! empty($apiKey->secret)) {
                 return $apiKey->secret;
             }
-        }
 
-        // 2. 从 License metadata 获取（适用于 SDK 场景）
-        $licenseKey = $request->input('license_key');
-        if ($licenseKey) {
-            $license = \App\Models\License::where('license_key', $licenseKey)->first();
-            if ($license && ! empty($license->metadata['signature_secret'] ?? null)) {
-                return $license->metadata['signature_secret'];
-            }
-
-            // 请求携带了 license_key 但未找到对应 License 时，不使用系统默认密钥，
-            // 避免测试/客户端用 License 专属密钥签名时被默认密钥校验拦截。
+            // 指定了 Key-Id 但找不到有效密钥 → 拒绝（不回落，防伪造 Key-Id）
             return null;
         }
 
-        // 3. 系统默认密钥（用于内部服务间通信）
-        $defaultSecret = config('security.default_signature_secret');
-        if ($defaultSecret) {
-            return $defaultSecret;
+        // 2. 从 License metadata / 派生密钥（适用于 SDK 激活场景）
+        $licenseKey = $request->input('license_key');
+        if ($licenseKey) {
+            $license = \App\Models\License::where('license_key', $licenseKey)->first();
+            if (! $license) {
+                // 不存在的 license：返回假密钥参与比对，避免时序泄露，同时必然校验失败
+                return hash_hmac('sha256', 'missing:' . $licenseKey, $this->systemSigningRoot());
+            }
+
+            if (! empty($license->metadata['signature_secret'] ?? null)) {
+                return (string) $license->metadata['signature_secret'];
+            }
+
+            // 无显式 secret 时，用系统根密钥 + license_key 派生（保证每把 Key 都可校验，禁止跳过）
+            return $this->deriveLicenseSecret($license->license_key);
         }
 
-        return null;
+        // 3. 系统默认密钥（内部服务间通信，且请求未带 license_key）
+        return $this->systemSigningRoot();
+    }
+
+    /**
+     * 系统签名根密钥（禁止空值；生产应通过 DEFAULT_SIGNATURE_SECRET / APP_KEY 配置）
+     */
+    protected function systemSigningRoot(): string
+    {
+        return self::signingRoot();
+    }
+
+    /**
+     * 公开：系统签名根密钥（供派生与测试使用）
+     */
+    public static function signingRoot(): string
+    {
+        $configured = (string) config('security.default_signature_secret', '');
+        if ($configured !== '' && $configured !== 'huwutong-dev-secret-key-2024') {
+            return $configured;
+        }
+
+        $appKey = (string) config('app.key', '');
+        if ($appKey !== '') {
+            return hash('sha256', 'hwt-sig-root|' . $appKey);
+        }
+
+        return $configured !== '' ? $configured : 'hwt-insecure-fallback-change-me';
+    }
+
+    /**
+     * 为未配置 signature_secret 的 License 派生 HMAC 密钥
+     */
+    public static function deriveLicenseSecret(string $licenseKey): string
+    {
+        return hash_hmac('sha256', 'license-sig:' . $licenseKey, self::signingRoot());
     }
 }

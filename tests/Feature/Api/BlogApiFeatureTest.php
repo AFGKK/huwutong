@@ -214,7 +214,52 @@ class BlogApiFeatureTest extends TestCase
         ], $this->authHeaders());
 
         $response->assertStatus(201);
-        $this->assertDatabaseHas('blog_posts', ['title' => '新文章']);
+        $this->assertDatabaseHas('blog_posts', [
+            'title' => '新文章',
+            'author_id' => $this->admin->id,
+            'author' => $this->admin->name,
+        ]);
+    }
+
+    public function test_public_published_list_includes_author_avatar(): void
+    {
+        BlogPost::factory()->create([
+            'author_id' => $this->admin->id,
+            'author' => $this->admin->name,
+            'is_published' => true,
+            'published_at' => now(),
+            'type' => 'blog',
+        ]);
+
+        $response = $this->getJson('/api/public/blog/published');
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $author = $response->json('data.0.author_user');
+        $this->assertIsArray($author);
+        $this->assertEquals($this->admin->id, $author['id']);
+        $this->assertArrayHasKey('avatar_url', $author);
+        $this->assertNotEmpty($author['avatar_url']);
+    }
+
+    public function test_public_slug_detail_includes_author_avatar(): void
+    {
+        $post = BlogPost::factory()->create([
+            'slug' => 'with-author-avatar',
+            'author_id' => $this->admin->id,
+            'author' => $this->admin->name,
+            'is_published' => true,
+            'published_at' => now(),
+            'type' => 'blog',
+        ]);
+
+        $response = $this->getJson('/api/public/blog/'.$post->slug);
+
+        $response->assertOk();
+        $author = $response->json('data.author_user');
+        $this->assertIsArray($author);
+        $this->assertArrayHasKey('avatar_url', $author);
+        $this->assertNotEmpty($author['avatar_url']);
     }
 
     public function test_admin_can_show_post(): void

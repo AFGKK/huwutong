@@ -16,7 +16,6 @@
     <link rel="alternate" type="application/rss+xml" title="{{ __('app.blog_page.rss_blog') }}" href="/api/rss">
     <link rel="alternate" type="application/rss+xml" title="{{ __('app.blog_page.rss_changelog') }}" href="/api/rss/changelog">
     @vite('resources/css/public.css')
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <style>
         .blog-content h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.75rem; }
         .blog-content h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; }
@@ -67,69 +66,27 @@
                             <img id="detail-author-avatar" class="w-6 h-6 rounded-full object-cover hidden" />
                             <span id="detail-author-avatar-fallback" class="w-6 h-6 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-medium hidden"></span>
                             <span id="detail-author-name" class="text-sm text-gray-600"></span>
-                            <button id="detail-follow-btn" onclick="handleAuthorFollow(this, blogAuthorId)" class="text-xs px-2 py-1 rounded-full font-medium transition border hidden">
-                                ➕ {{ __('app.blog_page.follow') }}
-                            </button>
                             <span id="detail-views" class="text-gray-400"></span>
                         </span>
                         <span id="detail-tags" class="flex gap-1"></span>
                     </div>
 
-                    <!-- 🤖 AI 摘要 -->
-                    <div id="ai-summary-box" class="hidden mb-6 p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200">
-                        <div class="flex items-start gap-3">
-                            <span class="text-lg flex-shrink-0 mt-0.5">🤖</span>
-                            <div class="flex-1 min-w-0">
-                                <div class="text-xs font-semibold text-blue-600 mb-1">{{ __('app.blog_page.ai_summary') }}</div>
-                                <p id="ai-summary-text" class="text-sm text-gray-700 leading-relaxed"></p>
-                            </div>
-                            <button id="ai-summary-btn" onclick="generateAISummary()" class="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 transition font-medium shadow-sm">
-                                🤖 {{ __('app.blog_page.ai_generate') }}
-                            </button>
-                        </div>
-                        <div id="ai-summary-loading" class="hidden flex items-center gap-2 mt-1 ml-8">
-                            <div class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                            <span class="text-xs text-blue-400">{{ __('app.blog_page.ai_thinking') }}</span>
-                        </div>
-                    </div>
-
                     <div id="detail-content" class="blog-content text-gray-700 leading-relaxed"></div>
                 </article>
 
-                <!-- 文章目录 -->
-                <div id="post-toc" class="hidden mt-8 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                    <div class="text-sm font-semibold text-gray-700 mb-2">📑 {{ __('app.blog_page.toc') }}</div>
-                    <div id="toc-list" class="space-y-1"></div>
-                </div>
-
-                <!-- 点赞与收藏 -->
+                <!-- 点赞 / 复制链接 -->
                 <div class="mt-6 flex items-center justify-center gap-4">
                     <button id="blog-like-btn" onclick="toggleBlogLike()" class="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full border border-gray-200 bg-white hover:bg-red-50 hover:border-red-200 transition font-medium">
                         <span id="blog-like-icon">🤍</span>
                         <span id="blog-like-count">0</span>
                     </button>
-                    <button id="blog-fav-btn" onclick="toggleBlogFav()" class="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full border border-gray-200 bg-white hover:bg-amber-50 hover:border-amber-200 transition font-medium">
-                        <span id="blog-fav-icon">⭐</span>
-                        <span>{{ __('app.blog_page.favorite') }}</span>
-                    </button>
-                    <button id="blog-readlater-btn" onclick="toggleReadLater()" class="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full border border-gray-200 bg-white hover:bg-indigo-50 hover:border-indigo-200 transition font-medium">
-                        <span id="blog-readlater-icon">⏰</span>
-                        <span id="blog-readlater-text">{{ __('app.blog_page.read_later') }}</span>
+                    <button id="blog-copy-btn" onclick="copyBlogLink()" class="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full border border-gray-200 bg-white hover:bg-gray-100 transition font-medium">
+                        🔗 {{ __('app.blog_page.copy_link') }}
                     </button>
                 </div>
+                <div id="share-reward-msg" class="text-center text-xs text-green-600 mt-2 hidden"></div>
 
-                <!-- 分享得积分-->
-                <div class="mt-8 pt-6 border-t border-gray-100">
-                    <div class="flex items-center justify-center gap-2 flex-wrap">
-                        <span class="text-xs text-gray-400 mr-1">📤 {{ __('app.blog_page.share_points') }}</span>
-                        <button onclick="shareBlog('weibo')" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-white hover:bg-red-50 hover:border-red-200 transition font-medium">🔴 {{ __('app.blog_page.weibo') }}</button>
-                        <button onclick="shareBlog('copy')" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-white hover:bg-gray-100 transition font-medium">🔗 {{ __('app.blog_page.copy_link') }}</button>
-                        <button onclick="generatePoster()" class="text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-white hover:bg-purple-50 hover:border-purple-200 transition font-medium">{{ __('app.blog_page.poster') }}</button>
-                    </div>
-                    <div id="share-reward-msg" class="text-center text-xs text-green-600 mt-2 hidden"></div>
-                </div>
-
-                <!-- 💬 评论区 -->
+                <!-- 评论区 -->
                 <div class="mt-8 pt-6 border-t border-gray-100">
                     <h3 class="text-base font-semibold text-gray-800 mb-4">💬 {{ __('app.blog_page.comments') }} (<span id="comment-count">0</span>)</h3>
 
@@ -151,9 +108,9 @@
                     </div>
                 </div>
 
-                <!-- 🎯 猜你喜欢 -->
+                <!-- 相关文章 -->
                 <div id="related-posts-section" class="hidden mt-10 pt-6 border-t border-gray-100">
-                    <h3 class="text-base font-semibold text-gray-800 mb-5">🎯 {{ __('app.blog_page.related') }}</h3>
+                    <h3 class="text-base font-semibold text-gray-800 mb-5">{{ __('app.blog_page.related') }}</h3>
                     <div id="related-posts-grid" class="grid md:grid-cols-3 gap-4"></div>
                 </div>
             </div>
@@ -251,38 +208,12 @@
         </div>
     </div>
 
-    <!-- 🖼︀海报预览弹窗 -->
-    <div id="poster-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4" onclick="if(event.target===this)closePoster()">
-        <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-base font-bold text-gray-900">{{ __('app.blog_page.poster_title') }}</h3>
-                <button onclick="closePoster()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
-            </div>
-            <div id="poster-container" class="flex justify-center bg-gray-50 rounded-xl p-2">
-                <img id="poster-img" class="max-w-full rounded-lg" />
-            </div>
-            <div class="flex items-center justify-center gap-3 mt-4">
-                <button onclick="downloadPoster()" class="flex-1 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition flex items-center justify-center gap-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                    {{ __('app.blog_page.poster_download') }}
-                </button>
-                <button onclick="sharePoster()" class="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition flex items-center justify-center gap-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
-                    {{ __('app.blog_page.poster_share') }}
-                </button>
-            </div>
-            <p class="text-xs text-gray-400 text-center mt-3">{{ __('app.blog_page.poster_hint') }}</p>
-        </div>
-    </div>
-
     <script>
     var BLOG_I18N = window.BLOG_I18N || {};
     const API = '/api/public';
     let currentView = 'blog';
     let blogPostId = null;
     let currentPostId = null;
-    let blogAuthorId = null;
-    let posterDataUrl = null;
 
     // ─── 切换视图 ───
     function switchView(view) {
@@ -322,6 +253,61 @@
 
     function typeColor(t) {
         return t === 'blog' ? 'bg-blue-100 text-blue-700' : t === 'changelog' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700';
+    }
+
+    function authorDisplayName(p) {
+        return (p && p.author_user && p.author_user.name) || (p && p.author) || '';
+    }
+
+    function authorInitial(p) {
+        var name = authorDisplayName(p);
+        return (name && name.charAt(0)) || '?';
+    }
+
+    function resolveAuthorAvatarUrl(p) {
+        var u = p && p.author_user;
+        if (!u) return '';
+        if (u.avatar_url) return u.avatar_url;
+        if (u.avatar) return String(u.avatar).indexOf('http') === 0 ? u.avatar : ('/storage/' + u.avatar);
+        return '';
+    }
+
+    /** 列表卡片作者头像：有图用图，否则首字母 */
+    function renderAuthorBadge(p) {
+        var url = resolveAuthorAvatarUrl(p);
+        var initial = authorInitial(p);
+        if (url) {
+            return '<img src="' + String(url).replace(/"/g, '') + '" alt="" class="w-5 h-5 rounded-full object-cover shrink-0" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" /><span class="w-5 h-5 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-medium shrink-0" style="display:none">' + initial + '</span>';
+        }
+        return '<span class="w-5 h-5 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-medium shrink-0">' + initial + '</span>';
+    }
+
+    function fillDetailAuthor(p) {
+        var authorAvatarEl = document.getElementById('detail-author-avatar');
+        var authorAvatarFallback = document.getElementById('detail-author-avatar-fallback');
+        var authorNameEl = document.getElementById('detail-author-name');
+        if (!authorAvatarEl || !authorAvatarFallback || !authorNameEl) return;
+        var name = authorDisplayName(p);
+        var url = resolveAuthorAvatarUrl(p);
+        authorNameEl.textContent = name;
+        authorAvatarEl.classList.add('hidden');
+        authorAvatarFallback.classList.add('hidden');
+        authorAvatarEl.style.display = '';
+        authorAvatarFallback.style.display = '';
+        if (url) {
+            authorAvatarEl.src = url;
+            authorAvatarEl.classList.remove('hidden');
+            authorAvatarEl.onerror = function() {
+                this.classList.add('hidden');
+                this.style.display = 'none';
+                authorAvatarFallback.textContent = authorInitial(p);
+                authorAvatarFallback.classList.remove('hidden');
+                authorAvatarFallback.style.display = 'flex';
+            };
+        } else if (name) {
+            authorAvatarFallback.textContent = authorInitial(p);
+            authorAvatarFallback.classList.remove('hidden');
+        }
     }
 
     // ─── 计算阅读时间 ───
@@ -484,10 +470,8 @@
                 '<p class="text-sm text-gray-500 leading-relaxed line-clamp-3">' + excerpt + '</p>' +
                 '<div class="flex items-center justify-between mt-3 text-xs text-gray-400">' +
                 '<div class="flex items-center gap-2">' +
-                (p.author_user ? (
-                    '<img src="' + (p.author_user.avatar_url || '') + '" class="w-5 h-5 rounded-full object-cover" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" /><span class="w-5 h-5 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-medium" style="display:none">' + (p.author_user.name?.charAt(0) || '?') + '</span>'
-                ) : '') +
-                '<span class="text-xs text-gray-400">' + (p.author || '') + '</span>' +
+                renderAuthorBadge(p) +
+                '<span class="text-xs text-gray-400">' + ((p.author_user && p.author_user.name) || p.author || '') + '</span>' +
                 '</div>' +
                 '<span class="flex items-center gap-2">' +
                 '<span>👁️ ' + (p.views_count || 0) + '</span>' +
@@ -590,12 +574,7 @@
         var progress = scrollHeight > 0 ? Math.min(100, Math.round(scrollTop / scrollHeight * 100)) : 0;
         bar.style.width = progress + '%';
         bar.style.opacity = progress > 2 ? '1' : '0';
-        // 高亮当前目录顀
-        highlightTocItem();
     }
-
-    // ─── 文章目录 ───
-    var tocItems = [];
 
     // ─── 图片灯箱 ───
     function setupImageLightbox() {
@@ -646,65 +625,25 @@
                 catDetailEl.classList.remove('hidden');
             } else { catDetailEl.classList.add('hidden'); }
             document.getElementById('detail-date').textContent = fmtDate(p.published_at);
-            // 设置作者头像和关注
-            blogAuthorId = p.author_user?.id || null;
-            var authorAvatarEl = document.getElementById('detail-author-avatar');
-            var authorAvatarFallback = document.getElementById('detail-author-avatar-fallback');
-            var authorNameEl = document.getElementById('detail-author-name');
-            var followBtn = document.getElementById('detail-follow-btn');
-            if (p.author_user) {
-                if (p.author_user.avatar_url) {
-                    authorAvatarEl.src = p.author_user.avatar_url;
-                    authorAvatarEl.classList.remove('hidden');
-                    authorAvatarEl.onerror = function() { this.style.display = 'none'; authorAvatarFallback.style.display = 'flex'; };
-                } else {
-                    authorAvatarEl.classList.add('hidden');
-                    authorAvatarFallback.textContent = (p.author_user.name?.charAt(0) || '?');
-                    authorAvatarFallback.classList.remove('hidden');
-                }
-                authorNameEl.textContent = p.author_user.name || p.author;
-                followBtn.classList.remove('hidden');
-                // 查关注状态
-                var token = localStorage.getItem('auth_token');
-                if (token && blogAuthorId) {
-                    fetch(API + '/blog/follow-status?author_id=' + blogAuthorId, { headers: { 'Authorization': 'Bearer ' + token } })
-                        .then(function(r) { return r.json(); })
-                        .then(function(json) {
-                            if (json.success && json.data?.is_following) {
-                                followBtn.textContent = '✅ ' + (BLOG_I18N.following ||'');
-                                followBtn.className = 'text-xs px-2 py-1 rounded-full font-medium transition border bg-slate-100 text-slate-700 border-slate-200';
-                            }
-                        }).catch(function() {});
-                }
-            }
+            // 作者信息（有关联用户用头像；否则用作者名首字母回退）
+            fillDetailAuthor(p);
             var ve = document.getElementById('detail-version');
             if (p.version) { ve.textContent = (BLOG_I18N.version_label||'').replace(':v', p.version); ve.classList.remove('hidden'); } else { ve.classList.add('hidden'); }
             var tagsEl = document.getElementById('detail-tags');
             tagsEl.innerHTML = (p.tags || []).map(function(t) { return '<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">#' + t + '</span>'; }).join('');
             document.getElementById('detail-content').innerHTML = p.content;
-            // 图片灯箱 - 给所有图片添加点击放大
             setupImageLightbox();
             document.getElementById('detail-readtime').textContent = '⏱️ ' + (BLOG_I18N.read_mins||'').replace(':n', readingTime(p.content));
             document.getElementById('detail-views').textContent = '👁️ ' + (BLOG_I18N.views_n||'').replace(':n', p.views_count || 0);
             blogPostId = p.id;
             currentPostId = p.id;
-            // 点赞/收藏计数 & 状态
             document.getElementById('blog-like-count').textContent = p.likes_count || 0;
             loadBlogInteractionStatus();
-            // 稍后阅读状态
-            loadReadLaterStatus();
-            // 评论区
             setupCommentForm();
             loadBlogComments();
-            // 阅读进度条
             setupReadingProgress();
-            // 生成目录
-            buildToc(); // 保存文章ID用于分享积分
             var metaDesc = document.querySelector('meta[name="description"]');
             if (metaDesc) metaDesc.content = p.excerpt || stripHtml(p.content).substring(0, 200);
-            // 🤖 AI 摘要
-            setupAISummary(p);
-            // 🎯 猜你喜欢
             loadRelatedPosts(p.id);
         } catch(e) {
             document.getElementById('loading-state').innerHTML = '<p class="text-gray-400">'+(BLOG_I18N.load_fail||'')+'</p>';
@@ -755,52 +694,6 @@
             msg.className = 'text-sm mt-2 text-red-600';
             msg.classList.remove('hidden');
         }
-    }
-
-    async function handleFollow() {
-        var token = localStorage.getItem('auth_token');
-        if (!token) {
-            showToast((BLOG_I18N.login_follow)||'');
-            window.location.href = '/build/login?redirect=' + encodeURIComponent(window.location.href);
-            return;
-        }
-        try {
-            // 先查关注状态
-            var statusRes = await fetch(API + '/blog/follow-status', {
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
-            var statusJson = await statusRes.json();
-            var isFollowing = statusJson.data?.is_following || false;
-            var url = API + (isFollowing ? '/blog/unfollow' : '/blog/follow');
-            var res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ author_id: blogAuthorId })
-            });
-            var json = await res.json();
-            if (json.success) {
-                var btn = document.getElementById('follow-btn');
-                if (btn) {
-                    btn.innerHTML = json.data.followed ? (BLOG_I18N.following ||'') : (BLOG_I18N.follow ||'');
-                    btn.className = json.data.followed ? 'px-4 py-2 rounded-full text-sm font-medium bg-slate-100 text-slate-700 border border-slate-200' : 'px-4 py-2 rounded-full text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50';
-                }
-                updateFollowerCount(json.data.follower_count);
-            }
-        } catch(e) { /* 静默失败 */ }
-    }
-
-    async function toggleBlogFav() {
-        var token = localStorage.getItem('auth_token');
-        if (!token) { showToast((BLOG_I18N.login_first)||''); window.location.href = '/build/login?redirect=' + encodeURIComponent(window.location.href); return; }
-        try {
-            var res = await fetch(API + '/blog/fav/toggle', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ post_id: currentPostId }) });
-            var json = await res.json();
-            if (json.success) {
-                var btn = document.getElementById('fav-btn');
-                btn.innerHTML = json.data.favored ? ('❤️ ' + (BLOG_I18N.favorited || '')) : ('🤍 ' + (BLOG_I18N.favorite || ''));
-                btn.className = json.data.favored ? 'px-4 py-2 rounded-lg text-sm font-medium border bg-red-50 text-red-600 border-red-200' : 'px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50';
-            }
-        } catch(e) { /* 静默失败 */ }
     }
 
     async function loadBlogComments() {
@@ -881,105 +774,15 @@
         }).catch(function() {});
     }
 
-    function toggleReadLater() {
-        var token = localStorage.getItem('auth_token');
-        if (!token) { showToast((BLOG_I18N.login_first)||''); window.location.href = '/build/login?redirect=' + encodeURIComponent(window.location.href); return; }
-        fetch(API + '/blog/' + currentPostId + '/readlater', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
-        }).then(function(r) { return r.json(); }).then(function(json) {
-            if (json.success) {
-                var txt = document.getElementById('blog-readlater-text');
-                var ico = document.getElementById('blog-readlater-icon');
-                if (json.data.saved) { txt.textContent = (BLOG_I18N.read_later_saved||''); ico.textContent = '✅'; }
-                else { txt.textContent = (BLOG_I18N.read_later||''); ico.textContent = '⏰'; }
-            }
-        }).catch(function() {});
-    }
-
-    function shareBlog(type) {
-        var token = localStorage.getItem('auth_token');
+    function copyBlogLink() {
         var url = window.location.href;
-        var title = document.getElementById('detail-title')?.textContent || '';
-        if (type === 'weibo') {
-            window.open('https://service.weibo.com/share/share.php?url=' + encodeURIComponent(url) + '&title=' + encodeURIComponent(title), '_blank', 'width=600,height=500');
-        }
-        if (type === 'copy') {
-            var doCopy = function() {
-                var msg = document.getElementById('share-reward-msg');
-                if (msg) { msg.textContent = '✅ '+(BLOG_I18N.share_copied||''); msg.classList.remove('hidden'); setTimeout(function() { msg.classList.add('hidden'); }, 3000); }
-            };
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(url).then(doCopy).catch(function() { fallbackCopy(url); doCopy(); });
-            } else { fallbackCopy(url); doCopy(); }
-        }
-        if (token) {
-            fetch(API + '/blog/' + currentPostId + '/share', {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: type })
-            }).then(function(r) { return r.json(); }).catch(function() {});
-        }
-    }
-
-    function generatePoster() {
-        var title = document.getElementById('detail-title')?.textContent || (BLOG_I18N.poster_title||'');
-        var canvas = document.createElement('canvas');
-        canvas.width = 400; canvas.height = 600;
-        var ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ffffff'; roundRect(ctx, 0, 0, 400, 600, 20); ctx.fill();
-        ctx.fillStyle = '#1f2937'; ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center';
-        var lines = []; var maxW = 340; var words = title.split('');
-        var line = '';
-        for (var i = 0; i < words.length; i++) {
-            var test = line + words[i];
-            if (ctx.measureText(test).width > maxW) { lines.push(line); line = words[i]; }
-            else { line = test; }
-        }
-        if (line) lines.push(line);
-        var y0 = 200 - (lines.length - 1) * 14;
-        lines.forEach(function(l, idx) { ctx.fillText(l, 200, y0 + idx * 32); });
-        ctx.fillStyle = '#6b7280'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText((BLOG_I18N.poster_brand||''), 200, 420);
-        posterDataUrl = canvas.toDataURL('image/png');
-        document.getElementById('poster-modal').classList.remove('hidden');
-        document.getElementById('poster-container').innerHTML = '<img src="' + posterDataUrl + '" class="max-w-full rounded-lg" />';
-    }
-
-    function sharePoster() {
-        if (!posterDataUrl) return;
+        var doCopy = function() {
+            var msg = document.getElementById('share-reward-msg');
+            if (msg) { msg.textContent = '✅ '+(BLOG_I18N.share_copied||''); msg.classList.remove('hidden'); setTimeout(function() { msg.classList.add('hidden'); }, 3000); }
+        };
         if (navigator.clipboard) {
-            navigator.clipboard.writeText(posterDataUrl).then(function() { showToast((BLOG_I18N.poster_copied)||''); }).catch(function() { fallbackCopy(posterDataUrl); });
-        } else { fallbackCopy(posterDataUrl); }
-    }
-
-    function generateAISummary() {
-        var btn = document.getElementById('ai-summary-btn');
-        var loading = document.getElementById('ai-summary-loading');
-        var textEl = document.getElementById('ai-summary-text');
-        if (!btn || !loading || !textEl) return;
-        btn.classList.add('hidden'); loading.classList.remove('hidden');
-        fetch(API + '/blog/' + currentPostId + '/generate-summary', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: document.getElementById('detail-content')?.innerHTML || '' })
-        }).then(function(r) { return r.json(); }).then(function(json) {
-            loading.classList.add('hidden'); btn.classList.remove('hidden');
-            if (json.success && json.data) {
-                textEl.textContent = json.data.excerpt || json.data.summary || '';
-                btn.textContent = '🔄 '+(BLOG_I18N.ai_regen||'');
-            } else { textEl.textContent = (BLOG_I18N.ai_fail||''); }
-        }).catch(function() { loading.classList.add('hidden'); btn.classList.remove('hidden'); textEl.textContent = (BLOG_I18N.network_error||''); });
-    }
-
-    function setupAISummary(p) {
-        if (p && p.ai_summary) {
-            document.getElementById('ai-summary-box').classList.remove('hidden');
-            document.getElementById('ai-summary-text').textContent = p.ai_summary;
-            document.getElementById('ai-summary-btn').textContent = '🔄 '+(BLOG_I18N.ai_regen||'');
-        } else if (p) {
-            document.getElementById('ai-summary-box').classList.remove('hidden');
-        }
+            navigator.clipboard.writeText(url).then(doCopy).catch(function() { fallbackCopy(url); doCopy(); });
+        } else { fallbackCopy(url); doCopy(); }
     }
 
     function loadRelatedPosts(postId) {
@@ -1002,22 +805,8 @@
         fetch(API + '/blog/' + currentPostId + '/interaction', {
             headers: { 'Authorization': 'Bearer ' + token }
         }).then(function(r) { return r.json(); }).then(function(json) {
-            if (json.success && json.data) {
-                if (json.data.liked) { document.getElementById('blog-like-icon').textContent = '❤️'; }
-                if (json.data.favored) { document.getElementById('blog-fav-icon').textContent = '❤️'; }
-            }
-        }).catch(function() {});
-    }
-
-    function loadReadLaterStatus() {
-        var token = localStorage.getItem('auth_token');
-        if (!token || !currentPostId) return;
-        fetch(API + '/blog/' + currentPostId + '/readlater/status', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        }).then(function(r) { return r.json(); }).then(function(json) {
-            if (json.success && json.data && json.data.saved) {
-                document.getElementById('blog-readlater-text').textContent = (BLOG_I18N.read_later_saved||'');
-                document.getElementById('blog-readlater-icon').textContent = '✅';
+            if (json.success && json.data && json.data.liked) {
+                document.getElementById('blog-like-icon').textContent = '❤️';
             }
         }).catch(function() {});
     }
@@ -1033,92 +822,11 @@
         }
     }
 
-    function buildToc() {
-        var content = document.getElementById('detail-content');
-        if (!content) return;
-        var headings = content.querySelectorAll('h2, h3');
-        if (headings.length < 2) { document.getElementById('post-toc').classList.add('hidden'); return; }
-        tocItems = [];
-        headings.forEach(function(h, idx) {
-            var id = 'toc-' + idx;
-            h.id = id;
-            tocItems.push({ id: id, text: h.textContent, tag: h.tagName });
-        });
-        var list = document.getElementById('toc-list');
-        list.innerHTML = tocItems.map(function(item) {
-            var cls = item.tag === 'H3' ? 'pl-4 text-xs' : 'text-sm font-medium';
-            return '<div class="' + cls + ' text-gray-500 hover:text-slate-900 cursor-pointer transition" data-toc-id="' + item.id + '" onclick="document.getElementById(\'' + item.id + '\').scrollIntoView({behavior:\'smooth\'})">' + item.text + '</div>';
-        }).join('');
-        document.getElementById('post-toc').classList.remove('hidden');
-    }
-
-    function highlightTocItem() {
-        var scrollY = window.scrollY + 120;
-        var current = '';
-        tocItems.forEach(function(item) {
-            var el = document.getElementById(item.id);
-            if (el && el.offsetTop <= scrollY) current = item.id;
-        });
-        document.querySelectorAll('#toc-list > div').forEach(function(div) {
-            var id = div.getAttribute('data-toc-id');
-            div.className = (id === current ? 'text-sm font-medium text-slate-800' : (div.innerHTML.length > 20 ? 'pl-4 text-xs text-gray-500' : 'text-sm text-gray-500')) + ' hover:text-slate-900 cursor-pointer transition';
-        });
-    }
-
-    function updateFollowerCount(count) {
-        // 已迁移到按作者关注
-    }
-
-    async function handleAuthorFollow(btn, authorId) {
-        if (!authorId) return;
-        var token = localStorage.getItem('auth_token');
-        if (!token) {
-            showToast((BLOG_I18N.login_follow)||'');
-            window.location.href = '/build/login?redirect=' + encodeURIComponent(window.location.href);
-            return;
-        }
-        try {
-            var statusRes = await fetch(API + '/blog/follow-status?author_id=' + authorId, {
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
-            var statusJson = await statusRes.json();
-            var isFollowing = statusJson.data?.is_following || false;
-            var url = API + (isFollowing ? '/blog/unfollow' : '/blog/follow');
-            var res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ author_id: authorId })
-            });
-            var json = await res.json();
-            if (json.success) {
-                var nowFollowing = !isFollowing;
-                if (btn) {
-                    btn.textContent = nowFollowing ? ('✅ ' + (BLOG_I18N.following ||'')) : ('➕ ' + (BLOG_I18N.follow ||''));
-                    btn.className = 'text-xs px-2 py-0.5 rounded-full border font-medium transition ml-1 ' + (nowFollowing ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-white text-gray-500 border-gray-200');
-                    btn.dataset.following = nowFollowing ? 'true' : 'false';
-                }
-            } else if (json.error?.code === '已关注') {
-                var res2 = await fetch(API + '/blog/unfollow', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ author_id: authorId })
-                });
-                var json2 = await res2.json();
-                if (json2.success && btn) {
-                    btn.textContent = '➕ ' + (BLOG_I18N.follow ||'');
-                    btn.className = 'text-xs px-2 py-0.5 rounded-full border font-medium transition ml-1 bg-white text-gray-500 border-gray-200';
-                    btn.dataset.following = 'false';
-                }
-            }
-        } catch(e) { console.error('follow failed', e); }
-    }
-
     function closeLightbox() {
         var lb = document.getElementById('image-lightbox');
         if (lb) lb.classList.add('hidden');
     }
 
-    // loadComments 别名
     function loadComments() { loadBlogComments(); }
 
     function fallbackCopy(text) {
@@ -1127,32 +835,6 @@
         document.body.appendChild(ta); ta.select();
         try { document.execCommand('copy'); } catch(e) {}
         document.body.removeChild(ta);
-    }
-
-    function roundRect(ctx, x, y, w, h, r) {
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
-    }
-
-    function closePoster() {
-        document.getElementById('poster-modal').classList.add('hidden');
-    }
-
-    function downloadPoster() {
-        if (!posterDataUrl) return;
-        var a = document.createElement('a');
-        a.href = posterDataUrl;
-        a.download = 'poster.png';
-        a.click();
     }
 
     // ─── Toast 提示 ───

@@ -40,6 +40,9 @@ class BlogPost extends Model
             if (empty($post->slug)) {
                 $post->slug = Str::slug($post->title) . '-' . Str::random(6);
             }
+            if (empty($post->author_id) && auth()->id()) {
+                $post->author_id = auth()->id();
+            }
             if (empty($post->author)) {
                 $post->author = auth()->user()?->name ?? 'Admin';
             }

@@ -286,6 +286,106 @@ class NotificationApiTest extends TestCase
         $this->assertIsArray($response->json('meta.groups'));
     }
 
+    public function test_mark_all_read_can_limit_to_interactions(): void
+    {
+        Notification::create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->user->id,
+            'type' => 'interaction_like',
+            'title' => '赞',
+            'content' => '有人赞了你',
+            'is_read' => false,
+        ]);
+        Notification::create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->user->id,
+            'type' => 'system',
+            'title' => '系统',
+            'content' => '维护',
+            'is_read' => false,
+        ]);
+
+        $response = $this->postJson('/api/notifications/read-all?type=interaction_like,interaction_comment,interaction_mention,interaction_follow', [], $this->authHeaders());
+        $response->assertStatus(200);
+        $this->assertEquals(1, $response->json('data.affected'));
+
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $this->user->id,
+            'type' => 'interaction_like',
+            'is_read' => true,
+        ]);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $this->user->id,
+            'type' => 'system',
+            'is_read' => false,
+        ]);
+    }
+
+    public function test_mark_all_read_system_only_skips_interactions(): void
+    {
+        Notification::create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->user->id,
+            'type' => 'interaction_follow',
+            'title' => '关注',
+            'content' => '有人关注了你',
+            'is_read' => false,
+        ]);
+        Notification::create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->user->id,
+            'type' => 'system',
+            'title' => '系统',
+            'content' => '维护',
+            'is_read' => false,
+        ]);
+
+        $response = $this->postJson('/api/notifications/read-all?system_only=1', [], $this->authHeaders());
+        $response->assertStatus(200);
+        $this->assertEquals(1, $response->json('data.affected'));
+
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $this->user->id,
+            'type' => 'interaction_follow',
+            'is_read' => false,
+        ]);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $this->user->id,
+            'type' => 'system',
+            'is_read' => true,
+        ]);
+    }
+
+    public function test_interactions_group_filter_likes_only(): void
+    {
+        Notification::create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->user->id,
+            'type' => 'interaction_like',
+            'title' => '赞',
+            'content' => '赞了你',
+            'is_read' => false,
+        ]);
+        Notification::create([
+            'tenant_id' => $this->tenant->id,
+            'user_id' => $this->user->id,
+            'type' => 'interaction_follow',
+            'title' => '关注',
+            'content' => '关注了你',
+            'is_read' => false,
+        ]);
+
+        $response = $this->getJson('/api/notifications/interactions?group=likes', $this->authHeaders());
+        $response->assertOk();
+        $rows = $response->json('data');
+        $this->assertCount(1, $rows);
+        $this->assertEquals('interaction_like', $rows[0]['type']);
+        $groups = collect($response->json('meta.groups'))->keyBy('key');
+        $this->assertEquals(1, $groups['likes']['unread']);
+        $this->assertEquals(1, $groups['follows']['unread']);
+        $this->assertEquals(2, $groups['all']['unread']);
+    }
+
     // ─── 偏好设置 ───
 
     public function test_preferences_returns_defaults(): void

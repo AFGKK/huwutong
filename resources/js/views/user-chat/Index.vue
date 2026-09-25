@@ -17,18 +17,16 @@
                                 <span style="vertical-align:middle">{{ t('user_chat_page.tabs.friends') }}</span>
                             </template>
                         </el-tab-pane>
-                        <el-tab-pane name="more">
+                        <el-tab-pane name="favorites">
                             <template #label>
-                                <el-dropdown trigger="click" @command="handleMoreTab" @click.stop>
-                                    <span class="more-tab-label">{{ t('user_chat_page.tabs.more') }} <el-icon><ArrowDown /></el-icon></span>
-                                    <template #dropdown>
-                                        <el-dropdown-menu>
-                                            <el-dropdown-item command="notifications">{{ t('user_chat_page.tabs.notifications') }}</el-dropdown-item>
-                                            <el-dropdown-item command="favorites">{{ t('user_chat_page.tabs.favorites') }}</el-dropdown-item>
-                                            <el-dropdown-item command="pending">{{ t('user_chat_page.tabs.pending') }}</el-dropdown-item>
-                                        </el-dropdown-menu>
-                                    </template>
-                                </el-dropdown>
+                                <el-icon style="vertical-align:middle;margin-right:2px"><Star /></el-icon>
+                                <span style="vertical-align:middle">{{ t('user_chat_page.tabs.favorites') }}</span>
+                            </template>
+                        </el-tab-pane>
+                        <el-tab-pane name="pending">
+                            <template #label>
+                                <el-icon style="vertical-align:middle;margin-right:2px"><Timer /></el-icon>
+                                <span style="vertical-align:middle">{{ t('user_chat_page.tabs.pending') }}</span>
                             </template>
                         </el-tab-pane>
                     </el-tabs>
@@ -364,9 +362,10 @@
                     </div>
                 </template>
 
-                <!-- ====== 通知列表（含互动聚合） ====== -->
+                <!-- ====== 通知列表（由消息列表 inbox hub 进入；顶栏铃铛/通知中心为另一入口，故不放一级 Tab） ====== -->
                 <template v-if="sidebarTab === 'notifications'">
                     <div class="sidebar-header">
+                        <el-button text size="small" @click="backToMessages"><el-icon><ArrowLeft /></el-icon></el-button>
                         <h3>{{ t('user_chat_page.tabs.notifications') }}</h3>
                         <el-button v-if="notifications.some(n => !n.is_read)" size="small" text @click="markAllNotifRead">{{ t('user_chat_page.friends.mark_all_read') }}</el-button>
                     </div>
@@ -426,7 +425,7 @@
                 <!-- ====== 消息请求 ====== -->
                 <template v-if="sidebarTab === 'message-requests'">
                     <div class="sidebar-header">
-                        <el-button text size="small" @click="sidebarTab = 'messages'"><el-icon><ArrowLeft /></el-icon></el-button>
+                        <el-button text size="small" @click="backToMessages"><el-icon><ArrowLeft /></el-icon></el-button>
                         <h3>{{ t('user_chat_page.tabs.message_requests') }}</h3>
                         <el-badge v-if="messageRequestCount" :value="messageRequestCount" />
                     </div>
@@ -1933,6 +1932,7 @@ import {
     Folder, Cpu, ChatRound, Briefcase, PriceTag, FolderDelete
 } from '@element-plus/icons-vue'
 import apiClient from '@/api/client'
+import { USER_CHAT_SIDEBAR_TABS } from '@/utils/userChatSidebarTabs'
 import { useUserChatMessages } from '@/composables/useUserChatMessages'
 import { useUserChatEcho } from '@/composables/useUserChatEcho'
 import { useUserChatDeepLink } from '@/composables/useUserChatDeepLink'
@@ -2825,7 +2825,21 @@ const favorites = ref([])
 const loadingFavorites = ref(false)
 async function toggleFavorite(msg) { try { const res = await apiClient.post('/user-chat/messages/'+msg.id+'/favorite'); msg.is_favorited = res.data?.data?.favorited } catch { /* ignore */ } }
 async function loadFavorites() { loadingFavorites.value = true; try { const res = await apiClient.get('/user-chat/favorites'); favorites.value = (res.data?.data || []).map(f => ({...f, content: f.message?.content || f.content || t('user_chat_page.msgs.deleted_msg'), sender_name: f.message?.sender?.name || f.sender_name || t('user_chat_page.msg.user'), created_at: f.created_at || f.message?.created_at})) } catch { favorites.value = [] } finally { loadingFavorites.value = false } }
-function jumpToFavorite(fav) { const convId = fav.message?.conversation_id || fav.conversation_id; if (convId) { const conv = conversations.value.find(c => c.id === convId); if (conv) { sidebarTab.value = 'messages'; selectConversation(conv) } else { ElMessage.info(t('user_chat_page.msgs.open_conv_first')) } } }
+function jumpToFavorite(fav) {
+    const convId = fav.conversation_id || fav.message?.conversation_id
+    if (!convId) {
+        ElMessage.info(t('user_chat_page.msgs.open_conv_first'))
+        return
+    }
+    const conv = conversations.value.find(c => c.id === convId)
+    if (conv) {
+        sidebarTab.value = 'messages'
+        onSidebarTabChange()
+        selectConversation(conv)
+    } else {
+        ElMessage.info(t('user_chat_page.msgs.open_conv_first'))
+    }
+}
 
 // ── OPR-008: 消息稍后处理/标记 ──
 const pendingMessages = ref([])
@@ -2854,8 +2868,13 @@ async function removePending(p) {
 function jumpToPending(p) {
     if (p.conversation_id) {
         const conv = conversations.value.find(c => c.id === p.conversation_id)
-        if (conv) { sidebarTab.value = 'messages'; selectConversation(conv) }
-        else { ElMessage.info(t('user_chat_page.msgs.open_conv_first')) }
+        if (conv) {
+            sidebarTab.value = 'messages'
+            onSidebarTabChange()
+            selectConversation(conv)
+        } else {
+            ElMessage.info(t('user_chat_page.msgs.open_conv_first'))
+        }
     }
 }
 
@@ -3229,8 +3248,19 @@ async function submitTicket() { if (!ticketSubject.value.trim()) return ElMessag
 
 // ── AI 助手（支持 SSE 流式输出）──
 const aiStreaming = ref(false)
+function hydrateAiPanelFromMessages() {
+    const rows = messages.value || []
+    if (!rows.length) {
+        aiMessages.value = [{ role: 'assistant', content: t('user_chat_page.ai.welcome') }]
+        return
+    }
+    aiMessages.value = rows.map((m) => ({
+        role: m.message_type === 'ai_reply' ? 'assistant' : 'user',
+        content: m.content || '',
+    }))
+}
 async function sendAiMessage() {
-  if (!aiInput.value.trim() || !activeConv.value) return
+  if (!aiInput.value.trim() || !activeConv.value || aiStreaming.value) return
   aiMessages.value.push({ role: 'user', content: aiInput.value })
   const q = aiInput.value
   aiInput.value = ''
@@ -3243,10 +3273,14 @@ async function sendAiMessage() {
       headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({ message: q, mode: 'chat' })
     })
+    if (!res.ok) {
+      throw new Error((await res.text()) || ('HTTP ' + res.status))
+    }
     const reader = res.body?.getReader()
     if (!reader) throw new Error('No reader')
     const decoder = new TextDecoder()
     let fullContent = ''
+    let streamError = ''
     aiMessages.value.push({ role: 'assistant', content: '' })
     const msgIndex = aiMessages.value.length - 1
     while (true) {
@@ -3262,10 +3296,20 @@ async function sendAiMessage() {
               fullContent += data.content
               aiMessages.value[msgIndex].content = fullContent
               nextTick(() => { if (aiMsgRef.value) aiMsgRef.value.scrollTop = aiMsgRef.value.scrollHeight })
+            } else if (data.type === 'error') {
+              streamError = data.message || t('user_chat_page.ai.request_failed')
             }
           } catch { /* ignore parse errors */ }
         }
       }
+    }
+    if (streamError) {
+      aiMessages.value[msgIndex].content = streamError
+    } else if (!fullContent) {
+      aiMessages.value[msgIndex].content = t('user_chat_page.ai.request_failed')
+    } else {
+      await loadMessages()
+      await loadConversations()
     }
   } catch {
     aiMessages.value.push({ role: 'assistant', content: t('user_chat_page.ai.request_failed') })
@@ -3324,15 +3368,16 @@ function toggleBatchMode() {
     if (!batchMode.value) selectedConvIds.value = []
 }
 function cancelBatch() { batchMode.value = false; selectedConvIds.value = [] }
-function onConvClick(conv) {
+async function onConvClick(conv) {
     if (batchMode.value) {
         const idx = selectedConvIds.value.indexOf(conv.id)
         if (idx >= 0) selectedConvIds.value.splice(idx, 1)
         else selectedConvIds.value.push(conv.id)
     } else if (conv.is_ai_assistant || conv.type === 'ai') {
         aiConvId.value = conv.id
-        selectConversation(conv)
+        await selectConversation(conv)
         showAIPanel.value = true
+        hydrateAiPanelFromMessages()
     } else {
         showAIPanel.value = false
         selectConversation(conv)
@@ -3632,10 +3677,32 @@ async function loadNotifications() {
 }
 async function handleNotifClick(n) {
     if (!n) return
-    if (!n.is_read) {
+    const wasUnread = !n.is_read
+    if (wasUnread) {
         try {
             await apiClient.post('/notifications/' + n.id + '/read')
             n.is_read = true
+            await loadInboxHub()
+            const type = n.type || ''
+            notifGroupMeta.value = notifGroupMeta.value.map(g => {
+                if (!g.unread) return g
+                if (g.key === 'all' || g.key === 'interactions') {
+                    return { ...g, unread: Math.max(0, (g.unread || 0) - 1) }
+                }
+                if (g.key === 'likes' && type === 'interaction_like') {
+                    return { ...g, unread: Math.max(0, g.unread - 1) }
+                }
+                if (g.key === 'comments' && (type === 'interaction_comment' || type === 'interaction_mention')) {
+                    return { ...g, unread: Math.max(0, g.unread - 1) }
+                }
+                if (g.key === 'follows' && type === 'interaction_follow') {
+                    return { ...g, unread: Math.max(0, g.unread - 1) }
+                }
+                if (g.key === 'system' && !['interaction_like', 'interaction_comment', 'interaction_mention', 'interaction_follow', 'im_message'].includes(type)) {
+                    return { ...g, unread: Math.max(0, g.unread - 1) }
+                }
+                return g
+            })
         } catch { /* ignore */ }
     }
     const payload = parseNotifPayload(n)
@@ -3674,13 +3741,11 @@ async function markAllNotifRead() {
         else if (notifGroup.value === 'comments') params.type = 'interaction_comment,interaction_mention'
         else if (notifGroup.value === 'follows') params.type = 'interaction_follow'
         else if (notifGroup.value === 'interactions') params.type = 'interaction_like,interaction_comment,interaction_mention,interaction_follow'
-        else if (notifGroup.value === 'system') {
-            /* mark all non-interaction; backend has no exclude filter — mark all */
-        }
+        else if (notifGroup.value === 'system') params.system_only = 1
         await apiClient.post('/notifications/read-all', null, { params })
         notifications.value.forEach(n => { n.is_read = true })
-        notifGroupMeta.value = notifGroupMeta.value.map(g => ({ ...g, unread: 0 }))
         await loadInboxHub()
+        await loadNotifications()
     } catch { ElMessage.error(t('user_chat_page.msgs.op_fail')) }
 }
 
@@ -3765,13 +3830,13 @@ async function loadMessageRequests() {
         loadingMessageRequests.value = false
     }
 }
-function handleMoreTab(cmd) {
-    sidebarTab.value = cmd
-    onSidebarTabChange()
-}
 function openMessageRequests() {
     sidebarTab.value = 'message-requests'
     loadMessageRequests()
+}
+function backToMessages() {
+    sidebarTab.value = 'messages'
+    onSidebarTabChange()
 }
 async function previewMessageRequest(conv) {
     await selectConversation(conv)
@@ -3925,7 +3990,7 @@ async function openFileTransferAssistant() {
 async function openSelfChat() { try { const res = await apiClient.post('/user-chat/self-conversation'); const conv = res.data?.data; if (conv) { sidebarTab.value = 'messages'; const item = upsertConversation(conv, { is_self: true, type: 'private', name: conv.name || ('📁 ' + t('user_chat_page.file_transfer.name')) }); await selectConversation(item) } } catch (e) { ElMessage.error(e.response?.data?.message || t('user_chat_page.msgs.open_fail')) } }
 
 // ── AI-012: AI 助手单聊 ──
-async function openAIChat() { try { const res = await apiClient.post('/user-chat/ai-conversation'); const conv = res.data?.data; if (!conv) return; aiConvId.value = conv.id; sidebarTab.value = 'messages'; const item = upsertConversation(conv, { type: 'ai', is_ai_assistant: true, name: conv.name || t('user_chat_page.ai.assistant') }); await selectConversation(item); showAIPanel.value = true; if (!aiMessages.value.length) aiMessages.value = [{ role: 'assistant', content: t('user_chat_page.ai.welcome') }] } catch (e) { ElMessage.error(e.response?.data?.message || t('user_chat_page.msgs.open_fail')) } }
+async function openAIChat() { try { const res = await apiClient.post('/user-chat/ai-conversation'); const conv = res.data?.data; if (!conv) return; aiConvId.value = conv.id; sidebarTab.value = 'messages'; const item = upsertConversation(conv, { type: 'ai', is_ai_assistant: true, name: conv.name || t('user_chat_page.ai.assistant') }); await selectConversation(item); showAIPanel.value = true; hydrateAiPanelFromMessages() } catch (e) { ElMessage.error(e.response?.data?.message || t('user_chat_page.msgs.open_fail')) } }
 
 // ── AI-004: AI 写作助手（润色/扩写/翻译/改语气）──
 async function aiWrite(mode) { if (!inputMessage.value.trim() || !activeConv.value) return; const original = inputMessage.value; inputMessage.value = ''; aiLoading.value = true; try { const token = localStorage.getItem('auth_token') || ''; const res = await fetch('/api/user-chat/conversations/'+activeConv.value.id+'/chat-stream', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ message: original, mode: mode === 'polish' ? 'polish' : mode === 'translate' ? 'translate' : 'chat' }) }); const reader = res.body?.getReader(); if (!reader) throw new Error('No reader'); const decoder = new TextDecoder(); let fullContent = ''; while (true) { const { done, value } = await reader.read(); if (done) break; const text = decoder.decode(value, { stream: true }); const lines = text.split('\n'); for (const line of lines) { if (line.startsWith('data: ')) { try { const data = JSON.parse(line.slice(6)); if (data.type === 'chunk') fullContent += data.content; else if (data.type === 'done') fullContent = data.content } catch {} } } }; if (fullContent) { inputMessage.value = fullContent; ElMessage.success(t('user_chat_page.msgs.optimized')) } else { inputMessage.value = original } } catch { inputMessage.value = original; ElMessage.error(t('user_chat_page.msgs.optimize_fail')) } finally { aiLoading.value = false } }
@@ -4385,14 +4450,17 @@ async function toggleSensitiveWord(row) { try { await apiClient.put('/im/sensiti
 async function deleteSensitiveWord(row) { try { await ElMessageBox.confirm(t('user_chat_page.msgs.sw_delete_confirm', { word: row.word })); await apiClient.delete('/im/sensitive-words/'+row.id); ElMessage.success(t('user_chat_page.msgs.sw_deleted')); await loadSensitiveWords() } catch { /* ignore */ } }
 async function testSensitiveWord() { if (!sensitiveTestText.value.trim()) return; testingSensitive.value = true; try { const res = await apiClient.post('/im/sensitive-words/test', { text: sensitiveTestText.value }); sensitiveTestResult.value = res.data?.data || null } catch { sensitiveTestResult.value = null } finally { testingSensitive.value = false } }
 
-// ── Tab切换 ──
+// ── Tab切换（一级 Tab 见 USER_CHAT_SIDEBAR_TABS；notifications / message-requests 为二级视图） ──
 function onSidebarTabChange() {
-    if (sidebarTab.value === 'friends') { loadFriendsEnhanced(); loadFriendGroups(); loadPendingRequests() }
-    else if (sidebarTab.value === 'notifications') { loadNotifications() }
-    else if (sidebarTab.value === 'favorites') { loadFavorites() }
-    else if (sidebarTab.value === 'message-requests') { loadMessageRequests() }
-    else if (sidebarTab.value === 'pending') { loadPending() }
-    else if (sidebarTab.value === 'messages') { loadInboxHub() }
+    const tab = sidebarTab.value
+    if (USER_CHAT_SIDEBAR_TABS.includes(tab) || tab === 'notifications' || tab === 'message-requests') {
+        if (tab === 'friends') { loadFriendsEnhanced(); loadFriendGroups(); loadPendingRequests() }
+        else if (tab === 'notifications') { loadNotifications() }
+        else if (tab === 'favorites') { loadFavorites() }
+        else if (tab === 'message-requests') { loadMessageRequests() }
+        else if (tab === 'pending') { loadPending() }
+        else if (tab === 'messages') { loadInboxHub() }
+    }
 }
 
 // ── 预览图片 ──
@@ -4609,7 +4677,8 @@ onUnmounted(() => {
 .chat-actions { display: flex; gap: 4px; }
 .back-btn { margin-right: 4px; }
 .sidebar-tabs :deep(.el-tabs__header) { margin: 0; }
-.sidebar-tabs :deep(.el-tabs__nav-wrap) { padding: 0 12px; }
+.sidebar-tabs :deep(.el-tabs__nav-wrap) { padding: 0 8px; }
+.sidebar-tabs :deep(.el-tabs__item) { padding: 0 10px; font-size: 13px; }
 .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid #e4e7ed; gap: 6px; flex-wrap: wrap; }
 .sidebar-header h3 { margin: 0; font-size: 15px; flex: 1; min-width: 0; }
 .echo-status-tag { flex-shrink: 0; }
@@ -5247,11 +5316,6 @@ onUnmounted(() => {
     .msg-bubble { max-width: 85%; }
 }
 @media (min-width: 768px) { .back-btn { display: none; } }
-
-/* ── 更多 Tab 下拉 ── */
-.more-tab-label { display: inline-flex; align-items: center; gap: 2px; cursor: pointer; font-size: 12px; }
-.more-tab-label:hover { color: #409eff; }
-.chat-dark-mode .more-tab-label:hover { color: #66b1ff; }
 
 .assistant-pinned-section { padding: 4px 0 0; }
 .assistant-section { padding: 4px 0 0; }

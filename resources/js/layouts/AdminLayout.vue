@@ -261,7 +261,7 @@ import CriticalNotificationDialog from '@/components/CriticalNotificationDialog.
 import AnnounceBanner from '@/components/AnnounceBanner.vue';
 import CookieConsent from '@/components/CookieConsent.vue';
 import errorReporter from '@/utils/errorReporter';
-import { isGroupCollapsed as sidebarGroupIsCollapsed, toggleGroupCollapsed as sidebarGroupToggle, expandGroupForPath } from '@/utils/sidebarGroupCollapse';
+import { isGroupCollapsed as sidebarGroupIsCollapsed, toggleGroupCollapsed as sidebarGroupToggle } from '@/utils/sidebarGroupCollapse';
 import { getImpersonateSession, stopImpersonate } from '@/api/impersonate';
 import apiClient from '@/utils/request';
 import { ElMessage } from 'element-plus';
@@ -358,7 +358,7 @@ function handleMenuClick(path) {
 }
 
 /**
- * 分组折叠状态 — 默认全部收起（不点不展开）
+ * 分组折叠状态 — 默认全部收起；仅点击分类标题后展开
  * collapsedGroups[label] === false 表示已展开；其余（含未设置）均为收起
  */
 const collapsedGroups = reactive({})
@@ -689,12 +689,6 @@ const menuGroups = [
     },
 ];
 
-/** 进入页面 / 路由变化时：仅展开当前页所在分组，其余默认收起 */
-function expandActiveGroup(path = route.path) {
-    expandGroupForPath(collapsedGroups, menuGroups, path);
-}
-expandActiveGroup();
-
 async function handleTenantSwitch(tenantId) {
     if (!tenantId || tenantId === 'manage') {
         router.push('/tenant-select');
@@ -802,7 +796,6 @@ function startUserChatUnreadPolling() {
 onMounted(() => {
     window.addEventListener('resize', onResize);
     startUserChatUnreadPolling();
-    expandActiveGroup();
 });
 onUnmounted(() => {
     window.removeEventListener('resize', onResize);
@@ -818,7 +811,6 @@ onUnmounted(() => {
 });
 
 watch(() => route.path, (path, prev) => {
-    expandActiveGroup(path);
     if (path === '/user-chat' || prev === '/user-chat' || path.startsWith('/user-chat')) {
         refreshUserChatUnread();
     }
