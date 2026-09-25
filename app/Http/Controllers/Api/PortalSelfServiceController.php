@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
  * 门户自助能力（优化方案 2.2）
  * - GET /api/downloads
  * - GET /api/user/devices
+ * - GET /api/subscriptions
+ * - GET /api/announcements
  */
 class PortalSelfServiceController extends Controller
 {
@@ -134,6 +136,78 @@ class PortalSelfServiceController extends Controller
                 'active' => $active,
                 'inactive' => max(0, $total - $active),
             ],
+        ]);
+    }
+
+    /**
+     * 当前用户订阅列表
+     */
+    public function subscriptions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $customer = $user->customer;
+
+        if (! $customer) {
+            return ApiResponse::success(['data' => [], 'total' => 0]);
+        }
+
+        $perPage = min((int) $request->input('per_page', 20), 100);
+        $paginator = \App\Models\Subscription::query()
+            ->with(['product:id,name,slug'])
+            ->where('customer_id', $customer->id)
+            ->orderByDesc('id')
+            ->paginate($perPage);
+
+        $items = collect($paginator->items())->map(function ($sub) {
+            return [
+                'id' => $sub->id,
+                'status' => $sub->status,
+                'plan' => $sub->plan,
+                'price' => $sub->price,
+                'currency' => $sub->currency,
+                'billing_period' => $sub->billing_period,
+                'starts_at' => $sub->starts_at,
+                'ends_at' => $sub->ends_at,
+                'auto_renew' => $sub->auto_renew,
+                'product' => $sub->product,
+            ];
+        })->values();
+
+        return ApiResponse::success([
+            'data' => $items,
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
+        ]);
+    }
+
+    /**
+     * 系统公告列表（公开；映射活跃 AnnounceBanner）
+     */
+    public function announcements(Request $request): JsonResponse
+    {
+        $role = $request->user()?->roles?->first()?->name;
+        $banners = app(\App\Services\AnnounceBannerService::class)->getActiveBanners($role);
+
+        $items = collect($banners)->map(function ($banner) {
+            $banner = (array) $banner;
+
+            return [
+                'id' => $banner['id'] ?? null,
+                'title' => $banner['title'] ?? '',
+                'content' => $banner['content'] ?? '',
+                'type' => $banner['type'] ?? 'info',
+                'link_url' => $banner['link_url'] ?? null,
+                'link_text' => $banner['link_text'] ?? null,
+                'starts_at' => $banner['starts_at'] ?? null,
+                'ends_at' => $banner['ends_at'] ?? null,
+            ];
+        })->values();
+
+        return ApiResponse::success([
+            'data' => $items,
+            'total' => $items->count(),
         ]);
     }
 }

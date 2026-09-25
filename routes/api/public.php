@@ -102,6 +102,10 @@ Route::post('/license/query', [LicenseController::class, 'publicLookup'])
 Route::get('/downloads', [PortalSelfServiceController::class, 'downloads'])
     ->middleware('throttle:60,1');
 
+// 系统公告（公开）
+Route::get('/announcements', [PortalSelfServiceController::class, 'announcements'])
+    ->middleware('throttle:60,1');
+
 // ── SDK Telemetry 心跳/事件上报 (M2-32) ──
 // SDK 端调用，通过 license_key + fingerprint 验证身份
 Route::post('/telemetry/heartbeat', [TelemetryController::class, 'heartbeat']);

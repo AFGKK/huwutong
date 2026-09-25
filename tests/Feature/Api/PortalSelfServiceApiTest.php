@@ -114,4 +114,14 @@ class PortalSelfServiceApiTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('found', true);
     }
+
+    public function test_announcements_endpoint_is_public(): void
+    {
+        $this->getJson('/api/announcements')->assertOk();
+    }
+
+    public function test_subscriptions_requires_auth(): void
+    {
+        $this->getJson('/api/subscriptions')->assertUnauthorized();
+    }
 }

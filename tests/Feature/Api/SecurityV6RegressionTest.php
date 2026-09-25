@@ -68,4 +68,22 @@ class SecurityV6RegressionTest extends TestCase
 
         $response->assertStatus(422);
     }
+
+    public function test_public_license_lookup_returns_429_when_over_limit(): void
+    {
+        // 临时收紧限流便于断言（生产仍为 30/min）
+        \Illuminate\Support\Facades\RateLimiter::for('public-lookup', function ($request) {
+            return \Illuminate\Cache\RateLimiting\Limit::perMinute(3)->by($request->ip() ?: 'test');
+        });
+
+        for ($i = 0; $i < 3; $i++) {
+            $this->postJson('/api/license/public-lookup', [
+                'license_key' => 'HWT-STD-OVERLIMIT0000001',
+            ])->assertStatus(200); // not found but still counted
+        }
+
+        $this->postJson('/api/license/public-lookup', [
+            'license_key' => 'HWT-STD-OVERLIMIT0000001',
+        ])->assertStatus(429);
+    }
 }
