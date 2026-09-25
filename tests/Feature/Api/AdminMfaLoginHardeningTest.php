@@ -98,4 +98,32 @@ class AdminMfaLoginHardeningTest extends TestCase
         $this->assertNull($response->json('error.details.setup_token'));
         $this->assertSame(0, PersonalAccessToken::count());
     }
+
+    public function test_weak_password_rejected_without_pre_set_team_context(): void
+    {
+        // 模拟线上：请求前不保留 team id，依赖 login 内自注入
+        $tenant = Tenant::factory()->create(['mfa_policy' => 'required_for_admin']);
+        app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->id);
+        Role::findOrCreate('super-admin', 'web');
+
+        $user = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'email' => 'admin-noteam@huwutong.com',
+            'password' => Hash::make('admin123'),
+            'status' => 'active',
+            'mfa_enabled' => false,
+            'password_changed_at' => now(),
+        ]);
+        $user->assignRole('super-admin');
+
+        app(PermissionRegistrar::class)->setPermissionsTeamId(0);
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'admin-noteam@huwutong.com',
+            'password' => 'admin123',
+        ]);
+
+        $response->assertStatus(403);
+        $response->assertJsonPath('error.code', 'WEAK_PASSWORD_FORBIDDEN');
+    }
 }

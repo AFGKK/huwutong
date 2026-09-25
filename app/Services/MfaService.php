@@ -424,6 +424,11 @@ class MfaService
             return false;
         }
 
+        // Spatie teams：按租户注入上下文后再判角色
+        app(\Spatie\Permission\PermissionRegistrar::class)
+            ->setPermissionsTeamId($tenant->id);
+        $user->unsetRelation('roles');
+
         return match ($tenant->mfa_policy) {
             'required_for_all' => true,
             'required_for_admin' => $user->hasRole('admin') || $user->hasRole('super-admin'),

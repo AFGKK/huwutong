@@ -279,7 +279,14 @@ class AuthController extends Controller
 
     protected function isPrivilegedUser(User $user): bool
     {
-        return $user->hasRole('super-admin') || $user->hasRole('admin') || $user->hasRole('tenant-admin');
+        // Spatie teams：必须先注入租户上下文，否则 hasRole 恒为 false（线上实测根因）
+        app(\Spatie\Permission\PermissionRegistrar::class)
+            ->setPermissionsTeamId($user->tenant_id ?? 1);
+        $user->unsetRelation('roles');
+
+        return $user->hasRole('super-admin')
+            || $user->hasRole('admin')
+            || $user->hasRole('tenant-admin');
     }
 
     protected function isKnownWeakPassword(string $password): bool
