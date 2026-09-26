@@ -1,0 +1,1 @@
+import{a as e}from"./admin-B1Ig6ihW.js";const s={stats(){return e.get("/marketplace/security/stats")},scanApp(t){return e.get(`/marketplace/security/apps/${t}`)},scanReview(t){return e.get(`/marketplace/security/reviews/${t}`)},scanAllApps(){return e.post("/marketplace/security/scan-apps")},scanAllReviews(){return e.post("/marketplace/security/scan-reviews")}};export{s as a};

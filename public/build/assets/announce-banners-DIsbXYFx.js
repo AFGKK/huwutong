@@ -1,0 +1,1 @@
+import{a as e}from"./admin-B1Ig6ihW.js";function r(){return e.get("/announce-banners/active")}function u(){return e.get("/announce-banners")}function c(n){return e.post("/announce-banners",n)}function o(n,a){return e.put(`/announce-banners/${n}`,a)}function s(n){return e.delete(`/announce-banners/${n}`)}export{r as a,c,s as d,u as g,o as u};

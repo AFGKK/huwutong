@@ -1,0 +1,1 @@
+import{r as l}from"./request-DjUNxhv3.js";function t(){return l.get("/admin/billing-cycles")}function c(){return l.get("/billing-cycles/options")}function r(i){return l.post("/admin/billing-cycles",i)}function s(i,e){return l.put(`/admin/billing-cycles/${i}`,e)}function g(i){return l.delete(`/admin/billing-cycles/${i}`)}export{c as a,r as c,g as d,t as g,s as u};

@@ -1,7 +1,6 @@
 /vendor/
 node_modules/
 /public/hot
-/public/build/
 /public/storage
 /public/huwutong_mysql.sql
 /public/_dev_login_once.html

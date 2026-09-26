@@ -1,0 +1,1 @@
+import{a}from"./admin-B1Ig6ihW.js";function r(t,e){if(typeof t=="string")return a(t,e);const{url:p,method:s="get",data:o,params:u,...n}=t||{};return a({url:p,method:s,data:o,params:u,...n})}r.get=(t,e)=>a.get(t,e);r.post=(t,e,p)=>a.post(t,e,p);r.put=(t,e,p)=>a.put(t,e,p);r.patch=(t,e,p)=>a.patch(t,e,p);r.delete=(t,e)=>a.delete(t,e);export{r};
