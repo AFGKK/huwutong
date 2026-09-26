@@ -56,8 +56,10 @@ Route::post('/auth/qrcode/confirm', [AuthController::class, 'confirmQrSession'])
 Route::get('/legal-consents', [AuthController::class, 'getLegalConsents']);
 
 // MFA aware login (public)
-Route::post('/mfa/login', [MfaController::class, 'mfaLogin']);
-Route::post('/mfa/check-required', [MfaController::class, 'checkRequired']);
+Route::post('/mfa/login', [MfaController::class, 'mfaLogin'])
+    ->middleware('throttle:10,1');
+Route::post('/mfa/check-required', [MfaController::class, 'checkRequired'])
+    ->middleware('throttle:30,1');
 
 // SSO
 Route::post('/sso/callback', [SSOController::class, 'callback'])->name('sso.login');
@@ -92,12 +94,14 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::delete('/sessions/{tokenId}', [AuthController::class, 'revokeSession'])->whereNumber('tokenId');
 
         // Admin Session 管理
-        Route::get('/admin/sessions/dashboard', [AuthController::class, 'adminSessionDashboard']);
-        Route::get('/admin/sessions', [AuthController::class, 'adminSessions']);
-        Route::get('/admin/sessions/{tokenId}', [AuthController::class, 'adminSessionDetail'])->whereNumber('tokenId');
-        Route::post('/admin/sessions/{tokenId}/terminate', [AuthController::class, 'adminTerminateSession'])->whereNumber('tokenId');
-        Route::post('/admin/sessions/batch-terminate', [AuthController::class, 'adminBatchTerminate']);
-        Route::post('/admin/sessions/terminate-user/{userId}', [AuthController::class, 'adminTerminateUserSessions'])->whereNumber('userId');
+        Route::middleware(['ability:admin,super-admin'])->group(function () {
+            Route::get('/admin/sessions/dashboard', [AuthController::class, 'adminSessionDashboard']);
+            Route::get('/admin/sessions', [AuthController::class, 'adminSessions']);
+            Route::get('/admin/sessions/{tokenId}', [AuthController::class, 'adminSessionDetail'])->whereNumber('tokenId');
+            Route::post('/admin/sessions/{tokenId}/terminate', [AuthController::class, 'adminTerminateSession'])->whereNumber('tokenId');
+            Route::post('/admin/sessions/batch-terminate', [AuthController::class, 'adminBatchTerminate']);
+            Route::post('/admin/sessions/terminate-user/{userId}', [AuthController::class, 'adminTerminateUserSessions'])->whereNumber('userId');
+        });
 
         // Device trust
         Route::post('/devices/trust', [DeviceTrustController::class, 'trust']);

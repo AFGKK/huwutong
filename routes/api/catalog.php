@@ -57,7 +57,7 @@ use App\Http\Controllers\Api\WatermarkTamperController;
 use App\Http\Controllers\Api\WebhookFilterController;
 
 // ── 全局搜索 ──
-Route::prefix('admin/search')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/search')->group(function () {
     Route::get('/', [GlobalSearchController::class, 'search']);
     Route::get('/suggestions', [GlobalSearchController::class, 'suggestions']);
     Route::get('/engine-status', [GlobalSearchController::class, 'engineStatus']);
@@ -75,7 +75,7 @@ Route::prefix('admin/search')->group(function () {
 });
 
 // ── 热力图 ──
-Route::prefix('admin/heatmap')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/heatmap')->group(function () {
     Route::get('/dashboard', [HeatmapController::class, 'dashboard']);
     Route::get('/data', [HeatmapController::class, 'data']);
     Route::get('/country/{countryCode}', [HeatmapController::class, 'countryDetail']);
@@ -107,7 +107,7 @@ Route::post('/invite-code/validate', [InviteCodeController::class, 'validateCode
 Route::get('/invite-overview/dashboard', [InviteCodeController::class, 'overallDashboard']);
 
 // ── Istio 服务网格 ──
-Route::prefix('admin/istio')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/istio')->group(function () {
     Route::get('/dashboard', [IstioController::class, 'dashboard']);
     Route::get('/topology', [IstioController::class, 'serviceTopology']);
     Route::get('/traffic-rules', [IstioController::class, 'trafficRules']);
@@ -121,7 +121,7 @@ Route::prefix('admin/istio')->group(function () {
 });
 
 // ── 飞书集成 ──
-Route::prefix('admin/lark')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/lark')->group(function () {
     Route::get('/config', [LarkController::class, 'config']);
     Route::post('/config', [LarkController::class, 'saveConfig']);
     Route::post('/test', [LarkController::class, 'testConnection']);
@@ -130,7 +130,7 @@ Route::prefix('admin/lark')->group(function () {
 });
 
 // ── License 市场 ──
-Route::prefix('admin/license-marketplace')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/license-marketplace')->group(function () {
     Route::get('/dashboard', [LicenseMarketplaceController::class, 'dashboard']);
     Route::get('/listings', [LicenseMarketplaceController::class, 'listings']);
     Route::post('/listings', [LicenseMarketplaceController::class, 'storeListing']);
@@ -145,7 +145,7 @@ Route::prefix('admin/license-marketplace')->group(function () {
 });
 
 // ── 客户生命周期 ──
-Route::prefix('admin/lifecycle')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/lifecycle')->group(function () {
     Route::get('/dashboard', [LifecycleController::class, 'dashboard']);
     Route::get('/transitions', [LifecycleController::class, 'transitions']);
     Route::post('/transition', [LifecycleController::class, 'transition']);
@@ -195,7 +195,7 @@ Route::prefix('billing/metered')->group(function () {
 });
 
 // ── 迁移增强 ──
-Route::prefix('admin/migration-enhancement')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/migration-enhancement')->group(function () {
     Route::get('/dashboard', [MigrationEnhancementController::class, 'dashboard']);
     Route::get('/imports', [MigrationEnhancementController::class, 'index']);
     Route::post('/imports/api', [MigrationEnhancementController::class, 'createApiImport']);
@@ -206,7 +206,7 @@ Route::prefix('admin/migration-enhancement')->group(function () {
 });
 
 // ── MLOps ──
-Route::prefix('admin/mlops')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/mlops')->group(function () {
     Route::get('/dashboard', [MlopsController::class, 'dashboard']);
     Route::get('/models', [MlopsController::class, 'models']);
     Route::post('/models', [MlopsController::class, 'storeModel']);
@@ -225,7 +225,7 @@ Route::prefix('admin/mlops')->group(function () {
 });
 
 // ── Mock 服务器 ──
-Route::prefix('admin/mock-server')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/mock-server')->group(function () {
     Route::get('/rules', [MockServerController::class, 'rules']);
     Route::post('/rules', [MockServerController::class, 'store']);
     Route::put('/rules/{mockRule}', [MockServerController::class, 'update']);
@@ -236,7 +236,7 @@ Route::prefix('admin/mock-server')->group(function () {
 });
 
 // ── 多币种定价 ──
-Route::prefix('admin/multi-currency-pricing')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/multi-currency-pricing')->group(function () {
     Route::get('/dashboard', [MultiCurrencyPricingController::class, 'dashboard']);
     Route::get('/skus', [MultiCurrencyPricingController::class, 'enabledSkus']);
     Route::get('/skus/{skuId}/prices', [MultiCurrencyPricingController::class, 'skuPrices'])->whereNumber('skuId');
@@ -283,7 +283,7 @@ Route::prefix('multi-region')->group(function () {
 });
 
 // ── 通知偏好（管理端） ──
-Route::prefix('admin/notification-preferences')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/notification-preferences')->group(function () {
     Route::get('/', [NotificationPreferenceController::class, 'adminIndex']);
     Route::get('/stats', [NotificationPreferenceController::class, 'adminStats']);
     Route::get('/users/{userId}', [NotificationPreferenceController::class, 'adminShow'])->whereNumber('userId');
@@ -307,7 +307,7 @@ Route::get('/tutorials/{slug}', [OnboardingController::class, 'showTutorial']);
 Route::post('/tutorials/{tutorialId}/progress', [OnboardingController::class, 'updateTutorialProgress'])->whereNumber('tutorialId');
 
 // ── 订单售后 ──
-Route::prefix('admin/order-after-sales')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/order-after-sales')->group(function () {
     Route::get('/tickets', [OrderAfterSalesController::class, 'index']);
     Route::post('/tickets', [OrderAfterSalesController::class, 'createTicket']);
     Route::get('/tickets/{ticket}', [OrderAfterSalesController::class, 'show']);
@@ -322,7 +322,7 @@ Route::prefix('admin/order-after-sales')->group(function () {
 });
 
 // ── 盗版追踪 ──
-Route::prefix('admin/piracy-trace')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/piracy-trace')->group(function () {
     Route::get('/dashboard', [PiracyTraceController::class, 'dashboard']);
     Route::get('/scan-tasks', [PiracyTraceController::class, 'scanTasks']);
     Route::post('/scan-tasks', [PiracyTraceController::class, 'createScan']);
@@ -337,7 +337,7 @@ Route::prefix('admin/piracy-trace')->group(function () {
 });
 
 // ── 预售 ──
-Route::prefix('admin/pre-sale')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/pre-sale')->group(function () {
     Route::get('/stats', [PreSaleController::class, 'stats']);
     Route::get('/orders', [PreSaleController::class, 'orders']);
     Route::post('/orders', [PreSaleController::class, 'placeOrder']);
@@ -373,7 +373,7 @@ Route::prefix('product-analytics')->group(function () {
 });
 
 // ── 产品对比 ──
-Route::prefix('admin/comparison')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/comparison')->group(function () {
     Route::get('/specs', [ProductComparisonController::class, 'adminSpecList']);
     Route::get('/products/{productId}/specs', [ProductComparisonController::class, 'productSpecs'])->whereNumber('productId');
     Route::post('/products/{productId}/spec-groups', [ProductComparisonController::class, 'createSpecGroup'])->whereNumber('productId');
@@ -388,7 +388,7 @@ Route::post('/compare', [ProductComparisonController::class, 'compare']);
 Route::get('/compare/{id}', [ProductComparisonController::class, 'showComparison'])->whereNumber('id');
 
 // ── 产品本地化 ──
-Route::prefix('admin/localization')->group(function () {
+Route::prefix('admin/localization')->middleware(['ability:admin,super-admin'])->group(function () {
     Route::get('/languages', [ProductLocalizationController::class, 'languages']);
     Route::get('/stats', [ProductLocalizationController::class, 'stats']);
     Route::get('/products/{productId}/translations', [ProductLocalizationController::class, 'productTranslations'])->whereNumber('productId');
@@ -400,7 +400,7 @@ Route::prefix('admin/localization')->group(function () {
 });
 
 // ── 产品搜索（管理） ──
-Route::prefix('admin/product-search')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/product-search')->group(function () {
     Route::get('/stats', [ProductSearchAdminController::class, 'stats']);
     Route::get('/hot-terms', [ProductSearchAdminController::class, 'hotTerms']);
     Route::get('/zero-result-terms', [ProductSearchAdminController::class, 'zeroResultTerms']);
@@ -409,7 +409,7 @@ Route::prefix('admin/product-search')->group(function () {
 });
 
 // ── 产品 SKU ──
-Route::prefix('admin/product-skus')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/product-skus')->group(function () {
     Route::get('/dashboard', [ProductSkuController::class, 'dashboard']);
     Route::post('/batch-stock', [ProductSkuController::class, 'batchStock']);
     Route::post('/upload-deliverable', [ProductSkuController::class, 'uploadDeliverable']);
@@ -422,7 +422,7 @@ Route::prefix('admin/product-skus')->group(function () {
 });
 
 // ── 配额告警 ──
-Route::prefix('admin/quota-alert')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/quota-alert')->group(function () {
     Route::get('/dashboard', [QuotaAlertController::class, 'dashboard']);
     Route::get('/logs/list', [QuotaAlertController::class, 'logs']);
     Route::get('/config/options', [QuotaAlertController::class, 'config']);
@@ -444,7 +444,7 @@ Route::prefix('rate-limits')->group(function () {
 });
 
 // ── Redis 高可用 ──
-Route::prefix('admin/redis-ha')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/redis-ha')->group(function () {
     Route::get('/status', [RedisHaController::class, 'status']);
     Route::get('/health', [RedisHaController::class, 'health']);
     Route::get('/sentinel', [RedisHaController::class, 'sentinel']);
@@ -455,7 +455,7 @@ Route::prefix('admin/redis-ha')->group(function () {
 });
 
 // ── 区域合规 ──
-Route::prefix('admin/regional-compliance')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/regional-compliance')->group(function () {
     Route::get('/dashboard', [RegionalComplianceController::class, 'dashboard']);
     Route::post('/initialize', [RegionalComplianceController::class, 'initialize']);
     Route::get('/configs', [RegionalComplianceController::class, 'configs']);
@@ -471,7 +471,7 @@ Route::prefix('admin/regional-compliance')->group(function () {
 });
 
 // ── 续费仪表盘 ──
-Route::prefix('admin/renewal-dashboard')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/renewal-dashboard')->group(function () {
     Route::get('/stats', [RenewalDashboardController::class, 'stats']);
     Route::get('/expiring-licenses', [RenewalDashboardController::class, 'expiringLicenses']);
     Route::get('/expired-licenses', [RenewalDashboardController::class, 'expiredLicenses']);
@@ -498,7 +498,6 @@ $revenueRoutes = function () {
     Route::get('/mrr-summary', [RevenueRecognitionController::class, 'mrrSummary']);
 };
 Route::prefix('revenue')->group($revenueRoutes);
-Route::prefix('api/revenue')->group($revenueRoutes);
 
 // ── SCIM ──
 Route::prefix('scim')->group(function () {
@@ -555,7 +554,7 @@ Route::prefix('seo')->group(function () {
 });
 
 // ── 会话管理 ──
-Route::prefix('admin/sessions')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/sessions')->group(function () {
     Route::get('/dashboard', [SessionController::class, 'dashboard']);
     Route::get('/', [SessionController::class, 'index']);
     Route::post('/batch-terminate', [SessionController::class, 'batchTerminate']);
@@ -565,7 +564,7 @@ Route::prefix('admin/sessions')->group(function () {
 });
 
 // ── CRL 证书吊销 ──
-Route::prefix('admin/crl')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/crl')->group(function () {
     Route::get('/dashboard', [CrlController::class, 'dashboard']);
     Route::get('/entries', [CrlController::class, 'entries']);
     Route::post('/revoke', [CrlController::class, 'revoke']);
@@ -586,7 +585,7 @@ Route::prefix('hsm')->group(function () {
 });
 
 // ── 入侵检测（IDS） ──
-Route::prefix('admin/ids')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/ids')->group(function () {
     Route::get('/dashboard', [IntrusionDetectionController::class, 'dashboard']);
     Route::get('/trends', [IntrusionDetectionController::class, 'trends']);
     Route::get('/rules/detection-types', [IntrusionDetectionController::class, 'detectionTypes']);
@@ -614,7 +613,6 @@ $publicKeyRoutes = function () {
     Route::get('/rotation-check', [PublicKeyVersionController::class, 'rotationCheck']);
 };
 Route::prefix('public-keys')->group($publicKeyRoutes);
-Route::prefix('api/public-keys')->group($publicKeyRoutes);
 
 // ── 静态资源 CDN ──
 Route::prefix('static-assets')->group(function () {
@@ -642,7 +640,7 @@ Route::prefix('tags')->group(function () {
 });
 
 // ── Teams 通知 ──
-Route::prefix('admin/teams-notifier')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/teams-notifier')->group(function () {
     Route::get('/dashboard', [TeamsNotifierController::class, 'dashboard']);
     Route::get('/logs/list', [TeamsNotifierController::class, 'logs']);
     Route::get('/config/options', [TeamsNotifierController::class, 'config']);
@@ -664,10 +662,9 @@ $textToSqlRoutes = function () {
     Route::get('/config', [TextToSqlController::class, 'config']);
 };
 Route::prefix('text-to-sql')->group($textToSqlRoutes);
-Route::prefix('api/text-to-sql')->group($textToSqlRoutes);
 
 // ── Token 计量 ──
-Route::prefix('admin/token-meter')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/token-meter')->group(function () {
     Route::get('/dashboard', [TokenMeterController::class, 'dashboard']);
     Route::get('/models', [TokenMeterController::class, 'models']);
     Route::get('/features', [TokenMeterController::class, 'features']);
@@ -685,7 +682,7 @@ Route::prefix('admin/token-meter')->group(function () {
 });
 
 // ── TPM 绑定 ──
-Route::prefix('admin/tpm-binding')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/tpm-binding')->group(function () {
     Route::get('/dashboard', [TpmBindingController::class, 'dashboard']);
     Route::get('/verification-stats', [TpmBindingController::class, 'verificationStats']);
     Route::get('/tpm-devices', [TpmBindingController::class, 'tpmCapableDevices']);
@@ -705,12 +702,14 @@ Route::post('/license/reserve', [TwoPhaseCommitController::class, 'reserve']);
 Route::post('/license/commit', [TwoPhaseCommitController::class, 'commit']);
 Route::post('/license/cancel-reservation', [TwoPhaseCommitController::class, 'cancel']);
 Route::post('/license/reservation-status', [TwoPhaseCommitController::class, 'status']);
-Route::get('/admin/licenses/{license}/reservation-stats', [TwoPhaseCommitController::class, 'stats']);
-Route::get('/admin/reservations/active', [TwoPhaseCommitController::class, 'activeReservations']);
-Route::get('/admin/reservations/history', [TwoPhaseCommitController::class, 'history']);
+Route::middleware(['ability:admin,super-admin'])->group(function () {
+    Route::get('/admin/licenses/{license}/reservation-stats', [TwoPhaseCommitController::class, 'stats']);
+    Route::get('/admin/reservations/active', [TwoPhaseCommitController::class, 'activeReservations']);
+    Route::get('/admin/reservations/history', [TwoPhaseCommitController::class, 'history']);
+});
 
 // ── 更新 CDN ──
-Route::prefix('admin/update-cdn')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/update-cdn')->group(function () {
     Route::get('/dashboard', [UpdateCdnController::class, 'dashboard']);
     Route::get('/config', [UpdateCdnController::class, 'config']);
     Route::get('/bandwidth', [UpdateCdnController::class, 'bandwidth']);
@@ -741,7 +740,7 @@ Route::prefix('update-signer')->group(function () {
 });
 
 // ── VM 检测 ──
-Route::prefix('admin/vm-detection')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/vm-detection')->group(function () {
     Route::get('/dashboard', [VMDetectionController::class, 'dashboard']);
     Route::get('/devices', [VMDetectionController::class, 'devices']);
     Route::post('/detect/{device}', [VMDetectionController::class, 'detect']);
@@ -750,7 +749,7 @@ Route::prefix('admin/vm-detection')->group(function () {
 });
 
 // ── 水印防篡改 ──
-Route::prefix('admin')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin')->group(function () {
     Route::get('/watermark-tamper/dashboard', [WatermarkTamperController::class, 'dashboard']);
     Route::get('/watermark-tamper/verification-stats', [WatermarkTamperController::class, 'verificationStats']);
     Route::get('/watermarks', [WatermarkTamperController::class, 'watermarks']);
@@ -769,7 +768,7 @@ Route::prefix('admin')->group(function () {
 });
 
 // ── Webhook 过滤器 ──
-Route::prefix('admin/webhook-filters')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/webhook-filters')->group(function () {
     Route::get('/options', [WebhookFilterController::class, 'options']);
     Route::post('/test-condition', [WebhookFilterController::class, 'testCondition']);
     Route::get('/endpoints/{endpointId}/filters', [WebhookFilterController::class, 'index'])->whereNumber('endpointId');
@@ -780,7 +779,7 @@ Route::prefix('admin/webhook-filters')->group(function () {
 });
 
 // ── SLA 可用性拨测 ──
-Route::prefix('admin/sla-probes')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/sla-probes')->group(function () {
     Route::get('/dashboard', [SlaProbeController::class, 'dashboard']);
     Route::get('/', [SlaProbeController::class, 'index']);
     Route::post('/', [SlaProbeController::class, 'store']);
@@ -794,9 +793,11 @@ Route::prefix('admin/sla-probes')->group(function () {
 });
 
 // ── Token 内省与吊销（管理端） ──
-Route::get('/admin/revoked-tokens', [TokenController::class, 'adminRevokedTokens']);
-Route::post('/admin/tokens/{tokenId}/revoke', [TokenController::class, 'adminRevokeToken'])->whereNumber('tokenId');
-Route::post('/admin/users/{userId}/tokens/revoke-all', [TokenController::class, 'adminRevokeUserTokens'])->whereNumber('userId');
+Route::middleware(['ability:admin,super-admin'])->group(function () {
+    Route::get('/admin/revoked-tokens', [TokenController::class, 'adminRevokedTokens']);
+    Route::post('/admin/tokens/{tokenId}/revoke', [TokenController::class, 'adminRevokeToken'])->whereNumber('tokenId');
+    Route::post('/admin/users/{userId}/tokens/revoke-all', [TokenController::class, 'adminRevokeUserTokens'])->whereNumber('userId');
+});
 
 // ── 文件预览 ──
 Route::post('/files/preview', [FilePreviewController::class, 'preview']);

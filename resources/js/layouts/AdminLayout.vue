@@ -354,10 +354,19 @@ const MVP_PATHS = new Set([
     '/webhooks', '/api-docs', '/api-key-center', '/knowledge-base',
 ])
 
+/** 运行时 MVP：优先系统设置（经 authStore.user），回退构建期 VITE_MVP_MODE */
+const mvpMode = computed(() => {
+    const flag = authStore.user?.mvp_mode_enabled
+    if (typeof flag === 'boolean') return flag
+    if (flag === 1 || flag === '1') return true
+    if (flag === 0 || flag === '0') return false
+    return features.mvpMode
+})
+
 /** 根据用户角色 + MVP 开关过滤菜单项 */
 function visibleItems(items) {
     let list = authStore.isAdmin ? items : items.filter(item => !item.adminOnly)
-    if (features.mvpMode) {
+    if (mvpMode.value) {
         list = list.filter(item => MVP_PATHS.has(item.path))
     }
     return list
@@ -429,6 +438,7 @@ const menuGroups = [
             { path: '/license-trash', title: 'License 回收站', icon: Delete },
             { path: '/license-snapshot', title: 'License 快照', icon: Timer },
             { path: '/license-approval', title: 'License 审批', icon: CircleCheck },
+            { path: '/two-phase-commit', title: '两阶段提交', icon: Connection },
             { path: '/license-merge', title: 'License 继承/合并', icon: Connection },
             { path: '/license-marketplace', title: 'License 二级市场', icon: ShoppingCart },
             { path: '/blockchain-license', title: '区块链 License', icon: Coin },

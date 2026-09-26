@@ -157,8 +157,16 @@ class EcommerceAPIController extends Controller
         try {
             $item = $this->cartService->addItem($cart, $data['sku_id'], $data['quantity'] ?? 1);
             return ApiResponse::success($item->load('sku.product'), __('app.api.ecommerce.added_to_cart'));
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return ApiResponse::error('NOT_FOUND', __('app.api.cart.sku_not_found'), 404);
         } catch (\RuntimeException $e) {
-            return ApiResponse::error('CART_ADD_FAILED', $e->getMessage(), 400);
+            $msg = $e->getMessage();
+            $isStock = str_contains($msg, '库存') || str_contains(strtolower($msg), 'stock');
+            return ApiResponse::error(
+                $isStock ? 'OUT_OF_STOCK' : 'CART_ADD_FAILED',
+                $msg,
+                $isStock ? 422 : 400
+            );
         }
     }
 
@@ -268,7 +276,15 @@ class EcommerceAPIController extends Controller
                 __('app.api.ecommerce.order_created')
             );
         } catch (\RuntimeException $e) {
-            return ApiResponse::error('ORDER_CREATE_FAILED', $e->getMessage(), 400);
+            $msg = $e->getMessage();
+            $isStock = str_contains($msg, '库存')
+                || str_contains(strtolower($msg), 'stock')
+                || str_contains($msg, 'insufficient');
+            return ApiResponse::error(
+                $isStock ? 'OUT_OF_STOCK' : 'ORDER_CREATE_FAILED',
+                $msg,
+                $isStock ? 422 : 400
+            );
         }
     }
 
@@ -430,14 +446,23 @@ class EcommerceAPIController extends Controller
      */
     public function myRefundList(Request $request): JsonResponse
     {
-        return ApiResponse::success(
-            $this->refundWorkflow->getCustomerRefunds(
-                $request->user()->tenant_id,
-                $request->user()->customer?->id ?? $request->user()->id,
-                $request->user()->id,
-                $request->all(),
-            )
-        );
+        try {
+            return ApiResponse::success(
+                $this->refundWorkflow->getCustomerRefunds(
+                    $request->user()->tenant_id,
+                    $request->user()->customer?->id ?? $request->user()->id,
+                    $request->user()->id,
+                    $request->all(),
+                )
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('myRefundList failed', [
+                'user_id' => $request->user()?->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ApiResponse::error('REFUND_LIST_FAILED', __('app.api.ecommerce.refund_list_failed'), 500);
+        }
     }
 
     /**

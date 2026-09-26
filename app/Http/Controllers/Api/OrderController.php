@@ -253,15 +253,32 @@ class OrderController extends Controller
     }
 
     /**
+     * 按当前用户权限解析订单（非管理员强制 user_id 隔离）
+     */
+    protected function findOwnedOrder(Request $request, int $id, array $with = []): Order
+    {
+        $user = $request->user();
+        $query = Order::query()->with($with);
+
+        if ($user->tenant_id) {
+            $query->where('tenant_id', $user->tenant_id);
+        }
+
+        if (! $user->isAdminLike()) {
+            $query->where('user_id', $user->id);
+        }
+
+        return $query->findOrFail($id);
+    }
+
+    /**
      * 订单详情
      */
     public function show(int $id, Request $request): JsonResponse
     {
-        $order = Order::with(['items.sku.product', 'deliveries'])
-            ->where('tenant_id', $request->user()->tenant_id)
-            ->findOrFail($id);
-
-        return ApiResponse::success($order);
+        return ApiResponse::success(
+            $this->findOwnedOrder($request, $id, ['items.sku.product', 'deliveries'])
+        );
     }
 
     /**
@@ -269,10 +286,16 @@ class OrderController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
         $filters = array_merge(
             $request->only(['status', 'date_from', 'date_to', 'search']),
-            ['tenant_id' => $request->user()->tenant_id]
+            ['tenant_id' => $user->tenant_id]
         );
+
+        // 非管理员只能看自己的订单（BAC：避免 tenant_id 为空时扫全表）
+        if (! $user->isAdminLike()) {
+            $filters['user_id'] = $user->id;
+        }
 
         return ApiResponse::paginated(
             $this->orderService->list($filters, $request->input('per_page', 20))
@@ -294,8 +317,7 @@ class OrderController extends Controller
      */
     public function cancel(int $id, Request $request): JsonResponse
     {
-        $order = Order::where('tenant_id', $request->user()->tenant_id)
-            ->findOrFail($id);
+        $order = $this->findOwnedOrder($request, $id);
 
         try {
             $order = $this->orderService->cancel($order, $request->input('reason'));
@@ -323,9 +345,7 @@ class OrderController extends Controller
      */
     public function pay(int $id, Request $request): JsonResponse
     {
-        $order = Order::with('items')
-            ->where('tenant_id', $request->user()->tenant_id)
-            ->findOrFail($id);
+        $order = $this->findOwnedOrder($request, $id, ['items']);
 
         try {
             $gateway = $request->input('gateway', 'alipay');
@@ -346,8 +366,7 @@ class OrderController extends Controller
             'transaction_id' => 'required|string',
         ]);
 
-        $order = Order::where('tenant_id', $request->user()->tenant_id)
-            ->findOrFail($id);
+        $order = $this->findOwnedOrder($request, $id);
 
         try {
             $order = $this->orderService->markPaid(
@@ -367,8 +386,7 @@ class OrderController extends Controller
      */
     public function paymentStatus(int $id, Request $request): JsonResponse
     {
-        $order = Order::where('tenant_id', $request->user()->tenant_id)
-            ->findOrFail($id);
+        $order = $this->findOwnedOrder($request, $id);
 
         return ApiResponse::success(
             $this->orderService->getPaymentStatus($order)

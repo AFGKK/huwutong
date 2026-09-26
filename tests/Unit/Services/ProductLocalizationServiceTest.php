@@ -24,30 +24,37 @@ class ProductLocalizationServiceTest extends TestCase
         $this->service = app(ProductLocalizationService::class);
         $this->tenant = Tenant::factory()->create();
 
-        Language::create([
-            'locale' => 'zh_CN',
-            'name' => 'Chinese',
-            'native_name' => '中文',
-            'is_active' => true,
-            'is_default' => true,
-            'sort_order' => 1,
-        ]);
+        Language::updateOrCreate(
+            ['locale' => 'zh_CN'],
+            [
+                'name' => 'Chinese',
+                'native_name' => '中文',
+                'is_active' => true,
+                'is_default' => true,
+                'sort_order' => 1,
+            ]
+        );
 
-        Language::create([
-            'locale' => 'en',
-            'name' => 'English',
-            'native_name' => 'English',
-            'is_active' => true,
-            'sort_order' => 2,
-        ]);
+        Language::updateOrCreate(
+            ['locale' => 'en'],
+            [
+                'name' => 'English',
+                'native_name' => 'English',
+                'is_active' => true,
+                'is_default' => false,
+                'sort_order' => 2,
+            ]
+        );
 
-        Language::create([
-            'locale' => 'ja',
-            'name' => 'Japanese',
-            'native_name' => '日本語',
-            'is_active' => true,
-            'sort_order' => 3,
-        ]);
+        Language::updateOrCreate(
+            ['locale' => 'ja'],
+            [
+                'name' => 'Japanese',
+                'native_name' => '日本語',
+                'is_active' => true,
+                'sort_order' => 3,
+            ]
+        );
     }
 
     public function test_gets_supported_languages()

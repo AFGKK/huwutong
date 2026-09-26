@@ -75,7 +75,7 @@ class MiniProgramSsoController extends Controller
 
         $token = $user->createToken(
             'miniprogram-h5-sso',
-            ['*'],
+            $user->tokenAbilities(),
             now()->addDays(7)
         )->plainTextToken;
 

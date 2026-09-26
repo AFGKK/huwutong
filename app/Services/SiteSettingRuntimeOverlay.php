@@ -29,9 +29,17 @@ class SiteSettingRuntimeOverlay
             self::overlayMail();
             self::overlayLocale();
             self::overlaySecurity();
+            self::overlayFeatures();
         } catch (Throwable $e) {
             Log::debug('SiteSettingRuntimeOverlay skipped: '.$e->getMessage());
         }
+    }
+
+    private static function overlayFeatures(): void
+    {
+        $raw = site_setting('mvp_mode_enabled', '0');
+        // 默认关闭：显示全部侧边栏；仅 value=1 时开启 MVP 收敛
+        config(['features.mvp_mode' => (string) $raw === '1']);
     }
 
     private static function overlaySecurity(): void

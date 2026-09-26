@@ -393,7 +393,7 @@ Route::post('/usage/quotas', [UsageMeterController::class, 'upsertQuota']);
 Route::delete('/usage/quotas/{id}', [UsageMeterController::class, 'deleteQuota'])->whereNumber('id');
 
 // ── 动态定价 / A/B 实验 ──
-Route::prefix('admin/pricing/dynamic')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/pricing/dynamic')->group(function () {
     Route::get('/metadata', [DynamicPricingController::class, 'metadata']);
     Route::get('/tiers', [DynamicPricingController::class, 'tiers']);
     Route::post('/tiers', [DynamicPricingController::class, 'storeTier']);

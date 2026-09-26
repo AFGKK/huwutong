@@ -310,12 +310,20 @@ class LicenseService
 
     /**
      * 获取 License 统计（按状态和类型分布）
+     *
+     * @param  int|null  $tenantId  租户范围（管理员）
+     * @param  int|null  $customerId 客户范围（门户用户强制隔离）
      */
-    public function stats(?int $tenantId = null): array
+    public function stats(?int $tenantId = null, ?int $customerId = null): array
     {
         $query = License::query();
 
-        if ($tenantId) {
+        if ($customerId !== null) {
+            $query->where('customer_id', $customerId);
+            if ($tenantId) {
+                $query->where('tenant_id', $tenantId);
+            }
+        } elseif ($tenantId) {
             $query->where('tenant_id', $tenantId);
         }
 

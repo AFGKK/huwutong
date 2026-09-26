@@ -2,10 +2,10 @@
   <div class="register-container">
     <div class="register-card">
       <div class="register-header">
-        <div class="logo">
-          <div class="logo-icon">{{ $t('auth.brand_mark') }}</div>
-          <span class="logo-text">{{ $t('app_name') }}</span>
+        <div class="brand-logo" v-if="branding.logo_url">
+          <img :src="branding.logo_url" :alt="branding.brand_name || $t('app_name')" class="logo-img" />
         </div>
+        <el-icon v-else :size="40" :color="branding.primary_color || '#0f172a'"><Key /></el-icon>
         <h2 class="register-title">{{ $t('auth.register_title') }}</h2>
         <p class="register-desc">{{ $t('auth.register_desc') }}</p>
       </div>
@@ -145,12 +145,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onUnmounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
-import { User, Message, Iphone, Lock } from '@element-plus/icons-vue';
+import { User, Message, Iphone, Lock, Key } from '@element-plus/icons-vue';
 import authApi from '@/api/auth';
+import apiClient from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 
 const router = useRouter();
@@ -164,6 +165,12 @@ const registerMode = ref('email');
 const phoneCodeSending = ref(false);
 const phoneCodeCountdown = ref(0);
 let phoneCodeTimer = null;
+
+const branding = reactive({
+  brand_name: '',
+  logo_url: '',
+  primary_color: '#0f172a',
+});
 
 const form = reactive({
   name: '',
@@ -340,6 +347,36 @@ async function handlePhoneRegister() {
   }
 }
 
+async function loadBranding() {
+  try {
+    const { data } = await apiClient.get('/branding', { params: { domain: window.location.hostname } });
+    const config = data?.data?.config;
+    if (config?.logo_url) {
+      branding.brand_name = config.brand_name || '';
+      branding.logo_url = config.logo_url;
+      branding.primary_color = config.primary_color || '#0f172a';
+      return;
+    }
+  } catch {
+    // fall through to site settings
+  }
+
+  // 门户品牌无 logo 时，回退站点公开设置
+  try {
+    const { data } = await apiClient.get('/settings/public');
+    const pub = data?.data || {};
+    branding.logo_url = pub.logo_url || '/images/logo.svg';
+    branding.brand_name = pub.site_name || branding.brand_name || '';
+    branding.primary_color = pub.primary_color || branding.primary_color || '#0f172a';
+  } catch {
+    branding.logo_url = '/images/logo.svg';
+  }
+}
+
+onMounted(() => {
+  loadBranding();
+});
+
 onUnmounted(() => {
   if (phoneCodeTimer) clearInterval(phoneCodeTimer);
 });
@@ -369,31 +406,20 @@ onUnmounted(() => {
   margin-bottom: 16px;
 }
 
-.logo {
+.brand-logo {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
-.logo-icon {
-  width: 36px;
-  height: 36px;
-  background: #0f172a;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: bold;
-  font-size: 16px;
+.logo-img {
+  max-height: 48px;
+  max-width: 200px;
+  object-fit: contain;
 }
 
-.logo-text {
-  font-size: 22px;
-  font-weight: bold;
-  color: #1a1a2e;
+.register-header > .el-icon {
+  margin-bottom: 16px;
 }
 
 .register-title {

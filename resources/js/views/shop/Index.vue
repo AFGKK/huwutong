@@ -323,7 +323,7 @@ async function loadProducts(page = 1) {
     if (filters.price_max) params.price_max = filters.price_max;
     if (selectedTags.value.length) params.tags = selectedTags.value.join(',');
 
-    const res = await shopApi.getSkus(params);
+    const res = await shopApi.searchProducts(params);
     const data = res.data?.data || res.data;
     // Pagination from Laravel paginator
     products.value = data?.data || data || [];

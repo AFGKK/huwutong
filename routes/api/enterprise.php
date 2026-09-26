@@ -26,8 +26,8 @@ use App\Http\Controllers\Api\PostmanController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\TenantIsolationController;
 
-// ── 业务指标 ──
-Route::prefix('admin/business-metrics')->group(function () {
+// ?? ???? ??
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/business-metrics')->group(function () {
     Route::get('/dashboard', [BusinessMetricsController::class, 'dashboard']);
     Route::get('/overview', [BusinessMetricsController::class, 'overview']);
     Route::get('/mrr-trend', [BusinessMetricsController::class, 'mrrTrend']);
@@ -37,8 +37,8 @@ Route::prefix('admin/business-metrics')->group(function () {
     Route::get('/export', [BusinessMetricsController::class, 'export']);
 });
 
-// ── 系统健康 ──
-Route::prefix('admin/system-health')->group(function () {
+// ?? ???? ??
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/system-health')->group(function () {
     Route::get('/dashboard', [HealthController::class, 'dashboard']);
     Route::get('/check', [HealthController::class, 'check']);
     Route::get('/trend', [HealthController::class, 'trend']);
@@ -48,8 +48,8 @@ Route::prefix('admin/system-health')->group(function () {
     Route::get('/failed-jobs', [HealthController::class, 'failedJobs']);
 });
 
-// ── 营销自动化 ──
-Route::prefix('admin/marketing')->group(function () {
+// ?? ????�???
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/marketing')->group(function () {
     Route::get('/dashboard', [MarketingCampaignController::class, 'dashboard']);
     Route::get('/stats', [MarketingCampaignController::class, 'stats']);
     Route::post('/preview-audience', [MarketingCampaignController::class, 'previewAudience']);
@@ -68,8 +68,8 @@ Route::prefix('admin/marketing')->group(function () {
     Route::get('/campaigns/{campaignId}/analytics', [MarketingCampaignController::class, 'analytics'])->whereNumber('campaignId');
 });
 
-// ── 部署管理 ──
-Route::prefix('admin/deploy')->group(function () {
+// ?? ???? ??
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/deploy')->group(function () {
     Route::get('/dashboard', [DeployController::class, 'dashboard']);
     Route::get('/environments', [DeployController::class, 'environments']);
     Route::post('/environments', [DeployController::class, 'storeEnvironment']);
@@ -86,8 +86,8 @@ Route::prefix('admin/deploy')->group(function () {
     Route::post('/jobs/{deployJob}/rollback', [DeployController::class, 'rollbackDeploy'])->whereNumber('deployJob');
 });
 
-// ── Postman 集合导出 ──
-Route::prefix('admin/postman')->group(function () {
+// ?? Postman ???? ??
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/postman')->group(function () {
     Route::get('/collection', [PostmanController::class, 'downloadCollection']);
     Route::get('/environment/{envName}', [PostmanController::class, 'downloadEnvironment']);
     Route::get('/environments', [PostmanController::class, 'environments']);
@@ -95,8 +95,8 @@ Route::prefix('admin/postman')->group(function () {
     Route::get('/stats', [PostmanController::class, 'stats']);
 });
 
-// ── 产品捆绑包 ──
-Route::prefix('admin/bundles')->group(function () {
+// ?? ????�???
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/bundles')->group(function () {
     Route::get('/stats', [BundleController::class, 'stats']);
     Route::get('/available-items', [BundleController::class, 'availableItems']);
     Route::get('/purchases', [BundleController::class, 'purchases']);
@@ -108,8 +108,8 @@ Route::prefix('admin/bundles')->group(function () {
     Route::post('/{id}/purchase', [BundleController::class, 'purchase'])->whereNumber('id');
 });
 
-// ── 数据导入 ──
-Route::prefix('admin/data-import')->group(function () {
+// ?? ???? ??
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/data-import')->group(function () {
     Route::get('/entity-types', [DataImportController::class, 'entityTypes']);
     Route::get('/entity-fields/{entityType}', [DataImportController::class, 'entityFields']);
     Route::get('/generate-template/{entityType}', [DataImportController::class, 'generateTemplate']);
@@ -129,8 +129,8 @@ Route::prefix('admin/data-import')->group(function () {
     Route::post('/tasks/{importTask}/apply-template', [DataImportController::class, 'applyMappingTemplate'])->whereNumber('importTask');
 });
 
-// ── 数据留存 ──
-Route::prefix('admin/data-retention')->group(function () {
+// ?? ???? ??
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/data-retention')->group(function () {
     Route::get('/dashboard', [DataRetentionController::class, 'dashboard']);
     Route::get('/policies', [DataRetentionController::class, 'policies']);
     Route::post('/policies/sync', [DataRetentionController::class, 'syncPolicies']);
@@ -140,8 +140,8 @@ Route::prefix('admin/data-retention')->group(function () {
     Route::get('/storage-stats', [DataRetentionController::class, 'storageStats']);
 });
 
-// ── 审计日志保留策略 ──
-Route::prefix('admin/audit-retention-policies')->group(function () {
+// ?? ???????? ??
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/audit-retention-policies')->group(function () {
     Route::get('/overview', [AuditRetentionPolicyController::class, 'overview']);
     Route::post('/preview-prune', [AuditRetentionPolicyController::class, 'previewPrune']);
     Route::get('/', [AuditRetentionPolicyController::class, 'index']);
@@ -150,8 +150,8 @@ Route::prefix('admin/audit-retention-policies')->group(function () {
     Route::delete('/{id}', [AuditRetentionPolicyController::class, 'destroy'])->whereNumber('id');
 });
 
-// ── 流失预测干预 ──
-Route::prefix('admin/churn-prediction')->group(function () {
+// ?? ?????? ??
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/churn-prediction')->group(function () {
     Route::get('/dashboard', [ChurnPredictionController::class, 'dashboard']);
     Route::get('/trend', [ChurnPredictionController::class, 'trend']);
     Route::get('/list', [ChurnPredictionController::class, 'churnList']);
@@ -161,8 +161,8 @@ Route::prefix('admin/churn-prediction')->group(function () {
     Route::delete('/interventions/{churnIntervention}', [ChurnPredictionController::class, 'deleteIntervention'])->whereNumber('churnIntervention');
 });
 
-// ── 转化漏斗 ──
-Route::prefix('admin/conversion-funnel')->group(function () {
+// ?? ???? ??
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/conversion-funnel')->group(function () {
     Route::get('/dashboard', [ConversionFunnelController::class, 'dashboard']);
     Route::get('/data', [ConversionFunnelController::class, 'data']);
     Route::get('/by-source', [ConversionFunnelController::class, 'bySource']);
@@ -170,8 +170,8 @@ Route::prefix('admin/conversion-funnel')->group(function () {
     Route::post('/track', [ConversionFunnelController::class, 'track']);
 });
 
-// ── 自定义字段 ──
-Route::prefix('admin/custom-fields')->group(function () {
+// ?? ????�???
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/custom-fields')->group(function () {
     Route::get('/metadata', [CustomFieldController::class, 'metadata']);
     Route::get('/licenses/{license}/values', [CustomFieldController::class, 'licenseValues'])->whereNumber('license');
     Route::put('/licenses/{license}/values', [CustomFieldController::class, 'updateLicenseValues'])->whereNumber('license');
@@ -192,8 +192,8 @@ Route::prefix('custom-fields')->group(function () {
     Route::delete('/{id}', [CustomFieldController::class, 'destroy'])->whereNumber('id');
 });
 
-// ── 数据库读写分离 ──
-Route::prefix('admin/db-read-write')->group(function () {
+// ?? ??????�???
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/db-read-write')->group(function () {
     Route::get('/status', [DatabaseReadWriteController::class, 'status']);
     Route::post('/reset-circuit-breaker', [DatabaseReadWriteController::class, 'resetCircuitBreaker']);
     Route::post('/health-check', [DatabaseReadWriteController::class, 'healthCheck']);
@@ -201,8 +201,8 @@ Route::prefix('admin/db-read-write')->group(function () {
     Route::post('/trigger-warmup', [DatabaseReadWriteController::class, 'triggerWarmup']);
 });
 
-// ── 协作（备注/动态/关注） ──
-Route::prefix('admin')->group(function () {
+// ?? ????�??�???�???
+Route::middleware(['ability:admin,super-admin'])->prefix('admin')->group(function () {
     Route::post('/notes/counts', [CollaborationController::class, 'noteCounts']);
     Route::put('/notes/{id}', [CollaborationController::class, 'updateNote'])->whereNumber('id');
     Route::delete('/notes/{id}', [CollaborationController::class, 'deleteNote'])->whereNumber('id');
@@ -224,7 +224,7 @@ Route::prefix('admin')->group(function () {
     Route::post('/{entityType}/{entityId}/toggle-watch', [CollaborationController::class, 'toggleWatch'])->where('entityType', '[a-z_-]+')->whereNumber('entityId');
 });
 
-// ── 租户隔离（前端 /admin 路径别名） ──
+// ?? ??????�?/admin ????�???
 Route::middleware(['ability:admin,super-admin'])->group(function () {
     Route::get('/admin/tenant-isolation/dashboard', [TenantIsolationController::class, 'dashboard']);
     Route::get('/admin/quota-plans', [TenantIsolationController::class, 'quotaPlans']);
@@ -243,7 +243,7 @@ Route::middleware(['ability:admin,super-admin'])->group(function () {
     Route::post('/admin/tenants/batch-refresh-usage', [TenantIsolationController::class, 'batchRefresh']);
 });
 
-// ── CRM 客户分群 ──
+// ?? CRM ???? ??
 Route::prefix('crm')->group(function () {
     Route::get('/dashboard', [CrmController::class, 'dashboard']);
     Route::get('/segments', [CrmController::class, 'segments']);
@@ -260,7 +260,7 @@ Route::prefix('crm')->group(function () {
     Route::post('/churn-predictions/recalculate', [CrmController::class, 'recalculateChurn']);
 });
 
-// ── 渠道合作伙伴 ──
+// ?? ?????? ??
 Route::prefix('channel')->group(function () {
     Route::get('/dashboard', [ChannelPartnerController::class, 'dashboard']);
     Route::get('/partners', [ChannelPartnerController::class, 'partners']);
@@ -275,7 +275,7 @@ Route::prefix('channel')->group(function () {
     Route::post('/my/payouts', [ChannelPartnerController::class, 'myRequestPayout']);
 });
 
-// ── 佣金管理 ──
+// ?? ???? ??
 Route::prefix('commission')->group(function () {
     Route::get('/dashboard', [CommissionController::class, 'dashboard']);
     Route::get('/my', [CommissionController::class, 'myCommission']);
@@ -308,7 +308,7 @@ Route::prefix('commission')->group(function () {
     });
 });
 
-// ── 催款 (Dunning) ──
+// ?? ?? (Dunning) ??
 Route::prefix('dunning')->group(function () {
     Route::get('/dashboard', [DunningController::class, 'dashboard']);
     Route::get('/queue', [DunningController::class, 'queue']);
@@ -324,7 +324,7 @@ Route::prefix('dunning')->group(function () {
     Route::post('/scan-overdue', [DunningController::class, 'scanOverdue']);
 });
 
-// ── 数据血缘 ──
+// ?? ???�???
 Route::prefix('data-lineage')->group(function () {
     Route::get('/dashboard', [DataLineageController::class, 'dashboard']);
     Route::get('/export', [DataLineageController::class, 'export']);
@@ -335,7 +335,7 @@ Route::prefix('data-lineage')->group(function () {
     Route::post('/', [DataLineageController::class, 'store']);
 });
 
-// ── SDK 缓存失效推送 ──
+// ?? SDK ?????�???
 $cacheInvalidationRoutes = function () {
     Route::get('/events', [CacheInvalidationController::class, 'stream']);
     Route::get('/pending', [CacheInvalidationController::class, 'pending']);
@@ -348,9 +348,8 @@ $cacheInvalidationRoutes = function () {
     Route::delete('/webhooks/{webhook}', [CacheInvalidationController::class, 'destroyWebhook'])->whereNumber('webhook');
 };
 Route::prefix('sdk/cache')->group($cacheInvalidationRoutes);
-Route::prefix('api/sdk/cache')->group($cacheInvalidationRoutes);
 
-// ── 数据脱敏 ──
+// ?? ???? ??
 $dataAnonymizationRoutes = function () {
     Route::get('/tables', [DataAnonymizationController::class, 'tables']);
     Route::post('/export', [DataAnonymizationController::class, 'export']);
@@ -368,10 +367,9 @@ $dataAnonymizationRoutes = function () {
     Route::delete('/{rule}', [DataAnonymizationController::class, 'destroy'])->whereNumber('rule');
 };
 Route::prefix('data-anonymization')->group($dataAnonymizationRoutes);
-Route::prefix('api/data-anonymization')->group($dataAnonymizationRoutes);
 
-// ── 企业 SSO ──
-Route::prefix('admin/enterprise-sso')->group(function () {
+// ?? ?? SSO ??
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/enterprise-sso')->group(function () {
     Route::get('/stats', [EnterpriseSsoController::class, 'stats']);
     Route::get('/idps', [EnterpriseSsoController::class, 'idps']);
     Route::post('/idps', [EnterpriseSsoController::class, 'storeIdp']);
@@ -390,8 +388,8 @@ Route::prefix('admin/enterprise-sso')->group(function () {
     Route::post('/resolve-domain', [EnterpriseSsoController::class, 'resolveDomain']);
 });
 
-// ── 自动续费管理 ──
-Route::prefix('admin/auto-renewal')->group(function () {
+// ?? ?????? ??
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/auto-renewal')->group(function () {
     Route::get('/dashboard', [AutoRenewalController::class, 'dashboard']);
     Route::get('/plans', [AutoRenewalController::class, 'plans']);
     Route::post('/plans', [AutoRenewalController::class, 'storePlan']);

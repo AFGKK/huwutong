@@ -266,10 +266,13 @@ throw new \RuntimeException($result['error'] ?? __("app.refund_workflow.refund_g
     /**
      * 客户自己的退款记录
      */
-    public function getCustomerRefunds(int $tenantId, int $customerId, ?int $userId = null, array $filters = []): array
+    public function getCustomerRefunds(?int $tenantId, int $customerId, ?int $userId = null, array $filters = []): array
     {
-        $query = Refund::byTenant($tenantId)
-            ->with(['order:id,order_no,status']);
+        $query = Refund::query()->with(['order:id,order_no,status']);
+
+        if ($tenantId) {
+            $query->byTenant($tenantId);
+        }
 
         $query->where(function ($q) use ($customerId, $userId) {
             $q->where('customer_id', $customerId);

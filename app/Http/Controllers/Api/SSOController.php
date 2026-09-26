@@ -36,8 +36,7 @@ class SSOController extends Controller
     }
 
     /**
-     * 配置/更新 SSO 提供者
-     *
+     * 配置/更新 SSO 提供�?     *
      * POST /api/sso/providers
      */
     public function configure(Request $request): JsonResponse
@@ -75,8 +74,7 @@ class SSOController extends Controller
     }
 
     /**
-     * 开启/关闭 SSO 提供者
-     *
+     * 开�?关闭 SSO 提供�?     *
      * POST /api/sso/providers/{provider}/toggle
      */
     public function toggle(int $providerId, Request $request): JsonResponse
@@ -93,8 +91,7 @@ class SSOController extends Controller
     }
 
     /**
-     * SSO 回调处理（统一入口）
-     *
+     * SSO 回调处理（统一入口�?     *
      * POST /api/sso/callback
      * Body: { provider_id, external_id, attributes: {...} }
      */
@@ -117,7 +114,7 @@ class SSOController extends Controller
         $user = $this->ssoService->handleCallback($provider, $data['external_id'], $attributes);
 
         // 生成 API Token
-        $token = $user->createToken('sso-token', ['*'])->plainTextToken;
+        $token = $user->createToken('sso-token', $user->tokenAbilities())->plainTextToken;
 
         return ApiResponse::success([
             'user' => $this->formatUserWithTenants($user),
@@ -127,7 +124,7 @@ class SSOController extends Controller
     }
 
     /**
-     * 获取用户绑定的 SSO 连接
+     * 获取用户绑定�?SSO 连接
      *
      * GET /api/sso/connections
      */
@@ -186,8 +183,7 @@ class SSOController extends Controller
     }
 
     /**
-     * 格式化用户数据（含多租户信息）
-     */
+     * 格式化用户数据（含多租户信息�?     */
     protected function formatUserWithTenants(User $user): array
     {
         $data = $user->toArray();

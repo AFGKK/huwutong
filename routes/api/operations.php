@@ -17,7 +17,7 @@ use App\Http\Controllers\Api\WafController;
 use App\Http\Controllers\Api\WebhookMonitorController;
 
 // ── 队列死信监控 (M2-82) ──
-Route::prefix('admin/queue-monitor')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/queue-monitor')->group(function () {
     Route::get('/dashboard', [QueueMonitorController::class, 'dashboard']);
     Route::get('/failed-jobs', [QueueMonitorController::class, 'failedJobs']);
     Route::get('/dead-letters', [QueueMonitorController::class, 'deadLetters']);
@@ -29,7 +29,7 @@ Route::prefix('admin/queue-monitor')->group(function () {
 });
 
 // ── Webhook 投递监控 ──
-Route::prefix('admin/webhook-monitor')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/webhook-monitor')->group(function () {
     Route::get('/overview', [WebhookMonitorController::class, 'overview']);
     Route::get('/endpoints/{endpointId}', [WebhookMonitorController::class, 'endpointDetail'])->whereNumber('endpointId');
     Route::get('/failures', [WebhookMonitorController::class, 'failures']);
@@ -38,7 +38,7 @@ Route::prefix('admin/webhook-monitor')->group(function () {
 });
 
 // ── 安全中心 + SOP ──
-Route::prefix('admin/security')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/security')->group(function () {
     Route::get('/dashboard', [SecurityCenterController::class, 'dashboard']);
     Route::get('/security-score', [SecurityCenterController::class, 'securityScore']);
 
@@ -73,7 +73,7 @@ Route::prefix('admin/security')->group(function () {
 });
 
 // ── WAF 防护 ──
-Route::prefix('admin/waf')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/waf')->group(function () {
     Route::get('/dashboard', [WafController::class, 'dashboard']);
     Route::post('/rules/seed', [WafController::class, 'seedRules']);
     Route::get('/rules', [WafController::class, 'rules']);
@@ -123,7 +123,7 @@ Route::middleware(['ability:admin,super-admin'])->prefix('admin/revenue')->group
 });
 
 // ── 客户 SMTP ──
-Route::prefix('admin/customer-smtp')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/customer-smtp')->group(function () {
     Route::get('/dashboard', [CustomerSmtpController::class, 'dashboard']);
     Route::get('/providers/list', [CustomerSmtpController::class, 'providers']);
     Route::get('/logs/list', [CustomerSmtpController::class, 'logs']);
@@ -138,7 +138,7 @@ Route::prefix('admin/customer-smtp')->group(function () {
 });
 
 // ── 自动化规则 ──
-Route::prefix('admin/automation')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/automation')->group(function () {
     Route::get('/dashboard', [AutomationRuleController::class, 'dashboard']);
     Route::get('/triggers', [AutomationRuleController::class, 'triggers']);
     Route::get('/available-actions', [AutomationRuleController::class, 'actions']);
@@ -159,7 +159,7 @@ Route::prefix('admin/automation')->group(function () {
 });
 
 // ── 攻击检测 ──
-Route::prefix('admin/attack-detection')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/attack-detection')->group(function () {
     Route::get('/dashboard', [AttackDetectionController::class, 'dashboard']);
     Route::get('/events', [AttackDetectionController::class, 'events']);
     Route::get('/events/{attackEvent}', [AttackDetectionController::class, 'show'])->whereNumber('attackEvent');
@@ -171,7 +171,7 @@ Route::prefix('admin/attack-detection')->group(function () {
 });
 
 // ── 蓝绿部署 ──
-Route::prefix('admin/blue-green')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/blue-green')->group(function () {
     Route::get('/dashboard', [BlueGreenController::class, 'dashboard']);
     Route::get('/history', [BlueGreenController::class, 'history']);
     Route::post('/start', [BlueGreenController::class, 'start']);

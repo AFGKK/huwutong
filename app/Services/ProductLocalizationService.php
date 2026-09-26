@@ -67,13 +67,15 @@ class ProductLocalizationService
     }
 
     /**
-     * 批量保存翻译
+     * 批量保存翻译（空值则删除对应字段）
      */
     public function saveTranslations(Model $model, string $locale, array $translations, bool $autoTranslated = false): void
     {
         foreach ($translations as $field => $value) {
             if ($value !== null && $value !== '') {
                 $model->setTranslation($locale, $field, $value, $autoTranslated);
+            } else {
+                $this->deleteTranslation($model, $locale, (string) $field);
             }
         }
     }

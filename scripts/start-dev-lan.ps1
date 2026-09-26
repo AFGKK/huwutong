@@ -40,8 +40,8 @@ Write-Host "  管理后台:  http://${lanIp}:8000/build/login" -ForegroundColor 
 Write-Host "  IM 私信:   http://${lanIp}:8000/build/user-chat" -ForegroundColor White
 Write-Host "  WebSocket: ws://${lanIp}:8080" -ForegroundColor White
 Write-Host ""
-Write-Host "  测试账号 A: admin@huwutong.com / admin123" -ForegroundColor Gray
-Write-Host "  测试账号 B: demo@huwutong.com / demo123" -ForegroundColor Gray
+Write-Host "  测试账号 A: admin@huwutong.com（密码见 HWT_ADMIN_PASS / .env）" -ForegroundColor Gray
+Write-Host "  测试账号 B: demo@huwutong.com（密码见环境配置）" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  真机 WebRTC: 两台设备分别登录 A/B，进入私信会话后点语音/视频通话" -ForegroundColor Gray
 Write-Host "  iOS Safari 需 HTTPS 才能使用麦克风，建议 Android Chrome 或 PC+手机组合" -ForegroundColor Yellow

@@ -73,17 +73,66 @@ class TicketController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $ticket = $this->ticketService->create([
-            'tenant_id' => $request->user()->tenant_id,
-            'customer_id' => $request->user()->customer_id,
-            'user_id' => $request->user()->id,
-            'category_id' => $request->input('category_id'),
-            'subject' => $request->input('subject'),
-            'description' => $request->input('description'),
-            'priority' => $request->input('priority', 'medium'),
-            'source' => 'portal',
-            'tags' => $request->input('tags'),
-        ]);
+        $user = $request->user();
+        $tenantId = $user->tenant_id
+            ?: $user->remember_tenant_id
+            ?: \App\Models\Tenant::query()->orderBy('id')->value('id');
+
+        if (! $tenantId) {
+            return response()->json([
+                'success' => false,
+                'message' => __('app.api.ticket.tenant_required'),
+            ], 422);
+        }
+
+        // 无客户档案时尽量关联/创建，避免 customer_id 为空影响后续客服流转
+        $customerId = $user->customer?->id;
+        if (! $customerId) {
+            try {
+                $customer = \App\Models\Customer::firstOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'tenant_id' => $tenantId,
+                        'type' => 'individual',
+                        'status' => 'active',
+                    ]
+                );
+                $customerId = $customer->id;
+                if (empty($user->tenant_id)) {
+                    $user->forceFill(['tenant_id' => $tenantId])->save();
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('ticket store: ensure customer failed', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        try {
+            $ticket = $this->ticketService->create([
+                'tenant_id' => $tenantId,
+                'customer_id' => $customerId,
+                'user_id' => $user->id,
+                'category_id' => $request->input('category_id'),
+                'subject' => $request->input('subject'),
+                'description' => $request->input('description'),
+                'priority' => $request->input('priority', 'medium'),
+                'source' => 'portal',
+                'tags' => $request->input('tags'),
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('ticket store failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'code' => 'TICKET_CREATE_FAILED',
+                'message' => __('app.api.ticket.create_failed'),
+            ], 500);
+        }
 
         return response()->json([
             'success' => true,

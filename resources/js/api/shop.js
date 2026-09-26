@@ -35,9 +35,9 @@ export default {
         return client.get(`/products/${productId}/skus`);
     },
 
-    // SKU 查询（公开）
+    // SKU 查询：商店页统一走公开商城接口（勿用管理端 /skus，会按库存过滤为空）
     getSkus(params = {}) {
-        return client.get('/skus', { params });
+        return client.get('/shop/products', { params });
     },
 
     // 购物车 (M2-145 🛒)

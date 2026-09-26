@@ -60,6 +60,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     // ── 购物车 ──
     Route::get('/cart', [CartController::class, 'show']);
     Route::post('/cart/add', [CartController::class, 'add']);
+    Route::post('/cart/items', [CartController::class, 'add']); // 兼容别名
     Route::put('/cart/update', [CartController::class, 'update']);
     Route::post('/cart/remove', [CartController::class, 'remove']);
     Route::post('/cart/clear', [CartController::class, 'clear']);

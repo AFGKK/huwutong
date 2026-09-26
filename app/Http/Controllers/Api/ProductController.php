@@ -381,27 +381,57 @@ class ProductController extends Controller
     }
 
     /**
-     * 保存多语言翻译
+     * 保存多语言翻译（EAV：field + value）
      */
     public function saveTranslations(int $id, Request $request): JsonResponse
     {
         $product = Product::findOrFail($id);
         $validated = $request->validate([
-            'translations' => 'required|array',
-            'translations.*.locale' => 'required|string|size:2|in:en,zh,ja,zh-TW',
-            'translations.*.name' => 'required|string|max:255',
+            'translations' => 'required|array|min:1',
+            'translations.*.locale' => 'required|string|max:20',
+            'translations.*.name' => 'nullable|string|max:255',
             'translations.*.description' => 'nullable|string|max:5000',
         ]);
 
-        // Use HasProductTranslations trait
+        $service = app(\App\Services\ProductLocalizationService::class);
+
         foreach ($validated['translations'] as $t) {
-            $product->translations()->updateOrCreate(
-                ['locale' => $t['locale']],
-                ['name' => $t['name'], 'description' => $t['description'] ?? '']
-            );
+            $service->saveTranslations($product, $t['locale'], [
+                'name' => $t['name'] ?? null,
+                'description' => $t['description'] ?? null,
+            ]);
         }
 
-        return ApiResponse::success(null, __('app.api.product.translation_saved'));
+        return ApiResponse::success(
+            $service->getTranslations($product),
+            __('app.api.product.translation_saved'),
+        );
+    }
+
+    /**
+     * 获取多语言翻译（按 locale 聚合为 name/description）
+     */
+    public function translations(int $id): JsonResponse
+    {
+        $product = Product::findOrFail($id);
+        $rows = app(\App\Services\ProductLocalizationService::class)->getTranslations($product);
+
+        $byLocale = [];
+        foreach ($rows as $row) {
+            $locale = $row['locale'] ?? '';
+            if ($locale === '') {
+                continue;
+            }
+            if (! isset($byLocale[$locale])) {
+                $byLocale[$locale] = ['locale' => $locale, 'name' => '', 'description' => ''];
+            }
+            $field = $row['field'] ?? '';
+            if ($field === 'name' || $field === 'description') {
+                $byLocale[$locale][$field] = $row['value'] ?? '';
+            }
+        }
+
+        return ApiResponse::success(array_values($byLocale));
     }
 
     /**

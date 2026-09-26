@@ -76,19 +76,25 @@
             <div v-if="!setupConfirmed">
                 <p>{{ t('mfa_page.setup_instructions') }}</p>
                 <div class="setup-info">
+                    <div v-if="qrDataUrl" class="qr-wrap">
+                        <img :src="qrDataUrl" :alt="t('mfa_page.qr_alt')" class="qr-image" width="200" height="200" />
+                    </div>
                     <div class="secret-box">
                         <code>{{ setupData.secret }}</code>
                         <el-button text @click="copySecret">{{ t('actions.copy') }}</el-button>
                     </div>
-                    <div class="uri-box">
-                        <a :href="setupData.uri" target="_blank">
-                            {{ setupData.uri.slice(0, 60) }}...
-                        </a>
+                    <div class="uri-box" v-if="setupData.uri">
+                        <span class="uri-hint">{{ t('mfa_page.manual_secret_hint') }}</span>
                     </div>
                 </div>
                 <el-form label-position="top" class="mt-4">
                     <el-form-item :label="t('mfa_page.verify_label')">
-                        <el-input v-model="verifyCode" :placeholder="t('mfa_page.verify_placeholder')" maxlength="6" />
+                        <el-input
+                            v-model="verifyCode"
+                            :placeholder="t('mfa_page.verify_placeholder')"
+                            maxlength="6"
+                            @keyup.enter="confirmSetup"
+                        />
                     </el-form-item>
                 </el-form>
                 <el-button type="primary" class="w-full" @click="confirmSetup" :loading="confirming">
@@ -126,10 +132,13 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import QRCode from 'qrcode';
 import mfaApi from '@/api/mfa';
+import { useAuthStore } from '@/stores/auth';
 import { Lock } from '@element-plus/icons-vue';
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 
 const statusLabels = computed(() => ({
     enabled: t('security_page.checks.status.enabled'),
@@ -152,6 +161,7 @@ const remainingCodes = ref(0);
 const setupVisible = ref(false);
 const setupConfirmed = ref(false);
 const setupData = ref({});
+const qrDataUrl = ref('');
 const verifyCode = ref('');
 const confirming = ref(false);
 const recoveryCodes = ref([]);
@@ -162,10 +172,15 @@ const renameName = ref('');
 const renameDeviceId = ref(null);
 
 async function fetchData() {
+    // 账户安全页同源：以用户字段为准，避免设备列表请求失败时误判未启用
+    mfaEnabled.value = !!authStore.user?.mfa_enabled;
+
     try {
         const { data: res } = await mfaApi.list();
         devices.value = res.data || [];
-        mfaEnabled.value = devices.value.length > 0;
+        if (devices.value.length > 0) {
+            mfaEnabled.value = true;
+        }
     } catch { /* ignore */ }
 
     try {
@@ -174,11 +189,33 @@ async function fetchData() {
     } catch { /* ignore */ }
 }
 
+onMounted(async () => {
+    await fetchData();
+    // 强制绑定策略：仅在确实未启用时自动打开绑定向导
+    if (!mfaEnabled.value) {
+        try {
+            await showSetup();
+        } catch { /* ignore */ }
+    }
+});
+
 async function showSetup() {
     setupConfirmed.value = false;
     verifyCode.value = '';
+    qrDataUrl.value = '';
     const { data: res } = await mfaApi.setup();
-    setupData.value = res.data;
+    setupData.value = res.data || {};
+    if (setupData.value.uri) {
+        try {
+            qrDataUrl.value = await QRCode.toDataURL(setupData.value.uri, {
+                width: 200,
+                margin: 1,
+                color: { dark: '#1f2937', light: '#ffffff' },
+            });
+        } catch {
+            qrDataUrl.value = '';
+        }
+    }
     setupVisible.value = true;
 }
 
@@ -201,7 +238,8 @@ async function confirmSetup() {
         if (res.data?.token) {
             const { useAuthStore } = await import('@/stores/auth');
             const authStore = useAuthStore();
-            authStore.applySession(res.data.user || authStore.user, res.data.token);
+            const user = res.data.user || authStore.user || {};
+            authStore.applySession({ ...user, mfa_enabled: true }, res.data.token);
         }
     } catch {
         ElMessage.error(t('mfa_page.messages.verify_failed'));
@@ -272,8 +310,6 @@ function copyCode(code) {
     navigator.clipboard.writeText(code);
     ElMessage.success(t('mfa_page.messages.code_copied'));
 }
-
-onMounted(fetchData);
 </script>
 
 <style scoped>
@@ -297,12 +333,27 @@ onMounted(fetchData);
     border-radius: 8px;
     margin: 16px 0;
 }
+.qr-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+.qr-image {
+    display: block;
+    border-radius: 8px;
+    background: #fff;
+    padding: 8px;
+}
 .secret-box, .uri-box {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 8px;
     word-break: break-all;
+}
+.uri-hint {
+    font-size: 12px;
+    color: #909399;
 }
 .codes-card {
     max-height: 300px;

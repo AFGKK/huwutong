@@ -12,9 +12,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * MFA 控制器
+ * MFA 控制�?
  *
- * 提供 MFA 配置、验证、设备管理和恢复码功能的 API。
+ * 提供 MFA 配置、验证、设备管理和恢复码功能的 API�?
  */
 class MfaController extends Controller
 {
@@ -25,7 +25,7 @@ class MfaController extends Controller
     // ─── 获取 TOTP 配置 ───
 
     /**
-     * 获取 TOTP 设置信息（密钥 + 二维码 URI）
+     * 获取 TOTP 设置信息（密�?+ 二维�?URI�?
      *
      * GET /api/mfa/setup
      */
@@ -40,7 +40,7 @@ class MfaController extends Controller
     }
 
     /**
-     * 确认并启用 MFA
+     * 确认并启�?MFA
      *
      * POST /api/mfa/confirm
      */
@@ -54,7 +54,7 @@ class MfaController extends Controller
 
         $user = $request->user();
 
-        // 先验证 TOTP 码
+        // 先验�?TOTP �?
         if (! $this->mfaService->verifyTOTP($data['secret'], $data['code'])) {
             return ApiResponse::error('MFA_CODE_INVALID', __('app.api.mfa.code_invalid_retry'), 400);
         }
@@ -64,12 +64,12 @@ class MfaController extends Controller
         // 启用 MFA
         $device = $this->mfaService->enableMfa($user, $deviceName, $data['secret']);
 
-        // 生成恢复码
+        // 生成恢复�?
         $recoveryCodes = $this->mfaService->generateRecoveryCodes($user);
 
-        // 绑定完成后：吊销 setup token，签发完整会话
+        // 绑定完成后：吊销 setup token，签发完整会�?
         $user->tokens()->where('name', 'mfa-setup')->delete();
-        $fullToken = $user->createToken('auth-token', ['*'])->plainTextToken;
+        $fullToken = $user->createToken('auth-token', $user->tokenAbilities())->plainTextToken;
 
         $user->update([
             'last_login_at' => now(),
@@ -88,7 +88,7 @@ class MfaController extends Controller
     // ─── 验证 MFA ───
 
     /**
-     * 验证 MFA 码（用于登录后的 MFA 验证步骤）
+     * 验证 MFA 码（用于登录后的 MFA 验证步骤�?
      *
      * POST /api/mfa/verify
      */
@@ -105,7 +105,7 @@ class MfaController extends Controller
             return ApiResponse::error('MFA_CODE_INVALID', __('app.api.mfa.code_invalid'), 401);
         }
 
-        // 更新设备最后使用时间
+        // 更新设备最后使用时�?
         MfaDevice::where('user_id', $user->id)
             ->where('type', 'totp')
             ->latest()
@@ -121,7 +121,7 @@ class MfaController extends Controller
     // ─── 设备管理 ───
 
     /**
-     * 获取用户绑定的 MFA 设备列表
+     * 获取用户绑定�?MFA 设备列表
      *
      * GET /api/mfa/devices
      */
@@ -140,7 +140,7 @@ class MfaController extends Controller
     }
 
     /**
-     * 重命名 MFA 设备
+     * 重命�?MFA 设备
      *
      * PUT /api/mfa/devices/{device}/rename
      */
@@ -183,7 +183,7 @@ class MfaController extends Controller
         return ApiResponse::success(null, __('app.api.mfa.device_unbound'));
     }
 
-    // ─── 恢复码管理 ───
+    // ─── 恢复码管�?───
 
     /**
      * 获取恢复码状态（剩余数量，不返回具体码）
@@ -202,7 +202,7 @@ class MfaController extends Controller
     }
 
     /**
-     * 重新生成恢复码（旧的立即失效）
+     * 重新生成恢复码（旧的立即失效�?
      *
      * POST /api/mfa/recovery-codes/regenerate
      */
@@ -241,10 +241,10 @@ class MfaController extends Controller
         return ApiResponse::success(null, __('app.api.mfa.disabled'));
     }
 
-    // ─── 管理员接口 ───
+    // ─── 管理员接�?───
 
     /**
-     * 管理员强制重置用户 MFA
+     * 管理员强制重置用�?MFA
      *
      * POST /api/admin/users/{user}/reset-mfa
      */
@@ -280,10 +280,10 @@ class MfaController extends Controller
         return ApiResponse::paginated($query->paginate(min($data['per_page'] ?? 20, 100)));
     }
 
-    // ─── 登录时 MFA 验证 ───
+    // ─── 登录�?MFA 验证 ───
 
     /**
-     * 登录后 MFA 验证（获取临时 token 后进行第二步验证）
+     * 登录�?MFA 验证（获取临�?token 后进行第二步验证�?
      *
      * POST /api/mfa/login
      */
@@ -310,7 +310,7 @@ class MfaController extends Controller
         }
 
         // 登录成功
-        $token = $user->createToken('auth-token', ['*'])->plainTextToken;
+        $token = $user->createToken('auth-token', $user->tokenAbilities())->plainTextToken;
 
         $user->update([
             'last_login_at' => now(),
@@ -325,7 +325,7 @@ class MfaController extends Controller
     }
 
     /**
-     * 登录时检查是否需要 MFA（密码验证通过后调用）
+     * 登录时检查是否需�?MFA（密码验证通过后调用）
      *
      * POST /api/mfa/check-required
      */

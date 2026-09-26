@@ -168,4 +168,38 @@ class User extends Authenticatable
     {
         return $this->hasMany(\App\Models\UserTutorialProgress::class);
     }
+
+    /**
+     * Sanctum token abilities（禁止发放 ['*']，否则 ability:admin 闸门形同虚设）。
+     *
+     * @return list<string>
+     */
+    public function tokenAbilities(): array
+    {
+        $abilities = ['customer'];
+
+        app(\Spatie\Permission\PermissionRegistrar::class)
+            ->setPermissionsTeamId($this->tenant_id ?? 1);
+        $this->unsetRelation('roles');
+
+        if ($this->hasRole('super-admin')) {
+            $abilities[] = 'super-admin';
+            $abilities[] = 'admin';
+        } elseif ($this->hasRole('admin') || $this->hasRole('tenant-admin')) {
+            $abilities[] = 'admin';
+        }
+
+        return array_values(array_unique($abilities));
+    }
+
+    public function isAdminLike(): bool
+    {
+        app(\Spatie\Permission\PermissionRegistrar::class)
+            ->setPermissionsTeamId($this->tenant_id ?? 1);
+        $this->unsetRelation('roles');
+
+        return $this->hasRole('super-admin')
+            || $this->hasRole('admin')
+            || $this->hasRole('tenant-admin');
+    }
 }

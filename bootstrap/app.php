@@ -151,6 +151,22 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+        // DB 异常：永不向客户端泄露 SQL 细节（即使 APP_DEBUG=true）
+        $exceptions->render(function (\Illuminate\Database\QueryException $e, Request $request) use ($errorCodeService) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                \Illuminate\Support\Facades\Log::error('API QueryException', [
+                    'message' => $e->getMessage(),
+                    'sql' => $e->getSql(),
+                ]);
+
+                return ApiResponse::error(
+                    ErrorCode::SYS_INTERNAL_ERROR->value,
+                    $errorCodeService->message(ErrorCode::SYS_INTERNAL_ERROR),
+                    500
+                );
+            }
+        });
+
         // 认证错误 → 统一格式
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
@@ -183,10 +199,14 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // 全局兜底 — 捕获未处理异常
+        // 全局兜底 — 捕获未处理异常（绝不回传绝对路径/类签名）
         $exceptions->render(function (\Throwable $e, Request $request) use ($errorCodeService) {
             if ($request->expectsJson() || $request->is('api/*')) {
-                $message = config('app.debug') ? $e->getMessage() : $errorCodeService->message(ErrorCode::SYS_INTERNAL_ERROR);
+                $raw = $e->getMessage();
+                $leaksPath = (bool) preg_match('/(?:[A-Za-z]:\\\\|\/(?:app|vendor|www)\/|Argument #\d+)/', $raw);
+                $message = (config('app.debug') && ! $leaksPath)
+                    ? $raw
+                    : $errorCodeService->message(ErrorCode::SYS_INTERNAL_ERROR);
 
                 return ApiResponse::error(
                     ErrorCode::SYS_INTERNAL_ERROR->value,

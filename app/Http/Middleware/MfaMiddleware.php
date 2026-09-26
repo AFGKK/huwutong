@@ -13,10 +13,24 @@ use Symfony\Component\HttpFoundation\Response;
  * MFA 中间件
  *
  * - 策略要求但未绑定：仅放行 setup/confirm，其余返回 MFA_SETUP_REQUIRED
- * - 已绑定：要求 X-MFA-Code / mfa_code（管理类接口）
+ * - 已绑定：敏感写操作要求 X-MFA-Code；只读状态查询放行（避免设置页误判未启用）
  */
 class MfaMiddleware
 {
+    /** @var list<string> 未绑定时允许的引导接口 */
+    private array $bootstrapPaths = [
+        'api/mfa/setup',
+        'api/mfa/confirm',
+    ];
+
+    /** @var list<string> 已绑定后允许无 MFA 码的只读接口 */
+    private array $readOnlyPaths = [
+        'api/mfa/devices',
+        'api/mfa/recovery-codes',
+        'api/mfa/setup',
+        'api/mfa/confirm',
+    ];
+
     public function handle(Request $request, Closure $next): Response
     {
         /** @var User|null $user */
@@ -43,7 +57,8 @@ class MfaMiddleware
         }
 
         $path = trim($request->path(), '/');
-        $isBootstrap = in_array($path, ['api/mfa/setup', 'api/mfa/confirm'], true);
+        $isBootstrap = in_array($path, $this->bootstrapPaths, true);
+        $isReadOnly = $request->isMethod('GET') && in_array($path, $this->readOnlyPaths, true);
 
         // 3. 策略要求但尚未启用：只允许绑定向导
         if (! $user->mfa_enabled) {
@@ -73,12 +88,12 @@ class MfaMiddleware
             );
         }
 
-        // 5. 绑定接口本身不需要再验码
-        if ($isBootstrap) {
+        // 5. 绑定引导 / 只读状态查询：已登录会话即可
+        if ($isBootstrap || $isReadOnly) {
             return $next($request);
         }
 
-        // 6. 已启用 MFA，检查请求是否包含 MFA 码
+        // 6. 敏感操作（禁用/删设备/重生成恢复码等）要求 MFA 码
         $mfaCode = $request->header('X-MFA-Code') ?? $request->input('mfa_code');
 
         if (! $mfaCode) {

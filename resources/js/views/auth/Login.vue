@@ -141,7 +141,7 @@
 
       <!-- Passkey / 扫码 / 忘记密码 -->
       <div class="alt-login-row">
-        <el-button type="success" plain :disabled="!passkeySupported" size="default" class="flex-1" @click="handlePasskeyLogin">
+        <el-button type="success" plain :disabled="!passkeySupported" :loading="passkeyLoading" size="default" class="flex-1" @click="handlePasskeyLogin">
           <el-icon :size="16" style="margin-right:4px"><Link /></el-icon> Passkey
         </el-button>
         <el-button type="warning" plain size="default" class="flex-1" @click="showQrPanel = !showQrPanel">
@@ -345,7 +345,7 @@ async function loadBranding() {
       branding.button_radius = config.button_radius || '4px';
 
       const cssVars = data?.data?.css_variables;
-      if (cssVars) {
+      if (cssVars && !Array.isArray(cssVars)) {
         const root = document.documentElement;
         Object.entries(cssVars).forEach(([key, val]) => {
           root.style.setProperty(key, val);
@@ -363,8 +363,30 @@ async function loadBranding() {
         document.head.appendChild(link);
       }
     }
+
+    // 门户品牌无 logo 时回退站点公开设置
+    if (!branding.logo_url) {
+      try {
+        const { data: pubRes } = await apiClient.get('/settings/public');
+        const pub = pubRes?.data || {};
+        branding.logo_url = pub.logo_url || '/images/logo.svg';
+        if (!branding.brand_name && pub.site_name) branding.brand_name = pub.site_name;
+        if (pub.primary_color) branding.primary_color = pub.primary_color;
+        if (!branding.footer_text && pub.footer_copyright) branding.footer_text = pub.footer_copyright;
+      } catch {
+        branding.logo_url = '/images/logo.svg';
+      }
+    }
   } catch (e) {
-    // 使用默认品牌
+    try {
+      const { data: pubRes } = await apiClient.get('/settings/public');
+      const pub = pubRes?.data || {};
+      branding.logo_url = pub.logo_url || '/images/logo.svg';
+      branding.brand_name = pub.site_name || t('admin.title');
+      branding.primary_color = pub.primary_color || '#0f172a';
+    } catch {
+      branding.logo_url = '/images/logo.svg';
+    }
   } finally {
     loadingBranding.value = false;
   }
@@ -510,32 +532,58 @@ async function sendMagicLink() {
 
 // ─── Passkey 登录 ───
 async function handlePasskeyLogin() {
-  if (!window.PublicKeyCredential) { ElMessage.warning(t('auth.passkey_unsupported_webauthn')); return; }
+  if (!window.PublicKeyCredential) {
+    ElMessage.warning(t('auth.passkey_unsupported_webauthn'));
+    return;
+  }
   if (passkeyLoading.value) return;
+
+  // 需先填邮箱，才能查出该账号已注册的 Passkey
+  if (!String(form.email || '').trim()) {
+    ElMessage.warning(t('auth.passkey_email_required'));
+    return;
+  }
+
   passkeyLoading.value = true;
   try {
-    // 1. Get login options from server
-    const { data: optRes } = await apiClient.post('/auth/webauthn/login/options', { email: form.email || undefined });
-    const opts = optRes.data;
+    const { data: optRes } = await apiClient.post('/auth/webauthn/login/options', {
+      email: form.email.trim(),
+    });
+    const opts = optRes?.data;
+    if (!opts?.challenge) {
+      ElMessage.error(t('auth.passkey_login_fail'));
+      return;
+    }
 
-    // 2. Check if user has any passkeys registered
-    if (opts.allowCredentials && opts.allowCredentials.length === 0) {
+    if (!opts.allowCredentials || opts.allowCredentials.length === 0) {
       ElMessage.warning(t('auth.passkey_not_registered'));
       return;
     }
 
-    // 3. Call browser WebAuthn API
+    // 与当前访问域名对齐，避免 APP_URL 与浏览器主机不一致导致静默失败
+    const rpId = window.location.hostname || opts.rpId;
+
     const cred = await navigator.credentials.get({
       publicKey: {
-        challenge: base64ToUint8(opts.challenge), rpId: opts.rpId,
-        allowCredentials: (opts.allowCredentials || []).map(c => ({ ...c, id: base64ToUint8(c.id) })),
-        userVerification: opts.userVerification || 'preferred', timeout: opts.timeout || 300000,
+        challenge: base64ToUint8(opts.challenge),
+        rpId,
+        allowCredentials: (opts.allowCredentials || []).map((c) => ({
+          ...c,
+          id: base64ToUint8(c.id),
+        })),
+        userVerification: opts.userVerification || 'preferred',
+        timeout: opts.timeout || 300000,
       },
     });
 
-    // 4. Verify with server
+    if (!cred) {
+      ElMessage.info(t('auth.passkey_cancelled'));
+      return;
+    }
+
     const { data: vr } = await apiClient.post('/auth/webauthn/login/verify', {
-      id: cred.id, rawId: bufToBase64(cred.rawId),
+      id: cred.id,
+      rawId: bufToBase64(cred.rawId),
       response: {
         clientDataJSON: bufToBase64(cred.response.clientDataJSON),
         authenticatorData: bufToBase64(cred.response.authenticatorData),
@@ -545,22 +593,30 @@ async function handlePasskeyLogin() {
     });
     if (vr.success) {
       const { user, token } = vr.data;
-      authStore.user = user; authStore.token = token;
-      localStorage.setItem('auth_token', token); localStorage.setItem('user', JSON.stringify(user));
-      ElMessage.success(t('auth.passkey_login_ok')); router.push(loginRedirectPath());
+      authStore.user = user;
+      authStore.token = token;
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      ElMessage.success(t('auth.passkey_login_ok'));
+      router.push(loginRedirectPath());
+    } else {
+      ElMessage.error(vr.message || t('auth.passkey_login_fail'));
     }
   } catch (e) {
-    if (e.name === 'NotAllowedError') {
-      // 用户取消操作，无需提示
-    } else if (e.name === 'NotFoundError') {
+    if (e?.name === 'NotAllowedError' || e?.name === 'AbortError') {
+      ElMessage.info(t('auth.passkey_cancelled'));
+    } else if (e?.name === 'NotFoundError') {
       ElMessage.warning(t('auth.passkey_not_found'));
-    } else if (e.response?.data?.message) {
+    } else if (e?.name === 'SecurityError' || e?.name === 'InvalidStateError') {
+      ElMessage.error(t('auth.passkey_security_error'));
+    } else if (e?.response?.data?.message) {
       ElMessage.error(e.response.data.message);
     } else {
       ElMessage.error(t('auth.passkey_login_fail'));
     }
+  } finally {
+    passkeyLoading.value = false;
   }
-  finally { passkeyLoading.value = false; }
 }
 
 // ─── 扫码登录 ───

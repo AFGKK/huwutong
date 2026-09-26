@@ -3,11 +3,12 @@
 /**
  * 功能开关（优化方案 v1 · MVP 收敛）
  *
- * mvp_mode=true 时，后台菜单仅展示标注 mvp 的入口。
- * 可通过 .env FEATURES_MVP_MODE=false 恢复全量菜单。
+ * mvp_mode=true 时，后台菜单仅展示核心入口。
+ * 优先级：系统设置 mvp_mode_enabled（SiteSettingRuntimeOverlay）> .env FEATURES_MVP_MODE。
+ * 后台「系统设置 → 界面设置」可开关；默认关闭（显示全部侧边栏）。
  */
 return [
-    'mvp_mode' => (bool) env('FEATURES_MVP_MODE', true),
+    'mvp_mode' => filter_var(env('FEATURES_MVP_MODE', false), FILTER_VALIDATE_BOOLEAN),
 
     // 单模块开关（供路由/API 使用；菜单以 mvp 标注为主）
     'modules' => [

@@ -212,7 +212,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Loading } from '@element-plus/icons-vue';
@@ -224,6 +224,7 @@ import PointsDaily from './PointsDaily.vue';
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 const profileTabs = ['profile', 'points', 'interactions'];
 
 const tabLabels = computed(() =>
@@ -422,7 +423,17 @@ async function savePrefs() {
 }
 
 function gotoUrl(url) {
-    if (url) window.location.href = url;
+    if (!url) return;
+    // 后台 SPA 内跳转（如 /build/mfa → /mfa）
+    if (url.startsWith('/build/')) {
+        router.push(url.slice('/build'.length) || '/');
+        return;
+    }
+    if (url.startsWith('/')) {
+        router.push(url);
+        return;
+    }
+    window.location.href = url;
 }
 
 onMounted(() => {

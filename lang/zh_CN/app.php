@@ -1969,6 +1969,7 @@ return [
             'validation_failed' => '下单校验未通过',
             'order_created_pay' => '订单创建成功，请完成支付',
             'order_created' => '订单创建成功',
+            'sku_not_found' => '商品不存在或已下架',
         ],
         'payment' => [
             'duplicate' => '重复通知',
@@ -4971,6 +4972,8 @@ return [
         'product_localization' => [
             'msg_9131080d' => '翻译已保存',
             'msg_5cc23262' => '已删除',
+            'translation_saved' => '翻译已保存',
+            'deleted' => '已删除',
         ],
         'prompt_template' => [
             'msg_7f891f3a' => 'Prompt 模板已创建',
@@ -6023,6 +6026,8 @@ return [
             'params_incomplete' => '参数不完整',
             'assigned_n' => '已分配 :count 个工单',
             'deleted_n' => '已删除 :count 个工单',
+            'tenant_required' => '无法确定所属租户，请联系管理员',
+            'create_failed' => '工单提交失败，请稍后重试',
             'csv_headers' => ['ID', '标题', '分类', '优先级', '状态', '客户', '处理人', '创建时间', '描述'],
         ],
         'webhook' => [
@@ -6572,6 +6577,7 @@ return [
             'forbidden' => '无权访问',
             'order_not_found' => '订单不存在',
             'refund_submitted' => '退款申请已提交',
+            'refund_list_failed' => '获取退款列表失败',
         ],
         'gdpr' => [
             'dsr_submitted' => 'DSR 请求已提交',

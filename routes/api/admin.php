@@ -205,13 +205,13 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::delete('/domains/{domain}', [CustomDomainController::class, 'destroy'])->whereNumber('domain');
 
         // 🆕 域名白名单验证 (M2-71)
-        Route::prefix('admin/domain-whitelist')->group(function () {
+        Route::middleware(['ability:admin,super-admin'])->prefix('admin/domain-whitelist')->group(function () {
             Route::post('/verify', [DomainWhitelistController::class, 'verify']);
             Route::get('/approvals/pending', [DomainWhitelistController::class, 'pendingApprovals']);
             Route::post('/approvals/{id}/approve', [DomainWhitelistController::class, 'approve'])->whereNumber('id');
             Route::post('/approvals/{id}/reject', [DomainWhitelistController::class, 'reject'])->whereNumber('id');
         });
-        Route::prefix('admin/licenses/{license}/domain-whitelist')->whereNumber('license')->group(function () {
+        Route::middleware(['ability:admin,super-admin'])->prefix('admin/licenses/{license}/domain-whitelist')->whereNumber('license')->group(function () {
             Route::get('/', [DomainWhitelistController::class, 'index']);
             Route::post('/', [DomainWhitelistController::class, 'store']);
             Route::post('/batch', [DomainWhitelistController::class, 'batchStore']);
@@ -232,6 +232,11 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::post('/licenses/lookup', [LicenseController::class, 'lookup']);
         Route::post('/licenses/{license}/restore', [LicenseController::class, 'restoreFromTrash'])->whereNumber('license');
         Route::get('/licenses/stats', [LicenseController::class, 'stats']);
+        Route::get('/licenses/{license}/key-format', [LicenseController::class, 'keyFormat'])->whereNumber('license');
+        Route::post('/licenses/batch-key-format', [LicenseController::class, 'batchKeyFormat']);
+        Route::middleware(['ability:admin,super-admin'])->group(function () {
+            Route::post('/admin/license-key/prefix-migrate', [LicenseController::class, 'prefixMigrate']);
+        });
 
         // License 变更审批 (M2-11)
         Route::get('/licenses/approvals/dashboard', [ApprovalWorkflowController::class, 'dashboard']);
@@ -269,7 +274,7 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::put('/skus/{id}', [OrderController::class, 'updateSku'])->whereNumber('id');
         Route::delete('/skus/{id}', [OrderController::class, 'destroySku'])->whereNumber('id');
         // 🆕 SKU 管理后台独立路由
-        Route::prefix('admin/product-skus')->group(function () {
+        Route::middleware(['ability:admin,super-admin'])->prefix('admin/product-skus')->group(function () {
             Route::get('/dashboard', [SkuController::class, 'dashboard']);
             Route::get('/', [SkuController::class, 'index']);
             Route::get('/{id}', [SkuController::class, 'show'])->whereNumber('id');
@@ -316,7 +321,7 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         });
 
         // 🆕 计费周期管理
-        Route::prefix('admin/billing-cycles')->group(function () {
+        Route::middleware(['ability:admin,super-admin'])->prefix('admin/billing-cycles')->group(function () {
             Route::get('/', [BillingCycleController::class, 'index']);
             Route::post('/', [BillingCycleController::class, 'store']);
             Route::put('/{id}', [BillingCycleController::class, 'update'])->whereNumber('id');
@@ -332,6 +337,7 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::post('/products/{product}/seo', [ProductController::class, 'saveSeo'])->whereNumber('product');
         // Product Translations
         Route::post('/products/{product}/translations', [ProductController::class, 'saveTranslations'])->whereNumber('product');
+        Route::get('/products/{product}/translations', [ProductController::class, 'translations'])->whereNumber('product');
         Route::get('/products/{product}/features', [ProductController::class, 'features'])->whereNumber('product');
         Route::post('/products/{product}/features', [ProductController::class, 'assignFeature'])->whereNumber('product');
         Route::get('/products/{product}/licenses', [ProductController::class, 'licenses'])->whereNumber('product');
@@ -698,9 +704,11 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::get('/dev-portal/public', [DevPortalController::class, 'publicData']);
         Route::get('/dev-portal/sdks', [DevPortalController::class, 'sdks']);
         Route::get('/dev-portal/quickstart-steps', [DevPortalController::class, 'quickstartSteps']);
-        Route::get('/admin/dev-portal/dashboard', [DevPortalController::class, 'dashboard']);
-        Route::get('/admin/dev-portal/sdks', [DevPortalController::class, 'sdks']);
-        Route::get('/admin/dev-portal/quickstart-steps', [DevPortalController::class, 'quickstartSteps']);
+        Route::middleware(['ability:admin,super-admin'])->group(function () {
+            Route::get('/admin/dev-portal/dashboard', [DevPortalController::class, 'dashboard']);
+            Route::get('/admin/dev-portal/sdks', [DevPortalController::class, 'sdks']);
+            Route::get('/admin/dev-portal/quickstart-steps', [DevPortalController::class, 'quickstartSteps']);
+        });
 
         require __DIR__.'/developer.php';
         require __DIR__.'/operations.php';
@@ -760,6 +768,7 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::prefix('cart')->group(function () {
             Route::get('/', [CartController::class, 'show']);
             Route::post('/add', [CartController::class, 'add']);
+            Route::post('/items', [CartController::class, 'add']); // 兼容别名
             Route::put('/update', [CartController::class, 'update']);
             Route::post('/remove', [CartController::class, 'remove']);
             Route::post('/clear', [CartController::class, 'clear']);
@@ -899,6 +908,10 @@ Route::middleware(['auth:sanctum', 'apm', 'tenant'])->group(function () {
         Route::post('/kb/categories', [KbController::class, 'storeCategory']);
         Route::put('/kb/categories/{category}', [KbController::class, 'updateCategory'])->whereNumber('category');
         Route::delete('/kb/categories/{category}', [KbController::class, 'destroyCategory'])->whereNumber('category');
+        Route::post('/kb/batch/delete', [KbController::class, 'batchDelete']);
+        Route::post('/kb/batch/publish', [KbController::class, 'batchPublish']);
+        Route::post('/kb/batch/archive', [KbController::class, 'batchArchive']);
+        Route::get('/kb/export/markdown', [KbController::class, 'exportMarkdown']);
 
         // RAG Engine (admin)
         Route::post('/rag/articles/{article}/index', [RagController::class, 'indexArticle'])->whereNumber('article');
@@ -2112,7 +2125,8 @@ Route::middleware(['auth:sanctum', 'ability:admin,super-admin'])->prefix('ai-com
 // ── 高级搜索 (AdvancedSearch) ──
 Route::middleware(['auth:sanctum', 'ability:admin,super-admin'])->prefix('advanced-search')->group(function () {
     Route::get('/filters', [AdvancedSearchController::class, 'allFilterDefinitions']);
-    Route::post('/search/{page}', [AdvancedSearchController::class, 'search'])->whereNumber('page');
+    Route::get('/filters/{page}', [AdvancedSearchController::class, 'filterDefinitions'])->where('page', '[A-Za-z0-9_\-]+');
+    Route::post('/search/{page}', [AdvancedSearchController::class, 'search'])->where('page', '[A-Za-z0-9_\-]+');
     Route::get('/saved', [AdvancedSearchController::class, 'savedSearches']);
     Route::post('/saved', [AdvancedSearchController::class, 'saveSearch']);
     Route::put('/saved/{id}', [AdvancedSearchController::class, 'updateSavedSearch'])->whereNumber('id');

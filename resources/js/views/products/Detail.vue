@@ -222,7 +222,9 @@
                                 <el-table-column :label="t('product_detail_page.col_name')" prop="name" min-width="160" />
                                 <el-table-column :label="t('products_page.field_description')" prop="description" min-width="200" />
                                 <el-table-column :label="t('product_detail_page.col_actions')" width="80">
-                                    <template #default="{ $index }"><el-button text size="small" type="danger" @click="translations.splice($index,1)">{{ t('actions.delete') }}</el-button></template>
+                                    <template #default="{ row, $index }">
+                                        <el-button text size="small" type="danger" @click="removeTranslation(row, $index)">{{ t('actions.delete') }}</el-button>
+                                    </template>
                                 </el-table-column>
                             </el-table>
                             <el-button type="primary" :loading="transSubmitting" @click="saveTranslations" style="margin-top:12px">{{ t('product_detail_page.save_translations') }}</el-button>
@@ -462,8 +464,8 @@ const billingCycleOptions = computed(() => [
 ]);
 
 const localeOptions = computed(() => [
+    { label: t('product_detail_page.locale_zh'), value: 'zh_CN' },
     { label: t('product_detail_page.locale_en'), value: 'en' },
-    { label: t('product_detail_page.locale_zh'), value: 'zh' },
     { label: t('product_detail_page.locale_ja'), value: 'ja' },
     { label: t('product_detail_page.locale_zh_tw'), value: 'zh-TW' },
 ]);
@@ -480,8 +482,9 @@ function billingCycleLabel(cycle) {
 
 function localeLabel(loc) {
     const map = {
-        en: t('product_detail_page.locale_en'),
+        zh_CN: t('product_detail_page.locale_zh'),
         zh: t('product_detail_page.locale_zh'),
+        en: t('product_detail_page.locale_en'),
         ja: t('product_detail_page.locale_ja'),
         'zh-TW': t('product_detail_page.locale_zh_tw'),
     };
@@ -874,19 +877,55 @@ async function saveSeo() {
 const translations = ref([]);
 const transSubmitting = ref(false);
 const showTransDialog = ref(false);
-const transForm = reactive({ locale: 'en', name: '', description: '' });
+const transForm = reactive({ locale: 'zh_CN', name: '', description: '' });
+
+async function loadTranslations() {
+    try {
+        const { data: res } = await productApi.getTranslations(productId);
+        translations.value = Array.isArray(res?.data) ? res.data : [];
+    } catch {
+        translations.value = [];
+    }
+}
 
 function addTranslation() { showTransDialog.value = true; }
 function confirmAddTranslation() {
-    translations.value.push({ ...transForm });
+    const idx = translations.value.findIndex(row => row.locale === transForm.locale);
+    if (idx >= 0) {
+        translations.value[idx] = { ...transForm };
+    } else {
+        translations.value.push({ ...transForm });
+    }
     showTransDialog.value = false;
-    transForm.locale = 'en'; transForm.name = ''; transForm.description = '';
+    transForm.locale = 'zh_CN';
+    transForm.name = '';
+    transForm.description = '';
+}
+async function removeTranslation(row, index) {
+    try {
+        await ElMessageBox.confirm(t('product_detail_page.delete_translation_confirm'), { type: 'warning' });
+    } catch {
+        return;
+    }
+    try {
+        const { deleteProductTranslation } = await import('@/api/productLocalization');
+        await deleteProductTranslation(productId, { locale: row.locale });
+        translations.value.splice(index, 1);
+        ElMessage.success(t('product_detail_page.translation_deleted'));
+    } catch {
+        ElMessage.error(t('product_detail_page.save_failed'));
+    }
 }
 async function saveTranslations() {
+    if (!translations.value.length) {
+        ElMessage.warning(t('product_detail_page.no_translations'));
+        return;
+    }
     transSubmitting.value = true;
     try {
         await productApi.saveTranslations(productId, translations.value);
         ElMessage.success(t('product_detail_page.translations_saved'));
+        await loadTranslations();
     } catch { ElMessage.error(t('product_detail_page.save_failed')); }
     finally { transSubmitting.value = false; }
 }
@@ -898,6 +937,7 @@ onMounted(() => {
     loadSeo();
     loadSpecs();
     loadDemos();
+    loadTranslations();
 });
 </script>
 

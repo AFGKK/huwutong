@@ -314,6 +314,9 @@ class OrderService
         }
 
         return DB::transaction(function () use ($order, $reason) {
+            // 取消前回载明细，确保库存回滚生效
+            $order->loadMissing('items');
+
             $order->transitionTo(Order::STATUS_CANCELLED);
             $order->update([
                 'cancelled_at' => now(),
@@ -326,7 +329,7 @@ class OrderService
             // 回滚优惠券核销
             $this->rollbackCoupon($order);
 
-            return $order->fresh();
+            return $order->fresh(['items']);
         });
     }
 
@@ -509,14 +512,18 @@ class OrderService
     {
         $query = Order::with(['items.sku.product', 'user', 'deliveries']);
 
-        if (!empty($filters['tenant_id'])) {
+        if (! empty($filters['tenant_id'])) {
             $query->where('tenant_id', $filters['tenant_id']);
         }
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
-        if (!empty($filters['user_id'])) {
+        if (! empty($filters['user_id'])) {
             $query->where('user_id', $filters['user_id']);
+        }
+        // 无租户且无用户范围时禁止扫全表
+        if (empty($filters['tenant_id']) && empty($filters['user_id'])) {
+            $query->whereRaw('1 = 0');
         }
         if (!empty($filters['search'])) {
             $query->where(function ($q) use ($filters) {

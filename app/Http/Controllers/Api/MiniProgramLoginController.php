@@ -121,7 +121,7 @@ class MiniProgramLoginController extends Controller
         }
 
         // 生成 Token（7天过期）
-        $token = $user->createToken('wechat_miniprogram', ['*'], now()->addDays(7))->plainTextToken;
+        $token = $user->createToken('wechat_miniprogram', $user->tokenAbilities(), now()->addDays(7))->plainTextToken;
 
         $deviceBindId = 'wx_mp_' . substr(hash('sha256', $openid), 0, 24);
 

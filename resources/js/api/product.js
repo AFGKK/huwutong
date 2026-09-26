@@ -67,4 +67,7 @@ export default {
     saveTranslations(productId, translations) {
         return apiClient.post(`/products/${productId}/translations`, { translations });
     },
+    getTranslations(productId) {
+        return apiClient.get(`/products/${productId}/translations`);
+    },
 };

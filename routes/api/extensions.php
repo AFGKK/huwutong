@@ -37,7 +37,7 @@ use App\Http\Controllers\Api\WorkflowController;
 use App\Http\Controllers\Api\ZapierController;
 
 // ── 更新日志 ──
-Route::prefix('admin/changelog')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/changelog')->group(function () {
     Route::get('/', [ChangelogController::class, 'index']);
     Route::post('/', [ChangelogController::class, 'store']);
     Route::get('/stats', [ChangelogController::class, 'stats']);
@@ -56,10 +56,9 @@ $changelogPublicRoutes = function () {
     Route::get('/versions', [ChangelogController::class, 'publicByVersion']);
 };
 Route::prefix('changelog')->group($changelogPublicRoutes);
-Route::prefix('api/changelog')->group($changelogPublicRoutes);
 
 // ── 发票增强 ──
-Route::prefix('admin/invoice-enhance')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/invoice-enhance')->group(function () {
     Route::get('/templates', [InvoiceEnhancementController::class, 'templates']);
     Route::post('/templates', [InvoiceEnhancementController::class, 'storeTemplate']);
     Route::put('/templates/{invoiceTemplate}', [InvoiceEnhancementController::class, 'updateTemplate']);
@@ -101,10 +100,9 @@ $prepaidAdminRoutes = function () {
     Route::get('/customers/{customer}/credit-limit', [PrepaidBalanceController::class, 'getCreditLimit']);
 };
 Route::prefix('billing/prepaid')->group($prepaidAdminRoutes);
-Route::prefix('api/billing/prepaid')->group($prepaidAdminRoutes);
 
 // ── 二手市场 ──
-Route::prefix('admin/resale')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/resale')->group(function () {
     Route::get('/marketplace', [ResaleController::class, 'browseMarketplace']);
     Route::get('/stats', [ResaleController::class, 'marketStats']);
     Route::get('/stats/seller', [ResaleController::class, 'sellerStats']);
@@ -145,7 +143,7 @@ Route::prefix('roi-calculator')->group(function () {
 });
 
 // ── 报表构建器 ──
-Route::prefix('admin/report-builder')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/report-builder')->group(function () {
     Route::get('/data-sources', [ReportBuilderController::class, 'dataSources']);
     Route::get('/dashboard', [ReportBuilderController::class, 'dashboard']);
     Route::get('/reports', [ReportBuilderController::class, 'reports']);
@@ -172,7 +170,7 @@ Route::prefix('saved-searches')->group(function () {
 });
 
 // ── 定时通知 ──
-Route::prefix('admin/scheduled-notification')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/scheduled-notification')->group(function () {
     Route::get('/dashboard', [ScheduledNotificationController::class, 'dashboard']);
     Route::get('/options/list', [ScheduledNotificationController::class, 'options']);
     Route::get('/', [ScheduledNotificationController::class, 'index']);
@@ -200,7 +198,7 @@ Route::prefix('ssl-certificates')->group(function () {
 });
 
 // ── 智能合约 ──
-Route::prefix('admin/contracts')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/contracts')->group(function () {
     Route::get('/dashboard', [SmartContractController::class, 'dashboard']);
     Route::get('/trends', [SmartContractController::class, 'trends']);
     Route::get('/types', [SmartContractController::class, 'types']);
@@ -230,14 +228,14 @@ Route::prefix('webhook-simulator')->group(function () {
 });
 
 // ── Zapier 集成 ──
-Route::prefix('admin/zapier')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/zapier')->group(function () {
     Route::get('/dashboard', [ZapierController::class, 'dashboard']);
     Route::get('/workflow-templates', [ZapierController::class, 'workflowTemplates']);
     Route::get('/embed-config', [ZapierController::class, 'embedConfig']);
 });
 
 // ── 增值服务（VAS） ──
-Route::prefix('admin/vas')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/vas')->group(function () {
     Route::get('/categories', [VasAdminController::class, 'categories']);
     Route::get('/billing-modes', [VasAdminController::class, 'billingModes']);
     Route::get('/services', [VasAdminController::class, 'services']);
@@ -268,10 +266,9 @@ $tenantTeamRoutes = function () {
     Route::post('/leave', [TenantTeamController::class, 'leave']);
 };
 Route::prefix('team')->group($tenantTeamRoutes);
-Route::prefix('api/team')->group($tenantTeamRoutes);
 
 // ── SLO / 链路追踪 ──
-Route::prefix('admin/slo')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/slo')->group(function () {
     Route::get('/dashboard', [SloController::class, 'dashboard']);
     Route::get('/meta/sli-types', [SloController::class, 'sliTypes']);
     Route::post('/calculate-all', [SloController::class, 'calculateAll']);
@@ -283,7 +280,7 @@ Route::prefix('admin/slo')->group(function () {
     Route::post('/{sloDefinition}/calculate', [SloController::class, 'calculate']);
 });
 
-Route::prefix('admin/tracing')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/tracing')->group(function () {
     Route::get('/stats', [TracingController::class, 'stats']);
     Route::get('/', [TracingController::class, 'index']);
     Route::get('/{id}', [TracingController::class, 'show'])->whereNumber('id');
@@ -306,7 +303,7 @@ Route::prefix('status')->group(function () {
 });
 
 // ── 创新认证（区块链 / MCP / Serverless / Edge） ──
-Route::prefix('admin/innovation')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/innovation')->group(function () {
     Route::put('/status', [InnovationAuthController::class, 'updateStatus']);
     Route::prefix('blockchain')->group(function () {
         Route::get('/dashboard', [InnovationAuthController::class, 'blockchainDashboard']);
@@ -336,7 +333,7 @@ Route::prefix('admin/innovation')->group(function () {
 });
 
 // ── 税务合规 ──
-Route::prefix('admin/tax/compliance')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/tax/compliance')->group(function () {
     Route::get('/dashboard', [TaxComplianceController::class, 'dashboard']);
     Route::get('/reports', [TaxComplianceController::class, 'reports']);
     Route::post('/reports/generate', [TaxComplianceController::class, 'generateReport']);
@@ -352,7 +349,7 @@ Route::prefix('admin/tax/compliance')->group(function () {
 });
 
 // ── AI 合规报告 ──
-Route::prefix('admin/compliance-ai')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/compliance-ai')->group(function () {
     Route::get('/dashboard', [ComplianceReportAiController::class, 'dashboard']);
     Route::post('/generate', [ComplianceReportAiController::class, 'generate']);
     Route::get('/frameworks', [ComplianceReportAiController::class, 'frameworks']);
@@ -361,7 +358,7 @@ Route::prefix('admin/compliance-ai')->group(function () {
 });
 
 // ── 工作流引擎（Temporal） ──
-Route::prefix('admin/workflows')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/workflows')->group(function () {
     Route::get('/dashboard', [WorkflowController::class, 'dashboard']);
     Route::get('/definitions', [WorkflowController::class, 'definitions']);
     Route::get('/instances', [WorkflowController::class, 'instances']);
@@ -378,14 +375,14 @@ Route::prefix('admin/workflows')->group(function () {
 });
 
 // ── 数据导出（管理端） ──
-Route::prefix('admin/data-exports')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/data-exports')->group(function () {
     Route::get('/', [CustomerDataExportController::class, 'adminIndex']);
     Route::get('/stats', [CustomerDataExportController::class, 'adminStats']);
     Route::post('/', [CustomerDataExportController::class, 'adminCreateExport']);
 });
 
 // ── 迁移助手 ──
-Route::prefix('admin/migration-assistant')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/migration-assistant')->group(function () {
     Route::get('/dashboard', [MigrationAssistantController::class, 'dashboard']);
     Route::get('/sources', [MigrationAssistantController::class, 'sources']);
     Route::get('/jobs', [MigrationAssistantController::class, 'index']);
@@ -395,7 +392,7 @@ Route::prefix('admin/migration-assistant')->group(function () {
 });
 
 // ── 续费提醒 ──
-Route::prefix('admin/renewal-reminder')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/renewal-reminder')->group(function () {
     Route::get('/templates', [RenewalReminderController::class, 'templates']);
     Route::post('/templates', [RenewalReminderController::class, 'storeTemplate']);
     Route::put('/templates/{renewalReminderTemplate}', [RenewalReminderController::class, 'updateTemplate']);
@@ -407,7 +404,7 @@ Route::prefix('admin/renewal-reminder')->group(function () {
 });
 
 // ── 报表调度 ──
-Route::prefix('admin/report-scheduler')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/report-scheduler')->group(function () {
     Route::get('/dashboard', [ReportSchedulerController::class, 'dashboard']);
     Route::get('/schedulable-reports', [ReportSchedulerController::class, 'schedulableReports']);
     Route::get('/schedules', [ReportSchedulerController::class, 'schedules']);
@@ -435,7 +432,7 @@ Route::prefix('scheduled-promotions')->group(function () {
 });
 
 // ── 对账 ──
-Route::prefix('admin/reconciliation')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/reconciliation')->group(function () {
     Route::get('/dashboard', [ReconciliationController::class, 'dashboard']);
     Route::get('/reconciliations', [ReconciliationController::class, 'reconciliations']);
     Route::post('/reconciliations/{invoiceReconciliation}/resolve', [ReconciliationController::class, 'resolve']);
@@ -466,7 +463,7 @@ Route::prefix('licenses/{license}/notes')->whereNumber('license')->group(functio
 });
 
 // ── License 限制 ──
-Route::prefix('admin/licenses/{licenseId}/restrictions')->whereNumber('licenseId')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/licenses/{licenseId}/restrictions')->whereNumber('licenseId')->group(function () {
     Route::get('/ip', [LicenseRestrictionController::class, 'getIpRestriction']);
     Route::post('/ip', [LicenseRestrictionController::class, 'saveIpRestriction']);
     Route::delete('/ip', [LicenseRestrictionController::class, 'deleteIpRestriction']);
@@ -474,7 +471,7 @@ Route::prefix('admin/licenses/{licenseId}/restrictions')->whereNumber('licenseId
     Route::post('/geo', [LicenseRestrictionController::class, 'saveGeoFence']);
     Route::delete('/geo', [LicenseRestrictionController::class, 'deleteGeoFence']);
 });
-Route::prefix('admin/license-restrictions')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/license-restrictions')->group(function () {
     Route::post('/test-ip', [LicenseRestrictionController::class, 'testIp']);
     Route::post('/test-geo', [LicenseRestrictionController::class, 'testGeo']);
     Route::get('/countries', [LicenseRestrictionController::class, 'countries']);
@@ -482,14 +479,14 @@ Route::prefix('admin/license-restrictions')->group(function () {
 });
 
 // ── GraphQL ──
-Route::prefix('admin/graphql')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/graphql')->group(function () {
     Route::post('/', [GraphQLController::class, 'query']);
     Route::get('/schema', [GraphQLController::class, 'schema']);
     Route::get('/explorer/data', [GraphQLController::class, 'explorer']);
 });
 
 // ── gRPC ──
-Route::prefix('admin/grpc')->group(function () {
+Route::middleware(['ability:admin,super-admin'])->prefix('admin/grpc')->group(function () {
     Route::get('/dashboard', [GrpcController::class, 'dashboard']);
     Route::get('/health', [GrpcController::class, 'health']);
     Route::get('/config', [GrpcController::class, 'config']);

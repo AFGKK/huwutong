@@ -187,6 +187,7 @@ class SiteSettingsSeeder extends Seeder
             ['group' => 'logging', 'key' => 'audit_log_enabled', 'value' => '1', 'type' => 'switch', 'description' => '启用审计日志', 'is_public' => false],
 
             // 界面设置
+            ['group' => 'interface', 'key' => 'mvp_mode_enabled', 'value' => '0', 'type' => 'switch', 'description' => 'MVP 模式（开启后后台侧边栏仅显示核心菜单；关闭则显示全部）', 'is_public' => false],
             ['group' => 'interface', 'key' => 'admin_sidebar_collapsed', 'value' => '0', 'type' => 'switch', 'description' => '默认收起侧边栏', 'is_public' => false],
             ['group' => 'interface', 'key' => 'items_per_page', 'value' => '20', 'type' => 'select', 'description' => '列表每页条数', 'options' => ['10','20','50','100'], 'is_public' => false],
             ['group' => 'interface', 'key' => 'theme_mode', 'value' => 'light', 'type' => 'select', 'description' => '默认主题', 'options' => ['light','dark','auto'], 'is_public' => true],

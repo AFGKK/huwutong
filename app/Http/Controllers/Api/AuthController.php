@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * 多方式登录注册控制器
+ * ??????????
  *
  * M1.4-23 ~ M1.4-34
  */
@@ -38,7 +38,7 @@ class AuthController extends Controller
         protected MfaService $mfaService,
     ) {}
 
-    // ─── 注册 / 登录 ───
+    // ??? ?? / ?? ???
 
     public function register(RegisterRequest $request): JsonResponse
     {
@@ -46,7 +46,7 @@ class AuthController extends Controller
             return ApiResponse::error('REGISTRATION_DISABLED', __('app.auth.api.registration_disabled'), 403);
         }
 
-        // 检查邀请码（如果需要）
+        // ???????????
         $inviteCode = $request->input('invite_code');
         $whitelistOnly = (bool) config('auth.invite_only', false)
             || (string) site_setting('registration_require_invite_code', '0') === '1';
@@ -57,7 +57,7 @@ class AuthController extends Controller
             }
         }
 
-        // 检查密码强度
+        // ??????
         $passwordError = $this->authService->validatePasswordStrength($request->password);
         if ($passwordError) {
             return ApiResponse::validationError($passwordError, ['password' => [$passwordError]]);
@@ -82,7 +82,7 @@ class AuthController extends Controller
                 $verification = $this->authService->sendEmailVerification($user);
                 Mail::to($user->email)->send(new \App\Mail\EmailVerification($user, $verification->token));
             } catch (\Throwable $e) {
-                Log::error('注册后发送邮箱验证失败', [
+                Log::error('???????????', [
                     'user_id' => $user->id,
                     'error' => $e->getMessage(),
                 ]);
@@ -105,9 +105,9 @@ class AuthController extends Controller
             ], __('app.auth.api.register_verify_email'));
         }
 
-        $token = $user->createToken('auth-token', ['*'])->plainTextToken;
+        $token = $user->createToken('auth-token', $user->tokenAbilities())->plainTextToken;
 
-        // 记录 Token 版本
+        // ?? Token ??
         $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
         $user->tokens()->latest()->first()?->update(['token_version' => $version]);
 
@@ -116,7 +116,7 @@ class AuthController extends Controller
             'email', true,
         );
 
-        // 如果有推广码，自动建立联盟推广关系链
+        // ??????????????????
         if ($inviteCode) {
             $this->storeAffiliateService->autoBuildAgentRelationshipOnRegistration($user, $inviteCode);
         }
@@ -134,7 +134,7 @@ class AuthController extends Controller
         $email = $request->input('email');
         $phone = $request->input('phone');
 
-        // 检查账号锁定
+        // ??????
         if ($email && $this->authService->isAccountLocked($email)) {
             $minutes = $this->authService->getLockoutRemainingMinutes($email);
             return ApiResponse::error(
@@ -170,7 +170,7 @@ class AuthController extends Controller
             return ApiResponse::error('AUTH_FAILED', $message, 401);
         }
 
-        // 检查账号状态
+        // ??????
         if ($user->status !== 'active') {
             $msg = __('app.auth.api.account_disabled');
             if ($user->banned_at) {
@@ -179,7 +179,7 @@ class AuthController extends Controller
             return ApiResponse::error('ACCOUNT_DISABLED', $msg, 403);
         }
 
-        // 特权账号禁止弱密码登录（优化方案 1.1）
+        // ???????????????? 1.1?
         if ($this->isPrivilegedUser($user) && $this->isKnownWeakPassword($request->password)) {
             return ApiResponse::error(
                 'WEAK_PASSWORD_FORBIDDEN',
@@ -189,15 +189,15 @@ class AuthController extends Controller
             );
         }
 
-        // 清除失败记录
+        // ??????
         $this->authService->clearFailedAttempts($email ?? $phone);
 
-        // 检查密码是否需要更改
+        // ??????????
         $passwordExpiring = $this->authService->isPasswordExpiringSoon($user);
         $mustChangePassword = $passwordExpiring && $this->isPrivilegedUser($user)
             && empty($user->password_changed_at);
 
-        // MFA：已开启 → 必须走 /api/mfa/login；策略要求但未绑定 → 仅发 mfa-setup 临时 token
+        // MFA???? ? ??? /api/mfa/login????????? ? ?? mfa-setup ?? token
         $requiresMfa = $this->mfaService->requiresMfa($user);
         if ($requiresMfa && $user->mfa_enabled) {
             return ApiResponse::error(
@@ -223,7 +223,7 @@ class AuthController extends Controller
         }
 
         if ($requiresMfa && ! $user->mfa_enabled) {
-            // 吊销旧的 setup token，避免堆积
+            // ???? setup token?????
             $user->tokens()->where('name', 'mfa-setup')->delete();
             $setupToken = $user->createToken('mfa-setup', ['mfa-setup'])->plainTextToken;
 
@@ -240,9 +240,9 @@ class AuthController extends Controller
             );
         }
 
-        $token = $user->createToken('auth-token', ['*'])->plainTextToken;
+        $token = $user->createToken('auth-token', $user->tokenAbilities())->plainTextToken;
 
-        // 记录 Token 版本
+        // ?? Token ??
         $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
         $user->tokens()->latest()->first()?->update(['token_version' => $version]);
 
@@ -256,7 +256,7 @@ class AuthController extends Controller
             'email', true,
         );
 
-        // 设备信任检查
+        // ??????
         $deviceFingerprint = $request->input('device_fingerprint');
         $isTrustedDevice = $deviceFingerprint
             ? $this->authService->isDeviceTrusted($user, $deviceFingerprint)
@@ -279,7 +279,7 @@ class AuthController extends Controller
 
     protected function isPrivilegedUser(User $user): bool
     {
-        // Spatie teams：必须先注入租户上下文，否则 hasRole 恒为 false（线上实测根因）
+        // Spatie teams?????????????? hasRole ?? false????????
         app(\Spatie\Permission\PermissionRegistrar::class)
             ->setPermissionsTeamId($user->tenant_id ?? 1);
         $user->unsetRelation('roles');
@@ -299,18 +299,36 @@ class AuthController extends Controller
         return in_array(strtolower($password), $weak, true);
     }
 
+    /**
+     * WebAuthn rpId 必须与浏览器当前主机一致，优先取请求 Host。
+     */
+    protected function resolveWebauthnRpId(Request $request): string
+    {
+        $host = $request->getHost();
+        if ($host && ! in_array($host, ['localhost', '127.0.0.1'], true)) {
+            return $host;
+        }
+
+        // 本地开发：用当前 Host（含 localhost），避免 APP_URL 指向生产域名导致静默失败
+        if ($host) {
+            return $host;
+        }
+
+        return (string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost');
+    }
+
     public function user(Request $request): JsonResponse
     {
         $user = $request->user();
         $data = $this->formatUser($user);
 
-        // 附加待确认协议
+        // ???????
         $data['pending_consents'] = $this->authService->getPendingConsents($user);
 
-        // 密码过期提醒
+        // ??????
         $data['password_expiring'] = $this->authService->isPasswordExpiringSoon($user);
 
-        // 账号注销状态
+        // ??????
         $data['deletion_request'] = optional($user->deletionRequest)->only([
             'id', 'status', 'reason', 'cooling_until', 'created_at',
         ]);
@@ -338,13 +356,13 @@ class AuthController extends Controller
         return response()->json(['success' => true, 'message' => __('app.auth.api.logged_out')]);
     }
 
-    // ─── Token 刷新 ───
+    // ??? Token ?? ???
 
     /**
-     * 刷新当前 Token
+     * ???? Token
      *
      * POST /api/token/refresh
-     * 删除当前 token 并颁发新 token，用于前端静默续期
+     * ???? token ???? token?????????
      */
     public function refreshToken(Request $request): JsonResponse
     {
@@ -355,7 +373,7 @@ class AuthController extends Controller
             $user, 'token_refresh', $request->ip(), $request->userAgent(),
         );
 
-        // 吊销旧 Token
+        // ??? Token
         if ($currentToken) {
             $this->tokenIntrospection->revokeToken(
                 (string) $currentToken->getKey(),
@@ -366,10 +384,10 @@ class AuthController extends Controller
 
         $newToken = $user->createToken(
             $currentToken ? $currentToken->name : 'api-token',
-            $currentToken ? ($currentToken->abilities ?: ['*']) : ['*'],
+            $user->tokenAbilities(),
         );
 
-        // 设置新 Token 版本
+        // ??? Token ??
         $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
         $user->tokens()->latest()->first()?->update(['token_version' => $version]);
 
@@ -383,10 +401,10 @@ class AuthController extends Controller
         ]);
     }
 
-    // ─── 邮箱验证 ───
+    // ??? ???? ???
 
     /**
-     * 发送邮箱验证码
+     * ???????
      */
     public function sendEmailVerification(Request $request): JsonResponse
     {
@@ -398,11 +416,11 @@ class AuthController extends Controller
 
         $verification = $this->authService->sendEmailVerification($user);
 
-        // 发送验证码邮件
+        // ???????
         try {
             Mail::to($user->email)->send(new \App\Mail\EmailVerification($user, $verification->token));
         } catch (\Throwable $e) {
-            Log::error('发送邮箱验证码邮件失败', [
+            Log::error('???????????', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
@@ -414,7 +432,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 验证邮箱
+     * ????
      */
     public function verifyEmail(Request $request): JsonResponse
     {
@@ -431,12 +449,12 @@ class AuthController extends Controller
         return ApiResponse::error('INVALID_TOKEN', __('app.auth.api.invalid_token'), 422);
     }
 
-    // ─── 忘记密码 / 重置密码 ───
+    // ??? ???? / ???? ???
 
     /**
-     * 发送忘记密码验证码
+     * ?????????
      *
-     * 防用户枚举：无论邮箱是否注册，均返回相同成功文案（不触发 exists 校验差异）。
+     * ???????????????????????????? exists ??????
      */
     public function forgotPassword(Request $request): JsonResponse
     {
@@ -454,14 +472,14 @@ class AuthController extends Controller
                 try {
                     Mail::to($email)->send(new \App\Mail\PasswordReset($email, $token));
                 } catch (\Throwable $e) {
-                    Log::error('发送密码重置邮件失败', [
+                    Log::error('??????????', [
                         'email' => $email,
                         'error' => $e->getMessage(),
                     ]);
                 }
             }
         } else {
-            // 轻微延迟，降低时序侧信道差异
+            // ??????????????
             usleep(random_int(80_000, 180_000));
         }
 
@@ -469,9 +487,9 @@ class AuthController extends Controller
     }
 
     /**
-     * 重置密码
+     * ????
      *
-     * 防用户枚举：邮箱不存在或 token 错误均返回统一失败文案。
+     * ???????????? token ????????????
      */
     public function resetPassword(Request $request): JsonResponse
     {
@@ -481,7 +499,7 @@ class AuthController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        // 检查密码强度
+        // ??????
         $passwordError = $this->authService->validatePasswordStrength($data['password']);
         if ($passwordError) {
             return ApiResponse::validationError($passwordError);
@@ -501,12 +519,12 @@ class AuthController extends Controller
         return ApiResponse::error('INVALID_TOKEN', __('app.auth.api.invalid_token'), 422);
     }
 
-    // ─── 手机验证码登录 / 注册 ───
+    // ??? ??????? / ?? ???
 
     /**
-     * 发送手机验证码
+     * ???????
      *
-     * scene=login|register（默认 login）
+     * scene=login|register??? login?
      */
     public function sendPhoneCode(Request $request): JsonResponse
     {
@@ -552,7 +570,7 @@ class AuthController extends Controller
             Cache::forget($cacheKey);
             Cache::forget($cacheKey . '_scene');
             Cache::forget($cacheKey . '_sent');
-            Log::error('发送短信验证码失败', [
+            Log::error('?????????', [
                 'phone' => $data['phone'],
                 'error' => $e->getMessage(),
             ]);
@@ -567,7 +585,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 手机验证码登录（无账号时自动注册）
+     * ?????????????????
      */
     public function phoneLogin(Request $request): JsonResponse
     {
@@ -620,7 +638,7 @@ class AuthController extends Controller
             'phone_verified_at' => $user->phone_verified_at ?? now(),
         ]);
 
-        $token = $user->createToken('phone-token', ['*'])->plainTextToken;
+        $token = $user->createToken('phone-token', $user->tokenAbilities())->plainTextToken;
 
         $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
         $user->tokens()->latest()->first()?->update(['token_version' => $version]);
@@ -638,7 +656,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 手机号 + 验证码正式注册（需设置密码）
+     * ??? + ??????????????
      */
     public function phoneRegister(Request $request): JsonResponse
     {
@@ -696,7 +714,7 @@ class AuthController extends Controller
 
         $this->authService->recordPasswordHistory($user, $data['password']);
 
-        $token = $user->createToken('auth-token', ['*'])->plainTextToken;
+        $token = $user->createToken('auth-token', $user->tokenAbilities())->plainTextToken;
         $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
         $user->tokens()->latest()->first()?->update(['token_version' => $version]);
 
@@ -717,10 +735,10 @@ class AuthController extends Controller
         ], __('app.auth.api.register_ok'));
     }
 
-    // ─── 密码修改 ───
+    // ??? ???? ???
 
     /**
-     * 修改密码
+     * ????
      */
     public function changePassword(Request $request): JsonResponse
     {
@@ -735,13 +753,13 @@ class AuthController extends Controller
             return ApiResponse::error('INVALID_PASSWORD', __('app.auth.api.invalid_password'), 422);
         }
 
-        // 检查密码强度
+        // ??????
         $passwordError = $this->authService->validatePasswordStrength($data['new_password']);
         if ($passwordError) {
             return ApiResponse::validationError($passwordError);
         }
 
-        // 检查密码历史
+        // ??????
         if (! $this->authService->isPasswordAllowed($user, $data['new_password'])) {
             return ApiResponse::error('PASSWORD_REUSED', __('app.auth.api.password_reused'), 422);
         }
@@ -753,19 +771,19 @@ class AuthController extends Controller
 
         $this->authService->recordPasswordHistory($user, $data['new_password']);
 
-        // 吊销所有其他 token（强制重新登录）
+        // ?????? token????????
         $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
 
-        // 递增 Token 版本，使其他设备的 Token 失效
+        // ?? Token ????????? Token ??
         $this->tokenIntrospection->bumpUserVersion($user->id);
 
         return ApiResponse::success(null, __('app.auth.api.password_changed'));
     }
 
-    // ─── Session 管理 ───
+    // ??? Session ?? ???
 
     /**
-     * 获取活跃会话列表
+     * ????????
      */
     public function sessions(Request $request): JsonResponse
     {
@@ -790,7 +808,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 远程踢出指定会话
+     * ????????
      */
     public function revokeSession(int $tokenId, Request $request): JsonResponse
     {
@@ -810,10 +828,10 @@ class AuthController extends Controller
         return ApiResponse::success(null, __('app.auth.api.session_revoked'));
     }
 
-    // ─── Admin Session 管理 ───
+    // ??? Admin Session ?? ???
 
     /**
-     * Admin 会话仪表盘
+     * Admin ?????
      */
     public function adminSessionDashboard(Request $request): JsonResponse
     {
@@ -839,7 +857,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Admin 会话列表
+     * Admin ????
      */
     public function adminSessions(Request $request): JsonResponse
     {
@@ -867,7 +885,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Admin 会话详情
+     * Admin ????
      */
     public function adminSessionDetail(int $tokenId, Request $request): JsonResponse
     {
@@ -883,7 +901,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Admin 踢出指定会话
+     * Admin ??????
      */
     public function adminTerminateSession(int $tokenId, Request $request): JsonResponse
     {
@@ -900,7 +918,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Admin 批量踢出会话
+     * Admin ??????
      */
     public function adminBatchTerminate(Request $request): JsonResponse
     {
@@ -918,7 +936,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Admin 踢出用户所有会话
+     * Admin ????????
      */
     public function adminTerminateUserSessions(int $userId, Request $request): JsonResponse
     {
@@ -932,10 +950,10 @@ class AuthController extends Controller
         return ApiResponse::success(null, __('app.auth.api.sessions_terminated_user', ['name' => $targetUser->name, 'count' => $count]));
     }
 
-    // ─── 设备信任 ───
+    // ??? ???? ???
 
     /**
-     * 信任当前设备
+     * ??????
      */
     public function trustDevice(Request $request): JsonResponse
     {
@@ -959,7 +977,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 获取信任设备列表
+     * ????????
      */
     public function trustedDevices(Request $request): JsonResponse
     {
@@ -968,7 +986,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 取消设备信任
+     * ??????
      */
     public function removeTrustedDevice(int $deviceId, Request $request): JsonResponse
     {
@@ -979,7 +997,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 清除所有信任设备
+     * ????????
      */
     public function clearTrustedDevices(Request $request): JsonResponse
     {
@@ -989,7 +1007,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 登录时检测设备状态，新设备触发通知
+     * ?????????????????
      */
     public function checkDevice(Request $request): JsonResponse
     {
@@ -1020,10 +1038,10 @@ class AuthController extends Controller
         ]);
     }
 
-    // ─── 邀请码管理 ───
+    // ??? ????? ???
 
     /**
-     * 批量生成邀请码（管理员）
+     * ????????????
      */
     public function generateInviteCodes(Request $request): JsonResponse
     {
@@ -1055,7 +1073,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 获取邀请码列表
+     * ???????
      */
     public function inviteCodesList(Request $request): JsonResponse
     {
@@ -1070,7 +1088,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 获取邀请码统计
+     * ???????
      */
     public function inviteCodeStats(Request $request): JsonResponse
     {
@@ -1079,10 +1097,10 @@ class AuthController extends Controller
         );
     }
 
-    // ─── 隐私协议 ───
+    // ??? ???? ???
 
     /**
-     * 获取当前协议
+     * ??????
      */
     public function getLegalConsents(Request $request): JsonResponse
     {
@@ -1091,7 +1109,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 确认协议
+     * ????
      */
     public function consentToLegal(Request $request): JsonResponse
     {
@@ -1114,10 +1132,10 @@ class AuthController extends Controller
         return ApiResponse::success(null, __('app.auth.api.consent_ok'));
     }
 
-    // ─── 账号注销 ───
+    // ??? ???? ???
 
     /**
-     * 提交注销申请
+     * ??????
      */
     public function requestDeletion(Request $request): JsonResponse
     {
@@ -1141,7 +1159,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 取消注销申请
+     * ??????
      */
     public function cancelDeletion(Request $request): JsonResponse
     {
@@ -1152,7 +1170,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 获取注销申请状态
+     * ????????
      */
     public function deletionStatus(Request $request): JsonResponse
     {
@@ -1175,10 +1193,10 @@ class AuthController extends Controller
         ]);
     }
 
-    // ─── OAuth 绑定 ───
+    // ??? OAuth ?? ???
 
     /**
-     * 绑定 OAuth 提供商
+     * ?? OAuth ???
      */
     public function bindOAuth(Request $request): JsonResponse
     {
@@ -1193,7 +1211,7 @@ class AuthController extends Controller
 
         $user = $request->user();
 
-        // 检查是否已被其他账号绑定
+        // ????????????
         $existing = \App\Models\UserAuthProvider::where('provider', $data['provider'])
             ->where('provider_id', $data['provider_id'])
             ->first();
@@ -1215,7 +1233,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 解除 OAuth 绑定
+     * ?? OAuth ??
      */
     public function unbindOAuth(int $authProviderId, Request $request): JsonResponse
     {
@@ -1228,7 +1246,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 获取已绑定的 OAuth 提供商列表
+     * ?????? OAuth ?????
      */
     public function boundProviders(Request $request): JsonResponse
     {
@@ -1252,7 +1270,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 获取可用的 OAuth 登录提供商列表（公开）
+     * ????? OAuth ???????????
      */
     public function availableOauthProviders(): JsonResponse
     {
@@ -1266,7 +1284,7 @@ class AuthController extends Controller
         $available = [];
 
         foreach ($config as $key => $cfg) {
-            // 仅暴露已实现跳转换票的提供商，避免假开关
+            // ????????????????????
             if (! in_array($key, \App\Services\OAuthRedirectService::SUPPORTED, true)) {
                 continue;
             }
@@ -1291,13 +1309,13 @@ class AuthController extends Controller
     }
 
     /**
-     * 获取 OAuth 授权 URL（JSON，登录公开 / 绑定需鉴权）
+     * ?? OAuth ?? URL?JSON????? / ??????
      * GET /api/oauth/authorize-url/{provider}?intent=login|bind&return_to=...
      */
     public function oauthAuthorizeUrl(string $provider, Request $request): JsonResponse
     {
         try {
-            // Bearer Token 场景下公开路由也解析当前用户（绑定需要）
+            // Bearer Token ????????????????????
             if (! $request->user() && $request->bearerToken()) {
                 $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($request->bearerToken());
                 if ($accessToken?->tokenable) {
@@ -1334,7 +1352,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 发起 OAuth 授权跳转（浏览器直达，适合登录）
+     * ?? OAuth ????????????????
      * GET /api/oauth/redirect/{provider}?intent=login&return_to=/build/...
      */
     public function oauthRedirect(string $provider, Request $request)
@@ -1361,7 +1379,7 @@ class AuthController extends Controller
     }
 
     /**
-     * OAuth 回调：换票 → 登录/绑定 → 跳回 SPA
+     * OAuth ????? ? ??/?? ? ?? SPA
      * GET /api/oauth/callback/{provider}
      */
     public function oauthCallback(string $provider, Request $request)
@@ -1424,7 +1442,7 @@ class AuthController extends Controller
                 'last_login_ip' => $request->ip(),
             ]);
 
-            $token = $user->createToken("{$profile['provider']}-token", ['*'])->plainTextToken;
+            $token = $user->createToken("{$profile['provider']}-token", $user->tokenAbilities())->plainTextToken;
             $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
             $user->tokens()->latest()->first()?->update(['token_version' => $version]);
 
@@ -1445,7 +1463,7 @@ class AuthController extends Controller
     }
 
     /**
-     * OAuth 登录回调（前端 SDK / 服务端回调换票后均可调用）
+     * OAuth ??????? SDK / ?????????????
      */
     public function oauthLogin(Request $request): JsonResponse
     {
@@ -1476,9 +1494,9 @@ class AuthController extends Controller
             'last_login_ip' => $request->ip(),
         ]);
 
-        $token = $user->createToken("{$data['provider']}-token", ['*'])->plainTextToken;
+        $token = $user->createToken("{$data['provider']}-token", $user->tokenAbilities())->plainTextToken;
 
-        // 记录 Token 版本
+        // ?? Token ??
         $version = $this->tokenIntrospection->getCurrentUserVersion($user->id);
         $user->tokens()->latest()->first()?->update(['token_version' => $version]);
 
@@ -1494,10 +1512,10 @@ class AuthController extends Controller
         ], __('app.auth.api.login_ok'));
     }
 
-    // ─── 登录审计日志 ───
+    // ??? ?????? ???
 
     /**
-     * 获取登录历史
+     * ??????
      */
     public function loginHistory(Request $request): JsonResponse
     {
@@ -1508,17 +1526,17 @@ class AuthController extends Controller
         return ApiResponse::paginated($logs);
     }
 
-    // ─── 工具方法 ───
+    // ??? ???? ???
 
     protected function formatUser(User $user): array
     {
-        // 设置团队/租户上下文，确保能正确读取角色
+        // ????/???????????????
         app(\Spatie\Permission\PermissionRegistrar::class)
             ->setPermissionsTeamId($user->tenant_id ?? 1);
 
         $data = $user->toArray();
 
-        // 移除敏感字段
+        // ??????
         unset($data['password_history']);
 
         $tenants = $user->tenants()->get(['tenants.id', 'tenants.name', 'tenants.slug', 'tenants.logo']);
@@ -1530,12 +1548,13 @@ class AuthController extends Controller
         $data['email_verified'] = $user->email_verified_at !== null;
         $data['phone_verified'] = $user->phone_verified_at !== null;
         $data['roles'] = $user->getRoleNames();
+        $data['mvp_mode_enabled'] = (string) site_setting('mvp_mode_enabled', '0') === '1';
 
         return $data;
     }
 
     /**
-     * 发送魔法链接（无密码登录）
+     * ?????????????
      */
     public function sendMagicLink(Request $request): JsonResponse
     {
@@ -1546,10 +1565,10 @@ class AuthController extends Controller
 
         $email = $data['email'];
 
-        // 无论邮箱是否存在，都返回成功（防止枚举）
+        // ????????????????????
         $user = User::where('email', $email)->first();
 
-        // 生成令牌
+        // ????
         $token = \Str::random(64);
         \App\Models\MagicLinkToken::create([
             'email' => $email,
@@ -1557,7 +1576,7 @@ class AuthController extends Controller
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        // 如果用户存在，发送邮件
+        // ???????????
         if ($user) {
             $loginUrl = url('/auth/magic-link/verify?token=' . $token . '&email=' . urlencode($email));
             if (!empty($data['redirect_url'])) {
@@ -1575,7 +1594,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 验证魔法链接并登录
+     * ?????????
      */
     public function verifyMagicLink(Request $request): JsonResponse
     {
@@ -1595,7 +1614,7 @@ class AuthController extends Controller
             return ApiResponse::error('INVALID_TOKEN', __('app.auth.api.magic_link_invalid'), 400);
         }
 
-        // 标记已使用
+        // ?????
         $record->update(['used' => true, 'used_at' => now()]);
 
         $user = User::where('email', $data['email'])->first();
@@ -1609,7 +1628,7 @@ class AuthController extends Controller
             'last_login_ip' => $request->ip(),
         ]);
 
-        $token = $user->createToken('magic-link-token', ['*'])->plainTextToken;
+        $token = $user->createToken('magic-link-token', $user->tokenAbilities())->plainTextToken;
 
         $this->authService->recordLoginAudit(
             $user, 'magic_link_login', $request->ip(), $request->userAgent(),
@@ -1623,7 +1642,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 创建扫码登录会话（PC端）
+     * ?????????PC??
      */
     public function createQrSession(Request $request): JsonResponse
     {
@@ -1644,7 +1663,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 查询扫码会话状态（PC端轮询）
+     * ?????????PC????
      */
     public function pollQrSession(string $sessionId, Request $request): JsonResponse
     {
@@ -1665,7 +1684,7 @@ class AuthController extends Controller
                 return ApiResponse::error('ACCOUNT_DISABLED', __('app.auth.api.account_disabled'), 403);
             }
 
-            $token = $user->createToken('qr-login-token', ['*'])->plainTextToken;
+            $token = $user->createToken('qr-login-token', $user->tokenAbilities())->plainTextToken;
 
             $this->authService->recordLoginAudit(
                 $user, 'qr_login', $request->ip(), $request->userAgent(),
@@ -1684,7 +1703,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 手机端确认扫码（需认证）
+     * ????????????
      */
     public function confirmQrSession(Request $request): JsonResponse
     {
@@ -1713,14 +1732,14 @@ class AuthController extends Controller
     }
 
     /**
-     * Passkey/WebAuthn — 注册挑战（获取创建凭据的参数）
+     * Passkey/WebAuthn � ???????????????
      */
     public function webauthnRegisterOptions(Request $request): JsonResponse
     {
         $user = $request->user();
         $challenge = \Str::random(32);
 
-        // 存储挑战
+        // ????
         \App\Models\WebauthnChallenge::create([
             'challenge' => hash('sha256', $challenge),
             'type' => 'registration',
@@ -1728,7 +1747,7 @@ class AuthController extends Controller
             'expires_at' => now()->addMinutes(5),
         ]);
 
-        // 获取用户已注册的凭据ID列表（排除重复）
+        // ??????????ID????????
         $excludeCredentials = \App\Models\WebauthnCredential::where('user_id', $user->id)
             ->where('is_active', true)
             ->pluck('credential_id')
@@ -1739,7 +1758,7 @@ class AuthController extends Controller
             'challenge' => base64_encode($challenge),
             'rp' => [
                 'name' => config('app.name', 'HWT License'),
-                'id' => parse_url(config('app.url'), PHP_URL_HOST),
+                'id' => $this->resolveWebauthnRpId($request),
             ],
             'user' => [
                 'id' => base64_encode((string) $user->id),
@@ -1757,7 +1776,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Passkey/WebAuthn — 验证注册并保存凭据
+     * Passkey/WebAuthn � ?????????
      */
     public function webauthnRegisterVerify(Request $request): JsonResponse
     {
@@ -1773,7 +1792,7 @@ class AuthController extends Controller
 
         $user = $request->user();
 
-        // 验证挑战
+        // ????
         $clientData = json_decode(base64_decode($data['response']['clientDataJSON']), true);
         if (!$clientData || !isset($clientData['challenge'])) {
             return ApiResponse::error('INVALID_CLIENT_DATA', __('app.auth.api.invalid_client_data'), 400);
@@ -1792,20 +1811,20 @@ class AuthController extends Controller
             return ApiResponse::error('INVALID_CHALLENGE', __('app.auth.api.invalid_challenge'), 400);
         }
 
-        // 删除已使用的挑战
+        // ????????
         $storedChallenge->delete();
 
-        // 检查凭据是否已注册
+        // ?????????
         $existing = \App\Models\WebauthnCredential::where('credential_id', $data['id'])->first();
         if ($existing) {
             return ApiResponse::error('CREDENTIAL_EXISTS', __('app.auth.api.credential_exists'), 409);
         }
 
-        // 保存凭据
+        // ????
         $credential = \App\Models\WebauthnCredential::create([
             'user_id' => $user->id,
             'credential_id' => $data['id'],
-            'public_key' => $data['response']['attestationObject'], // 前端应传公钥信息
+            'public_key' => $data['response']['attestationObject'], // ????????
             'type' => 'public-key',
             'transport' => json_encode($data['response']['transports'] ?? []),
             'device_name' => $data['device_name'] ?? null,
@@ -1817,7 +1836,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Passkey/WebAuthn — 认证挑战（获取登录参数）
+     * Passkey/WebAuthn � ????????????
      */
     public function webauthnLoginOptions(Request $request): JsonResponse
     {
@@ -1852,14 +1871,14 @@ class AuthController extends Controller
         return ApiResponse::success([
             'challenge' => base64_encode($challenge),
             'timeout' => 300000,
-            'rpId' => parse_url(config('app.url'), PHP_URL_HOST),
+            'rpId' => $this->resolveWebauthnRpId($request),
             'allowCredentials' => $allowCredentials,
             'userVerification' => 'preferred',
         ]);
     }
 
     /**
-     * Passkey/WebAuthn — 验证认证断言并登录
+     * Passkey/WebAuthn � ?????????
      */
     public function webauthnLoginVerify(Request $request): JsonResponse
     {
@@ -1873,7 +1892,7 @@ class AuthController extends Controller
             'response.userHandle' => 'nullable|string',
         ]);
 
-        // 验证挑战
+        // ????
         $clientData = json_decode(base64_decode($data['response']['clientDataJSON']), true);
         if (!$clientData || !isset($clientData['challenge'])) {
             return ApiResponse::error('INVALID_CLIENT_DATA', __('app.auth.api.invalid_client_data'), 400);
@@ -1893,7 +1912,7 @@ class AuthController extends Controller
 
         $storedChallenge->delete();
 
-        // 查找凭据
+        // ????
         $credential = \App\Models\WebauthnCredential::where('credential_id', $data['id'])
             ->where('is_active', true)
             ->first();
@@ -1907,7 +1926,7 @@ class AuthController extends Controller
             return ApiResponse::error('ACCOUNT_DISABLED', __('app.auth.api.account_disabled'), 403);
         }
 
-        // 更新计数器
+        // ?????
         $credential->update([
             'counter' => $credential->counter + 1,
             'last_used_at' => now(),
@@ -1918,7 +1937,7 @@ class AuthController extends Controller
             'last_login_ip' => $request->ip(),
         ]);
 
-        $token = $user->createToken('passkey-token', ['*'])->plainTextToken;
+        $token = $user->createToken('passkey-token', $user->tokenAbilities())->plainTextToken;
 
         $this->authService->recordLoginAudit(
             $user, 'passkey_login', $request->ip(), $request->userAgent(),
@@ -1932,7 +1951,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 获取用户的Passkey凭据列表
+     * ?????Passkey????
      */
     public function webauthnCredentials(Request $request): JsonResponse
     {
@@ -1944,7 +1963,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 删除Passkey凭据
+     * ??Passkey??
      */
     public function webauthnDeleteCredential(int $credentialId, Request $request): JsonResponse
     {
@@ -1961,10 +1980,10 @@ class AuthController extends Controller
         return ApiResponse::success(null, __('app.auth.api.passkey_deleted'));
     }
 
-    // ─── 头像管理 ───
+    // ??? ???? ???
 
     /**
-     * 上传/更新头像
+     * ??/????
      */
     public function uploadAvatar(Request $request): JsonResponse
     {
@@ -1975,7 +1994,7 @@ class AuthController extends Controller
         $user = $request->user();
         $file = $request->file('avatar');
 
-        // 删除旧头像
+        // ?????
         if ($user->avatar && !str_starts_with($user->avatar, 'http')) {
             $oldPath = public_path('storage/' . $user->avatar);
             if (file_exists($oldPath)) {
@@ -1998,7 +2017,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 删除头像（恢复默认）
+     * ??????????
      */
     public function deleteAvatar(Request $request): JsonResponse
     {
@@ -2019,7 +2038,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 更新个人资料（名称 + 头像可选）
+     * ????????? + ?????
      */
     public function updateProfile(Request $request): JsonResponse
     {

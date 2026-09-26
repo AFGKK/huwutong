@@ -943,7 +943,7 @@ class UserInteractionController extends Controller
             'passed' => $mfaEnabled,
             'score' => 25,
             'action' => $mfaEnabled ? null : __('app.api.interaction.sec_mfa_action'),
-            'action_url' => '/build/account/passkey',
+            'action_url' => '/build/mfa',
         ];
 
         // 4. 密码强度 (90天内修改过 +20)

@@ -431,7 +431,7 @@ HTML;
         ]);
 
         // 生成 Sanctum token
-        $token = $user->createToken('demo-registration')->plainTextToken;
+        $token = $user->createToken('demo-registration', $user->tokenAbilities())->plainTextToken;
 
         return [
             'new_user' => true,

@@ -132,23 +132,61 @@ class PortalBrandingService
 
     /**
      * 获取品牌配置（含 CSS 变量展开）
+     * 门户品牌表为空时，回退到站点公开设置（logo_url 等）
      */
     public function getBrandingData(?int $tenantId, string $locale = 'zh-CN'): array
     {
         $config = $this->getConfig($tenantId, $locale);
 
-        if (!$config) {
+        if (! $config) {
+            $fallback = $this->fallbackConfigFromSiteSettings();
+
             return [
-                'config' => null,
+                'config' => $fallback,
                 'css_variables' => [],
                 'css_string' => '',
             ];
         }
 
+        $data = $config->toArray();
+        // 门户配置存在但未设 logo 时，同样回退站点 logo
+        if (empty($data['logo_url'])) {
+            $siteLogo = \App\Models\SiteSetting::getPublic()['logo_url'] ?? null;
+            if ($siteLogo) {
+                $data['logo_url'] = $siteLogo;
+            }
+        }
+        if (empty($data['brand_name'])) {
+            $data['brand_name'] = \App\Models\SiteSetting::getPublic()['site_name'] ?? ($data['brand_name'] ?? null);
+        }
+
         return [
-            'config' => $config->toArray(),
+            'config' => $data,
             'css_variables' => $config->toCssVariables(),
             'css_string' => $this->getCssVariables($tenantId, $locale),
+        ];
+    }
+
+    /**
+     * 从站点公开设置构造登录/注册页可用的品牌配置
+     */
+    protected function fallbackConfigFromSiteSettings(): array
+    {
+        $public = \App\Models\SiteSetting::getPublic();
+
+        return [
+            'brand_name' => $public['site_name'] ?? config('app.name', '互物通'),
+            'brand_slogan' => $public['site_slogan'] ?? null,
+            'logo_url' => $public['logo_url'] ?? '/images/logo.svg',
+            'favicon_url' => $public['favicon_url'] ?? null,
+            'primary_color' => $public['primary_color'] ?? '#0f172a',
+            'secondary_color' => '#67c23a',
+            'text_color' => '#303133',
+            'button_radius' => '4px',
+            'login_page_title' => null,
+            'login_page_subtitle' => $public['site_slogan'] ?? null,
+            'login_bg_image' => null,
+            'footer_text' => $public['footer_copyright'] ?? null,
         ];
     }
 

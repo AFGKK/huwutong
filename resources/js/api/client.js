@@ -143,7 +143,18 @@ apiClient.interceptors.response.use(
 
         // 其他状态
         if (status === 403) {
-            const msg = data?.message || i18n.global.t('messages.forbidden');
+            const code = data?.error?.code;
+            // 登录态 MFA / 弱密码由业务页自行处理，避免全局误报「无权限」
+            if ([
+                'MFA_SETUP_REQUIRED',
+                'MFA_REQUIRED',
+                'PASSWORD_CHANGE_REQUIRED',
+                'WEAK_PASSWORD_FORBIDDEN',
+                'MFA_CODE_REQUIRED',
+            ].includes(code)) {
+                return Promise.reject(error);
+            }
+            const msg = data?.error?.message || data?.message || i18n.global.t('messages.forbidden');
             ElMessage.error(msg);
         } else if (status === 429) {
             ElMessage.warning(i18n.global.t('messages.rate_limited'));

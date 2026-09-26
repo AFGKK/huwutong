@@ -362,8 +362,35 @@ class LicenseController extends Controller
      */
     public function stats(Request $request): JsonResponse
     {
-        $tenantId = $request->user()->tenant_id;
-        $stats = $this->licenseService->stats($tenantId);
+        $user = $request->user();
+        $isSuperAdmin = $user->hasRole('super-admin');
+        $isAdmin = $isSuperAdmin || $user->hasRole('admin');
+
+        if ($isSuperAdmin) {
+            $tenantFilter = $request->filled('filter.tenant_id')
+                ? (int) $request->input('filter.tenant_id')
+                : null;
+            $stats = $this->licenseService->stats($tenantFilter);
+        } elseif ($isAdmin) {
+            $stats = $this->licenseService->stats($user->tenant_id);
+        } else {
+            // 门户用户：必须按本人客户隔离，禁止泄露全局总量
+            $customerId = $user->customer?->id;
+            if (! $customerId) {
+                return ApiResponse::success([
+                    'total' => 0,
+                    'active' => 0,
+                    'expired' => 0,
+                    'expiring_soon' => 0,
+                    'by_status' => [],
+                    'by_type' => [],
+                ]);
+            }
+            $stats = $this->licenseService->stats(
+                $user->tenant_id ?: null,
+                $customerId,
+            );
+        }
 
         return ApiResponse::success($stats);
     }

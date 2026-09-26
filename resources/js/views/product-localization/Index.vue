@@ -45,7 +45,12 @@
                         </el-form-item>
                         <el-form-item :label="t('product_localization_page.label_target_locale')">
                             <el-select v-model="selectedLocale" style="width: 100%">
-                                <el-option v-for="lang in languages" :key="lang.locale" :label="`${lang.flag || ''} ${lang.name} (${lang.native_name})`" :value="lang.locale" />
+                                <el-option
+                                    v-for="lang in languages"
+                                    :key="lang.locale"
+                                    :label="`${lang.flag || ''} ${lang.name || lang.locale}${lang.native_name && lang.native_name !== lang.name ? ` (${lang.native_name})` : ''}`"
+                                    :value="lang.locale"
+                                />
                             </el-select>
                         </el-form-item>
                         <el-form-item :label="t('product_localization_page.label_translatable_fields')">
@@ -63,6 +68,16 @@
                             <span>{{ t('product_localization_page.editor_title') }}</span>
                             <div>
                                 <el-button size="small" @click="loadTranslations">{{ t('product_localization_page.refresh') }}</el-button>
+                                <el-button
+                                    size="small"
+                                    type="danger"
+                                    plain
+                                    :disabled="!selectedItemId || !selectedLocale"
+                                    :loading="deleting"
+                                    @click="clearLocaleTranslations"
+                                >
+                                    {{ t('product_localization_page.clear_locale') }}
+                                </el-button>
                                 <el-button size="small" type="primary" :loading="saving" @click="saveTranslations">
                                     <el-icon><Check /></el-icon> {{ t('actions.save') }}
                                 </el-button>
@@ -102,12 +117,12 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Check } from '@element-plus/icons-vue'
 import {
     getLocalizationLanguages, getLocalizationStats,
-    getProductTranslations, saveProductTranslations,
-    getPlanTranslations, savePlanTranslations,
+    getProductTranslations, saveProductTranslations, deleteProductTranslation,
+    getPlanTranslations, savePlanTranslations, deletePlanTranslation,
 } from '@/api/productLocalization'
 
 const { t } = useI18n()
@@ -115,12 +130,20 @@ const { t } = useI18n()
 const stats = ref({ total_entries: 0, auto_translated: 0, manual_translated: 0, language_count: 0 })
 const languages = ref([])
 const saving = ref(false)
+const deleting = ref(false)
+const loadingTranslations = ref(false)
 
 const selectedType = ref('product')
 const selectedItemId = ref(null)
-const selectedLocale = ref('en')
+const selectedLocale = ref('zh_CN')
 const translationValues = ref({})
 const editableFields = ref(['name', 'description'])
+
+const FALLBACK_LANGUAGES = [
+    { locale: 'zh_CN', name: '简体中文', native_name: '简体中文', flag: '🇨🇳' },
+    { locale: 'en', name: 'English', native_name: 'English', flag: '🇺🇸' },
+    { locale: 'ja', name: '日本語', native_name: '日本語', flag: '🇯🇵' },
+]
 
 const translatableFields = computed(() => {
     if (selectedType.value === 'plan') return ['name', 'description', 'features']
@@ -138,6 +161,14 @@ const fieldLabels = computed(() => ({
     features: t('product_localization_page.fields.features'),
 }))
 
+function unwrap(res) {
+    const body = res?.data
+    if (body && typeof body === 'object' && 'data' in body) {
+        return body.data
+    }
+    return body
+}
+
 function fieldLabel(f) {
     return fieldLabels.value[f] || f
 }
@@ -152,32 +183,48 @@ function fieldLocalePlaceholder(field) {
 async function loadStats() {
     try {
         const res = await getLocalizationStats()
-        stats.value = res.data || res
+        const data = unwrap(res) || {}
+        stats.value = {
+            total_entries: data.total_entries ?? 0,
+            auto_translated: data.auto_translated ?? 0,
+            manual_translated: data.manual_translated ?? 0,
+            language_count: data.language_count ?? 0,
+        }
     } catch { /* ignore */ }
 }
 
 async function loadLanguages() {
     try {
         const res = await getLocalizationLanguages()
-        languages.value = res.data || res
-    } catch { /* ignore */ }
+        const list = unwrap(res)
+        languages.value = Array.isArray(list) && list.length > 0 ? list : FALLBACK_LANGUAGES
+        if (!languages.value.some(l => l.locale === selectedLocale.value)) {
+            selectedLocale.value = languages.value[0]?.locale || 'zh_CN'
+        }
+    } catch {
+        languages.value = FALLBACK_LANGUAGES
+    }
 }
 
 async function loadTranslations() {
     if (!selectedItemId.value || !selectedLocale.value) return
 
+    loadingTranslations.value = true
     try {
         const loader = selectedType.value === 'product' ? getProductTranslations : getPlanTranslations
         const res = await loader(selectedItemId.value)
-        const translations = res.data || []
+        const translations = unwrap(res)
+        const rows = Array.isArray(translations) ? translations : []
 
-        const localeTranslations = translations.filter(t => t.locale === selectedLocale.value)
+        const localeTranslations = rows.filter(row => row.locale === selectedLocale.value)
         const vals = {}
-        localeTranslations.forEach(t => { vals[t.field] = t.value })
+        localeTranslations.forEach(row => { vals[row.field] = row.value })
         translationValues.value = vals
     } catch {
         translationValues.value = {}
         ElMessage.warning(t('product_localization_page.messages.not_found'))
+    } finally {
+        loadingTranslations.value = false
     }
 }
 
@@ -195,7 +242,8 @@ async function saveTranslations() {
         await saver(selectedItemId.value, data)
 
         ElMessage.success(t('product_localization_page.messages.saved'))
-        loadStats()
+        await loadStats()
+        await loadTranslations()
     } catch (e) {
         ElMessage.error(e.response?.data?.message || t('messages.failed'))
     } finally {
@@ -203,7 +251,39 @@ async function saveTranslations() {
     }
 }
 
+async function clearLocaleTranslations() {
+    if (!selectedItemId.value || !selectedLocale.value) return
+
+    try {
+        await ElMessageBox.confirm(
+            t('product_localization_page.messages.clear_confirm'),
+            t('product_localization_page.clear_locale'),
+            { type: 'warning' },
+        )
+    } catch {
+        return
+    }
+
+    deleting.value = true
+    try {
+        const deleter = selectedType.value === 'product' ? deleteProductTranslation : deletePlanTranslation
+        await deleter(selectedItemId.value, { locale: selectedLocale.value })
+        translationValues.value = {}
+        ElMessage.success(t('product_localization_page.messages.cleared'))
+        await loadStats()
+    } catch (e) {
+        ElMessage.error(e.response?.data?.message || t('messages.failed'))
+    } finally {
+        deleting.value = false
+    }
+}
+
 watch(selectedLocale, () => loadTranslations())
+watch(selectedType, () => {
+    editableFields.value = [...translatableFields.value]
+    loadTranslations()
+})
+watch(selectedItemId, () => loadTranslations())
 
 onMounted(() => {
     loadStats()
@@ -219,7 +299,7 @@ onMounted(() => {
 .stat-card .stat-label { font-size: 13px; color: #909399; margin-top: 4px; }
 .side-card { margin-bottom: 16px; }
 .editor-card { margin-bottom: 16px; }
-.editor-header { display: flex; justify-content: space-between; align-items: center; }
+.editor-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .translation-field { margin-bottom: 16px; padding: 12px; background: #fafafa; border-radius: 6px; }
 .field-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
 .field-label { font-weight: bold; color: #303133; }

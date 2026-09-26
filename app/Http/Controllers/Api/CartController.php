@@ -61,8 +61,16 @@ class CartController extends Controller
         try {
             $item = $this->cartService->addItem($cart, $data['sku_id'], $data['quantity'] ?? 1);
             return ApiResponse::success($item->load('sku.product'), __('app.api.cart.added'));
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return ApiResponse::error('NOT_FOUND', __('app.api.cart.sku_not_found'), 404);
         } catch (\RuntimeException $e) {
-            return ApiResponse::error('CART_ERROR', $e->getMessage(), 400);
+            $msg = $e->getMessage();
+            $isStock = str_contains($msg, '库存') || str_contains(strtolower($msg), 'stock');
+            return ApiResponse::error(
+                $isStock ? 'OUT_OF_STOCK' : 'CART_ERROR',
+                $msg,
+                $isStock ? 422 : 400
+            );
         }
     }
 

@@ -355,6 +355,18 @@ async function submitForm() {
             }
         }
         await settingApi.update(settings);
+        // MVP 开关变更后立即同步侧边栏（无需重新登录）
+        if (Object.prototype.hasOwnProperty.call(formData, 'mvp_mode_enabled')) {
+            const { useAuthStore } = await import('@/stores/auth');
+            const authStore = useAuthStore();
+            if (authStore.user) {
+                authStore.user = {
+                    ...authStore.user,
+                    mvp_mode_enabled: !!formData.mvp_mode_enabled,
+                };
+                localStorage.setItem('user', JSON.stringify(authStore.user));
+            }
+        }
         ElMessage.success(t('settings_page.save_ok'));
     } catch {
         // handled by interceptor

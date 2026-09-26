@@ -16,6 +16,10 @@ const teamsNotifier = {
     destroy(id) {
         return request({ url: `/admin/teams-notifier/${id}`, method: 'delete' });
     },
+    /** @deprecated alias of destroy */
+    delete(id) {
+        return this.destroy(id);
+    },
     test(id) {
         return request({ url: `/admin/teams-notifier/${id}/test`, method: 'post' });
     },

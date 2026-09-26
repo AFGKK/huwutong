@@ -50,7 +50,7 @@ class InventoryService
         // 无限库存模式
         if ($sku->stock === null || $sku->stock < 0) {
             $sku->increment('sold_count', $quantity);
-            return ['success' => true, 'message' => __('app.common.unlimited_stock_mode')];
+            return ['success' => true, 'message' => __('app.api.common.unlimited_stock_mode')];
         }
 
         // Redis 分布式锁
@@ -59,12 +59,12 @@ class InventoryService
 
         try {
             if (!$lock->get()) {
-                return ['success' => false, 'message' => __('app.common.stock_operation_busy')];
+                return ['success' => false, 'message' => __('app.api.common.stock_operation_busy')];
             }
 
             $freshSku = $sku->fresh();
             if ($freshSku->stock < $quantity) {
-                return ['success' => false, 'message' => __('app.common.insufficient_stock', ['stock' => $freshSku->stock, 'quantity' => $quantity])];
+                return ['success' => false, 'message' => __('app.api.common.insufficient_stock', ['stock' => $freshSku->stock, 'quantity' => $quantity])];
             }
 
             DB::transaction(function () use ($freshSku, $skuId, $quantity, $orderRef) {
@@ -77,10 +77,10 @@ class InventoryService
                 $this->log($skuId, 'deduct', -$quantity, $before, $after, $orderRef);
             });
 
-            return ['success' => true, 'message' => __('app.common.deduction_success')];
+            return ['success' => true, 'message' => __('app.api.common.deduction_success')];
         } catch (\Throwable $e) {
             Log::error('库存扣减异常', ['sku_id' => $skuId, 'error' => $e->getMessage()]);
-            return ['success' => false, 'message' => __('app.common.stock_deduction_exception', ['message' => $e->getMessage()])];
+            return ['success' => false, 'message' => __('app.api.common.stock_deduction_exception', ['message' => $e->getMessage()])];
         } finally {
             $lock?->release();
         }
@@ -110,17 +110,28 @@ class InventoryService
     {
         $sku = ProductSku::findOrFail($skuId);
 
+        // 无限库存模式无需回补数量
+        if ($sku->stock === null || $sku->stock < 0) {
+            if ($sku->sold_count > 0) {
+                $sku->decrement('sold_count', min($quantity, (int) $sku->sold_count));
+            }
+
+            return ['success' => true, 'message' => __('app.api.common.rollback_success')];
+        }
+
         DB::transaction(function () use ($sku, $skuId, $quantity, $orderRef) {
-            $before = $sku->stock;
+            $before = (int) $sku->stock;
             $after = $before + $quantity;
 
             $sku->update(['stock' => $after]);
-            $sku->decrement('sold_count', $quantity);
+            if ($sku->sold_count > 0) {
+                $sku->decrement('sold_count', min($quantity, (int) $sku->sold_count));
+            }
 
             $this->log($skuId, 'rollback', $quantity, $before, $after, $orderRef);
         });
 
-        return ['success' => true, 'message' => __('app.common.rollback_success')];
+        return ['success' => true, 'message' => __('app.api.common.rollback_success')];
     }
 
     /**
