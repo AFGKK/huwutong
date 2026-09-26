@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\PaymentCallback;
 use Illuminate\Support\Facades\DB;
@@ -133,6 +134,9 @@ throw new \RuntimeException(__("app.payment_callback.order_not_found_with_id", [
             'payment_callback_at' => now(),
         ]);
 
+        // 写入 payments 记录
+        $this->recordPaymentAfterSuccess($order, $callback, $parsed);
+
         // 触发自动发货
         $deliveryResult = $this->deliveryEngine->execute($order);
 
@@ -196,6 +200,17 @@ throw new \RuntimeException(__("app.payment_callback.order_not_found"));
             'status' => $isFullRefund ? Order::STATUS_REFUNDED : Order::STATUS_PARTIAL_REFUND,
             'payment_callback_id' => $callback->id,
         ]);
+
+        $invoice = Invoice::where(function ($q) use ($order) {
+            $q->where('metadata->order_id', $order->id)
+                ->orWhere('invoice_no', 'INV-'.$order->order_no);
+        })->orderByDesc('id')->first();
+
+        app(PaymentService::class)->markRefundedByTransactionOrInvoice(
+            $parsed['transaction_id'] ?? $order->payment_transaction_id ?? $order->transaction_id,
+            $invoice?->id,
+            (float) ($parsed['amount'] ?? $order->final_amount),
+        );
 
         // 自动吊销自动发货的 License
         try {
@@ -270,11 +285,31 @@ throw new \RuntimeException(__("app.payment_callback.order_not_found"));
         return match ($gateway) {
             'stripe' => $this->parseStripe($payload),
             'alipay' => $this->parseAlipay($payload),
+            'yipay' => $this->parseYipay($payload),
             'wechat' => $this->parseWechat($payload),
             'paypal' => $this->parsePaypal($payload),
             'mock' => $this->parseMock($payload),
             default => throw new \RuntimeException(__("app.payment_callback.msg_9c72d03f")),
         };
+    }
+
+    protected function parseYipay(array $payload): array
+    {
+        return [
+            'event_id' => $payload['trade_no'] ?? $payload['notify_id'] ?? uniqid('yipay_'),
+            'event_type' => match ($payload['trade_status'] ?? '') {
+                'TRADE_SUCCESS', 'TRADE_FINISHED' => 'payment_success',
+                'TRADE_CLOSED' => 'payment_failed',
+                'WAIT_BUYER_PAY' => 'payment_pending',
+                default => $payload['trade_status'] ?? 'unknown',
+            },
+            'transaction_id' => $payload['trade_no'] ?? '',
+            'merchant_order_no' => $payload['out_trade_no'] ?? '',
+            'order_id' => null,
+            'amount' => isset($payload['money']) ? (float) $payload['money'] : (isset($payload['total_amount']) ? (float) $payload['total_amount'] : null),
+            'currency' => 'CNY',
+            'failure_reason' => $payload['close_reason'] ?? '',
+        ];
     }
 
     protected function parseStripe(array $payload): array
@@ -372,6 +407,33 @@ throw new \RuntimeException(__("app.payment_callback.order_not_found"));
             'currency' => $payload['currency'] ?? 'CNY',
             'failure_reason' => $payload['failure_reason'] ?? '',
         ];
+    }
+
+    /**
+     * 支付成功后写入 Payment 记录
+     */
+    protected function recordPaymentAfterSuccess(Order $order, PaymentCallback $callback, array $parsed): void
+    {
+        $paymentService = app(PaymentService::class);
+        $paymentInfo = [
+            'transaction_id' => $parsed['transaction_id'] ?? null,
+            'payment_method' => $callback->gateway,
+            'amount' => $parsed['amount'] ?? $order->final_amount,
+            'order_id' => $order->id,
+        ];
+
+        $invoice = Invoice::where(function ($q) use ($order) {
+            $q->where('metadata->order_id', $order->id)
+                ->orWhere('invoice_no', 'INV-'.$order->order_no);
+        })->orderByDesc('id')->first();
+
+        if ($invoice) {
+            $paymentService->recordCompleted($invoice, $paymentInfo, $order);
+
+            return;
+        }
+
+        $paymentService->recordCompletedForOrder($order, $paymentInfo);
     }
 
     /**

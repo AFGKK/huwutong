@@ -604,6 +604,109 @@ class RefundEngineService
      */
     protected function approveRefund(Refund $refund, RefundRiskAssessment $assessment): array
     {
+        if ($refund->order_id) {
+            try {
+                app(RefundWorkflowService::class)->review($refund->id, 'approve', [
+                    'operator_id' => $refund->processed_by,
+                    'notes' => 'auto_approve via risk engine',
+                ]);
+
+                return [
+                    'executed' => true,
+                    'action' => 'approved',
+                    'message' => __('app.refund_engine.auto_approved'),
+                ];
+            } catch (\Throwable $e) {
+                Log::error('RefundEngine: workflow approve failed', [
+                    'refund_id' => $refund->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return [
+                    'executed' => false,
+                    'action' => 'failed',
+                    'message' => $e->getMessage(),
+                ];
+            }
+        }
+
+        if ($refund->invoice_id) {
+            try {
+                $invoice = $refund->invoice ?? Invoice::find($refund->invoice_id);
+                if (! $invoice) {
+                    throw new \RuntimeException('发票不存在，无法执行退款');
+                }
+
+                $paymentManager = app(PaymentManager::class);
+                $gateway = $refund->payment_method ?: ($invoice->metadata['payment_method'] ?? 'mock');
+                $knownDrivers = ['alipay', 'wechat', 'stripe', 'paypal', 'yipay', 'mock'];
+                if (! in_array($gateway, $knownDrivers, true)) {
+                    $gateway = $invoice->metadata['payment_method'] ?? 'mock';
+                    if (! in_array($gateway, $knownDrivers, true)) {
+                        $gateway = 'mock';
+                    }
+                }
+                $paymentManager->useDriver($gateway);
+
+                $result = $paymentManager->refund($invoice, [
+                    'amount' => $refund->amount,
+                    'reason' => $refund->reason,
+                ]);
+
+                if (empty($result['success'])) {
+                    $refund->update([
+                        'status' => 'failed',
+                        'failure_reason' => $result['error'] ?? 'gateway refund failed',
+                    ]);
+
+                    return [
+                        'executed' => false,
+                        'action' => 'failed',
+                        'message' => $result['error'] ?? 'gateway refund failed',
+                    ];
+                }
+
+                DB::transaction(function () use ($refund, $result, $invoice) {
+                    $refund->update([
+                        'status' => 'completed',
+                        'completed_at' => now(),
+                        'approved_by' => $refund->processed_by,
+                        'approved_at' => now(),
+                        'payment_refund_id' => $result['refund_id'] ?? $refund->payment_refund_id,
+                    ]);
+
+                    $invoice->update(['refunded_at' => now()]);
+
+                    if ($refund->license) {
+                        $refund->license->update(['status' => 'refunded']);
+                    }
+                });
+
+                return [
+                    'executed' => true,
+                    'action' => 'approved',
+                    'message' => __('app.refund_engine.auto_approved'),
+                ];
+            } catch (\Throwable $e) {
+                $refund->update([
+                    'status' => 'failed',
+                    'failure_reason' => $e->getMessage(),
+                ]);
+
+                Log::error('RefundEngine: invoice gateway refund failed', [
+                    'refund_id' => $refund->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return [
+                    'executed' => false,
+                    'action' => 'failed',
+                    'message' => $e->getMessage(),
+                ];
+            }
+        }
+
+        // 无订单、无发票：仅更新本地状态（License 退款）
         DB::transaction(function () use ($refund) {
             $refund->update([
                 'status' => 'completed',
@@ -611,10 +714,6 @@ class RefundEngineService
                 'approved_by' => $refund->processed_by,
                 'approved_at' => now(),
             ]);
-
-            if ($refund->invoice) {
-                $refund->invoice->update(['refunded_at' => now()]);
-            }
 
             if ($refund->license) {
                 $refund->license->update(['status' => 'refunded']);

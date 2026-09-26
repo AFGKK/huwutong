@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
@@ -131,6 +132,48 @@ class PaymentFlowTest extends TestCase
         $response->assertSee('success');
         $this->assertSame('paid', $invoice->fresh()->status);
         $this->assertSame(Order::STATUS_PAID, $order->fresh()->status);
+
+        $this->assertTrue(
+            Payment::where('transaction_id', '2026071222001234567890')->exists()
+        );
+        $this->assertSame(
+            'completed',
+            Payment::where('transaction_id', '2026071222001234567890')->value('status')
+        );
+    }
+
+    /** @test */
+    public function public_callback_marks_order_paid_and_creates_payment(): void
+    {
+        $order = Order::create([
+            'order_no' => 'HWT20260712CB001',
+            'tenant_id' => $this->tenant->id,
+            'customer_id' => $this->customer->id,
+            'total_amount' => 88,
+            'discount_amount' => 0,
+            'final_amount' => 88,
+            'currency' => 'CNY',
+            'status' => Order::STATUS_PENDING,
+            'expires_at' => now()->addHour(),
+        ]);
+
+        $response = $this->postJson('/api/payment/callback/mock', [
+            'event_id' => 'evt_callback_test_001',
+            'event_type' => 'payment_success',
+            'order_id' => $order->id,
+            'transaction_id' => 'mock_txn_callback_001',
+            'merchant_order_no' => $order->order_no,
+            'amount' => 88,
+            'currency' => 'CNY',
+        ]);
+
+        $response->assertOk();
+        $this->assertSame(Order::STATUS_PAID, $order->fresh()->status);
+        $this->assertTrue(Payment::where('transaction_id', 'mock_txn_callback_001')->exists());
+        $this->assertSame(
+            'completed',
+            Payment::where('transaction_id', 'mock_txn_callback_001')->value('status')
+        );
     }
 
     /** @test */

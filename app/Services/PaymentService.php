@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Invoice;
+use App\Models\Order;
 use App\Models\Payment;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +16,152 @@ use Illuminate\Support\Facades\Log;
  */
 class PaymentService
 {
+    /**
+     * 支付成功后写入 payments（按 transaction_id 幂等）
+     */
+    public function recordCompleted(Invoice $invoice, array $paymentInfo, ?Order $order = null): Payment
+    {
+        $transactionId = $paymentInfo['transaction_id']
+            ?? $paymentInfo['charge_id']
+            ?? null;
+        $transactionId = $transactionId !== null && $transactionId !== ''
+            ? (string) $transactionId
+            : null;
+
+        if ($transactionId) {
+            $existing = Payment::where('transaction_id', $transactionId)->first();
+            if ($existing) {
+                return $existing;
+            }
+        }
+
+        $channel = $paymentInfo['payment_method'] ?? $paymentInfo['channel'] ?? 'unknown';
+
+        $existingByInvoice = Payment::where('channel', $channel)
+            ->where('metadata->invoice_id', $invoice->id)
+            ->whereIn('status', ['completed', 'partially_refunded', 'refunded'])
+            ->orderByDesc('id')
+            ->first();
+        if ($existingByInvoice) {
+            return $existingByInvoice;
+        }
+
+        $orderId = $paymentInfo['order_id']
+            ?? $order?->id
+            ?? ($invoice->metadata['order_id'] ?? null);
+
+        if (! $orderId && str_starts_with((string) $invoice->invoice_no, 'INV-')) {
+            $orderNo = substr($invoice->invoice_no, 4);
+            $orderId = Order::where('order_no', $orderNo)->value('id');
+        }
+
+        $amount = (float) ($paymentInfo['amount'] ?? $invoice->amount);
+
+        $payment = Payment::create([
+            'tenant_id' => $invoice->tenant_id,
+            'order_id' => $orderId,
+            'customer_id' => $invoice->customer_id,
+            'channel' => $channel,
+            'transaction_id' => $transactionId,
+            'amount' => $amount,
+            'currency' => $invoice->currency ?? 'CNY',
+            'fee' => 0,
+            'net_amount' => $amount,
+            'status' => 'completed',
+            'paid_at' => now(),
+            'description' => 'Invoice '.$invoice->invoice_no,
+            'metadata' => array_merge(['invoice_id' => $invoice->id], $paymentInfo),
+        ]);
+
+        $this->clearDashboardCache();
+
+        return $payment;
+    }
+
+    /**
+     * 无发票时按订单金额写入 payments
+     */
+    public function recordCompletedForOrder(Order $order, array $paymentInfo): Payment
+    {
+        $transactionId = $paymentInfo['transaction_id'] ?? null;
+        $transactionId = $transactionId !== null && $transactionId !== ''
+            ? (string) $transactionId
+            : null;
+
+        if ($transactionId) {
+            $existing = Payment::where('transaction_id', $transactionId)->first();
+            if ($existing) {
+                return $existing;
+            }
+        }
+
+        $channel = $paymentInfo['payment_method'] ?? $paymentInfo['channel'] ?? $order->payment_channel ?? 'unknown';
+        $amount = (float) ($paymentInfo['amount'] ?? $order->final_amount);
+
+        $payment = Payment::create([
+            'tenant_id' => $order->tenant_id,
+            'order_id' => $order->id,
+            'customer_id' => $order->customer_id,
+            'user_id' => $order->user_id,
+            'channel' => $channel,
+            'transaction_id' => $transactionId,
+            'amount' => $amount,
+            'currency' => $order->currency ?? 'CNY',
+            'fee' => 0,
+            'net_amount' => $amount,
+            'status' => 'completed',
+            'paid_at' => now(),
+            'description' => 'Order '.$order->order_no,
+            'metadata' => array_merge(['order_no' => $order->order_no], $paymentInfo),
+        ]);
+
+        $this->clearDashboardCache();
+
+        return $payment;
+    }
+
+    /**
+     * 按交易号或发票关联将 Payment 标记为退款/部分退款
+     */
+    public function markRefundedByTransactionOrInvoice(
+        ?string $transactionId = null,
+        ?int $invoiceId = null,
+        float $refundAmount = 0
+    ): ?Payment {
+        $payment = null;
+
+        if ($transactionId) {
+            $payment = Payment::where('transaction_id', $transactionId)->first();
+        }
+
+        if (! $payment && $invoiceId) {
+            $payment = Payment::where('metadata->invoice_id', $invoiceId)
+                ->whereIn('status', ['completed', 'partially_refunded'])
+                ->orderByDesc('id')
+                ->first();
+        }
+
+        if (! $payment) {
+            return null;
+        }
+
+        $amount = $refundAmount > 0 ? $refundAmount : (float) $payment->amount;
+        $payment->refunded_amount = (float) $payment->refunded_amount + $amount;
+        $payment->refunded_at = now();
+
+        if ($payment->refunded_amount >= $payment->amount) {
+            $payment->status = 'refunded';
+            $payment->refunded_amount = $payment->amount;
+        } else {
+            $payment->status = 'partially_refunded';
+        }
+
+        $payment->save();
+        $this->clearDashboardCache();
+
+        return $payment;
+    }
+
     // ─── 仪表盘 ────────────────────────────────
 
     /**

@@ -284,8 +284,37 @@ class PaypalPaymentGateway implements PaymentGateway
 
     public function verifyCallback(array $payload): bool
     {
-        // PayPal 使用 webhook ID 验证，需在面板配置 webhook URL
-        return true;
+        $webhookId = $this->config['webhook_id']
+            ?? config('payment.channels.paypal.webhook_id', env('PAYPAL_WEBHOOK_ID'));
+        $clientId = $this->config['client_id']
+            ?? config('payment.channels.paypal.client_id', env('PAYPAL_CLIENT_ID'));
+        $clientSecret = $this->config['client_secret']
+            ?? config('payment.channels.paypal.client_secret', env('PAYPAL_CLIENT_SECRET'));
+
+        $isLocal = app()->environment('local', 'testing');
+
+        // 未配置凭据：仅本地/测试放行，生产拒绝
+        if (empty($webhookId) || empty($clientId) || empty($clientSecret)) {
+            return $isLocal;
+        }
+
+        $headers = $payload['_headers'] ?? [];
+        $transmissionId = $headers['PAYPAL-TRANSMISSION-ID']
+            ?? $headers['Paypal-Transmission-Id']
+            ?? $headers['paypal-transmission-id']
+            ?? null;
+
+        // 有传输头时做基础结构校验
+        if ($transmissionId || ! empty($headers)) {
+            return ! empty($payload['event_type']) && ! empty($payload['id']);
+        }
+
+        // 无证书/传输头时：仅本地/测试且 payload 具备基本字段才放行
+        if (! empty($payload['event_type']) && ! empty($payload['id'])) {
+            return $isLocal;
+        }
+
+        return false;
     }
 
     public function name(): string

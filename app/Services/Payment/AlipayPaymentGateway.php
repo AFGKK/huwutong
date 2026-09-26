@@ -4,6 +4,7 @@ namespace App\Services\Payment;
 
 use App\Contracts\PaymentGateway;
 use App\Models\Invoice;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -75,15 +76,73 @@ class AlipayPaymentGateway implements PaymentGateway
 
     public function refund(Invoice $invoice, array $options = []): array
     {
-        Log::info('Alipay: refund initiated', [
-            'invoice_id' => $invoice->id,
-            'amount' => $invoice->amount,
-        ]);
+        $cfg = $this->channelConfig();
+        $appId = $cfg['app_id'] ?? '';
+        $privateKey = $cfg['private_key'] ?? '';
 
-        return [
-            'success' => true,
-            'refund_id' => 'alipay_refund_'.Str::random(16),
-        ];
+        if ($appId === '' || $privateKey === '') {
+            if (app()->environment('local', 'testing')) {
+                Log::info('Alipay: refund mock (no config)', ['invoice_id' => $invoice->id]);
+
+                return [
+                    'success' => true,
+                    'refund_id' => 'alipay_refund_'.Str::random(16),
+                ];
+            }
+
+            return ['success' => false, 'error' => '支付宝未配置'];
+        }
+
+        try {
+            $refundAmount = number_format((float) ($options['amount'] ?? $invoice->amount), 2, '.', '');
+            $bizContent = [
+                'out_trade_no' => $invoice->invoice_no,
+                'refund_amount' => $refundAmount,
+                'out_request_no' => $options['out_request_no'] ?? ('refund_'.$invoice->invoice_no.'_'.time()),
+                'refund_reason' => $options['reason'] ?? $options['refund_reason'] ?? '退款',
+            ];
+
+            $params = [
+                'app_id' => $appId,
+                'method' => 'alipay.trade.refund',
+                'format' => 'JSON',
+                'charset' => 'utf-8',
+                'sign_type' => 'RSA2',
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+                'version' => '1.0',
+                'biz_content' => json_encode($bizContent, JSON_UNESCAPED_UNICODE),
+            ];
+            $params['sign'] = $this->sign($params, $privateKey);
+
+            $response = Http::asForm()->timeout(30)->post($this->gatewayUrl(), $params);
+            $data = $response->json() ?? [];
+            $resp = $data['alipay_trade_refund_response'] ?? [];
+
+            if (($resp['code'] ?? '') === '10000') {
+                return [
+                    'success' => true,
+                    'refund_id' => $resp['trade_no'] ?? $resp['out_request_no'] ?? ('alipay_refund_'.Str::random(16)),
+                    'raw' => $resp,
+                ];
+            }
+
+            Log::warning('Alipay: refund rejected', [
+                'invoice_id' => $invoice->id,
+                'response' => $resp,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $resp['sub_msg'] ?? $resp['msg'] ?? '支付宝退款失败',
+            ];
+        } catch (\Throwable $e) {
+            Log::error('Alipay: refund failed', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'error' => '退款请求失败: '.$e->getMessage()];
+        }
     }
 
     public function query(string $transactionId): array

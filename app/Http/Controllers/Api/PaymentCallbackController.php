@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Services\PaymentCallbackService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * 支付回调处理中心 (M2-144 🛒)
@@ -95,7 +96,7 @@ class PaymentCallbackController extends Controller
     public function simulate(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'gateway' => 'required|string|in:mock,stripe,alipay,wechat,paypal',
+            'gateway' => 'required|string|in:mock,stripe,alipay,wechat,paypal,yipay',
             'event_type' => 'required|string|in:payment_success,payment_failed,refund,chargeback',
             'order_id' => 'required|integer|exists:orders,id',
             'amount' => 'nullable|numeric',

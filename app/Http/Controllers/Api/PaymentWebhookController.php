@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PaymentWebhookLog;
 use App\Services\Payment\AlipayPaymentGateway;
 use App\Services\Payment\StripePaymentGateway;
+use App\Services\Payment\WechatPaymentGateway;
 use App\Services\Payment\YipayPaymentGateway;
 use App\Services\PaymentManager;
 use Illuminate\Http\JsonResponse;
@@ -536,9 +537,6 @@ class PaymentWebhookController extends Controller
     public function wechat(Request $request): JsonResponse
     {
         $payload = $request->getContent();
-        $headers = $request->headers->all();
-
-        // 微信支付 V3 回调：验签（简化处理，生产环境需用微信平台证书验签）
         $wechatSignature = $request->header('Wechatpay-Signature', '');
         $wechatSerial = $request->header('Wechatpay-Serial', '');
         $wechatTimestamp = $request->header('Wechatpay-Timestamp', '');
@@ -552,6 +550,21 @@ class PaymentWebhookController extends Controller
         $event = json_decode($payload, true);
         if (!$event || !isset($event['event_type'])) {
             return response()->json(['code' => 'FAIL', 'message' => 'Invalid payload'], 400);
+        }
+
+        $verified = app(WechatPaymentGateway::class)->verifyCallback(array_merge($event, [
+            '_headers' => [
+                'Wechatpay-Signature' => $wechatSignature,
+                'Wechatpay-Serial' => $wechatSerial,
+                'Wechatpay-Timestamp' => $wechatTimestamp,
+                'Wechatpay-Nonce' => $wechatNonce,
+            ],
+        ]));
+
+        if (! $verified) {
+            Log::warning('WeChat Pay webhook: signature verification failed');
+
+            return response()->json(['code' => 'FAIL', 'message' => 'Invalid signature'], 401);
         }
 
         $eventType = $event['event_type'];

@@ -104,6 +104,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/payment/alipay/webhook',
             'api/payment/paypal/webhook',
             'api/payment/wechat/webhook',
+            'api/payment/yipay/webhook',
+            'api/payment/callback/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

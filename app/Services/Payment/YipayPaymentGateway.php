@@ -4,6 +4,7 @@ namespace App\Services\Payment;
 
 use App\Contracts\PaymentGateway;
 use App\Models\Invoice;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -81,15 +82,68 @@ class YipayPaymentGateway implements PaymentGateway
 
     public function refund(Invoice $invoice, array $options = []): array
     {
-        Log::info('Yipay: refund initiated', [
-            'invoice_id' => $invoice->id,
-            'amount' => $invoice->amount,
-        ]);
+        $cfg = $this->channelConfig();
+        $pid = $cfg['pid'] ?? '';
+        $key = $cfg['key'] ?? '';
+        $apiUrl = rtrim($cfg['api_url'] ?? 'https://pay.example.com/', '/');
 
-        return [
-            'success' => true,
-            'refund_id' => 'yipay_refund_' . Str::random(16),
-        ];
+        if ($pid === '' || $key === '') {
+            if (app()->environment('local', 'testing')) {
+                Log::info('Yipay: refund mock (no config)', ['invoice_id' => $invoice->id]);
+
+                return [
+                    'success' => true,
+                    'refund_id' => 'yipay_refund_'.Str::random(16),
+                ];
+            }
+
+            return ['success' => false, 'error' => '易支付未配置'];
+        }
+
+        try {
+            $money = number_format((float) ($options['amount'] ?? $invoice->amount), 2, '.', '');
+            $params = [
+                'act' => 'refund',
+                'pid' => $pid,
+                'key' => $key,
+                'out_trade_no' => $invoice->invoice_no,
+                'money' => $money,
+            ];
+
+            $response = Http::asForm()->timeout(30)->post($apiUrl.'/api.php', $params);
+            $data = $response->json() ?? [];
+
+            // 易支付常见成功字段: code=1 / status=1 / success=true
+            $ok = ($data['code'] ?? null) == 1
+                || ($data['status'] ?? null) == 1
+                || ($data['success'] ?? false) === true
+                || (($data['msg'] ?? '') === 'success');
+
+            if ($ok) {
+                return [
+                    'success' => true,
+                    'refund_id' => $data['refund_no'] ?? $data['trade_no'] ?? ('yipay_refund_'.Str::random(16)),
+                    'raw' => $data,
+                ];
+            }
+
+            Log::warning('Yipay: refund rejected', [
+                'invoice_id' => $invoice->id,
+                'response' => $data,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $data['msg'] ?? $data['message'] ?? '易支付退款失败',
+            ];
+        } catch (\Throwable $e) {
+            Log::error('Yipay: refund failed', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'error' => '退款请求失败: '.$e->getMessage()];
+        }
     }
 
     public function query(string $transactionId): array

@@ -189,9 +189,18 @@ class WechatPaymentGateway implements PaymentGateway
 
     public function verifyCallback(array $payload): bool
     {
-        // 实际需验证微信回调签名
-        // 微信支付 V3 使用 Wechatpay-Signature header 验签
-        return true;
+        // 本地/测试环境放行，便于单测与联调
+        if (app()->environment('local', 'testing')) {
+            return true;
+        }
+
+        $headers = $payload['_headers'] ?? [];
+        $signature = $headers['Wechatpay-Signature']
+            ?? $headers['wechatpay-signature']
+            ?? ($payload['Wechatpay-Signature'] ?? null);
+
+        // 生产环境要求存在 Wechatpay-Signature（完整证书验签可后续加强）
+        return ! empty($signature);
     }
 
     public function name(): string

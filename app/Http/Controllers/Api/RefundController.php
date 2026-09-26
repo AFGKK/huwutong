@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Models\Invoice;
 use App\Models\License;
 use App\Models\Refund;
 use App\Models\RefundRiskAssessment;
 use App\Models\RefundRiskRule;
 use App\Services\CommissionEngineService;
+use App\Services\PaymentManager;
 use App\Services\RefundEngineService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +23,7 @@ class RefundController extends Controller
     public function __construct(
         protected CommissionEngineService $commissionEngine,
         protected RefundEngineService $refundEngine,
+        protected PaymentManager $paymentManager,
     ) {}
     /**
      * 退款列表
@@ -118,47 +121,85 @@ class RefundController extends Controller
             return ApiResponse::error('FORBIDDEN', __('app.api.license.forbidden_op'), 403);
         }
 
-        $refund = DB::transaction(function () use ($data, $request, $license) {
-            // 生成退款单号
-            $refundNo = 'RF' . now()->format('YmdHis') . strtoupper(substr(uniqid(), -6));
+        $refundNo = 'RF' . now()->format('YmdHis') . strtoupper(substr(uniqid(), -6));
 
-            /** @var Refund $refund */
-            $refund = Refund::create([
-                'tenant_id' => $request->user()->tenant_id ?? $license->tenant_id,
-                'license_id' => $license->id,
-                'invoice_id' => $data['invoice_id'] ?? null,
-                'customer_id' => $license->customer_id,
-                'processed_by' => $request->user()->id,
-                'refund_no' => $refundNo,
+        /** @var Refund $refund */
+        $refund = Refund::create([
+            'tenant_id' => $request->user()->tenant_id ?? $license->tenant_id,
+            'license_id' => $license->id,
+            'invoice_id' => $data['invoice_id'] ?? null,
+            'customer_id' => $license->customer_id,
+            'processed_by' => $request->user()->id,
+            'refund_no' => $refundNo,
+            'amount' => $data['amount'],
+            'currency' => $data['currency'] ?? 'CNY',
+            'reason' => $data['reason'] ?? null,
+            'status' => 'pending',
+            'payment_method' => $data['payment_method'] ?? 'original',
+        ]);
+
+        if (! empty($data['invoice_id'])) {
+            $invoice = Invoice::find($data['invoice_id']);
+            if (! $invoice) {
+                $refund->update([
+                    'status' => 'failed',
+                    'failure_reason' => 'invoice not found',
+                ]);
+
+                return ApiResponse::error('INVOICE_NOT_FOUND', __('app.api.refund.invoice_not_found', ['default' => '发票不存在']), 422);
+            }
+
+            $gateway = $invoice->metadata['payment_method'] ?? 'mock';
+            $knownDrivers = ['alipay', 'wechat', 'stripe', 'paypal', 'yipay', 'mock'];
+            if (! in_array($gateway, $knownDrivers, true)) {
+                $gateway = 'mock';
+            }
+            $this->paymentManager->useDriver($gateway);
+
+            $result = $this->paymentManager->refund($invoice, [
                 'amount' => $data['amount'],
-                'currency' => $data['currency'] ?? 'CNY',
-                'reason' => $data['reason'] ?? null,
-                'status' => 'completed',
-                'payment_method' => $data['payment_method'] ?? 'original',
-                'completed_at' => now(),
+                'reason' => $data['reason'] ?? '',
             ]);
 
-            // 同步更新 License 状态
+            if (empty($result['success'])) {
+                $refund->update([
+                    'status' => 'failed',
+                    'failure_reason' => $result['error'] ?? 'gateway refund failed',
+                ]);
+
+                return ApiResponse::error(
+                    'REFUND_GATEWAY_FAILED',
+                    $result['error'] ?? __('app.api.refund.gateway_failed', ['default' => '退款网关失败']),
+                    422
+                );
+            }
+
+            $refund->update([
+                'status' => 'completed',
+                'completed_at' => now(),
+                'payment_refund_id' => $result['refund_id'] ?? null,
+            ]);
+
             $license->status = 'refunded';
             $license->save();
 
-            // ⭐ M2-127b 退款时处理佣金回拨（含风控保障）
-            if (!empty($data['invoice_id'])) {
-                try {
-                    $invoice = \App\Models\Invoice::find($data['invoice_id']);
-                    if ($invoice) {
-                        $this->commissionEngine->refundSettlement($invoice);
-                    }
-                } catch (\Throwable $e) {
-                    Log::warning('退款佣金回拨失败', [
-                        'invoice_id' => $data['invoice_id'],
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+            try {
+                $this->commissionEngine->refundSettlement($invoice);
+            } catch (\Throwable $e) {
+                Log::warning('退款佣金回拨失败', [
+                    'invoice_id' => $data['invoice_id'],
+                    'error' => $e->getMessage(),
+                ]);
             }
+        } else {
+            $refund->update([
+                'status' => 'completed',
+                'completed_at' => now(),
+            ]);
 
-            return $refund;
-        });
+            $license->status = 'refunded';
+            $license->save();
+        }
 
         $refund->load([
             'license:id,license_key',

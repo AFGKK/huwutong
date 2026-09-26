@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\BugBountyController;
 use App\Http\Controllers\Api\MetricsController;
+use App\Http\Controllers\Api\PaymentCallbackController;
 use App\Http\Controllers\Api\PaymentWebhookController;
 use App\Models\AffiliateCampaign;
 use App\Models\AffiliateClick;
@@ -399,6 +400,7 @@ Route::prefix('api/payment')->group(function () {
     Route::post('/paypal/webhook', [PaymentWebhookController::class, 'paypal'])->name('payment.paypal.webhook');
     Route::post('/wechat/webhook', [PaymentWebhookController::class, 'wechat'])->name('payment.wechat.webhook');
     Route::post('/yipay/webhook', [PaymentWebhookController::class, 'yipay'])->name('payment.yipay.webhook');
+    Route::post('/callback/{gateway}', [PaymentCallbackController::class, 'receive'])->name('payment.callback.receive');
 });
 
 // Bug Bounty 漏洞报告提交&政策（公开）

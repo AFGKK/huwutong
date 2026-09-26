@@ -787,10 +787,13 @@ throw new \RuntimeException(__("app.billing.coupon_usage_limit_exceeded"));
             // 结算佣金
             $this->commissionEngine->settleInvoice($invoice);
 
-            app(InvoicePaymentSettlementService::class)->settle($invoice->fresh(), [
+            $paymentInfo = [
                 'transaction_id' => $transactionId,
                 'payment_method' => $invoice->metadata['payment_method'] ?? 'gateway',
-            ]);
+            ];
+
+            app(InvoicePaymentSettlementService::class)->settle($invoice->fresh(), $paymentInfo);
+            app(PaymentService::class)->recordCompleted($invoice->fresh(), $paymentInfo);
 
             return true;
         });
@@ -803,6 +806,7 @@ throw new \RuntimeException(__("app.billing.coupon_usage_limit_exceeded"));
     {
         if ($invoice->status === 'paid') {
             app(InvoicePaymentSettlementService::class)->settle($invoice, $paymentInfo);
+            app(PaymentService::class)->recordCompleted($invoice, $paymentInfo);
 
             return true;
         }
@@ -837,6 +841,7 @@ throw new \RuntimeException(__("app.billing.coupon_usage_limit_exceeded"));
             $this->commissionEngine->settleInvoice($invoice);
 
             app(InvoicePaymentSettlementService::class)->settle($invoice->fresh(), $paymentInfo);
+            app(PaymentService::class)->recordCompleted($invoice->fresh(), $paymentInfo);
 
             return true;
         });
@@ -866,6 +871,16 @@ throw new \RuntimeException(__("app.billing.coupon_usage_limit_exceeded"));
                     'error' => $e->getMessage(),
                 ]);
             }
+
+            $transactionId = $refundInfo['transaction_id']
+                ?? $invoice->gateway_charge_id
+                ?? ($invoice->metadata['transaction_id'] ?? null);
+
+            app(PaymentService::class)->markRefundedByTransactionOrInvoice(
+                $transactionId ? (string) $transactionId : null,
+                $invoice->id,
+                (float) ($refundInfo['amount'] ?? $invoice->amount),
+            );
 
             return true;
         });

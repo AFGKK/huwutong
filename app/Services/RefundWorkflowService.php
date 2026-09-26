@@ -93,40 +93,59 @@ class RefundWorkflowService
     }
 
     /**
+     * 执行已批准退款（供引擎等外部调用）
+     */
+    public function processApprovedRefund(Refund $refund, array $data = []): Refund
+    {
+        return $this->review($refund->id, 'approve', $data);
+    }
+
+    /**
      * 批准退款
      */
     protected function approve(Refund $refund, array $data): Refund
     {
-        DB::transaction(function () use ($refund, $data) {
-            $refund->update([
-                'status' => 'approved',
-                'approved_by' => $data['operator_id'] ?? auth()->id(),
-                'approved_at' => now(),
-                'metadata' => array_merge($refund->metadata ?? [], [
-                    'review_notes' => $data['notes'] ?? '',
-                    'approved_by_name' => $data['operator_name'] ?? '',
-                ]),
-            ]);
+        try {
+            DB::transaction(function () use ($refund, $data) {
+                $refund->update([
+                    'status' => 'approved',
+                    'approved_by' => $data['operator_id'] ?? auth()->id(),
+                    'approved_at' => now(),
+                    'metadata' => array_merge($refund->metadata ?? [], [
+                        'review_notes' => $data['notes'] ?? '',
+                        'approved_by_name' => $data['operator_name'] ?? '',
+                    ]),
+                ]);
 
-            if (!$refund->invoice_id) {
-                $invoice = $this->resolveOrderInvoice($refund->order);
-                if ($invoice) {
-                    $refund->update(['invoice_id' => $invoice->id]);
+                if (!$refund->invoice_id) {
+                    $invoice = $this->resolveOrderInvoice($refund->order);
+                    if ($invoice) {
+                        $refund->update(['invoice_id' => $invoice->id]);
+                    }
                 }
+
+                $this->processRefundPayment($refund);
+
+                $this->revokeLicenses($refund);
+
+                $order = $refund->order;
+                if ($order) {
+                    $this->orderService->rollbackStock($order);
+                    $order->transitionTo(Order::STATUS_REFUNDED);
+                }
+
+                $refund->update(['status' => 'completed', 'completed_at' => now()]);
+            });
+        } catch (\Throwable $e) {
+            $refund->refresh();
+            if ($refund->status !== 'completed') {
+                $refund->update([
+                    'status' => 'failed',
+                    'failure_reason' => $e->getMessage(),
+                ]);
             }
-
-            $this->processRefundPayment($refund);
-
-            $this->revokeLicenses($refund);
-
-            $order = $refund->order;
-            if ($order) {
-                $this->orderService->rollbackStock($order);
-                $order->transitionTo(Order::STATUS_REFUNDED);
-            }
-
-            $refund->update(['status' => 'completed', 'completed_at' => now()]);
-        });
+            throw $e;
+        }
 
         return $refund->fresh();
     }
@@ -167,6 +186,10 @@ class RefundWorkflowService
 
             $paymentManager = app(PaymentManager::class);
             $gateway = $refund->payment_method ?: $refund->order?->payment_method ?: 'mock';
+            $knownDrivers = ['alipay', 'wechat', 'stripe', 'paypal', 'yipay', 'mock'];
+            if (! in_array($gateway, $knownDrivers, true)) {
+                $gateway = $invoice->metadata['payment_method'] ?? 'mock';
+            }
             $paymentManager->useDriver($gateway);
 
             $result = $paymentManager->refund($invoice, [
@@ -180,7 +203,7 @@ class RefundWorkflowService
                     'payment_method' => $gateway,
                 ]);
             } else {
-throw new \RuntimeException($result['error'] ?? __("app.refund_workflow.refund_gateway_failed"));
+                throw new \RuntimeException($result['error'] ?? __("app.refund_workflow.refund_gateway_failed"));
             }
         } catch (\Throwable $e) {
             Log::error('退款支付失败', [
@@ -188,9 +211,11 @@ throw new \RuntimeException($result['error'] ?? __("app.refund_workflow.refund_g
                 'error' => $e->getMessage(),
             ]);
             $refund->update([
+                'status' => 'failed',
                 'failure_reason' => '退款支付失败: ' . $e->getMessage(),
                 'metadata' => array_merge($refund->metadata ?? [], ['payment_refund_failed' => true]),
             ]);
+            throw $e;
         }
     }
 
